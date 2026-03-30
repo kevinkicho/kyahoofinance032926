@@ -1,0 +1,193 @@
+.radar-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  height: 100%;
+  animation: fadeIn 0.3s ease;
+  overflow-y: auto;
+}
+
+.radar-header-banner {
+  background: rgba(15, 23, 42, 0.4);
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #334155;
+  border-left: 4px solid #ef4444; /* Alert color */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.radar-header-banner h2 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.radar-subtext {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 0.5rem;
+  max-width: 800px;
+}
+
+.radar-split-view {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.radar-card {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.rc-header {
+  padding: 1rem 1.25rem;
+  background: rgba(51, 65, 85, 0.3);
+  border-bottom: 1px solid #334155;
+}
+
+.rc-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.rc-header span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Table */
+.radar-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.8rem;
+}
+
+.radar-table th {
+  color: var(--text-secondary);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  border-bottom: 1px solid #334155;
+}
+
+.radar-table td {
+  padding: 0.75rem 1rem;
+  color: #fff;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.2);
+}
+
+.radar-table tr:hover {
+  background: rgba(51, 65, 85, 0.2);
+}
+
+.tr-pos td:last-child { background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.05)); }
+.tr-neg td:last-child { background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.05)); }
+
+.radar-ticker-btn {
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.radar-ticker-btn:hover { color: var(--accent-color); }
+.radar-flag { font-size: 0.7rem; opacity: 0.8; margin-left: 0.25rem; }
+.radar-badge { background: #334155; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 600; color: #cbd5e1; }
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+.fw-bold { font-weight: 700; }
+.text-green { color: #4ade80; }
+.text-red { color: #f87171; }
+
+/* Sector Grid */
+.sector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.sec-bubble {
+  background: rgba(51, 65, 85, 0.2);
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.sec-bubble-title {
+  margin: 0 0 1rem 0;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+  padding-bottom: 0.5rem;
+}
+
+.sec-list-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sec-list-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.sec-extreme {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.sec-extreme:hover { 
+  transform: translateX(4px); 
+  background: rgba(51, 65, 85, 0.6); 
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.sec-top { border-left: 2px solid #22c55e; }
+.sec-bot { border-left: 2px solid #ef4444; }
+
+.se-tick { font-weight: 700; color: #cbd5e1; }
+.se-pct { font-weight: 700; }
+
+@media (max-width: 1200px) {
+  .radar-split-view { flex-direction: column; }
+  .sector-grid { grid-template-columns: repeat(2, 1fr); }
+}

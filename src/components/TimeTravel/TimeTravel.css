@@ -1,0 +1,209 @@
+.timetravel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 0 1rem 0;
+}
+
+/* --- Timeline Rail --- */
+.timeline-rail {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  padding: 0.5rem 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+.era-connector {
+  flex: 1;
+  height: 2px;
+  min-width: 8px;
+  background: linear-gradient(90deg, #334155, #475569);
+}
+
+.era-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  min-width: 52px;
+  font-family: inherit;
+  position: relative;
+}
+
+.era-node:hover {
+  border-color: var(--era-color);
+  background: rgba(15, 23, 42, 0.9);
+  transform: translateY(-2px);
+}
+
+.era-node.active {
+  border-color: var(--era-color);
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--era-color) 50%, transparent);
+  transform: translateY(-3px);
+}
+
+.era-emoji {
+  font-size: 1rem;
+}
+
+.era-year {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.era-node.active .era-year {
+  color: var(--era-color);
+}
+
+/* Tooltip Magic */
+.era-tooltip {
+  position: absolute;
+  top: -45px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid var(--era-color);
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.35rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 100;
+  white-space: nowrap;
+}
+
+.et-label { font-size: 0.75rem; font-weight: 800; color: #fff; }
+.et-hint { font-size: 0.55rem; color: var(--text-secondary); text-transform: uppercase; margin-top: 0.15rem; }
+
+.era-node:hover .era-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Story Card --- */
+.era-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid color-mix(in srgb, var(--era-color) 40%, #334155);
+  border-radius: 0.5rem;
+  padding: 0.875rem;
+  animation: cardFade 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@keyframes cardFade {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.era-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.era-headline {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.15rem;
+}
+
+.era-sublabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--era-color);
+}
+
+.era-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--era-color) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--era-color) 50%, transparent);
+  color: var(--era-color);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.era-story {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.era-context-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.era-ctx-chip {
+  font-size: 0.65rem;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  border-radius: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* --- Sector Impact Bars --- */
+.era-sector-impacts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sector-impact-bar {
+  display: grid;
+  grid-template-columns: 80px 1fr 40px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.impact-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.impact-track {
+  height: 6px;
+  background: rgba(51, 65, 85, 0.5);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.impact-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.impact-fill.up   { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.impact-fill.down { background: linear-gradient(90deg, #b91c1c, #ef4444); }
+
+.impact-pct {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+}

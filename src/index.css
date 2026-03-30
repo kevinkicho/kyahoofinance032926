@@ -1,0 +1,64 @@
+:root {
+  --bg-color: #0f172a; /* Slate 900 for modern dark mode */
+  --card-bg: #1e293b; /* Slate 800 */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-color: #3b82f6; /* Blue 500 */
+  --color-green: #22c55e;
+  --color-red: #ef4444;
+  --sidebar-width: 300px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.view-container {
+  flex: 1;
+  padding: 1rem;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-green {
+  color: var(--color-green);
+}
+
+.text-red {
+  color: var(--color-red);
+}
+
+.tooltip-title {
+  color: #333;
+  margin-bottom: 5px;
+  font-weight: bold;
+}

@@ -1,0 +1,155 @@
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--card-bg);
+  border-left: 1px solid #334155;
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sidebar h2 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 1.5rem 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.macro-mode-toggle {
+  display: flex;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  margin: 1rem 0;
+  gap: 0.25rem;
+}
+
+.macro-mode-toggle button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.4rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.macro-mode-toggle button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.macro-mode-toggle button.active {
+  background: var(--accent-color);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.stat-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.stat-card.macro {
+  border-color: #475569;
+  background: linear-gradient(145deg, rgba(15,23,42,0.5), rgba(59,130,246,0.1));
+}
+
+.stat-card h3 {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* FX Dashboard Styles */
+.fx-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.fx-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.fx-grid::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+.fx-card {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid #334155;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.fx-card:hover {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.fx-card strong { 
+  color: var(--text-secondary); 
+}
+
+/* Macro Stat Grid */
+.macro-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.macro-card {
+  padding: 0.75rem;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.375rem;
+}
+
+.macro-card .label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.macro-card .value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #93c5fd;
+}
+
+.macro-card .trend {
+  font-size: 0.7rem;
+  margin-left: 0.5rem;
+}
