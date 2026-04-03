@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Header from './components/Header/Header';
 import HeatmapView from './components/HeatmapView/HeatmapView';
 import ListView from './components/ListView/ListView';
@@ -8,7 +8,8 @@ import ModelExplorer from './components/ModelExplorer/ModelExplorer';
 import DataHub from './components/DataHub/DataHub';
 import Sidebar from './components/Sidebar/Sidebar';
 import { mockTreemapData } from './mockData';
-import { exchangeRates, currencySymbols } from './utils/constants';
+import { currencySymbols } from './utils/constants';
+import { useFrankfurterRates } from './utils/useFrankfurterRates';
 import { getExtendedDetails } from './utils/dataHelpers';
 import { buildGlobalMacroEngine, predictMacroImpact } from './utils/mlEngine';
 import { ERAS } from './components/TimeTravel/TimeTravel';
@@ -35,15 +36,19 @@ function App() {
   ]);
   const [useMlEngine, setUseMlEngine] = useState(false);
   const [mlModels, setMlModels] = useState(null);
-  
-  // Dynamic Data Pipeline - defaults to simulated data, swappable to live APIs
+  const [rankMetric, setRankMetric] = useState('marketCap');
+  const [groupBy, setGroupBy] = useState('market'); // 'market' | 'sectorInMarket' | 'sectorGlobal'
+
+  // Dynamic Data Pipeline - defaults to real stock universe, swappable to live APIs
   const [marketUniverse, setMarketUniverse] = useState(mockTreemapData);
 
-  React.useEffect(() => {
+  const { rates, isLive: ratesIsLive, lastUpdated: ratesDate } = useFrankfurterRates();
+
+  useEffect(() => {
     setMlModels(buildGlobalMacroEngine());
   }, []);
 
-  const currentRate = exchangeRates[currency] || 1;
+  const currentRate = rates[currency] || 1;
   const currentSymbol = currencySymbols[currency] || '$';
 
   // Macro Valuation Engine — composes era multiplier × scenario slider
@@ -72,35 +77,133 @@ function App() {
     return Math.max(0.1, item.value * eraMult * Math.max(0.1, scenarioMult));
   };
 
-  // Processed Treemap with Era + Scenario Impacts
+  // Pick the treemap sizing metric — revenue/netIncome resize cells; pe/divYield use marketCap size
+  const getMetricValue = (stock, metric) => {
+    if (metric === 'revenue')    return Math.max(stock.revenue   || 0.1, 0.1);
+    if (metric === 'netIncome')  return Math.max(stock.netIncome || 0.1, 0.1);
+    if (metric === 'pe')         return stock.marketCap || stock.value || 1; // size unchanged, rank by pe
+    if (metric === 'divYield')   return stock.marketCap || stock.value || 1; // size unchanged, rank by divYield
+    return stock.marketCap || stock.value || 1; // default: marketCap
+  };
+
+  const getRankValue = (stock, metric) => {
+    if (metric === 'revenue')   return stock.revenue   || 0;
+    if (metric === 'netIncome') return stock.netIncome || 0;
+    if (metric === 'pe')        return -(stock.pe      || 999); // lower PE = better = rank 1
+    if (metric === 'divYield')  return stock.divYield  || 0;
+    return stock.marketCap || stock.value || 0;
+  };
+
+  // Processed Treemap with Era + Scenario Impacts + Ranking
   const adjustedTreemapData = useMemo(() => {
     const era = ERAS.find(e => e.id === activeEra) || ERAS[ERAS.length - 1];
-    return marketUniverse.map(region => ({
-      ...region,
-      children: region.children.map(stock => ({
+    return marketUniverse.map(region => {
+      const withAdjusted = region.children.map(stock => ({
         ...stock,
-        adjustedValue: getAdjustedValue(stock, scenarios, era.multipliers)
-      }))
-    }));
-  }, [marketUniverse, scenarios, activeEra, useMlEngine, mlModels]);
+        adjustedValue: getAdjustedValue(stock, scenarios, era.multipliers),
+        metricValue:   getMetricValue(stock, rankMetric),
+      }));
+      // Rank within region by selected metric (descending)
+      const sorted = [...withAdjusted].sort((a, b) =>
+        getRankValue(b, rankMetric) - getRankValue(a, rankMetric)
+      );
+      return {
+        ...region,
+        children: sorted.map((stock, idx) => ({ ...stock, rank: idx + 1 })),
+      };
+    });
+  }, [marketUniverse, scenarios, activeEra, useMlEngine, mlModels, rankMetric]);
 
-  // Flatten mock data for list view and stats
+  const SECTOR_COLORS = {
+    'Technology':  '#3b82f6',
+    'Financials':  '#10b981',
+    'Consumer':    '#f59e0b',
+    'Healthcare':  '#ec4899',
+    'Energy':      '#f97316',
+    'Industrials': '#8b5cf6',
+    'Other':       '#64748b',
+  };
+
+  // Reorganize treemap data for sector views
+  const heatmapData = useMemo(() => {
+    if (groupBy === 'sectorInMarket') {
+      return adjustedTreemapData.map(region => {
+        const bySector = {};
+        region.children.forEach(stock => {
+          const sec = stock.sector || 'Other';
+          if (!bySector[sec]) bySector[sec] = [];
+          bySector[sec].push(stock);
+        });
+        return {
+          ...region,
+          children: Object.entries(bySector)
+            .sort(([a], [b]) => {
+              const sumA = bySector[a].reduce((s, st) => s + (st.metricValue || st.value || 0), 0);
+              const sumB = bySector[b].reduce((s, st) => s + (st.metricValue || st.value || 0), 0);
+              return sumB - sumA;
+            })
+            .map(([sector, stocks]) => ({
+              name: sector,
+              isSectorGroup: true,
+              value: stocks.reduce((s, st) => s + (st.metricValue || st.value || 0), 0),
+              itemStyle: { color: 'transparent', borderColor: SECTOR_COLORS[sector] || '#64748b', borderWidth: 2 },
+              children: stocks,
+            })),
+        };
+      });
+    }
+    if (groupBy === 'sectorGlobal') {
+      const bySector = {};
+      adjustedTreemapData.forEach(region => {
+        region.children.forEach(stock => {
+          const sec = stock.sector || 'Other';
+          if (!bySector[sec]) bySector[sec] = [];
+          bySector[sec].push({ ...stock, regionName: region.name });
+        });
+      });
+      return Object.entries(bySector)
+        .sort(([, a], [, b]) => {
+          const sumA = a.reduce((s, st) => s + (st.metricValue || st.value || 0), 0);
+          const sumB = b.reduce((s, st) => s + (st.metricValue || st.value || 0), 0);
+          return sumB - sumA;
+        })
+        .map(([sector, stocks]) => ({
+          name: sector,
+          isSectorGroup: true,
+          value: stocks.reduce((s, st) => s + (st.metricValue || st.value || 0), 0),
+          itemStyle: { color: SECTOR_COLORS[sector] || '#64748b', borderWidth: 3, borderColor: '#1e1e1e' },
+          children: stocks.sort((a, b) => (b.metricValue || b.value || 0) - (a.metricValue || a.value || 0)),
+        }));
+    }
+    return adjustedTreemapData;
+  }, [adjustedTreemapData, groupBy]);
+
+
+  // Flatten for list view and stats
   const flatData = useMemo(() => {
     const arr = [];
     adjustedTreemapData.forEach(region => {
       region.children.forEach(stock => {
-        let perfStr = stock.itemStyle.color === '#27ae60' || stock.itemStyle.color === '#2ecc71' ? '+1.54%' : '-2.10%';
+        const isUp = stock.itemStyle.color === '#27ae60' || stock.itemStyle.color === '#2ecc71';
         arr.push({
           region: region.name,
           regionCurrency: region.currency,
           regionSymbol: region.symbol,
           regionColor: region.itemStyle.borderColor,
           ticker: stock.name,
+          fullName: stock.fullName || stock.name,
           value: stock.value,
           adjustedValue: stock.adjustedValue,
+          metricValue: stock.metricValue,
+          marketCap: stock.marketCap,
+          revenue: stock.revenue,
+          netIncome: stock.netIncome,
+          pe: stock.pe,
+          divYield: stock.divYield,
+          rank: stock.rank,
           sector: stock.sector,
           color: stock.itemStyle.color,
-          perf: perfStr
+          perf: isUp ? '+1.54%' : '-2.10%',
         });
       });
     });
@@ -131,34 +234,58 @@ function App() {
   const renderSortIndicator = (key) => sortConfig.key === key ? (sortConfig.direction === 'ascending' ? ' ▲' : ' ▼') : '';
 
   const handleSelectTicker = async (tickerInfo) => {
-    const details = getExtendedDetails(tickerInfo);
-    setSelectedTicker({ ...tickerInfo, details, isLive: false });
+    const details = getExtendedDetails(tickerInfo, rates);
+    setSelectedTicker({ ...tickerInfo, details, isLive: false, summaryData: null, historyData: null });
 
-    try {
-      const response = await fetch('/api/stocks', {
+    const sym = tickerInfo.regionSymbol || '$';
+    const enc = encodeURIComponent(tickerInfo.ticker);
+
+    const [quoteRes, summaryRes, historyRes] = await Promise.allSettled([
+      fetch('/api/stocks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tickers: [tickerInfo.ticker] })
-      });
-      if (response.ok) {
-        const liveData = await response.json();
-        const live = liveData[tickerInfo.ticker];
-        if (live) {
-          const mergedDetails = {
-            ...details,
-            price: live.price ? `${tickerInfo.regionSymbol}${live.price.toLocaleString()}` : details.price,
-            changeAmt: live.change ? `${live.change > 0 ? '+' : ''}${tickerInfo.regionSymbol}${live.change.toFixed(2)}` : details.changeAmt,
-            changePct: live.changePct ? `${live.changePct > 0 ? '+' : ''}${live.changePct.toFixed(2)}%` : details.changePct,
-            marketCapNative: live.marketCap ? `${tickerInfo.regionSymbol}${(live.marketCap / 1e12).toFixed(2)} T` : details.marketCapNative,
-            marketCapGlobal: live.marketCap ? `$${(live.marketCap / 1e9 / currentRate).toFixed(0)} B (Glob.)` : details.marketCapGlobal,
-            volume: live.volume ? live.volume.toLocaleString() : details.volume
-          };
-          setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive: true }));
-        }
+      }),
+      fetch(`/api/summary/${enc}`),
+      fetch(`/api/history/${enc}?period=1y`),
+    ]);
+
+    let mergedDetails = { ...details };
+    let isLive = false;
+
+    if (quoteRes.status === 'fulfilled' && quoteRes.value.ok) {
+      const liveData = await quoteRes.value.json();
+      const live = liveData[tickerInfo.ticker];
+      if (live) {
+        isLive = true;
+        mergedDetails = {
+          ...mergedDetails,
+          price:          live.price    != null ? `${sym}${live.price.toLocaleString()}` : mergedDetails.price,
+          changeAmt:      live.change   != null ? `${live.change >= 0 ? '+' : ''}${sym}${live.change.toFixed(2)}` : mergedDetails.changeAmt,
+          changePct:      live.changePct != null ? `${live.changePct >= 0 ? '+' : ''}${live.changePct.toFixed(2)}%` : mergedDetails.changePct,
+          open:           live.open     != null ? `${sym}${live.open.toLocaleString()}` : mergedDetails.open,
+          prevClose:      live.prevClose != null ? `${sym}${live.prevClose.toLocaleString()}` : mergedDetails.prevClose,
+          dayRange:       (live.dayLow && live.dayHigh) ? `${sym}${live.dayLow.toFixed(2)} – ${sym}${live.dayHigh.toFixed(2)}` : mergedDetails.dayRange,
+          wk52Range:      (live.weekLow52 && live.weekHigh52) ? `${sym}${live.weekLow52.toFixed(2)} – ${sym}${live.weekHigh52.toFixed(2)}` : mergedDetails.wk52Range,
+          bid:            live.bid      != null ? `${sym}${live.bid.toFixed(2)} × ${live.bidSize || ''}` : mergedDetails.bid,
+          ask:            live.ask      != null ? `${sym}${live.ask.toFixed(2)} × ${live.askSize || ''}` : mergedDetails.ask,
+          volume:         live.volume   != null ? live.volume.toLocaleString() : mergedDetails.volume,
+          avgVol:         live.avgVolume != null ? live.avgVolume.toLocaleString() : mergedDetails.avgVol,
+          marketCapNative: live.marketCap ? `${sym}${(live.marketCap / 1e12).toFixed(2)} T` : mergedDetails.marketCapNative,
+          marketCapGlobal: live.marketCap ? `$${(live.marketCap / 1e9 / currentRate).toFixed(0)} B (Glob.)` : mergedDetails.marketCapGlobal,
+          pe:             live.pe       != null ? live.pe.toFixed(2) : mergedDetails.pe,
+          eps:            live.eps      != null ? `${sym}${live.eps.toFixed(2)}` : mergedDetails.eps,
+          beta:           live.beta     != null ? live.beta.toFixed(2) : mergedDetails.beta,
+        };
       }
-    } catch (err) {
-      console.warn('Backend server not responding, using mock fallback.');
     }
+
+    const summaryData = (summaryRes.status === 'fulfilled' && summaryRes.value.ok)
+      ? await summaryRes.value.json() : null;
+    const historyData = (historyRes.status === 'fulfilled' && historyRes.value.ok)
+      ? await historyRes.value.json() : null;
+
+    setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive, summaryData, historyData }));
   };
 
   const onChartClick = (params) => {
@@ -170,20 +297,24 @@ function App() {
 
   return (
     <div className="app-container">
-      <Header 
-        viewMode={viewMode} setViewMode={setViewMode} 
+      <Header
+        viewMode={viewMode} setViewMode={setViewMode}
         currency={currency} setCurrency={setCurrency}
         showTimeTravel={showTimeTravel} setShowTimeTravel={setShowTimeTravel}
+        rankMetric={rankMetric} setRankMetric={setRankMetric}
+        groupBy={groupBy} setGroupBy={setGroupBy}
       />
       <main className="main-content">
         <div className="view-container">
           {viewMode === 'heatmap' && (
-            <HeatmapView 
-              data={adjustedTreemapData} 
-              onChartClick={onChartClick} 
-              currentRate={currentRate} 
-              currentSymbol={currentSymbol} 
-              currency={currency} 
+            <HeatmapView
+              data={heatmapData}
+              onChartClick={onChartClick}
+              currentRate={currentRate}
+              currentSymbol={currentSymbol}
+              currency={currency}
+              rankMetric={rankMetric}
+              groupBy={groupBy}
             />
           )}
           {viewMode === 'list' && (
@@ -220,7 +351,8 @@ function App() {
         </div>
         <Sidebar 
           selectedTicker={selectedTicker} setSelectedTicker={setSelectedTicker} flatData={flatData} 
-          currentRate={currentRate} currentSymbol={currentSymbol} currency={currency} 
+          currentRate={currentRate} currentSymbol={currentSymbol} currency={currency}
+          rates={rates} ratesIsLive={ratesIsLive} ratesDate={ratesDate}
           scenarios={scenarios} setScenarios={setScenarios}
           activeEra={activeEra} setActiveEra={setActiveEra}
           showTimeTravel={showTimeTravel}

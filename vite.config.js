@@ -87,64 +87,7 @@ function macroApiPlugin() {
         }
       });
 
-      // Alpha Vantage Ethical Academic Data Proxy
-      server.middlewares.use('/api/stocks', (req, res) => {
-        if (req.method !== 'POST') { res.end('{}'); return; }
-        res.setHeader('Content-Type', 'application/json');
-        let body = '';
-        req.on('data', c => body += c);
-        req.on('end', async () => {
-          try {
-            const { tickers } = JSON.parse(body);
-            if (!Array.isArray(tickers)) return res.end('{}');
-            
-            const result = {};
-            const AV_KEY = 'I9VGX222N4N24PEX';
-
-            // Sequential fetch to avoid immediately blowing through Alpha Vantage 5/min limits
-            for (const ticker of tickers) {
-              const hit = cache.get(`av_profile_${ticker}`);
-              if (hit) { result[ticker] = hit; continue; }
-              
-              try {
-                // Endpoint 1: Real-Time Price Data
-                const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}&apikey=${AV_KEY}`;
-                const quoteData = await fetchJSON(quoteUrl);
-                const q = quoteData?.['Global Quote'] || {};
-                
-                // Endpoint 2: Fundamental Metadata (Sector, Market Cap)
-                const overviewUrl = `https://www.alphavantage.co/query?function=OVERVIEW&symbol=${encodeURIComponent(ticker)}&apikey=${AV_KEY}`;
-                const overviewData = await fetchJSON(overviewUrl);
-
-                // Alpha Vantage occasionally returns Note limit warnings
-                if (quoteData.Note || overviewData.Note) {
-                  throw new Error('Alpha Vantage Rate Limit Reached.');
-                }
-
-                if (q['05. price']) {
-                  const entry = {
-                    ticker,
-                    price: parseFloat(q['05. price']),
-                    change: parseFloat(q['09. change']),
-                    changePct: parseFloat((q['10. change percent'] || '0').replace('%', '')),
-                    currency: overviewData.Currency || 'USD',
-                    marketCap: parseFloat(overviewData.MarketCapitalization) || 1000000000,
-                    sector: overviewData.Sector || 'Unknown'
-                  };
-                  cache.set(`av_profile_${ticker}`, entry, 1800); // 30 min cache to protect AV limits
-                  result[ticker] = entry;
-                }
-              } catch (err) { 
-                console.error(`Failed AV fetch for ${ticker}:`, err.message); 
-              }
-            }
-            res.end(JSON.stringify(result));
-          } catch (e) {
-            res.statusCode = 500;
-            res.end(JSON.stringify({ error: e.message }));
-          }
-        });
-      });
+      // /api/stocks, /api/summary, /api/history are proxied to Express (see server.proxy below)
 
       // Local 🦙 Ollama AI Extraction Engine (Zero Cost, 100% Offline)
       server.middlewares.use('/api/ollama-extraction', async (req, res) => {
@@ -221,5 +164,12 @@ function macroApiPlugin() {
 
 export default defineConfig({
   plugins: [react(), macroApiPlugin()],
-  server: { port: 5173 }
+  server: {
+    port: 5173,
+    proxy: {
+      '/api/stocks':  { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/summary': { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/history': { target: 'http://localhost:3001', changeOrigin: true },
+    }
+  }
 })

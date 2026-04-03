@@ -4,7 +4,7 @@ import ScenarioController from './ScenarioController';
 import TimeTravel from '../TimeTravel/TimeTravel';
 import CountryMacro from './CountryMacro';
 import { ERAS } from '../TimeTravel/TimeTravel';
-import { exchangeRates } from '../../utils/constants';
+import { exchangeRates } from '../../utils/constants'; // fallback only
 import './Sidebar.css';
 
 const MOCK_MACRO = {
@@ -35,6 +35,9 @@ const Sidebar = ({
   currentRate,
   currentSymbol,
   currency,
+  rates,
+  ratesIsLive,
+  ratesDate,
   scenarios,
   setScenarios,
   activeEra,
@@ -43,6 +46,7 @@ const Sidebar = ({
   useMlEngine,
   setUseMlEngine
 }) => {
+  const fxRates = rates || exchangeRates;
   const [macroData, setMacroData] = useState(MOCK_MACRO);
   const [macroLive, setMacroLive] = useState(false);
   const [macroMode, setMacroMode] = useState('global'); // 'global' or 'regional'
@@ -124,15 +128,21 @@ const Sidebar = ({
             </>
           )}
 
-          <h2>Live FX Rates (vs USD)</h2>
+          <h2>
+            FX Rates (vs USD)
+            {ratesIsLive
+              ? <span style={{ fontSize: '0.7rem', color: '#10b981', marginLeft: '0.5rem' }}>● Live {ratesDate}</span>
+              : <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: '0.5rem' }}>● Static fallback</span>
+            }
+          </h2>
           <div className="fx-grid">
-            {Object.entries(exchangeRates)
+            {Object.entries(fxRates)
               .filter(([k]) => k !== 'USD')
               .sort(([k1], [k2]) => k1.localeCompare(k2))
               .map(([cur, rate]) => (
                 <div key={cur} className="fx-card">
                   <strong>{cur}</strong>
-                  <span>{rate.toFixed(2)}</span>
+                  <span>{rate.toFixed(cur === 'JPY' || cur === 'KRW' || cur === 'IDR' ? 0 : 2)}</span>
                 </div>
               ))}
           </div>

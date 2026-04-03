@@ -1,11 +1,88 @@
 .app-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
+  flex-direction: column;
+  padding: 0.75rem 2rem 0;
   background-color: var(--card-bg);
   border-bottom: 1px solid #334155;
   z-index: 10;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.6rem;
+}
+
+/* ── Ranking Bar ─────────────────────────────────────────── */
+.ranking-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0 0.5rem;
+  border-top: 1px solid rgba(51,65,85,0.5);
+  flex-wrap: wrap;
+}
+
+.ranking-label {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 0.2rem;
+  white-space: nowrap;
+}
+
+.rank-btn {
+  padding: 0.2rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid #334155;
+  background: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.rank-btn:hover {
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.rank-btn.active {
+  background: rgba(96,165,250,0.15);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.ranking-bar-sep {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: #334155;
+  margin: 0 0.4rem;
+  align-self: center;
+}
+
+.group-btn.active {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: #a855f7;
+  color: #a855f7;
+}
+
+.group-btn:hover {
+  border-color: #a855f7;
+  color: #a855f7;
+}
+
+.ranking-hint {
+  font-size: 0.68rem;
+  color: #475569;
+  margin-left: 0.5rem;
+  font-style: italic;
 }
 
 .app-header h1 {

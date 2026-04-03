@@ -1,15 +1,17 @@
 import { exchangeRates } from './constants';
 
 // Deterministic Details Generator for Mock Data
-export const getExtendedDetails = (tickerInfo) => {
+// rates: live Frankfurter rates (falls back to static exchangeRates if not provided)
+export const getExtendedDetails = (tickerInfo, rates) => {
   if (!tickerInfo) return null;
   let hash = 0;
   for (let i = 0; i < tickerInfo.ticker.length; i++) hash = tickerInfo.ticker.charCodeAt(i) + ((hash << 5) - hash);
   const seed = Math.abs(hash);
   const rand = (min, max) => min + (seed % 1000) / 1000 * (max - min);
-  
+
   const basePriceUSD = rand(10, 500);
-  const rate = exchangeRates[tickerInfo.regionCurrency] || 1;
+  const rateTable = rates || exchangeRates;
+  const rate = rateTable[tickerInfo.regionCurrency] || 1;
   const sym = tickerInfo.regionSymbol || '$';
   
   const nativePriceNum = basePriceUSD * rate;

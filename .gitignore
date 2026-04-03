@@ -33,6 +33,13 @@ lerna-debug.log*
 .env.local
 .env.*.local
 
+# Local stock data cache (downloaded by scripts/fetch-universe.js, ~52MB)
+data/stocks/
+data/manifest.json
+
+# Historical price data from worlddatamap (~220MB, 4047 tickers)
+prices/
+
 # Testing
 coverage/
 
