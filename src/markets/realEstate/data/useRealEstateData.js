@@ -11,6 +11,7 @@ const SERVER = '';
 export function useRealEstateData() {
   const [priceIndexData, setPriceIndexData] = useState(mockPriceIndexData);
   const [reitData,       setReitData]       = useState(mockReitData);
+  const [mortgageRates,  setMortgageRates]  = useState(null);
   const [isLive,         setIsLive]         = useState(false);
   const [lastUpdated,    setLastUpdated]    = useState('Mock data — Apr 2025');
   const [isLoading,      setIsLoading]      = useState(true);
@@ -23,6 +24,7 @@ export function useRealEstateData() {
         if (data.priceIndexData && Object.keys(data.priceIndexData).length >= 2) {
           setPriceIndexData(prev => ({ ...prev, ...data.priceIndexData }));
         }
+        if (data.mortgageRates?.rate30y) setMortgageRates(data.mortgageRates);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
       })
@@ -30,5 +32,5 @@ export function useRealEstateData() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  return { priceIndexData, reitData, affordabilityData, capRateData, isLive, lastUpdated, isLoading };
+  return { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, isLive, lastUpdated, isLoading };
 }

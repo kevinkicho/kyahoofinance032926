@@ -38,3 +38,23 @@ describe('AffordabilityMap', () => {
     expect(bars.length).toBe(mockData.length);
   });
 });
+
+describe('AffordabilityMap — mortgage rates', () => {
+  it('renders mortgage rate banner when mortgageRates provided', () => {
+    render(<AffordabilityMap affordabilityData={mockData} mortgageRates={{ rate30y: 6.82, rate15y: 6.15, asOf: '2026-04-03' }} />);
+    expect(screen.getByText(/30-Year Fixed/i)).toBeInTheDocument();
+    expect(screen.getByText(/6\.82%/)).toBeInTheDocument();
+  });
+
+  it('renders 15-year rate in banner', () => {
+    render(<AffordabilityMap affordabilityData={mockData} mortgageRates={{ rate30y: 6.82, rate15y: 6.15, asOf: '2026-04-03' }} />);
+    expect(screen.getByText(/15-Year Fixed/i)).toBeInTheDocument();
+    expect(screen.getByText(/6\.15%/)).toBeInTheDocument();
+  });
+
+  it('renders without mortgage rates (null is acceptable)', () => {
+    render(<AffordabilityMap affordabilityData={mockData} mortgageRates={null} />);
+    expect(screen.getByText('Affordability Map')).toBeInTheDocument();
+    expect(screen.queryByText(/30-Year Fixed/i)).not.toBeInTheDocument();
+  });
+});

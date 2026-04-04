@@ -15,7 +15,7 @@ const SUB_TABS = [
 
 export default function RealEstateMarket() {
   const [activeTab, setActiveTab] = useState('price-index');
-  const { priceIndexData, reitData, affordabilityData, capRateData, isLive, lastUpdated, isLoading } = useRealEstateData();
+  const { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, isLive, lastUpdated, isLoading } = useRealEstateData();
 
   if (isLoading) {
     return (
@@ -48,7 +48,7 @@ export default function RealEstateMarket() {
       <div className="re-content">
         {activeTab === 'price-index'       && <PriceIndex       priceIndexData={priceIndexData} />}
         {activeTab === 'reit-screen'       && <REITScreen       reitData={reitData} />}
-        {activeTab === 'affordability-map' && <AffordabilityMap affordabilityData={affordabilityData} />}
+        {activeTab === 'affordability-map' && <AffordabilityMap affordabilityData={affordabilityData} mortgageRates={mortgageRates} />}
         {activeTab === 'cap-rate-monitor'  && <CapRateMonitor   capRateData={capRateData} />}
       </div>
     </div>

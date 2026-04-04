@@ -10,7 +10,7 @@ function ptiColor(pti) {
   return '#22c55e';
 }
 
-export default function AffordabilityMap({ affordabilityData }) {
+export default function AffordabilityMap({ affordabilityData, mortgageRates }) {
   const sorted = [...affordabilityData].sort((a, b) => b.priceToIncome - a.priceToIncome);
 
   return (
@@ -19,6 +19,20 @@ export default function AffordabilityMap({ affordabilityData }) {
         <span className="re-panel-title">Affordability Map</span>
         <span className="re-panel-subtitle">Price-to-income ratio by city · sorted least affordable first</span>
       </div>
+      {mortgageRates && (
+        <div className="afford-mortgage-banner">
+          <div className="afford-mortgage-item">
+            <span className="afford-mortgage-label">30-Year Fixed</span>
+            <span className="afford-mortgage-rate">{mortgageRates.rate30y.toFixed(2)}%</span>
+          </div>
+          <div className="afford-mortgage-divider" />
+          <div className="afford-mortgage-item">
+            <span className="afford-mortgage-label">15-Year Fixed</span>
+            <span className="afford-mortgage-rate">{mortgageRates.rate15y.toFixed(2)}%</span>
+          </div>
+          <span className="afford-mortgage-source">FRED · as of {mortgageRates.asOf}</span>
+        </div>
+      )}
       <div className="afford-scroll">
         <table className="afford-table">
           <thead>

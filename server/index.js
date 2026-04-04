@@ -716,7 +716,27 @@ app.get('/api/realEstate', async (req, res) => {
       } catch { /* use mock */ }
     }
 
-    const result = { reitData, priceIndexData, lastUpdated: new Date().toISOString().split('T')[0] };
+    // 3. Mortgage rates from FRED
+    let mortgageRates = null;
+    if (FRED_API_KEY) {
+      try {
+        const [rate30, rate15] = await Promise.all([
+          fetchFredHistory('MORTGAGE30US', 2),
+          fetchFredHistory('MORTGAGE15US', 2),
+        ]);
+        const latest30 = rate30[rate30.length - 1];
+        const latest15 = rate15[rate15.length - 1];
+        if (latest30 && latest15) {
+          mortgageRates = {
+            rate30y: Math.round(latest30.value * 100) / 100,
+            rate15y: Math.round(latest15.value * 100) / 100,
+            asOf: latest30.date,
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    const result = { reitData, priceIndexData, mortgageRates, lastUpdated: new Date().toISOString().split('T')[0] };
     cache.set(cacheKey, result, 900);
     res.json(result);
   } catch (error) {
