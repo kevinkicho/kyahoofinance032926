@@ -1,0 +1,85 @@
+/* src/markets/realEstate/components/REComponents.css */
+.re-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
+}
+.re-panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.re-panel-title    { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+.re-panel-subtitle { font-size: 11px; color: #64748b; flex: 1; }
+.re-panel-footer   { margin-top: 12px; font-size: 10px; color: #475569; flex-shrink: 0; }
+.re-chart-wrap     { flex: 1; min-height: 0; }
+
+/* REIT Screen table */
+.reit-scroll { overflow: auto; flex: 1; }
+.reit-table  { border-collapse: collapse; min-width: 100%; }
+.reit-th {
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border: 1px solid #0f172a;
+  text-align: right;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.reit-th:first-child,
+.reit-th:nth-child(2),
+.reit-th:nth-child(3) { text-align: left; }
+.reit-th.sorted { color: #f97316; }
+.reit-row { transition: background 0.1s; }
+.reit-row:hover { background: #1e293b; }
+.reit-cell {
+  padding: 8px 12px;
+  border: 1px solid #0f172a;
+  text-align: right;
+  font-size: 12px;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+.reit-cell:first-child { text-align: left; font-weight: 600; color: #f97316; }
+.reit-cell:nth-child(2) { text-align: left; color: #e2e8f0; }
+.reit-cell:nth-child(3) {
+  text-align: left;
+  font-size: 10px;
+  color: #64748b;
+}
+.reit-positive { color: #22c55e; }
+.reit-negative { color: #ef4444; }
+
+/* Affordability table */
+.afford-scroll { overflow: auto; flex: 1; }
+.afford-table  { border-collapse: collapse; min-width: 100%; }
+.afford-th {
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid #0f172a;
+  text-align: right;
+  white-space: nowrap;
+}
+.afford-th:first-child { text-align: left; }
+.afford-cell {
+  padding: 8px 14px;
+  border: 1px solid #0f172a;
+  text-align: right;
+  font-size: 12px;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+.afford-cell:first-child { text-align: left; font-weight: 500; color: #e2e8f0; }
+.afford-bar-cell { padding: 8px 14px; border: 1px solid #0f172a; min-width: 120px; }
+.afford-bar-wrap { height: 8px; background: #0f172a; border-radius: 4px; overflow: hidden; }
+.afford-bar      { height: 100%; border-radius: 4px; transition: width 0.3s; }

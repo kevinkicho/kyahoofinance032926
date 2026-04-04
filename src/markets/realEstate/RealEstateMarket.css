@@ -1,0 +1,52 @@
+/* src/markets/realEstate/RealEstateMarket.css */
+.re-market {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: #0a0f1a;
+}
+
+.re-sub-tabs {
+  display: flex;
+  align-items: center;
+  background: #0d1117;
+  border-bottom: 1px solid #1e293b;
+  padding: 0 16px;
+  height: 38px;
+  flex-shrink: 0;
+}
+.re-sub-tab {
+  padding: 0 14px;
+  height: 100%;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.re-sub-tab:hover  { color: #94a3b8; }
+.re-sub-tab.active { color: #f97316; border-bottom-color: #f97316; }
+
+.re-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 20px;
+  background: #0d1117;
+  border-bottom: 1px solid #0f172a;
+  font-size: 10px;
+  color: #475569;
+  flex-shrink: 0;
+}
+.re-status-live { color: #f97316; }
+
+.re-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
