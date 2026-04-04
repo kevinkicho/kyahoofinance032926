@@ -16,7 +16,11 @@ function scaleCurve(mockCurve, live10y, mock10y) {
   const factor = live10y / mock10y;
   const scaled = {};
   for (const [tenor, val] of Object.entries(mockCurve)) {
-    scaled[tenor] = tenor === '10y' ? live10y : Math.round(val * factor * 100) / 100;
+    if (val == null) {
+      scaled[tenor] = val;
+    } else {
+      scaled[tenor] = tenor === '10y' ? live10y : Math.round(val * factor * 100) / 100;
+    }
   }
   return scaled;
 }
