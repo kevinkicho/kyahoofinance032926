@@ -1,0 +1,80 @@
+/* src/markets/fx/components/FXComponents.css */
+.fx-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 20px;
+  overflow: hidden;
+}
+.fx-panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.fx-panel-title    { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+.fx-panel-subtitle { font-size: 11px; color: #64748b; flex: 1; }
+.fx-panel-footer   { margin-top: 12px; font-size: 10px; color: #475569; flex-shrink: 0; }
+.fx-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #475569;
+  font-size: 13px;
+}
+.fx-chart-wrap { flex: 1; min-height: 0; }
+
+/* Carry table */
+.carry-scroll  { overflow: auto; flex: 1; }
+.fx-table      { border-collapse: collapse; min-width: 100%; }
+.fx-th, .fx-row-header {
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border: 1px solid #0f172a;
+  text-align: center;
+  white-space: nowrap;
+}
+.fx-corner { text-align: left; font-size: 10px; }
+.fx-cell {
+  padding: 8px 12px;
+  border: 1px solid #0f172a;
+  text-align: center;
+  min-width: 80px;
+}
+.fx-diagonal { background: #0a0f1a; color: #1e293b; }
+.fx-diff { font-size: 12px; font-weight: 500; }
+.fx-diff.positive { color: #22c55e; }
+.fx-diff.negative { color: #ef4444; }
+.fx-rate-hint { font-size: 9px; color: #64748b; font-weight: 400; }
+
+/* TopMovers */
+.movers-list  { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; }
+.mover-row    {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #1e293b;
+  border-radius: 6px;
+}
+.mover-rank   { color: #475569; font-size: 11px; min-width: 28px; }
+.mover-code   { font-size: 13px; font-weight: 600; color: #e2e8f0; min-width: 44px; }
+.mover-pair   { font-size: 11px; color: #475569; min-width: 42px; }
+.mover-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: #0f172a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.mover-bar { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+.mover-bar.positive { background: #22c55e; }
+.mover-bar.negative { background: #ef4444; }
+.mover-pct  { font-size: 12px; font-weight: 500; min-width: 68px; text-align: right; }
+.mover-pct.positive { color: #22c55e; }
+.mover-pct.negative { color: #ef4444; }
