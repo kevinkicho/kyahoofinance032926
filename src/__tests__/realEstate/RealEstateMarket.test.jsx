@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import RealEstateMarket from '../../markets/realEstate/RealEstateMarket';
 
 vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
@@ -7,8 +7,8 @@ vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-m
 describe('RealEstateMarket', () => {
   it('renders Price Index tab by default', () => {
     render(<RealEstateMarket />);
-    const content = screen.getByRole('button', { name: 'Price Index' }).parentElement.nextElementSibling.nextElementSibling;
-    expect(within(content).getByText('Price Index')).toBeInTheDocument();
+    // 'Price Index' appears in both the tab button and the panel title
+    expect(screen.getAllByText('Price Index').length).toBeGreaterThanOrEqual(2);
   });
 
   it('renders all 4 sub-tabs', () => {

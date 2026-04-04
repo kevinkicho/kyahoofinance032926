@@ -57,7 +57,7 @@ export default function REITScreen({ reitData }) {
                     ? (val >= 0 ? 'reit-positive' : 'reit-negative')
                     : '';
                   return (
-                    <td key={col.key} className={`reit-cell ${colorClass}`}>
+                    <td key={col.key} className={`reit-cell${colorClass ? ` ${colorClass}` : ''}`}>
                       {display}
                     </td>
                   );
