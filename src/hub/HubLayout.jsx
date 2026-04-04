@@ -1,0 +1,43 @@
+import React, { useState } from 'react';
+import MarketTabBar from './MarketTabBar';
+import { DEFAULT_MARKET } from './markets.config';
+import EquitiesMarket from '../markets/equities/EquitiesMarket';
+import BondsMarket from '../markets/bonds/BondsMarket';
+import FXMarket from '../markets/fx/FXMarket';
+import DerivativesMarket from '../markets/derivatives/DerivativesMarket';
+import RealEstateMarket from '../markets/realEstate/RealEstateMarket';
+import InsuranceMarket from '../markets/insurance/InsuranceMarket';
+
+const MARKET_COMPONENTS = {
+  equities:    EquitiesMarket,
+  bonds:       BondsMarket,
+  fx:          FXMarket,
+  derivatives: DerivativesMarket,
+  realEstate:  RealEstateMarket,
+  insurance:   InsuranceMarket,
+};
+
+export default function HubLayout() {
+  const [activeMarket, setActiveMarket] = useState(DEFAULT_MARKET);
+  const [currency, setCurrency] = useState('USD');
+  const [snapshotDate, setSnapshotDate] = useState(null);
+
+  const ActiveMarket = MARKET_COMPONENTS[activeMarket];
+
+  return (
+    <div className="hub-layout">
+      <MarketTabBar
+        activeMarket={activeMarket}
+        setActiveMarket={setActiveMarket}
+        currency={currency}
+        setCurrency={setCurrency}
+      />
+      <ActiveMarket
+        currency={currency}
+        setCurrency={setCurrency}
+        snapshotDate={snapshotDate}
+        setSnapshotDate={setSnapshotDate}
+      />
+    </div>
+  );
+}
