@@ -38,3 +38,11 @@ export const durationLadderData = [
   { bucket: '5–10y', amount: 6250, pct: 25.4 },
   { bucket: '10y+',  amount: 3950, pct: 16.1 },
 ];
+
+export const spreadIndicators = {
+  t10y2y:  0.42,
+  t10y3m: -0.15,
+  t5yie:   2.31,
+  t10yie:  2.28,
+  dfii10:  1.92,
+};

@@ -404,9 +404,26 @@ app.get('/api/bonds', async (req, res) => {
       BBB:   bbbArr.length === 12 ? bbbArr.map(p => Math.round(p.value))  : anchorArr.map(() => null),
     } : null;
 
+    // 4. Spread indicators — T10Y2Y, T10Y3M, breakeven inflation, TIPS real yield
+    const SPREAD_INDICATOR_SERIES = {
+      t10y2y: 'T10Y2Y',
+      t10y3m: 'T10Y3M',
+      t5yie:  'T5YIE',
+      t10yie: 'T10YIE',
+      dfii10: 'DFII10',
+    };
+    const indicatorEntries = await Promise.allSettled(
+      Object.entries(SPREAD_INDICATOR_SERIES).map(async ([key, sid]) => [key, await fetchFredLatest(sid)])
+    );
+    const spreadIndicators = {};
+    indicatorEntries.forEach(r => {
+      if (r.status === 'fulfilled' && r.value[1] != null) spreadIndicators[r.value[0]] = r.value[1];
+    });
+
     const result = {
       yieldCurveData,
       spreadData,
+      spreadIndicators: Object.keys(spreadIndicators).length >= 3 ? spreadIndicators : null,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
 

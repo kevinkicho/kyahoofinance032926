@@ -4,6 +4,7 @@ import {
   creditRatingsData,
   spreadData as mockSpreadData,
   durationLadderData,
+  spreadIndicators as mockSpreadIndicators,
 } from './mockBondsData';
 
 const SERVER = '';
@@ -46,6 +47,7 @@ function mergeYieldCurves(serverData, mock) {
 export function useBondsData() {
   const [yieldCurveData, setYieldCurveData]   = useState(mockYieldCurveData);
   const [spreadData, setSpreadData]           = useState(mockSpreadData);
+  const [spreadIndicators, setSpreadIndicators] = useState(mockSpreadIndicators);
   const [isLive, setIsLive]                   = useState(false);
   const [lastUpdated, setLastUpdated]         = useState('Mock data — Apr 2025');
   const [isLoading, setIsLoading]             = useState(true);
@@ -58,6 +60,9 @@ export function useBondsData() {
         const data = await r.json();
         if (data.yieldCurveData) setYieldCurveData(mergeYieldCurves(data.yieldCurveData, mockYieldCurveData));
         if (data.spreadData?.dates?.length === 12) setSpreadData(data.spreadData);
+        if (data.spreadIndicators && Object.keys(data.spreadIndicators).length >= 3) {
+          setSpreadIndicators(data.spreadIndicators);
+        }
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
       } catch {
@@ -69,5 +74,5 @@ export function useBondsData() {
     load();
   }, []);
 
-  return { yieldCurveData, creditRatingsData, spreadData, durationLadderData, isLive, lastUpdated, isLoading };
+  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, isLive, lastUpdated, isLoading };
 }

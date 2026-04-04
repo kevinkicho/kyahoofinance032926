@@ -30,3 +30,30 @@ describe('YieldCurve', () => {
     expect(screen.getByText(/3m.*30y/i)).toBeInTheDocument();
   });
 });
+
+const mockSpreadIndicators = {
+  t10y2y: 0.42,
+  t10y3m: -0.15,
+  t5yie: 2.31,
+  t10yie: 2.28,
+  dfii10: 1.92,
+};
+
+describe('YieldCurve — spreadIndicators', () => {
+  it('renders T10Y-2Y spread value', () => {
+    render(<YieldCurve yieldCurveData={mockData} spreadIndicators={mockSpreadIndicators} />);
+    expect(screen.getByText(/10Y.{1,3}2Y/i)).toBeInTheDocument();
+    expect(screen.getByText(/0\.42/)).toBeInTheDocument();
+  });
+
+  it('renders breakeven inflation label', () => {
+    render(<YieldCurve yieldCurveData={mockData} spreadIndicators={mockSpreadIndicators} />);
+    expect(screen.getAllByText(/Breakeven/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders without spreadIndicators (graceful null handling)', () => {
+    render(<YieldCurve yieldCurveData={mockData} spreadIndicators={null} />);
+    expect(screen.getByText('Yield Curve')).toBeInTheDocument();
+    expect(screen.queryByText(/10Y.{1,3}2Y/i)).not.toBeInTheDocument();
+  });
+});
