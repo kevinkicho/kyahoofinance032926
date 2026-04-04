@@ -528,6 +528,7 @@ app.get('/api/derivatives', async (req, res) => {
     let fearGreedData = null;
     try {
       const vixValue = vixArr.find(q => q.symbol === '^VIX')?.regularMarketPrice;
+      if (vixValue == null || isNaN(vixValue)) throw new Error('VIX price unavailable');
       const [spyHist, tltHist] = await Promise.all([
         yf.historical('^GSPC', { period1: (() => { const d = new Date(); d.setDate(d.getDate() - 180); return d.toISOString().split('T')[0]; })(), period2: new Date().toISOString().split('T')[0], interval: '1d' }),
         yf.historical('TLT',   { period1: (() => { const d = new Date(); d.setDate(d.getDate() - 30);  return d.toISOString().split('T')[0]; })(), period2: new Date().toISOString().split('T')[0], interval: '1d' }),
@@ -546,7 +547,7 @@ app.get('/api/derivatives', async (req, res) => {
 
       // TLT vs SPY 20-day return
       const tltCloses = tltHist.map(d => d.close).filter(Boolean);
-      const tlt20 = tltCloses.length >= 20 ? ((tltCloses[tltCloses.length - 1] - tltCloses[tltCloses.length - 21]) / tltCloses[tltCloses.length - 21]) * 100 : 0;
+      const tlt20 = tltCloses.length >= 21 ? ((tltCloses[tltCloses.length - 1] - tltCloses[tltCloses.length - 21]) / tltCloses[tltCloses.length - 21]) * 100 : 0;
       const spy20start = spyCloses.length >= 20 ? spyCloses[spyCloses.length - 21] : spyCloses[0];
       const spy20 = ((spyCurrent - spy20start) / spy20start) * 100;
       const tltRelPerf = tlt20 - spy20; // positive = bonds outperforming = fear
@@ -576,6 +577,7 @@ app.get('/api/derivatives', async (req, res) => {
     let volSurfaceData = null;
     try {
       const spyQuote = await yf.quote('SPY');
+      if (!spyQuote?.regularMarketPrice) throw new Error('SPY price unavailable');
       volSurfaceData = await buildVolSurface(spyQuote.regularMarketPrice);
     } catch { /* use mock */ }
 
