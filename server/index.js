@@ -597,6 +597,112 @@ app.get('/api/derivatives', async (req, res) => {
   }
 });
 
+// --- Real Estate Market Data ---
+const REIT_TICKERS = ['PLD', 'AMT', 'EQIX', 'SPG', 'WELL', 'AVB', 'BXP', 'PSA', 'O', 'VICI'];
+const REIT_META = {
+  PLD:  { name: 'Prologis',          sector: 'Industrial',   pFFO: 18.4 },
+  AMT:  { name: 'American Tower',    sector: 'Cell Towers',  pFFO: 22.1 },
+  EQIX: { name: 'Equinix',           sector: 'Data Centers', pFFO: 28.5 },
+  SPG:  { name: 'Simon Property',    sector: 'Retail',       pFFO: 12.8 },
+  WELL: { name: 'Welltower',         sector: 'Healthcare',   pFFO: 24.2 },
+  AVB:  { name: 'AvalonBay',         sector: 'Residential',  pFFO: 19.6 },
+  BXP:  { name: 'Boston Properties', sector: 'Office',       pFFO:  9.4 },
+  PSA:  { name: 'Public Storage',    sector: 'Self-Storage', pFFO: 16.2 },
+  O:    { name: 'Realty Income',     sector: 'Net Lease',    pFFO: 13.5 },
+  VICI: { name: 'VICI Properties',   sector: 'Gaming',       pFFO: 14.0 },
+};
+
+const BIS_SERIES = {
+  US: 'QUSR628BIS', UK: 'QGBR628BIS', DE: 'QDEU628BIS',
+  AU: 'QAUS628BIS', CA: 'QCAN628BIS', JP: 'QJPN628BIS',
+};
+
+function bisQuarterLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const q = Math.ceil((d.getUTCMonth() + 1) / 3);
+  return `Q${q} ${String(d.getUTCFullYear()).slice(2)}`;
+}
+
+app.get('/api/realEstate', async (req, res) => {
+  const cacheKey = 'realestate_data';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    // 1. REIT live quotes
+    let reitData = null;
+    try {
+      const quotes = await yf.quote(REIT_TICKERS);
+      const arr = Array.isArray(quotes) ? quotes : [quotes];
+      reitData = arr
+        .filter(q => q?.regularMarketPrice)
+        .map(q => {
+          const meta = REIT_META[q.symbol] || {};
+          const ytdReturn = q.ytdReturn != null
+            ? Math.round(q.ytdReturn * 1000) / 10
+            : (q.regularMarketChangePercent ? Math.round(q.regularMarketChangePercent * 10) / 10 : 0);
+          return {
+            ticker:        q.symbol,
+            name:          meta.name  || q.shortName || q.symbol,
+            sector:        meta.sector || 'REIT',
+            dividendYield: q.dividendYield != null ? Math.round(q.dividendYield * 1000) / 10 : null,
+            pFFO:          meta.pFFO,
+            ytdReturn,
+            marketCap:     q.marketCap ? Math.round(q.marketCap / 1e9) : null,
+            price:         Math.round(q.regularMarketPrice * 100) / 100,
+            changePct:     Math.round((q.regularMarketChangePercent ?? 0) * 100) / 100,
+          };
+        });
+      if (!reitData.length) reitData = null;
+    } catch { /* use mock */ }
+
+    // 2. House price indices from FRED BIS series
+    let priceIndexData = null;
+    if (FRED_API_KEY) {
+      try {
+        const bisEntries = await Promise.allSettled(
+          Object.entries(BIS_SERIES).map(async ([cc, sid]) => {
+            const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${sid}&api_key=${FRED_API_KEY}&file_type=json&sort_order=asc&observation_start=2020-01-01`;
+            const data = await fetchJSON(url);
+            const obs = (data?.observations || []).filter(o => o.value !== '.');
+            if (!obs.length) return [cc, null];
+            // Rebase to Q1 2020 = 100
+            const base = parseFloat(obs[0].value);
+            if (!base || isNaN(base)) return [cc, null];
+            const dated = obs.map(o => ({
+              label: bisQuarterLabel(o.date),
+              value: Math.round((parseFloat(o.value) / base) * 100 * 10) / 10,
+            }));
+            return [cc, dated];
+          })
+        );
+
+        const collected = {};
+        bisEntries.forEach(r => {
+          if (r.status === 'fulfilled' && r.value[1]) collected[r.value[0]] = r.value[1];
+        });
+
+        if (Object.keys(collected).length >= 2) {
+          priceIndexData = {};
+          for (const [cc, pts] of Object.entries(collected)) {
+            priceIndexData[cc] = {
+              dates:  pts.map(p => p.label),
+              values: pts.map(p => p.value),
+            };
+          }
+        }
+      } catch { /* use mock */ }
+    }
+
+    const result = { reitData, priceIndexData, lastUpdated: new Date().toISOString().split('T')[0] };
+    cache.set(cacheKey, result, 900);
+    res.json(result);
+  } catch (error) {
+    console.error('Real Estate API error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // --- Insurance Dashboard ---
 const INSURER_TICKERS = ['PGR', 'ALL', 'TRV', 'HIG'];
 const INSURER_NAMES = { PGR: 'Progressive', ALL: 'Allstate', TRV: 'Travelers', HIG: 'Hartford' };
