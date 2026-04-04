@@ -62,3 +62,9 @@ body {
   margin-bottom: 5px;
   font-weight: bold;
 }
+
+/* ── Heat-trail scanline sweep ── */
+@keyframes scanline {
+  from { left: -4px; }
+  to   { left: 100%; }
+}

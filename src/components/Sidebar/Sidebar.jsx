@@ -43,6 +43,10 @@ const Sidebar = ({
   activeEra,
   setActiveEra,
   showTimeTravel,
+  snapshotDate,
+  setSnapshotDate,
+  snapshotLoading,
+  hasRealData,
   useMlEngine,
   setUseMlEngine
 }) => {
@@ -79,7 +83,11 @@ const Sidebar = ({
           {showTimeTravel && (
             <>
               <h2>&#128197; Time Machine</h2>
-              <TimeTravel activeEra={activeEra} setActiveEra={setActiveEra} />
+              <TimeTravel
+                activeEra={activeEra} setActiveEra={setActiveEra}
+                snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate}
+                snapshotLoading={snapshotLoading} hasRealData={hasRealData}
+              />
             </>
           )}
           <h2>Market Summary {showTimeTravel ? <span style={{color:'#a855f7',fontSize:'0.7rem'}}>({currentEraLabel})</span> : '(Mock)'}</h2>
@@ -120,6 +128,19 @@ const Sidebar = ({
                 <MacroCard label="UNEMPLOYMENT" latest={macroData.UNEMP?.latest} prev={macroData.UNEMP?.prev} unit="%" />
                 <MacroCard label="NOMINAL GDP" latest={macroData.GDP?.latest} prev={macroData.GDP?.prev} prefix="$" unit="B" />
               </div>
+              {macroLive && (macroData.IG_OAS || macroData.HY_OAS || macroData.BAA_SPREAD) && (
+                <>
+                  <h2 style={{marginTop:'0.25rem'}}>Credit Spreads <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span></h2>
+                  <div className="macro-grid">
+                    {macroData.IG_OAS     && <MacroCard label="IG OAS (bps)"        latest={macroData.IG_OAS.latest}     prev={macroData.IG_OAS.prev} />}
+                    {macroData.HY_OAS     && <MacroCard label="HY OAS (bps)"        latest={macroData.HY_OAS.latest}     prev={macroData.HY_OAS.prev} />}
+                    {macroData.BAA_SPREAD && <MacroCard label="Baa–10yr Sprd (%)" latest={macroData.BAA_SPREAD.latest} prev={macroData.BAA_SPREAD.prev} />}
+                  </div>
+                  <p style={{fontSize:'0.6rem',color:'#334155',margin:'-0.25rem 0 0'}}>
+                    ICE BofA OAS · Baa–10yr Treasury spread · FRED{macroData.IG_OAS?.date ? ` · ${macroData.IG_OAS.date}` : ''}
+                  </p>
+                </>
+              )}
             </>
           ) : (
             <>

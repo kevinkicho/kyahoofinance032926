@@ -86,6 +86,17 @@ const PERIODS = [
   { label: 'YTD', key: 'ytd' },
 ];
 
+// ─── Hover panel helpers ──────────────────────────────────────────────────────
+function fmtB(val, sym = '$') {
+  if (val == null || val === 0) return '—';
+  if (Math.abs(val) >= 1000) return `${sym}${(val / 1000).toFixed(2)}T`;
+  return `${sym}${val.toFixed(0)}B`;
+}
+function fmtPct(val) {
+  if (val == null) return '—';
+  return `${val >= 0 ? '+' : ''}${val.toFixed(1)}%`;
+}
+
 // ─── Hover panel ──────────────────────────────────────────────────────────────
 function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, currentRate, currentSymbol, currency, pos, snapshotDate }) {
   useEffect(() => { injectStyles(); }, []);
@@ -110,21 +121,33 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
     curPrice,
   ].filter(v => v != null && v > 0);
 
-  const metricVal = stock.metricValue || stock.value;
-  const capStr = metricVal
-    ? (metricVal * currentRate >= 1000
-        ? `${currentSymbol}${(metricVal * currentRate / 1000).toFixed(2)}T`
-        : `${currentSymbol}${(metricVal * currentRate).toFixed(0)}B`)
-    : '—';
+  const metricVal = stock.metricValue || stock.marketCap || stock.value;
+  const capUSD    = metricVal || 0;
+  const capStr    = fmtB(capUSD * currentRate, currentSymbol);
+
+  // Fundamentals from stock universe data
+  const rev     = stock.revenue   > 0 ? stock.revenue   : null;
+  const ni      = stock.netIncome > 0 ? stock.netIncome : null;
+  const margin  = rev && ni ? ((ni / rev) * 100) : null;
+  const pe      = stock.pe      || null;
+  const div     = stock.divYield || null;
+  const revStr  = rev ? fmtB(rev * currentRate, currentSymbol) : '—';
+  const niStr   = ni  ? fmtB(ni  * currentRate, currentSymbol) : '—';
+  const peStr   = pe  ? `${pe.toFixed(1)}×` : '—';
+  const divStr  = div ? `${div.toFixed(2)}%` : '—';
+  const mgnStr  = margin != null ? `${margin.toFixed(1)}%` : '—';
 
   const VW = typeof window !== 'undefined' ? window.innerWidth  : 1200;
   const VH = typeof window !== 'undefined' ? window.innerHeight : 800;
-  const PW = 288;
+  const PW = 310;
+  const hasTimeTravel = !!(comparisonPrices && snapshotDate);
+  // height estimate: header ~80px + fundamentals ~70px + perf ~100px + sparkline ~70px
+  const estH = 80 + 70 + (hasTimeTravel ? 110 : 0) + (sparkPts.length >= 2 ? 70 : 0) + 20;
   const left = Math.min(pos.x + 18, VW - PW - 12);
-  const top  = Math.min(pos.y - 16, VH - 360);
+  const top  = Math.min(pos.y - 16, Math.max(8, VH - estH));
 
   // Sparkline
-  const SW = 252, SH = 46;
+  const SW = 274, SH = 44;
   let sparkPath = null, areaPath = null, sparkColor = '#22c55e';
   if (sparkPts.length >= 2) {
     const min = Math.min(...sparkPts), max = Math.max(...sparkPts);
@@ -139,7 +162,12 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
     sparkColor = sparkPts[sparkPts.length - 1] >= sparkPts[0] ? '#22c55e' : '#ef4444';
   }
 
-  const noData = !comparisonPrices || !snapshotDate;
+  // mini-bar chart for Revenue vs Net Income (absolute widths scaled to cap)
+  const maxBar = Math.max(rev || 0, ni || 0, 1);
+  const revBarW = rev ? Math.max(4, (rev / maxBar) * 100) : 0;
+  const niBarW  = ni  ? Math.max(4, (ni  / maxBar) * 100) : 0;
+
+  const sep = <div style={{ borderTop: '1px solid #1e293b', margin: '0.42rem 0' }} />;
 
   const panel = (
     <div style={{
@@ -148,7 +176,7 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
       background: 'rgba(7, 11, 26, 0.97)',
       border: isEnabled ? '1px solid #7c3aed' : '1px solid #1e3a5f',
       borderRadius: '0.55rem',
-      padding: '0.75rem 0.85rem 0.7rem',
+      padding: '0.7rem 0.85rem 0.65rem',
       boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
       animation: isEnabled ? 'hmEnabledGlow 2s ease-in-out infinite' : undefined,
       pointerEvents: 'none',
@@ -157,93 +185,139 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
       overflow: 'hidden',
     }}>
 
-      {/* Top border progress bar — animates over 1.5s on each new hover */}
-      <div
-        key={stock.name}   /* remounts animation when stock changes */
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-          background: isEnabled
-            ? 'linear-gradient(to right, #7c3aed, #a78bfa)'
-            : 'linear-gradient(to right, #3b82f6, #7c3aed)',
-          transformOrigin: 'left',
-          animation: isEnabled ? 'none' : 'hmBorderTop 1.5s ease-out forwards',
-          transform: isEnabled ? 'scaleX(1)' : 'scaleX(0)',
-        }}
-      />
+      {/* Top border progress bar */}
+      <div key={stock.name} style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+        background: isEnabled
+          ? 'linear-gradient(to right, #7c3aed, #a78bfa)'
+          : 'linear-gradient(to right, #3b82f6, #7c3aed)',
+        transformOrigin: 'left',
+        animation: isEnabled ? 'none' : 'hmBorderTop 1.5s ease-out forwards',
+        transform: isEnabled ? 'scaleX(1)' : 'scaleX(0)',
+      }} />
 
       {/* Enabled badge */}
       {isEnabled && (
-        <div style={{ position: 'absolute', top: '0.3rem', right: '0.5rem', fontSize: '0.58rem', color: '#a78bfa', letterSpacing: '0.03em' }}>
-          sidebar loaded
+        <div style={{ position: 'absolute', top: '0.28rem', right: '0.5rem', fontSize: '0.57rem', color: '#a78bfa', letterSpacing: '0.03em' }}>
+          sidebar loaded ✓
         </div>
       )}
 
-      {/* Stock header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.15rem' }}>
-        {stock.rank && <span style={{ color: '#facc15', fontWeight: 900, fontSize: '0.72rem' }}>#{stock.rank}</span>}
-        <span style={{ color: '#f1f5f9', fontWeight: 800, fontSize: '0.88rem' }}>{stock.name}</span>
-        {stock.sector && <span style={{ color: '#64748b', fontSize: '0.65rem', marginLeft: 'auto' }}>{stock.sector}</span>}
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '0.1rem' }}>
+        {stock.rank && <span style={{ color: '#facc15', fontWeight: 900, fontSize: '0.7rem' }}>#{stock.rank}</span>}
+        <span style={{ color: '#f1f5f9', fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>{stock.name}</span>
+        {stock.sector && (
+          <span style={{
+            marginLeft: 'auto', fontSize: '0.6rem', fontWeight: 700,
+            background: 'rgba(99,102,241,0.18)', color: '#818cf8',
+            padding: '1px 5px', borderRadius: '3px',
+          }}>{stock.sector}</span>
+        )}
       </div>
       {stock.fullName && stock.fullName !== stock.name && (
-        <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: '0.3rem', lineHeight: 1.3 }}>{stock.fullName}</div>
+        <div style={{ color: '#94a3b8', fontSize: '0.68rem', marginBottom: '0.35rem', lineHeight: 1.3 }}>{stock.fullName}</div>
       )}
-      <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.68rem', color: '#64748b', marginBottom: '0.45rem' }}>
-        <span>Mkt Cap: <strong style={{ color: '#e2e8f0' }}>{capStr}</strong></span>
-        {stock.pe && <span>P/E: <strong style={{ color: '#e2e8f0' }}>{stock.pe}x</strong></span>}
+
+      {sep}
+
+      {/* ── Key metrics grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.28rem 0.5rem', marginBottom: '0.1rem' }}>
+        {[
+          { label: 'Mkt Cap', value: capStr,  color: '#93c5fd' },
+          { label: 'P/E',     value: peStr,   color: '#e2e8f0' },
+          { label: 'Div',     value: divStr,  color: div > 0 ? '#4ade80' : '#64748b' },
+          { label: 'Revenue', value: revStr,  color: '#e2e8f0' },
+          { label: 'Net Inc', value: niStr,   color: ni > 0 ? '#4ade80' : '#ef4444' },
+          { label: 'Margin',  value: mgnStr,  color: margin > 15 ? '#4ade80' : margin > 5 ? '#facc15' : '#ef4444' },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            <span style={{ fontSize: '0.57rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+            <strong style={{ fontSize: '0.72rem', color, fontVariantNumeric: 'tabular-nums' }}>{value}</strong>
+          </div>
+        ))}
       </div>
 
-      <div style={{ borderTop: '1px solid #1e293b', marginBottom: '0.42rem' }} />
-
-      {/* Period changes */}
-      {noData ? (
-        <div style={{ color: '#475569', fontSize: '0.68rem', padding: '0.2rem 0' }}>
-          Navigate to a historical date to see performance data
-        </div>
-      ) : !comparisonPrices ? (
-        <div style={{ color: '#7c3aed', fontSize: '0.68rem', padding: '0.2rem 0', animation: 'tbPulse 0.8s ease-in-out infinite' }}>
-          Loading comparison data…
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.22rem' }}>
-          {changes.map(({ label, pct }) => {
-            const has    = pct !== null;
-            const color  = !has ? '#334155' : pct >= 0 ? '#22c55e' : '#ef4444';
-            const barW   = has ? Math.min(Math.abs(pct) / 15 * 100, 100) : 0;
-            return (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span style={{ fontSize: '0.63rem', color: '#64748b', width: '26px', flexShrink: 0 }}>{label}</span>
-                <div style={{ flex: 1, height: '3px', background: '#1e293b', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
-                  {has && <div style={{
-                    height: '100%', width: `${barW}%`, background: color, borderRadius: '2px',
-                    position: 'absolute', [pct < 0 ? 'right' : 'left']: 0,
-                  }} />}
-                </div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color, width: '56px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                  {has ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}
-                </span>
+      {/* ── Mini bar: revenue vs net income ── */}
+      {(rev || ni) && (
+        <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          {rev && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.55rem', color: '#475569', width: '28px' }}>Rev</span>
+              <div style={{ flex: 1, height: '4px', background: '#1e293b', borderRadius: '2px' }}>
+                <div style={{ width: `${revBarW}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }} />
               </div>
-            );
-          })}
+            </div>
+          )}
+          {ni && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.55rem', color: '#475569', width: '28px' }}>Net</span>
+              <div style={{ flex: 1, height: '4px', background: '#1e293b', borderRadius: '2px' }}>
+                <div style={{ width: `${niBarW}%`, height: '100%', background: niBarW / revBarW > 0.15 ? '#22c55e' : '#ef4444', borderRadius: '2px' }} />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Sparkline */}
-      {sparkPath && (
+      {/* ── Time-travel section (only when navigated to a date) ── */}
+      {hasTimeTravel && (
         <>
-          <div style={{ borderTop: '1px solid #1e293b', margin: '0.5rem 0 0.3rem' }} />
-          <svg width={SW} height={SH} style={{ display: 'block', overflow: 'visible' }}>
-            <defs>
-              <linearGradient id={`sg-${stock.name}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={sparkColor} stopOpacity="0.28" />
-                <stop offset="100%" stopColor={sparkColor} stopOpacity="0.02" />
-              </linearGradient>
-            </defs>
-            <polyline points={areaPath} fill={`url(#sg-${stock.name})`} stroke="none" />
-            <polyline points={sparkPath} fill="none" stroke={sparkColor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-          </svg>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.58rem', color: '#334155', marginTop: '0.1rem' }}>
-            <span>1Y ago</span>
-            <span>{snapshotDate}</span>
+          {sep}
+          <div style={{ fontSize: '0.6rem', color: '#475569', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Price Performance · {snapshotDate}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+            {changes.map(({ label, pct }) => {
+              const has   = pct !== null;
+              const color = !has ? '#334155' : pct >= 0 ? '#22c55e' : '#ef4444';
+              const barW  = has ? Math.min(Math.abs(pct) / 15 * 100, 100) : 0;
+              return (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.6rem', color: '#64748b', width: '26px', flexShrink: 0 }}>{label}</span>
+                  <div style={{ flex: 1, height: '3px', background: '#1e293b', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                    {has && <div style={{
+                      height: '100%', width: `${barW}%`, background: color, borderRadius: '2px',
+                      position: 'absolute', [pct < 0 ? 'right' : 'left']: 0,
+                    }} />}
+                  </div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color, width: '56px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    {has ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sparkline */}
+          {sparkPath && (
+            <>
+              {sep}
+              <svg width={SW} height={SH} style={{ display: 'block', overflow: 'visible' }}>
+                <defs>
+                  <linearGradient id={`sg-${stock.name}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={sparkColor} stopOpacity="0.3" />
+                    <stop offset="100%" stopColor={sparkColor} stopOpacity="0.01" />
+                  </linearGradient>
+                </defs>
+                <polyline points={areaPath} fill={`url(#sg-${stock.name})`} stroke="none" />
+                <polyline points={sparkPath} fill="none" stroke={sparkColor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.57rem', color: '#334155', marginTop: '0.08rem' }}>
+                <span>1Y ago</span>
+                <span>{snapshotDate}</span>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── Hint when sidebar not yet loaded ── */}
+      {!isEnabled && (
+        <>
+          {sep}
+          <div style={{ fontSize: '0.6rem', color: '#334155', textAlign: 'center', letterSpacing: '0.03em' }}>
+            hold to open full analysis →
           </div>
         </>
       )}
@@ -268,6 +342,9 @@ const HeatmapView = ({
   const [isEnabled,    setIsEnabled]    = useState(false);
   const [hoverPos,     setHoverPos]     = useState({ x: 0, y: 0 });
   const timerRef = useRef(null);
+  const hoveredStockRef    = useRef(null);
+  const onHoverActivateRef = useRef(onHoverActivate);
+  useEffect(() => { onHoverActivateRef.current = onHoverActivate; }, [onHoverActivate]);
 
   const chartData = useMemo(() => {
     const norm = (node) => node.children
@@ -336,32 +413,35 @@ const HeatmapView = ({
     const d = params.data;
     if (!d || d.children?.length > 0) {
       setHoveredStock(null);
+      hoveredStockRef.current = null;
       setIsEnabled(false);
       clearTimeout(timerRef.current);
       return;
     }
     const ev = params.event?.event;
     if (ev) setHoverPos({ x: ev.clientX, y: ev.clientY });
-    // Reset if different stock
-    if (!hoveredStock || hoveredStock.name !== d.name) {
+    // Reset timer only when stock changes
+    if (!hoveredStockRef.current || hoveredStockRef.current.name !== d.name) {
       setIsEnabled(false);
       clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         setIsEnabled(true);
-        onHoverActivate?.(d);
+        onHoverActivateRef.current?.(d); // always the latest callback, never stale
       }, ACTIVATE_DELAY);
     }
     setHoveredStock(d);
-  }, [hoveredStock, onHoverActivate]);
+    hoveredStockRef.current = d;
+  }, []); // empty deps — never re-registers on ECharts, never captures stale values
 
   const onMousemove = useCallback((params) => {
     const ev = params.event?.event;
-    if (ev && hoveredStock) setHoverPos({ x: ev.clientX, y: ev.clientY });
-  }, [hoveredStock]);
+    if (ev && hoveredStockRef.current) setHoverPos({ x: ev.clientX, y: ev.clientY });
+  }, []); // stable
 
   const onMouseout = useCallback(() => {
     clearTimeout(timerRef.current);
     setHoveredStock(null);
+    hoveredStockRef.current = null;
     setIsEnabled(false);
   }, []);
 

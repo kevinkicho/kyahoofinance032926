@@ -139,6 +139,92 @@
   color: #fff;
 }
 
+.metrics-section-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+  padding: 0.85rem 0 0.2rem;
+  border-bottom: 1px solid #1e293b;
+  margin-top: 0.25rem;
+}
+
+/* ── Fundamentals 2-column grid ─────────────────────────────────────────── */
+.fg-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.fg-section-hdr {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #475569;
+  padding: 0.7rem 0 0.3rem;
+  border-bottom: 1px solid #1e293b;
+  margin-top: 0.1rem;
+}
+
+.fg-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.fg-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 0.38rem 0.3rem 0.38rem 0;
+  border-bottom: 1px solid rgba(30,41,59,0.6);
+}
+
+.fg-cell:nth-child(even) {
+  padding-left: 0.6rem;
+  border-left: 1px solid rgba(30,41,59,0.4);
+}
+
+.fg-label {
+  font-size: 0.62rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 1px;
+}
+
+.fg-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Data source sticky footer ──────────────────────────────────────────── */
+.data-footer {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(10,14,27,1) 70%, rgba(10,14,27,0));
+  padding: 0.6rem 0 0.2rem;
+  margin-top: 1rem;
+  font-size: 0.6rem;
+  color: #334155;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  letter-spacing: 0.02em;
+}
+
+.data-footer-source {
+  color: #475569;
+  font-weight: 700;
+}
+
+.data-footer-sep {
+  color: #1e293b;
+}
+
 /* Fair Value Panel */
 .fv-panel {
   display: flex;

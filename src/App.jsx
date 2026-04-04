@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Header from './components/Header/Header';
 import HeatmapView from './components/HeatmapView/HeatmapView';
 import ListView from './components/ListView/ListView';
@@ -364,11 +364,14 @@ function App() {
 
   const renderSortIndicator = (key) => sortConfig.key === key ? (sortConfig.direction === 'ascending' ? ' ▲' : ' ▼') : '';
 
+  const selectionRef = useRef(0);
   const handleSelectTicker = async (tickerInfo) => {
+    const selectionId = ++selectionRef.current;
     const details = getExtendedDetails(tickerInfo, rates);
     setSelectedTicker({ ...tickerInfo, details, isLive: false, summaryData: null, historyData: null });
 
-    const sym = tickerInfo.regionSymbol || '$';
+    const isCrypto = tickerInfo.sector === 'Crypto';
+    const sym = isCrypto ? '$' : (tickerInfo.regionSymbol || '$');
     const enc = encodeURIComponent(tickerInfo.ticker);
 
     const [quoteRes, summaryRes, historyRes] = await Promise.allSettled([
@@ -391,22 +394,25 @@ function App() {
         isLive = true;
         mergedDetails = {
           ...mergedDetails,
-          price:          live.price    != null ? `${sym}${live.price.toLocaleString()}` : mergedDetails.price,
-          changeAmt:      live.change   != null ? `${live.change >= 0 ? '+' : ''}${sym}${live.change.toFixed(2)}` : mergedDetails.changeAmt,
-          changePct:      live.changePct != null ? `${live.changePct >= 0 ? '+' : ''}${live.changePct.toFixed(2)}%` : mergedDetails.changePct,
-          open:           live.open     != null ? `${sym}${live.open.toLocaleString()}` : mergedDetails.open,
-          prevClose:      live.prevClose != null ? `${sym}${live.prevClose.toLocaleString()}` : mergedDetails.prevClose,
-          dayRange:       (live.dayLow && live.dayHigh) ? `${sym}${live.dayLow.toFixed(2)} – ${sym}${live.dayHigh.toFixed(2)}` : mergedDetails.dayRange,
-          wk52Range:      (live.weekLow52 && live.weekHigh52) ? `${sym}${live.weekLow52.toFixed(2)} – ${sym}${live.weekHigh52.toFixed(2)}` : mergedDetails.wk52Range,
-          bid:            live.bid      != null ? `${sym}${live.bid.toFixed(2)} × ${live.bidSize || ''}` : mergedDetails.bid,
-          ask:            live.ask      != null ? `${sym}${live.ask.toFixed(2)} × ${live.askSize || ''}` : mergedDetails.ask,
-          volume:         live.volume   != null ? live.volume.toLocaleString() : mergedDetails.volume,
-          avgVol:         live.avgVolume != null ? live.avgVolume.toLocaleString() : mergedDetails.avgVol,
+          price:     live.price     != null ? `${sym}${live.price.toLocaleString()}` : mergedDetails.price,
+          changeAmt: live.change    != null ? `${live.change >= 0 ? '+' : ''}${sym}${live.change.toFixed(2)}` : mergedDetails.changeAmt,
+          changePct: live.changePct != null ? `${live.changePct >= 0 ? '+' : ''}${live.changePct.toFixed(2)}%` : mergedDetails.changePct,
+          open:      live.open      != null ? `${sym}${live.open.toLocaleString()}` : mergedDetails.open,
+          prevClose: live.prevClose != null ? `${sym}${live.prevClose.toLocaleString()}` : mergedDetails.prevClose,
+          dayRange:  (live.dayLow && live.dayHigh) ? `${sym}${live.dayLow.toFixed(2)} – ${sym}${live.dayHigh.toFixed(2)}` : mergedDetails.dayRange,
+          wk52Range: (live.weekLow52 && live.weekHigh52) ? `${sym}${live.weekLow52.toFixed(2)} – ${sym}${live.weekHigh52.toFixed(2)}` : mergedDetails.wk52Range,
+          volume:    live.volume    != null ? live.volume.toLocaleString() : mergedDetails.volume,
+          avgVol:    live.avgVolume != null ? live.avgVolume.toLocaleString() : mergedDetails.avgVol,
           marketCapNative: live.marketCap ? `${sym}${(live.marketCap / 1e12).toFixed(2)} T` : mergedDetails.marketCapNative,
           marketCapGlobal: live.marketCap ? `$${(live.marketCap / 1e9 / currentRate).toFixed(0)} B (Glob.)` : mergedDetails.marketCapGlobal,
-          pe:             live.pe       != null ? live.pe.toFixed(2) : mergedDetails.pe,
-          eps:            live.eps      != null ? `${sym}${live.eps.toFixed(2)}` : mergedDetails.eps,
-          beta:           live.beta     != null ? live.beta.toFixed(2) : mergedDetails.beta,
+          // Stock-only fields — keep null for crypto so DetailPanel hides them
+          ...(!isCrypto && {
+            bid:  live.bid  != null ? `${sym}${live.bid.toFixed(2)} × ${live.bidSize || ''}` : mergedDetails.bid,
+            ask:  live.ask  != null ? `${sym}${live.ask.toFixed(2)} × ${live.askSize || ''}` : mergedDetails.ask,
+            pe:   live.pe   != null ? live.pe.toFixed(2)                                      : mergedDetails.pe,
+            eps:  live.eps  != null ? `${sym}${live.eps.toFixed(2)}`                          : mergedDetails.eps,
+            beta: live.beta != null ? live.beta.toFixed(2)                                    : mergedDetails.beta,
+          }),
         };
       }
     }
@@ -416,6 +422,8 @@ function App() {
     const historyData = (historyRes.status === 'fulfilled' && historyRes.value.ok)
       ? await historyRes.value.json() : null;
 
+    // Discard results if a newer stock was selected while we were awaiting
+    if (selectionRef.current !== selectionId) return;
     setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive, summaryData, historyData }));
   };
 

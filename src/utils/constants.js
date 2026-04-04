@@ -8,6 +8,45 @@ export const exchangeRates = {
   KZT: 446.50, VND: 24785.00, BDT: 109.50, PKR: 278.00, KES: 131.50, ZWG: 13.56
 };
 
+// Maps stockUniverse region name → Yahoo Finance exchange suffix
+// Used to reconstruct full Yahoo tickers (e.g. "2330" + "TW" → "2330.TW")
+export const REGION_SUFFIX = {
+  'Japan Exchange':          'T',
+  'Shanghai (China)':        'SS',
+  'Shenzhen (China)':        'SZ',
+  'Hong Kong (Hang Seng)':   'HK',
+  'KRX (South Korea)':       'KS',
+  'TWSE (Taiwan)':           'TW',
+  'NSE (India)':             'NS',
+  'BSE (India)':             'BO',
+  'LSE (UK)':                'L',
+  'Tadawul (Saudi Arabia)':  'SR',
+  'TSX (Canada)':            'TO',
+  'DAX (Germany)':           'F',
+  'SIX (Switzerland)':       'SW',
+  'Nasdaq Nordic':           'ST',
+  'ASX (Australia)':         'AX',
+  'B3 (Brazil)':             'SA',
+  'BME (Spain)':             'MC',
+  'SGX (Singapore)':         'SG',
+  'JSE (South Africa)':      'JO',
+  'Borsa Italiana':          'MI',
+  'SET (Thailand)':          'BK',
+  'BMV (Mexico)':            'MX',
+  'IDX (Indonesia)':         'JK',
+  'Bursa Malaysia':          'KL',
+  'PSE (Philippines)':       'PS',
+  'WSE (Poland)':            'WA',
+  'TASE (Israel)':           'TA',
+  'OSL (Norway)':            'OL',
+  'Euronext (Europe)':       'PA',
+  'Crypto':                  '',
+};
+
+export const REGION_COLORS = {
+  'Crypto': '#f7931a',
+};
+
 export const currencySymbols = {
   USD: '$', EUR: '€', CNY: '¥', JPY: '¥', HKD: 'HK$', INR: '₹',
   GBP: '£', SAR: '﷼', CAD: 'C$', KRW: '₩', CHF: 'Fr', SEK: 'kr',

@@ -147,6 +147,14 @@ const ChartTab = ({ historyData, sym }) => {
 
 // ─── Fundamentals Tab ────────────────────────────────────────────────────────
 
+// Compact 2-column grid cell
+const G = ({ label, value, color }) => (
+  <div className="fg-cell">
+    <span className="fg-label">{label}</span>
+    <strong className={`fg-value${color ? ` text-${color}` : ''}`}>{value ?? '—'}</strong>
+  </div>
+);
+
 const FundamentalsTab = ({ summaryData, sym }) => {
   if (!summaryData?.financialData) {
     return (
@@ -158,31 +166,61 @@ const FundamentalsTab = ({ summaryData, sym }) => {
   }
 
   const fd = summaryData.financialData;
-
-  const rows = [
-    { label: 'Total Revenue',         value: fmtNum(fd.totalRevenue, sym) },
-    { label: 'Revenue Growth YoY',    value: fmtPct(fd.revenueGrowth),    color: fd.revenueGrowth  >= 0 ? 'green' : 'red' },
-    { label: 'Gross Margin',          value: fmtPct(fd.grossMargins) },
-    { label: 'Operating Margin',      value: fmtPct(fd.operatingMargins), color: fd.operatingMargins >= 0 ? 'green' : 'red' },
-    { label: 'Profit Margin',         value: fmtPct(fd.profitMargins),    color: fd.profitMargins   >= 0 ? 'green' : 'red' },
-    { label: 'Earnings Growth YoY',   value: fmtPct(fd.earningsGrowth),   color: fd.earningsGrowth  >= 0 ? 'green' : 'red' },
-    { label: 'Operating Cash Flow',   value: fmtNum(fd.operatingCashflow, sym) },
-    { label: 'Free Cash Flow',        value: fmtNum(fd.freeCashflow, sym), color: fd.freeCashflow    >= 0 ? 'green' : 'red' },
-    { label: 'Total Debt',            value: fmtNum(fd.totalDebt, sym) },
-    { label: 'Debt / Equity',         value: fd.debtToEquity  != null ? fd.debtToEquity.toFixed(2)  : '—' },
-    { label: 'Current Ratio',         value: fd.currentRatio  != null ? fd.currentRatio.toFixed(2)  : '—' },
-    { label: 'Return on Equity',      value: fmtPct(fd.returnOnEquity),   color: fd.returnOnEquity   >= 0 ? 'green' : 'red' },
-    { label: 'Return on Assets',      value: fmtPct(fd.returnOnAssets) },
-  ];
+  const ks = summaryData.defaultKeyStatistics || {};
+  const g  = (v, hi) => v == null ? '' : v >= hi ? 'green' : 'red';  // green if above threshold
+  const gPct = (v) => v == null ? '' : v >= 0 ? 'green' : 'red';
 
   return (
-    <div className="data-metrics">
-      {rows.map(r => (
-        <div key={r.label} className="metric-row">
-          <span>{r.label}</span>
-          <strong className={r.color ? `text-${r.color}` : ''}>{r.value}</strong>
-        </div>
-      ))}
+    <div className="fg-wrap">
+
+      <div className="fg-section-hdr">Income &amp; Growth</div>
+      <div className="fg-grid">
+        <G label="Total Revenue"    value={fmtNum(fd.totalRevenue, sym)} />
+        <G label="Revenue Growth"   value={fmtPct(fd.revenueGrowth)}    color={gPct(fd.revenueGrowth)} />
+        <G label="Gross Margin"     value={fmtPct(fd.grossMargins)} />
+        <G label="Operating Margin" value={fmtPct(fd.operatingMargins)} color={gPct(fd.operatingMargins)} />
+        <G label="Profit Margin"    value={fmtPct(fd.profitMargins)}    color={gPct(fd.profitMargins)} />
+        <G label="Earnings Growth"  value={fmtPct(fd.earningsGrowth)}   color={gPct(fd.earningsGrowth)} />
+        <G label="EBITDA Margin"    value={fmtPct(fd.ebitdaMargins)} />
+        <G label="EBITDA"           value={fmtNum(fd.ebitda, sym)} />
+      </div>
+
+      <div className="fg-section-hdr">Cash Flow &amp; Debt</div>
+      <div className="fg-grid">
+        <G label="Op. Cash Flow" value={fmtNum(fd.operatingCashflow, sym)} />
+        <G label="Free Cash Flow" value={fmtNum(fd.freeCashflow, sym)}   color={gPct(fd.freeCashflow)} />
+        <G label="Total Cash"     value={fmtNum(fd.totalCash, sym)} />
+        <G label="Total Debt"     value={fmtNum(fd.totalDebt, sym)} />
+        <G label="Debt / Equity"  value={fd.debtToEquity?.toFixed(2)}    color={fd.debtToEquity != null ? (fd.debtToEquity < 100 ? 'green' : 'red') : ''} />
+        <G label="Current Ratio"  value={fd.currentRatio?.toFixed(2)}    color={g(fd.currentRatio, 1)} />
+        <G label="Quick Ratio"    value={fd.quickRatio?.toFixed(2)}      color={g(fd.quickRatio, 1)} />
+        <G label="Rev / Share"    value={fd.revenuePerShare != null ? `${sym}${fd.revenuePerShare.toFixed(2)}` : null} />
+      </div>
+
+      <div className="fg-section-hdr">Valuation</div>
+      <div className="fg-grid">
+        <G label="Enterprise Value" value={fmtNum(ks.enterpriseValue, '$')} />
+        <G label="EV / Revenue"     value={ks.enterpriseToRevenue != null ? `${ks.enterpriseToRevenue.toFixed(2)}×` : null} />
+        <G label="EV / EBITDA"      value={ks.enterpriseToEbitda  != null ? `${ks.enterpriseToEbitda.toFixed(2)}×`  : null} />
+        <G label="Price / Book"     value={ks.priceToBook != null ? `${ks.priceToBook.toFixed(2)}×` : null} />
+        <G label="Book Val / Share" value={ks.bookValue != null ? `${sym}${ks.bookValue.toFixed(2)}` : null} />
+        <G label="Forward EPS"      value={ks.forwardEps != null ? `${sym}${ks.forwardEps.toFixed(2)}` : null} />
+        <G label="Forward P/E"      value={ks.forwardPE != null ? `${ks.forwardPE.toFixed(2)}×` : null} />
+        <G label="52-Wk Δ"          value={fmtPct(ks['52WeekChange'])} color={gPct(ks['52WeekChange'])} />
+      </div>
+
+      <div className="fg-section-hdr">Returns &amp; Ownership</div>
+      <div className="fg-grid">
+        <G label="ROE"          value={fmtPct(fd.returnOnEquity)}  color={gPct(fd.returnOnEquity)} />
+        <G label="ROA"          value={fmtPct(fd.returnOnAssets)} />
+        <G label="Shares Out."  value={fmtNum(ks.sharesOutstanding)} />
+        <G label="Float"        value={fmtNum(ks.floatShares)} />
+        <G label="Insiders"     value={fmtPct(ks.heldPercentInsiders)} />
+        <G label="Institutions" value={fmtPct(ks.heldPercentInstitutions)} />
+        <G label="Short Ratio"  value={ks.shortRatio?.toFixed(2)} />
+        <G label="Short % Float" value={fmtPct(ks.shortPercentOfFloat)} />
+      </div>
+
     </div>
   );
 };
@@ -302,6 +340,35 @@ const AnalystsTab = ({ summaryData, sym }) => {
   );
 };
 
+// ─── Data Source Footer ──────────────────────────────────────────────────────
+
+const DataFooter = ({ summaryData, historyData, isLive }) => {
+  const fmtUnix = (ts) => {
+    if (!ts) return null;
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+  const fmtISO = (str) => {
+    if (!str) return null;
+    const d = new Date(str);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const quarterDate = fmtUnix(summaryData?.defaultKeyStatistics?.mostRecentQuarter);
+  const firstPrice  = historyData?.length ? fmtISO(historyData[0].date) : null;
+  const lastPrice   = historyData?.length ? fmtISO(historyData[historyData.length - 1].date) : null;
+
+  return (
+    <div className="data-footer">
+      <span className="data-footer-source">Yahoo Finance{isLive ? ' · LIVE' : ''}</span>
+      {quarterDate && <span className="data-footer-sep">·</span>}
+      {quarterDate && <span>Fundamentals: {quarterDate}</span>}
+      {firstPrice && lastPrice && <span className="data-footer-sep">·</span>}
+      {firstPrice && lastPrice && <span>Prices: {firstPrice}–{lastPrice}</span>}
+    </div>
+  );
+};
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 const TABS = [
@@ -314,6 +381,7 @@ const TABS = [
 
 const DetailPanel = ({ selectedTicker, setSelectedTicker, scenarios }) => {
   const { details, summaryData, historyData } = selectedTicker;
+  const isCrypto = selectedTicker.sector === 'Crypto';
   const [activeTab, setActiveTab] = useState('summary');
   const sym = selectedTicker.regionSymbol || '$';
   const fv = computeFairValue(
@@ -355,20 +423,21 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, scenarios }) => {
 
       {activeTab === 'summary' && (
         <div className="data-metrics">
-          <div className="metric-row"><span>Previous Close</span><strong>{details.prevClose}</strong></div>
+          <div className="metric-row"><span>{isCrypto ? '24h Open' : 'Previous Close'}</span><strong>{details.prevClose}</strong></div>
           <div className="metric-row"><span>Open</span><strong>{details.open}</strong></div>
-          <div className="metric-row"><span>Bid</span><strong>{details.bid}</strong></div>
-          <div className="metric-row"><span>Ask</span><strong>{details.ask}</strong></div>
-          <div className="metric-row"><span>Day's Range</span><strong>{details.dayRange}</strong></div>
-          <div className="metric-row"><span>52 Week Range</span><strong>{details.wk52Range}</strong></div>
-          <div className="metric-row"><span>Volume</span><strong>{details.volume}</strong></div>
+          {details.bid  != null && <div className="metric-row"><span>Bid</span><strong>{details.bid}</strong></div>}
+          {details.ask  != null && <div className="metric-row"><span>Ask</span><strong>{details.ask}</strong></div>}
+          <div className="metric-row"><span>{isCrypto ? '24h Range' : "Day's Range"}</span><strong>{details.dayRange}</strong></div>
+          <div className="metric-row"><span>{isCrypto ? '52-Week Range' : '52 Week Range'}</span><strong>{details.wk52Range}</strong></div>
+          <div className="metric-row"><span>{isCrypto ? '24h Volume' : 'Volume'}</span><strong>{details.volume}</strong></div>
           <div className="metric-row"><span>Avg. Volume</span><strong>{details.avgVol}</strong></div>
-          <div className="metric-row"><span>Market Cap (Glob.)</span><strong style={{ color: '#93c5fd' }}>{details.marketCapGlobal}</strong></div>
-          <div className="metric-row"><span>Beta (5Y Monthly)</span><strong>{details.beta}</strong></div>
-          <div className="metric-row"><span>PE Ratio (TTM)</span><strong>{details.pe}</strong></div>
-          <div className="metric-row"><span>EPS (TTM)</span><strong>{details.eps}</strong></div>
-          <div className="metric-row"><span>Earnings Date</span><strong>{details.earningsDate}</strong></div>
-          <div className="metric-row"><span>Forward Dividend</span><strong>{details.dividend}</strong></div>
+          <div className="metric-row"><span>Market Cap</span><strong style={{ color: '#93c5fd' }}>{details.marketCapGlobal}</strong></div>
+          {details.beta         != null && <div className="metric-row"><span>Beta (5Y Monthly)</span><strong>{details.beta}</strong></div>}
+          {details.pe           != null && <div className="metric-row"><span>PE Ratio (TTM)</span><strong>{details.pe}</strong></div>}
+          {details.eps          != null && <div className="metric-row"><span>EPS (TTM)</span><strong>{details.eps}</strong></div>}
+          {details.earningsDate != null && <div className="metric-row"><span>Earnings Date</span><strong>{details.earningsDate}</strong></div>}
+          {details.dividend     != null && <div className="metric-row"><span>Forward Dividend</span><strong>{details.dividend}</strong></div>}
+          {isCrypto && <div className="metric-row"><span>Currency</span><strong>USD (always)</strong></div>}
         </div>
       )}
 
@@ -410,6 +479,8 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, scenarios }) => {
           </div>
         </div>
       )}
+
+      <DataFooter summaryData={summaryData} historyData={historyData} isLive={selectedTicker.isLive} />
     </div>
   );
 };

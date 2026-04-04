@@ -5,6 +5,149 @@
   padding: 0 0 1rem 0;
 }
 
+/* ── Real Date Slider ──────────────────────────────────── */
+.tt-slider-section {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tt-slider-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tt-slider-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  flex: 1;
+}
+
+.tt-loading {
+  font-size: 0.68rem;
+  color: #a855f7;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { opacity: 0.4; } 50% { opacity: 1; } to { opacity: 0.4; }
+}
+
+.tt-real-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  color: #10b981;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.tt-model-badge {
+  font-size: 0.65rem;
+  color: #475569;
+}
+
+.tt-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #a855f7);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.tt-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #a855f7;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(168, 85, 247, 0.5);
+  transition: transform 0.15s;
+}
+
+.tt-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.tt-slider-dates {
+  display: flex;
+  align-items: center;
+  font-size: 0.65rem;
+  color: #64748b;
+}
+
+.tt-date-edge { flex: 0 0 auto; }
+
+.tt-date-current {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+}
+
+.tt-date-ago {
+  font-weight: 400;
+  color: #64748b;
+}
+
+.tt-now-btn {
+  background: none;
+  border: 1px solid #334155;
+  color: #60a5fa;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.tt-now-btn:hover {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+/* Era node data dot indicator */
+.era-data-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+}
+
+.era-node.has-data {
+  border-bottom-color: #10b981;
+}
+
+/* Real data note at bottom of era card */
+.tt-real-note {
+  font-size: 0.7rem;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  line-height: 1.5;
+}
+
 /* --- Timeline Rail --- */
 .timeline-rail {
   display: flex;
