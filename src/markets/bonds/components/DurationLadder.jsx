@@ -14,9 +14,9 @@ export default function DurationLadder({ durationLadderData }) {
         axisPointer: { type: 'shadow' },
         formatter: (params) => {
           const i = params[0].dataIndex;
-          return `<b>${buckets[i]}</b><br/>` +
-            `Amount: <b>$${amounts[i].toLocaleString()}M</b><br/>` +
-            `Weight: <b>${pcts[i]}%</b>`;
+          return `<b>${durationLadderData[i].bucket}</b><br/>` +
+            `Amount: <b>$${durationLadderData[i].amount.toLocaleString()}M</b><br/>` +
+            `Weight: <b>${durationLadderData[i].pct}%</b>`;
         },
       },
       grid: { top: 20, right: 80, bottom: 30, left: 80 },

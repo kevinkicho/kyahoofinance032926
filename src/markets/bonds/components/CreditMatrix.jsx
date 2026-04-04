@@ -8,7 +8,8 @@ const RATING_TIER = {
   'BBB+': 3, 'BBB': 3, 'BBB-': 3, 'Baa1': 3, 'Baa2': 3, 'Baa3': 3,
   'BB+': 4, 'BB': 4, 'BB-': 4, 'Ba1': 4, 'Ba2': 4, 'Ba3': 4,
   'B+': 5, 'B': 5, 'B-': 5, 'B1': 5, 'B2': 5, 'B3': 5,
-  'CCC': 6, 'Caa1': 6, 'Caa2': 6, 'Caa3': 6,
+  'CCC+': 6, 'CCC': 6, 'CCC-': 6, 'Caa1': 6, 'Caa2': 6, 'Caa3': 6,
+  'CC': 6, 'C': 6, 'D': 6, 'SD': 6,
 };
 
 const TIER_STYLE = [
