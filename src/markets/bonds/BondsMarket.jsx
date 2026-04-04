@@ -10,12 +10,21 @@ const SUB_TABS = [
   { id: 'yield-curve',     label: 'Yield Curve'    },
   { id: 'credit-matrix',   label: 'Credit Matrix'  },
   { id: 'spread-monitor',  label: 'Spread Monitor' },
-  { id: 'duration-ladder', label: 'Duration Ladder'},
+  { id: 'duration-ladder', label: 'Duration Ladder' },
 ];
 
 export default function BondsMarket() {
   const [activeTab, setActiveTab] = useState('yield-curve');
-  const { yieldCurveData, creditRatingsData, spreadData, durationLadderData, isLive, lastUpdated } = useBondsData();
+  const { yieldCurveData, creditRatingsData, spreadData, durationLadderData, isLive, lastUpdated, isLoading } = useBondsData();
+
+  if (isLoading) {
+    return (
+      <div className="bonds-market bonds-loading">
+        <div className="bonds-loading-spinner" />
+        <span className="bonds-loading-text">Loading bonds data…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="bonds-market">

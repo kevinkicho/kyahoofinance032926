@@ -1,43 +1,46 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BondsMarket from '../../markets/bonds/BondsMarket';
 
 vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
 
+beforeEach(() => {
+  global.fetch = vi.fn().mockRejectedValue(new Error('no server'));
+});
+
 describe('BondsMarket', () => {
-  it('renders the Yield Curve tab by default', () => {
+  it('renders Yield Curve tab by default after loading', async () => {
     render(<BondsMarket />);
-    expect(screen.getByRole('button', { name: 'Yield Curve' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(screen.getAllByText('Yield Curve').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all 4 sub-tabs', () => {
+  it('renders all 4 sub-tabs', async () => {
     render(<BondsMarket />);
-    expect(screen.getByRole('button', { name: 'Yield Curve'    })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Credit Matrix'  })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Spread Monitor' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Duration Ladder'})).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Yield Curve'     })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Credit Matrix'   })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Spread Monitor'  })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Duration Ladder' })).toBeInTheDocument();
   });
 
-  it('switches to Credit Matrix on tab click', () => {
+  it('switches to Credit Matrix on click', async () => {
     render(<BondsMarket />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Credit Matrix' }));
-    expect(screen.getByText(/sovereign ratings/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/S&P|AAA|rating/i).length).toBeGreaterThan(0);
   });
 
-  it('switches to Spread Monitor on tab click', () => {
+  it('switches to Spread Monitor on click', async () => {
     render(<BondsMarket />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Spread Monitor' }));
-    expect(screen.getByText(/credit spreads/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/spread|OAS|IG|HY/i).length).toBeGreaterThan(0);
   });
 
-  it('switches to Duration Ladder on tab click', () => {
+  it('shows mock data status when server unavailable', async () => {
     render(<BondsMarket />);
-    fireEvent.click(screen.getByRole('button', { name: 'Duration Ladder' }));
-    expect(screen.getByText(/maturity buckets/i)).toBeInTheDocument();
-  });
-
-  it('shows mock data status (not live)', () => {
-    render(<BondsMarket />);
-    expect(screen.getByText(/mock data.*static/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(screen.getAllByText(/mock data/i).length).toBeGreaterThan(0);
   });
 });

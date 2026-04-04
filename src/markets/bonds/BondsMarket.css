@@ -50,3 +50,19 @@
   flex: 1;
   overflow: hidden;
 }
+
+/* Loading state */
+.bonds-loading {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.bonds-loading-spinner {
+  width: 24px; height: 24px;
+  border: 2px solid #1e293b;
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: bonds-spin 0.7s linear infinite;
+}
+@keyframes bonds-spin { to { transform: rotate(360deg); } }
+.bonds-loading-text { font-size: 12px; color: #64748b; }
