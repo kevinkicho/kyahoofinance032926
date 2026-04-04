@@ -311,6 +311,105 @@ app.get('/api/macro', async (req, res) => {
   }
 });
 
+// --- Bonds Market Data ---
+const TENOR_SERIES = {
+  '3m': 'DGS3MO', '6m': 'DGS6MO', '1y': 'DGS1', '2y': 'DGS2',
+  '5y': 'DGS5',  '7y': 'DGS7',  '10y': 'DGS10', '20y': 'DGS20', '30y': 'DGS30',
+};
+const INTL_10Y = {
+  DE: 'IRLTLT01DEM156N', JP: 'IRLTLT01JPM156N', GB: 'IRLTLT01GBM156N',
+  IT: 'IRLTLT01ITM156N', FR: 'IRLTLT01FRM156N', AU: 'IRLTLT01AUM156N',
+};
+const SPREAD_SERIES = {
+  IG: 'BAMLC0A0CM', HY: 'BAMLH0A0HYM2', EM: 'BAMLEMCBPIOAS',
+};
+
+async function fetchFredLatest(seriesId) {
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=5`;
+  const data = await fetchJSON(url);
+  const valid = (data?.observations || []).filter(o => o.value !== '.');
+  return valid.length ? parseFloat(valid[0].value) : null;
+}
+
+async function fetchFredHistory(seriesId, limit = 13) {
+  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
+  const data = await fetchJSON(url);
+  return (data?.observations || [])
+    .filter(o => o.value !== '.')
+    .map(o => ({ date: o.date, value: parseFloat(o.value) }))
+    .reverse();
+}
+
+function dateToMonthLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }).replace(' ', '-');
+}
+
+app.get('/api/bonds', async (req, res) => {
+  const cacheKey = 'bonds_data';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  if (!FRED_API_KEY) return res.status(503).json({ error: 'FRED_API_KEY not configured' });
+
+  try {
+    // 1. US yield curve — all 9 tenors
+    const usEntries = await Promise.allSettled(
+      Object.entries(TENOR_SERIES).map(async ([tenor, sid]) => [tenor, await fetchFredLatest(sid)])
+    );
+    const usYields = {};
+    usEntries.forEach(r => { if (r.status === 'fulfilled' && r.value[1] != null) usYields[r.value[0]] = r.value[1]; });
+
+    // Map to display tenors (drop 7y, keep 3m 6m 1y 2y 5y 10y 30y)
+    const yieldCurveData = {
+      US: {
+        '3m': usYields['3m'] ?? null, '6m': usYields['6m'] ?? null,
+        '1y': usYields['1y'] ?? null, '2y': usYields['2y'] ?? null,
+        '5y': usYields['5y'] ?? null, '10y': usYields['10y'] ?? null,
+        '30y': usYields['30y'] ?? null,
+      },
+    };
+
+    // 2. International 10yr anchors → scale whole mock curve
+    const intlEntries = await Promise.allSettled(
+      Object.entries(INTL_10Y).map(async ([cc, sid]) => [cc, await fetchFredLatest(sid)])
+    );
+    intlEntries.forEach(r => {
+      if (r.status === 'fulfilled' && r.value[1] != null) {
+        yieldCurveData[r.value[0]] = { '10y': r.value[1] };
+      }
+    });
+
+    // 3. Credit spread history — last 12 months
+    const spreadEntries = await Promise.allSettled(
+      Object.entries(SPREAD_SERIES).map(async ([key, sid]) => [key, await fetchFredHistory(sid, 13)])
+    );
+    const spreadRaw = {};
+    spreadEntries.forEach(r => { if (r.status === 'fulfilled') spreadRaw[r.value[0]] = r.value[1]; });
+
+    // Align dates across series (use IG as anchor, last 12 points)
+    const anchor = spreadRaw.IG || spreadRaw.HY || [];
+    const spreadData = anchor.length ? {
+      dates: anchor.slice(-12).map(p => dateToMonthLabel(p.date)),
+      IG:    (spreadRaw.IG  || []).slice(-12).map(p => Math.round(p.value)),
+      HY:    (spreadRaw.HY  || []).slice(-12).map(p => Math.round(p.value)),
+      EM:    (spreadRaw.EM  || []).slice(-12).map(p => Math.round(p.value)),
+    } : null;
+
+    const result = {
+      yieldCurveData,
+      spreadData,
+      lastUpdated: new Date().toISOString().split('T')[0],
+    };
+
+    cache.set(cacheKey, result, 900);
+    res.json(result);
+  } catch (error) {
+    console.error('Bonds API error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // --- Insurance Dashboard ---
 const INSURER_TICKERS = ['PGR', 'ALL', 'TRV', 'HIG'];
 const INSURER_NAMES = { PGR: 'Progressive', ALL: 'Allstate', TRV: 'Travelers', HIG: 'Hartford' };
