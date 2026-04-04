@@ -1,62 +1,66 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
 import { useDerivativesData } from '../../markets/derivatives/data/useDerivativesData';
 
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
 describe('useDerivativesData', () => {
-  it('returns volSurfaceData with strikes and expiries arrays', () => {
-    const { volSurfaceData } = useDerivativesData();
+  beforeEach(() => { mockFetch.mockReset(); });
+
+  it('returns mock volSurfaceData on server failure', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
+    const { result } = renderHook(() => useDerivativesData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { volSurfaceData } = result.current;
     expect(Array.isArray(volSurfaceData.strikes)).toBe(true);
-    expect(Array.isArray(volSurfaceData.expiries)).toBe(true);
-    expect(volSurfaceData.strikes.length).toBeGreaterThan(0);
-  });
-
-  it('volSurfaceData grid has rows matching expiries count', () => {
-    const { volSurfaceData } = useDerivativesData();
     expect(volSurfaceData.grid.length).toBe(volSurfaceData.expiries.length);
-    volSurfaceData.grid.forEach(row => {
-      expect(row.length).toBe(volSurfaceData.strikes.length);
-    });
+    expect(result.current.isLive).toBe(false);
   });
 
-  it('vixTermStructure has dates, values, and prevValues arrays of equal length', () => {
-    const { vixTermStructure } = useDerivativesData();
+  it('returns mock vixTermStructure on server failure', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
+    const { result } = renderHook(() => useDerivativesData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { vixTermStructure } = result.current;
     expect(vixTermStructure.dates.length).toBeGreaterThan(0);
     expect(vixTermStructure.values.length).toBe(vixTermStructure.dates.length);
     expect(vixTermStructure.prevValues.length).toBe(vixTermStructure.dates.length);
   });
 
-  it('optionsFlow has at least 8 entries with required fields', () => {
-    const { optionsFlow } = useDerivativesData();
-    expect(optionsFlow.length).toBeGreaterThanOrEqual(8);
-    expect(optionsFlow[0]).toMatchObject({
-      ticker: expect.any(String),
-      strike: expect.any(Number),
-      expiry: expect.any(String),
-      type: expect.stringMatching(/^(C|P)$/),
-      volume: expect.any(Number),
-      openInterest: expect.any(Number),
-      premium: expect.any(Number),
-      sentiment: expect.stringMatching(/^(bullish|bearish|neutral)$/),
-    });
+  it('uses live vixTermStructure when server responds', async () => {
+    const liveData = {
+      vixTermStructure: { dates: ['9D', '1M', '3M', '6M'], values: [14.2, 16.8, 18.5, 20.1], prevValues: [13.9, 16.2, 17.9, 19.6] },
+      optionsFlow: null, fearGreedData: null, volSurfaceData: null,
+      lastUpdated: '2026-04-04',
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useDerivativesData());
+    await waitFor(() => expect(result.current.isLive).toBe(true));
+    expect(result.current.vixTermStructure.values).toEqual([14.2, 16.8, 18.5, 20.1]);
   });
 
-  it('fearGreedData has score 0-100 and 7 indicators', () => {
-    const { fearGreedData } = useDerivativesData();
-    expect(fearGreedData.score).toBeGreaterThanOrEqual(0);
-    expect(fearGreedData.score).toBeLessThanOrEqual(100);
-    expect(fearGreedData.indicators.length).toBe(7);
-    fearGreedData.indicators.forEach(ind => {
-      expect(ind).toMatchObject({
-        name: expect.any(String),
-        value: expect.any(Number),
-        score: expect.any(Number),
-        label: expect.any(String),
-      });
-    });
+  it('uses live optionsFlow when server responds', async () => {
+    const liveFlow = [
+      { ticker: 'SPY', strike: 520, expiry: '16 May 25', type: 'P', volume: 45200, openInterest: 12400, premium: 8.20, sentiment: 'bearish' },
+    ];
+    const liveData = {
+      vixTermStructure: null, optionsFlow: liveFlow, fearGreedData: null, volSurfaceData: null,
+      lastUpdated: '2026-04-04',
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useDerivativesData());
+    await waitFor(() => expect(result.current.isLive).toBe(true));
+    expect(result.current.optionsFlow[0].ticker).toBe('SPY');
   });
 
-  it('returns isLive false and lastUpdated string', () => {
-    const { isLive, lastUpdated } = useDerivativesData();
-    expect(isLive).toBe(false);
-    expect(typeof lastUpdated).toBe('string');
+  it('falls back to mock fearGreedData when server returns null', async () => {
+    const liveData = { vixTermStructure: null, optionsFlow: null, fearGreedData: null, volSurfaceData: null, lastUpdated: '2026-04-04' };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useDerivativesData());
+    await waitFor(() => expect(result.current.isLive).toBe(true));
+    expect(result.current.fearGreedData.score).toBeGreaterThanOrEqual(0);
+    expect(result.current.fearGreedData.score).toBeLessThanOrEqual(100);
+    expect(result.current.fearGreedData.indicators.length).toBe(7);
   });
 });

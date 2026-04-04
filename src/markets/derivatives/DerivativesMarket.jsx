@@ -15,7 +15,16 @@ const SUB_TABS = [
 
 export default function DerivativesMarket() {
   const [activeTab, setActiveTab] = useState('vol-surface');
-  const { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, isLive, lastUpdated } = useDerivativesData();
+  const { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, isLive, lastUpdated, isLoading } = useDerivativesData();
+
+  if (isLoading) {
+    return (
+      <div className="deriv-market deriv-loading">
+        <div className="deriv-loading-spinner" />
+        <span className="deriv-loading-text">Loading derivatives data…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="deriv-market">
