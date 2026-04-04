@@ -1,12 +1,51 @@
-import React from 'react';
+// src/markets/fx/FXMarket.jsx
+import React, { useState } from 'react';
+import { useFXData } from './data/useFXData';
+import RateMatrix from './components/RateMatrix';
+import CarryMap from './components/CarryMap';
+import DXYTracker from './components/DXYTracker';
+import TopMovers from './components/TopMovers';
+import './FXMarket.css';
+
+const SUB_TABS = [
+  { id: 'rate-matrix', label: 'Rate Matrix' },
+  { id: 'carry-map',   label: 'Carry Map'   },
+  { id: 'dxy-tracker', label: 'DXY Tracker' },
+  { id: 'top-movers',  label: 'Top Movers'  },
+];
+
 export default function FXMarket() {
+  const [activeTab, setActiveTab] = useState('rate-matrix');
+  const { spotRates, prevRates, changes, history, isLive, lastUpdated, isLoading } = useFXData();
+
   return (
-    <div className="market-placeholder">
-      <div className="market-placeholder-icon">💱</div>
-      <h2 className="market-placeholder-title">FX Market</h2>
-      <p className="market-placeholder-desc">
-        Rate matrix, carry map, and DXY tracker — coming in Sub-project 2.
-      </p>
+    <div className="fx-market">
+      <div className="fx-sub-tabs">
+        {SUB_TABS.map(t => (
+          <button
+            key={t.id}
+            className={`fx-sub-tab${activeTab === t.id ? ' active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="fx-status-bar">
+        <span className={isLive ? 'fx-status-live' : ''}>
+          {isLive ? '● Live (ECB via Frankfurter)' : '○ Static fallback'}
+        </span>
+        {lastUpdated && <span>Updated: {lastUpdated}</span>}
+        {isLoading && <span>Loading…</span>}
+      </div>
+      <div className="fx-content">
+        {activeTab === 'rate-matrix' && (
+          <RateMatrix spotRates={spotRates} prevRates={prevRates} />
+        )}
+        {activeTab === 'carry-map'   && <CarryMap />}
+        {activeTab === 'dxy-tracker' && <DXYTracker history={history} />}
+        {activeTab === 'top-movers'  && <TopMovers changes={changes} />}
+      </div>
     </div>
   );
 }
