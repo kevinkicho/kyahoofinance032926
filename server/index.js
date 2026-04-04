@@ -413,6 +413,188 @@ app.get('/api/bonds', async (req, res) => {
   }
 });
 
+// --- Derivatives Market Data ---
+const VIX_TICKERS = ['^VIX9D', '^VIX', '^VIX3M', '^VIX6M'];
+const VIX_LABELS  = ['9D', '1M', '3M', '6M'];
+
+function vixScore(vix) {
+  return Math.max(0, Math.min(100, Math.round(100 - (vix - 10) * 2.5)));
+}
+function pcrScore(pcr) {
+  return Math.max(0, Math.min(100, Math.round(100 - (pcr - 0.5) * 60)));
+}
+function momentumScore(pctAboveSma) {
+  return Math.max(0, Math.min(100, Math.round(50 + pctAboveSma * 4)));
+}
+function safeHavenScore(tltRelPerf) {
+  return Math.max(0, Math.min(100, Math.round(50 - tltRelPerf * 3)));
+}
+function junkBondScore(hyOas) {
+  return Math.max(0, Math.min(100, Math.round(100 - (hyOas - 200) / 5)));
+}
+function scoreLabel(s) {
+  if (s <= 25) return 'Extreme Fear';
+  if (s <= 45) return 'Fear';
+  if (s <= 55) return 'Neutral';
+  if (s <= 75) return 'Greed';
+  return 'Extreme Greed';
+}
+
+async function buildVolSurface(spyPrice) {
+  const targetDays  = [7, 14, 30, 60, 90, 180, 365, 730];
+  const expLabels   = ['1W', '2W', '1M', '2M', '3M', '6M', '1Y', '2Y'];
+  const strikePcts  = [0.80, 0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.15, 1.20];
+  const strikes     = [80, 85, 90, 95, 100, 105, 110, 115, 120];
+
+  let expirations;
+  try {
+    const idx = await yf.options('SPY');
+    expirations = idx.expirationDates || [];
+  } catch { return null; }
+
+  const now = Math.floor(Date.now() / 1000);
+  const grid = [];
+
+  for (const days of targetDays) {
+    const target = now + days * 86400;
+    const nearest = expirations.reduce((best, d) =>
+      Math.abs(d - target) < Math.abs(best - target) ? d : best, expirations[0]);
+    try {
+      const opts = await yf.options('SPY', { date: nearest });
+      const calls = opts.options[0]?.calls || [];
+      const row = strikePcts.map(pct => {
+        const ts = Math.round(spyPrice * pct);
+        const c  = calls.reduce((b, x) => Math.abs(x.strike - ts) < Math.abs((b?.strike ?? Infinity) - ts) ? x : b, null);
+        return c?.impliedVolatility ? Math.round(c.impliedVolatility * 1000) / 10 : null;
+      });
+      grid.push(row);
+    } catch {
+      grid.push(new Array(9).fill(null));
+    }
+  }
+
+  // If too many nulls, return null (use mock)
+  const total = grid.flat().filter(v => v != null).length;
+  if (total < 20) return null;
+
+  return { strikes, expiries: expLabels, grid };
+}
+
+app.get('/api/derivatives', async (req, res) => {
+  const cacheKey = 'derivatives_data';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    // 1. VIX term structure
+    const vixQuotes = await yf.quote(VIX_TICKERS).catch(() => []);
+    const vixArr = Array.isArray(vixQuotes) ? vixQuotes : [vixQuotes];
+    const vixTermStructure = VIX_LABELS.length === vixArr.length && vixArr.every(q => q?.regularMarketPrice) ? {
+      dates:      VIX_LABELS,
+      values:     vixArr.map(q => Math.round(q.regularMarketPrice * 10) / 10),
+      prevValues: vixArr.map(q => Math.round((q.regularMarketPreviousClose ?? q.regularMarketPrice) * 10) / 10),
+    } : null;
+
+    // 2. Options flow — top rows by volume from SPY + QQQ nearest expiry
+    let optionsFlow = null;
+    try {
+      const [spyOpts, qqqOpts] = await Promise.all([yf.options('SPY'), yf.options('QQQ')]);
+
+      const rows = [];
+      for (const [sym, opts] of [['SPY', spyOpts], ['QQQ', qqqOpts]]) {
+        const exp = opts.options[0];
+        if (!exp) continue;
+        const expLabel = new Date(opts.expirationDates[0] * 1000)
+          .toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: '2-digit' });
+        for (const [type, arr] of [['C', exp.calls], ['P', exp.puts]]) {
+          (arr || [])
+            .filter(o => o.volume > 0 && o.openInterest > 0)
+            .sort((a, b) => b.volume - a.volume)
+            .slice(0, 3)
+            .forEach(o => rows.push({
+              ticker: sym, strike: o.strike, expiry: expLabel, type,
+              volume: o.volume, openInterest: o.openInterest,
+              premium: Math.round((o.lastPrice ?? o.ask ?? 0) * 100) / 100,
+              sentiment: type === 'C' ? 'bullish' : 'bearish',
+            }));
+        }
+      }
+      if (rows.length >= 4) {
+        optionsFlow = rows.sort((a, b) => b.volume - a.volume).slice(0, 12);
+      }
+    } catch { /* use mock */ }
+
+    // 3. Fear & Greed — compute from VIX + SPY momentum + TLT + FRED HY OAS
+    let fearGreedData = null;
+    try {
+      const vixValue = vixArr.find(q => q.symbol === '^VIX')?.regularMarketPrice;
+      const [spyHist, tltHist] = await Promise.all([
+        yf.historical('^GSPC', { period1: (() => { const d = new Date(); d.setDate(d.getDate() - 180); return d.toISOString().split('T')[0]; })(), period2: new Date().toISOString().split('T')[0], interval: '1d' }),
+        yf.historical('TLT',   { period1: (() => { const d = new Date(); d.setDate(d.getDate() - 30);  return d.toISOString().split('T')[0]; })(), period2: new Date().toISOString().split('T')[0], interval: '1d' }),
+      ]);
+
+      let hyOasLatest = null;
+      if (FRED_API_KEY) {
+        try { hyOasLatest = await fetchFredLatest('BAMLH0A0HYM2'); } catch {}
+      }
+
+      // SPY: current price vs 125-day SMA
+      const spyCloses = spyHist.map(d => d.close).filter(Boolean);
+      const spyCurrent = spyCloses[spyCloses.length - 1];
+      const sma125 = spyCloses.slice(-125).reduce((s, v) => s + v, 0) / Math.min(125, spyCloses.length);
+      const spyPctAbove = ((spyCurrent - sma125) / sma125) * 100;
+
+      // TLT vs SPY 20-day return
+      const tltCloses = tltHist.map(d => d.close).filter(Boolean);
+      const tlt20 = tltCloses.length >= 20 ? ((tltCloses[tltCloses.length - 1] - tltCloses[tltCloses.length - 21]) / tltCloses[tltCloses.length - 21]) * 100 : 0;
+      const spy20start = spyCloses.length >= 20 ? spyCloses[spyCloses.length - 21] : spyCloses[0];
+      const spy20 = ((spyCurrent - spy20start) / spy20start) * 100;
+      const tltRelPerf = tlt20 - spy20; // positive = bonds outperforming = fear
+
+      // SPY options put/call ratio
+      let pcr = 1.0; // neutral default
+      if (optionsFlow) {
+        const spyPuts  = optionsFlow.filter(r => r.ticker === 'SPY' && r.type === 'P').reduce((s, r) => s + r.volume, 0);
+        const spyCalls = optionsFlow.filter(r => r.ticker === 'SPY' && r.type === 'C').reduce((s, r) => s + r.volume, 0);
+        if (spyCalls > 0) pcr = spyPuts / spyCalls;
+      }
+
+      const indicators = [
+        { name: 'VIX Level',          value: Math.round(vixValue * 10) / 10,       score: vixScore(vixValue),            label: scoreLabel(vixScore(vixValue)) },
+        { name: 'Put/Call Ratio',      value: Math.round(pcr * 100) / 100,          score: pcrScore(pcr),                 label: scoreLabel(pcrScore(pcr)) },
+        { name: 'Market Momentum',     value: Math.round(spyPctAbove * 10) / 10,    score: momentumScore(spyPctAbove),    label: scoreLabel(momentumScore(spyPctAbove)) },
+        { name: 'Safe Haven Demand',   value: Math.round(tltRelPerf * 10) / 10,     score: safeHavenScore(tltRelPerf),    label: scoreLabel(safeHavenScore(tltRelPerf)) },
+        { name: 'Junk Bond Demand',    value: hyOasLatest ?? 350,                   score: hyOasLatest ? junkBondScore(hyOasLatest) : 50, label: scoreLabel(hyOasLatest ? junkBondScore(hyOasLatest) : 50) },
+        { name: 'Market Breadth',      value: 42.1, score: 41, label: 'Fear' },    // no free breadth API
+        { name: 'Stock Price Strength',value: 18.0, score: 55, label: 'Neutral' }, // no free 52wk high data
+      ];
+      const avgScore = Math.round(indicators.reduce((s, i) => s + i.score, 0) / indicators.length);
+      fearGreedData = { score: avgScore, label: scoreLabel(avgScore), indicators };
+    } catch { /* use mock */ }
+
+    // 4. Vol surface from SPY options
+    let volSurfaceData = null;
+    try {
+      const spyQuote = await yf.quote('SPY');
+      volSurfaceData = await buildVolSurface(spyQuote.regularMarketPrice);
+    } catch { /* use mock */ }
+
+    const result = {
+      vixTermStructure,
+      optionsFlow,
+      fearGreedData,
+      volSurfaceData,
+      lastUpdated: new Date().toISOString().split('T')[0],
+    };
+
+    cache.set(cacheKey, result, 900);
+    res.json(result);
+  } catch (error) {
+    console.error('Derivatives API error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // --- Insurance Dashboard ---
 const INSURER_TICKERS = ['PGR', 'ALL', 'TRV', 'HIG'];
 const INSURER_NAMES = { PGR: 'Progressive', ALL: 'Allstate', TRV: 'Travelers', HIG: 'Hartford' };
