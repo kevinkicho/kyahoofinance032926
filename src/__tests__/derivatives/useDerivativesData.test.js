@@ -17,10 +17,11 @@ describe('useDerivativesData', () => {
     });
   });
 
-  it('vixTermStructure has dates and values arrays of equal length', () => {
+  it('vixTermStructure has dates, values, and prevValues arrays of equal length', () => {
     const { vixTermStructure } = useDerivativesData();
     expect(vixTermStructure.dates.length).toBeGreaterThan(0);
     expect(vixTermStructure.values.length).toBe(vixTermStructure.dates.length);
+    expect(vixTermStructure.prevValues.length).toBe(vixTermStructure.dates.length);
   });
 
   it('optionsFlow has at least 8 entries with required fields', () => {
