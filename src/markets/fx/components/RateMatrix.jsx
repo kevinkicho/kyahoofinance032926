@@ -20,9 +20,9 @@ export default function RateMatrix({ spotRates, prevRates }) {
         const quotePrev = prevRates[quote];
         const currRate = (baseSpot && quoteSpot) ? quoteSpot / baseSpot : null;
         const prevRate = (basePrev && quotePrev) ? quotePrev / basePrev : null;
-        const changePct = (currRate != null && prevRate && prevRate !== 0)
+        const changePct = (currRate != null && prevRate != null && prevRate !== 0)
           ? ((currRate - prevRate) / prevRate) * 100
-          : 0;
+          : null;
         result[base][quote] = { rate: currRate, changePct };
       }
     }
@@ -58,12 +58,13 @@ export default function RateMatrix({ spotRates, prevRates }) {
                     return <td key={quote} className="rate-matrix-cell">—</td>;
                   }
                   const { rate, changePct } = cell;
-                  const isPositive = changePct >= 0;
+                  const isPositive = changePct != null && changePct >= 0;
+                  const isNegative = changePct != null && changePct < 0;
                   return (
-                    <td key={quote} className={`rate-matrix-cell ${isPositive ? 'positive' : 'negative'}`}>
+                    <td key={quote} className={`rate-matrix-cell${isPositive ? ' positive' : isNegative ? ' negative' : ''}`}>
                       <span className="rate-matrix-rate">{formatRate(rate, quote)}</span>
                       <span className="rate-matrix-change">
-                        {isPositive ? '+' : ''}{changePct.toFixed(2)}%
+                        {changePct == null ? '—' : `${isPositive ? '+' : ''}${changePct.toFixed(2)}%`}
                       </span>
                     </td>
                   );
