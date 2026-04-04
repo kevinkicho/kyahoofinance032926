@@ -18,6 +18,7 @@ describe('useInsuranceData', () => {
   it('returns mock catBondSpreads on initial render', async () => {
     mockFetch.mockRejectedValue(new Error('server unavailable'));
     const { result } = renderHook(() => useInsuranceData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(Array.isArray(result.current.catBondSpreads)).toBe(true);
     expect(result.current.catBondSpreads.length).toBeGreaterThanOrEqual(8);
     expect(result.current.catBondSpreads[0]).toMatchObject({
