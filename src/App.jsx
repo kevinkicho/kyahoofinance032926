@@ -8,12 +8,15 @@ import ModelExplorer from './components/ModelExplorer/ModelExplorer';
 import DataHub from './components/DataHub/DataHub';
 import Sidebar from './components/Sidebar/Sidebar';
 import { mockTreemapData } from './mockData';
-import { currencySymbols } from './utils/constants';
+import { currencySymbols, REGION_SUFFIX } from './utils/constants';
 import { useFrankfurterRates } from './utils/useFrankfurterRates';
 import { getExtendedDetails } from './utils/dataHelpers';
 import { buildGlobalMacroEngine, predictMacroImpact } from './utils/mlEngine';
 import { ERAS } from './components/TimeTravel/TimeTravel';
+import TimeBar from './components/TimeBar/TimeBar';
+import BarRaceView from './components/BarRaceView/BarRaceView';
 import './index.css';
+
 
 function App() {
   const [currency, setCurrency] = useState('USD');
@@ -37,7 +40,15 @@ function App() {
   const [useMlEngine, setUseMlEngine] = useState(false);
   const [mlModels, setMlModels] = useState(null);
   const [rankMetric, setRankMetric] = useState('marketCap');
-  const [groupBy, setGroupBy] = useState('market'); // 'market' | 'sectorInMarket' | 'sectorGlobal'
+  const [groupBy, setGroupBy] = useState('market');
+  const [colorByPerf, setColorByPerf] = useState(false);
+
+  // Real time-travel: snapshot prices at a chosen date
+  const [snapshotDate, setSnapshotDate]       = useState(null);   // YYYY-MM-DD or null
+  const [snapshotPrices, setSnapshotPrices]   = useState(null);   // { "2330.TW": 142.5, ... }
+  const [baselinePrices, setBaselinePrices]   = useState(null);   // today's prices (denominator)
+  const [snapshotLoading, setSnapshotLoading] = useState(false); // 'market' | 'sectorInMarket' | 'sectorGlobal'
+  const [comparisonPrices, setComparisonPrices] = useState(null); // { d1, w1, m1, y1, ytd } each a prices map
 
   // Dynamic Data Pipeline - defaults to real stock universe, swappable to live APIs
   const [marketUniverse, setMarketUniverse] = useState(mockTreemapData);
@@ -48,8 +59,66 @@ function App() {
     setMlModels(buildGlobalMacroEngine());
   }, []);
 
+  // Fetch baseline (today) once on mount — needed for TimeBar and Time Travel
+  useEffect(() => {
+    if (baselinePrices) return;
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`/api/snapshot?date=${today}`)
+      .then(r => r.json())
+      .then(d => { if (!d.building) setBaselinePrices(d); })
+      .catch(() => {});
+  }, []);
+
+  // Fetch historical snapshot when snapshotDate changes
+  useEffect(() => {
+    if (!snapshotDate) { setSnapshotPrices(null); return; }
+    setSnapshotLoading(true);
+    fetch(`/api/snapshot?date=${snapshotDate}`)
+      .then(r => r.json())
+      .then(d => {
+        if (!d.building) setSnapshotPrices(d);
+        setSnapshotLoading(false);
+      })
+      .catch(() => setSnapshotLoading(false));
+  }, [snapshotDate]);
+
+  // Fetch comparison snapshots for hover modal (d-1, 1W, 1M, 1Y, YTD)
+  useEffect(() => {
+    if (!snapshotDate) { setComparisonPrices(null); return; }
+    const d = new Date(snapshotDate + 'T12:00:00Z');
+    const fmt = dt => dt.toISOString().slice(0, 10);
+    const d1  = new Date(d); d1.setUTCDate(d1.getUTCDate() - 1);
+    const w1  = new Date(d); w1.setUTCDate(w1.getUTCDate() - 7);
+    const m1  = new Date(d); m1.setUTCMonth(m1.getUTCMonth() - 1);
+    const y1  = new Date(d); y1.setUTCFullYear(y1.getUTCFullYear() - 1);
+    const ytd = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const periods = { d1: fmt(d1), w1: fmt(w1), m1: fmt(m1), y1: fmt(y1), ytd: fmt(ytd) };
+    Promise.all(
+      Object.entries(periods).map(([key, date]) =>
+        fetch(`/api/snapshot?date=${date}`)
+          .then(r => r.json())
+          .then(data => [key, data])
+          .catch(() => [key, {}])
+      )
+    ).then(results => setComparisonPrices(Object.fromEntries(results)));
+  }, [snapshotDate]);
+
   const currentRate = rates[currency] || 1;
   const currentSymbol = currencySymbols[currency] || '$';
+
+  // Green/red performance color — always visually distinct even at 0% change.
+  // 0% → dark but clearly green; ±12%+ → bright green/red; capped at ±12%.
+  function perfColorFn(pct) {
+    if (pct >= 0) {
+      const k = Math.min(pct / 12, 1);
+      return `rgb(${Math.round(20 + 2*k)}, ${Math.round(83 + 80*k)}, ${Math.round(45 + 29*k)})`;
+      // 0% → rgb(20,83,45) dark green   |  12%+ → rgb(22,163,74) bright green
+    } else {
+      const k = Math.min(-pct / 12, 1);
+      return `rgb(${Math.round(69 + 151*k)}, ${Math.round(10 + 28*k)}, ${Math.round(10 + 28*k)})`;
+      // 0% → rgb(69,10,10) dark red   |  -12%+ → rgb(220,38,38) bright red
+    }
+  }
 
   // Macro Valuation Engine — composes era multiplier × scenario slider
   const getAdjustedValue = (item, scenarios, eraMultipliers) => {
@@ -94,26 +163,6 @@ function App() {
     return stock.marketCap || stock.value || 0;
   };
 
-  // Processed Treemap with Era + Scenario Impacts + Ranking
-  const adjustedTreemapData = useMemo(() => {
-    const era = ERAS.find(e => e.id === activeEra) || ERAS[ERAS.length - 1];
-    return marketUniverse.map(region => {
-      const withAdjusted = region.children.map(stock => ({
-        ...stock,
-        adjustedValue: getAdjustedValue(stock, scenarios, era.multipliers),
-        metricValue:   getMetricValue(stock, rankMetric),
-      }));
-      // Rank within region by selected metric (descending)
-      const sorted = [...withAdjusted].sort((a, b) =>
-        getRankValue(b, rankMetric) - getRankValue(a, rankMetric)
-      );
-      return {
-        ...region,
-        children: sorted.map((stock, idx) => ({ ...stock, rank: idx + 1 })),
-      };
-    });
-  }, [marketUniverse, scenarios, activeEra, useMlEngine, mlModels, rankMetric]);
-
   const SECTOR_COLORS = {
     'Technology':  '#3b82f6',
     'Financials':  '#10b981',
@@ -121,8 +170,93 @@ function App() {
     'Healthcare':  '#ec4899',
     'Energy':      '#f97316',
     'Industrials': '#8b5cf6',
+    'Crypto':      '#f7931a',
     'Other':       '#64748b',
   };
+
+  // Rank-based palette: 20 distinct vivid colors cycling from #1 (gold) through rainbow
+  const RANK_PALETTE = [
+    '#f59e0b', // 1  gold
+    '#22c55e', // 2  green
+    '#3b82f6', // 3  blue
+    '#ef4444', // 4  red
+    '#a855f7', // 5  purple
+    '#f97316', // 6  orange
+    '#06b6d4', // 7  cyan
+    '#ec4899', // 8  pink
+    '#84cc16', // 9  lime
+    '#8b5cf6', // 10 violet
+    '#14b8a6', // 11 teal
+    '#f43f5e', // 12 rose
+    '#0ea5e9', // 13 sky
+    '#eab308', // 14 yellow
+    '#10b981', // 15 emerald
+    '#fb923c', // 16 light-orange
+    '#818cf8', // 17 indigo
+    '#e879f9', // 18 fuchsia
+    '#4ade80', // 19 light-green
+    '#38bdf8', // 20 light-blue
+  ];
+  const rankColorFn = (rank) => RANK_PALETTE[(rank - 1) % RANK_PALETTE.length];
+
+  // Processed Treemap with Era + Scenario Impacts + Ranking
+  const adjustedTreemapData = useMemo(() => {
+    const era = ERAS.find(e => e.id === activeEra) || ERAS[ERAS.length - 1];
+    const useRealSnapshot = snapshotPrices && baselinePrices && snapshotDate;
+
+    return marketUniverse.map(region => {
+      const suffix = REGION_SUFFIX[region.name];
+      const withAdjusted = region.children.map(stock => {
+        const apiKey = suffix ? `${stock.name}.${suffix}` : stock.name;
+        let adjustedValue;
+        let _hist, _base;
+
+        // Real historical data: scale market cap by price ratio on chosen date
+        if (useRealSnapshot) {
+          _hist = snapshotPrices[apiKey];
+          _base = baselinePrices[apiKey];
+          if (_hist > 0 && _base > 0) {
+            adjustedValue = Math.max(0.1, (stock.marketCap || stock.value) * (_hist / _base));
+          }
+        }
+        // Fall back to era multiplier if no real data for this ticker
+        if (!adjustedValue) {
+          adjustedValue = getAdjustedValue(stock, scenarios, era.multipliers);
+        }
+
+        // metricValue drives treemap sizing.
+        // For marketCap/pe/divYield: size by adjustedValue (snapshot/era-adjusted cap).
+        // For revenue/netIncome: use the actual fundamental — snapshot doesn't affect it.
+        const metricValue = (rankMetric === 'revenue' || rankMetric === 'netIncome')
+          ? getMetricValue(stock, rankMetric)
+          : adjustedValue;
+
+        return { ...stock, adjustedValue, metricValue, _hist, _base, apiKey };
+      });
+
+      // Sort using snapshot-adjusted values for market cap so ranks reflect the chosen date
+      const sorted = [...withAdjusted].sort((a, b) => {
+        if (rankMetric === 'marketCap') return (b.adjustedValue || 0) - (a.adjustedValue || 0);
+        return getRankValue(b, rankMetric) - getRankValue(a, rankMetric);
+      });
+
+      return {
+        ...region,
+        children: sorted.map((stock, idx) => {
+          const rank = idx + 1;
+          // Perf mode: green/red by % change. Default: rank-based amber→blue palette.
+          let cellColor;
+          if (colorByPerf && useRealSnapshot && stock._hist > 0 && stock._base > 0) {
+            cellColor = perfColorFn((stock._hist / stock._base - 1) * 100);
+          } else {
+            cellColor = rankColorFn(rank);
+          }
+          const { _hist, _base, ...clean } = stock;
+          return { ...clean, rank, itemStyle: { ...stock.itemStyle, color: cellColor } };
+        }),
+      };
+    });
+  }, [marketUniverse, scenarios, activeEra, useMlEngine, mlModels, rankMetric, snapshotPrices, baselinePrices, snapshotDate, colorByPerf]);
 
   // Reorganize treemap data for sector views
   const heatmapData = useMemo(() => {
@@ -178,13 +312,11 @@ function App() {
     return adjustedTreemapData;
   }, [adjustedTreemapData, groupBy]);
 
-
   // Flatten for list view and stats
   const flatData = useMemo(() => {
     const arr = [];
     adjustedTreemapData.forEach(region => {
       region.children.forEach(stock => {
-        const isUp = stock.itemStyle.color === '#27ae60' || stock.itemStyle.color === '#2ecc71';
         arr.push({
           region: region.name,
           regionCurrency: region.currency,
@@ -203,7 +335,6 @@ function App() {
           rank: stock.rank,
           sector: stock.sector,
           color: stock.itemStyle.color,
-          perf: isUp ? '+1.54%' : '-2.10%',
         });
       });
     });
@@ -246,8 +377,8 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tickers: [tickerInfo.ticker] })
       }),
-      fetch(`/api/summary/${enc}`),
-      fetch(`/api/history/${enc}?period=1y`),
+      fetch(`/api/summary/${enc}?region=${encodeURIComponent(tickerInfo.region || '')}`),
+      fetch(`/api/history/${enc}?period=5y&region=${encodeURIComponent(tickerInfo.region || '')}`),
     ]);
 
     let mergedDetails = { ...details };
@@ -295,6 +426,12 @@ function App() {
     }
   };
 
+  // Triggered when user holds hover over a stock cell for 1.5s — populates sidebar
+  const onHoverActivate = (stockData) => {
+    const found = flatData.find(f => f.ticker === stockData.name);
+    if (found) handleSelectTicker(found);
+  };
+
   return (
     <div className="app-container">
       <Header
@@ -303,6 +440,8 @@ function App() {
         showTimeTravel={showTimeTravel} setShowTimeTravel={setShowTimeTravel}
         rankMetric={rankMetric} setRankMetric={setRankMetric}
         groupBy={groupBy} setGroupBy={setGroupBy}
+        colorByPerf={colorByPerf} setColorByPerf={setColorByPerf}
+        rates={rates}
       />
       <main className="main-content">
         <div className="view-container">
@@ -315,13 +454,45 @@ function App() {
               currency={currency}
               rankMetric={rankMetric}
               groupBy={groupBy}
+              snapshotPrices={snapshotPrices}
+              comparisonPrices={comparisonPrices}
+              snapshotDate={snapshotDate}
+              colorByPerf={colorByPerf}
+              rankMetric={rankMetric}
+              onHoverActivate={onHoverActivate}
+            />
+          )}
+          {viewMode === 'race' && (
+            <BarRaceView
+              flatData={flatData}
+              currentRate={currentRate}
+              currentSymbol={currentSymbol}
+              currency={currency}
+              snapshotDate={snapshotDate}
+              groupBy={groupBy}
             />
           )}
           {viewMode === 'list' && (
-            <ListView 
-              processedData={processedData} handleSort={handleSort} renderSortIndicator={renderSortIndicator} 
-              handleSelectTicker={handleSelectTicker} currentRate={currentRate} currentSymbol={currentSymbol} 
-              currency={currency} searchQuery={searchQuery} setSearchQuery={setSearchQuery} 
+            <ListView
+              processedData={processedData}
+              handleSort={handleSort}
+              renderSortIndicator={renderSortIndicator}
+              handleSelectTicker={handleSelectTicker}
+              currentRate={currentRate}
+              currentSymbol={currentSymbol}
+              currency={currency}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              rankMetric={rankMetric}
+              groupBy={groupBy}
+              snapshotDate={snapshotDate}
+            />
+          )}
+          {(viewMode === 'heatmap' || viewMode === 'race' || viewMode === 'list') && (
+            <TimeBar
+              snapshotDate={snapshotDate}
+              setSnapshotDate={setSnapshotDate}
+              snapshotLoading={snapshotLoading}
             />
           )}
           {viewMode === 'portfolio' && (
@@ -356,6 +527,8 @@ function App() {
           scenarios={scenarios} setScenarios={setScenarios}
           activeEra={activeEra} setActiveEra={setActiveEra}
           showTimeTravel={showTimeTravel}
+          snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate}
+          snapshotLoading={snapshotLoading} hasRealData={!!baselinePrices}
           useMlEngine={useMlEngine} setUseMlEngine={setUseMlEngine}
         />
       </main>

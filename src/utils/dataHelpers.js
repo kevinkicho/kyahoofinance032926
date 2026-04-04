@@ -18,7 +18,7 @@ export const getExtendedDetails = (tickerInfo, rates) => {
   const formatNative = (num) => `${sym}${num.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
   const priceLabel = formatNative(nativePriceNum);
-  const isUp = tickerInfo.perf.startsWith('+');
+  const isUp = tickerInfo.perf ? tickerInfo.perf.startsWith('+') : true;
   const changePctNum = isUp ? rand(0.5, 4.5) : (rand(0.5, 4.5) * -1);
   
   const changeAmtNum = nativePriceNum * (changePctNum / 100);
