@@ -163,6 +163,164 @@ app.get('/api/macro', async (req, res) => {
   }
 });
 
+// --- Insurance Dashboard ---
+const INSURER_TICKERS = ['PGR', 'ALL', 'TRV', 'HIG'];
+const INSURER_NAMES = { PGR: 'Progressive', ALL: 'Allstate', TRV: 'Travelers', HIG: 'Hartford' };
+const FRED_API_KEY = process.env.FRED_API_KEY || '';
+
+app.get('/api/insurance', async (req, res) => {
+  const cacheKey = 'insurance_data';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  // Helper: format quarter label from unix timestamp
+  function formatQuarter(unixTs) {
+    const d = new Date(unixTs * 1000);
+    const month = d.getUTCMonth() + 1; // 1-12
+    const q = month <= 3 ? 'Q1' : month <= 6 ? 'Q2' : month <= 9 ? 'Q3' : 'Q4';
+    const yr = String(d.getUTCFullYear()).slice(-2);
+    return `${q} ${yr}`;
+  }
+
+  // 1. Fetch quarterly financials for each insurer
+  const summaryResults = await Promise.allSettled(
+    INSURER_TICKERS.map(ticker =>
+      yf.quoteSummary(ticker, {
+        modules: ['incomeStatementHistoryQuarterly', 'balanceSheetHistoryQuarterly']
+      }).then(data => ({ ticker, data })).catch(e => { throw e; })
+    )
+  );
+
+  const successfulSummaries = summaryResults
+    .filter(r => r.status === 'fulfilled')
+    .map(r => r.value);
+
+  if (successfulSummaries.length === 0) {
+    return res.status(500).json({ error: 'Failed to fetch insurer financial data' });
+  }
+
+  // Build combinedRatioData
+  const allQuarterSets = {};
+  const reserveLines = [];
+  const reserveReserves = [];
+  const reserveRequired = [];
+  const reserveAdequacy = [];
+
+  for (const { ticker, data } of successfulSummaries) {
+    const name = INSURER_NAMES[ticker] || ticker;
+
+    // Combined ratio from income statement
+    const stmts = data?.incomeStatementHistoryQuarterly?.incomeStatementHistory || [];
+    const valid = stmts
+      .filter(e => e.totalRevenue?.raw && e.totalRevenue.raw !== 0)
+      .map(e => ({
+        ts: e.endDate?.raw,
+        label: formatQuarter(e.endDate?.raw),
+        ratio: Math.round(((e.totalRevenue.raw - (e.operatingIncome?.raw || 0)) / e.totalRevenue.raw) * 1000) / 10
+      }))
+      .sort((a, b) => a.ts - b.ts);
+
+    const last8 = valid.slice(-8);
+    allQuarterSets[name] = last8;
+
+    // Reserve adequacy from balance sheet
+    const bsStmts = data?.balanceSheetHistoryQuarterly?.balanceSheetStatements || [];
+    if (bsStmts.length > 0) {
+      const latest = bsStmts[0];
+      const reserves = Math.round((latest.totalLiab?.raw || 0) / 1e6);
+      const required = Math.round(reserves * 0.90);
+      const adequacy = required > 0 ? Math.round((reserves / required) * 1000) / 10 : 0;
+      reserveLines.push(name);
+      reserveReserves.push(reserves);
+      reserveRequired.push(required);
+      reserveAdequacy.push(adequacy);
+    }
+  }
+
+  // Determine unified quarters array (union of all labels, last 8)
+  // Use quarters from the insurer with the most entries
+  let masterQuarters = [];
+  for (const entries of Object.values(allQuarterSets)) {
+    if (entries.length > masterQuarters.length) {
+      masterQuarters = entries.map(e => e.label);
+    }
+  }
+
+  // Build lines: align each insurer's data to masterQuarters, pad with nulls
+  const combinedLines = {};
+  for (const [name, entries] of Object.entries(allQuarterSets)) {
+    const labelMap = {};
+    entries.forEach(e => { labelMap[e.label] = e.ratio; });
+    combinedLines[name] = masterQuarters.map(q => labelMap[q] !== undefined ? labelMap[q] : null);
+    // Pad to 8
+    while (combinedLines[name].length < 8) combinedLines[name].unshift(null);
+  }
+  // Pad masterQuarters to 8
+  while (masterQuarters.length < 8) masterQuarters.unshift('');
+
+  const combinedRatioData = {
+    quarters: masterQuarters,
+    lines: combinedLines,
+  };
+
+  const reserveAdequacyData = {
+    lines: reserveLines,
+    reserves: reserveReserves,
+    required: reserveRequired,
+    adequacy: reserveAdequacy,
+  };
+
+  // 2. Fetch reinsurer quotes
+  let reinsurers = [];
+  try {
+    const reinsurerQuotes = await yf.quote(['RNR', 'ACGL', 'AXS']);
+    const arr = Array.isArray(reinsurerQuotes) ? reinsurerQuotes : [reinsurerQuotes];
+    reinsurers = arr
+      .filter(q => q)
+      .map(q => ({
+        ticker: q.symbol,
+        price: q.regularMarketPrice,
+        changePct: q.regularMarketChangePercent,
+        name: q.shortName,
+      }));
+  } catch (e) {
+    console.warn('Reinsurer quote fetch failed:', e.message);
+  }
+
+  // 3. Fetch FRED credit spreads
+  let hyOAS = null;
+  let igOAS = null;
+  if (FRED_API_KEY) {
+    const fredBase = `https://api.stlouisfed.org/fred/series/observations?api_key=${FRED_API_KEY}&file_type=json&limit=1&sort_order=desc&series_id=`;
+    try {
+      const hyData = await fetchJSON(`${fredBase}BAMLH0A0HYM2`);
+      const hyVal = parseFloat(hyData?.observations?.[0]?.value);
+      hyOAS = isNaN(hyVal) ? null : hyVal;
+    } catch (e) {
+      console.warn('FRED HY OAS fetch failed:', e.message);
+    }
+    try {
+      const igData = await fetchJSON(`${fredBase}BAMLC0A0CM`);
+      const igVal = parseFloat(igData?.observations?.[0]?.value);
+      igOAS = isNaN(igVal) ? null : igVal;
+    } catch (e) {
+      console.warn('FRED IG OAS fetch failed:', e.message);
+    }
+  }
+
+  const result = {
+    combinedRatioData,
+    reserveAdequacyData,
+    reinsurers,
+    hyOAS,
+    igOAS,
+    lastUpdated: new Date().toISOString().split('T')[0],
+  };
+
+  cache.set(cacheKey, result, 900);
+  res.json(result);
+});
+
 // --- Quote Summary: local cache first, then live Yahoo ---
 app.get('/api/summary/:ticker', async (req, res) => {
   const { ticker } = req.params;
@@ -259,5 +417,5 @@ app.listen(port, () => {
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
   console.log(`Global Macro Backend running at http://localhost:${port}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
-  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/summary/:t  /api/history/:t`);
+  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/summary/:t  /api/history/:t`);
 });
