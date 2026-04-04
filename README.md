@@ -1,6 +1,71 @@
 # Global Macro Finance Dashboard
 
-An interactive global equity dashboard for exploring market cap, fundamentals, and historical price performance — built with React 18, ECharts, and an Express backend powered by yahoo-finance2.
+An interactive financial data platform with two main products:
+
+1. **Global Market Hub** — a multi-market live data dashboard covering FX, Bonds, Real Estate, Derivatives, and Insurance with hybrid live/mock data architecture
+2. **Global Equity Dashboard** — an interactive heatmap, bar race, and list view across 350+ real global stocks with historical playback
+
+---
+
+## Global Market Hub
+
+A tabbed market dashboard where each market tab has 4 sub-views, a live/mock status indicator, and a loading spinner. Data comes from Yahoo Finance and FRED with silent mock fallback when the server is unavailable.
+
+### Markets
+
+| # | Market | Sub-views | Accent | Live Data Sources |
+|---|--------|-----------|--------|-------------------|
+| 1 | **FX** | Rate Matrix, Carry Map, DXY Tracker, Top Movers | Amber | Frankfurter API (ECB rates) |
+| 2 | **Bonds** | Yield Curve, Credit Matrix, Spread Monitor, Duration Ladder | Green | FRED: US 9-tenor yields, 6 intl 10yr anchors, IG/HY/EM spread history |
+| 3 | **Real Estate** | Price Index, REIT Screen, Affordability Map, Cap Rate Monitor | Orange | Yahoo: 10 REIT quotes; FRED BIS: 6-country house prices (rebased Q1 2020=100) |
+| 4 | **Derivatives** | Vol Surface, VIX Term Structure, Options Flow, Fear & Greed | Purple | Yahoo: VIX 4-tenor, SPY+QQQ options chains, S&P + TLT historical; FRED: HY OAS |
+| 5 | **Insurance** | Cat Bond Spreads, Combined Ratio Monitor, Reserve Adequacy, Reinsurance Pricing | Sky Blue | Yahoo: P&C insurer quarterlies (PGR/ALL/TRV/HIG); FRED: HY OAS |
+
+### Architecture
+
+- **Server:** Express 4 on port 3001 with `yahoo-finance2`, `node-cache` (15-min TTL), FRED API
+- **Hooks:** each market has an async hook (`useState` + `useEffect` + `fetch`) that initializes with mock data and silently upgrades to live data — `isLive: true` when server responds
+- **Loading state:** each market root shows a colored spinner until the first fetch resolves
+- **Mock fallback:** all hooks fall back to static mock data if the server is down or any fetch fails
+- **Tests:** 152 passing (24 test files) — Vitest + @testing-library/react, async `renderHook` + `waitFor` pattern
+
+### Live FRED Series Used
+
+| Key | Series ID | Used in |
+|-----|-----------|---------|
+| US Treasury yields | `DGS3MO` … `DGS30` | Bonds yield curve |
+| Germany 10yr | `IRLTLT01DEM156N` | Bonds intl curve |
+| Japan 10yr | `IRLTLT01JPM156N` | Bonds intl curve |
+| UK 10yr | `IRLTLT01GBM156N` | Bonds intl curve |
+| IG OAS | `BAMLC0A0CM` | Bonds spread monitor |
+| HY OAS | `BAMLH0A0HYM2` | Bonds spreads, Derivatives Fear & Greed, Insurance cat bonds |
+| EM OAS | `BAMLEMCBPIOAS` | Bonds spread monitor |
+| BIS House Prices | `QUSR628BIS` … `QJPN628BIS` | Real Estate price index |
+
+### Running the Hub
+
+```bash
+# 1. Add FRED API key to server/.env
+echo "FRED_API_KEY=your_key_here" > server/.env
+
+# 2. Start the backend (port 3001)
+cd server && node index.js
+
+# 3. Start the frontend (port 5173)
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) and click the **Hub** tab.
+
+### Running Tests
+
+```bash
+npx vitest run
+```
+
+---
+
+## Global Equity Dashboard
 
 ## Features
 
@@ -47,9 +112,10 @@ An interactive global equity dashboard for exploring market cap, fundamentals, a
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, Vite 5, ECharts (echarts-for-react) |
-| Backend | Express 4, yahoo-finance2 v3 (ES module) |
-| Data | yahoo-finance2 historical + quoteSummary, Frankfurter API (FX), FRED |
+| Backend | Express 4, yahoo-finance2, node-cache (15-min TTL) |
+| Data | yahoo-finance2 (quotes, options, historical), Frankfurter API (FX), FRED API |
 | Styling | Plain CSS with CSS variables |
+| Tests | Vitest 4, @testing-library/react |
 
 ## Getting Started
 
@@ -100,6 +166,13 @@ The script resumes from where it left off if interrupted. Data is saved to `data
 
 ```
 ├── src/
+│   ├── hub/                 # Global Market Hub shell + routing
+│   ├── markets/
+│   │   ├── fx/              # FX: Rate Matrix, Carry Map, DXY Tracker, Top Movers
+│   │   ├── bonds/           # Bonds: Yield Curve, Credit Matrix, Spread Monitor, Duration Ladder
+│   │   ├── realEstate/      # Real Estate: Price Index, REIT Screen, Affordability Map, Cap Rate Monitor
+│   │   ├── derivatives/     # Derivatives: Vol Surface, VIX Term Structure, Options Flow, Fear & Greed
+│   │   └── insurance/       # Insurance: Cat Bond Spreads, Combined Ratio, Reserve Adequacy, Reinsurance
 │   ├── components/
 │   │   ├── Header/          # View toggles, ranking bar, group-by, perf colors
 │   │   ├── HeatmapView/     # ECharts treemap + hover modal + rank palette
@@ -121,8 +194,10 @@ The script resumes from where it left off if interrupted. Data is saved to `data
 │       ├── useFrankfurterRates.js   # Live FX hook
 │       ├── dataHelpers.js           # Detail panel data generator
 │       └── mlEngine.js              # Macro regression engine
+├── src/__tests__/           # Vitest tests — 152 passing across 24 test files
 ├── server/
-│   └── index.js             # Express API — quotes, history, summary, snapshot, FRED
+│   └── index.js             # Express API — /api/bonds, /api/derivatives, /api/realEstate,
+│                            #   /api/insurance, /api/stocks, /api/macro, FRED, Yahoo Finance
 ├── scripts/
 │   └── fetch-universe.js    # Bulk data acquisition script
 ├── data/stocks/             # gitignored — pre-fetched JSON cache (~52 MB)
