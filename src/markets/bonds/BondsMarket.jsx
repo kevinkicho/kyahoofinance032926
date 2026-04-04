@@ -1,12 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useBondsData } from './data/useBondsData';
+import YieldCurve     from './components/YieldCurve';
+import CreditMatrix   from './components/CreditMatrix';
+import SpreadMonitor  from './components/SpreadMonitor';
+import DurationLadder from './components/DurationLadder';
+import './BondsMarket.css';
+
+const SUB_TABS = [
+  { id: 'yield-curve',     label: 'Yield Curve'    },
+  { id: 'credit-matrix',   label: 'Credit Matrix'  },
+  { id: 'spread-monitor',  label: 'Spread Monitor' },
+  { id: 'duration-ladder', label: 'Duration Ladder'},
+];
+
 export default function BondsMarket() {
+  const [activeTab, setActiveTab] = useState('yield-curve');
+  const { yieldCurveData, creditRatingsData, spreadData, durationLadderData, isLive, lastUpdated } = useBondsData();
+
   return (
-    <div className="market-placeholder">
-      <div className="market-placeholder-icon">🏛️</div>
-      <h2 className="market-placeholder-title">Bonds Market</h2>
-      <p className="market-placeholder-desc">
-        Yield curves, credit matrices, and spread monitors — coming in Sub-project 3.
-      </p>
+    <div className="bonds-market">
+      <div className="bonds-sub-tabs">
+        {SUB_TABS.map(t => (
+          <button
+            key={t.id}
+            className={`bonds-sub-tab${activeTab === t.id ? ' active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="bonds-status-bar">
+        <span className={isLive ? 'bonds-status-live' : ''}>
+          {isLive ? '● Live (FRED)' : '○ Mock data — static'}
+        </span>
+        {lastUpdated && <span>Updated: {lastUpdated}</span>}
+      </div>
+      <div className="bonds-content">
+        {activeTab === 'yield-curve'     && <YieldCurve     yieldCurveData={yieldCurveData} />}
+        {activeTab === 'credit-matrix'   && <CreditMatrix   creditRatingsData={creditRatingsData} />}
+        {activeTab === 'spread-monitor'  && <SpreadMonitor  spreadData={spreadData} />}
+        {activeTab === 'duration-ladder' && <DurationLadder durationLadderData={durationLadderData} />}
+      </div>
     </div>
   );
 }
