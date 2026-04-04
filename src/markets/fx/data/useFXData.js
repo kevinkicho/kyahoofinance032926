@@ -25,9 +25,9 @@ export function useFXData() {
     const startDate = getDateStr(HISTORY_DAYS);
 
     Promise.all([
-      fetch('https://api.frankfurter.dev/v1/latest?base=USD').then(r => r.json()),
-      fetch(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`).then(r => r.json()),
-      fetch(`https://api.frankfurter.dev/v1/${startDate}..${today}?base=USD&symbols=${DXY_SYMBOLS}`).then(r => r.json()),
+      fetch('https://api.frankfurter.dev/v1/latest?base=USD').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`https://api.frankfurter.dev/v1/${startDate}..${today}?base=USD&symbols=${DXY_SYMBOLS}`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
     ])
       .then(([latest, prev, hist]) => {
         if (latest?.rates) {
@@ -42,7 +42,8 @@ export function useFXData() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // changes[X] = % change in USD-based rate for X (positive = USD strengthened vs X)
+  // changes[X] = % change in the USD-based spot rate for X
+  // Positive means USD got stronger vs X (X weakened). Negate for "X vs USD" display.
   const changes = Object.keys(spotRates).reduce((acc, code) => {
     if (code === 'USD') return { ...acc, [code]: 0 };
     const prev = prevRates[code] || spotRates[code];
