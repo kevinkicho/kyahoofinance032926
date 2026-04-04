@@ -388,12 +388,15 @@ app.get('/api/bonds', async (req, res) => {
     spreadEntries.forEach(r => { if (r.status === 'fulfilled') spreadRaw[r.value[0]] = r.value[1]; });
 
     // Align dates across series (use IG as anchor, last 12 points)
-    const anchor = spreadRaw.IG || spreadRaw.HY || [];
-    const spreadData = anchor.length ? {
-      dates: anchor.slice(-12).map(p => dateToMonthLabel(p.date)),
-      IG:    (spreadRaw.IG  || []).slice(-12).map(p => Math.round(p.value)),
-      HY:    (spreadRaw.HY  || []).slice(-12).map(p => Math.round(p.value)),
-      EM:    (spreadRaw.EM  || []).slice(-12).map(p => Math.round(p.value)),
+    const igArr = (spreadRaw.IG  || []).slice(-12);
+    const hyArr = (spreadRaw.HY  || []).slice(-12);
+    const emArr = (spreadRaw.EM  || []).slice(-12);
+    const anchorArr = igArr.length === 12 ? igArr : (hyArr.length === 12 ? hyArr : []);
+    const spreadData = anchorArr.length === 12 ? {
+      dates: anchorArr.map(p => dateToMonthLabel(p.date)),
+      IG:    igArr.length === 12 ? igArr.map(p => Math.round(p.value)) : anchorArr.map(() => null),
+      HY:    hyArr.length === 12 ? hyArr.map(p => Math.round(p.value)) : anchorArr.map(() => null),
+      EM:    emArr.length === 12 ? emArr.map(p => Math.round(p.value)) : anchorArr.map(() => null),
     } : null;
 
     const result = {
@@ -406,7 +409,7 @@ app.get('/api/bonds', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('Bonds API error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
