@@ -1,16 +1,152 @@
+import { config as dotenvConfig } from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+dotenvConfig({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
 import express from 'express';
 import cors from 'cors';
 import NodeCache from 'node-cache';
 import YahooFinance from 'yahoo-finance2';
 import https from 'https';
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, '..', 'data', 'stocks');
+const DATA_DIR   = path.join(__dirname, '..', 'data', 'stocks');
+const PRICES_DIR = path.join(__dirname, '..', 'prices');
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
+
+// Crypto tickers — Yahoo Finance requires the -USD suffix for quotes
+const CRYPTO_TICKERS = new Set([
+  'BTC','ETH','XRP','BNB','SOL','DOGE','ADA','TRX','AVAX','LINK','DOT','LTC','UNI','POL','ATOM',
+]);
+const cryptoYahoo  = (t) => CRYPTO_TICKERS.has(t) ? `${t}-USD` : t;
+const cryptoStrip  = (sym) => sym.endsWith('-USD') ? sym.slice(0, -4) : sym;
+
+// Exchange suffix map: stockUniverse region name → Yahoo exchange suffix
+const REGION_SUFFIX = {
+  'Japan Exchange':          'T',
+  'Shanghai (China)':        'SS',
+  'Shenzhen (China)':        'SZ',
+  'Hong Kong (Hang Seng)':   'HK',
+  'KRX (South Korea)':       'KS',
+  'TWSE (Taiwan)':           'TW',
+  'NSE (India)':             'NS',
+  'BSE (India)':             'BO',
+  'LSE (UK)':                'L',
+  'Tadawul (Saudi Arabia)':  'SR',
+  'TSX (Canada)':            'TO',
+  'DAX (Germany)':           'F',
+  'SIX (Switzerland)':       'SW',
+  'Nasdaq Nordic':           'ST',   // try ST, then HE, CO
+  'ASX (Australia)':         'AX',
+  'B3 (Brazil)':             'SA',
+  'BME (Spain)':             'MC',
+  'SGX (Singapore)':         'SG',
+  'JSE (South Africa)':      'JO',
+  'Borsa Italiana':          'MI',
+  'SET (Thailand)':          'BK',
+  'BMV (Mexico)':            'MX',
+  'IDX (Indonesia)':         'JK',
+  'Bursa Malaysia':          'KL',
+  'PSE (Philippines)':       'PS',
+  'WSE (Poland)':            'WA',
+  'TASE (Israel)':           'TA',
+  'OSL (Norway)':            'OL',
+  'Euronext (Europe)':       'PA',
+  'Tadawul (UAE/Gulf)':      'AE',
+};
+
+// Nordic has mixed suffixes — try all three for fallback
+const NORDIC_SUFFIXES = ['ST', 'HE', 'CO'];
+
+// Build candidate file paths for a ticker + region
+function resolveCandidates(ticker, region) {
+  const suffix = REGION_SUFFIX[region];
+  const candidates = [];
+
+  const tryBoth = (sfx) => {
+    // data/stocks uses underscore: 7203_T.json
+    candidates.push({ dir: DATA_DIR,   name: `${ticker}_${sfx}.json`, format: 'ohlcv' });
+    // prices uses dot: 7203.T.json
+    candidates.push({ dir: PRICES_DIR, name: `${ticker}.${sfx}.json`, format: 'compact' });
+  };
+
+  if (suffix) {
+    tryBoth(suffix);
+    if (region === 'Nasdaq Nordic') NORDIC_SUFFIXES.filter(s => s !== suffix).forEach(tryBoth);
+  }
+  // Bare ticker fallback (US stocks, or tickers already containing the exchange)
+  candidates.push({ dir: DATA_DIR,   name: `${ticker}.json`, format: 'ohlcv' });
+  candidates.push({ dir: PRICES_DIR, name: `${ticker}.json`, format: 'compact' });
+
+  return candidates;
+}
+
+// Read first existing candidate file; return { data, format }
+function readBestFile(ticker, region) {
+  for (const c of resolveCandidates(ticker, region)) {
+    const fullPath = path.join(c.dir, c.name);
+    if (fs.existsSync(fullPath)) {
+      try {
+        return { data: JSON.parse(fs.readFileSync(fullPath, 'utf8')), format: c.format };
+      } catch { /* try next */ }
+    }
+  }
+  return null;
+}
+
+// Convert prices/ compact parallel-array format → [{date,open,high,low,close,volume}]
+function adaptCompact(compact, cutoffDate) {
+  const result = [];
+  for (let i = 0; i < (compact.t?.length || 0); i++) {
+    const date = new Date(compact.t[i] * 1000).toISOString().split('T')[0];
+    if (cutoffDate && date < cutoffDate) continue;
+    result.push({
+      date,
+      open:   compact.o?.[i],
+      high:   compact.h?.[i],
+      low:    compact.l?.[i],
+      close:  compact.c?.[i],
+      volume: compact.v?.[i],
+    });
+  }
+  return result;
+}
+
+function periodCutoff(period) {
+  const d = new Date();
+  if (period === '5y') d.setFullYear(d.getFullYear() - 5);
+  else if (period === '3y') d.setFullYear(d.getFullYear() - 3);
+  else if (period === '3m') d.setMonth(d.getMonth() - 3);
+  else d.setFullYear(d.getFullYear() - 1);
+  return d.toISOString().split('T')[0];
+}
+
+// ── Snapshot index (lazy-built for time travel) ──────────────────────────────
+// Structure: { AAPL: [{date,close}, ...], ... } — all 351 curated tickers
+let snapshotIndex = null;
+let snapshotBuilding = false;
+
+async function buildSnapshotIndex() {
+  if (snapshotIndex || snapshotBuilding) return;
+  snapshotBuilding = true;
+  console.log('Building snapshot index from data/stocks/ …');
+  const index = {};
+  if (!fs.existsSync(DATA_DIR)) { snapshotBuilding = false; return; }
+  const files = fs.readdirSync(DATA_DIR).filter(f => f.endsWith('.json'));
+  for (const file of files) {
+    try {
+      const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), 'utf8'));
+      const ticker = raw.ticker || file.replace('.json', '');
+      if (raw.history?.length) {
+        index[ticker] = raw.history.map(d => ({ date: d.date, close: d.close }));
+      }
+    } catch { /* skip bad files */ }
+  }
+  snapshotIndex = index;
+  snapshotBuilding = false;
+  console.log(`Snapshot index ready: ${Object.keys(index).length} tickers`);
+}
 
 const app = express();
 const port = 3001;
@@ -19,14 +155,11 @@ const cache = new NodeCache({ stdTTL: 900 }); // 15 min default
 app.use(cors());
 app.use(express.json());
 
-// --- Helper: read local cached JSON for a ticker ---
+// --- Helper: read data/stocks/ ohlcv-format file by bare ticker ---
 function readLocalData(ticker) {
-  try {
-    const file = path.join(DATA_DIR, `${ticker}.json`);
-    if (fs.existsSync(file)) {
-      return JSON.parse(fs.readFileSync(file, 'utf8'));
-    }
-  } catch (e) { /* ignore */ }
+  const p = path.join(DATA_DIR, `${ticker}.json`);
+  try { if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8')); }
+  catch { /* ignore */ }
   return null;
 }
 
@@ -69,15 +202,18 @@ app.post('/api/stocks', async (req, res) => {
     });
 
     if (missingTickers.length > 0) {
-      const chunks = chunkArray(missingTickers, 100);
+      // Remap crypto tickers to their Yahoo -USD format (BTC → BTC-USD)
+      const yahooTickers = missingTickers.map(cryptoYahoo);
+      const chunks = chunkArray(yahooTickers, 100);
       for (const chunk of chunks) {
         try {
           const results = await yf.quote(chunk);
           const arr = Array.isArray(results) ? results : [results];
           arr.forEach(quote => {
             if (!quote) return;
+            const originalTicker = cryptoStrip(quote.symbol); // BTC-USD → BTC
             const normalized = {
-              ticker: quote.symbol,
+              ticker: originalTicker,
               name: quote.longName || quote.shortName,
               currency: quote.currency,
               price: quote.regularMarketPrice,
@@ -102,8 +238,8 @@ app.post('/api/stocks', async (req, res) => {
               beta: quote.beta,
               dividendYield: quote.dividendYield,
             };
-            cache.set(quote.symbol, normalized);
-            cachedData[quote.symbol] = normalized;
+            cache.set(originalTicker, normalized);
+            cachedData[originalTicker] = normalized;
           });
         } catch (chunkError) {
           console.error(`Error fetching chunk:`, chunkError.message);
@@ -118,13 +254,19 @@ app.post('/api/stocks', async (req, res) => {
 });
 
 // --- FRED Macro Indicators ---
+const FRED_API_KEY = process.env.FRED_API_KEY || '';
+
 const FRED_SERIES = {
-  M1: 'M1SL',
-  M2: 'M2SL',
-  CPI: 'CPIAUCSL',
-  FFR: 'FEDFUNDS',
+  M1:    'M1SL',
+  M2:    'M2SL',
+  CPI:   'CPIAUCSL',
+  FFR:   'FEDFUNDS',
   UNEMP: 'UNRATE',
-  GDP: 'GDP',
+  GDP:   'GDP',
+  // Credit / bond spread series (ICE BofA OAS)
+  IG_OAS:     'BAMLC0A0CM',        // Investment Grade OAS (bps)
+  HY_OAS:     'BAMLH0A0HYM2',     // High Yield OAS (bps)
+  BAA_SPREAD: 'BAA10Y',            // Baa – 10yr Treasury spread (%)
 };
 
 app.get('/api/macro', async (req, res) => {
@@ -132,21 +274,27 @@ app.get('/api/macro', async (req, res) => {
   const cached = cache.get(cacheKey);
   if (cached) return res.json(cached);
 
+  if (!FRED_API_KEY) {
+    console.warn('FRED_API_KEY not set — macro endpoint returning empty');
+    return res.json({});
+  }
+
   try {
-    const baseUrl = 'https://fred.stlouisfed.org/graph/fredgraph.json?id=';
     const results = {};
 
     await Promise.allSettled(
       Object.entries(FRED_SERIES).map(async ([key, seriesId]) => {
         try {
-          const data = await fetchJSON(`${baseUrl}${seriesId}`);
-          if (data && Array.isArray(data)) {
-            const recent = data.filter(d => d.value !== '.').slice(-2);
+          // FRED API: returns { observations: [{date, value}] }
+          const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=12`;
+          const data = await fetchJSON(url);
+          if (data?.observations) {
+            const valid = data.observations.filter(d => d.value !== '.');
             results[key] = {
               seriesId,
-              latest: parseFloat(recent[recent.length - 1]?.value),
-              prev: parseFloat(recent[recent.length - 2]?.value),
-              date: recent[recent.length - 1]?.date
+              latest: parseFloat(valid[0]?.value),
+              prev:   parseFloat(valid[1]?.value),
+              date:   valid[0]?.date,
             };
           }
         } catch (e) {
@@ -166,7 +314,6 @@ app.get('/api/macro', async (req, res) => {
 // --- Insurance Dashboard ---
 const INSURER_TICKERS = ['PGR', 'ALL', 'TRV', 'HIG'];
 const INSURER_NAMES = { PGR: 'Progressive', ALL: 'Allstate', TRV: 'Travelers', HIG: 'Hartford' };
-const FRED_API_KEY = process.env.FRED_API_KEY || '';
 
 app.get('/api/insurance', async (req, res) => {
   const cacheKey = 'insurance_data';
@@ -321,14 +468,21 @@ app.get('/api/insurance', async (req, res) => {
   res.json(result);
 });
 
-// --- Quote Summary: local cache first, then live Yahoo ---
+// --- Quote Summary: data/stocks/ first (ohlcv format has .summary), then live Yahoo ---
 app.get('/api/summary/:ticker', async (req, res) => {
   const { ticker } = req.params;
+  const region = req.query.region || '';
   const cacheKey = `summary_${ticker}`;
   const memCached = cache.get(cacheKey);
   if (memCached) return res.json(memCached);
 
-  // Try local data first
+  // Try resolved file (handles exchange suffixes)
+  const resolved = readBestFile(ticker, region);
+  if (resolved?.data?.summary) {
+    cache.set(cacheKey, resolved.data.summary, 1800);
+    return res.json(resolved.data.summary);
+  }
+  // Also try bare ticker in data/stocks/
   const local = readLocalData(ticker);
   if (local?.summary) {
     cache.set(cacheKey, local.summary, 1800);
@@ -338,16 +492,9 @@ app.get('/api/summary/:ticker', async (req, res) => {
   // Fall back to live Yahoo
   try {
     const data = await yf.quoteSummary(ticker, {
-      modules: [
-        'financialData',
-        'defaultKeyStatistics',
-        'earningsTrend',
-        'recommendationTrend',
-        'majorHoldersBreakdown',
-        'incomeStatementHistory',
-        'cashflowStatementHistory',
-        'balanceSheetHistory',
-      ]
+      modules: ['financialData','defaultKeyStatistics','earningsTrend',
+                'recommendationTrend','majorHoldersBreakdown',
+                'incomeStatementHistory','cashflowStatementHistory','balanceSheetHistory']
     });
     cache.set(cacheKey, data, 1800);
     res.json(data);
@@ -357,28 +504,30 @@ app.get('/api/summary/:ticker', async (req, res) => {
   }
 });
 
-// --- Historical Prices: local cache first, then live Yahoo ---
+// --- Historical Prices: resolver → data/stocks/ → prices/ → live Yahoo ---
 app.get('/api/history/:ticker', async (req, res) => {
   const { ticker } = req.params;
   const period = req.query.period || '1y';
-  const cacheKey = `history_${ticker}_${period}`;
+  const region = req.query.region || '';
+  const cacheKey = `history_${ticker}_${period}_${region}`;
   const memCached = cache.get(cacheKey);
   if (memCached) return res.json(memCached);
 
-  // Try local data first
-  const local = readLocalData(ticker);
-  if (local?.history?.length) {
-    // Filter to requested period
-    const cutoff = new Date();
-    if (period === '5y') cutoff.setFullYear(cutoff.getFullYear() - 5);
-    else if (period === '3y') cutoff.setFullYear(cutoff.getFullYear() - 3);
-    else if (period === '3m') cutoff.setMonth(cutoff.getMonth() - 3);
-    else cutoff.setFullYear(cutoff.getFullYear() - 1); // 1y default
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+  const cutoffStr = periodCutoff(period);
 
-    const filtered = local.history.filter(d => d.date >= cutoffStr);
-    cache.set(cacheKey, filtered, 3600);
-    return res.json(filtered);
+  // Try resolved file (handles exchange suffixes for Asian/European markets)
+  const resolved = readBestFile(ticker, region);
+  if (resolved) {
+    let rows;
+    if (resolved.format === 'ohlcv' && resolved.data?.history?.length) {
+      rows = resolved.data.history.filter(d => d.date >= cutoffStr);
+    } else if (resolved.format === 'compact' && resolved.data?.t?.length) {
+      rows = adaptCompact(resolved.data, cutoffStr);
+    }
+    if (rows?.length) {
+      cache.set(cacheKey, rows, 3600);
+      return res.json(rows);
+    }
   }
 
   // Fall back to live Yahoo
@@ -412,6 +561,38 @@ app.get('/api/history/:ticker', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// --- Snapshot: close prices at a historical date (for time travel treemap) ---
+// GET /api/snapshot?date=2022-06-15
+// Returns { ticker: closePrice } for all indexed tickers nearest to the requested date
+app.get('/api/snapshot', async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'date param required (YYYY-MM-DD)' });
+  }
+
+  if (!snapshotIndex) {
+    buildSnapshotIndex(); // kick off async build
+    return res.status(202).json({ building: true, message: 'Index building, retry in a few seconds' });
+  }
+
+  const result = {};
+  for (const [ticker, series] of Object.entries(snapshotIndex)) {
+    if (!series?.length) continue;
+    // Binary-search for nearest date
+    let lo = 0, hi = series.length - 1, best = 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (series[mid].date <= date) { best = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    result[ticker] = series[best].close;
+  }
+  res.json(result);
+});
+
+// Kick off index build at startup (non-blocking)
+buildSnapshotIndex();
 
 app.listen(port, () => {
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
