@@ -321,7 +321,10 @@ const INTL_10Y = {
   IT: 'IRLTLT01ITM156N', FR: 'IRLTLT01FRM156N', AU: 'IRLTLT01AUM156N',
 };
 const SPREAD_SERIES = {
-  IG: 'BAMLC0A0CM', HY: 'BAMLH0A0HYM2', EM: 'BAMLEMCBPIOAS',
+  IG:  'BAMLC0A0CM',
+  HY:  'BAMLH0A0HYM2',
+  EM:  'BAMLEMCBPIOAS',
+  BBB: 'BAMLC0A4CBBB',
 };
 
 async function fetchFredLatest(seriesId) {
@@ -388,15 +391,17 @@ app.get('/api/bonds', async (req, res) => {
     spreadEntries.forEach(r => { if (r.status === 'fulfilled') spreadRaw[r.value[0]] = r.value[1]; });
 
     // Align dates across series (use IG as anchor, last 12 points)
-    const igArr = (spreadRaw.IG  || []).slice(-12);
-    const hyArr = (spreadRaw.HY  || []).slice(-12);
-    const emArr = (spreadRaw.EM  || []).slice(-12);
+    const igArr  = (spreadRaw.IG  || []).slice(-12);
+    const hyArr  = (spreadRaw.HY  || []).slice(-12);
+    const emArr  = (spreadRaw.EM  || []).slice(-12);
+    const bbbArr = (spreadRaw.BBB || []).slice(-12);
     const anchorArr = igArr.length === 12 ? igArr : (hyArr.length === 12 ? hyArr : []);
     const spreadData = anchorArr.length === 12 ? {
       dates: anchorArr.map(p => dateToMonthLabel(p.date)),
-      IG:    igArr.length === 12 ? igArr.map(p => Math.round(p.value)) : anchorArr.map(() => null),
-      HY:    hyArr.length === 12 ? hyArr.map(p => Math.round(p.value)) : anchorArr.map(() => null),
-      EM:    emArr.length === 12 ? emArr.map(p => Math.round(p.value)) : anchorArr.map(() => null),
+      IG:    igArr.length  === 12 ? igArr.map(p  => Math.round(p.value))  : anchorArr.map(() => null),
+      HY:    hyArr.length  === 12 ? hyArr.map(p  => Math.round(p.value))  : anchorArr.map(() => null),
+      EM:    emArr.length  === 12 ? emArr.map(p  => Math.round(p.value))  : anchorArr.map(() => null),
+      BBB:   bbbArr.length === 12 ? bbbArr.map(p => Math.round(p.value))  : anchorArr.map(() => null),
     } : null;
 
     const result = {

@@ -3,9 +3,10 @@ import ReactECharts from 'echarts-for-react';
 import './BondsComponents.css';
 
 const SERIES_CONFIG = [
-  { key: 'IG', label: 'Investment Grade (IG)', color: '#60a5fa' },
-  { key: 'HY', label: 'High Yield (HY)',       color: '#f472b6' },
-  { key: 'EM', label: 'Emerging Mkt (EM)',      color: '#fbbf24' },
+  { key: 'IG',  label: 'Investment Grade (IG)', color: '#60a5fa' },
+  { key: 'HY',  label: 'High Yield (HY)',       color: '#f472b6' },
+  { key: 'EM',  label: 'Emerging Mkt (EM)',      color: '#fbbf24' },
+  { key: 'BBB', label: 'BBB-Rated (Crossover)',  color: '#a78bfa' },
 ];
 
 export default function SpreadMonitor({ spreadData }) {
@@ -57,8 +58,16 @@ export default function SpreadMonitor({ spreadData }) {
       <div className="bonds-chart-wrap">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
       </div>
+      <div className="bonds-series-legend">
+        {SERIES_CONFIG.map(({ key, label, color }) => (
+          <span key={key} className="bonds-series-legend-item">
+            <span className="bonds-series-legend-dot" style={{ background: color }} />
+            {label}
+          </span>
+        ))}
+      </div>
       <div className="bonds-panel-footer">
-        IG = investment-grade corporate · HY = high-yield · EM = emerging market sovereign
+        Source: ICE BofA indices via FRED · spreads over US Treasuries
       </div>
     </div>
   );
