@@ -60,8 +60,8 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
   return (
     <div className="ins-panel">
       <div className="ins-panel-header">
-        <span className="ins-panel-title">Reserve Adequacy</span>
-        <span className="ins-panel-subtitle">Held vs required reserves by line · % label = adequacy ratio</span>
+        <span className="ins-panel-title">Reserves vs Requirements</span>
+        <span className="ins-panel-subtitle">Held vs required by line of business · % label = adequacy ratio</span>
       </div>
       <div className="ins-chart-wrap">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
