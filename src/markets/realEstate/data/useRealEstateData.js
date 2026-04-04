@@ -6,7 +6,7 @@ import {
   capRateData,
 } from './mockRealEstateData';
 
-const SERVER = 'http://localhost:3001';
+const SERVER = '';
 
 export function useRealEstateData() {
   const [priceIndexData, setPriceIndexData] = useState(mockPriceIndexData);

@@ -6,7 +6,7 @@ import {
   reinsurancePricing,
 } from './mockInsuranceData';
 
-const SERVER = 'http://localhost:3001';
+const SERVER = '';
 const HY_OAS_BASELINE = 350;
 
 function scaleCatBondSpreads(bonds, hyOAS) {

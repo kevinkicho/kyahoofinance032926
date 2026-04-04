@@ -6,7 +6,7 @@ import {
   fearGreedData   as mockFearGreedData,
 } from './mockDerivativesData';
 
-const SERVER = 'http://localhost:3001';
+const SERVER = '';
 
 export function useDerivativesData() {
   const [volSurfaceData,   setVolSurfaceData]   = useState(mockVolSurfaceData);

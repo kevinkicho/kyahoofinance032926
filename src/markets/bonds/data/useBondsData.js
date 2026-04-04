@@ -6,7 +6,7 @@ import {
   durationLadderData,
 } from './mockBondsData';
 
-const SERVER = 'http://localhost:3001';
+const SERVER = '';
 
 // Mock 10yr anchors for international curve scaling
 const MOCK_10Y = { DE: 2.65, JP: 0.72, GB: 4.25, IT: 4.05, FR: 3.10, AU: 4.30 };
