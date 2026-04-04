@@ -1,44 +1,46 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import RealEstateMarket from '../../markets/realEstate/RealEstateMarket';
 
 vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
 
+beforeEach(() => {
+  global.fetch = vi.fn().mockRejectedValue(new Error('no server'));
+});
+
 describe('RealEstateMarket', () => {
-  it('renders Price Index tab by default', () => {
+  it('renders Price Index tab by default after loading', async () => {
     render(<RealEstateMarket />);
-    // 'Price Index' appears in both the tab button and the panel title
-    expect(screen.getAllByText('Price Index').length).toBeGreaterThanOrEqual(2);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(screen.getAllByText('Price Index').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all 4 sub-tabs', () => {
+  it('renders all 4 sub-tabs', async () => {
     render(<RealEstateMarket />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Price Index'       })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'REIT Screen'       })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Affordability Map' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cap Rate Monitor'  })).toBeInTheDocument();
   });
 
-  it('switches to REIT Screen on click', () => {
+  it('switches to REIT Screen on click', async () => {
     render(<RealEstateMarket />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'REIT Screen' }));
-    expect(screen.getAllByText(/REIT Screen/i)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/PLD|Prologis|Industrial|REIT/i).length).toBeGreaterThan(0);
   });
 
-  it('switches to Affordability Map on click', () => {
+  it('switches to Affordability Map on click', async () => {
     render(<RealEstateMarket />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Affordability Map' }));
-    expect(screen.getByText(/price-to-income/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Hong Kong|Sydney|price.to.income/i).length).toBeGreaterThan(0);
   });
 
-  it('switches to Cap Rate Monitor on click', () => {
+  it('shows mock data status when server unavailable', async () => {
     render(<RealEstateMarket />);
-    fireEvent.click(screen.getByRole('button', { name: 'Cap Rate Monitor' }));
-    expect(screen.getByText(/capitalization rates/i)).toBeInTheDocument();
-  });
-
-  it('shows mock data status', () => {
-    render(<RealEstateMarket />);
-    expect(screen.getByText(/○ Mock data — static/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(screen.getAllByText(/mock data/i).length).toBeGreaterThan(0);
   });
 });

@@ -15,7 +15,16 @@ const SUB_TABS = [
 
 export default function RealEstateMarket() {
   const [activeTab, setActiveTab] = useState('price-index');
-  const { priceIndexData, reitData, affordabilityData, capRateData, isLive, lastUpdated } = useRealEstateData();
+  const { priceIndexData, reitData, affordabilityData, capRateData, isLive, lastUpdated, isLoading } = useRealEstateData();
+
+  if (isLoading) {
+    return (
+      <div className="re-market re-loading">
+        <div className="re-loading-spinner" />
+        <span className="re-loading-text">Loading real estate data…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="re-market">

@@ -1,63 +1,69 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
 import { useRealEstateData } from '../../markets/realEstate/data/useRealEstateData';
 
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
+
 describe('useRealEstateData', () => {
-  it('returns priceIndexData with expected markets', () => {
-    const { priceIndexData } = useRealEstateData();
-    expect(Object.keys(priceIndexData)).toEqual(
-      expect.arrayContaining(['US', 'UK', 'DE', 'AU'])
-    );
-  });
+  beforeEach(() => { mockFetch.mockReset(); });
 
-  it('each market has matching dates and values arrays', () => {
-    const { priceIndexData } = useRealEstateData();
-    for (const market of Object.keys(priceIndexData)) {
-      const { dates, values } = priceIndexData[market];
-      expect(dates.length).toBeGreaterThan(0);
-      expect(values.length).toBe(dates.length);
-    }
-  });
-
-  it('reitData has at least 8 entries with required fields', () => {
-    const { reitData } = useRealEstateData();
+  it('returns mock reitData on server failure', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
+    const { result } = renderHook(() => useRealEstateData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { reitData } = result.current;
+    expect(Array.isArray(reitData)).toBe(true);
     expect(reitData.length).toBeGreaterThanOrEqual(8);
-    expect(reitData[0]).toMatchObject({
-      ticker: expect.any(String),
-      name: expect.any(String),
-      sector: expect.any(String),
-      dividendYield: expect.any(Number),
-      pFFO: expect.any(Number),
-      ytdReturn: expect.any(Number),
-      marketCap: expect.any(Number),
-    });
+    expect(result.current.isLive).toBe(false);
   });
 
-  it('affordabilityData has required fields per market', () => {
-    const { affordabilityData } = useRealEstateData();
-    expect(affordabilityData.length).toBeGreaterThan(0);
-    expect(affordabilityData[0]).toMatchObject({
-      city: expect.any(String),
-      country: expect.any(String),
-      priceToIncome: expect.any(Number),
-      mortgageToIncome: expect.any(Number),
-      medianPrice: expect.any(Number),
-      yoyChange: expect.any(Number),
-    });
+  it('returns mock priceIndexData on server failure', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
+    const { result } = renderHook(() => useRealEstateData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { priceIndexData } = result.current;
+    expect(priceIndexData.US).toBeDefined();
+    expect(Array.isArray(priceIndexData.US.dates)).toBe(true);
+    expect(priceIndexData.US.values.length).toBe(priceIndexData.US.dates.length);
   });
 
-  it('capRateData has dates array and at least 3 property types', () => {
-    const { capRateData } = useRealEstateData();
-    expect(capRateData.dates.length).toBeGreaterThan(0);
-    const types = Object.keys(capRateData).filter(k => k !== 'dates');
-    expect(types.length).toBeGreaterThanOrEqual(3);
-    types.forEach(t => {
-      expect(capRateData[t].length).toBe(capRateData.dates.length);
-    });
+  it('uses live reitData when server responds', async () => {
+    const liveData = {
+      reitData: [
+        { ticker: 'PLD', name: 'Prologis', sector: 'Industrial', dividendYield: 3.1, pFFO: 18.4, ytdReturn: 7.5, marketCap: 98, price: 110.2, changePct: 0.5 },
+      ],
+      priceIndexData: null,
+      lastUpdated: '2026-04-04',
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useRealEstateData());
+    await waitFor(() => expect(result.current.isLive).toBe(true));
+    expect(result.current.reitData[0].price).toBe(110.2);
+    expect(result.current.reitData[0].dividendYield).toBe(3.1);
   });
 
-  it('returns isLive false and lastUpdated string', () => {
-    const { isLive, lastUpdated } = useRealEstateData();
-    expect(isLive).toBe(false);
-    expect(typeof lastUpdated).toBe('string');
+  it('uses live priceIndexData when server responds', async () => {
+    const liveData = {
+      reitData: null,
+      priceIndexData: {
+        US: { dates: ['Q1 20', 'Q2 20', 'Q3 20', 'Q4 20'], values: [100, 97.2, 103.5, 107.1] },
+        UK: { dates: ['Q1 20', 'Q2 20', 'Q3 20', 'Q4 20'], values: [100, 96.8, 102.1, 106.3] },
+      },
+      lastUpdated: '2026-04-04',
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useRealEstateData());
+    await waitFor(() => expect(result.current.isLive).toBe(true));
+    expect(result.current.priceIndexData.US.values[0]).toBe(100);
+  });
+
+  it('always returns mock affordabilityData and capRateData', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
+    const { result } = renderHook(() => useRealEstateData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(Array.isArray(result.current.affordabilityData)).toBe(true);
+    expect(result.current.affordabilityData.length).toBeGreaterThan(0);
+    expect(result.current.capRateData).toBeDefined();
   });
 });

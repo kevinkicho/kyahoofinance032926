@@ -50,3 +50,19 @@
   flex: 1;
   overflow: hidden;
 }
+
+/* Loading state */
+.re-loading {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.re-loading-spinner {
+  width: 24px; height: 24px;
+  border: 2px solid #1e293b;
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: re-spin 0.7s linear infinite;
+}
+@keyframes re-spin { to { transform: rotate(360deg); } }
+.re-loading-text { font-size: 12px; color: #64748b; }
