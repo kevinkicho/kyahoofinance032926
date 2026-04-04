@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/components/Header/Header.jsx
+import React from 'react';
 import './Header.css';
 
 const RANK_METRICS = [
@@ -17,19 +18,15 @@ const GROUP_OPTIONS = [
 
 const Header = ({
   viewMode, setViewMode,
-  currency, setCurrency,
   showTimeTravel, setShowTimeTravel,
   rankMetric, setRankMetric,
   groupBy, setGroupBy,
   colorByPerf, setColorByPerf,
-  rates,
 }) => {
-  const [showRates, setShowRates] = useState(false);
-
   return (
     <header className="app-header">
       <div className="header-top">
-        <h1>Global Macro Stock Visualizer</h1>
+        <h1>Equities</h1>
         <div className="controls">
           <div className="view-toggle">
             <button className={viewMode === 'heatmap'   ? 'active' : ''} onClick={() => setViewMode('heatmap')}>Heatmap</button>
@@ -52,42 +49,6 @@ const Header = ({
               style={{ color: viewMode === 'data-hub' ? '#fff' : '#10b981', borderColor: '#10b981', marginLeft: '0.5rem' }}
             >Data Hub</button>
           </div>
-          <label>Currency:</label>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
-              <option value="USD">USD</option>
-              <option value="CNY">CNY</option>
-              <option value="EUR">EUR</option>
-              <option value="GBP">GBP</option>
-              <option value="JPY">JPY</option>
-              <option value="INR">INR</option>
-              <option value="HKD">HKD</option>
-              <option value="CAD">CAD</option>
-              <option value="AUD">AUD</option>
-              <option value="BRL">BRL</option>
-            </select>
-            <button
-              className="rates-info-btn"
-              onClick={() => setShowRates(v => !v)}
-              title="Show exchange rates"
-            >ⓘ</button>
-            {showRates && rates && (
-              <div className="rates-panel">
-                <div className="rates-panel-header">
-                  Exchange Rates (USD base)
-                  <button onClick={() => setShowRates(false)}>✕</button>
-                </div>
-                <div className="rates-panel-grid">
-                  {Object.entries(rates).filter(([k]) => k !== 'USD').map(([cur, rate]) => (
-                    <div key={cur} className="rates-panel-row">
-                      <span>{cur}</span>
-                      <span>{rate.toFixed(4)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
           <button
             className={`timetravel-btn ${showTimeTravel ? 'active' : ''}`}
             onClick={() => setShowTimeTravel(v => !v)}
@@ -96,7 +57,6 @@ const Header = ({
         </div>
       </div>
 
-      {/* Ranking + Grouping bar */}
       <div className="ranking-bar">
         <span className="ranking-label">Rank by:</span>
         {RANK_METRICS.map(m => (
@@ -105,9 +65,7 @@ const Header = ({
             className={`rank-btn ${rankMetric === m.id ? 'active' : ''}`}
             onClick={() => setRankMetric(m.id)}
             title={m.desc}
-          >
-            {m.label}
-          </button>
+          >{m.label}</button>
         ))}
         <span className="ranking-bar-sep" />
         <span className="ranking-label">Group:</span>
@@ -117,9 +75,7 @@ const Header = ({
             className={`rank-btn group-btn ${groupBy === g.id ? 'active' : ''}`}
             onClick={() => setGroupBy(g.id)}
             title={g.desc}
-          >
-            {g.label}
-          </button>
+          >{g.label}</button>
         ))}
         <span className="ranking-bar-sep" />
         <button
