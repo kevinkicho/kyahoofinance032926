@@ -47,3 +47,27 @@
   flex: 1;
   overflow: hidden;
 }
+
+/* Loading state */
+.ins-loading {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.ins-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #1e293b;
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: ins-spin 0.7s linear infinite;
+}
+@keyframes ins-spin {
+  to { transform: rotate(360deg); }
+}
+.ins-loading-text { font-size: 12px; color: #64748b; }
+
+/* Status bar extras */
+.ins-status-spread   { color: #94a3b8; }
+.ins-status-spread strong { color: #e2e8f0; }
+.ins-status-reinsurer { font-size: 10px; }

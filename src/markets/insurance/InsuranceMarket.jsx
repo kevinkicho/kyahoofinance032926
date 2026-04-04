@@ -13,9 +13,27 @@ const SUB_TABS = [
   { id: 'reinsurance-pricing', label: 'Reinsurance Pricing' },
 ];
 
+function fmtChangePct(v) {
+  if (v == null) return '';
+  return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
+}
+
 export default function InsuranceMarket() {
   const [activeTab, setActiveTab] = useState('cat-bond-spreads');
-  const { catBondSpreads, combinedRatioData, reserveAdequacyData, reinsurancePricing, isLive, lastUpdated } = useInsuranceData();
+  const {
+    catBondSpreads, combinedRatioData, reserveAdequacyData,
+    reinsurancePricing, reinsurers, hyOAS, igOAS,
+    isLive, lastUpdated, isLoading,
+  } = useInsuranceData();
+
+  if (isLoading) {
+    return (
+      <div className="ins-market ins-loading">
+        <div className="ins-loading-spinner" />
+        <span className="ins-loading-text">Loading insurance data…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="ins-market">
@@ -35,6 +53,13 @@ export default function InsuranceMarket() {
           {isLive ? '● Live' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
+        {hyOAS  != null && <span className="ins-status-spread">HY OAS: <strong>{hyOAS.toFixed(0)} bps</strong></span>}
+        {igOAS  != null && <span className="ins-status-spread">IG OAS: <strong>{igOAS.toFixed(0)} bps</strong></span>}
+        {reinsurers.map(r => (
+          <span key={r.ticker} className={`ins-status-reinsurer ${r.changePct >= 0 ? 'ins-change-up' : 'ins-change-down'}`}>
+            {r.ticker} {fmtChangePct(r.changePct)}
+          </span>
+        ))}
       </div>
       <div className="ins-content">
         {activeTab === 'cat-bond-spreads'    && <CatBondSpreads       catBondSpreads={catBondSpreads} />}
