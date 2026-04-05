@@ -1,9 +1,9 @@
+// src/markets/derivatives/data/useDerivativesData.js
 import { useState, useEffect } from 'react';
 import {
   volSurfaceData  as mockVolSurfaceData,
   vixTermStructure as mockVixTermStructure,
   optionsFlow     as mockOptionsFlow,
-  fearGreedData   as mockFearGreedData,
 } from './mockDerivativesData';
 
 const SERVER = '';
@@ -12,10 +12,8 @@ export function useDerivativesData() {
   const [volSurfaceData,   setVolSurfaceData]   = useState(mockVolSurfaceData);
   const [vixTermStructure, setVixTermStructure] = useState(mockVixTermStructure);
   const [optionsFlow,      setOptionsFlow]      = useState(mockOptionsFlow);
-  const [fearGreedData,    setFearGreedData]    = useState(mockFearGreedData);
   const [vixEnrichment,    setVixEnrichment]    = useState(null);
-  const [vixHistory,       setVixHistory]       = useState(null);
-  const [volPremium,      setVolPremium]      = useState(null);
+  const [volPremium,       setVolPremium]       = useState(null);
   const [isLive,           setIsLive]           = useState(false);
   const [lastUpdated,      setLastUpdated]      = useState('Mock data — Apr 2025');
   const [isLoading,        setIsLoading]        = useState(true);
@@ -28,14 +26,12 @@ export function useDerivativesData() {
     fetch(`${SERVER}/api/derivatives`, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(data => {
-        if (data.vixTermStructure?.dates?.length)         setVixTermStructure(data.vixTermStructure);
-        if (data.optionsFlow?.length >= 4)                setOptionsFlow(data.optionsFlow);
-        if (data.fearGreedData?.indicators?.length === 7) setFearGreedData(data.fearGreedData);
-        if (data.volSurfaceData?.grid?.length)            setVolSurfaceData(data.volSurfaceData);
+        if (data.vixTermStructure?.dates?.length)           setVixTermStructure(data.vixTermStructure);
+        if (data.optionsFlow?.length >= 4)                  setOptionsFlow(data.optionsFlow);
+        if (data.volSurfaceData?.grid?.length)              setVolSurfaceData(data.volSurfaceData);
         if (data.vixEnrichment?.vvix != null || data.vixEnrichment?.vixPercentile != null) {
           setVixEnrichment(data.vixEnrichment);
         }
-        if (data.vixHistory?.length >= 30) setVixHistory(data.vixHistory);
         if (data.volPremium?.atm1mIV != null) setVolPremium(data.volPremium);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
@@ -44,7 +40,8 @@ export function useDerivativesData() {
       })
       .catch(() => {})
       .finally(() => { clearTimeout(timer); setIsLoading(false); });
+    return () => { clearTimeout(timer); controller.abort(); };
   }, []);
 
-  return { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, vixHistory, volPremium, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

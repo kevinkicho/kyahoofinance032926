@@ -678,72 +678,6 @@ app.get('/api/derivatives', async (req, res) => {
       }
     } catch { /* use mock */ }
 
-    let spyClosesCache = [];
-
-    // 3. Fear & Greed — compute from VIX + SPY momentum + TLT + FRED HY OAS
-    let fearGreedData = null;
-    try {
-      const vixValue = vixArr.find(q => q.symbol === '^VIX')?.regularMarketPrice;
-      if (vixValue == null || isNaN(vixValue)) throw new Error('VIX price unavailable');
-      const [spyHist, tltHist] = await Promise.all([
-        yf.historical('^GSPC', { period1: (() => { const d = new Date(); d.setDate(d.getDate() - 180); return d.toISOString().split('T')[0]; })(), period2: new Date().toISOString().split('T')[0], interval: '1d' }),
-        yf.historical('TLT',   { period1: (() => { const d = new Date(); d.setDate(d.getDate() - 30);  return d.toISOString().split('T')[0]; })(), period2: new Date().toISOString().split('T')[0], interval: '1d' }),
-      ]);
-
-      let hyOasLatest = null;
-      if (FRED_API_KEY) {
-        try { hyOasLatest = await fetchFredLatest('BAMLH0A0HYM2'); } catch {}
-      }
-
-      // SPY: current price vs 125-day SMA
-      const spyCloses = spyHist.map(d => d.close).filter(Boolean);
-      spyClosesCache = spyCloses;
-      const spyCurrent = spyCloses[spyCloses.length - 1];
-      const sma125 = spyCloses.slice(-125).reduce((s, v) => s + v, 0) / Math.min(125, spyCloses.length);
-      const spyPctAbove = ((spyCurrent - sma125) / sma125) * 100;
-
-      // TLT vs SPY 20-day return
-      const tltCloses = tltHist.map(d => d.close).filter(Boolean);
-      const tlt20 = tltCloses.length >= 21 ? ((tltCloses[tltCloses.length - 1] - tltCloses[tltCloses.length - 21]) / tltCloses[tltCloses.length - 21]) * 100 : 0;
-      const spy20start = spyCloses.length >= 20 ? spyCloses[spyCloses.length - 21] : spyCloses[0];
-      const spy20 = ((spyCurrent - spy20start) / spy20start) * 100;
-      const tltRelPerf = tlt20 - spy20; // positive = bonds outperforming = fear
-
-      // SPY options put/call ratio
-      let pcr = 1.0; // neutral default
-      if (optionsFlow) {
-        const spyPuts  = optionsFlow.filter(r => r.ticker === 'SPY' && r.type === 'P').reduce((s, r) => s + r.volume, 0);
-        const spyCalls = optionsFlow.filter(r => r.ticker === 'SPY' && r.type === 'C').reduce((s, r) => s + r.volume, 0);
-        if (spyCalls > 0) pcr = spyPuts / spyCalls;
-      }
-
-      const indicators = [
-        { name: 'VIX Level',          value: Math.round(vixValue * 10) / 10,       score: vixScore(vixValue),            label: scoreLabel(vixScore(vixValue)) },
-        { name: 'Put/Call Ratio',      value: Math.round(pcr * 100) / 100,          score: pcrScore(pcr),                 label: scoreLabel(pcrScore(pcr)) },
-        { name: 'Market Momentum',     value: Math.round(spyPctAbove * 10) / 10,    score: momentumScore(spyPctAbove),    label: scoreLabel(momentumScore(spyPctAbove)) },
-        { name: 'Safe Haven Demand',   value: Math.round(tltRelPerf * 10) / 10,     score: safeHavenScore(tltRelPerf),    label: scoreLabel(safeHavenScore(tltRelPerf)) },
-        { name: 'Junk Bond Demand',    value: hyOasLatest ?? 350,                   score: hyOasLatest ? junkBondScore(hyOasLatest) : 50, label: scoreLabel(hyOasLatest ? junkBondScore(hyOasLatest) : 50) },
-        { name: 'Market Breadth',      value: 42.1, score: 41, label: 'Fear' },    // no free breadth API
-        { name: 'Stock Price Strength',value: 18.0, score: 55, label: 'Neutral' }, // no free 52wk high data
-      ];
-      const avgScore = Math.round(indicators.reduce((s, i) => s + i.score, 0) / indicators.length);
-      fearGreedData = { score: avgScore, label: scoreLabel(avgScore), indicators };
-    } catch { /* use mock */ }
-
-    // 5. VIX history from FRED (VIXCLS daily, last 252 trading days)
-    let vixHistory = null;
-    if (FRED_API_KEY) {
-      try {
-        const vixHistRaw = await fetchFredHistory('VIXCLS', 270);
-        if (vixHistRaw.length >= 30) {
-          vixHistory = vixHistRaw.slice(-252).map(p => ({
-            date: p.date,
-            value: Math.round(p.value * 10) / 10,
-          }));
-        }
-      } catch { /* use null */ }
-    }
-
     // 4. Vol surface from SPY options
     let volSurfaceData = null;
     try {
@@ -756,6 +690,12 @@ app.get('/api/derivatives', async (req, res) => {
     let volPremium = null;
     try {
       const atm1mIV = volSurfaceData?.grid?.[2]?.[4] ?? null;
+      const spyHistVol = atm1mIV != null ? await yf.historical('^GSPC', {
+        period1: (() => { const d = new Date(); d.setDate(d.getDate() - 45); return d.toISOString().split('T')[0]; })(),
+        period2: new Date().toISOString().split('T')[0],
+        interval: '1d',
+      }).catch(() => []) : [];
+      const spyClosesCache = spyHistVol.map(d => d.close).filter(Boolean);
       if (atm1mIV != null && spyClosesCache.length >= 31) {
         const recentCloses = spyClosesCache.slice(-31);
         const logReturns = recentCloses.slice(1).map((c, i) => Math.log(c / recentCloses[i]));
@@ -770,10 +710,8 @@ app.get('/api/derivatives', async (req, res) => {
     const result = {
       vixTermStructure,
       optionsFlow,
-      fearGreedData,
       volSurfaceData,
       vixEnrichment,
-      vixHistory,
       volPremium,
       lastUpdated: today,
     };
