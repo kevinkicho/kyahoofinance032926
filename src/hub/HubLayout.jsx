@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import MarketTabBar from './MarketTabBar';
 import { DEFAULT_MARKET } from './markets.config';
-import EquitiesMarket from '../markets/equities/EquitiesMarket';
-import BondsMarket from '../markets/bonds/BondsMarket';
-import FXMarket from '../markets/fx/FXMarket';
-import DerivativesMarket from '../markets/derivatives/DerivativesMarket';
-import RealEstateMarket from '../markets/realEstate/RealEstateMarket';
-import InsuranceMarket   from '../markets/insurance/InsuranceMarket';
-import CommoditiesMarket from '../markets/commodities/CommoditiesMarket';
-import GlobalMacroMarket from '../markets/globalMacro/GlobalMacroMarket';
+import EquitiesMarket        from '../markets/equities/EquitiesMarket';
+import BondsMarket           from '../markets/bonds/BondsMarket';
+import FXMarket              from '../markets/fx/FXMarket';
+import DerivativesMarket     from '../markets/derivatives/DerivativesMarket';
+import RealEstateMarket      from '../markets/realEstate/RealEstateMarket';
+import InsuranceMarket       from '../markets/insurance/InsuranceMarket';
+import CommoditiesMarket     from '../markets/commodities/CommoditiesMarket';
+import GlobalMacroMarket     from '../markets/globalMacro/GlobalMacroMarket';
+import EquitiesDeepDiveMarket from '../markets/equitiesDeepDive/EquitiesDeepDiveMarket';
 
 const MARKET_COMPONENTS = {
-  equities:    EquitiesMarket,
-  bonds:       BondsMarket,
-  fx:          FXMarket,
-  derivatives: DerivativesMarket,
-  realEstate:  RealEstateMarket,
-  insurance:   InsuranceMarket,
-  commodities: CommoditiesMarket,
-  globalMacro: GlobalMacroMarket,
+  equities:          EquitiesMarket,
+  bonds:             BondsMarket,
+  fx:                FXMarket,
+  derivatives:       DerivativesMarket,
+  realEstate:        RealEstateMarket,
+  insurance:         InsuranceMarket,
+  commodities:       CommoditiesMarket,
+  globalMacro:       GlobalMacroMarket,
+  equitiesDeepDive:  EquitiesDeepDiveMarket,
 };
 
 export default function HubLayout() {
