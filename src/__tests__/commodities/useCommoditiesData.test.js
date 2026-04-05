@@ -1,5 +1,5 @@
 // src/__tests__/commodities/useCommoditiesData.test.js
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useCommoditiesData } from '../../markets/commodities/data/useCommoditiesData';
 
@@ -8,6 +8,7 @@ global.fetch = mockFetch;
 
 describe('useCommoditiesData', () => {
   beforeEach(() => { mockFetch.mockReset(); });
+  afterEach(() => { vi.restoreAllMocks(); });
 
   it('returns priceDashboardData with 3 sectors on mock fallback', async () => {
     mockFetch.mockRejectedValue(new Error('no server'));

@@ -15,14 +15,14 @@ export function useCommoditiesData() {
   const [sectorHeatmapData,   setSectorHeatmapData]   = useState(mockSectorHeatmapData);
   const [supplyDemandData,    setSupplyDemandData]    = useState(mockSupplyDemandData);
   const [isLive,              setIsLive]              = useState(false);
-  const [lastUpdated,         setLastUpdated]         = useState('Mock data — Apr 2025');
+  const [lastUpdated,         setLastUpdated]         = useState('Mock data — Dec 2025');
   const [isLoading,           setIsLoading]           = useState(true);
 
   useEffect(() => {
     fetch(`${SERVER}/api/commodities`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(data => {
-        if (data.priceDashboardData?.length === 3)            setPriceDashboardData(data.priceDashboardData);
+        if (data.priceDashboardData?.length >= 3)             setPriceDashboardData(data.priceDashboardData);
         if (data.futuresCurveData?.prices?.length >= 4)       setFuturesCurveData(data.futuresCurveData);
         if (data.sectorHeatmapData?.commodities?.length >= 4) setSectorHeatmapData(data.sectorHeatmapData);
         if (data.supplyDemandData?.crudeStocks?.periods?.length) setSupplyDemandData(data.supplyDemandData);

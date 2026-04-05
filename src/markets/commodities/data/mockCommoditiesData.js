@@ -55,12 +55,10 @@ export const sectorHeatmapData = {
   columns: ['1d%', '1w%', '1m%'],
 };
 
-const CRUDE_PERIODS    = ['2025-10-10','2025-10-17','2025-10-24','2025-10-31','2025-11-07','2025-11-14','2025-11-21','2025-11-28','2025-12-05','2025-12-12','2025-12-19','2025-12-26'];
-const NATGAS_PERIODS   = CRUDE_PERIODS;
-const PROD_PERIODS     = CRUDE_PERIODS;
+const CRUDE_PERIODS = ['2025-10-10','2025-10-17','2025-10-24','2025-10-31','2025-11-07','2025-11-14','2025-11-21','2025-11-28','2025-12-05','2025-12-12','2025-12-19','2025-12-26'];
 
 export const supplyDemandData = {
-  crudeStocks:    { periods: CRUDE_PERIODS,  values: [454.2, 453.8, 455.1, 456.4, 458.2, 457.9, 456.1, 455.4, 454.8, 453.9, 452.8, 453.1], avg5yr: 432.1 },
-  natGasStorage:  { periods: NATGAS_PERIODS, values: [3821, 3748, 3672, 3591, 3508, 3421, 3339, 3254, 3168, 3082, 2994, 2908],               avg5yr: 3142 },
-  crudeProduction:{ periods: PROD_PERIODS,   values: [13.1, 13.2, 13.1, 13.3, 13.2, 13.3, 13.4, 13.3, 13.2, 13.4, 13.5, 13.4] },
+  crudeStocks:    { periods: CRUDE_PERIODS, values: [454.2, 453.8, 455.1, 456.4, 458.2, 457.9, 456.1, 455.4, 454.8, 453.9, 452.8, 453.1], avg5yr: 432.1 },
+  natGasStorage:  { periods: CRUDE_PERIODS, values: [3821, 3748, 3672, 3591, 3508, 3421, 3339, 3254, 3168, 3082, 2994, 2908],               avg5yr: 3142 },
+  crudeProduction:{ periods: CRUDE_PERIODS, values: [13.1, 13.2, 13.1, 13.3, 13.2, 13.3, 13.4, 13.3, 13.2, 13.4, 13.5, 13.4] },
 };
