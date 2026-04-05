@@ -1123,8 +1123,10 @@ app.get('/api/commodities', async (req, res) => {
       const futureTickers = getWTIFuturesTickers(8);
       const futureQuotes  = await yf.quote(futureTickers);
       const futureArr     = Array.isArray(futureQuotes) ? futureQuotes : [futureQuotes];
+      const futureMap     = {};
+      futureArr.filter(q => q).forEach(q => { futureMap[q.symbol] = q; });
       const validFutures  = futureTickers
-        .map((t, i) => ({ ticker: t, label: futuresTickerToLabel(t), price: futureArr[i]?.regularMarketPrice ?? null }))
+        .map(t => ({ ticker: t, label: futuresTickerToLabel(t), price: futureMap[t]?.regularMarketPrice ?? null }))
         .filter(f => f.price != null);
       if (validFutures.length >= 4) {
         futuresCurveData = {
@@ -1176,8 +1178,8 @@ app.get('/api/commodities', async (req, res) => {
     const result = {
       priceDashboardData,
       sectorHeatmapData,
-      ...(futuresCurveData  ? { futuresCurveData  } : {}),
-      ...(supplyDemandData  ? { supplyDemandData  } : {}),
+      futuresCurveData:  futuresCurveData  ?? null,
+      supplyDemandData:  supplyDemandData  ?? null,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
 
