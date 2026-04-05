@@ -992,7 +992,8 @@ app.get('/api/insurance', async (req, res) => {
 });
 
 // --- Commodities Market Data ---
-const EIA_API_KEY = process.env.EIA_API_KEY;
+const EIA_API_KEY = process.env.EIA_API_KEY || '';
+if (!EIA_API_KEY) console.warn('EIA_API_KEY not set — supply/demand data will use mock fallback');
 
 const COMMODITY_META = {
   'CL=F': { name: 'WTI Crude',   sector: 'Energy',      unit: '$/bbl'   },
@@ -1034,6 +1035,17 @@ function futuresTickerToLabel(ticker) {
   const code = ticker[2];
   const yr = ticker.slice(3, 5);
   return `${FUTURES_MONTH_NAMES[code] || '?'} '${yr}`;
+}
+
+function buildEIASeries(rows, withAvg) {
+  if (!rows || rows.length === 0) return null;
+  const last52  = rows.slice(-52);
+  const periods = last52.map(r => r.period);
+  const values  = last52.map(r => Math.round(r.value * 10) / 10);
+  const avg5yr  = withAvg && rows.length >= 10
+    ? Math.round(rows.map(r => r.value).reduce((s, v) => s + v, 0) / rows.length * 10) / 10
+    : null;
+  return { periods, values, avg5yr };
 }
 
 async function fetchEIASeries(route, facets, length) {
@@ -1081,9 +1093,11 @@ app.get('/api/commodities', async (req, res) => {
       )
     );
     const chartMap = {};
-    histResults.forEach(r => {
+    histResults.forEach((r, i) => {
       if (r.status === 'fulfilled' && r.value.closes.length >= 2) {
         chartMap[r.value.ticker] = r.value.closes;
+      } else if (r.status === 'rejected') {
+        console.warn(`Commodity chart fetch failed for ${COMMODITY_TICKERS[i]}:`, r.reason?.message);
       }
     });
 
@@ -1099,15 +1113,14 @@ app.get('/api/commodities', async (req, res) => {
       const price    = q?.regularMarketPrice ?? null;
       const change1d = q?.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 100) / 100 : null;
       const len      = closes.length;
-      const change1w = len >= 6  ? Math.round((closes[len-1] - closes[Math.max(0, len-6)])  / closes[Math.max(0, len-6)]  * 1000) / 10 : null;
+      const change1w = len >= 6  ? Math.round((closes[len-1] - closes[len-6]) / closes[len-6] * 1000) / 10 : null;
       const change1m = len >= 2  ? Math.round((closes[len-1] - closes[0]) / closes[0] * 1000) / 10 : null;
 
-      // Subsample sparkline to max 20 points
-      let sparkline = closes;
-      if (closes.length > 20) {
-        const step = (closes.length - 1) / 19;
-        sparkline = Array.from({ length: 20 }, (_, i) => Math.round(closes[Math.round(i * step)] * 100) / 100);
-      }
+      // Subsample sparkline to max 20 points, always round to 2dp
+      const sparklSrc = closes.length > 20
+        ? (() => { const step = (closes.length - 1) / 19; return Array.from({ length: 20 }, (_, i) => closes[Math.round(i * step)]); })()
+        : closes;
+      const sparkline = sparklSrc.map(v => Math.round(v * 100) / 100);
 
       const row = { ticker, name: meta.name, unit: meta.unit, price, change1d, change1w, change1m, sparkline };
       sectorGroups[meta.sector].push(row);
@@ -1149,20 +1162,9 @@ app.get('/api/commodities', async (req, res) => {
         fetchEIASeries('petroleum/sum/sndw',    { duoarea: 'NUS', product: 'EPC0' }, 52).catch(() => null),
       ]);
 
-      function buildSeries(rows, withAvg) {
-        if (!rows || rows.length === 0) return null;
-        const last52 = rows.slice(-52);
-        const periods = last52.map(r => r.period);
-        const values  = last52.map(r => Math.round(r.value * 10) / 10);
-        const avg5yr  = withAvg && rows.length >= 10
-          ? Math.round(rows.map(r => r.value).reduce((s, v) => s + v, 0) / rows.length * 10) / 10
-          : null;
-        return { periods, values, avg5yr };
-      }
-
-      const crude    = buildSeries(crudeRows,  true);
-      const natGas   = buildSeries(natGasRows, true);
-      const prod     = buildSeries(prodRows,   false);
+      const crude    = buildEIASeries(crudeRows,  true);
+      const natGas   = buildEIASeries(natGasRows, true);
+      const prod     = buildEIASeries(prodRows,   false);
 
       if (crude || natGas || prod) {
         supplyDemandData = {
