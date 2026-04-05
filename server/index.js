@@ -9,9 +9,55 @@ import YahooFinance from 'yahoo-finance2';
 import https from 'https';
 import fs from 'fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname  = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR   = path.join(__dirname, '..', 'data', 'stocks');
 const PRICES_DIR = path.join(__dirname, '..', 'prices');
+const CACHE_DIR  = path.join(__dirname, 'datacache');
+if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+// ── Daily file-cache helpers ─────────────────────────────────────────────────
+// Each market gets one JSON file per day: datacache/{market}-YYYY-MM-DD.json
+// This survives server restarts and eliminates repeat calls to Yahoo/FRED
+// within the same calendar day.
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function readDailyCache(market) {
+  try {
+    const fp = path.join(CACHE_DIR, `${market}-${todayStr()}.json`);
+    if (fs.existsSync(fp)) return JSON.parse(fs.readFileSync(fp, 'utf8'));
+  } catch { /* skip */ }
+  return null;
+}
+
+function writeDailyCache(market, data) {
+  try {
+    fs.writeFileSync(path.join(CACHE_DIR, `${market}-${todayStr()}.json`), JSON.stringify(data), 'utf8');
+  } catch (e) { console.warn(`[datacache] write failed for ${market}:`, e.message); }
+}
+
+function readLatestCache(market) {
+  try {
+    const files = fs.readdirSync(CACHE_DIR)
+      .filter(f => f.startsWith(`${market}-`) && f.endsWith('.json'))
+      .sort().reverse();
+    if (!files.length) return null;
+    const fetchedOn = files[0].slice(market.length + 1, -5); // strip "{market}-" and ".json"
+    return { data: JSON.parse(fs.readFileSync(path.join(CACHE_DIR, files[0]), 'utf8')), fetchedOn };
+  } catch { return null; }
+}
+
+// Delete cache files older than 7 days on startup
+(function cleanOldCaches() {
+  try {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    fs.readdirSync(CACHE_DIR).forEach(f => {
+      const m = f.match(/-(\d{4}-\d{2}-\d{2})\.json$/);
+      if (m && m[1] < cutoffStr) fs.unlinkSync(path.join(CACHE_DIR, f));
+    });
+  } catch { /* best-effort */ }
+})();
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
 
@@ -187,6 +233,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date(), dataDir: DATA_DIR });
 });
 
+// Cache status — shows which markets have today's data vs are serving stale files
+const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','globalMacro','equityDeepDive'];
+app.get('/api/cache/status', (_req, res) => {
+  const today = todayStr();
+  const status = {};
+  for (const market of CACHEABLE_MARKETS) {
+    const latest = readLatestCache(market);
+    status[market] = latest
+      ? { fetchedOn: latest.fetchedOn, isCurrent: latest.fetchedOn === today }
+      : { fetchedOn: null, isCurrent: false };
+  }
+  res.json({ today, status });
+});
+
 // --- Yahoo Finance Stock Proxy (live quotes for price/change) ---
 app.post('/api/stocks', async (req, res) => {
   const { tickers } = req.body;
@@ -350,8 +410,15 @@ function dateToMonthLabel(dateStr) {
 
 app.get('/api/bonds', async (req, res) => {
   const cacheKey = 'bonds_data';
+  const today = todayStr();
+
+  // 1. Daily disk cache (survives server restarts, refreshes once per day)
+  const daily = readDailyCache('bonds');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  // 2. In-memory cache (fast repeat requests within same day)
   const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   if (!FRED_API_KEY) return res.status(503).json({ error: 'FRED_API_KEY not configured' });
 
@@ -451,13 +518,17 @@ app.get('/api/bonds', async (req, res) => {
       spreadData,
       spreadIndicators: Object.keys(spreadIndicators).length >= 3 ? spreadIndicators : null,
       treasuryRates,
-      lastUpdated: new Date().toISOString().split('T')[0],
+      lastUpdated: today,
     };
 
-    cache.set(cacheKey, result, 900);
-    res.json(result);
+    writeDailyCache('bonds', result);        // persist to disk
+    cache.set(cacheKey, result, 900);        // keep in memory too
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Bonds API error:', error);
+    // Fallback: serve most recent available cache (any day)
+    const fallback = readLatestCache('bonds');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -531,8 +602,15 @@ async function buildVolSurface(spyPrice) {
 
 app.get('/api/derivatives', async (req, res) => {
   const cacheKey = 'derivatives_data';
+  const today = todayStr();
+
+  // 1. Daily disk cache (survives server restarts, refreshes once per day)
+  const daily = readDailyCache('derivatives');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  // 2. In-memory cache (fast repeat requests within same day)
   const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
     // 1. VIX term structure
@@ -697,13 +775,17 @@ app.get('/api/derivatives', async (req, res) => {
       vixEnrichment,
       vixHistory,
       volPremium,
-      lastUpdated: new Date().toISOString().split('T')[0],
+      lastUpdated: today,
     };
 
-    cache.set(cacheKey, result, 900);
-    res.json(result);
+    writeDailyCache('derivatives', result);  // persist to disk
+    cache.set(cacheKey, result, 900);        // keep in memory too
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Derivatives API error:', error);
+    // Fallback: serve most recent available cache (any day)
+    const fallback = readLatestCache('derivatives');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -736,8 +818,15 @@ function bisQuarterLabel(dateStr) {
 
 app.get('/api/realEstate', async (req, res) => {
   const cacheKey = 'realestate_data';
+  const today = todayStr();
+
+  // 1. Daily disk cache (survives server restarts, refreshes once per day)
+  const daily = readDailyCache('realEstate');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  // 2. In-memory cache (fast repeat requests within same day)
   const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
     // 1. REIT live quotes
@@ -825,11 +914,15 @@ app.get('/api/realEstate', async (req, res) => {
       } catch { /* use null */ }
     }
 
-    const result = { reitData, priceIndexData, mortgageRates, lastUpdated: new Date().toISOString().split('T')[0] };
-    cache.set(cacheKey, result, 900);
-    res.json(result);
+    const result = { reitData, priceIndexData, mortgageRates, lastUpdated: today };
+    writeDailyCache('realEstate', result);   // persist to disk
+    cache.set(cacheKey, result, 900);        // keep in memory too
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Real Estate API error:', error);
+    // Fallback: serve most recent available cache (any day)
+    const fallback = readLatestCache('realEstate');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -840,8 +933,15 @@ const INSURER_NAMES = { PGR: 'Progressive', ALL: 'Allstate', TRV: 'Travelers', H
 
 app.get('/api/insurance', async (req, res) => {
   const cacheKey = 'insurance_data';
+  const today = todayStr();
+
+  // 1. Daily disk cache (survives server restarts, refreshes once per day)
+  const daily = readDailyCache('insurance');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  // 2. In-memory cache (fast repeat requests within same day)
   const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   // Helper: format quarter label from unix timestamp
   function formatQuarter(unixTs) {
@@ -984,11 +1084,12 @@ app.get('/api/insurance', async (req, res) => {
     reinsurers,
     hyOAS,
     igOAS,
-    lastUpdated: new Date().toISOString().split('T')[0],
+    lastUpdated: today,
   };
 
-  cache.set(cacheKey, result, 900);
-  res.json(result);
+  writeDailyCache('insurance', result);    // persist to disk
+  cache.set(cacheKey, result, 900);        // keep in memory too
+  res.json({ ...result, fetchedOn: today, isCurrent: true });
 });
 
 // --- Commodities Market Data ---
@@ -1069,8 +1170,15 @@ async function fetchEIASeries(route, facets, length) {
 
 app.get('/api/commodities', async (req, res) => {
   const cacheKey = 'commodities_data';
+  const today = todayStr();
+
+  // 1. Daily disk cache (survives server restarts, refreshes once per day)
+  const daily = readDailyCache('commodities');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  // 2. In-memory cache (fast repeat requests within same day)
   const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
     // 1. Fetch live quotes for all 12 commodity tickers
@@ -1183,13 +1291,17 @@ app.get('/api/commodities', async (req, res) => {
       sectorHeatmapData,
       futuresCurveData:  futuresCurveData  ?? null,
       supplyDemandData:  supplyDemandData  ?? null,
-      lastUpdated: new Date().toISOString().split('T')[0],
+      lastUpdated: today,
     };
 
-    cache.set(cacheKey, result, 900);
-    res.json(result);
+    writeDailyCache('commodities', result);  // persist to disk
+    cache.set(cacheKey, result, 900);        // keep in memory too
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Commodities API error:', error);
+    // Fallback: serve most recent available cache (any day)
+    const fallback = readLatestCache('commodities');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1263,8 +1375,15 @@ async function fetchFredRateHistory5yr(seriesId) {
 
 app.get('/api/globalMacro', async (req, res) => {
   const cacheKey = 'globalMacro_data';
+  const today = todayStr();
+
+  // 1. Daily disk cache (survives server restarts, refreshes once per day)
+  const daily = readDailyCache('globalMacro');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  // 2. In-memory cache (fast repeat requests within same day)
   const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
     // 1. World Bank indicators (5 in parallel, each with silent catch)
@@ -1369,13 +1488,17 @@ app.get('/api/globalMacro', async (req, res) => {
       growthInflationData,
       centralBankData,
       debtData,
-      lastUpdated: new Date().toISOString().split('T')[0],
+      lastUpdated: today,
     };
 
-    cache.set(cacheKey, result, 3600);
-    res.json(result);
+    writeDailyCache('globalMacro', result);  // persist to disk
+    cache.set(cacheKey, result, 3600);       // keep in memory too
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('GlobalMacro API error:', error);
+    // Fallback: serve most recent available cache (any day)
+    const fallback = readLatestCache('globalMacro');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1475,8 +1598,15 @@ const EQ_MOCK_SHORT_DATA = {
 
 app.get('/api/equityDeepDive', async (req, res) => {
   const cacheKey = 'equityDeepDive_data';
+  const today = todayStr();
+
+  // 1. Daily disk cache (survives server restarts, refreshes once per day)
+  const daily = readDailyCache('equityDeepDive');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  // 2. In-memory cache (fast repeat requests within same day)
   const cached = cache.get(cacheKey);
-  if (cached) return res.json(cached);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
     // 1. Fetch live quotes for all 12 sector ETFs
@@ -1533,13 +1663,17 @@ app.get('/api/equityDeepDive', async (req, res) => {
       factorData:   EQ_MOCK_FACTOR_DATA,
       earningsData: EQ_MOCK_EARNINGS_DATA,
       shortData:    EQ_MOCK_SHORT_DATA,
-      lastUpdated:  new Date().toISOString().split('T')[0],
+      lastUpdated:  today,
     };
 
-    cache.set(cacheKey, result, 300);
-    res.json(result);
+    writeDailyCache('equityDeepDive', result); // persist to disk
+    cache.set(cacheKey, result, 300);          // keep in memory too
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('EquityDeepDive API error:', error);
+    // Fallback: serve most recent available cache (any day)
+    const fallback = readLatestCache('equityDeepDive');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
