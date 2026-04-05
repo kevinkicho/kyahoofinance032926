@@ -1,0 +1,33 @@
+/* src/markets/calendar/CalendarMarket.css */
+.cal-market { display: flex; flex-direction: column; height: 100%; background: #0f172a; }
+.cal-market.cal-loading { align-items: center; justify-content: center; gap: 12px; }
+.cal-loading-spinner {
+  width: 36px; height: 36px; border: 3px solid #1e293b;
+  border-top-color: #f43f5e; border-radius: 50%;
+  animation: cal-spin 0.8s linear infinite;
+}
+@keyframes cal-spin { to { transform: rotate(360deg); } }
+.cal-loading-text { font-size: 12px; color: #64748b; }
+
+.cal-sub-tabs {
+  display: flex; gap: 2px; padding: 8px 12px 0;
+  border-bottom: 1px solid #1e293b; background: #0f172a;
+}
+.cal-sub-tab {
+  padding: 6px 14px; font-size: 12px; color: #64748b; background: none;
+  border: none; border-bottom: 2px solid transparent; cursor: pointer;
+}
+.cal-sub-tab:hover { color: #e2e8f0; }
+.cal-sub-tab.active { color: #f43f5e; border-bottom-color: #f43f5e; }
+
+.cal-status-bar {
+  display: flex; align-items: center; gap: 12px; padding: 4px 14px;
+  font-size: 10px; color: #475569; border-bottom: 1px solid #1e293b;
+}
+.cal-status-live { color: #f43f5e; }
+.cal-content { flex: 1; overflow: auto; }
+
+.cal-stale-badge {
+  background: #4c0519; color: #fda4af; border: 1px solid #be123c;
+  border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 500;
+}
