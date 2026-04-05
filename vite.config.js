@@ -180,6 +180,7 @@ export default defineConfig({
       '/api/equityDeepDive':  { target: 'http://localhost:3001', changeOrigin: true },
       '/api/cache':        { target: 'http://localhost:3001', changeOrigin: true },
       '/api/crypto':       { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/credit':       { target: 'http://localhost:3001', changeOrigin: true },
     }
   }
 })
