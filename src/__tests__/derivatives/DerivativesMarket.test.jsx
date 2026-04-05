@@ -15,13 +15,13 @@ describe('DerivativesMarket', () => {
     expect(screen.getAllByText('Vol Surface').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all 4 sub-tabs', async () => {
+  it('renders exactly 3 sub-tabs', async () => {
     render(<DerivativesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Vol Surface'        })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'VIX Term Structure' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Options Flow'       })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Fear & Greed'       })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fear & Greed'     })).not.toBeInTheDocument();
   });
 
   it('switches to Options Flow on click', async () => {
@@ -29,13 +29,6 @@ describe('DerivativesMarket', () => {
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Options Flow' }));
     expect(screen.getByText(/unusual options activity/i)).toBeInTheDocument();
-  });
-
-  it('switches to Fear & Greed on click', async () => {
-    render(<DerivativesMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Fear & Greed' }));
-    expect(screen.getByText(/composite sentiment/i)).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {

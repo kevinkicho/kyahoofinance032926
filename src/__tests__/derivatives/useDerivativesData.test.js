@@ -31,7 +31,7 @@ describe('useDerivativesData', () => {
   it('uses live vixTermStructure when server responds', async () => {
     const liveData = {
       vixTermStructure: { dates: ['9D', '1M', '3M', '6M'], values: [14.2, 16.8, 18.5, 20.1], prevValues: [13.9, 16.2, 17.9, 19.6] },
-      optionsFlow: null, fearGreedData: null, volSurfaceData: null,
+      optionsFlow: null, volSurfaceData: null,
       lastUpdated: '2026-04-04',
     };
     mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
@@ -45,7 +45,7 @@ describe('useDerivativesData', () => {
       { ticker: 'SPY', strike: 520, expiry: '16 May 25', type: 'P', volume: 45200, openInterest: 12400, premium: 8.20, sentiment: 'bearish' },
     ];
     const liveData = {
-      vixTermStructure: null, optionsFlow: liveFlow, fearGreedData: null, volSurfaceData: null,
+      vixTermStructure: null, optionsFlow: liveFlow, volSurfaceData: null,
       lastUpdated: '2026-04-04',
     };
     mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
@@ -54,13 +54,10 @@ describe('useDerivativesData', () => {
     expect(result.current.optionsFlow[0].ticker).toBe('SPY');
   });
 
-  it('falls back to mock fearGreedData when server returns null', async () => {
-    const liveData = { vixTermStructure: null, optionsFlow: null, fearGreedData: null, volSurfaceData: null, lastUpdated: '2026-04-04' };
-    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+  it('does not return fearGreedData', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
     const { result } = renderHook(() => useDerivativesData());
-    await waitFor(() => expect(result.current.isLive).toBe(true));
-    expect(result.current.fearGreedData.score).toBeGreaterThanOrEqual(0);
-    expect(result.current.fearGreedData.score).toBeLessThanOrEqual(100);
-    expect(result.current.fearGreedData.indicators.length).toBe(7);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.fearGreedData).toBeUndefined();
   });
 });
