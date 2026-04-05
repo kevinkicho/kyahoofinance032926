@@ -991,6 +991,204 @@ app.get('/api/insurance', async (req, res) => {
   res.json(result);
 });
 
+// --- Commodities Market Data ---
+const EIA_API_KEY = process.env.EIA_API_KEY;
+
+const COMMODITY_META = {
+  'CL=F': { name: 'WTI Crude',   sector: 'Energy',      unit: '$/bbl'   },
+  'BZ=F': { name: 'Brent Crude', sector: 'Energy',      unit: '$/bbl'   },
+  'NG=F': { name: 'Natural Gas', sector: 'Energy',      unit: '$/MMBtu' },
+  'RB=F': { name: 'Gasoline',    sector: 'Energy',      unit: '$/gal'   },
+  'GC=F': { name: 'Gold',        sector: 'Metals',      unit: '$/oz'    },
+  'SI=F': { name: 'Silver',      sector: 'Metals',      unit: '$/oz'    },
+  'HG=F': { name: 'Copper',      sector: 'Metals',      unit: '$/lb'    },
+  'PL=F': { name: 'Platinum',    sector: 'Metals',      unit: '$/oz'    },
+  'ZW=F': { name: 'Wheat',       sector: 'Agriculture', unit: '\u00a2/bu' },
+  'ZC=F': { name: 'Corn',        sector: 'Agriculture', unit: '\u00a2/bu' },
+  'ZS=F': { name: 'Soybeans',    sector: 'Agriculture', unit: '\u00a2/bu' },
+  'KC=F': { name: 'Coffee',      sector: 'Agriculture', unit: '\u00a2/lb' },
+};
+const COMMODITY_TICKERS = Object.keys(COMMODITY_META);
+const COMM_SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture'];
+
+const FUTURES_MONTH_CODES = ['F','G','H','J','K','M','N','Q','U','V','X','Z'];
+const FUTURES_MONTH_NAMES = { F:'Jan',G:'Feb',H:'Mar',J:'Apr',K:'May',M:'Jun',N:'Jul',Q:'Aug',U:'Sep',V:'Oct',X:'Nov',Z:'Dec' };
+
+function getWTIFuturesTickers(numMonths = 8) {
+  const tickers = [];
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth() + 2; // 1-indexed, start next month
+  if (month > 12) { month -= 12; year++; }
+  for (let i = 0; i < numMonths; i++) {
+    const code = FUTURES_MONTH_CODES[month - 1];
+    const yr = String(year).slice(-2);
+    tickers.push(`CL${code}${yr}.NYM`);
+    month++;
+    if (month > 12) { month -= 12; year++; }
+  }
+  return tickers;
+}
+
+function futuresTickerToLabel(ticker) {
+  const code = ticker[2];
+  const yr = ticker.slice(3, 5);
+  return `${FUTURES_MONTH_NAMES[code] || '?'} '${yr}`;
+}
+
+async function fetchEIASeries(route, facets, length) {
+  if (!EIA_API_KEY) return null;
+  const params = new URLSearchParams({
+    api_key: EIA_API_KEY,
+    frequency: 'weekly',
+    'data[0]': 'value',
+    'sort[0][column]': 'period',
+    'sort[0][direction]': 'asc',
+    length: String(length),
+  });
+  for (const [k, v] of Object.entries(facets)) {
+    params.append(`facets[${k}][]`, v);
+  }
+  const url = `https://api.eia.gov/v2/${route}/data/?${params.toString()}`;
+  const json = await fetchJSON(url);
+  const rows = json?.response?.data || [];
+  return rows.map(r => ({ period: r.period, value: parseFloat(r.value) })).filter(r => !isNaN(r.value));
+}
+
+app.get('/api/commodities', async (req, res) => {
+  const cacheKey = 'commodities_data';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    // 1. Fetch live quotes for all 12 commodity tickers
+    let quotesMap = {};
+    try {
+      const raw = await yf.quote(COMMODITY_TICKERS);
+      const arr = Array.isArray(raw) ? raw : [raw];
+      arr.filter(q => q).forEach(q => { quotesMap[q.symbol] = q; });
+    } catch (e) {
+      console.warn('Commodity quotes failed:', e.message);
+    }
+
+    // 2. Fetch 35-day chart history for all 12 tickers (for 1w%, 1m%, sparkline)
+    const histStart = (() => { const d = new Date(); d.setDate(d.getDate() - 35); return d.toISOString().split('T')[0]; })();
+    const histEnd   = new Date().toISOString().split('T')[0];
+    const histResults = await Promise.allSettled(
+      COMMODITY_TICKERS.map(ticker =>
+        yf.chart(ticker, { period1: histStart, period2: histEnd, interval: '1d' })
+          .then(data => ({ ticker, closes: (data.quotes || []).map(q => q.close).filter(v => v != null) }))
+      )
+    );
+    const chartMap = {};
+    histResults.forEach(r => {
+      if (r.status === 'fulfilled' && r.value.closes.length >= 2) {
+        chartMap[r.value.ticker] = r.value.closes;
+      }
+    });
+
+    // 3. Build priceDashboardData + sectorHeatmapData
+    const sectorGroups = { Energy: [], Metals: [], Agriculture: [] };
+    const heatmapRows  = [];
+
+    for (const ticker of COMMODITY_TICKERS) {
+      const meta   = COMMODITY_META[ticker];
+      const q      = quotesMap[ticker];
+      const closes = chartMap[ticker] || [];
+
+      const price    = q?.regularMarketPrice ?? null;
+      const change1d = q?.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 100) / 100 : null;
+      const len      = closes.length;
+      const change1w = len >= 6  ? Math.round((closes[len-1] - closes[Math.max(0, len-6)])  / closes[Math.max(0, len-6)]  * 1000) / 10 : null;
+      const change1m = len >= 2  ? Math.round((closes[len-1] - closes[0]) / closes[0] * 1000) / 10 : null;
+
+      // Subsample sparkline to max 20 points
+      let sparkline = closes;
+      if (closes.length > 20) {
+        const step = (closes.length - 1) / 19;
+        sparkline = Array.from({ length: 20 }, (_, i) => Math.round(closes[Math.round(i * step)] * 100) / 100);
+      }
+
+      const row = { ticker, name: meta.name, unit: meta.unit, price, change1d, change1w, change1m, sparkline };
+      sectorGroups[meta.sector].push(row);
+      heatmapRows.push({ ticker, name: meta.name, sector: meta.sector, d1: change1d, w1: change1w, m1: change1m });
+    }
+
+    const priceDashboardData = COMM_SECTORS_ORDER.map(sector => ({ sector, commodities: sectorGroups[sector] }));
+    const sectorHeatmapData  = { commodities: heatmapRows, columns: ['1d%', '1w%', '1m%'] };
+
+    // 4. WTI futures curve — fetch 8 contract months
+    let futuresCurveData = null;
+    try {
+      const futureTickers = getWTIFuturesTickers(8);
+      const futureQuotes  = await yf.quote(futureTickers);
+      const futureArr     = Array.isArray(futureQuotes) ? futureQuotes : [futureQuotes];
+      const validFutures  = futureTickers
+        .map((t, i) => ({ ticker: t, label: futuresTickerToLabel(t), price: futureArr[i]?.regularMarketPrice ?? null }))
+        .filter(f => f.price != null);
+      if (validFutures.length >= 4) {
+        futuresCurveData = {
+          labels:    validFutures.map(f => f.label),
+          prices:    validFutures.map(f => Math.round(f.price * 100) / 100),
+          commodity: 'WTI Crude Oil',
+          spotPrice: quotesMap['CL=F']?.regularMarketPrice ?? validFutures[0]?.price ?? null,
+        };
+      }
+    } catch (e) {
+      console.warn('Futures curve fetch failed:', e.message);
+    }
+
+    // 5. EIA supply/demand data
+    let supplyDemandData = null;
+    try {
+      const [crudeRows, natGasRows, prodRows] = await Promise.all([
+        fetchEIASeries('petroleum/stoc/wstk',  { duoarea: 'NUS', product: 'EPC0' }, 260).catch(() => null),
+        fetchEIASeries('natural-gas/stor/wkly', { duoarea: 'NUS' },                  260).catch(() => null),
+        fetchEIASeries('petroleum/sum/sndw',    { duoarea: 'NUS', product: 'EPC0' }, 52).catch(() => null),
+      ]);
+
+      function buildSeries(rows, withAvg) {
+        if (!rows || rows.length === 0) return null;
+        const last52 = rows.slice(-52);
+        const periods = last52.map(r => r.period);
+        const values  = last52.map(r => Math.round(r.value * 10) / 10);
+        const avg5yr  = withAvg && rows.length >= 10
+          ? Math.round(rows.map(r => r.value).reduce((s, v) => s + v, 0) / rows.length * 10) / 10
+          : null;
+        return { periods, values, avg5yr };
+      }
+
+      const crude    = buildSeries(crudeRows,  true);
+      const natGas   = buildSeries(natGasRows, true);
+      const prod     = buildSeries(prodRows,   false);
+
+      if (crude || natGas || prod) {
+        supplyDemandData = {
+          crudeStocks:     crude    || { periods: [], values: [], avg5yr: null },
+          natGasStorage:   natGas   || { periods: [], values: [], avg5yr: null },
+          crudeProduction: prod     || { periods: [], values: [] },
+        };
+      }
+    } catch (e) {
+      console.warn('EIA fetch failed:', e.message);
+    }
+
+    const result = {
+      priceDashboardData,
+      sectorHeatmapData,
+      ...(futuresCurveData  ? { futuresCurveData  } : {}),
+      ...(supplyDemandData  ? { supplyDemandData  } : {}),
+      lastUpdated: new Date().toISOString().split('T')[0],
+    };
+
+    cache.set(cacheKey, result, 900);
+    res.json(result);
+  } catch (error) {
+    console.error('Commodities API error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // --- Quote Summary: data/stocks/ first (ohlcv format has .summary), then live Yahoo ---
 app.get('/api/summary/:ticker', async (req, res) => {
   const { ticker } = req.params;
@@ -1121,5 +1319,5 @@ app.listen(port, () => {
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
   console.log(`Global Macro Backend running at http://localhost:${port}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
-  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/summary/:t  /api/history/:t`);
+  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/summary/:t  /api/history/:t`);
 });
