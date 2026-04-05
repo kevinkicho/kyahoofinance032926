@@ -1,0 +1,47 @@
+/* src/markets/crypto/components/CryptoComponents.css */
+
+/* Panel layout */
+.crypto-panel { display: flex; flex-direction: column; height: 100%; background: #0f172a; overflow: hidden; }
+.crypto-panel-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px 8px; border-bottom: 1px solid #1e293b; flex-shrink: 0; }
+.crypto-panel-title { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.crypto-panel-subtitle { font-size: 10px; color: #64748b; }
+
+/* Grid layouts */
+.crypto-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex: 1; background: #1e293b; overflow: hidden; }
+.crypto-two-row { display: grid; grid-template-rows: 1fr 1fr; gap: 1px; flex: 1; background: #1e293b; overflow: hidden; }
+
+/* Chart panels */
+.crypto-chart-panel { display: flex; flex-direction: column; background: #0f172a; padding: 8px 12px 4px; overflow: hidden; }
+.crypto-chart-title { font-size: 11px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; flex-shrink: 0; }
+.crypto-chart-subtitle { font-size: 9px; color: #64748b; margin-bottom: 4px; flex-shrink: 0; }
+.crypto-chart-wrap { flex: 1; min-height: 0; }
+
+/* Scrollable table area */
+.crypto-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Tables */
+.crypto-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+.crypto-th {
+  padding: 4px 8px; text-align: right; font-size: 9px; color: #64748b;
+  text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #1e293b;
+  position: sticky; top: 0; z-index: 1; background: #0f172a; white-space: nowrap;
+}
+.crypto-th:first-child, .crypto-th:nth-child(2) { text-align: left; }
+.crypto-row { border-bottom: 1px solid #0f172a; }
+.crypto-row:hover { background: #1e293b; }
+.crypto-cell { padding: 4px 8px; color: #e2e8f0; text-align: right; }
+.crypto-cell:first-child, .crypto-cell:nth-child(2) { text-align: left; }
+.crypto-muted { color: #64748b; font-size: 10px; }
+.crypto-num { font-family: monospace; }
+
+/* Positive/negative colors */
+.crypto-pos { color: #34d399; }
+.crypto-neg { color: #f87171; }
+.crypto-neu { color: #94a3b8; }
+
+/* Stat pills row */
+.crypto-stats-row { display: flex; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #1e293b; flex-shrink: 0; flex-wrap: wrap; }
+.crypto-stat-pill { display: flex; flex-direction: column; align-items: center; background: #1e293b; border-radius: 6px; padding: 4px 10px; }
+.crypto-stat-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+.crypto-stat-value { font-size: 12px; font-weight: 600; color: #e2e8f0; }
+.crypto-stat-value.amber { color: #f59e0b; }
