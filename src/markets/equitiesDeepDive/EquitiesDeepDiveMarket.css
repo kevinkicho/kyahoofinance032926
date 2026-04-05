@@ -1,0 +1,28 @@
+.eq-market { display: flex; flex-direction: column; height: 100%; background: #0f172a; }
+.eq-market.eq-loading { align-items: center; justify-content: center; gap: 12px; }
+.eq-loading-spinner {
+  width: 36px; height: 36px; border: 3px solid #1e293b;
+  border-top-color: #6366f1; border-radius: 50%;
+  animation: eq-spin 0.8s linear infinite;
+}
+@keyframes eq-spin { to { transform: rotate(360deg); } }
+.eq-loading-text { font-size: 12px; color: #64748b; }
+
+.eq-sub-tabs {
+  display: flex; gap: 2px; padding: 8px 12px 0;
+  border-bottom: 1px solid #1e293b; background: #0f172a;
+}
+.eq-sub-tab {
+  padding: 6px 14px; font-size: 12px; color: #64748b; background: none;
+  border: none; border-bottom: 2px solid transparent; cursor: pointer;
+  transition: color 0.15s, border-bottom-color 0.15s;
+}
+.eq-sub-tab:hover { color: #e2e8f0; }
+.eq-sub-tab.active { color: #6366f1; border-bottom-color: #6366f1; }
+
+.eq-status-bar {
+  display: flex; align-items: center; gap: 12px; padding: 4px 14px;
+  font-size: 10px; color: #475569; border-bottom: 1px solid #1e293b;
+}
+.eq-status-live { color: #6366f1; }
+.eq-content { flex: 1; overflow: hidden; }

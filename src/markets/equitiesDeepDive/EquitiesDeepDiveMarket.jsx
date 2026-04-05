@@ -1,0 +1,57 @@
+import React, { useState } from 'react';
+import { useEquityDeepDiveData } from './data/useEquityDeepDiveData';
+import SectorRotation from './components/SectorRotation';
+import FactorRankings from './components/FactorRankings';
+import EarningsWatch  from './components/EarningsWatch';
+import ShortInterest  from './components/ShortInterest';
+import './EquitiesDeepDiveMarket.css';
+
+const SUB_TABS = [
+  { id: 'sectors',  label: 'Sector Rotation' },
+  { id: 'factors',  label: 'Factor Rankings' },
+  { id: 'earnings', label: 'Earnings Watch'  },
+  { id: 'shorts',   label: 'Short Interest'  },
+];
+
+// snapshotDate/currency not used — equity analytics are market-session-based, not snapshot-dependent
+export default function EquitiesDeepDiveMarket() {
+  const [activeTab, setActiveTab] = useState('sectors');
+  const { sectorData, factorData, earningsData, shortData, isLive, lastUpdated, isLoading } = useEquityDeepDiveData();
+
+  if (isLoading) {
+    return (
+      <div className="eq-market eq-loading">
+        <div className="eq-loading-spinner" />
+        <span className="eq-loading-text">Loading equity data…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="eq-market">
+      <div className="eq-sub-tabs">
+        {SUB_TABS.map(t => (
+          <button
+            key={t.id}
+            className={`eq-sub-tab${activeTab === t.id ? ' active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="eq-status-bar">
+        <span className={isLive ? 'eq-status-live' : ''}>
+          {isLive ? '● Live' : '○ Mock data — static'}
+        </span>
+        {lastUpdated && <span>Updated: {lastUpdated}</span>}
+      </div>
+      <div className="eq-content">
+        {activeTab === 'sectors'  && <SectorRotation sectorData={sectorData} />}
+        {activeTab === 'factors'  && <FactorRankings factorData={factorData} />}
+        {activeTab === 'earnings' && <EarningsWatch  earningsData={earningsData} />}
+        {activeTab === 'shorts'   && <ShortInterest  shortData={shortData} />}
+      </div>
+    </div>
+  );
+}
