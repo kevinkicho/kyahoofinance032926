@@ -234,7 +234,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Cache status — shows which markets have today's data vs are serving stale files
-const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','globalMacro','equityDeepDive'];
+const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','globalMacro','equityDeepDive','crypto'];
 app.get('/api/cache/status', (_req, res) => {
   const today = todayStr();
   const status = {};
@@ -1673,6 +1673,155 @@ app.get('/api/equityDeepDive', async (req, res) => {
     console.error('EquityDeepDive API error:', error);
     // Fallback: serve most recent available cache (any day)
     const fallback = readLatestCache('equityDeepDive');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── /api/crypto ─────────────────────────────────────────────────────────────
+// CoinGecko free API (no key) + DeFiLlama (no key) + Alternative.me F&G
+app.get('/api/crypto', async (_req, res) => {
+  const today = todayStr();
+  const daily = readDailyCache('crypto');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+  const cacheKey = 'crypto_data';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+
+  try {
+    const cgCoinsUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d';
+    const cgGlobalUrl = 'https://api.coingecko.com/api/v3/global';
+    const fngUrl = 'https://api.alternative.me/fng/?limit=30';
+    const defiProtocolsUrl = 'https://api.llama.fi/protocols';
+    const defiChainsUrl = 'https://api.llama.fi/v2/chains';
+
+    const fetchJson = (url) => new Promise((resolve, reject) => {
+      https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 kyahoofinance' } }, (r) => {
+        let d = '';
+        r.on('data', c => d += c);
+        r.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
+      }).on('error', reject);
+    });
+
+    const [cgCoins, cgGlobal, fng, defiProtocols, defiChains] = await Promise.allSettled([
+      fetchJson(cgCoinsUrl),
+      fetchJson(cgGlobalUrl),
+      fetchJson(fngUrl),
+      fetchJson(defiProtocolsUrl),
+      fetchJson(defiChainsUrl),
+    ]);
+
+    // ── Build coinMarketData ─────────────────────────────────────────────────
+    let coins = [];
+    if (cgCoins.status === 'fulfilled' && Array.isArray(cgCoins.value)) {
+      const globalData = cgGlobal.status === 'fulfilled' ? cgGlobal.value?.data : null;
+      const totalMcap = globalData?.total_market_cap?.usd;
+      coins = cgCoins.value.map(c => ({
+        id:         c.id,
+        symbol:     c.symbol?.toUpperCase(),
+        name:       c.name,
+        price:      c.current_price,
+        change24h:  c.price_change_percentage_24h_in_currency ?? c.price_change_percentage_24h,
+        change7d:   c.price_change_percentage_7d_in_currency,
+        change30d:  c.price_change_percentage_30d_in_currency,
+        marketCapB: c.market_cap != null ? c.market_cap / 1e9 : null,
+        volumeB:    c.total_volume != null ? c.total_volume / 1e9 : null,
+        dominance:  (totalMcap && c.market_cap) ? (c.market_cap / totalMcap) * 100 : null,
+      }));
+    }
+
+    let globalStats = {};
+    if (cgGlobal.status === 'fulfilled' && cgGlobal.value?.data) {
+      const g = cgGlobal.value.data;
+      const btcDom = g.market_cap_percentage?.btc ?? 52;
+      const ethDom = g.market_cap_percentage?.eth ?? 15;
+      globalStats = {
+        totalMarketCapT:        g.total_market_cap?.usd != null ? g.total_market_cap.usd / 1e12 : null,
+        totalVolumeB:           g.total_volume?.usd != null ? g.total_volume.usd / 1e9 : null,
+        btcDominance:           btcDom,
+        ethDominance:           ethDom,
+        altDominance:           100 - btcDom - ethDom,
+        activeCryptocurrencies: g.active_cryptocurrencies,
+        marketCapChange24h:     g.market_cap_change_percentage_24h_usd,
+      };
+    }
+
+    // ── Build fearGreedData ──────────────────────────────────────────────────
+    let fearGreedData = { value: 50, label: 'Neutral', history: [], correlations: [] };
+    if (fng.status === 'fulfilled' && Array.isArray(fng.value?.data)) {
+      const entries = fng.value.data.slice(0, 30).reverse();
+      fearGreedData = {
+        value:        parseInt(entries[entries.length - 1]?.value ?? '50'),
+        label:        entries[entries.length - 1]?.value_classification ?? 'Neutral',
+        history:      entries.map(e => parseInt(e.value)),
+        correlations: [],
+      };
+    }
+
+    // ── Build defiData ───────────────────────────────────────────────────────
+    let defiData = { protocols: [], chains: [] };
+    if (defiProtocols.status === 'fulfilled' && Array.isArray(defiProtocols.value)) {
+      const sorted = [...defiProtocols.value]
+        .filter(p => p.tvl > 0)
+        .sort((a, b) => b.tvl - a.tvl)
+        .slice(0, 15);
+      defiData.protocols = sorted.map(p => ({
+        name:      p.name,
+        category:  p.category ?? 'DeFi',
+        chain:     p.chain ?? 'Multi',
+        tvlB:      p.tvl / 1e9,
+        change1d:  p.change_1d ?? 0,
+        change7d:  p.change_7d ?? 0,
+      }));
+    }
+    if (defiChains.status === 'fulfilled' && Array.isArray(defiChains.value)) {
+      const sorted = [...defiChains.value]
+        .filter(c => c.tvl > 0)
+        .sort((a, b) => b.tvl - a.tvl)
+        .slice(0, 10);
+      defiData.chains = sorted.map(c => ({
+        name:      c.name,
+        tvlB:      c.tvl / 1e9,
+        change7d:  c.change7d ?? 0,
+        protocols: c.protocols ?? 0,
+      }));
+    }
+
+    // ── Funding data: static mock (Binance perp API has CORS issues from server) ──
+    const fundingData = {
+      rates: [
+        { symbol: 'BTC',  rate8h: 0.0082, rateAnnualized: 8.97,  openInterestB: 18.4, exchange: 'Binance' },
+        { symbol: 'ETH',  rate8h: 0.0068, rateAnnualized: 7.42,  openInterestB:  8.2, exchange: 'Binance' },
+        { symbol: 'SOL',  rate8h: 0.0124, rateAnnualized: 13.54, openInterestB:  2.8, exchange: 'Binance' },
+        { symbol: 'DOGE', rate8h: 0.0152, rateAnnualized: 16.60, openInterestB:  1.4, exchange: 'Binance' },
+        { symbol: 'AVAX', rate8h: 0.0094, rateAnnualized: 10.26, openInterestB:  0.6, exchange: 'Binance' },
+        { symbol: 'LINK', rate8h: 0.0106, rateAnnualized: 11.57, openInterestB:  0.5, exchange: 'Binance' },
+        { symbol: 'BNB',  rate8h: 0.0078, rateAnnualized: 8.52,  openInterestB:  0.8, exchange: 'Binance' },
+        { symbol: 'ADA',  rate8h: 0.0058, rateAnnualized: 6.33,  openInterestB:  0.4, exchange: 'Binance' },
+        { symbol: 'DOT',  rate8h: -0.0024,rateAnnualized: -2.62, openInterestB:  0.3, exchange: 'Binance' },
+        { symbol: 'NEAR', rate8h: 0.0142, rateAnnualized: 15.50, openInterestB:  0.4, exchange: 'Binance' },
+      ],
+      openInterestHistory: {
+        dates:  ['Mar 1','Mar 8','Mar 15','Mar 22','Mar 29','Apr 5'],
+        btcOIB: [14.2, 15.8, 16.4, 17.1, 17.8, 18.4],
+        ethOIB: [ 6.4,  6.8,  7.2,  7.6,  8.0,  8.2],
+      },
+    };
+
+    const result = {
+      coinMarketData: { coins, globalStats },
+      fearGreedData,
+      defiData,
+      fundingData,
+      lastUpdated: today,
+    };
+
+    writeDailyCache('crypto', result);
+    cache.set(cacheKey, result, 300);
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
+  } catch (error) {
+    console.error('Crypto API error:', error);
+    const fallback = readLatestCache('crypto');
     if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
     res.status(500).json({ error: 'Internal server error' });
   }
