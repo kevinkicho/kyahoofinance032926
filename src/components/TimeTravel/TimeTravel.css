@@ -34,7 +34,6 @@
 .tt-loading {
   font-size: 0.68rem;
   color: #a855f7;
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
@@ -244,7 +243,6 @@
   border: 1px solid color-mix(in srgb, var(--era-color) 40%, #334155);
   border-radius: 0.5rem;
   padding: 0.875rem;
-  animation: cardFade 0.3s ease-out;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

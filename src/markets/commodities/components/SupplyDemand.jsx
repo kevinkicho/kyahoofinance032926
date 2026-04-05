@@ -6,6 +6,7 @@ import './CommodComponents.css';
 function buildStocksOption(title, periods, values, avg5yr) {
   const avgLine = avg5yr != null ? Array(values.length).fill(avg5yr) : null;
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

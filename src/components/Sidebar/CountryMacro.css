@@ -3,7 +3,6 @@
   flex-direction: column;
   gap: 0.75rem;
   margin-top: 1rem;
-  animation: fadeIn 0.3s ease-out;
 }
 
 .country-grid {

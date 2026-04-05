@@ -14,6 +14,7 @@ export default function CapRateMonitor({ capRateData }) {
   const option = useMemo(() => {
     const { dates, ...types } = capRateData;
     return {
+      animation: false,
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',

@@ -11,6 +11,7 @@ export default function VIXTermStructure({ vixTermStructure, vixEnrichment }) {
     : 'Backwardation (elevated near-term fear)';
 
   const option = useMemo(() => ({
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

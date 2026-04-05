@@ -12,6 +12,7 @@ function beatColor(rate) {
 function buildBeatRateOption(beatRates) {
   const sorted = [...beatRates].sort((a, b) => (b.beatRate ?? 0) - (a.beatRate ?? 0));
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

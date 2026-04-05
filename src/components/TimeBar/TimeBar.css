@@ -110,10 +110,10 @@
 @keyframes slideOutDown { from { transform: translateY(0);    opacity: 1; } to { transform: translateY(60%);  opacity: 0; } }
 @keyframes slideInUp    { from { transform: translateY(-60%); opacity: 0; } to { transform: translateY(0);    opacity: 1; } }
 
-.slot-date.slot-out-up   { animation: slideOutUp   0.13s ease-out forwards; }
-.slot-date.slot-in-down  { animation: slideInDown  0.20s ease-out forwards; }
-.slot-date.slot-out-down { animation: slideOutDown 0.13s ease-out forwards; }
-.slot-date.slot-in-up    { animation: slideInUp    0.20s ease-out forwards; }
+.slot-date.slot-out-up   { }
+.slot-date.slot-in-down  { }
+.slot-date.slot-out-down { }
+.slot-date.slot-in-up    { }
 
 .tb-ago {
   font-size: 0.65rem;
@@ -125,7 +125,6 @@
   font-size: 0.72rem;
   color: #7c3aed;
   font-weight: 600;
-  animation: tbPulse 0.7s ease-in-out infinite;
 }
 @keyframes tbPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
@@ -134,7 +133,6 @@
   font-weight: 800;
   color: #10b981;
   letter-spacing: 0.05em;
-  animation: livePulse 2.2s ease-in-out infinite;
 }
 @keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 
@@ -209,7 +207,6 @@
   border-color: #7c3aed;
   color: #ddd6fe;
   box-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
-  animation: playPulse 1s ease-in-out infinite;
 }
 @keyframes playPulse {
   0%, 100% { box-shadow: 0 0 5px  rgba(124, 58, 237, 0.22); }

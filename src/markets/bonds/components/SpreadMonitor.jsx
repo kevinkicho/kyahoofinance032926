@@ -11,6 +11,7 @@ const SERIES_CONFIG = [
 
 export default function SpreadMonitor({ spreadData }) {
   const option = useMemo(() => ({
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

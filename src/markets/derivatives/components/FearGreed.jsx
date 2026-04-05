@@ -29,6 +29,7 @@ export default function FearGreed({ fearGreedData, vixHistory }) {
     const dates  = vixHistory.map(p => p.date.slice(5));
     const values = vixHistory.map(p => p.value);
     return {
+      animation: false,
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis', formatter: (params) => `${params[0].axisValue}: <b>${params[0].value}</b>` },
       grid: { top: 10, right: 10, bottom: 30, left: 45 },

@@ -5,6 +5,7 @@ import './MacroComponents.css';
 function buildGdpOption(countries) {
   const sorted = [...countries].sort((a, b) => b.gdp - a.gdp);
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
@@ -51,6 +52,7 @@ function buildCpiOption(countries) {
     return '#14b8a6';
   };
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

@@ -13,6 +13,7 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
   const { lines, reserves, required, adequacy } = reserveAdequacyData;
 
   const option = {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

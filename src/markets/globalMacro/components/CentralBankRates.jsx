@@ -17,6 +17,7 @@ function barColor(rate) {
 function buildRankedOption(current) {
   const sorted = [...current].sort((a, b) => (b.rate ?? -99) - (a.rate ?? -99));
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
@@ -52,6 +53,7 @@ function buildRankedOption(current) {
 function buildHistoryOption(history) {
   const { dates = [], series = [] } = history;
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

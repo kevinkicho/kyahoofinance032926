@@ -178,7 +178,6 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
       borderRadius: '0.55rem',
       padding: '0.7rem 0.85rem 0.65rem',
       boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
-      animation: isEnabled ? 'hmEnabledGlow 2s ease-in-out infinite' : undefined,
       pointerEvents: 'none',
       fontFamily: 'inherit',
       backdropFilter: 'blur(8px)',
@@ -192,8 +191,7 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
           ? 'linear-gradient(to right, #7c3aed, #a78bfa)'
           : 'linear-gradient(to right, #3b82f6, #7c3aed)',
         transformOrigin: 'left',
-        animation: isEnabled ? 'none' : 'hmBorderTop 1.5s ease-out forwards',
-        transform: isEnabled ? 'scaleX(1)' : 'scaleX(0)',
+        transform: 'scaleX(1)',
       }} />
 
       {/* Enabled badge */}
@@ -370,11 +368,7 @@ const HeatmapView = ({
   }, [groupBy]);
 
   const chartOption = useMemo(() => ({
-    animation: true,
-    animationDuration: 600,
-    animationEasing: 'cubicInOut',
-    animationDurationUpdate: 600,
-    animationEasingUpdate: 'cubicInOut',
+    animation: false,
     tooltip: {
       show: !hoveredStock,
       formatter: function (info) {

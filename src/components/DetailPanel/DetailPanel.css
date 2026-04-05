@@ -2,7 +2,6 @@
 .detail-panel-content {
   display: flex;
   flex-direction: column;
-  animation: slideIn 0.3s ease-out;
 }
 
 @keyframes slideIn {
@@ -230,7 +229,6 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  animation: slideIn 0.2s ease-out;
 }
 
 .fv-verdict {

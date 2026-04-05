@@ -10,6 +10,7 @@ function buildInFavorOption(inFavor) {
     { name: 'Momentum', value: inFavor.momentum   ?? 0 },
   ];
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
@@ -84,11 +85,11 @@ export default function FactorRankings({ factorData }) {
                 <tr>
                   <th className="eq-th">Ticker</th>
                   <th className="eq-th">Sector</th>
-                  <th className="eq-th">Value</th>
-                  <th className="eq-th">Momentum</th>
-                  <th className="eq-th">Quality</th>
-                  <th className="eq-th">Low-Vol</th>
-                  <th className="eq-th">Composite</th>
+                  <th className="eq-th" style={{ textAlign: 'center' }}>Value</th>
+                  <th className="eq-th" style={{ textAlign: 'center' }}>Momentum</th>
+                  <th className="eq-th" style={{ textAlign: 'center' }}>Quality</th>
+                  <th className="eq-th" style={{ textAlign: 'center' }}>Low-Vol</th>
+                  <th className="eq-th" style={{ textAlign: 'center' }}>Composite</th>
                 </tr>
               </thead>
               <tbody>

@@ -10,6 +10,7 @@ function buildRankedOption(sectors) {
     .sort((a, b) => (b.perf1m ?? -99) - (a.perf1m ?? -99));
 
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
@@ -51,6 +52,7 @@ function buildRankedOption(sectors) {
 function buildRotationOption(sectors) {
   const etfs = sectors.filter(s => s.code !== 'SPY');
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',

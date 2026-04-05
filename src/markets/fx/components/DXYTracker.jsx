@@ -60,6 +60,7 @@ export default function DXYTracker({ history }) {
     ];
 
     return {
+      animation: false,
       backgroundColor: 'transparent',
       grid: { top: 40, right: 24, bottom: 54, left: 54 },
       tooltip: {

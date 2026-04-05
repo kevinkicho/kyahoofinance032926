@@ -3,7 +3,6 @@
 .eq-loading-spinner {
   width: 36px; height: 36px; border: 3px solid #1e293b;
   border-top-color: #6366f1; border-radius: 50%;
-  animation: eq-spin 0.8s linear infinite;
 }
 @keyframes eq-spin { to { transform: rotate(360deg); } }
 .eq-loading-text { font-size: 12px; color: #64748b; }

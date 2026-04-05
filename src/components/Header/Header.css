@@ -169,7 +169,6 @@
   border-color: #a855f7;
   color: #a855f7;
   box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
-  animation: ttPulse 2s ease-in-out infinite;
 }
 
 @keyframes ttPulse {

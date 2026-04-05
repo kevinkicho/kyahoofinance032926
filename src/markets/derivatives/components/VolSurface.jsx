@@ -18,6 +18,7 @@ export default function VolSurface({ volSurfaceData, volPremium = null }) {
     const maxVol  = Math.max(...allVols);
 
     return {
+      animation: false,
       backgroundColor: 'transparent',
       tooltip: {
         formatter: (params) => {

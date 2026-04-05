@@ -12,6 +12,7 @@ export default function PriceIndex({ priceIndexData }) {
     const markets = Object.keys(priceIndexData);
     const dates = priceIndexData[markets[0]]?.dates ?? [];
     return {
+      animation: false,
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',

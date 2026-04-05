@@ -8,6 +8,7 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
     const amounts  = durationLadderData.map(d => d.amount);
     const pcts     = durationLadderData.map(d => d.pct);
     return {
+      animation: false,
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',

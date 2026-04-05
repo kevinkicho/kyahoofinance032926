@@ -13,6 +13,7 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators }) {
   const option = useMemo(() => {
     const countries = Object.keys(yieldCurveData);
     return {
+      animation: false,
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis', formatter: (params) =>
         params.map(p => `${p.seriesName}: ${p.value?.toFixed(2)}%`).join('<br/>')

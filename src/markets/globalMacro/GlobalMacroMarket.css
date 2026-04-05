@@ -60,7 +60,6 @@
   border: 2px solid #1e293b;
   border-top-color: #14b8a6;
   border-radius: 50%;
-  animation: mac-spin 0.7s linear infinite;
 }
 @keyframes mac-spin {
   to { transform: rotate(360deg); }

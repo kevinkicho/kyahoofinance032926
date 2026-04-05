@@ -10,6 +10,7 @@ export default function FuturesCurve({ futuresCurveData }) {
   const isBackwardation = prices.length >= 2 && prices[prices.length - 1] < prices[0];
 
   const option = {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

@@ -12,6 +12,7 @@ function shortBarColor(v) {
 function buildShortedOption(mostShorted) {
   const sorted = [...mostShorted].sort((a, b) => (b.shortFloat ?? 0) - (a.shortFloat ?? 0));
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
@@ -57,6 +58,7 @@ function buildShortedOption(mostShorted) {
 function buildSqueezeOption(mostShorted) {
   const candidates = mostShorted.filter(s => (s.shortFloat ?? 0) > 10);
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',

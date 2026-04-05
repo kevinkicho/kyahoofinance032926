@@ -12,6 +12,7 @@ function debtBarColor(v) {
 function buildDebtOption(countries) {
   const sorted = [...countries].sort((a, b) => (b.debt ?? 0) - (a.debt ?? 0));
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
@@ -53,6 +54,7 @@ function buildDebtOption(countries) {
 function buildCurrentAcctOption(countries) {
   const sorted = [...countries].sort((a, b) => (b.currentAccount ?? 0) - (a.currentAccount ?? 0));
   return {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

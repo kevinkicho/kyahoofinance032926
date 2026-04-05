@@ -20,6 +20,7 @@ export default function CombinedRatioMonitor({ combinedRatioData }) {
   }));
 
   const option = {
+    animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',

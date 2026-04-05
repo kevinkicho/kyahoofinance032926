@@ -60,7 +60,6 @@
   border: 2px solid #1e293b;
   border-top-color: #0ea5e9;
   border-radius: 50%;
-  animation: ins-spin 0.7s linear infinite;
 }
 @keyframes ins-spin {
   to { transform: rotate(360deg); }

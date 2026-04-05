@@ -58,7 +58,6 @@
   border: 2px solid #1e293b;
   border-top-color: #ca8a04;
   border-radius: 50%;
-  animation: com-spin 0.7s linear infinite;
 }
 @keyframes com-spin {
   to { transform: rotate(360deg); }

@@ -45,11 +45,8 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
   };
 
   const option = useMemo(() => ({
+    animation: false,
     backgroundColor: 'transparent',
-    animationDuration: 0,
-    animationDurationUpdate: 300,
-    animationEasing: 'linear',
-    animationEasingUpdate: 'linear',
     grid: { top: 12, bottom: 42, left: 210, right: 120 },
     xAxis: {
       max: 'dataMax',
@@ -68,8 +65,6 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
     yAxis: {
       type: 'category',
       data: top.map(s => s.fullName || s.ticker),
-      animationDuration: 200,
-      animationDurationUpdate: 300,
       axisLabel: {
         color: '#cbd5e1',
         fontSize: 11,
