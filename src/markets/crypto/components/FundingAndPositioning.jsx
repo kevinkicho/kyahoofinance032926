@@ -42,13 +42,13 @@ function buildOIHistoryOption(history) {
 
 export default function FundingAndPositioning({ fundingData }) {
   if (!fundingData) return null;
-  const { rates = [], openInterestHistory = { dates: [], btcOIB: [], ethOIB: [] } } = fundingData;
+  const { rates = [], openInterestHistory } = fundingData;
 
   return (
     <div className="crypto-panel">
       <div className="crypto-panel-header">
         <span className="crypto-panel-title">Funding & Positioning</span>
-        <span className="crypto-panel-subtitle">Perpetual futures · 8h funding rate · open interest · Binance</span>
+        <span className="crypto-panel-subtitle">Perpetual futures · 8h funding rate · open interest · Bybit</span>
       </div>
       <div className="crypto-two-col">
         <div className="crypto-chart-panel">
@@ -83,11 +83,22 @@ export default function FundingAndPositioning({ fundingData }) {
           </div>
         </div>
         <div className="crypto-chart-panel">
-          <div className="crypto-chart-title">Open Interest History</div>
-          <div className="crypto-chart-subtitle">BTC & ETH perpetual open interest (billions USD) · 6-week trend</div>
-          <div className="crypto-chart-wrap">
-            <ReactECharts option={buildOIHistoryOption(openInterestHistory)} style={{ height: '100%', width: '100%' }} />
-          </div>
+          {openInterestHistory && openInterestHistory.dates?.length > 0 ? (
+            <>
+              <div className="crypto-chart-title">Open Interest History</div>
+              <div className="crypto-chart-subtitle">BTC & ETH perpetual open interest (billions USD) · 6-week trend</div>
+              <div className="crypto-chart-wrap">
+                <ReactECharts option={buildOIHistoryOption(openInterestHistory)} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="crypto-chart-title">Open Interest History</div>
+              <div className="crypto-chart-subtitle" style={{ color: '#475569', padding: 20, textAlign: 'center' }}>
+                Historical OI data not available — showing current rates only
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
