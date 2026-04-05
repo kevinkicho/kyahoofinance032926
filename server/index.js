@@ -1272,7 +1272,7 @@ app.get('/api/globalMacro', async (req, res) => {
       fetchWBIndicator('NY.GDP.MKTP.KD.ZG').catch(() => ({ values: {}, year: null })),
       fetchWBIndicator('FP.CPI.TOTL.ZG').catch(()    => ({ values: {}, year: null })),
       fetchWBIndicator('SL.UEM.TOTL.ZS').catch(()    => ({ values: {}, year: null })),
-      fetchWBIndicator('GC.DOB.TOTL.GD.ZS').catch(() => ({ values: {}, year: null })),
+      fetchWBIndicator('GC.DOD.TOTL.GD.ZS').catch(() => ({ values: {}, year: null })),
       fetchWBIndicator('BN.CAB.XOKA.GD.ZS').catch(() => ({ values: {}, year: null })),
     ]);
     const wbYear = gdpRes.year || cpiRes.year || new Date().getFullYear() - 2;
