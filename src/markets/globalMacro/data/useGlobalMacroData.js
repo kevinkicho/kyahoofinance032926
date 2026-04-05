@@ -21,12 +21,13 @@ export function useGlobalMacroData() {
     fetch(`${SERVER}/api/globalMacro`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(data => {
-        if (data.scorecardData?.length >= 8)                           setScorecardData(data.scorecardData);
-        if (data.growthInflationData?.countries?.length >= 8)          setGrowthInflationData(data.growthInflationData);
-        if (data.centralBankData?.current?.length >= 8)                setCentralBankData(data.centralBankData);
-        if (data.debtData?.countries?.length >= 8)                     setDebtData(data.debtData);
-        setIsLive(true);
-        setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+        let anyReplaced = false;
+        if (data.scorecardData?.length >= 8)                  { setScorecardData(data.scorecardData);             anyReplaced = true; }
+        if (data.growthInflationData?.countries?.length >= 8) { setGrowthInflationData(data.growthInflationData); anyReplaced = true; }
+        if (data.centralBankData?.current?.length >= 8)       { setCentralBankData(data.centralBankData);         anyReplaced = true; }
+        if (data.debtData?.countries?.length >= 8)            { setDebtData(data.debtData);                       anyReplaced = true; }
+        setIsLive(anyReplaced);
+        if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));

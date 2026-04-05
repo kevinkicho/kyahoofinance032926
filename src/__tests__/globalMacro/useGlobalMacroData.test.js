@@ -97,6 +97,6 @@ describe('useGlobalMacroData', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     // scorecardData guard (< 8) prevents replacement — should keep 12-country mock
     expect(result.current.scorecardData).toHaveLength(12);
-    expect(result.current.isLive).toBe(true); // fetch succeeded even if guards blocked
+    expect(result.current.isLive).toBe(false); // no dataset replaced, so isLive stays false
   });
 });

@@ -13,6 +13,7 @@ const SUB_TABS = [
   { id: 'debt',          label: 'Debt Monitor'        },
 ];
 
+// snapshotDate/currency not used — macro data is annual, not snapshot-dependent
 export default function GlobalMacroMarket() {
   const [activeTab, setActiveTab] = useState('scorecard');
   const { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading } = useGlobalMacroData();
