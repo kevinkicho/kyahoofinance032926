@@ -28,7 +28,7 @@ describe('GlobalMacroMarket', () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Growth & Inflation' }));
-    expect(screen.getByText(/growth & inflation/i)).toBeInTheDocument();
+    expect(screen.getByText(/economic data/i)).toBeInTheDocument();
   });
 
   it('switches to Central Bank Rates tab on click', async () => {
@@ -42,7 +42,7 @@ describe('GlobalMacroMarket', () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Debt Monitor' }));
-    expect(screen.getByText(/debt monitor/i)).toBeInTheDocument();
+    expect(screen.getByText(/dashboard/i)).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {

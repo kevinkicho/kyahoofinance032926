@@ -34,9 +34,8 @@ export default function GlobalMacroMarket() {
             key={t.id}
             className={`mac-sub-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
-            aria-label={t.label}
           >
-            <span className="mac-tab-icon">{['🎯', '📈', '🏦', '💳'][SUB_TABS.findIndex(x => x.id === t.id)]}</span>
+            {t.label}
           </button>
         ))}
       </div>
