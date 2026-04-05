@@ -9,6 +9,7 @@ export const MARKETS = [
   { id: 'commodities',      label: 'Commodities',  icon: '🛢️' },
   { id: 'globalMacro',      label: 'Macro',        icon: '🌐' },
   { id: 'equitiesDeepDive', label: 'Equity+',      icon: '🔍' },
+  { id: 'crypto',           label: 'Crypto',       icon: '🪙' },
 ];
 
 export const DEFAULT_MARKET = 'equities';

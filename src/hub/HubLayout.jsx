@@ -10,6 +10,7 @@ import InsuranceMarket       from '../markets/insurance/InsuranceMarket';
 import CommoditiesMarket     from '../markets/commodities/CommoditiesMarket';
 import GlobalMacroMarket     from '../markets/globalMacro/GlobalMacroMarket';
 import EquitiesDeepDiveMarket from '../markets/equitiesDeepDive/EquitiesDeepDiveMarket';
+import CryptoMarket          from '../markets/crypto/CryptoMarket';
 import HubFooter from './HubFooter';
 
 const MARKET_COMPONENTS = {
@@ -22,6 +23,7 @@ const MARKET_COMPONENTS = {
   commodities:       CommoditiesMarket,
   globalMacro:       GlobalMacroMarket,
   equitiesDeepDive:  EquitiesDeepDiveMarket,
+  crypto:            CryptoMarket,
 };
 
 export default function HubLayout() {
