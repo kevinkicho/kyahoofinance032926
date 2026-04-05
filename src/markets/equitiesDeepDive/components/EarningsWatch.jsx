@@ -101,11 +101,22 @@ export default function EarningsWatch({ earningsData }) {
           </div>
         </div>
         <div className="eq-chart-panel">
-          <div className="eq-chart-title">Sector Beat Rate</div>
-          <div className="eq-chart-subtitle">Last quarter EPS beat % · indigo ≥70% · amber 50–70% · red &lt;50%</div>
-          <div className="eq-chart-wrap">
-            <ReactECharts option={buildBeatRateOption(beatRates)} style={{ height: '100%', width: '100%' }} />
-          </div>
+          {beatRates && beatRates.length > 0 ? (
+            <>
+              <div className="eq-chart-title">Sector Beat Rate</div>
+              <div className="eq-chart-subtitle">Last quarter EPS beat % · indigo ≥70% · amber 50–70% · red &lt;50%</div>
+              <div className="eq-chart-wrap">
+                <ReactECharts option={buildBeatRateOption(beatRates)} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="eq-chart-title">Sector Beat Rate</div>
+              <div className="eq-chart-subtitle" style={{ color: '#475569', padding: 20, textAlign: 'center' }}>
+                Beat rate data not available — requires historical earnings data
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
