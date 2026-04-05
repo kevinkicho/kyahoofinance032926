@@ -84,4 +84,19 @@ describe('useGlobalMacroData', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isLive).toBe(false);
   });
+
+  it('guard: does not apply live data when scorecardData length < 8', async () => {
+    const liveData = {
+      scorecardData: [{ code: 'US', name: 'United States', flag: '🇺🇸', region: 'G7', gdp: 2.8, cpi: 3.2, rate: 5.25, unemp: 3.7, debt: 122.0 }],
+      growthInflationData: { year: 2023, countries: [] },
+      centralBankData: { current: [], history: { dates: [], series: [] } },
+      debtData: { year: 2023, countries: [] },
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useGlobalMacroData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    // scorecardData guard (< 8) prevents replacement — should keep 12-country mock
+    expect(result.current.scorecardData).toHaveLength(12);
+    expect(result.current.isLive).toBe(true); // fetch succeeded even if guards blocked
+  });
 });
