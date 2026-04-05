@@ -1,0 +1,71 @@
+/* src/markets/globalMacro/GlobalMacroMarket.css */
+.mac-market {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: #0a0f1a;
+}
+.mac-sub-tabs {
+  display: flex;
+  align-items: center;
+  background: #0d1117;
+  border-bottom: 1px solid #1e293b;
+  padding: 0 16px;
+  height: 38px;
+  flex-shrink: 0;
+}
+.mac-sub-tab {
+  padding: 0 14px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.mac-tab-icon {
+  font-size: 16px;
+}
+.mac-sub-tab:hover  { color: #94a3b8; }
+.mac-sub-tab.active { color: #14b8a6; border-bottom-color: #14b8a6; }
+.mac-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 20px;
+  background: #0d1117;
+  border-bottom: 1px solid #0f172a;
+  font-size: 10px;
+  color: #475569;
+  flex-shrink: 0;
+}
+.mac-status-live { color: #14b8a6; }
+.mac-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.mac-loading {
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.mac-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #1e293b;
+  border-top-color: #14b8a6;
+  border-radius: 50%;
+  animation: mac-spin 0.7s linear infinite;
+}
+@keyframes mac-spin {
+  to { transform: rotate(360deg); }
+}
+.mac-loading-text { font-size: 12px; color: #64748b; }
