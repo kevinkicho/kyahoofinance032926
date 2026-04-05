@@ -61,7 +61,7 @@ describe('useEquityDeepDiveData', () => {
         })),
       },
       factorData:   { inFavor: { value: 10, momentum: 20, quality: 5, lowVol: -1 }, stocks: Array.from({ length: 12 }, (_, i) => ({ ticker: `T${i}`, name: `Stock ${i}`, sector: 'Technology', value: 50, momentum: 50, quality: 50, lowVol: 50, composite: 50 })) },
-      earningsData: { upcoming: Array.from({ length: 6 }, (_, i) => ({ ticker: `E${i}`, name: `Co ${i}`, sector: 'Technology', date: '2026-04-15', epsEst: 1.0, epsPrev: 0.9, marketCapB: 100 })), beatRates: [] },
+      earningsData: { upcoming: Array.from({ length: 6 }, (_, i) => ({ ticker: `E${i}`, name: `Co ${i}`, sector: 'Technology', date: '2026-04-15', epsEst: 1.0, epsPrev: 0.9, marketCapB: 100 })), beatRates: null },
       shortData:    { mostShorted: Array.from({ length: 12 }, (_, i) => ({ ticker: `S${i}`, name: `Short ${i}`, sector: 'Technology', shortFloat: 15, daysToCover: 2, marketCapB: 5, perf1w: 1 })) },
       lastUpdated: '2026-04-05',
     };
