@@ -1,0 +1,76 @@
+// src/markets/calendar/components/EarningsSeason.jsx
+import React, { useMemo } from 'react';
+import './CalendarComponents.css';
+
+function weekLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const mon = new Date(d); mon.setDate(d.getDate() - ((day + 6) % 7));
+  const fri = new Date(mon); fri.setDate(mon.getDate() + 4);
+  const fmt = d2 => `${d2.toLocaleString('en-US', { month: 'short' })} ${d2.getDate()}`;
+  return `${fmt(mon)}–${fmt(fri)}`;
+}
+
+function isCurrentWeek(dateStr) {
+  const now = new Date();
+  const d = new Date(dateStr + 'T00:00:00');
+  const nowMon = new Date(now); nowMon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const dMon = new Date(d); dMon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return nowMon.toISOString().split('T')[0] === dMon.toISOString().split('T')[0];
+}
+
+export default function EarningsSeason({ earningsSeason }) {
+  const grouped = useMemo(() => {
+    if (!earningsSeason?.length) return [];
+    const groups = {};
+    earningsSeason.forEach(e => {
+      const wk = weekLabel(e.date);
+      if (!groups[wk]) groups[wk] = { label: wk, isCurrent: isCurrentWeek(e.date), entries: [] };
+      groups[wk].entries.push(e);
+    });
+    return Object.values(groups);
+  }, [earningsSeason]);
+
+  return (
+    <div className="cal-panel">
+      <div className="cal-panel-header">
+        <span className="cal-panel-title">Earnings Season</span>
+        <span className="cal-panel-subtitle">Mega-cap earnings dates · next 60 days · Yahoo Finance calendarEvents</span>
+      </div>
+      {grouped.map(g => (
+        <div key={g.label} className="cal-week-group">
+          <div className={`cal-week-header${g.isCurrent ? ' cal-week-current' : ''}`}>
+            {g.isCurrent ? '\u25B8 ' : ''}{g.label}
+          </div>
+          <table className="cal-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Ticker</th>
+                <th>Company</th>
+                <th>EPS Est</th>
+                <th>Prior EPS</th>
+                <th>Mkt Cap ($B)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {g.entries.map((e, i) => (
+                <tr key={i}>
+                  <td style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{e.date}</td>
+                  <td style={{ fontWeight: 700, color: '#f43f5e' }}>{e.ticker}</td>
+                  <td>{e.name}</td>
+                  <td style={{ fontFamily: 'monospace' }}>{e.epsEst != null ? `$${e.epsEst.toFixed(2)}` : '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{e.epsPrev != null ? `$${e.epsPrev.toFixed(2)}` : '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: '#94a3b8' }}>{e.marketCapB != null ? `$${e.marketCapB.toLocaleString()}` : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+      <div className="cal-panel-footer">
+        30 mega-cap stocks tracked · EPS estimates from Yahoo Finance earningsTrend
+      </div>
+    </div>
+  );
+}
