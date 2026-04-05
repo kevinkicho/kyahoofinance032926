@@ -42,7 +42,7 @@ export default function EquitiesDeepDiveMarket() {
       </div>
       <div className="eq-status-bar">
         <span className={isLive ? 'eq-status-live' : ''}>
-          {isLive ? '● Live' : '○ Mock data — static'}
+          {isLive ? '● Live · Yahoo Finance' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="eq-stale-badge">Stale · fetched {fetchedOn}</span>}

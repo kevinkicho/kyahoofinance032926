@@ -41,7 +41,7 @@ export default function DerivativesMarket() {
       </div>
       <div className="deriv-status-bar">
         <span className={isLive ? 'deriv-status-live' : ''}>
-          {isLive ? '● Live' : '○ Mock data — static'}
+          {isLive ? '● Live · Yahoo Finance / CBOE' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="deriv-stale-badge">Stale · fetched {fetchedOn}</span>}

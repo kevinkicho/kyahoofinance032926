@@ -42,7 +42,7 @@ export default function CommoditiesMarket() {
       </div>
       <div className="com-status-bar">
         <span className={isLive ? 'com-status-live' : ''}>
-          {isLive ? '● Live' : '○ Mock data — static'}
+          {isLive ? '● Live · Yahoo Finance / EIA' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="com-stale-badge">Stale · fetched {fetchedOn}</span>}

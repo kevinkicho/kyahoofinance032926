@@ -41,7 +41,7 @@ export default function RealEstateMarket() {
       </div>
       <div className="re-status-bar">
         <span className={isLive ? 're-status-live' : ''}>
-          {isLive ? '● Live' : '○ Mock data — static'}
+          {isLive ? '● Live · Yahoo Finance / BIS' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="re-stale-badge">Stale · fetched {fetchedOn}</span>}

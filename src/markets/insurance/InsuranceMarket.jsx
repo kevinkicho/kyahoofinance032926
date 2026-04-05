@@ -50,7 +50,7 @@ export default function InsuranceMarket() {
       </div>
       <div className="ins-status-bar">
         <span className={isLive ? 'ins-status-live' : ''}>
-          {isLive ? '● Live' : '○ Mock data — static'}
+          {isLive ? '● Live · Yahoo Finance / FRED' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="ins-stale-badge">Stale · fetched {fetchedOn}</span>}

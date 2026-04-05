@@ -42,7 +42,7 @@ export default function GlobalMacroMarket() {
       </div>
       <div className="mac-status-bar">
         <span className={isLive ? 'mac-status-live' : ''}>
-          {isLive ? '● Live' : '○ Mock data — static'}
+          {isLive ? '● Live · World Bank / FRED' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="mac-stale-badge">Stale · fetched {fetchedOn}</span>}
