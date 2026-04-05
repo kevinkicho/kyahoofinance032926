@@ -15,7 +15,7 @@ const SUB_TABS = [
 
 export default function DerivativesMarket() {
   const [activeTab, setActiveTab] = useState('vol-surface');
-  const { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, isLive, lastUpdated, isLoading } = useDerivativesData();
+  const { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, vixHistory, isLive, lastUpdated, isLoading } = useDerivativesData();
 
   if (isLoading) {
     return (
@@ -49,7 +49,7 @@ export default function DerivativesMarket() {
         {activeTab === 'vol-surface'        && <VolSurface       volSurfaceData={volSurfaceData} />}
         {activeTab === 'vix-term-structure' && <VIXTermStructure vixTermStructure={vixTermStructure} vixEnrichment={vixEnrichment} />}
         {activeTab === 'options-flow'       && <OptionsFlow      optionsFlow={optionsFlow} />}
-        {activeTab === 'fear-greed'         && <FearGreed        fearGreedData={fearGreedData} />}
+        {activeTab === 'fear-greed'         && <FearGreed        fearGreedData={fearGreedData} vixHistory={vixHistory} />}
       </div>
     </div>
   );

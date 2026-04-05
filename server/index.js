@@ -622,6 +622,20 @@ app.get('/api/derivatives', async (req, res) => {
       fearGreedData = { score: avgScore, label: scoreLabel(avgScore), indicators };
     } catch { /* use mock */ }
 
+    // 5. VIX history from FRED (VIXCLS daily, last 252 trading days)
+    let vixHistory = null;
+    if (FRED_API_KEY) {
+      try {
+        const vixHistRaw = await fetchFredHistory('VIXCLS', 270);
+        if (vixHistRaw.length >= 30) {
+          vixHistory = vixHistRaw.slice(-252).map(p => ({
+            date: p.date,
+            value: Math.round(p.value * 10) / 10,
+          }));
+        }
+      } catch { /* use null */ }
+    }
+
     // 4. Vol surface from SPY options
     let volSurfaceData = null;
     try {
@@ -636,6 +650,7 @@ app.get('/api/derivatives', async (req, res) => {
       fearGreedData,
       volSurfaceData,
       vixEnrichment,
+      vixHistory,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
 

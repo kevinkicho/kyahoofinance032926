@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import FearGreed from '../../markets/derivatives/components/FearGreed';
+
+vi.mock('echarts-for-react', () => ({
+  default: (props) => <div data-testid={props['data-testid'] || 'echarts-mock'} />,
+}));
 
 const mockData = {
   score: 38,
@@ -42,5 +46,28 @@ describe('FearGreed', () => {
   it('renders 7 indicator bars', () => {
     const { container } = render(<FearGreed fearGreedData={mockData} />);
     expect(container.querySelectorAll('.fg-row-bar').length).toBe(7);
+  });
+});
+
+const mockHistory = [
+  { date: '2025-10-01', value: 22.3 },
+  { date: '2025-10-02', value: 20.1 },
+  { date: '2025-10-03', value: 18.7 },
+];
+
+describe('FearGreed — history chart', () => {
+  it('renders history chart when vixHistory provided', () => {
+    render(<FearGreed fearGreedData={mockData} vixHistory={mockHistory} />);
+    expect(screen.getByTestId('vix-history-chart')).toBeInTheDocument();
+  });
+
+  it('renders VIX history section label', () => {
+    render(<FearGreed fearGreedData={mockData} vixHistory={mockHistory} />);
+    expect(screen.getByText(/VIX History/i)).toBeInTheDocument();
+  });
+
+  it('renders without history (null is acceptable)', () => {
+    render(<FearGreed fearGreedData={mockData} vixHistory={null} />);
+    expect(screen.queryByTestId('vix-history-chart')).not.toBeInTheDocument();
   });
 });

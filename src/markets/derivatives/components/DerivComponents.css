@@ -131,3 +131,13 @@
   font-weight: 600;
   color: #a78bfa;
 }
+.fg-history-wrap {
+  padding: 4px 12px 0;
+}
+.fg-history-title {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
