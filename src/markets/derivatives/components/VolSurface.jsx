@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import './DerivComponents.css';
 
-export default function VolSurface({ volSurfaceData }) {
+export default function VolSurface({ volSurfaceData, volPremium = null }) {
   const { strikes, expiries, grid } = volSurfaceData;
 
   const option = useMemo(() => {
@@ -78,8 +78,27 @@ export default function VolSurface({ volSurfaceData }) {
       <div className="deriv-chart-wrap">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
       </div>
+      {volPremium && (
+        <div className="vol-premium-row">
+          <div className="vol-premium-pill">
+            <span className="vol-premium-label">ATM 1M IV</span>
+            <span className="vol-premium-value">{volPremium.atm1mIV.toFixed(1)}%</span>
+          </div>
+          <div className="vol-premium-pill">
+            <span className="vol-premium-label">30d Realized</span>
+            <span className="vol-premium-value">{volPremium.realizedVol30d.toFixed(1)}%</span>
+          </div>
+          <div className="vol-premium-pill">
+            <span className="vol-premium-label">IV Premium</span>
+            <span className={`vol-premium-value ${volPremium.premium >= 0 ? 'vol-premium-pos' : 'vol-premium-neg'}`}>
+              {volPremium.premium >= 0 ? '+' : ''}{volPremium.premium.toFixed(1)}%
+            </span>
+          </div>
+        </div>
+      )}
       <div className="deriv-panel-footer">
         IV % · Volatility smile: OTM puts carry higher IV than ATM (skew) · Darker = lower vol
+        {volPremium && ' · Vol Risk Premium = IV − Realized'}
       </div>
     </div>
   );

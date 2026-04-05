@@ -600,6 +600,8 @@ app.get('/api/derivatives', async (req, res) => {
       }
     } catch { /* use mock */ }
 
+    let spyClosesCache = [];
+
     // 3. Fear & Greed — compute from VIX + SPY momentum + TLT + FRED HY OAS
     let fearGreedData = null;
     try {
@@ -617,6 +619,7 @@ app.get('/api/derivatives', async (req, res) => {
 
       // SPY: current price vs 125-day SMA
       const spyCloses = spyHist.map(d => d.close).filter(Boolean);
+      spyClosesCache = spyCloses;
       const spyCurrent = spyCloses[spyCloses.length - 1];
       const sma125 = spyCloses.slice(-125).reduce((s, v) => s + v, 0) / Math.min(125, spyCloses.length);
       const spyPctAbove = ((spyCurrent - sma125) / sma125) * 100;
@@ -671,6 +674,21 @@ app.get('/api/derivatives', async (req, res) => {
       volSurfaceData = await buildVolSurface(spyQuote.regularMarketPrice);
     } catch { /* use mock */ }
 
+    // 6. Vol premium: ATM 1M IV vs 30d realized volatility
+    let volPremium = null;
+    try {
+      const atm1mIV = volSurfaceData?.grid?.[2]?.[4] ?? null;
+      if (atm1mIV != null && spyClosesCache.length >= 31) {
+        const recentCloses = spyClosesCache.slice(-31);
+        const logReturns = recentCloses.slice(1).map((c, i) => Math.log(c / recentCloses[i]));
+        const mean = logReturns.reduce((s, v) => s + v, 0) / logReturns.length;
+        const variance = logReturns.reduce((s, v) => s + (v - mean) ** 2, 0) / (logReturns.length - 1);
+        const realizedVol30d = Math.round(Math.sqrt(variance * 252) * 100 * 10) / 10;
+        const premium = Math.round((atm1mIV - realizedVol30d) * 10) / 10;
+        volPremium = { atm1mIV, realizedVol30d, premium };
+      }
+    } catch { /* use null */ }
+
     const result = {
       vixTermStructure,
       optionsFlow,
@@ -678,6 +696,7 @@ app.get('/api/derivatives', async (req, res) => {
       volSurfaceData,
       vixEnrichment,
       vixHistory,
+      volPremium,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
 

@@ -141,3 +141,35 @@
   letter-spacing: 0.04em;
   margin-bottom: 2px;
 }
+
+/* VolSurface — IV vs realized vol premium row */
+.vol-premium-row {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.vol-premium-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px 16px;
+  min-width: 96px;
+}
+.vol-premium-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vol-premium-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #a78bfa;
+}
+.vol-premium-pos { color: #22c55e; }
+.vol-premium-neg { color: #ef4444; }

@@ -15,6 +15,7 @@ export function useDerivativesData() {
   const [fearGreedData,    setFearGreedData]    = useState(mockFearGreedData);
   const [vixEnrichment,    setVixEnrichment]    = useState(null);
   const [vixHistory,       setVixHistory]       = useState(null);
+  const [volPremium,      setVolPremium]      = useState(null);
   const [isLive,           setIsLive]           = useState(false);
   const [lastUpdated,      setLastUpdated]      = useState('Mock data — Apr 2025');
   const [isLoading,        setIsLoading]        = useState(true);
@@ -31,6 +32,7 @@ export function useDerivativesData() {
           setVixEnrichment(data.vixEnrichment);
         }
         if (data.vixHistory?.length >= 30) setVixHistory(data.vixHistory);
+        if (data.volPremium?.atm1mIV != null) setVolPremium(data.volPremium);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
       })
@@ -38,5 +40,5 @@ export function useDerivativesData() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  return { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, vixHistory, isLive, lastUpdated, isLoading };
+  return { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, vixHistory, volPremium, isLive, lastUpdated, isLoading };
 }
