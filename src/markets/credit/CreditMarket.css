@@ -1,0 +1,31 @@
+/* src/markets/credit/CreditMarket.css */
+.credit-market { display: flex; flex-direction: column; height: 100%; background: #0f172a; }
+.credit-market.credit-loading { align-items: center; justify-content: center; gap: 12px; }
+.credit-loading-spinner {
+  width: 36px; height: 36px; border: 3px solid #1e293b;
+  border-top-color: #06b6d4; border-radius: 50%;
+}
+.credit-loading-text { font-size: 12px; color: #64748b; }
+
+.credit-sub-tabs {
+  display: flex; gap: 2px; padding: 8px 12px 0;
+  border-bottom: 1px solid #1e293b; background: #0f172a;
+}
+.credit-sub-tab {
+  padding: 6px 14px; font-size: 12px; color: #64748b; background: none;
+  border: none; border-bottom: 2px solid transparent; cursor: pointer;
+}
+.credit-sub-tab:hover { color: #e2e8f0; }
+.credit-sub-tab.active { color: #06b6d4; border-bottom-color: #06b6d4; }
+
+.credit-status-bar {
+  display: flex; align-items: center; gap: 12px; padding: 4px 14px;
+  font-size: 10px; color: #475569; border-bottom: 1px solid #1e293b;
+}
+.credit-status-live { color: #06b6d4; }
+.credit-content { flex: 1; overflow: hidden; }
+
+.credit-stale-badge {
+  background: #164e63; color: #67e8f9; border: 1px solid #0e7490;
+  border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 500;
+}
