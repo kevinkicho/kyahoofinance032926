@@ -12,6 +12,7 @@ import GlobalMacroMarket     from '../markets/globalMacro/GlobalMacroMarket';
 import EquitiesDeepDiveMarket from '../markets/equitiesDeepDive/EquitiesDeepDiveMarket';
 import CryptoMarket          from '../markets/crypto/CryptoMarket';
 import CreditMarket from '../markets/credit/CreditMarket';
+import SentimentMarket from '../markets/sentiment/SentimentMarket';
 import HubFooter from './HubFooter';
 
 const MARKET_COMPONENTS = {
@@ -26,6 +27,7 @@ const MARKET_COMPONENTS = {
   equitiesDeepDive:  EquitiesDeepDiveMarket,
   crypto:            CryptoMarket,
   credit:            CreditMarket,
+  sentiment:         SentimentMarket,
 };
 
 export default function HubLayout() {

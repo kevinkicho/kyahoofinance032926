@@ -11,6 +11,7 @@ export const MARKETS = [
   { id: 'equitiesDeepDive', label: 'Equity+',      icon: '🔍' },
   { id: 'crypto',           label: 'Crypto',       icon: '🪙' },
   { id: 'credit',           label: 'Credit',       icon: '🏦' },
+  { id: 'sentiment', label: 'Sentiment', icon: '🎭' },
 ];
 
 export const DEFAULT_MARKET = 'equities';
