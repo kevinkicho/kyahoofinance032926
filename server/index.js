@@ -852,7 +852,69 @@ app.get('/api/realEstate', async (req, res) => {
       } catch { /* use null */ }
     }
 
-    const result = { reitData, priceIndexData, mortgageRates, lastUpdated: today };
+    // 4. Affordability metrics from FRED
+    let affordabilityData = null;
+    if (FRED_API_KEY) {
+      try {
+        const [mspusHist, incomeResult] = await Promise.all([
+          fetchFredHistory('MSPUS', 20),       // median home sales price, ~5yr quarterly
+          fetchFredLatest('MEHOINUSA672N'),     // median household income, annual
+        ]);
+        const medianIncome = incomeResult ?? 75000; // fallback
+        if (mspusHist.length >= 2) {
+          const latest = mspusHist.at(-1);
+          const medianPrice = latest.value;
+          const priceToIncome = Math.round(medianPrice / medianIncome * 10) / 10;
+
+          // Monthly mortgage payment (80% LTV, 30yr)
+          const rate30 = mortgageRates?.rate30y ?? 7.0;
+          const monthlyRate = rate30 / 100 / 12;
+          const principal = medianPrice * 0.8;
+          const monthlyPayment = monthlyRate > 0
+            ? principal * (monthlyRate * Math.pow(1 + monthlyRate, 360)) / (Math.pow(1 + monthlyRate, 360) - 1)
+            : principal / 360;
+          const mortgageToIncome = Math.round(monthlyPayment * 12 / medianIncome * 1000) / 10;
+
+          // YoY change from quarterly data
+          const prevYear = mspusHist.find(p => {
+            const d1 = new Date(p.date);
+            const d2 = new Date(latest.date);
+            return Math.abs((d2 - d1) / (1000 * 60 * 60 * 24) - 365) < 60;
+          });
+          const yoyChange = prevYear ? Math.round((medianPrice / prevYear.value - 1) * 1000) / 10 : null;
+
+          const history = mspusHist.map(p => ({
+            date: p.date,
+            medianPrice: Math.round(p.value),
+            priceToIncome: Math.round(p.value / medianIncome * 10) / 10,
+          }));
+
+          affordabilityData = {
+            current: { medianPrice: Math.round(medianPrice), medianIncome: Math.round(medianIncome), priceToIncome, mortgageToIncome, rate30y: rate30, yoyChange },
+            history,
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    // 5. Cap rates from REIT dividend yields (proxy)
+    let capRateData = null;
+    if (reitData?.length) {
+      const sectorYields = {};
+      reitData.forEach(r => {
+        if (r.dividendYield != null && r.sector) {
+          if (!sectorYields[r.sector]) sectorYields[r.sector] = [];
+          sectorYields[r.sector].push(r.dividendYield);
+        }
+      });
+      const sectors = Object.entries(sectorYields).map(([sector, yields]) => ({
+        sector,
+        impliedYield: Math.round(yields.reduce((a, b) => a + b, 0) / yields.length * 10) / 10,
+      })).sort((a, b) => b.impliedYield - a.impliedYield);
+      if (sectors.length >= 3) capRateData = sectors;
+    }
+
+    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, lastUpdated: today };
     writeDailyCache('realEstate', result);   // persist to disk
     cache.set(cacheKey, result, 900);        // keep in memory too
     res.json({ ...result, fetchedOn: today, isCurrent: true });
