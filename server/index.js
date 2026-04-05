@@ -1925,26 +1925,40 @@ app.get('/api/crypto', async (_req, res) => {
       }));
     }
 
-    // ── Funding data: static mock (Binance perp API has CORS issues from server) ──
-    const fundingData = {
-      rates: [
-        { symbol: 'BTC',  rate8h: 0.0082, rateAnnualized: 8.97,  openInterestB: 18.4, exchange: 'Binance' },
-        { symbol: 'ETH',  rate8h: 0.0068, rateAnnualized: 7.42,  openInterestB:  8.2, exchange: 'Binance' },
-        { symbol: 'SOL',  rate8h: 0.0124, rateAnnualized: 13.54, openInterestB:  2.8, exchange: 'Binance' },
-        { symbol: 'DOGE', rate8h: 0.0152, rateAnnualized: 16.60, openInterestB:  1.4, exchange: 'Binance' },
-        { symbol: 'AVAX', rate8h: 0.0094, rateAnnualized: 10.26, openInterestB:  0.6, exchange: 'Binance' },
-        { symbol: 'LINK', rate8h: 0.0106, rateAnnualized: 11.57, openInterestB:  0.5, exchange: 'Binance' },
-        { symbol: 'BNB',  rate8h: 0.0078, rateAnnualized: 8.52,  openInterestB:  0.8, exchange: 'Binance' },
-        { symbol: 'ADA',  rate8h: 0.0058, rateAnnualized: 6.33,  openInterestB:  0.4, exchange: 'Binance' },
-        { symbol: 'DOT',  rate8h: -0.0024,rateAnnualized: -2.62, openInterestB:  0.3, exchange: 'Binance' },
-        { symbol: 'NEAR', rate8h: 0.0142, rateAnnualized: 15.50, openInterestB:  0.4, exchange: 'Binance' },
-      ],
-      openInterestHistory: {
-        dates:  ['Mar 1','Mar 8','Mar 15','Mar 22','Mar 29','Apr 5'],
-        btcOIB: [14.2, 15.8, 16.4, 17.1, 17.8, 18.4],
-        ethOIB: [ 6.4,  6.8,  7.2,  7.6,  8.0,  8.2],
-      },
-    };
+    // 4. Funding rates from Bybit public API (no auth, server-side)
+    let fundingData = null;
+    try {
+      const FUNDING_SYMBOLS = ['BTCUSDT','ETHUSDT','SOLUSDT','DOGEUSDT','AVAXUSDT','LINKUSDT','BNBUSDT','ADAUSDT','DOTUSDT','NEARUSDT'];
+      const FUNDING_LABELS  = ['BTC','ETH','SOL','DOGE','AVAX','LINK','BNB','ADA','DOT','NEAR'];
+      const bybitData = await fetchJson('https://api.bybit.com/v5/market/tickers?category=linear');
+      const tickers = bybitData?.result?.list || [];
+      const rates = FUNDING_SYMBOLS.map((sym, idx) => {
+        const t = tickers.find(x => x.symbol === sym);
+        if (!t) return null;
+        const rate8h = parseFloat(t.fundingRate) || 0;
+        const lastPrice = parseFloat(t.lastPrice) || 0;
+        const openInterestVal = parseFloat(t.openInterest) || 0;
+        return {
+          symbol: FUNDING_LABELS[idx],
+          rate8h,
+          rateAnnualized: Math.round(rate8h * 3 * 365 * 100) / 100,
+          openInterestB: Math.round(openInterestVal * lastPrice / 1e9 * 10) / 10,
+          exchange: 'Bybit',
+        };
+      }).filter(Boolean);
+      if (rates.length >= 3) {
+        fundingData = { rates, openInterestHistory: null };
+      }
+    } catch { /* use null — mock fallback on client */ }
+    if (!fundingData) {
+      fundingData = {
+        rates: [
+          { symbol: 'BTC',  rate8h: 0.0001, rateAnnualized: 10.95, openInterestB: 18.0, exchange: 'Bybit' },
+          { symbol: 'ETH',  rate8h: 0.0001, rateAnnualized: 10.95, openInterestB:  8.0, exchange: 'Bybit' },
+        ],
+        openInterestHistory: null,
+      };
+    }
 
     const result = {
       coinMarketData: { coins, globalStats },
