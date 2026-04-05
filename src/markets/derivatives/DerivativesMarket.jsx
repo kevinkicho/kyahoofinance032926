@@ -4,17 +4,19 @@ import { useDerivativesData } from './data/useDerivativesData';
 import VolSurface       from './components/VolSurface';
 import VIXTermStructure from './components/VIXTermStructure';
 import OptionsFlow      from './components/OptionsFlow';
+import FearGreed        from './components/FearGreed';
 import './DerivativesMarket.css';
 
 const SUB_TABS = [
   { id: 'vol-surface',        label: 'Vol Surface'        },
   { id: 'vix-term-structure', label: 'VIX Term Structure' },
   { id: 'options-flow',       label: 'Options Flow'       },
+  { id: 'fear-greed',         label: 'Fear & Greed'       },
 ];
 
 export default function DerivativesMarket() {
   const [activeTab, setActiveTab] = useState('vol-surface');
-  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
+  const { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, volPremium, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
 
   if (isLoading) {
     return (
@@ -49,6 +51,7 @@ export default function DerivativesMarket() {
         {activeTab === 'vol-surface'        && <VolSurface       volSurfaceData={volSurfaceData} volPremium={volPremium} />}
         {activeTab === 'vix-term-structure' && <VIXTermStructure vixTermStructure={vixTermStructure} vixEnrichment={vixEnrichment} />}
         {activeTab === 'options-flow'       && <OptionsFlow      optionsFlow={optionsFlow} />}
+        {activeTab === 'fear-greed'         && <FearGreed        fearGreedData={fearGreedData} />}
       </div>
     </div>
   );
