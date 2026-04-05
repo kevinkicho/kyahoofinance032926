@@ -25,6 +25,8 @@ export function useInsuranceData() {
   const [isLive, setIsLive]                         = useState(false);
   const [lastUpdated, setLastUpdated]               = useState('Mock data — Apr 2025');
   const [isLoading, setIsLoading]                   = useState(true);
+  const [fetchedOn, setFetchedOn]                   = useState(null);
+  const [isCurrent, setIsCurrent]                   = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,6 +42,8 @@ export function useInsuranceData() {
         setCatBondSpreads(scaleCatBondSpreads(mockCatBondSpreads, data.hyOAS));
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
+        setIsCurrent(!!data.isCurrent);
       })
       .catch(() => {}) // silent fallback to mock
       .finally(() => { clearTimeout(timer); setIsLoading(false); });
@@ -56,5 +60,7 @@ export function useInsuranceData() {
     isLive,
     lastUpdated,
     isLoading,
+    fetchedOn,
+    isCurrent,
   };
 }

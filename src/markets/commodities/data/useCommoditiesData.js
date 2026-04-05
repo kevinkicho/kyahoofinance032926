@@ -17,6 +17,8 @@ export function useCommoditiesData() {
   const [isLive,              setIsLive]              = useState(false);
   const [lastUpdated,         setLastUpdated]         = useState('Mock data — Dec 2025');
   const [isLoading,           setIsLoading]           = useState(true);
+  const [fetchedOn,           setFetchedOn]           = useState(null);
+  const [isCurrent,           setIsCurrent]           = useState(false);
 
   useEffect(() => {
     fetch(`${SERVER}/api/commodities`)
@@ -28,10 +30,12 @@ export function useCommoditiesData() {
         if (data.supplyDemandData?.crudeStocks?.periods?.length) setSupplyDemandData(data.supplyDemandData);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
+        setIsCurrent(!!data.isCurrent);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
 
-  return { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, isLive, lastUpdated, isLoading };
+  return { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

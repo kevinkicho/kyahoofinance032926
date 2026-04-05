@@ -19,6 +19,8 @@ export function useDerivativesData() {
   const [isLive,           setIsLive]           = useState(false);
   const [lastUpdated,      setLastUpdated]      = useState('Mock data — Apr 2025');
   const [isLoading,        setIsLoading]        = useState(true);
+  const [fetchedOn,        setFetchedOn]        = useState(null);
+  const [isCurrent,        setIsCurrent]        = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -37,10 +39,12 @@ export function useDerivativesData() {
         if (data.volPremium?.atm1mIV != null) setVolPremium(data.volPremium);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
+        setIsCurrent(!!data.isCurrent);
       })
       .catch(() => {})
       .finally(() => { clearTimeout(timer); setIsLoading(false); });
   }, []);
 
-  return { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, vixHistory, volPremium, isLive, lastUpdated, isLoading };
+  return { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, vixHistory, volPremium, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

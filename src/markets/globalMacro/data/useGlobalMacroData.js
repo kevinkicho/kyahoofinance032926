@@ -16,6 +16,8 @@ export function useGlobalMacroData() {
   const [isLive,              setIsLive]              = useState(false);
   const [lastUpdated,         setLastUpdated]         = useState('Mock data — 2023');
   const [isLoading,           setIsLoading]           = useState(true);
+  const [fetchedOn,           setFetchedOn]           = useState(null);
+  const [isCurrent,           setIsCurrent]           = useState(false);
 
   useEffect(() => {
     fetch(`${SERVER}/api/globalMacro`)
@@ -28,10 +30,12 @@ export function useGlobalMacroData() {
         if (data.debtData?.countries?.length >= 8)            { setDebtData(data.debtData);                       anyReplaced = true; }
         setIsLive(anyReplaced);
         if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
+        setIsCurrent(!!data.isCurrent);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
 
-  return { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading };
+  return { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

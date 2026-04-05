@@ -16,6 +16,8 @@ export function useEquityDeepDiveData() {
   const [isLive,       setIsLive]       = useState(false);
   const [lastUpdated,  setLastUpdated]  = useState('Mock data — 2026');
   const [isLoading,    setIsLoading]    = useState(true);
+  const [fetchedOn,    setFetchedOn]    = useState(null);
+  const [isCurrent,    setIsCurrent]    = useState(false);
 
   useEffect(() => {
     fetch(`${SERVER}/api/equityDeepDive`)
@@ -28,10 +30,12 @@ export function useEquityDeepDiveData() {
         if (data.shortData?.mostShorted?.length >= 10)   { setShortData(data.shortData);       anyReplaced = true; }
         setIsLive(anyReplaced);
         if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
+        setIsCurrent(!!data.isCurrent);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
 
-  return { sectorData, factorData, earningsData, shortData, isLive, lastUpdated, isLoading };
+  return { sectorData, factorData, earningsData, shortData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

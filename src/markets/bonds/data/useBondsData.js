@@ -52,6 +52,8 @@ export function useBondsData() {
   const [isLive, setIsLive]                   = useState(false);
   const [lastUpdated, setLastUpdated]         = useState('Mock data — Apr 2025');
   const [isLoading, setIsLoading]             = useState(true);
+  const [fetchedOn, setFetchedOn]             = useState(null);
+  const [isCurrent, setIsCurrent]             = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -69,6 +71,8 @@ export function useBondsData() {
         }
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
+        setIsCurrent(!!data.isCurrent);
       } catch {
         // silent fallback to mock
       } finally {
@@ -78,5 +82,5 @@ export function useBondsData() {
     load();
   }, []);
 
-  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, treasuryRates, isLive, lastUpdated, isLoading };
+  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, treasuryRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }
