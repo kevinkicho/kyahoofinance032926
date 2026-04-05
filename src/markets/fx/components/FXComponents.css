@@ -78,3 +78,30 @@
 .mover-pct  { font-size: 12px; font-weight: 500; min-width: 68px; text-align: right; }
 .mover-pct.positive { color: #22c55e; }
 .mover-pct.negative { color: #ef4444; }
+
+/* TopMovers — 1W / 1M change columns */
+.mover-1w,
+.mover-1m {
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 60px;
+  text-align: right;
+  color: #64748b;
+}
+.mover-1w.positive, .mover-1m.positive { color: #22c55e; }
+.mover-1w.negative, .mover-1m.negative { color: #ef4444; }
+
+/* TopMovers — inline SVG sparkline */
+.mover-spark {
+  min-width: 52px;
+  display: flex;
+  align-items: center;
+}
+
+/* TopMovers — COT positioning column (wired in Task 2) */
+.mover-cot {
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 64px;
+  text-align: right;
+}
