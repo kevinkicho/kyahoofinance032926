@@ -69,3 +69,39 @@
 }
 .yc-pill-pos .yc-pill-value { color: #4ade80; }
 .yc-pill-neg .yc-pill-value { color: #f87171; }
+
+/* DurationLadder — Treasury avg rate pills */
+.dur-rates-row {
+  display: flex;
+  gap: 10px;
+  padding: 6px 12px 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.dur-rate-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px 14px;
+  min-width: 80px;
+}
+.dur-rate-bucket {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dur-rate-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
+}
+.dur-rate-label {
+  font-size: 9px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}

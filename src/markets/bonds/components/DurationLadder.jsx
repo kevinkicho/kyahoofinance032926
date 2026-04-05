@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import './BondsComponents.css';
 
-export default function DurationLadder({ durationLadderData }) {
+export default function DurationLadder({ durationLadderData, treasuryRates = null }) {
   const option = useMemo(() => {
     const buckets  = durationLadderData.map(d => d.bucket);
     const amounts  = durationLadderData.map(d => d.amount);
@@ -66,8 +66,25 @@ export default function DurationLadder({ durationLadderData }) {
       <div className="bonds-chart-wrap">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
       </div>
+      {treasuryRates && (
+        <div className="dur-rates-row">
+          {durationLadderData.map(d => {
+            const rate = treasuryRates[d.bucket];
+            return (
+              <div key={d.bucket} className="dur-rate-pill">
+                <span className="dur-rate-bucket">{d.bucket}</span>
+                <span className="dur-rate-value">
+                  {rate != null ? `${rate.toFixed(2)}%` : '—'}
+                </span>
+                <span className="dur-rate-label">Avg Rate</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div className="bonds-panel-footer">
         Maturity buckets: 0–2y (short), 2–5y (medium), 5–10y (long), 10y+ (ultra-long)
+        {treasuryRates && ' · Avg Rate: US Treasury avg coupon rate (fiscaldata.treasury.gov)'}
       </div>
     </div>
   );

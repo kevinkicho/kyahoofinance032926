@@ -48,6 +48,7 @@ export function useBondsData() {
   const [yieldCurveData, setYieldCurveData]   = useState(mockYieldCurveData);
   const [spreadData, setSpreadData]           = useState(mockSpreadData);
   const [spreadIndicators, setSpreadIndicators] = useState(mockSpreadIndicators);
+  const [treasuryRates, setTreasuryRates]     = useState(null);
   const [isLive, setIsLive]                   = useState(false);
   const [lastUpdated, setLastUpdated]         = useState('Mock data — Apr 2025');
   const [isLoading, setIsLoading]             = useState(true);
@@ -63,6 +64,9 @@ export function useBondsData() {
         if (data.spreadIndicators && Object.keys(data.spreadIndicators).length >= 3) {
           setSpreadIndicators(data.spreadIndicators);
         }
+        if (data.treasuryRates && Object.values(data.treasuryRates).some(v => v != null)) {
+          setTreasuryRates(data.treasuryRates);
+        }
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
       } catch {
@@ -74,5 +78,5 @@ export function useBondsData() {
     load();
   }, []);
 
-  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, isLive, lastUpdated, isLoading };
+  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, treasuryRates, isLive, lastUpdated, isLoading };
 }

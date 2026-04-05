@@ -420,10 +420,37 @@ app.get('/api/bonds', async (req, res) => {
       if (r.status === 'fulfilled' && r.value[1] != null) spreadIndicators[r.value[0]] = r.value[1];
     });
 
+    // 5. Treasury avg interest rates (fiscaldata.treasury.gov — no auth needed)
+    let treasuryRates = null;
+    try {
+      const tUrl = 'https://api.fiscaldata.treasury.gov/services/api/v1/accounting/od/avg_interest_rates' +
+        '?filter=security_type_desc:eq:Marketable' +
+        '&fields=record_date,security_desc,avg_interest_rate_amt' +
+        '&sort=-record_date&page%5Bsize%5D=20';
+      const tData = await fetchJSON(tUrl);
+      const records = tData?.data || [];
+      if (records.length > 0) {
+        const latestDate = records[0].record_date;
+        const latest = records.filter(r => r.record_date === latestDate);
+        const bills = latest.find(r => r.security_desc === 'Treasury Bills');
+        const notes = latest.find(r => r.security_desc === 'Treasury Notes');
+        const bonds = latest.find(r => r.security_desc === 'Treasury Bonds');
+        if (bills || notes || bonds) {
+          treasuryRates = {
+            '0\u20132y':  bills ? parseFloat(bills.avg_interest_rate_amt) : null,
+            '2\u20135y':  notes ? parseFloat(notes.avg_interest_rate_amt) : null,
+            '5\u201310y': notes ? parseFloat(notes.avg_interest_rate_amt) : null,
+            '10y+':       bonds ? parseFloat(bonds.avg_interest_rate_amt) : null,
+          };
+        }
+      }
+    } catch { /* use null */ }
+
     const result = {
       yieldCurveData,
       spreadData,
       spreadIndicators: Object.keys(spreadIndicators).length >= 3 ? spreadIndicators : null,
+      treasuryRates,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
 
