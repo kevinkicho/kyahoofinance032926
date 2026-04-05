@@ -42,7 +42,7 @@ describe('GlobalMacroMarket', () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Debt Monitor' }));
-    expect(screen.getByText(/government debt monitor/i)).toBeInTheDocument();
+    expect(screen.getByText(/government debt \(% of gdp\)/i)).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {
