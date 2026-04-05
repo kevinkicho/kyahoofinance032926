@@ -1,5 +1,82 @@
+// src/markets/sentiment/components/CrossAssetReturns.jsx
 import React from 'react';
 import './SentimentComponents.css';
+
+function retColor(v) {
+  if (v == null) return '#1e293b';
+  if (v >  5)  return 'rgba(124,58,237,0.85)';
+  if (v >  2)  return 'rgba(52,211,153,0.75)';
+  if (v >  0)  return 'rgba(52,211,153,0.35)';
+  if (v > -2)  return 'rgba(248,113,113,0.35)';
+  if (v > -5)  return 'rgba(248,113,113,0.65)';
+  return 'rgba(239,68,68,0.85)';
+}
+
+function fmtRet(v) {
+  if (v == null) return '—';
+  return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+}
+
+const CATEGORY_ORDER = ['US Equity', 'Global', 'Fixed Income', 'Real Assets', 'Crypto'];
+
 export default function CrossAssetReturns({ returnsData }) {
-  return <div className="sent-panel"><div className="sent-panel-header"><span className="sent-panel-title">Cross-Asset Returns</span></div></div>;
+  if (!returnsData) return null;
+  const { assets = [], asOf } = returnsData;
+
+  // Group by category in defined order
+  const grouped = CATEGORY_ORDER.map(cat => ({
+    category: cat,
+    assets: assets.filter(a => a.category === cat),
+  })).filter(g => g.assets.length > 0);
+
+  return (
+    <div className="sent-panel">
+      <div className="sent-panel-header">
+        <span className="sent-panel-title">Cross-Asset Returns</span>
+        <span className="sent-panel-subtitle">
+          Total return by timeframe · Yahoo Finance
+          {asOf && <> · as of {asOf}</>}
+        </span>
+      </div>
+      <div className="sent-scroll">
+        <table className="sent-returns-table">
+          <thead>
+            <tr>
+              <th className="sent-returns-th" style={{ textAlign: 'left' }}>Asset</th>
+              <th className="sent-returns-th">1 Day</th>
+              <th className="sent-returns-th">1 Week</th>
+              <th className="sent-returns-th">1 Month</th>
+              <th className="sent-returns-th">3 Month</th>
+            </tr>
+          </thead>
+          <tbody>
+            {grouped.map(({ category, assets: catAssets }) => (
+              <React.Fragment key={category}>
+                <tr className="sent-category-sep">
+                  <td colSpan={5}>{category}</td>
+                </tr>
+                {catAssets.map(a => (
+                  <tr key={a.ticker} className="sent-returns-row">
+                    <td className="sent-returns-td">
+                      <strong>{a.label}</strong>
+                      <span style={{ fontSize: 9, color: '#64748b', marginLeft: 6 }}>{a.ticker}</span>
+                    </td>
+                    {[a.ret1d, a.ret1w, a.ret1m, a.ret3m].map((v, i) => (
+                      <td
+                        key={i}
+                        className="sent-returns-td"
+                        style={{ background: retColor(v), color: v == null ? '#475569' : v >= 0 ? '#e2e8f0' : '#fca5a5' }}
+                      >
+                        {fmtRet(v)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
