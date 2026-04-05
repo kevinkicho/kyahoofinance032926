@@ -1458,80 +1458,57 @@ const SECTOR_ETF_META = [
 ];
 const SECTOR_ETF_TICKERS = SECTOR_ETF_META.map(s => s.code);
 
-// Factor, earnings, short data — no clean free API; served from curated mock constants
-const EQ_MOCK_FACTOR_DATA = {
-  inFavor: { value: 12.3, momentum: 28.1, quality: 8.4, lowVol: -2.1 },
-  stocks: [
-    { ticker: 'NVDA',  name: 'NVIDIA',          sector: 'Technology',       value: 15, momentum: 98, quality: 82, lowVol: 12, composite: 52 },
-    { ticker: 'MSFT',  name: 'Microsoft',        sector: 'Technology',       value: 42, momentum: 88, quality: 91, lowVol: 65, composite: 72 },
-    { ticker: 'AAPL',  name: 'Apple',            sector: 'Technology',       value: 38, momentum: 82, quality: 88, lowVol: 58, composite: 67 },
-    { ticker: 'AVGO',  name: 'Broadcom',         sector: 'Technology',       value: 45, momentum: 79, quality: 85, lowVol: 52, composite: 65 },
-    { ticker: 'META',  name: 'Meta',             sector: 'Communication',    value: 55, momentum: 91, quality: 78, lowVol: 35, composite: 65 },
-    { ticker: 'GOOGL', name: 'Alphabet',         sector: 'Communication',    value: 60, momentum: 75, quality: 86, lowVol: 60, composite: 70 },
-    { ticker: 'JPM',   name: 'JPMorgan',         sector: 'Financials',       value: 72, momentum: 68, quality: 82, lowVol: 55, composite: 69 },
-    { ticker: 'V',     name: 'Visa',             sector: 'Financials',       value: 55, momentum: 72, quality: 94, lowVol: 75, composite: 74 },
-    { ticker: 'LLY',   name: 'Eli Lilly',        sector: 'Health Care',      value: 20, momentum: 85, quality: 88, lowVol: 48, composite: 60 },
-    { ticker: 'UNH',   name: 'UnitedHealth',     sector: 'Health Care',      value: 65, momentum: 55, quality: 90, lowVol: 72, composite: 71 },
-    { ticker: 'WMT',   name: 'Walmart',          sector: 'Consumer Staples', value: 48, momentum: 78, quality: 85, lowVol: 82, composite: 73 },
-    { ticker: 'PG',    name: 'P&G',              sector: 'Consumer Staples', value: 52, momentum: 62, quality: 89, lowVol: 88, composite: 73 },
-    { ticker: 'AMZN',  name: 'Amazon',           sector: 'Consumer Disc.',   value: 35, momentum: 80, quality: 75, lowVol: 40, composite: 58 },
-    { ticker: 'HD',    name: 'Home Depot',       sector: 'Consumer Disc.',   value: 58, momentum: 65, quality: 82, lowVol: 62, composite: 67 },
-    { ticker: 'CAT',   name: 'Caterpillar',      sector: 'Industrials',      value: 62, momentum: 72, quality: 78, lowVol: 58, composite: 68 },
-    { ticker: 'HON',   name: 'Honeywell',        sector: 'Industrials',      value: 65, momentum: 58, quality: 85, lowVol: 70, composite: 70 },
-    { ticker: 'XOM',   name: 'ExxonMobil',       sector: 'Energy',           value: 78, momentum: 45, quality: 72, lowVol: 62, composite: 64 },
-    { ticker: 'CVX',   name: 'Chevron',          sector: 'Energy',           value: 80, momentum: 42, quality: 75, lowVol: 65, composite: 66 },
-    { ticker: 'TSLA',  name: 'Tesla',            sector: 'Consumer Disc.',   value:  8, momentum: 62, quality: 55, lowVol: 15, composite: 35 },
-    { ticker: 'INTC',  name: 'Intel',            sector: 'Technology',       value: 85, momentum: 22, quality: 45, lowVol: 52, composite: 51 },
-  ],
+const EQ_FACTOR_TICKERS = [
+  'NVDA','MSFT','AAPL','AVGO','META','GOOGL','JPM','V','LLY','UNH',
+  'WMT','PG','AMZN','HD','CAT','HON','XOM','CVX','TSLA','INTC',
+];
+const EQ_FACTOR_META = {
+  NVDA:  { name: 'NVIDIA',        sector: 'Technology'       },
+  MSFT:  { name: 'Microsoft',     sector: 'Technology'       },
+  AAPL:  { name: 'Apple',         sector: 'Technology'       },
+  AVGO:  { name: 'Broadcom',      sector: 'Technology'       },
+  META:  { name: 'Meta',          sector: 'Communication'    },
+  GOOGL: { name: 'Alphabet',      sector: 'Communication'    },
+  JPM:   { name: 'JPMorgan',      sector: 'Financials'       },
+  V:     { name: 'Visa',          sector: 'Financials'       },
+  LLY:   { name: 'Eli Lilly',     sector: 'Health Care'      },
+  UNH:   { name: 'UnitedHealth',  sector: 'Health Care'      },
+  WMT:   { name: 'Walmart',       sector: 'Consumer Staples' },
+  PG:    { name: 'P&G',           sector: 'Consumer Staples' },
+  AMZN:  { name: 'Amazon',        sector: 'Consumer Disc.'   },
+  HD:    { name: 'Home Depot',    sector: 'Consumer Disc.'   },
+  CAT:   { name: 'Caterpillar',   sector: 'Industrials'      },
+  HON:   { name: 'Honeywell',     sector: 'Industrials'      },
+  XOM:   { name: 'ExxonMobil',    sector: 'Energy'           },
+  CVX:   { name: 'Chevron',       sector: 'Energy'           },
+  TSLA:  { name: 'Tesla',         sector: 'Consumer Disc.'   },
+  INTC:  { name: 'Intel',         sector: 'Technology'       },
 };
 
-const EQ_MOCK_EARNINGS_DATA = {
-  upcoming: [
-    { ticker: 'JPM',  name: 'JPMorgan Chase',   sector: 'Financials',      date: '2026-04-11', epsEst: 4.61, epsPrev: 4.44,  marketCapB: 680 },
-    { ticker: 'WFC',  name: 'Wells Fargo',       sector: 'Financials',      date: '2026-04-11', epsEst: 1.24, epsPrev: 1.20,  marketCapB: 220 },
-    { ticker: 'BAC',  name: 'Bank of America',   sector: 'Financials',      date: '2026-04-14', epsEst: 0.86, epsPrev: 0.83,  marketCapB: 315 },
-    { ticker: 'GS',   name: 'Goldman Sachs',     sector: 'Financials',      date: '2026-04-14', epsEst: 9.85, epsPrev: 11.58, marketCapB: 175 },
-    { ticker: 'UNH',  name: 'UnitedHealth',      sector: 'Health Care',     date: '2026-04-15', epsEst: 7.28, epsPrev: 6.91,  marketCapB: 540 },
-    { ticker: 'JNJ',  name: 'Johnson & Johnson', sector: 'Health Care',     date: '2026-04-15', epsEst: 2.58, epsPrev: 2.71,  marketCapB: 390 },
-    { ticker: 'NFLX', name: 'Netflix',           sector: 'Communication',   date: '2026-04-15', epsEst: 5.68, epsPrev: 5.35,  marketCapB: 320 },
-    { ticker: 'TSLA', name: 'Tesla',             sector: 'Consumer Disc.',  date: '2026-04-22', epsEst: 0.52, epsPrev: 0.45,  marketCapB: 850 },
-    { ticker: 'AAPL', name: 'Apple',             sector: 'Technology',      date: '2026-04-30', epsEst: 1.65, epsPrev: 2.18,  marketCapB: 3200 },
-  ],
-  beatRates: [
-    { sector: 'Technology',       beatCount: 25, totalCount: 32, beatRate: 78.1 },
-    { sector: 'Financials',       beatCount: 18, totalCount: 24, beatRate: 75.0 },
-    { sector: 'Health Care',      beatCount: 14, totalCount: 20, beatRate: 70.0 },
-    { sector: 'Industrials',      beatCount: 16, totalCount: 24, beatRate: 66.7 },
-    { sector: 'Communication',    beatCount: 10, totalCount: 16, beatRate: 62.5 },
-    { sector: 'Consumer Disc.',   beatCount: 12, totalCount: 20, beatRate: 60.0 },
-    { sector: 'Consumer Staples', beatCount:  9, totalCount: 16, beatRate: 56.3 },
-    { sector: 'Energy',           beatCount:  7, totalCount: 16, beatRate: 43.8 },
-  ],
-};
-
-const EQ_MOCK_SHORT_DATA = {
-  mostShorted: [
-    { ticker: 'CVNA',  name: 'Carvana',           sector: 'Consumer Disc.',   shortFloat: 28.4, daysToCover: 4.2, marketCapB:  32, perf1w:  3.8 },
-    { ticker: 'GME',   name: 'GameStop',           sector: 'Consumer Disc.',   shortFloat: 24.5, daysToCover: 3.2, marketCapB:   8, perf1w:  8.4 },
-    { ticker: 'CHWY',  name: 'Chewy',              sector: 'Consumer Disc.',   shortFloat: 22.1, daysToCover: 2.8, marketCapB:  14, perf1w:  1.2 },
-    { ticker: 'RIVN',  name: 'Rivian',             sector: 'Consumer Disc.',   shortFloat: 20.8, daysToCover: 2.1, marketCapB:  18, perf1w: -2.4 },
-    { ticker: 'PLUG',  name: 'Plug Power',         sector: 'Industrials',      shortFloat: 19.6, daysToCover: 1.8, marketCapB:   4, perf1w: -3.8 },
-    { ticker: 'LCID',  name: 'Lucid Group',        sector: 'Consumer Disc.',   shortFloat: 18.9, daysToCover: 2.4, marketCapB:   7, perf1w: -1.5 },
-    { ticker: 'BYND',  name: 'Beyond Meat',        sector: 'Consumer Staples', shortFloat: 18.2, daysToCover: 3.1, marketCapB:   1, perf1w: -0.8 },
-    { ticker: 'CLSK',  name: 'CleanSpark',         sector: 'Technology',       shortFloat: 17.5, daysToCover: 1.5, marketCapB:   3, perf1w:  5.2 },
-    { ticker: 'UPST',  name: 'Upstart',            sector: 'Financials',       shortFloat: 16.8, daysToCover: 2.2, marketCapB:   5, perf1w:  6.8 },
-    { ticker: 'MARA',  name: 'Marathon Digital',   sector: 'Technology',       shortFloat: 16.2, daysToCover: 1.8, marketCapB:   5, perf1w:  4.1 },
-    { ticker: 'NKLA',  name: 'Nikola',             sector: 'Industrials',      shortFloat: 15.8, daysToCover: 1.2, marketCapB:   1, perf1w: -5.2 },
-    { ticker: 'OPEN',  name: 'Opendoor',           sector: 'Real Estate',      shortFloat: 15.2, daysToCover: 2.8, marketCapB:   3, perf1w:  2.1 },
-    { ticker: 'SPCE',  name: 'Virgin Galactic',    sector: 'Industrials',      shortFloat: 14.1, daysToCover: 1.5, marketCapB:   2, perf1w: -3.4 },
-    { ticker: 'SAVA',  name: 'Cassava Sciences',   sector: 'Health Care',      shortFloat: 13.8, daysToCover: 4.5, marketCapB:   1, perf1w:  1.8 },
-    { ticker: 'LAZR',  name: 'Luminar',            sector: 'Technology',       shortFloat: 13.2, daysToCover: 2.1, marketCapB:   3, perf1w: -1.2 },
-    { ticker: 'IONQ',  name: 'IonQ',               sector: 'Technology',       shortFloat: 12.8, daysToCover: 1.8, marketCapB:   5, perf1w:  9.2 },
-    { ticker: 'ARRY',  name: 'Array Technologies', sector: 'Industrials',      shortFloat: 12.1, daysToCover: 2.4, marketCapB:   4, perf1w:  3.5 },
-    { ticker: 'XPEV',  name: 'XPeng',              sector: 'Consumer Disc.',   shortFloat: 11.8, daysToCover: 2.2, marketCapB:  14, perf1w:  2.8 },
-    { ticker: 'WOLF',  name: 'Wolfspeed',          sector: 'Technology',       shortFloat: 11.2, daysToCover: 1.9, marketCapB:   2, perf1w: -4.1 },
-    { ticker: 'BYSI',  name: 'BioAtla',            sector: 'Health Care',      shortFloat: 10.8, daysToCover: 3.2, marketCapB:   1, perf1w:  0.4 },
-  ],
+const EQ_SHORT_TICKERS = [
+  'CVNA','GME','CHWY','RIVN','PLUG','LCID','BYND','CLSK','UPST','MARA',
+  'NKLA','OPEN','SPCE','SAVA','LAZR','IONQ','ARRY','XPEV','WOLF',
+];
+const EQ_SHORT_META = {
+  CVNA: { name: 'Carvana',           sector: 'Consumer Disc.'   },
+  GME:  { name: 'GameStop',          sector: 'Consumer Disc.'   },
+  CHWY: { name: 'Chewy',            sector: 'Consumer Disc.'   },
+  RIVN: { name: 'Rivian',           sector: 'Consumer Disc.'   },
+  PLUG: { name: 'Plug Power',       sector: 'Industrials'      },
+  LCID: { name: 'Lucid Group',      sector: 'Consumer Disc.'   },
+  BYND: { name: 'Beyond Meat',      sector: 'Consumer Staples' },
+  CLSK: { name: 'CleanSpark',       sector: 'Technology'       },
+  UPST: { name: 'Upstart',          sector: 'Financials'       },
+  MARA: { name: 'Marathon Digital',  sector: 'Technology'       },
+  NKLA: { name: 'Nikola',           sector: 'Industrials'      },
+  OPEN: { name: 'Opendoor',         sector: 'Real Estate'      },
+  SPCE: { name: 'Virgin Galactic',  sector: 'Industrials'      },
+  SAVA: { name: 'Cassava Sciences', sector: 'Health Care'      },
+  LAZR: { name: 'Luminar',          sector: 'Technology'       },
+  IONQ: { name: 'IonQ',            sector: 'Technology'       },
+  ARRY: { name: 'Array Technologies',sector: 'Industrials'     },
+  XPEV: { name: 'XPeng',           sector: 'Consumer Disc.'   },
+  WOLF: { name: 'Wolfspeed',       sector: 'Technology'       },
 };
 
 app.get('/api/equityDeepDive', async (req, res) => {
@@ -1596,11 +1573,172 @@ app.get('/api/equityDeepDive', async (req, res) => {
       };
     });
 
+    // ── Live Factor Data ──────────────────────────────────────────────────────
+    const factor90dAgo = (() => { const d = new Date(); d.setDate(d.getDate() - 95); return d.toISOString().split('T')[0]; })();
+    const factorEnd = new Date().toISOString().split('T')[0];
+
+    const [factorSummaries, ...factorCharts] = await Promise.allSettled([
+      Promise.allSettled(EQ_FACTOR_TICKERS.map(t =>
+        yf.quoteSummary(t, { modules: ['defaultKeyStatistics', 'financialData', 'calendarEvents', 'earningsTrend'] })
+          .then(d => ({ ticker: t, ...d }))
+      )).then(results => results.map((r, i) => r.status === 'fulfilled' ? r.value : { ticker: EQ_FACTOR_TICKERS[i] })),
+      ...EQ_FACTOR_TICKERS.map(t =>
+        yf.chart(t, { period1: factor90dAgo, period2: factorEnd, interval: '1d' })
+          .then(data => ({ ticker: t, closes: (data.quotes || []).map(q => q.close).filter(v => v != null) }))
+      ),
+    ]);
+
+    const summaries = factorSummaries.status === 'fulfilled' ? factorSummaries.value : [];
+    const factorChartMap = {};
+    factorCharts.forEach(r => {
+      if (r.status === 'fulfilled' && r.value.closes?.length >= 2) factorChartMap[r.value.ticker] = r.value.closes;
+    });
+
+    // Compute raw metrics per stock
+    const rawMetrics = EQ_FACTOR_TICKERS.map(ticker => {
+      const s = summaries.find(x => x.ticker === ticker) || {};
+      const ks = s.defaultKeyStatistics || {};
+      const fd = s.financialData || {};
+      const closes = factorChartMap[ticker] || [];
+
+      const forwardPE = ks.forwardPE ?? fd.forwardPE ?? null;
+      const valueFwd = forwardPE > 0 ? 1 / forwardPE : 0;
+      const roe = fd.returnOnEquity != null ? fd.returnOnEquity * 100 : 0;
+      const momentum3m = closes.length >= 2 ? (closes.at(-1) / closes[0] - 1) * 100 : 0;
+
+      // 60-day realized vol
+      const recent60 = closes.slice(-61);
+      let realizedVol = 50;
+      if (recent60.length >= 20) {
+        const logRets = [];
+        for (let i = 1; i < recent60.length; i++) {
+          if (recent60[i] > 0 && recent60[i-1] > 0) logRets.push(Math.log(recent60[i] / recent60[i-1]));
+        }
+        if (logRets.length > 1) {
+          const mean = logRets.reduce((a, b) => a + b, 0) / logRets.length;
+          const variance = logRets.reduce((a, b) => a + (b - mean) ** 2, 0) / (logRets.length - 1);
+          realizedVol = Math.sqrt(variance) * Math.sqrt(252) * 100;
+        }
+      }
+
+      return { ticker, valueFwd, momentum3m, roe, realizedVol };
+    });
+
+    // Percentile rank function
+    function pctRank(arr, idx, key, invert = false) {
+      const val = arr[idx][key];
+      const sorted = arr.map(x => x[key]).sort((a, b) => invert ? b - a : a - b);
+      const rank = sorted.indexOf(val);
+      return Math.round(rank / Math.max(arr.length - 1, 1) * 100);
+    }
+
+    const factorStocks = rawMetrics.map((m, i) => {
+      const meta = EQ_FACTOR_META[m.ticker] || {};
+      const value    = pctRank(rawMetrics, i, 'valueFwd', false);
+      const momentum = pctRank(rawMetrics, i, 'momentum3m', false);
+      const quality  = pctRank(rawMetrics, i, 'roe', false);
+      const lowVol   = pctRank(rawMetrics, i, 'realizedVol', true); // invert: low vol = high score
+      const composite = Math.round((value + momentum + quality + lowVol) / 4);
+      return { ticker: m.ticker, name: meta.name || m.ticker, sector: meta.sector || '', value, momentum, quality, lowVol, composite };
+    });
+
+    const avgValue    = Math.round((factorStocks.reduce((s, x) => s + x.value, 0) / factorStocks.length - 50) * 10) / 10;
+    const avgMomentum = Math.round((factorStocks.reduce((s, x) => s + x.momentum, 0) / factorStocks.length - 50) * 10) / 10;
+    const avgQuality  = Math.round((factorStocks.reduce((s, x) => s + x.quality, 0) / factorStocks.length - 50) * 10) / 10;
+    const avgLowVol   = Math.round((factorStocks.reduce((s, x) => s + x.lowVol, 0) / factorStocks.length - 50) * 10) / 10;
+
+    const factorData = {
+      inFavor: { value: avgValue, momentum: avgMomentum, quality: avgQuality, lowVol: avgLowVol },
+      stocks: factorStocks,
+    };
+
+    // ── Live Earnings Data ────────────────────────────────────────────────────
+    const now = new Date();
+    const in45d = new Date(now); in45d.setDate(in45d.getDate() + 45);
+    const upcoming = [];
+
+    summaries.forEach(s => {
+      const ticker = s.ticker;
+      const meta = EQ_FACTOR_META[ticker] || {};
+      const ce = s.calendarEvents?.earnings;
+      const earningsDate = ce?.earningsDate?.[0] ?? null;
+      if (!earningsDate) return;
+      const ed = new Date(earningsDate);
+      if (ed < now || ed > in45d) return;
+
+      const et = s.earningsTrend?.trend?.find(t => t.period === '0q');
+      const epsEst = et?.earningsEstimate?.avg ?? null;
+      const epsPrev = s.defaultKeyStatistics?.trailingEps ?? null;
+      const marketCapB = s.defaultKeyStatistics?.marketCap
+        ? Math.round(s.defaultKeyStatistics.marketCap / 1e9)
+        : null;
+
+      upcoming.push({
+        ticker,
+        name: meta.name || ticker,
+        sector: meta.sector || '',
+        date: typeof earningsDate === 'string' ? earningsDate.split('T')[0] : ed.toISOString().split('T')[0],
+        epsEst: epsEst != null ? Math.round(epsEst * 100) / 100 : null,
+        epsPrev: epsPrev != null ? Math.round(epsPrev * 100) / 100 : null,
+        marketCapB,
+      });
+    });
+    upcoming.sort((a, b) => a.date.localeCompare(b.date));
+
+    const earningsData = { upcoming, beatRates: null };
+
+    // ── Live Short Data ───────────────────────────────────────────────────────
+    const shortSummaryResults = await Promise.allSettled(
+      EQ_SHORT_TICKERS.map(t =>
+        yf.quoteSummary(t, { modules: ['defaultKeyStatistics'] })
+          .then(d => ({ ticker: t, ...d }))
+      )
+    );
+    let shortQuotes = {};
+    try {
+      const sq = await yf.quote(EQ_SHORT_TICKERS);
+      const sqArr = Array.isArray(sq) ? sq : [sq];
+      sqArr.filter(q => q).forEach(q => { shortQuotes[q.symbol] = q; });
+    } catch { /* proceed with empty quotes */ }
+
+    const mostShorted = [];
+    shortSummaryResults.forEach(r => {
+      if (r.status !== 'fulfilled') return;
+      const s = r.value;
+      const ks = s.defaultKeyStatistics || {};
+      const q = shortQuotes[s.ticker] || {};
+      const meta = EQ_SHORT_META[s.ticker] || {};
+
+      let shortFloat = ks.shortPercentOfFloat;
+      if (shortFloat == null) return;
+      if (shortFloat < 1) shortFloat = Math.round(shortFloat * 1000) / 10; // decimal to %
+      else shortFloat = Math.round(shortFloat * 10) / 10;
+
+      const sharesShort = ks.sharesShort || 0;
+      const avgVol = q.averageDailyVolume10Day || ks.averageVolume10days || 1;
+      const daysToCover = avgVol > 0 ? Math.round(sharesShort / avgVol * 10) / 10 : null;
+      const marketCapB = (ks.marketCap || q.marketCap || 0) / 1e9;
+      const perf1w = q.regularMarketChangePercent != null ? Math.round(q.regularMarketChangePercent * 10) / 10 : null;
+
+      mostShorted.push({
+        ticker: s.ticker,
+        name: meta.name || q.shortName || s.ticker,
+        sector: meta.sector || '',
+        shortFloat,
+        daysToCover,
+        marketCapB: Math.round(marketCapB),
+        perf1w,
+      });
+    });
+    mostShorted.sort((a, b) => (b.shortFloat || 0) - (a.shortFloat || 0));
+
+    const shortData = { mostShorted };
+
     const result = {
       sectorData:   { sectors },
-      factorData:   EQ_MOCK_FACTOR_DATA,
-      earningsData: EQ_MOCK_EARNINGS_DATA,
-      shortData:    EQ_MOCK_SHORT_DATA,
+      factorData,
+      earningsData,
+      shortData,
       lastUpdated:  today,
     };
 
