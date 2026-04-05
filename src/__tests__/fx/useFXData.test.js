@@ -49,15 +49,26 @@ describe('useFXData', () => {
           }),
         });
       }
-      // Single-date fallback (yesterday and 30d-ago snapshot)
+      // 30d single-date snapshot (has MOVER_SYMBOLS but no ..)
+      if (url.includes('BRL') && !url.includes('..')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            base: 'USD',
+            date: '2025-03-04',
+            rates: { EUR: 0.88, GBP: 0.74, JPY: 145.0, CAD: 1.30, SEK: 10.0, CHF: 0.85,
+                     AUD: 1.52, CNY: 7.20, NOK: 10.5, NZD: 1.65, HKD: 7.75, SGD: 1.31,
+                     INR: 82.0, KRW: 1330, MXN: 16.5, BRL: 4.95, ZAR: 17.8 },
+          }),
+        });
+      }
+      // Yesterday single-date fallback
       return Promise.resolve({
         ok: true,
         json: () => Promise.resolve({
           base: 'USD',
           date: '2025-04-02',
-          rates: { EUR: 0.91, GBP: 0.78, JPY: 149.0, CAD: 1.34, SEK: 10.3, CHF: 0.88,
-                   AUD: 1.55, CNY: 7.25, NOK: 10.8, NZD: 1.69, HKD: 7.78, SGD: 1.34,
-                   INR: 83.5, KRW: 1350, MXN: 17.0, BRL: 5.05, ZAR: 18.2 },
+          rates: { EUR: 0.91, GBP: 0.78, JPY: 149.0, CAD: 1.34, SEK: 10.3, CHF: 0.88 },
         }),
       });
     });
@@ -119,11 +130,11 @@ describe('useFXData', () => {
   });
 
   describe('changes1m from 30d single-date snapshot', () => {
-    it('computes changes1m for EUR using single-date snapshot', async () => {
+    it('computes changes1m for EUR using distinct 30d snapshot', async () => {
       const { result } = renderHook(() => useFXData());
       await waitFor(() => expect(result.current.isLive).toBe(true));
-      // EUR: spot=0.93, month30=0.91 → negated = -((0.93-0.91)/0.91*100) ≈ -2.198%
-      expect(result.current.changes1m.EUR).toBeCloseTo(-2.198, 1);
+      // EUR: spot=0.93, month30=0.88 → negated = -((0.93-0.88)/0.88*100) ≈ -5.682%
+      expect(result.current.changes1m.EUR).toBeCloseTo(-5.682, 1);
     });
   });
 

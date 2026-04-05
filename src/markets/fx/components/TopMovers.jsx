@@ -44,7 +44,7 @@ export default function TopMovers({
       .filter(c => changes[c] != null)
       .map(c => ({
         code: c,
-        changePct:  -(changes[c]),
+        changePct:  changes[c],
         change1w:   changes1w[c]  ?? null,
         change1m:   changes1m[c]  ?? null,
         spark:      sparklines[c] ?? null,

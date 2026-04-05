@@ -26,20 +26,19 @@ export function useFXData() {
   useEffect(() => {
     const today     = getDateStr(0);
     const yesterday = getDateStr(1);
-    const startDate = getDateStr(HISTORY_DAYS);
+    const dxyStart  = getDateStr(HISTORY_DAYS);
     const sevenAgo  = getDateStr(7);
-    const thirtyAgo = getDateStr(HISTORY_DAYS);
 
     Promise.all([
       fetch('https://api.frankfurter.dev/v1/latest?base=USD')
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
       fetch(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`https://api.frankfurter.dev/v1/${startDate}..${today}?base=USD&symbols=${DXY_SYMBOLS}`)
+      fetch(`https://api.frankfurter.dev/v1/${dxyStart}..${today}?base=USD&symbols=${DXY_SYMBOLS}`)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
       fetch(`https://api.frankfurter.dev/v1/${sevenAgo}..${today}?base=USD&symbols=${MOVER_SYMBOLS}`)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`https://api.frankfurter.dev/v1/${thirtyAgo}?base=USD&symbols=${MOVER_SYMBOLS}`)
+      fetch(`https://api.frankfurter.dev/v1/${getDateStr(HISTORY_DAYS)}?base=USD&symbols=${MOVER_SYMBOLS}`)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
     ])
       .then(([latest, prev, hist, weekHist, month30]) => {
