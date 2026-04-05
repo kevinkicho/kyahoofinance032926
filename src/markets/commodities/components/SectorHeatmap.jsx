@@ -48,8 +48,8 @@ export default function SectorHeatmap({ sectorHeatmapData }) {
                   {rows.map(c => (
                     <tr key={c.ticker} className="com-row">
                       <td className="com-cell">{c.name}</td>
-                      {colKeys.map((k, i) => (
-                        <td key={i} className={`com-cell ${heatClass(c[k])}`} style={{ fontWeight: 500 }}>
+                      {colKeys.map(k => (
+                        <td key={k} className={`com-cell ${heatClass(c[k])}`} style={{ fontWeight: 500 }}>
                           {fmtPct(c[k])}
                         </td>
                       ))}

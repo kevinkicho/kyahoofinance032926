@@ -26,16 +26,14 @@ describe('SectorHeatmap', () => {
   });
 
   it('applies com-heat-dg class to strongly positive value (Gold m1: +5.21)', () => {
-    render(<SectorHeatmap sectorHeatmapData={sectorHeatmapData} />);
+    const { container } = render(<SectorHeatmap sectorHeatmapData={sectorHeatmapData} />);
     // Gold m1 = +5.21 → deep green (> +2.0)
-    const cells = document.querySelectorAll('.com-heat-dg');
-    expect(cells.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.com-heat-dg').length).toBeGreaterThan(0);
   });
 
   it('applies com-heat-dr class to strongly negative value (Wheat m1: -8.42)', () => {
-    render(<SectorHeatmap sectorHeatmapData={sectorHeatmapData} />);
+    const { container } = render(<SectorHeatmap sectorHeatmapData={sectorHeatmapData} />);
     // Wheat m1 = -8.42 → deep red (< -2.0)
-    const cells = document.querySelectorAll('.com-heat-dr');
-    expect(cells.length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.com-heat-dr').length).toBeGreaterThan(0);
   });
 });
