@@ -182,6 +182,7 @@ export default defineConfig({
       '/api/crypto':       { target: 'http://localhost:3001', changeOrigin: true },
       '/api/credit':       { target: 'http://localhost:3001', changeOrigin: true },
       '/api/sentiment':    { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/calendar':     { target: 'http://localhost:3001', changeOrigin: true },
     }
   }
 })

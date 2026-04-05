@@ -12,6 +12,7 @@ export const MARKETS = [
   { id: 'crypto',           label: 'Crypto',       icon: '🪙' },
   { id: 'credit',           label: 'Credit',       icon: '🏦' },
   { id: 'sentiment', label: 'Sentiment', icon: '🎭' },
+  { id: 'calendar', label: 'Calendar', icon: '📅' },
 ];
 
 export const DEFAULT_MARKET = 'equities';
