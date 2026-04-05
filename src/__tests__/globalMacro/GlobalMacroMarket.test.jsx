@@ -28,7 +28,7 @@ describe('GlobalMacroMarket', () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Growth & Inflation' }));
-    expect(screen.getByText(/gdp & cpi rankings/i)).toBeInTheDocument();
+    expect(screen.getByText(/gdp growth/i)).toBeInTheDocument();
   });
 
   it('switches to Central Bank Rates tab on click', async () => {
