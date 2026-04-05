@@ -1,67 +1,69 @@
+// src/markets/realEstate/components/CapRateMonitor.jsx
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import './REComponents.css';
 
-const TYPE_COLORS = {
-  Industrial:  '#34d399',
-  Multifamily: '#60a5fa',
-  Retail:      '#fbbf24',
-  Office:      '#f87171',
-  Hotel:       '#a78bfa',
-};
+function yieldColor(y) {
+  if (y >= 5) return '#f87171';
+  if (y >= 4) return '#fbbf24';
+  if (y >= 3) return '#34d399';
+  return '#6366f1';
+}
 
 export default function CapRateMonitor({ capRateData }) {
   const option = useMemo(() => {
-    const { dates, ...types } = capRateData;
+    if (!capRateData?.length) return null;
+    const sorted = [...capRateData].sort((a, b) => a.impliedYield - b.impliedYield);
     return {
       animation: false,
       backgroundColor: 'transparent',
       tooltip: {
-        trigger: 'axis',
-        formatter: (params) =>
-          `<b>${params[0].axisValue}</b><br/>` +
-          params.map(p => `${p.seriesName}: <b>${p.value?.toFixed(2)}%</b>`).join('<br/>'),
+        trigger: 'axis', axisPointer: { type: 'shadow' },
+        backgroundColor: '#1e293b', borderColor: '#334155',
+        textStyle: { color: '#e2e8f0', fontSize: 11 },
+        formatter: params => `${params[0].name}: ${params[0].value}%`,
       },
-      legend: {
-        data: Object.keys(types),
-        top: 0,
-        textStyle: { color: '#94a3b8', fontSize: 11 },
-      },
-      grid: { top: 40, right: 20, bottom: 30, left: 55 },
+      grid: { top: 8, right: 60, bottom: 8, left: 8, containLabel: true },
       xAxis: {
-        type: 'category',
-        data: dates,
-        axisLabel: { color: '#64748b', fontSize: 11 },
+        type: 'value',
+        axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+        splitLine: { lineStyle: { color: '#1e293b' } },
         axisLine: { lineStyle: { color: '#1e293b' } },
       },
       yAxis: {
-        type: 'value',
-        axisLabel: { color: '#64748b', fontSize: 11, formatter: '{value}%' },
-        splitLine: { lineStyle: { color: '#1e293b' } },
+        type: 'category',
+        data: sorted.map(s => s.sector),
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: { color: '#94a3b8', fontSize: 10 },
       },
-      series: Object.entries(types).map(([name, data]) => ({
-        name,
-        type: 'line',
-        smooth: false,
-        data,
-        itemStyle: { color: TYPE_COLORS[name] || '#94a3b8' },
-        lineStyle: { width: 2 },
-        symbol: 'none',
-      })),
+      series: [{
+        type: 'bar', barMaxWidth: 20,
+        data: sorted.map(s => ({
+          value: s.impliedYield,
+          itemStyle: { color: yieldColor(s.impliedYield) },
+        })),
+        label: {
+          show: true, position: 'right',
+          formatter: p => `${p.value}%`,
+          color: '#94a3b8', fontSize: 9,
+        },
+      }],
     };
   }, [capRateData]);
+
+  if (!option) return null;
 
   return (
     <div className="re-panel">
       <div className="re-panel-header">
-        <span className="re-panel-title">Cap Rate Monitor</span>
-        <span className="re-panel-subtitle">Capitalization rates by property type · quarterly</span>
+        <span className="re-panel-title">Implied Yield by Sector</span>
+        <span className="re-panel-subtitle">REIT dividend yield as cap rate proxy · live Yahoo Finance</span>
       </div>
       <div className="re-chart-wrap">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
       </div>
       <div className="re-panel-footer">
-        Cap rate = NOI / property value · Rising cap rates = falling valuations
+        Dividend yield approximates cap rate · Higher yield = higher risk / lower valuation
       </div>
     </div>
   );
