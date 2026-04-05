@@ -6,7 +6,8 @@ import BondsMarket from '../markets/bonds/BondsMarket';
 import FXMarket from '../markets/fx/FXMarket';
 import DerivativesMarket from '../markets/derivatives/DerivativesMarket';
 import RealEstateMarket from '../markets/realEstate/RealEstateMarket';
-import InsuranceMarket from '../markets/insurance/InsuranceMarket';
+import InsuranceMarket   from '../markets/insurance/InsuranceMarket';
+import CommoditiesMarket from '../markets/commodities/CommoditiesMarket';
 
 const MARKET_COMPONENTS = {
   equities:    EquitiesMarket,
@@ -15,6 +16,7 @@ const MARKET_COMPONENTS = {
   derivatives: DerivativesMarket,
   realEstate:  RealEstateMarket,
   insurance:   InsuranceMarket,
+  commodities: CommoditiesMarket,
 };
 
 export default function HubLayout() {

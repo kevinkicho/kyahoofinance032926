@@ -6,6 +6,7 @@ export const MARKETS = [
   { id: 'derivatives', label: 'Derivatives', icon: '📊' },
   { id: 'realEstate',  label: 'Real Estate', icon: '🏠' },
   { id: 'insurance',   label: 'Insurance',   icon: '🛡️' },
+  { id: 'commodities', label: 'Commodities', icon: '🛢️' },
 ];
 
 export const DEFAULT_MARKET = 'equities';
