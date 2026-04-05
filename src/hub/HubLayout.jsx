@@ -8,6 +8,7 @@ import DerivativesMarket from '../markets/derivatives/DerivativesMarket';
 import RealEstateMarket from '../markets/realEstate/RealEstateMarket';
 import InsuranceMarket   from '../markets/insurance/InsuranceMarket';
 import CommoditiesMarket from '../markets/commodities/CommoditiesMarket';
+import GlobalMacroMarket from '../markets/globalMacro/GlobalMacroMarket';
 
 const MARKET_COMPONENTS = {
   equities:    EquitiesMarket,
@@ -17,6 +18,7 @@ const MARKET_COMPONENTS = {
   realEstate:  RealEstateMarket,
   insurance:   InsuranceMarket,
   commodities: CommoditiesMarket,
+  globalMacro: GlobalMacroMarket,
 };
 
 export default function HubLayout() {

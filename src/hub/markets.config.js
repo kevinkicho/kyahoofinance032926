@@ -7,6 +7,7 @@ export const MARKETS = [
   { id: 'realEstate',  label: 'Real Estate', icon: '🏠' },
   { id: 'insurance',   label: 'Insurance',   icon: '🛡️' },
   { id: 'commodities', label: 'Commodities', icon: '🛢️' },
+  { id: 'globalMacro', label: 'Macro',       icon: '🌐' },
 ];
 
 export const DEFAULT_MARKET = 'equities';
