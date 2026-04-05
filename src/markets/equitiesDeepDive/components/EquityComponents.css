@@ -1,0 +1,46 @@
+/* Panel layout */
+.eq-panel { display: flex; flex-direction: column; height: 100%; background: #0f172a; overflow: hidden; }
+.eq-panel-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px 8px; border-bottom: 1px solid #1e293b; flex-shrink: 0; }
+.eq-panel-title { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+.eq-panel-subtitle { font-size: 10px; color: #64748b; }
+.eq-panel-footer { font-size: 9px; color: #475569; padding: 4px 14px; border-top: 1px solid #1e293b; flex-shrink: 0; }
+
+/* Grid layouts */
+.eq-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex: 1; background: #1e293b; overflow: hidden; }
+.eq-two-row { display: grid; grid-template-rows: 1fr 1fr; gap: 1px; flex: 1; background: #1e293b; overflow: hidden; }
+
+/* Chart panels */
+.eq-chart-panel { display: flex; flex-direction: column; background: #0f172a; padding: 8px 12px 4px; overflow: hidden; }
+.eq-chart-title { font-size: 11px; font-weight: 600; color: #e2e8f0; margin-bottom: 2px; flex-shrink: 0; }
+.eq-chart-subtitle { font-size: 9px; color: #64748b; margin-bottom: 4px; flex-shrink: 0; }
+.eq-chart-wrap { flex: 1; min-height: 0; }
+
+/* Scrollable table area */
+.eq-scroll { flex: 1; overflow-y: auto; }
+
+/* Tables */
+.eq-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.eq-th {
+  padding: 4px 8px; text-align: right; font-size: 9px; color: #64748b;
+  text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid #1e293b;
+  position: sticky; top: 0; background: #0f172a; white-space: nowrap;
+}
+.eq-th:first-child, .eq-th:nth-child(2) { text-align: left; }
+.eq-row { border-bottom: 1px solid #0f172a; }
+.eq-row:hover { background: #1e293b; }
+.eq-cell { padding: 4px 8px; color: #e2e8f0; text-align: right; }
+.eq-cell:first-child, .eq-cell:nth-child(2) { text-align: left; }
+.eq-sector { color: #64748b; font-size: 10px; }
+.eq-score { font-weight: 600; font-size: 11px; border-radius: 3px; }
+.eq-date { color: #64748b; font-size: 10px; white-space: nowrap; }
+.eq-name { color: #64748b; font-size: 10px; }
+.eq-num { font-family: monospace; }
+.eq-muted { color: #64748b; }
+.eq-dir { font-size: 12px; }
+
+/* Heat cells */
+.eq-heat-dg { background: #14532d; color: #86efac; }
+.eq-heat-lg { background: #166534; color: #bbf7d0; }
+.eq-heat-neu { background: #1e293b; color: #94a3b8; }
+.eq-heat-lr { background: #7f1d1d; color: #fca5a5; }
+.eq-heat-dr { background: #450a0a; color: #fca5a5; }
