@@ -103,3 +103,31 @@
 .fg-row-bar   { height: 100%; border-radius: 3px; transition: width 0.4s; }
 .fg-row-score { font-size: 12px; font-weight: 500; min-width: 32px; text-align: right; color: #e2e8f0; }
 .fg-row-label { font-size: 10px; min-width: 88px; text-align: right; }
+
+.vix-enrichment-row {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px 4px;
+  flex-wrap: wrap;
+}
+.vix-enrich-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 4px 14px;
+  min-width: 90px;
+}
+.vix-enrich-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vix-enrich-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #a78bfa;
+}

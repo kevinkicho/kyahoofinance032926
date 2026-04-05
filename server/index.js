@@ -517,6 +517,33 @@ app.get('/api/derivatives', async (req, res) => {
       prevValues: vixArr.map(q => Math.round((q.regularMarketPreviousClose ?? q.regularMarketPrice) * 10) / 10),
     } : null;
 
+    // 1b. VVIX + VIX 252-day percentile
+    let vixEnrichment = null;
+    try {
+      const [vvixQuote, vixHistory] = await Promise.all([
+        yf.quote('^VVIX').catch(() => null),
+        yf.historical('^VIX', {
+          period1: (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toISOString().split('T')[0]; })(),
+          period2: new Date().toISOString().split('T')[0],
+          interval: '1d',
+        }).catch(() => []),
+      ]);
+
+      const vvix = vvixQuote?.regularMarketPrice ?? null;
+      const vixCloses = (vixHistory || []).map(d => d.close).filter(Boolean);
+      const currentVix = vixArr.find(q => q?.symbol === '^VIX')?.regularMarketPrice ?? null;
+
+      let vixPercentile = null;
+      if (currentVix != null && vixCloses.length >= 20) {
+        const below = vixCloses.filter(v => v <= currentVix).length;
+        vixPercentile = Math.round((below / vixCloses.length) * 100);
+      }
+
+      if (vvix != null || vixPercentile != null) {
+        vixEnrichment = { vvix, vixPercentile };
+      }
+    } catch { /* use null */ }
+
     // 2. Options flow — top rows by volume from SPY + QQQ nearest expiry
     let optionsFlow = null;
     try {
@@ -608,6 +635,7 @@ app.get('/api/derivatives', async (req, res) => {
       optionsFlow,
       fearGreedData,
       volSurfaceData,
+      vixEnrichment,
       lastUpdated: new Date().toISOString().split('T')[0],
     };
 

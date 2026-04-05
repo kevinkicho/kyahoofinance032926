@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import './DerivComponents.css';
 
-export default function VIXTermStructure({ vixTermStructure }) {
+export default function VIXTermStructure({ vixTermStructure, vixEnrichment }) {
   const { dates, values, prevValues } = vixTermStructure;
 
   const isContango = values[values.length - 1] > values[0];
@@ -68,6 +68,22 @@ export default function VIXTermStructure({ vixTermStructure }) {
       <div className="deriv-chart-wrap">
         <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
       </div>
+      {vixEnrichment && (
+        <div className="vix-enrichment-row">
+          {vixEnrichment.vvix != null && (
+            <div className="vix-enrich-pill">
+              <span className="vix-enrich-label">VVIX</span>
+              <span className="vix-enrich-value">{vixEnrichment.vvix.toFixed(1)}</span>
+            </div>
+          )}
+          {vixEnrichment.vixPercentile != null && (
+            <div className="vix-enrich-pill">
+              <span className="vix-enrich-label">VIX Percentile (252d)</span>
+              <span className="vix-enrich-value">{vixEnrichment.vixPercentile}th</span>
+            </div>
+          )}
+        </div>
+      )}
       <div className="deriv-panel-footer">
         Spot VIX + 9 futures expirations · Dashed = previous close · Contango = upward slope
       </div>
