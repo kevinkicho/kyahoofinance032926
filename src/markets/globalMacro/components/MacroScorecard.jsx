@@ -18,11 +18,12 @@ function cpiHeat(v) {
   if (v > 3)            return 'mac-heat-neu';
   if (v > 2)            return 'mac-heat-lg';
   if (v >= 1)           return 'mac-heat-dg';
-  return 'mac-heat-neu'; // 0–1%: below target
+  return 'mac-heat-lr'; // 0–1%: below target, deflation risk
 }
 
 function rateHeat(v) {
   if (v == null) return 'mac-heat-neu';
+  if (v < 0)    return 'mac-heat-neu';  // negative rates: unconventional, not beneficial
   if (v < 1)    return 'mac-heat-dg';
   if (v < 3)    return 'mac-heat-lg';
   if (v < 5)    return 'mac-heat-neu';
@@ -44,7 +45,7 @@ function debtHeat(v) {
   if (v < 40)   return 'mac-heat-dg';
   if (v < 60)   return 'mac-heat-lg';
   if (v < 90)   return 'mac-heat-neu';
-  if (v < 120)  return 'mac-heat-lr';
+  if (v <= 120) return 'mac-heat-lr';
   return 'mac-heat-dr';
 }
 
