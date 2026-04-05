@@ -8,7 +8,7 @@ const HISTORY_COLORS = {
 };
 
 function barColor(rate) {
-  if (rate == null) return '#475569';
+  if (rate == null || Number.isNaN(rate)) return '#475569';
   if (rate < 3)    return '#14b8a6';
   if (rate < 6)    return '#f59e0b';
   return '#ef4444';
