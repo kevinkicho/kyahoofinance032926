@@ -167,14 +167,17 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api/stocks':      { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/summary':     { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/history':     { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/snapshot':    { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/bonds':       { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/derivatives': { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/realEstate':  { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/insurance':   { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/stocks':          { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/summary':         { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/history':         { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/snapshot':        { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/bonds':           { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/derivatives':     { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/realEstate':      { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/insurance':       { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/commodities':     { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/globalMacro':     { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/equityDeepDive':  { target: 'http://localhost:3001', changeOrigin: true },
     }
   }
 })

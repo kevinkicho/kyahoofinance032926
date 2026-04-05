@@ -17,7 +17,9 @@ export function useRealEstateData() {
   const [isLoading,      setIsLoading]      = useState(true);
 
   useEffect(() => {
-    fetch(`${SERVER}/api/realEstate`)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    fetch(`${SERVER}/api/realEstate`, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(data => {
         if (data.reitData?.length)                     setReitData(data.reitData);
@@ -29,7 +31,7 @@ export function useRealEstateData() {
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
       })
       .catch(() => {})
-      .finally(() => setIsLoading(false));
+      .finally(() => { clearTimeout(timer); setIsLoading(false); });
   }, []);
 
   return { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, isLive, lastUpdated, isLoading };

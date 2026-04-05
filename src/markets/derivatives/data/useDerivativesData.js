@@ -21,7 +21,9 @@ export function useDerivativesData() {
   const [isLoading,        setIsLoading]        = useState(true);
 
   useEffect(() => {
-    fetch(`${SERVER}/api/derivatives`)
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    fetch(`${SERVER}/api/derivatives`, { signal: controller.signal })
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(data => {
         if (data.vixTermStructure?.dates?.length)         setVixTermStructure(data.vixTermStructure);
@@ -37,7 +39,7 @@ export function useDerivativesData() {
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
       })
       .catch(() => {})
-      .finally(() => setIsLoading(false));
+      .finally(() => { clearTimeout(timer); setIsLoading(false); });
   }, []);
 
   return { volSurfaceData, vixTermStructure, optionsFlow, fearGreedData, vixEnrichment, vixHistory, volPremium, isLive, lastUpdated, isLoading };
