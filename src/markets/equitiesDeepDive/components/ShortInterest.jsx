@@ -20,7 +20,8 @@ function buildShortedOption(mostShorted) {
       textStyle: { color: '#e2e8f0', fontSize: 11 },
       formatter: (params) => {
         const item = sorted[params[0].dataIndex];
-        return `${params[0].name}: ${params[0].value?.toFixed(1)}% short · ${item?.daysToCover?.toFixed(1)}d to cover`;
+        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}% short`;
+        return item ? `${base} · ${item.daysToCover?.toFixed(1)}d to cover` : base;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },

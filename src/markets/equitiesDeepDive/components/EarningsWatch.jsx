@@ -20,7 +20,8 @@ function buildBeatRateOption(beatRates) {
       textStyle: { color: '#e2e8f0', fontSize: 11 },
       formatter: (params) => {
         const item = sorted[params[0].dataIndex];
-        return `${params[0].name}: ${params[0].value?.toFixed(1)}% (${item?.beatCount}/${item?.totalCount})`;
+        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}%`;
+        return item ? `${base} (${item.beatCount}/${item.totalCount})` : base;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
