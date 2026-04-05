@@ -1146,6 +1146,7 @@ app.get('/api/commodities', async (req, res) => {
           labels:    validFutures.map(f => f.label),
           prices:    validFutures.map(f => Math.round(f.price * 100) / 100),
           commodity: 'WTI Crude Oil',
+          unit:      '$/bbl',
           spotPrice: quotesMap['CL=F']?.regularMarketPrice ?? validFutures[0]?.price ?? null,
         };
       }

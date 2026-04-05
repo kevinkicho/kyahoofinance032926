@@ -35,6 +35,7 @@ export const futuresCurveData = {
   prices:    [82.14, 81.82, 81.54, 81.28, 81.05, 80.84, 80.65, 80.48],
   commodity: 'WTI Crude Oil',
   spotPrice: 82.14,
+  unit:      '$/bbl',
 };
 
 export const sectorHeatmapData = {

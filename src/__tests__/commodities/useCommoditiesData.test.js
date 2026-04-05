@@ -62,7 +62,7 @@ describe('useCommoditiesData', () => {
         { sector: 'Metals', commodities: [{ ticker: 'GC=F', name: 'Gold', unit: '$/oz', price: 2400, change1d: 0.5, change1w: 1.0, change1m: 2.0, sparkline: [2380, 2390, 2400] }] },
         { sector: 'Agriculture', commodities: [{ ticker: 'ZW=F', name: 'Wheat', unit: '¢/bu', price: 550, change1d: -0.5, change1w: -1.0, change1m: -2.0, sparkline: [560, 555, 550] }] },
       ],
-      futuresCurveData: { labels: ["Jun '26"], prices: [90.0], commodity: 'WTI Crude Oil', spotPrice: 90.0 },
+      futuresCurveData: { labels: ["Jun '26", "Jul '26", "Aug '26", "Sep '26"], prices: [90.0, 89.8, 89.6, 89.4], commodity: 'WTI Crude Oil', spotPrice: 90.0 },
       sectorHeatmapData: { commodities: [{ ticker: 'CL=F', name: 'WTI Crude', sector: 'Energy', d1: 1.5, w1: 2.0, m1: 3.0 }], columns: ['1d%', '1w%', '1m%'] },
       supplyDemandData: {
         crudeStocks: { periods: ['2026-04-04'], values: [460], avg5yr: 432 },
@@ -75,6 +75,7 @@ describe('useCommoditiesData', () => {
     const { result } = renderHook(() => useCommoditiesData());
     await waitFor(() => expect(result.current.isLive).toBe(true));
     expect(result.current.priceDashboardData[0].commodities[0].price).toBe(90.0);
+    expect(result.current.futuresCurveData.prices[0]).toBe(90.0);
     expect(result.current.lastUpdated).toBe('2026-04-04');
   });
 

@@ -4,7 +4,7 @@ import ReactECharts from 'echarts-for-react';
 import './CommodComponents.css';
 
 export default function FuturesCurve({ futuresCurveData }) {
-  const { labels = [], prices = [], commodity = 'WTI Crude Oil', spotPrice } = futuresCurveData;
+  const { labels = [], prices = [], commodity = 'WTI Crude Oil', spotPrice, unit = '$/bbl' } = futuresCurveData;
 
   const isContango      = prices.length >= 2 && prices[prices.length - 1] > prices[0];
   const isBackwardation = prices.length >= 2 && prices[prices.length - 1] < prices[0];
@@ -18,7 +18,7 @@ export default function FuturesCurve({ futuresCurveData }) {
       textStyle: { color: '#e2e8f0', fontSize: 12 },
       formatter: (params) => {
         const p = params[0];
-        return `${p.name}<br/><span style="color:#ca8a04">$${p.value.toFixed(2)}/bbl</span>`;
+        return `${p.name}<br/><span style="color:#ca8a04">$${p.value.toFixed(2)}${unit.replace('$','')}</span>`;
       },
     },
     grid: { top: 20, right: 24, bottom: 40, left: 56, containLabel: false },
@@ -50,7 +50,7 @@ export default function FuturesCurve({ futuresCurveData }) {
       <div className="com-panel-header">
         <span className="com-panel-title">{commodity} Futures Curve</span>
         <span className="com-panel-subtitle">
-          {labels.length} contract months · Spot: {spotPrice != null ? `$${spotPrice.toFixed(2)}/bbl` : '—'}
+          {labels.length} contract months · Spot: {spotPrice != null ? `$${spotPrice.toFixed(2)}${unit.replace('$','')}` : '—'}
         </span>
       </div>
       <div className="com-chart-wrap">
