@@ -58,7 +58,12 @@ function buildStocksOption(title, periods, values, avg5yr) {
 }
 
 export default function SupplyDemand({ supplyDemandData }) {
-  const { crudeStocks, natGasStorage, crudeProduction } = supplyDemandData;
+  if (!supplyDemandData) return null;
+  const {
+    crudeStocks     = { periods: [], values: [], avg5yr: null },
+    natGasStorage   = { periods: [], values: [], avg5yr: null },
+    crudeProduction = { periods: [], values: [] },
+  } = supplyDemandData;
 
   return (
     <div className="com-panel">
