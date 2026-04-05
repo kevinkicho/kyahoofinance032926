@@ -1,6 +1,7 @@
 // src/markets/fx/FXMarket.jsx
 import React, { useState } from 'react';
 import { useFXData } from './data/useFXData';
+import { useCOTData } from './data/useCOTData';
 import RateMatrix from './components/RateMatrix';
 import CarryMap from './components/CarryMap';
 import DXYTracker from './components/DXYTracker';
@@ -17,6 +18,7 @@ const SUB_TABS = [
 export default function FXMarket() {
   const [activeTab, setActiveTab] = useState('rate-matrix');
   const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, isLive, lastUpdated, isLoading } = useFXData();
+  const { cotData } = useCOTData();
 
   return (
     <div className="fx-market">
@@ -44,7 +46,7 @@ export default function FXMarket() {
         )}
         {activeTab === 'carry-map'   && <CarryMap />}
         {activeTab === 'dxy-tracker' && <DXYTracker history={history} />}
-        {activeTab === 'top-movers'  && <TopMovers changes={changes} changes1w={changes1w} changes1m={changes1m} sparklines={sparklines} />}
+        {activeTab === 'top-movers'  && <TopMovers changes={changes} changes1w={changes1w} changes1m={changes1m} sparklines={sparklines} cotData={cotData} />}
       </div>
     </div>
   );
