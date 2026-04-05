@@ -21,18 +21,18 @@ function makeRateHistory(pivots) {
 // scorecardData — 12 countries, 5 macro indicators (latest annual, ~2023)
 // ---------------------------------------------------------------------------
 export const scorecardData = [
-  { code: 'US', name: 'United States',  flag: '🇺🇸', region: 'G7',       gdp:  2.8, cpi:  3.2, rate:  5.25, unemp:  3.7, debt: 122.0 },
-  { code: 'EA', name: 'Euro Area',      flag: '🇪🇺', region: 'G7',       gdp:  0.4, cpi:  2.8, rate:  3.75, unemp:  6.1, debt:  91.0 },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', region: 'G7',       gdp:  0.1, cpi:  6.7, rate:  5.25, unemp:  4.2, debt:  98.6 },
-  { code: 'JP', name: 'Japan',          flag: '🇯🇵', region: 'G7',       gdp:  1.9, cpi:  3.3, rate: -0.10, unemp:  2.4, debt: 261.3 },
-  { code: 'CA', name: 'Canada',         flag: '🇨🇦', region: 'G7',       gdp:  1.1, cpi:  3.9, rate:  5.00, unemp:  5.4, debt: 106.4 },
+  { code: 'US', name: 'United States',  flag: '🇺🇸', region: 'G7',       gdp:  2.8, cpi:  3.2, rate:  4.50, unemp:  3.7, debt: 122.0 },
+  { code: 'EA', name: 'Euro Area',      flag: '🇪🇺', region: 'Advanced', gdp:  0.4, cpi:  2.8, rate:  3.00, unemp:  6.1, debt:  91.0 },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', region: 'G7',       gdp:  0.1, cpi:  6.7, rate:  4.75, unemp:  4.2, debt:  98.6 },
+  { code: 'JP', name: 'Japan',          flag: '🇯🇵', region: 'G7',       gdp:  1.9, cpi:  3.3, rate:  0.10, unemp:  2.4, debt: 261.3 },
+  { code: 'CA', name: 'Canada',         flag: '🇨🇦', region: 'G7',       gdp:  1.1, cpi:  3.9, rate:  4.25, unemp:  5.4, debt: 106.4 },
   { code: 'CN', name: 'China',          flag: '🇨🇳', region: 'EM',       gdp:  4.9, cpi:  0.2, rate:  3.45, unemp:  5.2, debt:  83.6 },
   { code: 'IN', name: 'India',          flag: '🇮🇳', region: 'EM',       gdp:  8.2, cpi:  5.7, rate:  6.50, unemp:  3.1, debt:  83.1 },
   { code: 'BR', name: 'Brazil',         flag: '🇧🇷', region: 'EM',       gdp:  2.9, cpi:  4.8, rate: 10.50, unemp:  8.1, debt:  87.6 },
   { code: 'KR', name: 'South Korea',    flag: '🇰🇷', region: 'EM',       gdp:  1.4, cpi:  3.6, rate:  3.50, unemp:  2.7, debt:  53.8 },
   { code: 'AU', name: 'Australia',      flag: '🇦🇺', region: 'Advanced', gdp:  2.0, cpi:  5.6, rate:  4.35, unemp:  3.9, debt:  55.3 },
   { code: 'MX', name: 'Mexico',         flag: '🇲🇽', region: 'EM',       gdp:  3.2, cpi:  5.2, rate: 11.00, unemp:  2.8, debt:  54.2 },
-  { code: 'SE', name: 'Sweden',         flag: '🇸🇪', region: 'Advanced', gdp: -0.2, cpi:  5.9, rate:  4.00, unemp:  8.5, debt:  31.4 },
+  { code: 'SE', name: 'Sweden',         flag: '🇸🇪', region: 'Advanced', gdp: -0.2, cpi:  5.9, rate:  3.50, unemp:  8.5, debt:  31.4 },
 ];
 
 // ---------------------------------------------------------------------------
@@ -50,18 +50,18 @@ export const growthInflationData = {
 // ---------------------------------------------------------------------------
 export const centralBankData = {
   current: [
-    { code: 'US', name: 'United States',  flag: '🇺🇸', rate:  5.25, bank: 'Fed',      isLive: false },
-    { code: 'EA', name: 'Euro Area',      flag: '🇪🇺', rate:  3.75, bank: 'ECB',      isLive: false },
-    { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', rate:  5.25, bank: 'BoE',      isLive: false },
-    { code: 'JP', name: 'Japan',          flag: '🇯🇵', rate: -0.10, bank: 'BoJ',      isLive: false },
-    { code: 'CA', name: 'Canada',         flag: '🇨🇦', rate:  5.00, bank: 'BoC',      isLive: false },
+    { code: 'US', name: 'United States',  flag: '🇺🇸', rate:  4.50, bank: 'Fed',      isLive: false },
+    { code: 'EA', name: 'Euro Area',      flag: '🇪🇺', rate:  3.00, bank: 'ECB',      isLive: false },
+    { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', rate:  4.75, bank: 'BoE',      isLive: false },
+    { code: 'JP', name: 'Japan',          flag: '🇯🇵', rate:  0.10, bank: 'BoJ',      isLive: false },
+    { code: 'CA', name: 'Canada',         flag: '🇨🇦', rate:  4.25, bank: 'BoC',      isLive: false },
     { code: 'CN', name: 'China',          flag: '🇨🇳', rate:  3.45, bank: 'PBoC',     isLive: false },
     { code: 'IN', name: 'India',          flag: '🇮🇳', rate:  6.50, bank: 'RBI',      isLive: false },
     { code: 'BR', name: 'Brazil',         flag: '🇧🇷', rate: 10.50, bank: 'BCB',      isLive: false },
     { code: 'KR', name: 'South Korea',    flag: '🇰🇷', rate:  3.50, bank: 'BoK',      isLive: false },
     { code: 'AU', name: 'Australia',      flag: '🇦🇺', rate:  4.35, bank: 'RBA',      isLive: false },
     { code: 'MX', name: 'Mexico',         flag: '🇲🇽', rate: 11.00, bank: 'Banxico',  isLive: false },
-    { code: 'SE', name: 'Sweden',         flag: '🇸🇪', rate:  4.00, bank: 'Riksbank', isLive: false },
+    { code: 'SE', name: 'Sweden',         flag: '🇸🇪', rate:  3.50, bank: 'Riksbank', isLive: false },
   ],
   history: {
     dates: HISTORY_DATES,
