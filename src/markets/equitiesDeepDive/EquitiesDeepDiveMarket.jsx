@@ -16,7 +16,7 @@ const SUB_TABS = [
 // snapshotDate/currency not used — equity analytics are market-session-based, not snapshot-dependent
 export default function EquitiesDeepDiveMarket() {
   const [activeTab, setActiveTab] = useState('sectors');
-  const { sectorData, factorData, earningsData, shortData, isLive, lastUpdated, isLoading } = useEquityDeepDiveData();
+  const { sectorData, factorData, earningsData, shortData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useEquityDeepDiveData();
 
   if (isLoading) {
     return (
@@ -45,6 +45,7 @@ export default function EquitiesDeepDiveMarket() {
           {isLive ? '● Live' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
+        {!isCurrent && fetchedOn && <span className="eq-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="eq-content">
         {activeTab === 'sectors'  && <SectorRotation sectorData={sectorData} />}

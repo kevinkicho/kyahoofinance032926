@@ -71,3 +71,13 @@
 .ins-status-spread   { color: #94a3b8; }
 .ins-status-spread strong { color: #e2e8f0; }
 .ins-status-reinsurer { font-size: 10px; }
+
+.ins-stale-badge {
+  background: #78350f;
+  color: #fcd34d;
+  border: 1px solid #92400e;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 500;
+}

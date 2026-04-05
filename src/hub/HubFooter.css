@@ -1,0 +1,48 @@
+.hub-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #111827;
+  border-top: 1px solid #1f2937;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.hub-footer-time {
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.hub-footer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hub-badge {
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hub-badge-fresh {
+  background: #064e3b;
+  color: #6ee7b7;
+  border: 1px solid #065f46;
+}
+
+.hub-badge-stale {
+  background: #78350f;
+  color: #fcd34d;
+  border: 1px solid #92400e;
+}
+
+.hub-badge-none {
+  background: #1f2937;
+  color: #6b7280;
+  border: 1px solid #374151;
+}

@@ -10,6 +10,7 @@ import InsuranceMarket       from '../markets/insurance/InsuranceMarket';
 import CommoditiesMarket     from '../markets/commodities/CommoditiesMarket';
 import GlobalMacroMarket     from '../markets/globalMacro/GlobalMacroMarket';
 import EquitiesDeepDiveMarket from '../markets/equitiesDeepDive/EquitiesDeepDiveMarket';
+import HubFooter from './HubFooter';
 
 const MARKET_COMPONENTS = {
   equities:          EquitiesMarket,
@@ -44,6 +45,7 @@ export default function HubLayout() {
         snapshotDate={snapshotDate}
         setSnapshotDate={setSnapshotDate}
       />
+      <HubFooter />
     </div>
   );
 }

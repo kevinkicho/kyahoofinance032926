@@ -16,7 +16,7 @@ const SUB_TABS = [
 
 export default function CommoditiesMarket() {
   const [activeTab, setActiveTab] = useState('price-dashboard');
-  const { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, isLive, lastUpdated, isLoading } = useCommoditiesData();
+  const { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCommoditiesData();
 
   if (isLoading) {
     return (
@@ -45,6 +45,7 @@ export default function CommoditiesMarket() {
           {isLive ? '● Live' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
+        {!isCurrent && fetchedOn && <span className="com-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="com-content">
         {activeTab === 'price-dashboard' && <PriceDashboard priceDashboardData={priceDashboardData} />}

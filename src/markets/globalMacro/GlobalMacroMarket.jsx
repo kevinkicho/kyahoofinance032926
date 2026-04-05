@@ -16,7 +16,7 @@ const SUB_TABS = [
 // snapshotDate/currency not used — macro data is annual, not snapshot-dependent
 export default function GlobalMacroMarket() {
   const [activeTab, setActiveTab] = useState('scorecard');
-  const { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading } = useGlobalMacroData();
+  const { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useGlobalMacroData();
 
   if (isLoading) {
     return (
@@ -45,6 +45,7 @@ export default function GlobalMacroMarket() {
           {isLive ? '● Live' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
+        {!isCurrent && fetchedOn && <span className="mac-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="mac-content">
         {activeTab === 'scorecard'     && <MacroScorecard   scorecardData={scorecardData} />}

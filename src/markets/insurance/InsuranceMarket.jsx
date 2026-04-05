@@ -23,7 +23,7 @@ export default function InsuranceMarket() {
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
     reinsurancePricing, reinsurers, hyOAS, igOAS,
-    isLive, lastUpdated, isLoading,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
   } = useInsuranceData();
 
   if (isLoading) {
@@ -53,6 +53,7 @@ export default function InsuranceMarket() {
           {isLive ? '● Live' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
+        {!isCurrent && fetchedOn && <span className="ins-stale-badge">Stale · fetched {fetchedOn}</span>}
         {hyOAS  != null && <span className="ins-status-spread">HY OAS: <strong>{hyOAS.toFixed(0)} bps</strong></span>}
         {igOAS  != null && <span className="ins-status-spread">IG OAS: <strong>{igOAS.toFixed(0)} bps</strong></span>}
         {reinsurers.map(r => (

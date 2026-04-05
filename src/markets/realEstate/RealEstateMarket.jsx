@@ -15,7 +15,7 @@ const SUB_TABS = [
 
 export default function RealEstateMarket() {
   const [activeTab, setActiveTab] = useState('price-index');
-  const { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, isLive, lastUpdated, isLoading } = useRealEstateData();
+  const { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useRealEstateData();
 
   if (isLoading) {
     return (
@@ -44,6 +44,7 @@ export default function RealEstateMarket() {
           {isLive ? '● Live' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
+        {!isCurrent && fetchedOn && <span className="re-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="re-content">
         {activeTab === 'price-index'       && <PriceIndex       priceIndexData={priceIndexData} />}

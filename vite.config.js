@@ -178,6 +178,7 @@ export default defineConfig({
       '/api/commodities':     { target: 'http://localhost:3001', changeOrigin: true },
       '/api/globalMacro':     { target: 'http://localhost:3001', changeOrigin: true },
       '/api/equityDeepDive':  { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/cache':        { target: 'http://localhost:3001', changeOrigin: true },
     }
   }
 })
