@@ -58,12 +58,14 @@ describe('useRealEstateData', () => {
     expect(result.current.priceIndexData.US.values[0]).toBe(100);
   });
 
-  it('always returns mock affordabilityData and capRateData', async () => {
+  it('always returns mock affordabilityData and capRateData on fallback', async () => {
     mockFetch.mockRejectedValue(new Error('no server'));
     const { result } = renderHook(() => useRealEstateData());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(Array.isArray(result.current.affordabilityData)).toBe(true);
-    expect(result.current.affordabilityData.length).toBeGreaterThan(0);
-    expect(result.current.capRateData).toBeDefined();
+    expect(result.current.affordabilityData).toBeDefined();
+    expect(result.current.affordabilityData.current).toBeDefined();
+    expect(result.current.affordabilityData.current.medianPrice).toBeGreaterThan(0);
+    expect(Array.isArray(result.current.capRateData)).toBe(true);
+    expect(result.current.capRateData.length).toBeGreaterThan(0);
   });
 });
