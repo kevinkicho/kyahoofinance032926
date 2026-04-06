@@ -59,6 +59,28 @@ function readLatestCache(market) {
   } catch { /* best-effort */ }
 })();
 
+// ── Process-level stability handlers ──────────────────────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err.message);
+  console.error(err.stack);
+  // Keep running — Express can handle most errors per-request
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[WARN] Unhandled promise rejection:', reason);
+});
+
+// Graceful shutdown
+let server;
+function gracefulShutdown(signal) {
+  console.log(`\n[${signal}] Shutting down gracefully...`);
+  if (server) server.close(() => process.exit(0));
+  else process.exit(0);
+  setTimeout(() => process.exit(1), 5000); // force-exit after 5s
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
 
 // Crypto tickers — Yahoo Finance requires the -USD suffix for quotes
@@ -3244,10 +3266,19 @@ app.get('/api/fx', async (req, res) => {
   }
 });
 
+// ── Express error-handling middleware (catch-all) ─────────────────────────────
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  console.error('[Express] Unhandled route error:', err.message);
+  if (!res.headersSent) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Kick off index build at startup (non-blocking)
 buildSnapshotIndex();
 
-app.listen(port, () => {
+server = app.listen(port, () => {
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
   console.log(`Global Macro Backend running at http://localhost:${port}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
