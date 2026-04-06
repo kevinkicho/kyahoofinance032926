@@ -2,40 +2,40 @@
 
 /* ── Shared panel ──────────────────────────────────────────────────────────── */
 .cal-panel {
-  margin: 10px; padding: 0; background: #0f172a; border: 1px solid #1e293b;
+  margin: 10px; padding: 0; background: var(--bg-primary); border: 1px solid var(--border-subtle);
   border-radius: 10px; overflow: hidden;
 }
 .cal-panel-header {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
-  padding: 10px 14px; border-bottom: 1px solid #1e293b;
+  padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);
 }
-.cal-panel-title { font-size: 13px; font-weight: 600; color: #f1f5f9; }
-.cal-panel-subtitle { font-size: 10px; color: #475569; }
-.cal-panel-footer { padding: 6px 14px; font-size: 9px; color: #334155; border-top: 1px solid #1e293b; }
+.cal-panel-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.cal-panel-subtitle { font-size: 10px; color: var(--text-dim); }
+.cal-panel-footer { padding: 6px 14px; font-size: 9px; color: var(--border-color); border-top: 1px solid var(--border-subtle); }
 
 /* ── Filter pills ──────────────────────────────────────────────────────────── */
 .cal-filter-bar { display: flex; gap: 4px; padding: 8px 14px; flex-wrap: wrap; }
 .cal-filter-pill {
   padding: 3px 10px; font-size: 10px; border-radius: 10px; cursor: pointer;
-  background: #1e293b; color: #94a3b8; border: 1px solid #334155;
+  background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color);
 }
-.cal-filter-pill:hover { background: #334155; }
+.cal-filter-pill:hover { background: var(--border-color); }
 .cal-filter-pill.active { background: #f43f5e; color: #fff; border-color: #f43f5e; }
 
 /* ── Event table ───────────────────────────────────────────────────────────── */
 .cal-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .cal-table th {
-  text-align: left; padding: 6px 10px; font-weight: 600; color: #64748b;
+  text-align: left; padding: 6px 10px; font-weight: 600; color: var(--text-muted);
   font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
-  border-bottom: 1px solid #1e293b; background: #0f172a; position: sticky; top: 0;
+  border-bottom: 1px solid var(--border-subtle); background: var(--bg-primary); position: sticky; top: 0;
 }
-.cal-table td { padding: 5px 10px; color: #cbd5e1; border-bottom: 1px solid #0f172a; }
-.cal-table tr:hover td { background: #1e293b; }
+.cal-table td { padding: 5px 10px; color: #cbd5e1; border-bottom: 1px solid var(--bg-primary); }
+.cal-table tr:hover td { background: var(--bg-card); }
 .cal-table .cal-upcoming { opacity: 1; }
 .cal-table .cal-released td { opacity: 0.6; }
 .cal-surprise-pos { color: #34d399; font-weight: 600; }
 .cal-surprise-neg { color: #f87171; font-weight: 600; }
-.cal-surprise-na  { color: #475569; }
+.cal-surprise-na  { color: var(--text-dim); }
 
 /* ── Country flag ──────────────────────────────────────────────────────────── */
 .cal-flag { margin-right: 4px; }
@@ -43,27 +43,27 @@
 /* ── Central bank cards ────────────────────────────────────────────────────── */
 .cal-cb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; }
 .cal-cb-card {
-  background: #1e293b; border-radius: 10px; padding: 14px 16px;
-  border: 1px solid #334155;
+  background: var(--bg-card); border-radius: 10px; padding: 14px 16px;
+  border: 1px solid var(--border-color);
 }
-.cal-cb-bank { font-size: 14px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
-.cal-cb-rate { font-size: 22px; font-weight: 700; font-family: monospace; color: #e2e8f0; margin-bottom: 4px; }
-.cal-cb-next { font-size: 10px; color: #94a3b8; }
+.cal-cb-bank { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.cal-cb-rate { font-size: 22px; font-weight: 700; font-family: monospace; color: var(--text-primary); margin-bottom: 4px; }
+.cal-cb-next { font-size: 10px; color: var(--text-secondary); }
 .cal-cb-countdown { font-size: 11px; color: #f43f5e; font-weight: 600; margin-top: 4px; }
 .cal-cb-decision {
   display: inline-block; padding: 2px 8px; border-radius: 8px;
   font-size: 9px; font-weight: 700; margin-top: 6px;
 }
-.cal-cb-hold { background: #334155; color: #94a3b8; }
+.cal-cb-hold { background: var(--border-color); color: var(--text-secondary); }
 .cal-cb-hike { background: #7f1d1d; color: #fca5a5; }
 .cal-cb-cut  { background: #14532d; color: #86efac; }
 
 /* ── Timeline ──────────────────────────────────────────────────────────────── */
-.cal-timeline { padding: 12px 14px; border-top: 1px solid #1e293b; }
-.cal-timeline-title { font-size: 11px; color: #64748b; margin-bottom: 8px; }
+.cal-timeline { padding: 12px 14px; border-top: 1px solid var(--border-subtle); }
+.cal-timeline-title { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
 .cal-timeline-row {
   display: flex; align-items: center; gap: 8px; padding: 3px 0;
-  font-size: 10px; color: #94a3b8;
+  font-size: 10px; color: var(--text-secondary);
 }
 .cal-timeline-dot {
   width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
@@ -71,13 +71,13 @@
 .cal-dot-fed { background: #3b82f6; }
 .cal-dot-ecb { background: #facc15; }
 .cal-dot-boe { background: #ef4444; }
-.cal-dot-boj { background: #e2e8f0; }
+.cal-dot-boj { background: var(--text-primary); }
 
 /* ── Earnings season ───────────────────────────────────────────────────────── */
 .cal-week-group { margin-bottom: 2px; }
 .cal-week-header {
-  padding: 6px 14px; font-size: 11px; font-weight: 600; color: #64748b;
-  background: #0f172a; border-bottom: 1px solid #1e293b;
+  padding: 6px 14px; font-size: 11px; font-weight: 600; color: var(--text-muted);
+  background: var(--bg-primary); border-bottom: 1px solid var(--border-subtle);
 }
 .cal-week-current { color: #f43f5e; border-left: 3px solid #f43f5e; }
 
@@ -85,11 +85,11 @@
 .cal-release-list { padding: 8px 14px; }
 .cal-release-item {
   display: flex; align-items: center; gap: 12px; padding: 6px 0;
-  border-bottom: 1px solid #1e293b; font-size: 11px;
+  border-bottom: 1px solid var(--border-subtle); font-size: 11px;
 }
-.cal-release-date { min-width: 70px; color: #64748b; font-family: monospace; font-size: 10px; }
-.cal-release-name { color: #e2e8f0; font-weight: 500; flex: 1; }
-.cal-release-prev { color: #64748b; font-size: 10px; }
+.cal-release-date { min-width: 70px; color: var(--text-muted); font-family: monospace; font-size: 10px; }
+.cal-release-name { color: var(--text-primary); font-weight: 500; flex: 1; }
+.cal-release-prev { color: var(--text-muted); font-size: 10px; }
 .cal-cat-badge {
   display: inline-block; padding: 1px 7px; border-radius: 8px;
   font-size: 9px; font-weight: 600; margin-left: 6px;

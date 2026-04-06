@@ -13,40 +13,40 @@
   margin-bottom: 16px;
   flex-shrink: 0;
 }
-.mac-panel-title    { font-size: 16px; font-weight: 600; color: #e2e8f0; }
-.mac-panel-subtitle { font-size: 11px; color: #64748b; flex: 1; }
-.mac-panel-footer   { margin-top: 12px; font-size: 10px; color: #475569; flex-shrink: 0; }
+.mac-panel-title    { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.mac-panel-subtitle { font-size: 11px; color: var(--text-muted); flex: 1; }
+.mac-panel-footer   { margin-top: 12px; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
 .mac-scroll         { overflow: auto; flex: 1; }
 .mac-chart-wrap     { flex: 1; min-height: 0; }
 
 /* Shared table */
 .mac-table { border-collapse: collapse; min-width: 100%; }
 .mac-th {
-  background: #1e293b;
-  color: #94a3b8;
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
   padding: 8px 12px;
-  border: 1px solid #0f172a;
+  border: 1px solid var(--bg-primary);
   text-align: right;
   white-space: nowrap;
 }
 .mac-th:first-child { text-align: left; }
-.mac-row:hover { background: #1e293b; }
+.mac-row:hover { background: var(--bg-card); }
 .mac-cell {
   padding: 8px 12px;
-  border: 1px solid #0f172a;
+  border: 1px solid var(--bg-primary);
   text-align: right;
   font-size: 12px;
   color: #cbd5e1;
   white-space: nowrap;
 }
-.mac-cell:first-child { text-align: left; font-weight: 600; color: #e2e8f0; }
+.mac-cell:first-child { text-align: left; font-weight: 600; color: var(--text-primary); }
 
 /* Heat cell colors */
 .mac-heat-dg  { background: #14532d; color: #86efac; }
 .mac-heat-lg  { background: #1a3a28; color: #4ade80; }
-.mac-heat-neu { background: #1e293b; color: #94a3b8; }
+.mac-heat-neu { background: var(--bg-card); color: var(--text-secondary); }
 .mac-heat-lr  { background: #3b1a1a; color: #f87171; }
 .mac-heat-dr  { background: #7f1d1d; color: #fca5a5; }
 
@@ -61,8 +61,8 @@
 .mac-chart-panel {
   display: flex;
   flex-direction: column;
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   padding: 12px;
   overflow: hidden;
@@ -70,13 +70,13 @@
 .mac-chart-title {
   font-size: 12px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-primary);
   margin-bottom: 4px;
   flex-shrink: 0;
 }
 .mac-chart-subtitle {
   font-size: 10px;
-  color: #475569;
+  color: var(--text-dim);
   margin-bottom: 8px;
   flex-shrink: 0;
 }
