@@ -17,7 +17,7 @@ const SUB_TABS = [
 
 export default function FXMarket() {
   const [activeTab, setActiveTab] = useState('rate-matrix');
-  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, isLive, lastUpdated, isLoading } = useFXData();
+  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, isLive, lastUpdated, isLoading } = useFXData();
   const { cotData } = useCOTData();
 
   return (
@@ -42,10 +42,10 @@ export default function FXMarket() {
       </div>
       <div className="fx-content">
         {activeTab === 'rate-matrix' && (
-          <RateMatrix spotRates={spotRates} prevRates={prevRates} />
+          <RateMatrix spotRates={spotRates} prevRates={prevRates} changes={changes} />
         )}
         {activeTab === 'carry-map'   && <CarryMap />}
-        {activeTab === 'dxy-tracker' && <DXYTracker history={history} />}
+        {activeTab === 'dxy-tracker' && <DXYTracker history={history} fredFxRates={fredFxRates} />}
         {activeTab === 'top-movers'  && <TopMovers changes={changes} changes1w={changes1w} changes1m={changes1m} sparklines={sparklines} cotData={cotData} />}
       </div>
     </div>
