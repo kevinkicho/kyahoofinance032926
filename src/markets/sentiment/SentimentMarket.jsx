@@ -14,7 +14,7 @@ const SUB_TABS = [
   { id: 'returns',   label: 'Cross-Asset Returns' },
 ];
 
-export default function SentimentMarket() {
+function SentimentMarket() {
   const [activeTab, setActiveTab] = useState('feargreed');
   const { fearGreedData, cftcData, riskData, returnsData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useSentimentData();
 
@@ -56,3 +56,5 @@ export default function SentimentMarket() {
     </div>
   );
 }
+
+export default React.memo(SentimentMarket);

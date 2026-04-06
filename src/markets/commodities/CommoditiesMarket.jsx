@@ -16,7 +16,7 @@ const SUB_TABS = [
   { id: 'cot',             label: 'COT Positioning'  },
 ];
 
-export default function CommoditiesMarket() {
+function CommoditiesMarket() {
   const [activeTab, setActiveTab] = useState('price-dashboard');
   const {
     priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,
@@ -63,3 +63,5 @@ export default function CommoditiesMarket() {
     </div>
   );
 }
+
+export default React.memo(CommoditiesMarket);

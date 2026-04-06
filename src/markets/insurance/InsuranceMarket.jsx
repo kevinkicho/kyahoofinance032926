@@ -18,7 +18,7 @@ function fmtChangePct(v) {
   return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 }
 
-export default function InsuranceMarket() {
+function InsuranceMarket() {
   const [activeTab, setActiveTab] = useState('cat-bond-spreads');
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
@@ -71,3 +71,5 @@ export default function InsuranceMarket() {
     </div>
   );
 }
+
+export default React.memo(InsuranceMarket);

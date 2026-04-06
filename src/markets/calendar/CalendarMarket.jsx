@@ -14,7 +14,7 @@ const SUB_TABS = [
   { id: 'releases',      label: 'Key Releases'       },
 ];
 
-export default function CalendarMarket() {
+function CalendarMarket() {
   const [activeTab, setActiveTab] = useState('economic');
   const { economicEvents, centralBanks, earningsSeason, keyReleases, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCalendarData();
 
@@ -56,3 +56,5 @@ export default function CalendarMarket() {
     </div>
   );
 }
+
+export default React.memo(CalendarMarket);

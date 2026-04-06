@@ -15,7 +15,7 @@ const SUB_TABS = [
   { id: 'breakevens',      label: 'Breakevens'     },
 ];
 
-export default function BondsMarket() {
+function BondsMarket() {
   const [activeTab, setActiveTab] = useState('yield-curve');
   const { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, treasuryRates, fredYieldHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useBondsData();
 
@@ -58,3 +58,5 @@ export default function BondsMarket() {
     </div>
   );
 }
+
+export default React.memo(BondsMarket);

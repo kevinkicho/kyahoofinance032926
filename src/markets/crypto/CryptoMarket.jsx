@@ -15,7 +15,7 @@ const SUB_TABS = [
   { id: 'funding',  label: 'Funding & Positioning'  },
 ];
 
-export default function CryptoMarket() {
+function CryptoMarket() {
   const [activeTab, setActiveTab] = useState('market');
   const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData();
 
@@ -60,3 +60,5 @@ export default function CryptoMarket() {
     </div>
   );
 }
+
+export default React.memo(CryptoMarket);

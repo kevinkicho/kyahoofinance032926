@@ -14,7 +14,7 @@ const SUB_TABS = [
 ];
 
 // snapshotDate/currency not used — equity analytics are market-session-based, not snapshot-dependent
-export default function EquitiesDeepDiveMarket() {
+function EquitiesDeepDiveMarket() {
   const [activeTab, setActiveTab] = useState('sectors');
   const { sectorData, factorData, earningsData, shortData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useEquityDeepDiveData();
 
@@ -56,3 +56,5 @@ export default function EquitiesDeepDiveMarket() {
     </div>
   );
 }
+
+export default React.memo(EquitiesDeepDiveMarket);

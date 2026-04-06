@@ -14,7 +14,7 @@ const SUB_TABS = [
 ];
 
 // snapshotDate/currency not used — macro data is annual, not snapshot-dependent
-export default function GlobalMacroMarket() {
+function GlobalMacroMarket() {
   const [activeTab, setActiveTab] = useState('scorecard');
   const { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useGlobalMacroData();
 
@@ -56,3 +56,5 @@ export default function GlobalMacroMarket() {
     </div>
   );
 }
+
+export default React.memo(GlobalMacroMarket);

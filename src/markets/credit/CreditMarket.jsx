@@ -14,7 +14,7 @@ const SUB_TABS = [
   { id: 'default', label: 'Default Watch'     },
 ];
 
-export default function CreditMarket() {
+function CreditMarket() {
   const [activeTab, setActiveTab] = useState('ighy');
   const { spreadData, emBondData, loanData, defaultData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCreditData();
 
@@ -56,3 +56,5 @@ export default function CreditMarket() {
     </div>
   );
 }
+
+export default React.memo(CreditMarket);

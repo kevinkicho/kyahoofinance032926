@@ -12,7 +12,7 @@ const SUB_TABS = [
   { id: 'options-flow',       label: 'Options Flow'       },
 ];
 
-export default function DerivativesMarket() {
+function DerivativesMarket() {
   const [activeTab, setActiveTab] = useState('vol-surface');
   const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
 
@@ -53,3 +53,5 @@ export default function DerivativesMarket() {
     </div>
   );
 }
+
+export default React.memo(DerivativesMarket);

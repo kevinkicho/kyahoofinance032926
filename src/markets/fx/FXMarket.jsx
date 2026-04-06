@@ -15,7 +15,7 @@ const SUB_TABS = [
   { id: 'top-movers',  label: 'Top Movers'  },
 ];
 
-export default function FXMarket() {
+function FXMarket() {
   const [activeTab, setActiveTab] = useState('rate-matrix');
   const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, isLive, lastUpdated, isLoading } = useFXData();
   const { cotData } = useCOTData();
@@ -51,3 +51,5 @@ export default function FXMarket() {
     </div>
   );
 }
+
+export default React.memo(FXMarket);

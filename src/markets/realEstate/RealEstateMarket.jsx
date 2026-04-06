@@ -13,7 +13,7 @@ const SUB_TABS = [
   { id: 'cap-rate-monitor',  label: 'Cap Rate Monitor'  },
 ];
 
-export default function RealEstateMarket() {
+function RealEstateMarket() {
   const [activeTab, setActiveTab] = useState('price-index');
   const {
     priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,
@@ -59,3 +59,5 @@ export default function RealEstateMarket() {
     </div>
   );
 }
+
+export default React.memo(RealEstateMarket);
