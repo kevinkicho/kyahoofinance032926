@@ -532,6 +532,18 @@ app.get('/api/bonds', async (req, res) => {
       } catch { /* use null — client falls back to mock */ }
     }
 
+    // 5a. US 10Y yield history (1yr daily for context chart)
+    let fredYieldHistory = null;
+    try {
+      const yieldHist = await fetchFredHistory('DGS10', 252);
+      if (yieldHist?.length >= 20) {
+        fredYieldHistory = {
+          dates: yieldHist.map(p => p.date),
+          values: yieldHist.map(p => p.value),
+        };
+      }
+    } catch { /* use null — client falls back to mock */ }
+
     // 5. Treasury avg interest rates (fiscaldata.treasury.gov — no auth needed)
     let treasuryRates = null;
     try {
@@ -564,6 +576,7 @@ app.get('/api/bonds', async (req, res) => {
       spreadIndicators: Object.keys(spreadIndicators).length >= 3 ? spreadIndicators : null,
       treasuryRates,
       breakevensData,
+      fredYieldHistory,
       lastUpdated: today,
     };
 
