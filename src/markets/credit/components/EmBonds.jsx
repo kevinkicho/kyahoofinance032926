@@ -1,5 +1,5 @@
 // src/markets/credit/components/EmBonds.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
@@ -62,12 +62,45 @@ export default function EmBonds({ emBondData }) {
   const { colors } = useTheme();
   const { countries = [], regions = [] } = emBondData;
 
+  const kpis = useMemo(() => {
+    if (!countries.length) return null;
+    const tightest = countries.reduce((a, b) => b.spread < a.spread ? b : a);
+    const widest   = countries.reduce((a, b) => b.spread > a.spread ? b : a);
+    const avgSpread = Math.round(countries.reduce((s, c) => s + c.spread, 0) / countries.length);
+    const igCount = countries.filter(c => {
+      if (!c.rating) return false;
+      const u = c.rating.toUpperCase();
+      return u.startsWith('AA') || u.startsWith('A') || u === 'BBB+' || u === 'BBB' || u === 'BBB-';
+    }).length;
+    return { tightest, widest, avgSpread, igCount };
+  }, [countries]);
+
   return (
     <div className="credit-panel">
       <div className="credit-panel-header">
         <span className="credit-panel-title">EM Bonds</span>
         <span className="credit-panel-subtitle">Sovereign spreads · EMBI · 10yr yield · debt/GDP · FRED / Bloomberg proxies</span>
       </div>
+      {kpis && (
+        <div className="credit-kpi-strip">
+          <div className="credit-kpi-pill">
+            <span className="credit-kpi-label">Tightest Spread</span>
+            <span className="credit-kpi-value accent">{kpis.tightest.country} {kpis.tightest.spread}bps</span>
+          </div>
+          <div className="credit-kpi-pill">
+            <span className="credit-kpi-label">Widest Spread</span>
+            <span className="credit-kpi-value">{kpis.widest.country} {kpis.widest.spread}bps</span>
+          </div>
+          <div className="credit-kpi-pill">
+            <span className="credit-kpi-label">Avg EM Spread</span>
+            <span className="credit-kpi-value">{kpis.avgSpread}bps</span>
+          </div>
+          <div className="credit-kpi-pill">
+            <span className="credit-kpi-label"># Investment Grade</span>
+            <span className="credit-kpi-value">{kpis.igCount}</span>
+          </div>
+        </div>
+      )}
       <div className="credit-two-col">
         <div className="credit-chart-panel">
           <div className="credit-chart-title">Sovereign Spread by Country</div>

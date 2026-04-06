@@ -1,5 +1,5 @@
 // src/markets/credit/components/DefaultWatch.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
@@ -69,11 +69,37 @@ export default function DefaultWatch({ defaultData }) {
   const { colors } = useTheme();
   const { rates = [], chargeoffs = { dates:[], commercial:[], consumer:[] }, defaultHistory = { dates:[], hy:[], loan:[] } } = defaultData;
 
+  const kpis = useMemo(() => {
+    const hyRate       = defaultHistory.hy?.length   ? defaultHistory.hy[defaultHistory.hy.length - 1]     : null;
+    const loanRate     = defaultHistory.loan?.length  ? defaultHistory.loan[defaultHistory.loan.length - 1] : null;
+    const consumerCO   = chargeoffs.consumer?.length  ? chargeoffs.consumer[chargeoffs.consumer.length - 1] : null;
+    const deteriorating = rates.filter(r => r.value > r.prev).length;
+    return { hyRate, loanRate, consumerCO, deteriorating };
+  }, [rates, chargeoffs, defaultHistory]);
+
   return (
     <div className="credit-panel">
       <div className="credit-panel-header">
         <span className="credit-panel-title">Default Watch</span>
         <span className="credit-panel-subtitle">HY/loan default rates · bank charge-offs · distressed ratios · FRED / Moody's</span>
+      </div>
+      <div className="credit-kpi-strip">
+        <div className="credit-kpi-pill">
+          <span className="credit-kpi-label">HY Default Rate</span>
+          <span className="credit-kpi-value accent">{kpis.hyRate != null ? `${kpis.hyRate.toFixed(1)}%` : '—'}</span>
+        </div>
+        <div className="credit-kpi-pill">
+          <span className="credit-kpi-label">Loan Default Rate</span>
+          <span className="credit-kpi-value">{kpis.loanRate != null ? `${kpis.loanRate.toFixed(1)}%` : '—'}</span>
+        </div>
+        <div className="credit-kpi-pill">
+          <span className="credit-kpi-label">Consumer Chargeoff</span>
+          <span className="credit-kpi-value">{kpis.consumerCO != null ? `${kpis.consumerCO.toFixed(2)}%` : '—'}</span>
+        </div>
+        <div className="credit-kpi-pill">
+          <span className="credit-kpi-label"># Deteriorating</span>
+          <span className="credit-kpi-value">{kpis.deteriorating}</span>
+        </div>
       </div>
       <div className="credit-two-col">
         <div className="credit-two-row">
