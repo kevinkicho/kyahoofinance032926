@@ -1,11 +1,34 @@
-:root {
-  --bg-color: #0f172a; /* Slate 900 for modern dark mode */
-  --card-bg: #1e293b; /* Slate 800 */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --accent-color: #3b82f6; /* Blue 500 */
-  --color-green: #22c55e;
-  --color-red: #ef4444;
+:root, [data-theme="dark"] {
+  --bg-deep:       #0a0f1a;
+  --bg-primary:    #0f172a;
+  --bg-card:       #1e293b;
+  --text-bright:   #f8fafc;
+  --text-primary:  #e2e8f0;
+  --text-secondary:#94a3b8;
+  --text-muted:    #64748b;
+  --text-dim:      #475569;
+  --border-color:  #334155;
+  --border-subtle: #1e293b;
+  --accent-color:  #3b82f6;
+  --color-green:   #22c55e;
+  --color-red:     #ef4444;
+  --sidebar-width: 300px;
+}
+
+[data-theme="light"] {
+  --bg-deep:       #f8fafc;
+  --bg-primary:    #ffffff;
+  --bg-card:       #f1f5f9;
+  --text-bright:   #0f172a;
+  --text-primary:  #1e293b;
+  --text-secondary:#64748b;
+  --text-muted:    #94a3b8;
+  --text-dim:      #cbd5e1;
+  --border-color:  #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --accent-color:  #3b82f6;
+  --color-green:   #16a34a;
+  --color-red:     #dc2626;
   --sidebar-width: 300px;
 }
 
@@ -17,7 +40,7 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-color);
+  background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
   height: 100vh;
@@ -58,7 +81,7 @@ body {
 }
 
 .tooltip-title {
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 5px;
   font-weight: bold;
 }
@@ -74,7 +97,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #0a0f1a;
+  background: var(--bg-deep);
   overflow: hidden;
 }
 
@@ -87,7 +110,7 @@ body {
   flex: 1;
   height: calc(100vh - 44px);
   gap: 16px;
-  color: #334155;
+  color: var(--text-dim);
   text-align: center;
   padding: 40px;
 }
@@ -100,12 +123,12 @@ body {
 .market-placeholder-title {
   font-size: 22px;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-dim);
 }
 
 .market-placeholder-desc {
   font-size: 14px;
-  color: #334155;
+  color: var(--text-dim);
   max-width: 400px;
   line-height: 1.6;
 }
