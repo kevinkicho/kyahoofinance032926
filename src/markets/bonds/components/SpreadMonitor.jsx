@@ -12,6 +12,7 @@ const SERIES_CONFIG = [
 
 export default function SpreadMonitor({ spreadData }) {
   const { colors } = useTheme();
+
   const option = useMemo(() => ({
     animation: false,
     backgroundColor: 'transparent',
@@ -52,25 +53,82 @@ export default function SpreadMonitor({ spreadData }) {
     })),
   }), [spreadData, colors]);
 
+  // KPI computations
+  const latest = useMemo(() => {
+    const ig  = spreadData.IG?.[spreadData.IG.length - 1] ?? null;
+    const hy  = spreadData.HY?.[spreadData.HY.length - 1] ?? null;
+    const em  = spreadData.EM?.[spreadData.EM.length - 1] ?? null;
+    const bbb = spreadData.BBB?.[spreadData.BBB.length - 1] ?? null;
+    const all = [
+      { key: 'IG', val: ig, color: '#60a5fa' },
+      { key: 'HY', val: hy, color: '#f472b6' },
+      { key: 'EM', val: em, color: '#fbbf24' },
+      { key: 'BBB', val: bbb, color: '#a78bfa' },
+    ].filter(s => s.val != null);
+    const widest = all.length ? all.reduce((a, b) => a.val > b.val ? a : b) : null;
+    const hyIgGap = (hy != null && ig != null) ? hy - ig : null;
+    return { ig, hy, em, bbb, widest, hyIgGap, all };
+  }, [spreadData]);
+
+  // Sort bars descending for side panel
+  const sortedBars = useMemo(() =>
+    [...latest.all].sort((a, b) => b.val - a.val),
+  [latest.all]);
+  const maxSpread = sortedBars.length ? sortedBars[0].val : 1;
+
   return (
     <div className="bonds-panel">
       <div className="bonds-panel-header">
         <span className="bonds-panel-title">Spread Monitor</span>
-        <span className="bonds-panel-subtitle">Credit spreads over US Treasuries · basis points (bps)</span>
+        <span className="bonds-panel-subtitle">Credit spreads over US Treasuries &middot; basis points (bps)</span>
       </div>
-      <div className="bonds-chart-wrap">
-        <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
-      </div>
-      <div className="bonds-series-legend">
-        {SERIES_CONFIG.map(({ key, label, color }) => (
-          <span key={key} className="bonds-series-legend-item">
-            <span className="bonds-series-legend-dot" style={{ background: color }} />
-            {label}
+
+      {/* KPI Strip */}
+      <div className="bonds-kpi-strip">
+        <div className="bonds-kpi-pill">
+          <span className="bonds-kpi-label">IG Spread</span>
+          <span className="bonds-kpi-value accent">{latest.ig != null ? `${latest.ig} bps` : '\u2014'}</span>
+        </div>
+        <div className="bonds-kpi-pill">
+          <span className="bonds-kpi-label">HY Spread</span>
+          <span className="bonds-kpi-value accent">{latest.hy != null ? `${latest.hy} bps` : '\u2014'}</span>
+        </div>
+        <div className="bonds-kpi-pill">
+          <span className="bonds-kpi-label">Widest</span>
+          <span className="bonds-kpi-value" style={{ color: latest.widest?.color || '#10b981' }}>
+            {latest.widest ? `${latest.widest.key} ${latest.widest.val}` : '\u2014'}
           </span>
-        ))}
+        </div>
+        <div className="bonds-kpi-pill">
+          <span className="bonds-kpi-label">{`HY\u2212IG Gap`}</span>
+          <span className="bonds-kpi-value accent">{latest.hyIgGap != null ? `${latest.hyIgGap} bps` : '\u2014'}</span>
+        </div>
       </div>
+
+      {/* Wide-Narrow: Chart + Latest Bars */}
+      <div className="bonds-wide-narrow">
+        <div className="bonds-chart-wrap">
+          <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
+        </div>
+        <div className="bonds-chart-panel">
+          <div className="bonds-chart-title">Latest Spreads</div>
+          {sortedBars.map(s => {
+            const pct = (s.val / maxSpread) * 100;
+            return (
+              <div key={s.key} className="bonds-bar-row">
+                <span className="bonds-bar-label">{s.key}</span>
+                <div className="bonds-bar-track">
+                  <div className="bonds-bar-fill" style={{ width: `${pct}%`, background: s.color }} />
+                </div>
+                <span className="bonds-bar-val">{s.val} bps</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="bonds-panel-footer">
-        Source: ICE BofA indices via FRED · spreads over US Treasuries
+        Source: ICE BofA indices via FRED &middot; spreads over US Treasuries
       </div>
     </div>
   );
