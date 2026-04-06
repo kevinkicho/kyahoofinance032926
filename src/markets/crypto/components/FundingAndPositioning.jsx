@@ -1,5 +1,5 @@
 // src/markets/crypto/components/FundingAndPositioning.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
@@ -46,12 +46,46 @@ export default function FundingAndPositioning({ fundingData }) {
   if (!fundingData) return null;
   const { rates = [], openInterestHistory } = fundingData;
 
+  const kpis = useMemo(() => {
+    if (!rates.length) return null;
+    const totalOI = rates.reduce((s, r) => s + (r.openInterestB || 0), 0);
+    const avgRate = rates.reduce((s, r) => s + (r.rate8h || 0), 0) / rates.length;
+    const longsCount = rates.filter(r => (r.rate8h || 0) > 0.001).length;
+    const highestRate = rates.reduce((a, b) => Math.abs(a.rate8h || 0) > Math.abs(b.rate8h || 0) ? a : b);
+    return { totalOI, avgRate, longsCount, highestRate, total: rates.length };
+  }, [rates]);
+
   return (
     <div className="crypto-panel">
       <div className="crypto-panel-header">
         <span className="crypto-panel-title">Funding & Positioning</span>
         <span className="crypto-panel-subtitle">Perpetual futures · 8h funding rate · open interest · Bybit</span>
       </div>
+      {/* KPI Strip */}
+      {kpis && (
+        <div className="crypto-kpi-strip">
+          <div className="crypto-kpi-pill">
+            <span className="crypto-kpi-label">Total OI</span>
+            <span className="crypto-kpi-value accent">${kpis.totalOI.toFixed(1)}B</span>
+          </div>
+          <div className="crypto-kpi-pill">
+            <span className="crypto-kpi-label">Avg 8h Rate</span>
+            <span className="crypto-kpi-value" style={{ color: fundingColor(kpis.avgRate) }}>
+              {kpis.avgRate >= 0 ? '+' : ''}{(kpis.avgRate * 100).toFixed(4)}%
+            </span>
+          </div>
+          <div className="crypto-kpi-pill">
+            <span className="crypto-kpi-label">Longs Paying</span>
+            <span className="crypto-kpi-value accent">{kpis.longsCount}</span>
+            <span className="crypto-kpi-sub">of {kpis.total}</span>
+          </div>
+          <div className="crypto-kpi-pill">
+            <span className="crypto-kpi-label">Most Active</span>
+            <span className="crypto-kpi-value accent">{kpis.highestRate.symbol}</span>
+            <span className="crypto-kpi-sub">${kpis.highestRate.openInterestB?.toFixed(1)}B OI</span>
+          </div>
+        </div>
+      )}
       <div className="crypto-two-col">
         <div className="crypto-chart-panel">
           <div className="crypto-chart-title">Perpetual Funding Rates</div>
