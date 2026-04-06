@@ -6,7 +6,7 @@ import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
 
-export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency }) {
+export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency, onExport }) {
   const { theme, toggle } = useTheme();
 
   return (
@@ -29,6 +29,13 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
         title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       >
         {theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}
+      </button>
+      <button
+        className="hub-export-btn"
+        onClick={onExport}
+        title="Export view as PNG"
+      >
+        {'\uD83D\uDCF7'}
       </button>
       <div className="hub-currency-picker">
         <label className="hub-currency-label">Currency</label>

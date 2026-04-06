@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import html2canvas from 'html2canvas';
 import MarketTabBar from './MarketTabBar';
-import { DEFAULT_MARKET } from './markets.config';
+import { DEFAULT_MARKET, MARKETS } from './markets.config';
 import EquitiesMarket        from '../markets/equities/EquitiesMarket';
 import BondsMarket           from '../markets/bonds/BondsMarket';
 import FXMarket              from '../markets/fx/FXMarket';
@@ -36,8 +37,20 @@ export default function HubLayout() {
   const [activeMarket, setActiveMarket] = useState(DEFAULT_MARKET);
   const [currency, setCurrency] = useState('USD');
   const [snapshotDate, setSnapshotDate] = useState(null);
+  const contentRef = useRef(null);
 
   const ActiveMarket = MARKET_COMPONENTS[activeMarket];
+
+  const handleExport = useCallback(async () => {
+    if (!contentRef.current) return;
+    const canvas = await html2canvas(contentRef.current, { useCORS: true, scale: 2 });
+    const link = document.createElement('a');
+    const marketLabel = MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket;
+    const date = new Date().toISOString().slice(0, 10);
+    link.download = `${marketLabel}-${date}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }, [activeMarket]);
 
   return (
     <div className="hub-layout">
@@ -46,13 +59,16 @@ export default function HubLayout() {
         setActiveMarket={setActiveMarket}
         currency={currency}
         setCurrency={setCurrency}
+        onExport={handleExport}
       />
-      <ActiveMarket
-        currency={currency}
-        setCurrency={setCurrency}
-        snapshotDate={snapshotDate}
-        setSnapshotDate={setSnapshotDate}
-      />
+      <div ref={contentRef}>
+        <ActiveMarket
+          currency={currency}
+          setCurrency={setCurrency}
+          snapshotDate={snapshotDate}
+          setSnapshotDate={setSnapshotDate}
+        />
+      </div>
       <HubFooter />
     </div>
   );
