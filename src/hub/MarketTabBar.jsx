@@ -20,6 +20,9 @@ function highlightMatch(text, query) {
 }
 
 export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency, onExport }) {
+  function handlePopout() {
+    window.open('/?popout=' + activeMarket, '_blank', 'width=1200,height=800,menubar=no,toolbar=no');
+  }
   const { theme, toggle } = useTheme();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -107,6 +110,13 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
         title="Export view as PNG"
       >
         {'\uD83D\uDCF7'}
+      </button>
+      <button
+        className="hub-popout-btn"
+        onClick={handlePopout}
+        title="Pop out to new window"
+      >
+        &#10697;
       </button>
       <div className="hub-search-wrap" ref={wrapRef}>
         <span className="hub-search-icon">&#128269;</span>
