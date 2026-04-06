@@ -1,5 +1,5 @@
 // src/markets/crypto/components/DefiChains.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
@@ -54,11 +54,44 @@ export default function DefiChains({ defiData }) {
   if (!defiData) return null;
   const { protocols = [], chains = [] } = defiData;
 
+  const kpis = useMemo(() => {
+    const totalTvl = chains.reduce((s, c) => s + (c.tvlB || 0), 0);
+    const topChain = chains.length ? chains.reduce((a, b) => (a.tvlB || 0) > (b.tvlB || 0) ? a : b) : null;
+    const topProtocol = protocols.length ? protocols.reduce((a, b) => (a.tvlB || 0) > (b.tvlB || 0) ? a : b) : null;
+    const totalProtocols = chains.reduce((s, c) => s + (c.protocols || 0), 0);
+    return { totalTvl, topChain, topProtocol, totalProtocols };
+  }, [protocols, chains]);
+
   return (
     <div className="crypto-panel">
       <div className="crypto-panel-header">
         <span className="crypto-panel-title">DeFi & Chains</span>
         <span className="crypto-panel-subtitle">Total Value Locked · DeFiLlama</span>
+      </div>
+      {/* KPI Strip */}
+      <div className="crypto-kpi-strip">
+        <div className="crypto-kpi-pill">
+          <span className="crypto-kpi-label">Total TVL</span>
+          <span className="crypto-kpi-value accent">${kpis.totalTvl.toFixed(1)}B</span>
+        </div>
+        {kpis.topChain && (
+          <div className="crypto-kpi-pill">
+            <span className="crypto-kpi-label">Top Chain</span>
+            <span className="crypto-kpi-value accent">{kpis.topChain.name}</span>
+            <span className="crypto-kpi-sub">${kpis.topChain.tvlB?.toFixed(1)}B</span>
+          </div>
+        )}
+        {kpis.topProtocol && (
+          <div className="crypto-kpi-pill">
+            <span className="crypto-kpi-label">Top Protocol</span>
+            <span className="crypto-kpi-value accent">{kpis.topProtocol.name}</span>
+            <span className="crypto-kpi-sub">${kpis.topProtocol.tvlB?.toFixed(1)}B</span>
+          </div>
+        )}
+        <div className="crypto-kpi-pill">
+          <span className="crypto-kpi-label">Total Protocols</span>
+          <span className="crypto-kpi-value accent">{kpis.totalProtocols.toLocaleString()}</span>
+        </div>
       </div>
       <div className="crypto-two-col">
         <div className="crypto-chart-panel">

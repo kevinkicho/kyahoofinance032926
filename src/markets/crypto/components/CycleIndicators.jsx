@@ -1,5 +1,5 @@
 // src/markets/crypto/components/CycleIndicators.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
@@ -128,11 +128,46 @@ export default function CycleIndicators({ fearGreedData }) {
   const { value = 50, history = [], correlations = [] } = fearGreedData;
   const label = fearGreedLabel(value);
 
+  const kpis = useMemo(() => {
+    const avg30d = history.length ? history.reduce((s, v) => s + v, 0) / history.length : null;
+    const min30d = history.length ? Math.min(...history) : null;
+    const max30d = history.length ? Math.max(...history) : null;
+    const mostCorr = correlations.length
+      ? correlations.reduce((a, b) => Math.abs(a.corr30d ?? 0) > Math.abs(b.corr30d ?? 0) ? a : b)
+      : null;
+    return { avg30d, min30d, max30d, mostCorr };
+  }, [history, correlations]);
+
   return (
     <div className="crypto-panel">
       <div className="crypto-panel-header">
         <span className="crypto-panel-title">Cycle Indicators</span>
         <span className="crypto-panel-subtitle">Fear & Greed · 30-day history · BTC cross-asset correlation</span>
+      </div>
+      {/* KPI Strip */}
+      <div className="crypto-kpi-strip">
+        <div className="crypto-kpi-pill">
+          <span className="crypto-kpi-label">F&amp;G Now</span>
+          <span className="crypto-kpi-value" style={{ color: fearGreedColor(value, colors.textSecondary) }}>{value}</span>
+          <span className="crypto-kpi-sub">{label}</span>
+        </div>
+        <div className="crypto-kpi-pill">
+          <span className="crypto-kpi-label">30d Avg</span>
+          <span className="crypto-kpi-value accent">{kpis.avg30d != null ? kpis.avg30d.toFixed(0) : '\u2014'}</span>
+        </div>
+        <div className="crypto-kpi-pill">
+          <span className="crypto-kpi-label">30d Range</span>
+          <span className="crypto-kpi-value accent">
+            {kpis.min30d != null ? `${kpis.min30d}\u2013${kpis.max30d}` : '\u2014'}
+          </span>
+        </div>
+        {kpis.mostCorr && (
+          <div className="crypto-kpi-pill">
+            <span className="crypto-kpi-label">Most Correlated</span>
+            <span className="crypto-kpi-value accent">{kpis.mostCorr.asset}</span>
+            <span className="crypto-kpi-sub">{kpis.mostCorr.corr30d >= 0 ? '+' : ''}{kpis.mostCorr.corr30d?.toFixed(2)}</span>
+          </div>
+        )}
       </div>
       <div className="crypto-two-col">
         <div className="crypto-two-row">
