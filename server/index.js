@@ -1832,6 +1832,10 @@ app.get('/api/crypto', async (_req, res) => {
     const fngUrl = 'https://api.alternative.me/fng/?limit=30';
     const defiProtocolsUrl = 'https://api.llama.fi/protocols';
     const defiChainsUrl = 'https://api.llama.fi/v2/chains';
+    const mempoolFeesUrl     = 'https://mempool.space/api/v1/fees/recommended';
+    const mempoolDiffUrl     = 'https://mempool.space/api/v1/difficulty-adjustment';
+    const mempoolStatsUrl    = 'https://mempool.space/api/mempool';
+    const mempoolHashrateUrl = 'https://mempool.space/api/v1/mining/hashrate/1m';
 
     const fetchJson = (url) => new Promise((resolve, reject) => {
       https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 kyahoofinance' } }, (r) => {
@@ -1841,12 +1845,16 @@ app.get('/api/crypto', async (_req, res) => {
       }).on('error', reject);
     });
 
-    const [cgCoins, cgGlobal, fng, defiProtocols, defiChains] = await Promise.allSettled([
+    const [cgCoins, cgGlobal, fng, defiProtocols, defiChains, mempoolFees, mempoolDiff, mempoolStats, mempoolHashrate] = await Promise.allSettled([
       fetchJson(cgCoinsUrl),
       fetchJson(cgGlobalUrl),
       fetchJson(fngUrl),
       fetchJson(defiProtocolsUrl),
       fetchJson(defiChainsUrl),
+      fetchJson(mempoolFeesUrl),
+      fetchJson(mempoolDiffUrl),
+      fetchJson(mempoolStatsUrl),
+      fetchJson(mempoolHashrateUrl),
     ]);
 
     // ── Build coinMarketData ─────────────────────────────────────────────────
@@ -1960,11 +1968,54 @@ app.get('/api/crypto', async (_req, res) => {
       };
     }
 
+    // 5. BTC on-chain metrics from mempool.space
+    let onChainData = null;
+    try {
+      const fees = mempoolFees.status === 'fulfilled' ? mempoolFees.value : null;
+      const diff = mempoolDiff.status === 'fulfilled' ? mempoolDiff.value : null;
+      const stats = mempoolStats.status === 'fulfilled' ? mempoolStats.value : null;
+      const hr = mempoolHashrate.status === 'fulfilled' ? mempoolHashrate.value : null;
+
+      if (fees || diff || stats || hr) {
+        onChainData = {
+          fees: fees ? {
+            fastest:  fees.fastestFee,
+            halfHour: fees.halfHourFee,
+            hour:     fees.hourFee,
+            economy:  fees.economyFee,
+            minimum:  fees.minimumFee,
+          } : null,
+          mempool: stats ? {
+            count: stats.count,
+            vsize: Math.round((stats.vsize || 0) / 1e6 * 10) / 10,
+          } : null,
+          difficulty: diff ? {
+            progressPercent:      Math.round((diff.progressPercent ?? 0) * 10) / 10,
+            difficultyChange:     Math.round((diff.difficultyChange ?? 0) * 10) / 10,
+            remainingBlocks:      diff.remainingBlocks ?? null,
+            estimatedRetargetDate: diff.estimatedRetargetDate
+              ? new Date(diff.estimatedRetargetDate * 1000).toISOString().split('T')[0]
+              : null,
+          } : null,
+          hashrate: hr?.hashrates ? {
+            current: hr.currentHashrate
+              ? Math.round(hr.currentHashrate / 1e18 * 10) / 10
+              : null,
+            history: hr.hashrates.map(h => ({
+              timestamp: h.timestamp,
+              avgHashrate: Math.round(h.avgHashrate / 1e18 * 10) / 10,
+            })),
+          } : null,
+        };
+      }
+    } catch { /* use null — mock fallback on client */ }
+
     const result = {
       coinMarketData: { coins, globalStats },
       fearGreedData,
       defiData,
       fundingData,
+      onChainData,
       lastUpdated: today,
     };
 
