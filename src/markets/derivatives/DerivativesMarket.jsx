@@ -14,7 +14,7 @@ const SUB_TABS = [
 
 export default function DerivativesMarket() {
   const [activeTab, setActiveTab] = useState('vol-surface');
-  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
+  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
 
   if (isLoading) {
     return (
@@ -47,7 +47,7 @@ export default function DerivativesMarket() {
       </div>
       <div className="deriv-content">
         {activeTab === 'vol-surface'        && <VolSurface       volSurfaceData={volSurfaceData} volPremium={volPremium} />}
-        {activeTab === 'vix-term-structure' && <VIXTermStructure vixTermStructure={vixTermStructure} vixEnrichment={vixEnrichment} />}
+        {activeTab === 'vix-term-structure' && <VIXTermStructure vixTermStructure={vixTermStructure} vixEnrichment={vixEnrichment} fredVixHistory={fredVixHistory} />}
         {activeTab === 'options-flow'       && <OptionsFlow      optionsFlow={optionsFlow} />}
       </div>
     </div>
