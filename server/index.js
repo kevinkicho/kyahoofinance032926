@@ -487,6 +487,51 @@ app.get('/api/bonds', async (req, res) => {
       if (r.status === 'fulfilled' && r.value[1] != null) spreadIndicators[r.value[0]] = r.value[1];
     });
 
+    // 5b. TIPS breakevens + real yields (history + latest)
+    let breakevensData = null;
+    if (FRED_API_KEY) {
+      try {
+        const [be5yHist, be10yHist, fwd5y5yHist, real5y, real10y] = await Promise.all([
+          fetchFredHistory('T5YIE', 130),
+          fetchFredHistory('T10YIE', 130),
+          fetchFredHistory('T5YIFR', 130),
+          fetchFredLatest('DFII5'),
+          fetchFredLatest('DFII10'),
+        ]);
+
+        // Align dates across the 3 history series (use be5y as anchor)
+        if (be5yHist?.length >= 20) {
+          const dates = be5yHist.map(p => p.date);
+          const be5yVals = be5yHist.map(p => p.value);
+
+          // Map be10y and fwd5y5y to the same date array
+          const be10yMap = {};
+          (be10yHist || []).forEach(p => { be10yMap[p.date] = p.value; });
+          const fwdMap = {};
+          (fwd5y5yHist || []).forEach(p => { fwdMap[p.date] = p.value; });
+
+          const be10yVals = dates.map(d => be10yMap[d] ?? null);
+          const fwd5y5yVals = dates.map(d => fwdMap[d] ?? null);
+
+          breakevensData = {
+            current: {
+              be5y:       be5yVals[be5yVals.length - 1],
+              be10y:      be10yVals[be10yVals.length - 1],
+              forward5y5y: fwd5y5yVals[fwd5y5yVals.length - 1],
+              real5y:     real5y,
+              real10y:    real10y,
+            },
+            history: {
+              dates:       dates.map(d => dateToMonthLabel(d)),
+              be5y:        be5yVals,
+              be10y:       be10yVals,
+              forward5y5y: fwd5y5yVals,
+            },
+          };
+        }
+      } catch { /* use null — client falls back to mock */ }
+    }
+
     // 5. Treasury avg interest rates (fiscaldata.treasury.gov — no auth needed)
     let treasuryRates = null;
     try {
@@ -518,6 +563,7 @@ app.get('/api/bonds', async (req, res) => {
       spreadData,
       spreadIndicators: Object.keys(spreadIndicators).length >= 3 ? spreadIndicators : null,
       treasuryRates,
+      breakevensData,
       lastUpdated: today,
     };
 
