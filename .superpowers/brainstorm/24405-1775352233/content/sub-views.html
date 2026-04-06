@@ -1,0 +1,49 @@
+<h2>Commodities Market — Which 4 sub-views?</h2>
+<p class="subtitle">Each of the 5 existing markets has exactly 4 sub-tabs. Pick the set that feels most useful for macro analysis.</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="price-dashboard" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Price Dashboard</h3>
+      <p>Live commodity prices across Energy, Metals, and Agriculture — table with 1d/1w/1m % changes and sparklines. The "home base" view.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="futures-curve" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Futures Curve</h3>
+      <p>Forward curve for crude oil, natural gas, or gold — shows contango vs backwardation across contract months. Key for macro interpretation.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="sector-heatmap" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Sector Heatmap</h3>
+      <p>Performance grid: rows = Energy / Metals / Agriculture / Softs, columns = 1d/1w/1m/3m/YTD. Color-coded like the FX Rate Matrix. Great at-a-glance view.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="supply-demand" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Supply &amp; Demand Monitor</h3>
+      <p>EIA crude inventory vs 5-year range, production vs consumption charts. Tells the "why" behind price moves.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="seasonal" onclick="toggleSelect(this)">
+    <div class="letter">E</div>
+    <div class="content">
+      <h3>Seasonal Patterns</h3>
+      <p>Average monthly returns by commodity over 10 years — shows when energy peaks, when agriculture is volatile. Tactical overlay.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="dxy-correlation" onclick="toggleSelect(this)">
+    <div class="letter">F</div>
+    <div class="content">
+      <h3>Dollar / Inflation Overlay</h3>
+      <p>Commodity index vs DXY and CPI — the macro story: dollar strength suppresses commodities, inflation cycles drive them.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:20px">Select up to 4 options (or tell me in the terminal). The first 5 markets each have exactly 4 sub-views.</p>

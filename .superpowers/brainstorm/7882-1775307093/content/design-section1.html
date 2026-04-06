@@ -1,0 +1,89 @@
+<h2>Design — Section 1: Hub Shell Architecture</h2>
+<p class="subtitle">File structure, routing, and how equities migrates</p>
+
+<div class="section">
+  <h3>New File Structure</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="background:#0f172a;border-radius:6px;padding:12px;font-family:monospace;font-size:10px;line-height:1.8;">
+      <div style="color:#475569;margin-bottom:6px;font-size:9px;letter-spacing:1px;">BEFORE</div>
+      <div style="color:#64748b;">src/</div>
+      <div style="color:#94a3b8;">&nbsp;&nbsp;App.jsx <span style="color:#ef4444;">← 547 lines, all state</span></div>
+      <div style="color:#64748b;">&nbsp;&nbsp;components/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;HeatmapView/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;ListView/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;BarRaceView/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;Header/ <span style="color:#ef4444;">← mixed concerns</span></div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;Sidebar/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;DetailPanel/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;data/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;utils/</div>
+    </div>
+    <div style="background:#0f172a;border-radius:6px;padding:12px;font-family:monospace;font-size:10px;line-height:1.8;">
+      <div style="color:#475569;margin-bottom:6px;font-size:9px;letter-spacing:1px;">AFTER</div>
+      <div style="color:#64748b;">src/</div>
+      <div style="color:#22c55e;">&nbsp;&nbsp;hub/</div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;MarketTabBar.jsx <span style="color:#4ade80;">← NEW</span></div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;HubLayout.jsx <span style="color:#4ade80;">← NEW</span></div>
+      <div style="color:#22c55e;">&nbsp;&nbsp;markets/</div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;equities/ <span style="color:#4ade80;">← existing code moves here</span></div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EquitiesMarket.jsx</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;components/</div>
+      <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data/</div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;bonds/ <span style="color:#4ade80;">← NEW</span></div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;fx/ <span style="color:#4ade80;">← NEW</span></div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;derivatives/ <span style="color:#4ade80;">← NEW</span></div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;realEstate/ <span style="color:#4ade80;">← NEW</span></div>
+      <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;insurance/ <span style="color:#4ade80;">← NEW</span></div>
+      <div style="color:#94a3b8;">&nbsp;&nbsp;App.jsx <span style="color:#4ade80;">← ~30 lines, thin shell</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Tab Bar Mockup</h3>
+  <div style="background:#0f172a;border-radius:6px;padding:0;overflow:hidden;font-family:monospace;">
+    <!-- Top market tab bar -->
+    <div style="background:#0d1117;border-bottom:1px solid #1e293b;padding:0 12px;display:flex;align-items:center;gap:0;">
+      <div style="padding:10px 14px;border-bottom:2px solid #3b82f6;color:#e2e8f0;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <span>📈</span><span>Equities</span>
+      </div>
+      <div style="padding:10px 14px;color:#475569;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <span>🏛️</span><span>Bonds</span>
+      </div>
+      <div style="padding:10px 14px;color:#475569;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <span>💱</span><span>FX</span>
+      </div>
+      <div style="padding:10px 14px;color:#475569;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <span>📊</span><span>Derivatives</span>
+      </div>
+      <div style="padding:10px 14px;color:#475569;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <span>🏠</span><span>Real Estate</span>
+      </div>
+      <div style="padding:10px 14px;color:#475569;font-size:11px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <span>🛡️</span><span>Insurance</span>
+      </div>
+      <div style="margin-left:auto;padding:6px 12px;color:#475569;font-size:10px;">💱 USD ▾</div>
+    </div>
+    <!-- Equities sub-tab bar -->
+    <div style="background:#111827;border-bottom:1px solid #1e293b;padding:0 12px;display:flex;align-items:center;gap:2px;">
+      <div style="padding:7px 12px;background:#1e293b;border-radius:4px 4px 0 0;color:#94a3b8;font-size:10px;cursor:pointer;">Heatmap</div>
+      <div style="padding:7px 12px;color:#475569;font-size:10px;cursor:pointer;">List</div>
+      <div style="padding:7px 12px;color:#475569;font-size:10px;cursor:pointer;">Bar Race</div>
+      <div style="padding:7px 12px;color:#475569;font-size:10px;cursor:pointer;">Portfolio</div>
+      <div style="padding:7px 12px;color:#475569;font-size:10px;cursor:pointer;">Radar</div>
+      <div style="padding:7px 12px;color:#475569;font-size:10px;cursor:pointer;">ML Explorer</div>
+    </div>
+    <!-- Content area placeholder -->
+    <div style="padding:16px;display:grid;grid-template-columns:1fr 280px;gap:12px;min-height:100px;">
+      <div style="background:#1e293b;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#334155;font-size:10px;">Equities Heatmap</div>
+      <div style="background:#1e293b;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#334155;font-size:10px;">Sidebar</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Shared Hub State</h3>
+  <p style="color:#94a3b8;font-size:13px;">Three pieces of state live at the hub level (shared across all markets): <strong style="color:#e2e8f0;">active currency</strong> (USD/EUR/etc.), <strong style="color:#e2e8f0;">snapshot date</strong> (time travel applies to all markets), and <strong style="color:#e2e8f0;">active market</strong>. Everything else — selected ticker, view mode, scenarios — lives inside each market's own component.</p>
+</div>
+
+<p style="color:#64748b;font-size:12px;margin-top:16px;">Does this hub shell structure look right? (file layout, tab bar, shared state)</p>

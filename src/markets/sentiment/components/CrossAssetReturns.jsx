@@ -3,8 +3,8 @@ import React from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
-function retColor(v) {
-  if (v == null) return '#1e293b';
+function retColor(v, cardBg = '#1e293b') {
+  if (v == null) return cardBg;
   if (v >  5)  return 'rgba(124,58,237,0.85)';
   if (v >  2)  return 'rgba(52,211,153,0.75)';
   if (v >  0)  return 'rgba(52,211,153,0.35)';
@@ -67,7 +67,7 @@ export default function CrossAssetReturns({ returnsData }) {
                       <td
                         key={i}
                         className="sent-returns-td"
-                        style={{ background: retColor(v), color: v == null ? colors.textDim : v >= 0 ? colors.text : '#fca5a5' }}
+                        style={{ background: retColor(v, colors.cardBg), color: v == null ? colors.textDim : v >= 0 ? colors.text : '#fca5a5' }}
                       >
                         {fmtRet(v)}
                       </td>

@@ -3,8 +3,8 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
-function beatColor(rate) {
-  if (rate == null || Number.isNaN(rate)) return '#475569';
+function beatColor(rate, textDim = '#475569') {
+  if (rate == null || Number.isNaN(rate)) return textDim;
   if (rate >= 70) return '#6366f1';
   if (rate >= 50) return '#f59e0b';
   return '#ef4444';
@@ -45,7 +45,7 @@ function buildBeatRateOption(beatRates, colors) {
       type: 'bar',
       data: sorted.map(s => ({
         value: s.beatRate,
-        itemStyle: { color: beatColor(s.beatRate) },
+        itemStyle: { color: beatColor(s.beatRate, colors.textDim) },
       })),
       markLine: {
         data: [{ xAxis: 50 }],

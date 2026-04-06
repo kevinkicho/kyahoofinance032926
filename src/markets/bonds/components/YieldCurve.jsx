@@ -42,7 +42,7 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators }) {
         type: 'line',
         smooth: true,
         data: TENORS.map(t => yieldCurveData[c]?.[t] ?? null),
-        itemStyle: { color: COUNTRY_COLORS[c] || '#94a3b8' },
+        itemStyle: { color: COUNTRY_COLORS[c] || colors.textSecondary },
         lineStyle: { width: 2 },
         symbol: 'circle',
         symbolSize: 5,

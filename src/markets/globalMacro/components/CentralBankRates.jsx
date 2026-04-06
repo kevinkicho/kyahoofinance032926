@@ -8,8 +8,8 @@ const HISTORY_COLORS = {
   JP: '#f59e0b', CA: '#ef4444', AU: '#22c55e', SE: '#fb923c',
 };
 
-function barColor(rate) {
-  if (rate == null || Number.isNaN(rate)) return '#475569';
+function barColor(rate, textDim = '#475569') {
+  if (rate == null || Number.isNaN(rate)) return textDim;
   if (rate < 3)    return '#14b8a6';
   if (rate < 6)    return '#f59e0b';
   return '#ef4444';
@@ -45,7 +45,7 @@ function buildRankedOption(current, colors) {
       type: 'bar',
       data: sorted.map(c => ({
         value: c.rate,
-        itemStyle: { color: barColor(c.rate) },
+        itemStyle: { color: barColor(c.rate, colors.textDim) },
       })),
     }],
   };

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Market Hub — Design Spec</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0f1a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; padding: 32px 24px; }
+  .page { max-width: 900px; margin: 0 auto; }
+
+  /* Header */
+  .spec-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #1e293b; }
+  .spec-title { font-size: 26px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px; }
+  .spec-title span { color: #3b82f6; }
+  .spec-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+  .badge-approved { background: #14532d; color: #4ade80; }
+  .badge-date { background: #1e293b; color: #94a3b8; }
+  .badge-audience { background: #1e3a5f; color: #93c5fd; }
+
+  /* Sections */
+  .section { margin-bottom: 36px; }
+  .section-title { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #475569; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #1e293b; }
+
+  /* Cards row */
+  .cards-row { display: grid; gap: 12px; }
+  .cards-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .cards-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* Market cards */
+  .market-card { background: #0f172a; border-radius: 10px; padding: 16px; border-top: 3px solid var(--accent); }
+  .market-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .market-icon { font-size: 22px; }
+  .market-name { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  .market-sub { font-size: 10px; color: #475569; margin-top: 1px; }
+  .market-badge { margin-left: auto; font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .market-badge.live { background: #14532d; color: #4ade80; }
+  .market-badge.mock { background: #1e293b; color: #64748b; }
+  .market-badge.migrate { background: #1e3a5f; color: #93c5fd; }
+
+  /* View pills */
+  .views { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .view-pill { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; background: var(--pill-bg); color: var(--pill-fg); display: flex; align-items: center; gap: 3px; }
+  .view-pill .star { color: #fbbf24; font-size: 9px; }
+
+  /* Info row */
+  .info-row { font-size: 11px; color: #64748b; border-top: 1px solid #1e293b; padding-top: 10px; display: flex; align-items: center; gap: 6px; }
+  .info-row .api { color: #3b82f6; font-family: monospace; font-size: 10px; }
+
+  /* Architecture diagram */
+  .arch-diagram { background: #0f172a; border-radius: 10px; padding: 20px; font-family: monospace; font-size: 11px; line-height: 2; overflow-x: auto; }
+  .arch-row { display: flex; align-items: center; gap: 0; }
+  .tab { display: flex; align-items: center; gap: 5px; padding: 8px 14px; font-size: 11px; cursor: default; border-bottom: 2px solid transparent; }
+  .tab.active { border-bottom-color: #3b82f6; color: #e2e8f0; }
+  .tab.inactive { color: #475569; }
+  .tab-bar { display: flex; background: #0d1117; border-radius: 6px 6px 0 0; border-bottom: 1px solid #1e293b; overflow: hidden; }
+  .sub-tab-bar { display: flex; background: #111827; border-bottom: 1px solid #1e293b; gap: 2px; padding: 0 8px; }
+  .sub-tab { padding: 6px 10px; font-size: 10px; color: #475569; cursor: default; }
+  .sub-tab.active { background: #1e293b; border-radius: 4px 4px 0 0; color: #94a3b8; }
+  .workspace { background: #111827; border-radius: 0 0 6px 6px; padding: 14px; display: grid; grid-template-columns: 1fr 220px; gap: 10px; min-height: 80px; }
+  .ws-main { background: #1e293b; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #334155; font-size: 10px; }
+  .ws-side { background: #1e293b; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #334155; font-size: 10px; }
+  .currency-badge { margin-left: auto; padding: 6px 10px; color: #475569; font-size: 10px; align-self: center; }
+
+  /* File tree */
+  .file-tree { background: #0f172a; border-radius: 10px; padding: 18px; font-family: monospace; font-size: 11px; line-height: 1.9; }
+  .ft-dir { color: #64748b; }
+  .ft-new { color: #4ade80; }
+  .ft-moved { color: #93c5fd; }
+  .ft-note { color: #475569; }
+  .ft-file { color: #94a3b8; }
+
+  /* Build sequence */
+  .build-step { display: flex; align-items: flex-start; gap: 12px; background: #0f172a; border-radius: 8px; padding: 12px 14px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 1px; }
+  .step-body { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+  .step-desc { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .step-tag { font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 600; margin-top: 6px; display: inline-block; }
+
+  /* Decisions table */
+  .decisions { display: grid; gap: 8px; }
+  .decision-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; background: #0f172a; border-radius: 6px; padding: 10px 14px; align-items: center; }
+  .decision-q { font-size: 11px; color: #64748b; }
+  .decision-a { font-size: 12px; color: #e2e8f0; font-weight: 500; }
+
+  /* Goal / non-goal pills */
+  .goal-list { display: flex; flex-direction: column; gap: 7px; }
+  .goal-item { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: #94a3b8; }
+  .goal-check { color: #4ade80; font-size: 13px; flex-shrink: 0; }
+  .goal-cross { color: #475569; font-size: 13px; flex-shrink: 0; }
+
+  /* Shared state */
+  .state-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .state-pill { background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 12px; font-size: 11px; }
+  .state-pill code { color: #a78bfa; font-size: 11px; display: block; margin-bottom: 2px; }
+  .state-pill span { color: #64748b; }
+
+  /* Note box */
+  .note { background: #0d2818; border-left: 3px solid #22c55e; border-radius: 0 6px 6px 0; padding: 10px 14px; font-size: 12px; color: #86efac; margin-top: 10px; }
+  .note strong { color: #4ade80; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="spec-header">
+    <div>
+      <div class="spec-title">Global <span>Market Hub</span> — Design Spec</div>
+      <div style="color:#64748b;font-size:12px;margin-top:6px;">Restructure equity dashboard into a 6-market analytical hub</div>
+    </div>
+    <div class="spec-meta">
+      <span class="badge badge-approved">✓ Approved</span>
+      <span class="badge badge-date">2026-04-04</span>
+      <span class="badge badge-audience">Analyst / Researcher</span>
+    </div>
+  </div>
+
+  <!-- Goals -->
+  <div class="section">
+    <div class="section-title">Goals</div>
+    <div class="cards-row cols-2">
+      <div style="background:#0f172a;border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:#4ade80;font-weight:700;letter-spacing:0.5px;margin-bottom:10px;">IN SCOPE</div>
+        <div class="goal-list">
+          <div class="goal-item"><span class="goal-check">✓</span>Single app to monitor 6 asset classes: equities, bonds, FX, derivatives, real estate, insurance</div>
+          <div class="goal-item"><span class="goal-check">✓</span>Each market workspace purpose-built for that asset class — not a generic template</div>
+          <div class="goal-item"><span class="goal-check">✓</span>Clean market switching with minimal friction (top tab bar)</div>
+          <div class="goal-item"><span class="goal-check">✓</span>Mock data first; swapping in real APIs is a one-file change per market</div>
+        </div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:16px;">
+        <div style="font-size:11px;color:#475569;font-weight:700;letter-spacing:0.5px;margin-bottom:10px;">OUT OF SCOPE</div>
+        <div class="goal-list">
+          <div class="goal-item"><span class="goal-cross">✗</span>Cross-market correlation alerts or signal engine</div>
+          <div class="goal-item"><span class="goal-cross">✗</span>Real-time data for all markets on day one</div>
+          <div class="goal-item"><span class="goal-cross">✗</span>Mobile layout (desktop-first)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="section">
+    <div class="section-title">Navigation Architecture</div>
+    <div style="background:#0f172a;border-radius:10px;padding:20px;">
+      <div class="tab-bar">
+        <div class="tab active">📈 Equities</div>
+        <div class="tab inactive">🏛️ Bonds</div>
+        <div class="tab inactive">💱 FX</div>
+        <div class="tab inactive">📊 Derivatives</div>
+        <div class="tab inactive">🏠 Real Estate</div>
+        <div class="tab inactive">🛡️ Insurance</div>
+        <div class="currency-badge">💱 USD ▾</div>
+      </div>
+      <div class="sub-tab-bar">
+        <div class="sub-tab active">Heatmap</div>
+        <div class="sub-tab">List</div>
+        <div class="sub-tab">Bar Race</div>
+        <div class="sub-tab">Portfolio</div>
+        <div class="sub-tab">Radar</div>
+        <div class="sub-tab">ML Explorer</div>
+      </div>
+      <div class="workspace">
+        <div class="ws-main">Market Workspace</div>
+        <div class="ws-side">Sidebar</div>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="font-size:11px;color:#475569;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Shared Hub State</div>
+        <div class="state-pills">
+          <div class="state-pill"><code>activeMarket</code><span>which tab is selected</span></div>
+          <div class="state-pill"><code>currency</code><span>USD/EUR/etc. — applies across all markets</span></div>
+          <div class="state-pill"><code>snapshotDate</code><span>time-travel date (equities only for now)</span></div>
+        </div>
+        <div class="note" style="margin-top:12px;"><strong>Sidebar:</strong> The existing Sidebar is equities-specific and moves into <code style="color:#86efac">src/markets/equities/</code>. New markets get a simple detail panel — no scenario sliders or FX rate tables.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Markets -->
+  <div class="section">
+    <div class="section-title">Per-Market Workspaces</div>
+    <div class="cards-row cols-2">
+
+      <!-- Equities -->
+      <div class="market-card" style="--accent:#3b82f6;--pill-bg:#1e3a5f;--pill-fg:#93c5fd;">
+        <div class="market-card-header">
+          <span class="market-icon">📈</span>
+          <div><div class="market-name">Equities</div><div class="market-sub">Global stocks & crypto</div></div>
+          <span class="market-badge migrate">MIGRATES UNCHANGED</span>
+        </div>
+        <div class="views">
+          <span class="view-pill"><span class="star">★</span> Heatmap</span>
+          <span class="view-pill">List</span>
+          <span class="view-pill">Bar Race</span>
+          <span class="view-pill">Portfolio</span>
+          <span class="view-pill">Radar</span>
+          <span class="view-pill">ML Explorer</span>
+          <span class="view-pill">Data Hub</span>
+        </div>
+        <div class="info-row">All 7 views move to <span class="api">src/markets/equities/</span> — no changes</div>
+      </div>
+
+      <!-- Bonds -->
+      <div class="market-card" style="--accent:#10b981;--pill-bg:#14532d;--pill-fg:#86efac;">
+        <div class="market-card-header">
+          <span class="market-icon">🏛️</span>
+          <div><div class="market-name">Bonds</div><div class="market-sub">Sovereign & corporate debt</div></div>
+          <span class="market-badge mock">MOCK → FRED</span>
+        </div>
+        <div class="views">
+          <span class="view-pill"><span class="star">★</span> Yield Curve</span>
+          <span class="view-pill">Credit Matrix</span>
+          <span class="view-pill">Spread Monitor</span>
+          <span class="view-pill">Duration Ladder</span>
+        </div>
+        <div class="info-row">Future API: <span class="api">api.stlouisfed.org/fred</span> · DGS2, DGS10, DGS30</div>
+      </div>
+
+      <!-- FX -->
+      <div class="market-card" style="--accent:#f59e0b;--pill-bg:#451a03;--pill-fg:#fde68a;">
+        <div class="market-card-header">
+          <span class="market-icon">💱</span>
+          <div><div class="market-name">FX</div><div class="market-sub">Currency exchange market</div></div>
+          <span class="market-badge live">LIVE — FRANKFURTER ✓</span>
+        </div>
+        <div class="views">
+          <span class="view-pill"><span class="star">★</span> Rate Matrix</span>
+          <span class="view-pill">Carry Map</span>
+          <span class="view-pill">DXY Tracker</span>
+          <span class="view-pill">Top Movers</span>
+        </div>
+        <div class="info-row">Extends existing <span class="api">useFrankfurterRates</span> hook with history</div>
+      </div>
+
+      <!-- Derivatives -->
+      <div class="market-card" style="--accent:#a855f7;--pill-bg:#3b0764;--pill-fg:#e9d5ff;">
+        <div class="market-card-header">
+          <span class="market-icon">📊</span>
+          <div><div class="market-name">Derivatives</div><div class="market-sub">Options, futures & volatility</div></div>
+          <span class="market-badge mock">MOCK → YAHOO</span>
+        </div>
+        <div class="views">
+          <span class="view-pill"><span class="star">★</span> Vol Surface</span>
+          <span class="view-pill">Open Interest Map</span>
+          <span class="view-pill">Put/Call Ratio</span>
+          <span class="view-pill">Fear Gauge</span>
+        </div>
+        <div class="info-row">Future: extend server with <span class="api">/api/options/:ticker</span></div>
+      </div>
+
+      <!-- Real Estate -->
+      <div class="market-card" style="--accent:#f43f5e;--pill-bg:#4c0519;--pill-fg:#fecdd3;">
+        <div class="market-card-header">
+          <span class="market-icon">🏠</span>
+          <div><div class="market-name">Real Estate</div><div class="market-sub">Residential, commercial & REITs</div></div>
+          <span class="market-badge mock">MOCK → FRED</span>
+        </div>
+        <div class="views">
+          <span class="view-pill"><span class="star">★</span> Price Index</span>
+          <span class="view-pill">REIT Screen</span>
+          <span class="view-pill">Affordability Map</span>
+          <span class="view-pill">Transaction Vol</span>
+        </div>
+        <div class="info-row">Future: FRED <span class="api">CSUSHPINSA</span> · reuses bonds proxy</div>
+      </div>
+
+      <!-- Insurance -->
+      <div class="market-card" style="--accent:#06b6d4;--pill-bg:#164e63;--pill-fg:#a5f3fc;">
+        <div class="market-card-header">
+          <span class="market-icon">🛡️</span>
+          <div><div class="market-name">Insurance</div><div class="market-sub">P&C, life & reinsurance</div></div>
+          <span class="market-badge mock">STATIC DATA</span>
+        </div>
+        <div class="views">
+          <span class="view-pill"><span class="star">★</span> Risk Matrix</span>
+          <span class="view-pill">Loss Ratio Monitor</span>
+          <span class="view-pill">Cat Event Tracker</span>
+          <span class="view-pill">Company Screen</span>
+        </div>
+        <div class="info-row">Curated NAIC data · company screen via existing <span class="api">/api/stocks</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Build Sequence -->
+  <div class="section">
+    <div class="section-title">Build Sequence</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+
+      <div class="build-step">
+        <div class="step-num" style="background:#3b82f6;">1</div>
+        <div class="step-body">
+          <div class="step-title">Hub Shell</div>
+          <div class="step-desc">MarketTabBar, HubLayout, equities migration, shared state (currency + snapshotDate)</div>
+          <span class="step-tag" style="background:#1e3a5f;color:#93c5fd;">FOUNDATIONAL — build first</span>
+        </div>
+      </div>
+
+      <div class="build-step">
+        <div class="step-num" style="background:#f59e0b;">2</div>
+        <div class="step-body">
+          <div class="step-title">FX Market</div>
+          <div class="step-desc">Rate Matrix, Carry Map, DXY Tracker, Top Movers — Frankfurter already wired</div>
+          <span class="step-tag" style="background:#14532d;color:#4ade80;">QUICK WIN — data already live</span>
+        </div>
+      </div>
+
+      <div class="build-step">
+        <div class="step-num" style="background:#10b981;">3</div>
+        <div class="step-body">
+          <div class="step-title">Bonds Market</div>
+          <div class="step-desc">Yield Curve, Credit Matrix, Spread Monitor, Duration Ladder — FRED mock data</div>
+          <span class="step-tag" style="background:#1e293b;color:#94a3b8;">iconic visualization</span>
+        </div>
+      </div>
+
+      <div class="build-step">
+        <div class="step-num" style="background:#f43f5e;">4</div>
+        <div class="step-body">
+          <div class="step-title">Real Estate Market</div>
+          <div class="step-desc">Price Index, REIT Screen, Affordability Map, Transaction Vol — FRED + Yahoo Finance</div>
+          <span class="step-tag" style="background:#1e293b;color:#94a3b8;">reuses FRED proxy from bonds</span>
+        </div>
+      </div>
+
+      <div class="build-step">
+        <div class="step-num" style="background:#a855f7;">5</div>
+        <div class="step-body">
+          <div class="step-title">Derivatives Market</div>
+          <div class="step-desc">Vol Surface, Open Interest Map, Put/Call Ratio, Fear Gauge — new /api/options endpoint</div>
+          <span class="step-tag" style="background:#1e293b;color:#94a3b8;">most complex visualization</span>
+        </div>
+      </div>
+
+      <div class="build-step">
+        <div class="step-num" style="background:#06b6d4;">6</div>
+        <div class="step-body">
+          <div class="step-title">Insurance Market</div>
+          <div class="step-desc">Risk Matrix, Loss Ratio Monitor, Cat Event Tracker, Company Screen — curated static data</div>
+          <span class="step-tag" style="background:#1e293b;color:#94a3b8;">static data, reuses Yahoo Finance</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- File Structure -->
+  <div class="section">
+    <div class="section-title">File Structure</div>
+    <div class="file-tree">
+      <div class="ft-dir">src/</div>
+      <div class="ft-new">&nbsp;&nbsp;hub/</div>
+      <div class="ft-new">&nbsp;&nbsp;&nbsp;&nbsp;MarketTabBar.jsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← NEW — top-level market tab bar</span></div>
+      <div class="ft-new">&nbsp;&nbsp;&nbsp;&nbsp;HubLayout.jsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← NEW — shell: tab bar + active market</span></div>
+      <div class="ft-new">&nbsp;&nbsp;markets/</div>
+      <div class="ft-moved">&nbsp;&nbsp;&nbsp;&nbsp;equities/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← existing code moves here</span></div>
+      <div class="ft-file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EquitiesMarket.jsx &nbsp;&nbsp;&nbsp;<span class="ft-note">← was App.jsx</span></div>
+      <div class="ft-file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;components/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← HeatmapView, ListView, etc.</span></div>
+      <div class="ft-file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← stockUniverse.js, mockData.js</span></div>
+      <div class="ft-new">&nbsp;&nbsp;&nbsp;&nbsp;bonds/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← NEW</span></div>
+      <div class="ft-file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BondsMarket.jsx</div>
+      <div class="ft-file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;components/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← YieldCurve, CreditMatrix, ...</span></div>
+      <div class="ft-file">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data/mockBondsData.js &nbsp;<span class="ft-note">← shaped like FRED API</span></div>
+      <div class="ft-new">&nbsp;&nbsp;&nbsp;&nbsp;fx/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← NEW (Frankfurter already live)</span></div>
+      <div class="ft-new">&nbsp;&nbsp;&nbsp;&nbsp;derivatives/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← NEW</span></div>
+      <div class="ft-new">&nbsp;&nbsp;&nbsp;&nbsp;realEstate/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← NEW</span></div>
+      <div class="ft-new">&nbsp;&nbsp;&nbsp;&nbsp;insurance/ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← NEW</span></div>
+      <div class="ft-file">&nbsp;&nbsp;App.jsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← ~30 lines after refactor</span></div>
+      <div class="ft-dir">&nbsp;&nbsp;utils/ index.css &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-note">← unchanged</span></div>
+    </div>
+    <div class="note" style="margin-top:10px;"><strong>The swap rule:</strong> when ready for real data, only <code style="color:#86efac">use{Market}Data.js</code> changes per market — all components are untouched.</div>
+  </div>
+
+  <!-- Decisions -->
+  <div class="section">
+    <div class="section-title">Decisions Log</div>
+    <div class="decisions">
+      <div class="decision-row">
+        <div class="decision-q">Navigation pattern</div>
+        <div class="decision-a">Top tab bar — markets as tabs, per-market sub-tabs below</div>
+      </div>
+      <div class="decision-row">
+        <div class="decision-q">Workspace structure</div>
+        <div class="decision-a">Tailored views per market — each asset class gets domain-specific visualizations</div>
+      </div>
+      <div class="decision-row">
+        <div class="decision-q">Data strategy</div>
+        <div class="decision-a">Mock data first; each mock shaped to match its real API's response format</div>
+      </div>
+      <div class="decision-row">
+        <div class="decision-q">Implementation approach</div>
+        <div class="decision-a">Market Router — <code style="color:#a78bfa">src/markets/{name}/</code> per market, thin App.jsx shell</div>
+      </div>
+      <div class="decision-row">
+        <div class="decision-q">Build order</div>
+        <div class="decision-a">Hub Shell → FX → Bonds → Real Estate → Derivatives → Insurance</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:#334155;font-size:11px;margin-top:40px;padding-top:20px;border-top:1px solid #1e293b;">
+    Global Market Hub Design Spec · 2026-04-04 · Approved
+  </div>
+
+</div>
+</body>
+</html>

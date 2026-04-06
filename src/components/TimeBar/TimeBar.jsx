@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { getEventsNear, MARKET_EVENTS } from '../../data/marketEvents';
+import { useTheme } from '../../hub/ThemeContext';
 import './TimeBar.css';
 
 const DATA_START_STR = '2021-04-05';
@@ -166,7 +167,7 @@ const Scrubber = ({ snapshotDate, setSnapshotDate, isPlaying, yesterday }) => {
           onChange={handleChange}
           disabled={isPlaying}
           style={{
-            background: `linear-gradient(to right, #7c3aed ${fillPct}%, #1e293b ${fillPct}%)`
+            background: `linear-gradient(to right, #7c3aed ${fillPct}%, ${colors.cardBg} ${fillPct}%)`
           }}
         />
         {/* Month / quarter / year ticks */}
@@ -222,6 +223,7 @@ const Scrubber = ({ snapshotDate, setSnapshotDate, isPlaying, yesterday }) => {
 };
 
 const TimeBar = ({ snapshotDate, setSnapshotDate, snapshotLoading }) => {
+  const { colors } = useTheme();
   const yesterday   = getYesterday();
   const workingDate = snapshotDate || yesterday;
 

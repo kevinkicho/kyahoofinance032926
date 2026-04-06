@@ -4,10 +4,10 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
-function fundingColor(rate) {
+function fundingColor(rate, textSecondary = '#94a3b8') {
   if (rate > 0.015) return '#ef4444';
   if (rate > 0.005) return '#f59e0b';
-  if (rate > -0.005) return '#94a3b8';
+  if (rate > -0.005) return textSecondary;
   return '#818cf8';
 }
 
@@ -68,7 +68,7 @@ export default function FundingAndPositioning({ fundingData }) {
               </thead>
               <tbody>
                 {rates.map(r => {
-                  const color = fundingColor(r.rate8h);
+                  const color = fundingColor(r.rate8h, colors.textSecondary);
                   const sign = r.rate8h >= 0 ? '+' : '';
                   const signA = r.rateAnnualized >= 0 ? '+' : '';
                   return (

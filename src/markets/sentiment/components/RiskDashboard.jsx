@@ -1,5 +1,6 @@
 // src/markets/sentiment/components/RiskDashboard.jsx
 import React from 'react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
 function badgeClass(signal) {
@@ -14,17 +15,18 @@ function badgeLabel(signal) {
   return 'Neutral';
 }
 
-function scoreColor(score) {
+function scoreColor(score, textSecondary = '#94a3b8') {
   if (score >= 65) return '#7c3aed';
   if (score >= 50) return '#a78bfa';
-  if (score >= 35) return '#94a3b8';
+  if (score >= 35) return textSecondary;
   return '#f87171';
 }
 
 export default function RiskDashboard({ riskData }) {
+  const { colors } = useTheme();
   if (!riskData) return null;
   const { signals = [], overallScore = 50, overallLabel = 'Neutral' } = riskData;
-  const color = scoreColor(overallScore);
+  const color = scoreColor(overallScore, colors.textSecondary);
 
   return (
     <div className="sent-panel">

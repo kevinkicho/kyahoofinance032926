@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import './DetailPanel.css';
+import { useTheme } from '../../hub/ThemeContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ const FairValueBar = ({ rawPrice, fairPrice, rangeLow, rangeHigh, sym }) => {
 // ─── Chart Tab ───────────────────────────────────────────────────────────────
 
 const ChartTab = ({ historyData, sym }) => {
+  const { colors } = useTheme();
   if (!historyData || historyData.length === 0) {
     return (
       <div className="no-live-data">
@@ -93,9 +95,9 @@ const ChartTab = ({ historyData, sym }) => {
       type: 'category',
       data: historyData.map(d => d.date),
       boundaryGap: false,
-      axisLine:  { lineStyle: { color: '#334155' } },
+      axisLine:  { lineStyle: { color: colors.border } },
       axisTick:  { show: false },
-      axisLabel: { color: '#64748b', fontSize: 10, interval: 'auto', formatter: v => v.slice(5) },
+      axisLabel: { color: colors.textMuted, fontSize: 10, interval: 'auto', formatter: v => v.slice(5) },
       splitLine: { show: false },
     },
     yAxis: {
@@ -104,8 +106,8 @@ const ChartTab = ({ historyData, sym }) => {
       scale: true,
       axisLine:  { show: false },
       axisTick:  { show: false },
-      axisLabel: { color: '#64748b', fontSize: 10, formatter: v => `${sym}${v}` },
-      splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+      axisLabel: { color: colors.textMuted, fontSize: 10, formatter: v => `${sym}${v}` },
+      splitLine: { lineStyle: { color: colors.cardBg, type: 'dashed' } },
     },
     series: [{
       type: 'line',
@@ -125,9 +127,9 @@ const ChartTab = ({ historyData, sym }) => {
     }],
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#fff', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}<br/><b>${sym}${params[0].value}</b>`,
     },
   };
@@ -243,6 +245,7 @@ const PERIOD_LABELS = {
 };
 
 const AnalystsTab = ({ summaryData, sym }) => {
+  const { colors: tabColors } = useTheme();
   if (!summaryData?.financialData) {
     return (
       <div className="no-live-data">
@@ -256,7 +259,7 @@ const AnalystsTab = ({ summaryData, sym }) => {
   const rt  = summaryData.recommendationTrend?.trend?.[0];
   const et  = summaryData.earningsTrend?.trend || [];
   const key = fd.recommendationKey || '';
-  const meta = REC_META[key] || { label: key.toUpperCase(), color: '#94a3b8' };
+  const meta = REC_META[key] || { label: key.toUpperCase(), color: tabColors.textSecondary };
 
   const segments = rt ? [
     { label: 'Strong Buy',   count: rt.strongBuy,   color: '#22c55e' },

@@ -65,7 +65,7 @@
   width: 100%;
   padding: 0.75rem 1rem;
   background: rgba(15, 23, 42, 0.8);
-  border: 1px solid #475569;
+  border: 1px solid var(--text-dim);
   border-radius: 0.35rem;
   color: #fff;
   font-size: 0.95rem;
@@ -84,7 +84,7 @@
   left: 0;
   right: 0;
   background: var(--bg-card);
-  border: 1px solid #475569;
+  border: 1px solid var(--text-dim);
   border-radius: 0.35rem;
   margin-top: 0.25rem;
   box-shadow: 0 8px 16px rgba(0,0,0,0.4);
@@ -128,7 +128,7 @@
   width: 100%;
   padding: 0.75rem 1rem;
   background: rgba(15, 23, 42, 0.8);
-  border: 1px solid #475569;
+  border: 1px solid var(--text-dim);
   border-radius: 0.35rem;
   color: #fff;
   font-size: 0.95rem;

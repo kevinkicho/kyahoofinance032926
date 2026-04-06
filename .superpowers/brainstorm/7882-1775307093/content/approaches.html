@@ -1,0 +1,74 @@
+<h2>Hub Redesign — 3 Implementation Approaches</h2>
+<p class="subtitle">How should we restructure the existing app into a multi-market hub?</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Market Router — top-level routing per market</h3>
+      <p>Introduce a lightweight client-side router (or manual state) where the active market is the top-level state. Each market is a self-contained module: its own tab config, sub-views, data files, and sidebar. <code>App.jsx</code> becomes a thin shell that renders <code>&lt;MarketRouter&gt;</code> → <code>&lt;EquitiesMarket&gt;</code> / <code>&lt;BondsMarket&gt;</code> / etc. The existing equities code moves into <code>src/markets/equities/</code> with minimal changes.</p>
+      <div style="margin-top:8px;background:#0f172a;border-radius:4px;padding:8px;font-size:9px;font-family:monospace;color:#64748b;">
+        src/markets/<br>
+        &nbsp;&nbsp;equities/ ← existing code moves here<br>
+        &nbsp;&nbsp;bonds/<br>
+        &nbsp;&nbsp;fx/<br>
+        &nbsp;&nbsp;derivatives/<br>
+        &nbsp;&nbsp;realEstate/<br>
+        &nbsp;&nbsp;insurance/<br>
+        src/hub/ ← tab bar, market switcher<br>
+        App.jsx ← thin shell (~30 lines)
+      </div>
+      <div class="pros-cons" style="margin-top:8px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Clean isolation per market</li><li>Easy to add markets later</li><li>Equities code barely changes</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More directories to navigate</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Expand App.jsx — add markets as new view modes</h3>
+      <p>Keep the existing structure. Add <code>bonds</code>, <code>fx</code>, etc. as additional values of <code>viewMode</code>. The tab bar replaces the Header's current view buttons. Each new market is a new top-level component rendered in the existing <code>&lt;main&gt;</code> area. Minimal structural change — just more cases in the existing switch.</p>
+      <div style="margin-top:8px;background:#0f172a;border-radius:4px;padding:8px;font-size:9px;font-family:monospace;color:#64748b;">
+        App.jsx ← grows from 547 → ~900+ lines<br>
+        components/<br>
+        &nbsp;&nbsp;BondsView/<br>
+        &nbsp;&nbsp;FXView/<br>
+        &nbsp;&nbsp;... (flat, alongside equities)
+      </div>
+      <div class="pros-cons" style="margin-top:8px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Lowest disruption to existing code</li><li>Familiar pattern</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>App.jsx becomes very large</li><li>All market state in one component</li><li>Harder to reason about later</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Context + Registry — plugin-style market system</h3>
+      <p>Define a <code>MarketRegistry</code> — an array of market config objects, each declaring its id, label, icon, sub-views, and root component. The hub reads the registry to render tabs and route views. Adding a new market is purely additive: register a config object, drop in a component. Uses React Context for shared hub state (active market, currency, snapshot date).</p>
+      <div style="margin-top:8px;background:#0f172a;border-radius:4px;padding:8px;font-size:9px;font-family:monospace;color:#64748b;">
+        src/hub/MarketRegistry.js ← array of market configs<br>
+        src/hub/HubContext.js ← shared state<br>
+        src/markets/equities/index.jsx<br>
+        src/markets/bonds/index.jsx<br>
+        ... (each self-contained)
+      </div>
+      <div class="pros-cons" style="margin-top:8px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Most extensible long-term</li><li>Clean plugin mental model</li><li>Hub logic fully decoupled from markets</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Most upfront architecture work</li><li>Slight over-engineering for 6 known markets</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:12px 16px;background:#1e293b;border-radius:6px;border-left:3px solid #3b82f6;">
+  <span class="label">Recommendation</span>
+  <p style="margin:4px 0 0;color:#94a3b8;font-size:13px;">
+    <strong style="color:#e2e8f0;">A (Market Router)</strong> — best balance of clean architecture and build effort. Each market is isolated (easy to reason about, test, and extend), equities code barely changes, and App.jsx stays thin. C is slightly more elegant but adds complexity not yet justified by 6 fixed markets.
+  </p>
+</div>

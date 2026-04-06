@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import './ListView.css';
+import { useTheme } from '../../hub/ThemeContext';
 
 const SECTOR_COLORS = {
   'Technology':  '#3b82f6',
@@ -47,6 +48,7 @@ const ListView = ({
   groupBy    = 'market',
   snapshotDate,
 }) => {
+  const { colors } = useTheme();
   const metricMeta = METRIC_META[rankMetric] || METRIC_META.marketCap;
 
   // Build grouped rows: [{ type:'header', label, color, count, totalVal } | { type:'row', item }]
@@ -82,7 +84,7 @@ const ListView = ({
       );
       sorted.forEach(([reg, items]) => {
         const totalVal = items.reduce((s, x) => s + (x.adjustedValue || x.value || 0), 0);
-        out.push({ type: 'header', label: reg, color: items[0]?.regionColor || '#334155', count: items.length, totalVal });
+        out.push({ type: 'header', label: reg, color: items[0]?.regionColor || colors.border, count: items.length, totalVal });
         if (groupBy === 'sectorInMarket') {
           // Sub-group by sector within region
           const sectors = {};
@@ -108,7 +110,7 @@ const ListView = ({
     }
 
     return out;
-  }, [processedData, groupBy]);
+  }, [processedData, groupBy, colors]);
 
   const showChange = !!snapshotDate;
 

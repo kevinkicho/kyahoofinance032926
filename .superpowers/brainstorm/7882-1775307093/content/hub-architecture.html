@@ -1,0 +1,97 @@
+<h2>Market Hub — Navigation Architecture</h2>
+<p class="subtitle">How should analysts switch between markets? Three structural approaches.</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:12px;border-radius:6px;font-family:monospace;font-size:11px;">
+      <div style="background:#1e293b;border-radius:4px;padding:8px 10px;margin-bottom:8px;color:#94a3b8;font-size:10px;letter-spacing:1px;">GLOBAL MARKETS HUB</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+        <div style="background:#1d4ed8;border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">📈</div>
+          <div style="color:#bfdbfe;font-size:9px;margin-top:3px;">EQUITIES</div>
+        </div>
+        <div style="background:#166534;border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">🏛️</div>
+          <div style="color:#bbf7d0;font-size:9px;margin-top:3px;">BONDS</div>
+        </div>
+        <div style="background:#92400e;border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">💱</div>
+          <div style="color:#fde68a;font-size:9px;margin-top:3px;">FX</div>
+        </div>
+        <div style="background:#6b21a8;border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">📊</div>
+          <div style="color:#e9d5ff;font-size:9px;margin-top:3px;">DERIVATIVES</div>
+        </div>
+        <div style="background:#9f1239;border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">🏠</div>
+          <div style="color:#fecdd3;font-size:9px;margin-top:3px;">REAL ESTATE</div>
+        </div>
+        <div style="background:#164e63;border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-size:16px;">🛡️</div>
+          <div style="color:#a5f3fc;font-size:9px;margin-top:3px;">INSURANCE</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;background:#0f172a;border:1px solid #1e293b;border-radius:4px;padding:8px;color:#475569;font-size:9px;text-align:center;">↓ click a market to enter its workspace ↓</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Portal Landing Page</h3>
+      <p>Home screen shows all 6 markets as large cards. Click to enter a full-screen dedicated workspace per market. Strong identity for each market. Best for deliberate, focused analysis sessions.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:12px;border-radius:6px;font-family:monospace;font-size:11px;display:flex;gap:8px;">
+      <div style="display:flex;flex-direction:column;gap:6px;background:#0d1117;border-radius:4px;padding:8px;align-items:center;min-width:36px;">
+        <div style="font-size:14px;background:#1d4ed8;border-radius:4px;padding:4px;cursor:pointer;">📈</div>
+        <div style="font-size:14px;padding:4px;cursor:pointer;opacity:0.5;">🏛️</div>
+        <div style="font-size:14px;padding:4px;cursor:pointer;opacity:0.5;">💱</div>
+        <div style="font-size:14px;padding:4px;cursor:pointer;opacity:0.5;">📊</div>
+        <div style="font-size:14px;padding:4px;cursor:pointer;opacity:0.5;">🏠</div>
+        <div style="font-size:14px;padding:4px;cursor:pointer;opacity:0.5;">🛡️</div>
+      </div>
+      <div style="flex:1;background:#111827;border-radius:4px;padding:8px;">
+        <div style="background:#1d4ed8;border-radius:3px;padding:4px 6px;color:#bfdbfe;font-size:9px;margin-bottom:6px;">EQUITIES WORKSPACE</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;">
+          <div style="background:#1e293b;border-radius:3px;height:28px;"></div>
+          <div style="background:#1e293b;border-radius:3px;height:28px;"></div>
+        </div>
+        <div style="background:#1e293b;border-radius:3px;height:38px;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Icon Rail Sidebar</h3>
+      <p>Persistent left rail of market icons (like VS Code). One click switches markets instantly — no landing page. Workspace fills the rest of the screen. Best for analysts who jump between markets frequently.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a;padding:12px;border-radius:6px;font-family:monospace;font-size:11px;">
+      <div style="display:flex;gap:4px;margin-bottom:8px;background:#0d1117;padding:6px 8px;border-radius:4px;overflow:hidden;">
+        <div style="background:#1d4ed8;color:#bfdbfe;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;">📈 Equities</div>
+        <div style="color:#475569;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;">🏛️ Bonds</div>
+        <div style="color:#475569;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;">💱 FX</div>
+        <div style="color:#475569;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;">📊 Deriv</div>
+        <div style="color:#475569;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;">🏠 RE</div>
+        <div style="color:#475569;font-size:9px;padding:3px 7px;border-radius:3px;white-space:nowrap;">🛡️ Ins.</div>
+      </div>
+      <div style="background:#1d4ed8;border-radius:3px;padding:4px 6px;color:#bfdbfe;font-size:9px;margin-bottom:6px;">Equities — Heatmap | List | Portfolio | Radar ▾</div>
+      <div style="background:#1e293b;border-radius:4px;height:50px;"></div>
+    </div>
+    <div class="card-body">
+      <h3>C — Top Tab Bar</h3>
+      <p>Markets as top-level tabs, with per-market sub-tabs below. Familiar browser-like pattern. Compact but can get crowded. Nested tabs (markets → views) adds cognitive overhead.</p>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:12px 16px;background:#1e293b;border-radius:6px;border-left:3px solid #3b82f6;">
+  <span class="label">My recommendation</span>
+  <p style="margin:4px 0 0;color:#94a3b8;font-size:13px;">
+    <strong style="color:#e2e8f0;">A + B hybrid:</strong> Portal landing for first load (dramatic, bookmarkable), then once inside a market the icon rail appears for instant switching. Best of both — great first impression, fast analyst workflow.
+  </p>
+</div>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TRAINING_DATA, buildGlobalMacroEngine, predictMacroImpact } from '../../utils/mlEngine';
+import { useTheme } from '../../hub/ThemeContext';
 import './ModelExplorer.css';
 
 const ModelExplorer = ({ scenarios, setScenarios }) => {
+  const { colors } = useTheme();
   const [models, setModels] = useState(null);
   const [activeSector, setActiveSector] = useState('Technology');
 
@@ -124,7 +126,7 @@ const ModelExplorer = ({ scenarios, setScenarios }) => {
                   <span className="eq-var">+ ({f.name} weight × input)</span>
                   <span className="eq-math">
                     <span className={f.w >= 0 ? 't-green' : 't-red'}>{f.w >= 0 ? '+' : ''}{f.w.toFixed(3)}</span>
-                    <span style={{color: '#64748b'}}> × {f.norm.toFixed(2)}</span>
+                    <span style={{color: colors.textMuted}}> × {f.norm.toFixed(2)}</span>
                   </span>
                 </div>
               ))}

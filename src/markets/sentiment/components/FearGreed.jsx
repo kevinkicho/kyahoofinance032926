@@ -12,10 +12,10 @@ function scoreColor(score) {
   return '#7c3aed';
 }
 
-function signalColor(signal) {
+function signalColor(signal, textSecondary = '#94a3b8') {
   if (signal === 'greed') return '#7c3aed';
   if (signal === 'fear')  return '#f97316';
-  return '#94a3b8';
+  return textSecondary;
 }
 
 function buildGaugeOption(score, colors) {
@@ -112,7 +112,7 @@ export default function FearGreed({ fearGreedData }) {
                 <span style={{ fontSize: 11, color: colors.textSecondary }}>{ind.name}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {ind.percentile != null && <span style={{ fontSize: 9, color: colors.textDim }}>{ind.percentile}th pct</span>}
-                  <span style={{ fontSize: 11, fontFamily: 'monospace', color: signalColor(ind.signal) }}>
+                  <span style={{ fontSize: 11, fontFamily: 'monospace', color: signalColor(ind.signal, colors.textSecondary) }}>
                     {typeof ind.value === 'number' ? (ind.value > 100 ? `${Math.round(ind.value)}bps` : ind.value.toFixed(ind.value > 10 ? 1 : 2)) : ind.value}
                   </span>
                 </div>

@@ -1,0 +1,64 @@
+<h2>Price Dashboard — Layout Options</h2>
+<p class="subtitle">The "home base" view showing live prices across Energy, Metals, and Agriculture. Which layout feels right?</p>
+
+<div class="options">
+  <div class="option" data-choice="grouped-table" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Grouped Table (Recommended)</h3>
+      <p>Three collapsible sections — Energy, Metals, Agriculture — each a table with columns: Commodity | Price | 1d% | 1w% | 1m% | Sparkline. Mirrors the FX Rate Matrix structure. Dense, scannable, familiar.</p>
+      <div style="margin-top:10px;background:#0f172a;border-radius:6px;padding:12px;font-size:11px">
+        <div style="color:#64748b;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding-bottom:6px;border-bottom:1px solid #1e293b;margin-bottom:8px">⚡ ENERGY</div>
+        <div style="display:grid;grid-template-columns:120px 80px 60px 60px 60px 80px;gap:4px;color:#94a3b8;font-size:10px;margin-bottom:4px">
+          <span>Commodity</span><span style="text-align:right">Price</span><span style="text-align:right">1d%</span><span style="text-align:right">1w%</span><span style="text-align:right">1m%</span><span style="text-align:right">Trend</span>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 80px 60px 60px 60px 80px;gap:4px;color:#e2e8f0;font-size:11px">
+          <span>WTI Crude</span><span style="text-align:right;color:#ca8a04">$82.14</span><span style="text-align:right;color:#22c55e">+0.8%</span><span style="text-align:right;color:#ef4444">-2.1%</span><span style="text-align:right;color:#ef4444">-4.3%</span><span style="text-align:right;color:#64748b">▁▂▃▂▁▂▃</span>
+        </div>
+        <div style="display:grid;grid-template-columns:120px 80px 60px 60px 60px 80px;gap:4px;color:#e2e8f0;font-size:11px;margin-top:3px">
+          <span>Natural Gas</span><span style="text-align:right;color:#ca8a04">$1.93</span><span style="text-align:right;color:#ef4444">-1.2%</span><span style="text-align:right;color:#22c55e">+3.4%</span><span style="text-align:right;color:#22c55e">+8.1%</span><span style="text-align:right;color:#64748b">▁▁▂▃▄▅▄</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="card-grid" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Card Grid</h3>
+      <p>12 commodity cards in a 4×3 grid, each showing price, 1d% change with color coding, and a small sparkline. More visual, less data-dense. Similar to a stock screener tile view.</p>
+      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#64748b">WTI Crude</div>
+          <div style="font-size:14px;font-weight:700;color:#ca8a04">$82.14</div>
+          <div style="font-size:11px;color:#22c55e">+0.8%</div>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#64748b">Gold</div>
+          <div style="font-size:14px;font-weight:700;color:#ca8a04">$2,314</div>
+          <div style="font-size:11px;color:#22c55e">+0.3%</div>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#64748b">Copper</div>
+          <div style="font-size:14px;font-weight:700;color:#ca8a04">$4.12</div>
+          <div style="font-size:11px;color:#ef4444">-0.5%</div>
+        </div>
+        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#64748b">Wheat</div>
+          <div style="font-size:14px;font-weight:700;color:#ca8a04">$562</div>
+          <div style="font-size:11px;color:#ef4444">-1.1%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="split" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Split: Featured + Table</h3>
+      <p>Top row = 3 "hero" cards for WTI, Gold, Copper (the most macro-relevant), with larger price display. Below = compact table for the remaining 9. Best of both worlds but more complex layout.</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px">My recommendation: <strong>A (Grouped Table)</strong> — consistent with FX Rate Matrix, handles all 12 commodities cleanly, easy to scan across sectors.</p>

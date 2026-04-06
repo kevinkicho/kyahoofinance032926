@@ -1,0 +1,108 @@
+<h2>Design — Section 3: Data Architecture & Build Sequence</h2>
+<p class="subtitle">How mock data is structured, and the recommended order to build each sub-project</p>
+
+<div class="section">
+  <h3>Data Layer Pattern (per market)</h3>
+  <p style="color:#94a3b8;font-size:12px;margin-bottom:10px;">Each market module owns its data file. Mock data is shaped to exactly match the real API it will eventually consume — so the swap is a one-line import change.</p>
+  <div style="background:#0f172a;border-radius:6px;padding:12px;font-family:monospace;font-size:10px;line-height:1.8;">
+    <div style="color:#64748b;">src/markets/bonds/</div>
+    <div style="color:#94a3b8;">&nbsp;&nbsp;BondsMarket.jsx &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← root component + state</div>
+    <div style="color:#94a3b8;">&nbsp;&nbsp;components/</div>
+    <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;YieldCurve.jsx</div>
+    <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;CreditMatrix.jsx</div>
+    <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;SpreadMonitor.jsx</div>
+    <div style="color:#64748b;">&nbsp;&nbsp;&nbsp;&nbsp;DurationLadder.jsx</div>
+    <div style="color:#22c55e;">&nbsp;&nbsp;data/</div>
+    <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;mockBondsData.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← shaped like FRED API response</div>
+    <div style="color:#86efac;">&nbsp;&nbsp;&nbsp;&nbsp;useBondsData.js &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← hook: returns mock now, real API later</div>
+  </div>
+  <div style="margin-top:8px;background:#0d2818;border-radius:4px;padding:10px;font-size:11px;color:#86efac;border-left:2px solid #22c55e;">
+    <strong>The swap rule:</strong> when ready for real data, only <code>useBondsData.js</code> changes — it fetches from FRED instead of importing the mock file. All components are untouched.
+  </div>
+</div>
+
+<div class="section">
+  <h3>Real API targets (for future swap-in)</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;">
+    <div style="background:#0f172a;border-radius:4px;padding:8px;">
+      <div style="color:#10b981;font-size:10px;margin-bottom:4px;">🏛️ Bonds</div>
+      <div style="color:#94a3b8;">FRED API (free) — yield series, sovereign spreads</div>
+      <div style="color:#475569;font-size:9px;margin-top:2px;">api.stlouisfed.org/fred</div>
+    </div>
+    <div style="background:#0f172a;border-radius:4px;padding:8px;">
+      <div style="color:#f59e0b;font-size:10px;margin-bottom:4px;">💱 FX</div>
+      <div style="color:#94a3b8;">Frankfurter (already live ✓) + ECB for history</div>
+      <div style="color:#475569;font-size:9px;margin-top:2px;">frankfurter.app — already in useFrankfurterRates</div>
+    </div>
+    <div style="background:#0f172a;border-radius:4px;padding:8px;">
+      <div style="color:#a855f7;font-size:10px;margin-bottom:4px;">📊 Derivatives</div>
+      <div style="color:#94a3b8;">Yahoo Finance options chain (existing /api/stocks)</div>
+      <div style="color:#475569;font-size:9px;margin-top:2px;">Extend server/index.js with /api/options/:ticker</div>
+    </div>
+    <div style="background:#0f172a;border-radius:4px;padding:8px;">
+      <div style="color:#f43f5e;font-size:10px;margin-bottom:4px;">🏠 Real Estate</div>
+      <div style="color:#94a3b8;">FRED (Case-Shiller index, housing starts)</div>
+      <div style="color:#475569;font-size:9px;margin-top:2px;">Same FRED API as bonds — reuse server proxy</div>
+    </div>
+    <div style="background:#0f172a;border-radius:4px;padding:8px;grid-column:1/-1;">
+      <div style="color:#06b6d4;font-size:10px;margin-bottom:4px;">🛡️ Insurance</div>
+      <div style="color:#94a3b8;">No free real-time API — curated static dataset. Company data from Yahoo Finance (existing). Industry aggregates from NAIC public data (annual).</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Build Sequence (6 sub-projects)</h3>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="display:flex;align-items:center;gap:10px;background:#0f172a;border-radius:6px;padding:10px 12px;">
+      <div style="background:#3b82f6;color:#fff;font-size:10px;padding:3px 8px;border-radius:3px;min-width:22px;text-align:center;font-weight:700;">1</div>
+      <div style="flex:1;">
+        <div style="color:#e2e8f0;font-size:11px;font-weight:600;">Hub Shell</div>
+        <div style="color:#64748b;font-size:10px;">MarketTabBar, HubLayout, equities migration, shared state (currency + snapshot date)</div>
+      </div>
+      <div style="color:#475569;font-size:9px;white-space:nowrap;">foundational</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#0f172a;border-radius:6px;padding:10px 12px;">
+      <div style="background:#f59e0b;color:#fff;font-size:10px;padding:3px 8px;border-radius:3px;min-width:22px;text-align:center;font-weight:700;">2</div>
+      <div style="flex:1;">
+        <div style="color:#e2e8f0;font-size:11px;font-weight:600;">FX Market</div>
+        <div style="color:#64748b;font-size:10px;">Rate Matrix, Carry Map, DXY Tracker, Top Movers — Frankfurter already wired</div>
+      </div>
+      <div style="color:#22c55e;font-size:9px;white-space:nowrap;">quick win ✓</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#0f172a;border-radius:6px;padding:10px 12px;">
+      <div style="background:#10b981;color:#fff;font-size:10px;padding:3px 8px;border-radius:3px;min-width:22px;text-align:center;font-weight:700;">3</div>
+      <div style="flex:1;">
+        <div style="color:#e2e8f0;font-size:11px;font-weight:600;">Bonds Market</div>
+        <div style="color:#64748b;font-size:10px;">Yield Curve, Credit Matrix, Spread Monitor, Duration Ladder — FRED mock data</div>
+      </div>
+      <div style="color:#475569;font-size:9px;white-space:nowrap;">iconic viz</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#0f172a;border-radius:6px;padding:10px 12px;">
+      <div style="background:#f43f5e;color:#fff;font-size:10px;padding:3px 8px;border-radius:3px;min-width:22px;text-align:center;font-weight:700;">4</div>
+      <div style="flex:1;">
+        <div style="color:#e2e8f0;font-size:11px;font-weight:600;">Real Estate Market</div>
+        <div style="color:#64748b;font-size:10px;">Price Index, REIT Screen, Affordability Map, Transaction Vol — FRED + Yahoo Finance</div>
+      </div>
+      <div style="color:#475569;font-size:9px;white-space:nowrap;">FRED reuse</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#0f172a;border-radius:6px;padding:10px 12px;">
+      <div style="background:#a855f7;color:#fff;font-size:10px;padding:3px 8px;border-radius:3px;min-width:22px;text-align:center;font-weight:700;">5</div>
+      <div style="flex:1;">
+        <div style="color:#e2e8f0;font-size:11px;font-weight:600;">Derivatives Market</div>
+        <div style="color:#64748b;font-size:10px;">Vol Surface, Options Chain, Put/Call Ratio, Fear Gauge — extend /api/options</div>
+      </div>
+      <div style="color:#475569;font-size:9px;white-space:nowrap;">complex viz</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#0f172a;border-radius:6px;padding:10px 12px;">
+      <div style="background:#06b6d4;color:#fff;font-size:10px;padding:3px 8px;border-radius:3px;min-width:22px;text-align:center;font-weight:700;">6</div>
+      <div style="flex:1;">
+        <div style="color:#e2e8f0;font-size:11px;font-weight:600;">Insurance Market</div>
+        <div style="color:#64748b;font-size:10px;">Risk Matrix, Loss Ratio Monitor, Cat Event Tracker, Company Screen — curated static data</div>
+      </div>
+      <div style="color:#475569;font-size:9px;white-space:nowrap;">static data</div>
+    </div>
+  </div>
+</div>
+
+<p style="color:#64748b;font-size:12px;margin-top:16px;">Does this data strategy and build order look right? This is the final design section.</p>

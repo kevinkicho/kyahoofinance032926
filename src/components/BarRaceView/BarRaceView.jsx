@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../hub/ThemeContext';
 
 const SECTOR_COLORS = {
   'Technology':  '#3b82f6',
@@ -29,6 +30,7 @@ const REGION_COLORS = {
 };
 
 const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotDate, groupBy = 'market' }) => {
+  const { colors } = useTheme();
 
   // Sort descending by value, take top 30, then reverse so ECharts shows largest on top
   const top = useMemo(() => {
@@ -51,10 +53,10 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
     xAxis: {
       max: 'dataMax',
       type: 'value',
-      axisLine: { lineStyle: { color: '#334155' } },
-      splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+      axisLine: { lineStyle: { color: colors.border } },
+      splitLine: { lineStyle: { color: colors.cardBg, type: 'dashed' } },
       axisLabel: {
-        color: '#64748b',
+        color: colors.textMuted,
         fontSize: 11,
         formatter: v => {
           if (v >= 1000) return `${currentSymbol}${(v * currentRate / 1000).toFixed(1)}T`;
@@ -66,7 +68,7 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
       type: 'category',
       data: top.map(s => s.fullName || s.ticker),
       axisLabel: {
-        color: '#cbd5e1',
+        color: colors.text,
         fontSize: 11,
         fontWeight: '600',
         width: 200,
@@ -93,7 +95,7 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
       label: {
         show: true,
         position: 'right',
-        color: '#94a3b8',
+        color: colors.textSecondary,
         fontSize: 11,
         fontWeight: '700',
         fontFamily: 'JetBrains Mono, monospace',
@@ -108,9 +110,9 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(15,23,42,0.95)',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 12 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 12 },
       formatter: params => {
         const d = params[0]?.data;
         if (!d) return '';
@@ -118,10 +120,10 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
         const cap = v >= 1000
           ? `${currentSymbol}${(v / 1000).toFixed(3)}T`
           : `${currentSymbol}${v.toFixed(0)}B`;
-        return `<strong>${d.name}</strong><br/>${d.ticker} · ${d.sector}<br/>Market Cap: ${cap} (${currency})<br/><span style="color:#64748b;font-size:0.75rem">${d.region}</span>`;
+        return `<strong>${d.name}</strong><br/>${d.ticker} · ${d.sector}<br/>Market Cap: ${cap} (${currency})<br/><span style="color:${colors.textMuted};font-size:0.75rem">${d.region}</span>`;
       }
     },
-  }), [top, currentRate, currentSymbol, currency, groupBy]);
+  }), [top, currentRate, currentSymbol, currency, groupBy, colors]);
 
   // Legend items (by sector or by region)
   const legendItems = useMemo(() => {
@@ -144,14 +146,14 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
       <div style={{
         display: 'flex', alignItems: 'center', gap: '0.6rem',
         padding: '0.45rem 1rem 0.25rem',
-        borderBottom: '1px solid #1e293b',
+        borderBottom: `1px solid ${colors.cardBg}`,
         flexShrink: 0,
         flexWrap: 'wrap',
       }}>
         <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#f59e0b', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           Bar Race
         </span>
-        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+        <span style={{ fontSize: '0.7rem', color: colors.textMuted }}>
           Top 30 by Market Cap · colored by {groupBy === 'market' ? 'region' : 'sector'}
         </span>
         {snapshotDate && (

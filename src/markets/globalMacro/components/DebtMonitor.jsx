@@ -3,8 +3,8 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './MacroComponents.css';
 
-function debtBarColor(v) {
-  if (v == null || Number.isNaN(v)) return '#475569';
+function debtBarColor(v, textDim = '#475569') {
+  if (v == null || Number.isNaN(v)) return textDim;
   if (v < 60)  return '#14b8a6';
   if (v < 90)  return '#f59e0b';
   return '#ef4444';
@@ -40,7 +40,7 @@ function buildDebtOption(countries, colors) {
       type: 'bar',
       data: sorted.map(c => ({
         value: c.debt,
-        itemStyle: { color: debtBarColor(c.debt) },
+        itemStyle: { color: debtBarColor(c.debt, colors.textDim) },
       })),
       markLine: {
         data: [{ yAxis: 60 }, { yAxis: 100 }],

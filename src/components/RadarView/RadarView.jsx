@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
+import { useTheme } from '../../hub/ThemeContext';
 import './RadarView.css';
 
 const RadarView = ({ flatData, handleSelectTicker, currentSymbol, currentRate, currency, useMlEngine }) => {
+  const { colors } = useTheme();
   const radarData = useMemo(() => {
     // Calculate the percentage deviation for every global stock
     const enriched = flatData.map(stock => {
@@ -104,7 +106,7 @@ const RadarView = ({ flatData, handleSelectTicker, currentSymbol, currentRate, c
 
       {/* Sector Alpha/Beta */}
       <div className="radar-card radar-sector-anomalies">
-        <div className="rc-header" style={{ borderBottom: '1px solid #334155', paddingBottom: '1rem', marginBottom: '1rem' }}>
+        <div className="rc-header" style={{ borderBottom: `1px solid ${colors.border}`, paddingBottom: '1rem', marginBottom: '1rem' }}>
           <h3>Sector Deep Dive</h3>
           <span>The Top 5 Beneficiaries and Top 5 Casualties within each specific market sector.</span>
         </div>

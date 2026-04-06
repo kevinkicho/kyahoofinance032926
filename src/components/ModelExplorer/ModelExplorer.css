@@ -111,7 +111,7 @@
 
 .equation-box {
   background: rgba(0, 0, 0, 0.2);
-  border: 1px solid #475569;
+  border: 1px solid var(--text-dim);
   border-radius: 0.5rem;
   padding: 1rem;
   display: flex;

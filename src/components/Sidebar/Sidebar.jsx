@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../../hub/ThemeContext';
 import DetailPanel from '../DetailPanel/DetailPanel';
 import ScenarioController from './ScenarioController';
 import TimeTravel from '../TimeTravel/TimeTravel';
@@ -50,6 +51,7 @@ const Sidebar = ({
   useMlEngine,
   setUseMlEngine
 }) => {
+  const { colors } = useTheme();
   const fxRates = rates || exchangeRates;
   const [macroData, setMacroData] = useState(MOCK_MACRO);
   const [macroLive, setMacroLive] = useState(false);
@@ -119,7 +121,7 @@ const Sidebar = ({
 
           {macroMode === 'global' ? (
             <>
-              <h2>Macro Indicators {macroLive ? <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span> : <span style={{fontSize:'0.6rem',color:'#475569'}}>(Mock)</span>}</h2>
+              <h2>Macro Indicators {macroLive ? <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span> : <span style={{fontSize:'0.6rem',color:colors.textDim}}>(Mock)</span>}</h2>
               <div className="macro-grid">
                 <MacroCard label="M1 MONEY SUPPLY" latest={macroData.M1?.latest} prev={macroData.M1?.prev} prefix="$" unit="B" />
                 <MacroCard label="M2 MONEY SUPPLY" latest={macroData.M2?.latest} prev={macroData.M2?.prev} prefix="$" unit="B" />
@@ -136,7 +138,7 @@ const Sidebar = ({
                     {macroData.HY_OAS     && <MacroCard label="HY OAS (bps)"        latest={macroData.HY_OAS.latest}     prev={macroData.HY_OAS.prev} />}
                     {macroData.BAA_SPREAD && <MacroCard label="Baa–10yr Sprd (%)" latest={macroData.BAA_SPREAD.latest} prev={macroData.BAA_SPREAD.prev} />}
                   </div>
-                  <p style={{fontSize:'0.6rem',color:'#334155',margin:'-0.25rem 0 0'}}>
+                  <p style={{fontSize:'0.6rem',color:colors.border,margin:'-0.25rem 0 0'}}>
                     ICE BofA OAS · Baa–10yr Treasury spread · FRED{macroData.IG_OAS?.date ? ` · ${macroData.IG_OAS.date}` : ''}
                   </p>
                 </>
@@ -153,7 +155,7 @@ const Sidebar = ({
             FX Rates (vs USD)
             {ratesIsLive
               ? <span style={{ fontSize: '0.7rem', color: '#10b981', marginLeft: '0.5rem' }}>● Live {ratesDate}</span>
-              : <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: '0.5rem' }}>● Static fallback</span>
+              : <span style={{ fontSize: '0.7rem', color: colors.textMuted, marginLeft: '0.5rem' }}>● Static fallback</span>
             }
           </h2>
           <div className="fx-grid">

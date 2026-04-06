@@ -1,0 +1,46 @@
+<h2>Global Macro — Country Scope</h2>
+<p class="subtitle">How broad should the country coverage be?</p>
+
+<div class="options">
+  <div class="option" data-choice="g7" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>G7 Core (7 economies)</h3>
+      <p>US · Euro Area · UK · Japan · Canada · France · Italy</p>
+      <p style="color:#64748b;font-size:12px;margin-top:6px">The traditional advanced-economy bloc. Cleanest data coverage via FRED. All 7 have complete, consistent historical series going back decades. Focused and comparable — ideal for yield curve / rate cycle analysis.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Full FRED coverage</li><li>Decades of history</li><li>Clean comparisons</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Misses China, India, EM</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="g12" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>G7 + Key EM (12 economies) — Recommended</h3>
+      <p>US · Euro Area · UK · Japan · Canada · China · India · Brazil · South Korea · Australia · Mexico · Sweden</p>
+      <p style="color:#64748b;font-size:12px;margin-top:6px">Adds the four largest emerging markets plus Australia and South Korea — the economies that drive global commodity demand and supply chains. World Bank API fills in EM data gaps. A richer picture of global growth dynamics.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>China/India growth story</li><li>Commodity demand context</li><li>True global picture</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>EM data lags by 1 quarter</li><li>More complex layout</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="g20" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full G20 (20 economies)</h3>
+      <p>All G20 members including Saudi Arabia, Argentina, South Africa, Turkey, Indonesia, Russia</p>
+      <p style="color:#64748b;font-size:12px;margin-top:6px">Maximum coverage. Some members have spotty data and significant political/methodology risk. Useful for a "world map" view but harder to compare cleanly. Best for the Debt Monitor sub-view, not ideal for policy rate comparisons.</p>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Complete global coverage</li><li>World map visualization</li></ul></div>
+        <div class="cons"><h4>Cons</h4>
+        <ul><li>Inconsistent data quality</li><li>Some series are sparse</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:14px">My recommendation: <strong>B (G7 + Key EM, 12 economies)</strong> — broad enough to tell the global growth story, narrow enough to keep data clean and comparisons meaningful.</p>

@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../hub/ThemeContext';
 
 const METRIC_LABEL = {
   marketCap:  'Mkt Cap',
@@ -27,17 +28,18 @@ function getSectors(children) {
   collect(children);
   return Object.entries(map).sort(([, a], [, b]) => b - a);
 }
-function groupTooltip(d, currentRate, currentSymbol, currency, metricKey) {
+function groupTooltip(d, currentRate, currentSymbol, currency, metricKey, themeColors) {
   const total = sumLeaves(d);
   const converted = (total * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
   const count = countLeaves(d);
+  const textSecondary = themeColors?.textSecondary || '#94a3b8';
   let body = `<div style="font-weight:700;font-size:1rem;margin-bottom:4px">${d.name}</div>`;
-  body += `<div style="color:#94a3b8;font-size:0.78rem;margin-bottom:6px">${count} companies</div>`;
+  body += `<div style="color:${textSecondary};font-size:0.78rem;margin-bottom:6px">${count} companies</div>`;
   body += `<div style="margin-bottom:4px">${metricKey}: <strong>${currentSymbol}${converted} B</strong> (${currency})</div>`;
   if (!d.isSectorGroup) {
     const sectors = getSectors(d.children || []).slice(0, 4);
     if (sectors.length) {
-      body += `<div style="margin-top:6px;font-size:0.75rem;color:#94a3b8">Sectors:</div>`;
+      body += `<div style="margin-top:6px;font-size:0.75rem;color:${textSecondary}">Sectors:</div>`;
       sectors.forEach(([sec, val]) => {
         const pct = total > 0 ? ((val / total) * 100).toFixed(0) : 0;
         body += `<div style="font-size:0.78rem">· ${sec} <span style="color:#60a5fa">${pct}%</span></div>`;
@@ -48,7 +50,7 @@ function groupTooltip(d, currentRate, currentSymbol, currency, metricKey) {
       .sort((a, b) => (b.metricValue || b.value || 0) - (a.metricValue || a.value || 0))
       .slice(0, 3);
     if (stocks.length) {
-      body += `<div style="margin-top:6px;font-size:0.75rem;color:#94a3b8">Top holdings:</div>`;
+      body += `<div style="margin-top:6px;font-size:0.75rem;color:${textSecondary}">Top holdings:</div>`;
       stocks.forEach(st => {
         const isNum = /^\d/.test(st.name);
         const label = isNum ? (st.fullName || st.name) : `${st.name}${st.regionName ? ` · ${st.regionName}` : ''}`;
@@ -99,6 +101,7 @@ function fmtPct(val) {
 
 // ─── Hover panel ──────────────────────────────────────────────────────────────
 function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, currentRate, currentSymbol, currency, pos, snapshotDate }) {
+  const { colors } = useTheme();
   useEffect(() => { injectStyles(); }, []);
   if (!stock) return null;
 
@@ -167,7 +170,7 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
   const revBarW = rev ? Math.max(4, (rev / maxBar) * 100) : 0;
   const niBarW  = ni  ? Math.max(4, (ni  / maxBar) * 100) : 0;
 
-  const sep = <div style={{ borderTop: '1px solid #1e293b', margin: '0.42rem 0' }} />;
+  const sep = <div style={{ borderTop: `1px solid ${colors.cardBg}`, margin: '0.42rem 0' }} />;
 
   const panel = (
     <div style={{
@@ -204,7 +207,7 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', marginBottom: '0.1rem' }}>
         {stock.rank && <span style={{ color: '#facc15', fontWeight: 900, fontSize: '0.7rem' }}>#{stock.rank}</span>}
-        <span style={{ color: '#f1f5f9', fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>{stock.name}</span>
+        <span style={{ color: colors.text, fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>{stock.name}</span>
         {stock.sector && (
           <span style={{
             marginLeft: 'auto', fontSize: '0.6rem', fontWeight: 700,
@@ -214,7 +217,7 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
         )}
       </div>
       {stock.fullName && stock.fullName !== stock.name && (
-        <div style={{ color: '#94a3b8', fontSize: '0.68rem', marginBottom: '0.35rem', lineHeight: 1.3 }}>{stock.fullName}</div>
+        <div style={{ color: colors.textSecondary, fontSize: '0.68rem', marginBottom: '0.35rem', lineHeight: 1.3 }}>{stock.fullName}</div>
       )}
 
       {sep}
@@ -223,14 +226,14 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.28rem 0.5rem', marginBottom: '0.1rem' }}>
         {[
           { label: 'Mkt Cap', value: capStr,  color: '#93c5fd' },
-          { label: 'P/E',     value: peStr,   color: '#e2e8f0' },
-          { label: 'Div',     value: divStr,  color: div > 0 ? '#4ade80' : '#64748b' },
-          { label: 'Revenue', value: revStr,  color: '#e2e8f0' },
+          { label: 'P/E',     value: peStr,   color: colors.text },
+          { label: 'Div',     value: divStr,  color: div > 0 ? '#4ade80' : colors.textMuted },
+          { label: 'Revenue', value: revStr,  color: colors.text },
           { label: 'Net Inc', value: niStr,   color: ni > 0 ? '#4ade80' : '#ef4444' },
           { label: 'Margin',  value: mgnStr,  color: margin > 15 ? '#4ade80' : margin > 5 ? '#facc15' : '#ef4444' },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-            <span style={{ fontSize: '0.57rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+            <span style={{ fontSize: '0.57rem', color: colors.textDim, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
             <strong style={{ fontSize: '0.72rem', color, fontVariantNumeric: 'tabular-nums' }}>{value}</strong>
           </div>
         ))}
@@ -241,16 +244,16 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
         <div style={{ marginTop: '0.4rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
           {rev && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.55rem', color: '#475569', width: '28px' }}>Rev</span>
-              <div style={{ flex: 1, height: '4px', background: '#1e293b', borderRadius: '2px' }}>
+              <span style={{ fontSize: '0.55rem', color: colors.textDim, width: '28px' }}>Rev</span>
+              <div style={{ flex: 1, height: '4px', background: colors.cardBg, borderRadius: '2px' }}>
                 <div style={{ width: `${revBarW}%`, height: '100%', background: '#3b82f6', borderRadius: '2px' }} />
               </div>
             </div>
           )}
           {ni && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.55rem', color: '#475569', width: '28px' }}>Net</span>
-              <div style={{ flex: 1, height: '4px', background: '#1e293b', borderRadius: '2px' }}>
+              <span style={{ fontSize: '0.55rem', color: colors.textDim, width: '28px' }}>Net</span>
+              <div style={{ flex: 1, height: '4px', background: colors.cardBg, borderRadius: '2px' }}>
                 <div style={{ width: `${niBarW}%`, height: '100%', background: niBarW / revBarW > 0.15 ? '#22c55e' : '#ef4444', borderRadius: '2px' }} />
               </div>
             </div>
@@ -262,18 +265,18 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
       {hasTimeTravel && (
         <>
           {sep}
-          <div style={{ fontSize: '0.6rem', color: '#475569', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: '0.6rem', color: colors.textDim, marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Price Performance · {snapshotDate}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
             {changes.map(({ label, pct }) => {
               const has   = pct !== null;
-              const color = !has ? '#334155' : pct >= 0 ? '#22c55e' : '#ef4444';
+              const color = !has ? colors.border : pct >= 0 ? '#22c55e' : '#ef4444';
               const barW  = has ? Math.min(Math.abs(pct) / 15 * 100, 100) : 0;
               return (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ fontSize: '0.6rem', color: '#64748b', width: '26px', flexShrink: 0 }}>{label}</span>
-                  <div style={{ flex: 1, height: '3px', background: '#1e293b', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+                  <span style={{ fontSize: '0.6rem', color: colors.textMuted, width: '26px', flexShrink: 0 }}>{label}</span>
+                  <div style={{ flex: 1, height: '3px', background: colors.cardBg, borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
                     {has && <div style={{
                       height: '100%', width: `${barW}%`, background: color, borderRadius: '2px',
                       position: 'absolute', [pct < 0 ? 'right' : 'left']: 0,
@@ -301,7 +304,7 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
                 <polyline points={areaPath} fill={`url(#sg-${stock.name})`} stroke="none" />
                 <polyline points={sparkPath} fill="none" stroke={sparkColor} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
               </svg>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.57rem', color: '#334155', marginTop: '0.08rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.57rem', color: colors.border, marginTop: '0.08rem' }}>
                 <span>1Y ago</span>
                 <span>{snapshotDate}</span>
               </div>
@@ -314,7 +317,7 @@ function StockHoverPanel({ stock, isEnabled, snapshotPrices, comparisonPrices, c
       {!isEnabled && (
         <>
           {sep}
-          <div style={{ fontSize: '0.6rem', color: '#334155', textAlign: 'center', letterSpacing: '0.03em' }}>
+          <div style={{ fontSize: '0.6rem', color: colors.border, textAlign: 'center', letterSpacing: '0.03em' }}>
             hold to open full analysis →
           </div>
         </>
@@ -335,6 +338,7 @@ const HeatmapView = ({
   snapshotPrices, comparisonPrices, snapshotDate, colorByPerf,
   onHoverActivate,
 }) => {
+  const { colors } = useTheme();
 
   const [hoveredStock, setHoveredStock] = useState(null);
   const [isEnabled,    setIsEnabled]    = useState(false);
@@ -374,7 +378,7 @@ const HeatmapView = ({
       formatter: function (info) {
         if (!info.data) return '';
         const d = info.data;
-        if (d.children?.length > 0) return groupTooltip(d, currentRate, currentSymbol, currency, METRIC_LABEL[rankMetric] || 'Mkt Cap');
+        if (d.children?.length > 0) return groupTooltip(d, currentRate, currentSymbol, currency, METRIC_LABEL[rankMetric] || 'Mkt Cap', colors);
         return '';
       }
     },
@@ -401,7 +405,7 @@ const HeatmapView = ({
       width: '100%',
       height: '90%',
     }]
-  }), [chartData, levels, currentRate, currentSymbol, currency, rankMetric, hoveredStock]);
+  }), [chartData, levels, currentRate, currentSymbol, currency, rankMetric, hoveredStock, colors]);
 
   const onMouseover = useCallback((params) => {
     const d = params.data;

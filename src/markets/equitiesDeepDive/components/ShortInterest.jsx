@@ -3,8 +3,8 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
-function shortBarColor(v) {
-  if (v == null || Number.isNaN(v)) return '#475569';
+function shortBarColor(v, textDim = '#475569') {
+  if (v == null || Number.isNaN(v)) return textDim;
   if (v > 20) return '#ef4444';
   if (v > 10) return '#f59e0b';
   return '#22c55e';
@@ -44,7 +44,7 @@ function buildShortedOption(mostShorted, colors) {
       type: 'bar',
       data: sorted.map(s => ({
         value: s.shortFloat,
-        itemStyle: { color: shortBarColor(s.shortFloat) },
+        itemStyle: { color: shortBarColor(s.shortFloat, colors.textDim) },
       })),
       markLine: {
         data: [{ xAxis: 20 }, { xAxis: 10 }],

@@ -1,0 +1,71 @@
+<h2>Inside Each Market Tab — Workspace Structure</h2>
+<p class="subtitle">How should each market's workspace be organized?</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tailored views per market</h3>
+      <p>Each market gets sub-views that make sense for its domain. Equities keeps Heatmap/List/Race/Portfolio. Bonds gets Yield Curve / Credit Matrix / Duration Ladder. FX gets Rate Matrix / Heatmap / Carry Map. Real Estate gets Regional Map / Price Index / REIT screen. Each market feels purpose-built for analysts of that asset class.</p>
+      <div style="margin-top:10px;background:#0f172a;border-radius:6px;padding:10px;font-size:10px;font-family:monospace;">
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="background:#1d4ed8;color:#bfdbfe;padding:2px 8px;border-radius:3px;">📈 Equities</span>
+          <span style="color:#475569;padding:2px 8px;">🏛️ Bonds</span>
+          <span style="color:#475569;padding:2px 8px;">💱 FX</span>
+          <span style="color:#475569;padding:2px 8px;">📊 Deriv</span>
+          <span style="color:#475569;padding:2px 8px;">🏠 Real Estate</span>
+          <span style="color:#475569;padding:2px 8px;">🛡️ Insurance</span>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Heatmap</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">List</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Bar Race</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Portfolio</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Radar</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">ML Explorer</span>
+        </div>
+        <div style="margin-top:6px;color:#334155;font-size:9px;">↑ equities sub-views (tailored)</div>
+        <div style="margin-top:8px;display:flex;gap:5px;flex-wrap:wrap;">
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Yield Curve</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Credit Matrix</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Duration Ladder</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Sovereign Spread</span>
+        </div>
+        <div style="margin-top:6px;color:#334155;font-size:9px;">↑ bonds sub-views (tailored)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Consistent views across all markets</h3>
+      <p>Every market gets the same 3 views: a <strong>Heatmap</strong> (treemap by size), a <strong>List</strong> (sortable table), and a <strong>Chart</strong> (time series). The data inside changes but the UI pattern is identical. Simpler to build and learn — but bonds and real estate don't naturally fit a treemap.</p>
+      <div style="margin-top:10px;background:#0f172a;border-radius:6px;padding:10px;font-size:10px;font-family:monospace;">
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="background:#1d4ed8;color:#bfdbfe;padding:2px 8px;border-radius:3px;">📈 Equities</span>
+          <span style="color:#475569;padding:2px 8px;">🏛️ Bonds</span>
+          <span style="color:#475569;padding:2px 8px;">💱 FX</span>
+          <span style="color:#475569;padding:2px 8px;">📊 Deriv</span>
+          <span style="color:#475569;padding:2px 8px;">🏠 Real Estate</span>
+          <span style="color:#475569;padding:2px 8px;">🛡️ Insurance</span>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Heatmap</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">List</span>
+          <span style="background:#1e293b;color:#94a3b8;padding:2px 7px;border-radius:3px;font-size:9px;">Chart</span>
+        </div>
+        <div style="margin-top:6px;color:#334155;font-size:9px;">same 3 views for ALL markets</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:12px 16px;background:#1e293b;border-radius:6px;border-left:3px solid #3b82f6;">
+  <span class="label">Recommendation</span>
+  <p style="margin:4px 0 0;color:#94a3b8;font-size:13px;">
+    <strong style="color:#e2e8f0;">A (tailored)</strong> — a yield curve for bonds is fundamentally different from a stock heatmap. Forcing the same layout onto all markets would produce mediocre analysis tools. Each market deserves its best-fit visualization.
+  </p>
+</div>

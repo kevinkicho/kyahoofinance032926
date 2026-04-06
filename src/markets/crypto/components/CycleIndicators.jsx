@@ -4,10 +4,10 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
-function fearGreedColor(v) {
+function fearGreedColor(v, textSecondary = '#94a3b8') {
   if (v >= 75) return '#ef4444';
   if (v >= 55) return '#f59e0b';
-  if (v >= 45) return '#94a3b8';
+  if (v >= 45) return textSecondary;
   if (v >= 25) return '#818cf8';
   return '#6366f1';
 }
@@ -21,7 +21,7 @@ function fearGreedLabel(v) {
 }
 
 function buildGaugeOption(value, colors) {
-  const color = fearGreedColor(value);
+  const color = fearGreedColor(value, colors.textSecondary);
   return {
     animation: false,
     backgroundColor: 'transparent',
@@ -141,7 +141,7 @@ export default function CycleIndicators({ fearGreedData }) {
             <div className="crypto-chart-subtitle">0 = Extreme Fear · 100 = Extreme Greed · Alternative.me</div>
             <div className="crypto-chart-wrap" style={{ position: 'relative' }}>
               <ReactECharts option={buildGaugeOption(value, colors)} style={{ height: '100%', width: '100%' }} />
-              <div style={{ position: 'absolute', bottom: '18%', left: 0, right: 0, textAlign: 'center', fontSize: 11, color: fearGreedColor(value), fontWeight: 600, pointerEvents: 'none' }}>{label}</div>
+              <div style={{ position: 'absolute', bottom: '18%', left: 0, right: 0, textAlign: 'center', fontSize: 11, color: fearGreedColor(value, colors.textSecondary), fontWeight: 600, pointerEvents: 'none' }}>{label}</div>
             </div>
           </div>
           <div className="crypto-chart-panel">

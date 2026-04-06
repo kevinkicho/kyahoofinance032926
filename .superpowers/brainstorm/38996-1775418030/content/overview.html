@@ -1,0 +1,68 @@
+<h2>Sentiment & Positioning — Design Overview</h2>
+<p class="subtitle">Sub-project 12 · Violet #7c3aed · <code>sent-</code> CSS prefix</p>
+
+<div class="section">
+  <h3>What changes</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+    <div style="background:#1a1a2e;border:1px solid #312e81;border-radius:8px;padding:14px">
+      <div class="label" style="color:#f87171">Derivatives tab — loses 1 sub-tab</div>
+      <div style="margin-top:8px;font-size:13px;color:#94a3b8">
+        <div style="padding:4px 0;color:#e2e8f0">✓ Vol Surface</div>
+        <div style="padding:4px 0;color:#e2e8f0">✓ VIX Term Structure</div>
+        <div style="padding:4px 0;color:#e2e8f0">✓ Options Flow</div>
+        <div style="padding:4px 0;text-decoration:line-through;color:#f87171">✗ Fear &amp; Greed → moves to Sentiment</div>
+      </div>
+    </div>
+    <div style="background:#1a1a2e;border:1px solid #5b21b6;border-radius:8px;padding:14px">
+      <div class="label" style="color:#a78bfa">New: Sentiment &amp; Positioning 🎭</div>
+      <div style="margin-top:8px;font-size:13px;color:#94a3b8">
+        <div style="padding:4px 0;color:#e2e8f0">★ Fear &amp; Greed <span style="color:#64748b;font-size:11px">(richer, cross-asset)</span></div>
+        <div style="padding:4px 0;color:#e2e8f0">★ CFTC Positioning <span style="color:#64748b;font-size:11px">(full cross-asset)</span></div>
+        <div style="padding:4px 0;color:#e2e8f0">★ Risk Dashboard <span style="color:#64748b;font-size:11px">(FRED + Yahoo signals)</span></div>
+        <div style="padding:4px 0;color:#e2e8f0">★ Cross-Asset Returns <span style="color:#64748b;font-size:11px">(ETF heatmap)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Architecture</h3>
+  <div style="background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:14px;font-size:12px;color:#94a3b8;line-height:1.8">
+    <div><span style="color:#a78bfa">useSentimentData()</span> → fetch <span style="color:#67e8f9">/api/sentiment</span> → anyReplaced pattern → mock fallback</div>
+    <div style="margin-top:6px"><span style="color:#67e8f9">/api/sentiment</span> → Promise.allSettled([CFTC, FRED×5, Alternative.me, Yahoo×8]) → daily file cache + 300s node-cache</div>
+    <div style="margin-top:6px">Hub: add <span style="color:#a78bfa">sent-</span> market · vite proxy · remove Fear&amp;Greed from /api/derivatives</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Data sources — fully live, no mocks</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="border-bottom:1px solid #1e293b">
+      <th style="text-align:left;padding:6px 8px;color:#64748b;font-weight:normal">Tab</th>
+      <th style="text-align:left;padding:6px 8px;color:#64748b;font-weight:normal">Source</th>
+      <th style="text-align:left;padding:6px 8px;color:#64748b;font-weight:normal">Series / Tickers</th>
+    </tr>
+    <tr style="border-bottom:1px solid #0f172a">
+      <td style="padding:6px 8px;color:#e2e8f0">Fear &amp; Greed</td>
+      <td style="padding:6px 8px;color:#a78bfa">Alternative.me + FRED + Yahoo</td>
+      <td style="padding:6px 8px;color:#64748b">F&amp;G score/history · VIXCLS · BAMLH0A0HYM2 · T10Y2Y · SPY momentum</td>
+    </tr>
+    <tr style="border-bottom:1px solid #0f172a">
+      <td style="padding:6px 8px;color:#e2e8f0">CFTC Positioning</td>
+      <td style="padding:6px 8px;color:#a78bfa">CFTC Socrata API</td>
+      <td style="padding:6px 8px;color:#64748b">EUR/JPY/GBP/CAD/CHF/AUD · E-MINI S&amp;P · E-MINI NQ · GOLD · CRUDE OIL · 10Y T-NOTES</td>
+    </tr>
+    <tr style="border-bottom:1px solid #0f172a">
+      <td style="padding:6px 8px;color:#e2e8f0">Risk Dashboard</td>
+      <td style="padding:6px 8px;color:#a78bfa">FRED + Yahoo</td>
+      <td style="padding:6px 8px;color:#64748b">T10Y2Y · BAMLH0A0HYM2 · BAMLC0A0CM · VIXCLS · GLD/UUP ratio · EEM/SPY ratio</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;color:#e2e8f0">Cross-Asset Returns</td>
+      <td style="padding:6px 8px;color:#a78bfa">Yahoo Finance</td>
+      <td style="padding:6px 8px;color:#64748b">SPY · QQQ · EEM · TLT · GLD · UUP · USO · BTC-USD · 1d/1w/1m/3m</td>
+    </tr>
+  </table>
+</div>
+
+<p class="subtitle" style="margin-top:16px">Does this overall structure look right? Let me know in the terminal and I'll drill into each sub-tab.</p>
