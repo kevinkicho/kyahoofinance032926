@@ -47,3 +47,14 @@ export const fearGreedData = {
     { name: 'Stock Price Strength', value: 18.0, score: 55, label: 'Neutral'      },
   ],
 };
+
+const MOCK_VIX_DATES = Array.from({ length: 60 }, (_, i) => {
+  const d = new Date('2026-01-02');
+  d.setDate(d.getDate() + i);
+  return d.toISOString().split('T')[0];
+});
+
+export const fredVixHistory = {
+  dates: MOCK_VIX_DATES,
+  values: MOCK_VIX_DATES.map((_, i) => 18 + Math.sin(i / 8) * 5 + Math.random() * 2),
+};

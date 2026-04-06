@@ -4,6 +4,7 @@ import {
   volSurfaceData  as mockVolSurfaceData,
   vixTermStructure as mockVixTermStructure,
   optionsFlow     as mockOptionsFlow,
+  fredVixHistory  as mockFredVixHistory,
 } from './mockDerivativesData';
 
 const SERVER = '';
@@ -14,6 +15,7 @@ export function useDerivativesData() {
   const [optionsFlow,      setOptionsFlow]      = useState(mockOptionsFlow);
   const [vixEnrichment,    setVixEnrichment]    = useState(null);
   const [volPremium,       setVolPremium]       = useState(null);
+  const [fredVixHistory,   setFredVixHistory]   = useState(mockFredVixHistory);
   const [isLive,           setIsLive]           = useState(false);
   const [lastUpdated,      setLastUpdated]      = useState('Mock data — Apr 2025');
   const [isLoading,        setIsLoading]        = useState(true);
@@ -33,6 +35,7 @@ export function useDerivativesData() {
           setVixEnrichment(data.vixEnrichment);
         }
         if (data.volPremium?.atm1mIV != null) setVolPremium(data.volPremium);
+        if (data.fredVixHistory?.dates?.length >= 20) setFredVixHistory(data.fredVixHistory);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -43,5 +46,5 @@ export function useDerivativesData() {
     return () => { clearTimeout(timer); controller.abort(); };
   }, []);
 
-  return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }
