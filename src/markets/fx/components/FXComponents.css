@@ -105,3 +105,105 @@
   min-width: 64px;
   text-align: right;
 }
+
+/* ── Shared dense-dashboard layout ──────────── */
+.fx-kpi-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.fx-kpi-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+.fx-kpi-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fx-kpi-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  color: var(--text-primary);
+}
+.fx-kpi-value.positive { color: #22c55e; }
+.fx-kpi-value.negative { color: #ef4444; }
+.fx-kpi-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.fx-wide-narrow {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.fx-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.fx-chart-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.fx-chart-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+.fx-mini-chart {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Strength / rate bars */
+.fx-bar-list { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; }
+.fx-bar-row { display: flex; align-items: center; gap: 8px; }
+.fx-bar-name { font-size: 11px; color: var(--text-secondary); width: 36px; flex-shrink: 0; font-weight: 600; }
+.fx-bar-wrap { flex: 1; height: 14px; background: var(--bg-primary); border-radius: 3px; overflow: hidden; position: relative; }
+.fx-bar-fill { height: 100%; border-radius: 3px; position: absolute; top: 0; }
+.fx-bar-center { position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: var(--text-dim); }
+.fx-bar-val { font-size: 11px; font-weight: 600; width: 55px; text-align: right; }
+.fx-bar-val.positive { color: #22c55e; }
+.fx-bar-val.negative { color: #ef4444; }
+
+/* DXY component breakdown rows */
+.fx-comp-list { display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+.fx-comp-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+.fx-comp-code { font-size: 11px; font-weight: 600; color: var(--text-primary); width: 32px; }
+.fx-comp-weight { font-size: 10px; color: var(--text-muted); width: 40px; text-align: right; }
+.fx-comp-change { font-size: 11px; font-weight: 600; width: 55px; text-align: right; }
+.fx-comp-change.positive { color: #22c55e; }
+.fx-comp-change.negative { color: #ef4444; }
+.fx-comp-bar-wrap { flex: 1; height: 10px; background: var(--bg-primary); border-radius: 3px; overflow: hidden; }
+.fx-comp-bar-fill { height: 100%; border-radius: 3px; }
+
+/* G10 vs EM comparison */
+.fx-group-bars { display: flex; gap: 16px; align-items: center; justify-content: center; padding: 8px; }
+.fx-group-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.fx-group-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+.fx-group-value { font-size: 18px; font-weight: 700; font-family: monospace; }
+.fx-group-value.positive { color: #22c55e; }
+.fx-group-value.negative { color: #ef4444; }
+.fx-group-divider { width: 1px; height: 40px; background: var(--border-color); }
