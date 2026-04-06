@@ -1,37 +1,24 @@
 // src/App.jsx
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import './index.css';
 import { ThemeProvider } from './hub/ThemeContext';
 import HubLayout from './hub/HubLayout';
 import { MARKETS } from './hub/markets.config';
-import EquitiesMarket        from './markets/equities/EquitiesMarket';
-import BondsMarket           from './markets/bonds/BondsMarket';
-import FXMarket              from './markets/fx/FXMarket';
-import DerivativesMarket     from './markets/derivatives/DerivativesMarket';
-import RealEstateMarket      from './markets/realEstate/RealEstateMarket';
-import InsuranceMarket       from './markets/insurance/InsuranceMarket';
-import CommoditiesMarket     from './markets/commodities/CommoditiesMarket';
-import GlobalMacroMarket     from './markets/globalMacro/GlobalMacroMarket';
-import EquitiesDeepDiveMarket from './markets/equitiesDeepDive/EquitiesDeepDiveMarket';
-import CryptoMarket          from './markets/crypto/CryptoMarket';
-import CreditMarket          from './markets/credit/CreditMarket';
-import SentimentMarket       from './markets/sentiment/SentimentMarket';
-import CalendarMarket        from './markets/calendar/CalendarMarket';
 
 const MARKET_COMPONENTS = {
-  equities:          EquitiesMarket,
-  bonds:             BondsMarket,
-  fx:                FXMarket,
-  derivatives:       DerivativesMarket,
-  realEstate:        RealEstateMarket,
-  insurance:         InsuranceMarket,
-  commodities:       CommoditiesMarket,
-  globalMacro:       GlobalMacroMarket,
-  equitiesDeepDive:  EquitiesDeepDiveMarket,
-  crypto:            CryptoMarket,
-  credit:            CreditMarket,
-  sentiment:         SentimentMarket,
-  calendar:          CalendarMarket,
+  equities:          lazy(() => import('./markets/equities/EquitiesMarket')),
+  bonds:             lazy(() => import('./markets/bonds/BondsMarket')),
+  fx:                lazy(() => import('./markets/fx/FXMarket')),
+  derivatives:       lazy(() => import('./markets/derivatives/DerivativesMarket')),
+  realEstate:        lazy(() => import('./markets/realEstate/RealEstateMarket')),
+  insurance:         lazy(() => import('./markets/insurance/InsuranceMarket')),
+  commodities:       lazy(() => import('./markets/commodities/CommoditiesMarket')),
+  globalMacro:       lazy(() => import('./markets/globalMacro/GlobalMacroMarket')),
+  equitiesDeepDive:  lazy(() => import('./markets/equitiesDeepDive/EquitiesDeepDiveMarket')),
+  crypto:            lazy(() => import('./markets/crypto/CryptoMarket')),
+  credit:            lazy(() => import('./markets/credit/CreditMarket')),
+  sentiment:         lazy(() => import('./markets/sentiment/SentimentMarket')),
+  calendar:          lazy(() => import('./markets/calendar/CalendarMarket')),
 };
 
 class ErrorBoundary extends React.Component {
@@ -122,7 +109,9 @@ function PopoutView({ marketId }) {
       </div>
       {/* Market content */}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <MarketComponent />
+        <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 13 }}>Loading market...</div>}>
+          <MarketComponent />
+        </Suspense>
       </div>
     </div>
   );

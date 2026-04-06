@@ -1,37 +1,31 @@
-import React, { useState, useRef, useCallback } from 'react';
-import html2canvas from 'html2canvas';
+import React, { useState, useRef, useCallback, Suspense, lazy } from 'react';
 import MarketTabBar from './MarketTabBar';
 import { DEFAULT_MARKET, MARKETS } from './markets.config';
-import EquitiesMarket        from '../markets/equities/EquitiesMarket';
-import BondsMarket           from '../markets/bonds/BondsMarket';
-import FXMarket              from '../markets/fx/FXMarket';
-import DerivativesMarket     from '../markets/derivatives/DerivativesMarket';
-import RealEstateMarket      from '../markets/realEstate/RealEstateMarket';
-import InsuranceMarket       from '../markets/insurance/InsuranceMarket';
-import CommoditiesMarket     from '../markets/commodities/CommoditiesMarket';
-import GlobalMacroMarket     from '../markets/globalMacro/GlobalMacroMarket';
-import EquitiesDeepDiveMarket from '../markets/equitiesDeepDive/EquitiesDeepDiveMarket';
-import CryptoMarket          from '../markets/crypto/CryptoMarket';
-import CreditMarket from '../markets/credit/CreditMarket';
-import SentimentMarket from '../markets/sentiment/SentimentMarket';
-import CalendarMarket from '../markets/calendar/CalendarMarket';
 import HubFooter from './HubFooter';
 
 const MARKET_COMPONENTS = {
-  equities:          EquitiesMarket,
-  bonds:             BondsMarket,
-  fx:                FXMarket,
-  derivatives:       DerivativesMarket,
-  realEstate:        RealEstateMarket,
-  insurance:         InsuranceMarket,
-  commodities:       CommoditiesMarket,
-  globalMacro:       GlobalMacroMarket,
-  equitiesDeepDive:  EquitiesDeepDiveMarket,
-  crypto:            CryptoMarket,
-  credit:            CreditMarket,
-  sentiment:         SentimentMarket,
-  calendar:          CalendarMarket,
+  equities:          lazy(() => import('../markets/equities/EquitiesMarket')),
+  bonds:             lazy(() => import('../markets/bonds/BondsMarket')),
+  fx:                lazy(() => import('../markets/fx/FXMarket')),
+  derivatives:       lazy(() => import('../markets/derivatives/DerivativesMarket')),
+  realEstate:        lazy(() => import('../markets/realEstate/RealEstateMarket')),
+  insurance:         lazy(() => import('../markets/insurance/InsuranceMarket')),
+  commodities:       lazy(() => import('../markets/commodities/CommoditiesMarket')),
+  globalMacro:       lazy(() => import('../markets/globalMacro/GlobalMacroMarket')),
+  equitiesDeepDive:  lazy(() => import('../markets/equitiesDeepDive/EquitiesDeepDiveMarket')),
+  crypto:            lazy(() => import('../markets/crypto/CryptoMarket')),
+  credit:            lazy(() => import('../markets/credit/CreditMarket')),
+  sentiment:         lazy(() => import('../markets/sentiment/SentimentMarket')),
+  calendar:          lazy(() => import('../markets/calendar/CalendarMarket')),
 };
+
+function MarketFallback() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 13 }}>
+      Loading market...
+    </div>
+  );
+}
 
 export default function HubLayout() {
   const [activeMarket, setActiveMarket] = useState(DEFAULT_MARKET);
@@ -43,6 +37,7 @@ export default function HubLayout() {
 
   const handleExport = useCallback(async () => {
     if (!contentRef.current) return;
+    const { default: html2canvas } = await import('html2canvas');
     const canvas = await html2canvas(contentRef.current, { useCORS: true, scale: 2 });
     const link = document.createElement('a');
     const marketLabel = MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket;
@@ -62,12 +57,14 @@ export default function HubLayout() {
         onExport={handleExport}
       />
       <div ref={contentRef}>
-        <ActiveMarket
-          currency={currency}
-          setCurrency={setCurrency}
-          snapshotDate={snapshotDate}
-          setSnapshotDate={setSnapshotDate}
-        />
+        <Suspense fallback={<MarketFallback />}>
+          <ActiveMarket
+            currency={currency}
+            setCurrency={setCurrency}
+            snapshotDate={snapshotDate}
+            setSnapshotDate={setSnapshotDate}
+          />
+        </Suspense>
       </div>
       <HubFooter />
     </div>
