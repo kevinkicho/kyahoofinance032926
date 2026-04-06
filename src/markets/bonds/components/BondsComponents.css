@@ -156,7 +156,7 @@
   display: flex;
   gap: 12px;
   flex: 1;
-  min-height: 0;
+  min-height: 200px;
 }
 .bonds-wide-narrow > :first-child { flex: 7; min-width: 0; }
 .bonds-wide-narrow > :last-child  { flex: 3; min-width: 120px; }

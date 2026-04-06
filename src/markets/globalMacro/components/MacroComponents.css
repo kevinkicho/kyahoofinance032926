@@ -17,7 +17,7 @@
 .mac-panel-subtitle { font-size: 11px; color: var(--text-muted); flex: 1; }
 .mac-panel-footer   { margin-top: 12px; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
 .mac-scroll         { overflow: auto; flex: 1; }
-.mac-chart-wrap     { flex: 1; min-height: 0; }
+.mac-chart-wrap     { flex: 1; min-height: 120px; }
 
 /* Shared table */
 .mac-table { border-collapse: collapse; min-width: 100%; }

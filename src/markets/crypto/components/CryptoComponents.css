@@ -14,7 +14,7 @@
 .crypto-chart-panel { display: flex; flex-direction: column; background: var(--bg-primary); padding: 8px 12px 4px; overflow: hidden; }
 .crypto-chart-title { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; flex-shrink: 0; }
 .crypto-chart-subtitle { font-size: 9px; color: var(--text-muted); margin-bottom: 4px; flex-shrink: 0; }
-.crypto-chart-wrap { flex: 1; min-height: 0; }
+.crypto-chart-wrap { flex: 1; min-height: 120px; }
 
 /* Scrollable table area */
 .crypto-scroll { flex: 1; min-height: 0; overflow-y: auto; }

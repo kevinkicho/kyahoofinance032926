@@ -24,7 +24,7 @@
   color: var(--text-dim);
   font-size: 13px;
 }
-.fx-chart-wrap { flex: 1; min-height: 0; }
+.fx-chart-wrap { flex: 1; min-height: 120px; }
 
 /* Carry table */
 .carry-scroll  { overflow: auto; flex: 1; }
@@ -147,14 +147,14 @@
   grid-template-columns: 3fr 1fr;
   gap: 12px;
   flex: 1;
-  min-height: 0;
+  min-height: 200px;
 }
 .fx-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
 }
 .fx-chart-panel {
   background: var(--bg-card);
@@ -174,7 +174,7 @@
 }
 .fx-mini-chart {
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
 }
 
 /* Strength / rate bars */

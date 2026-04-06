@@ -16,7 +16,7 @@
 .ins-panel-title    { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .ins-panel-subtitle { font-size: 11px; color: var(--text-muted); flex: 1; }
 .ins-panel-footer   { margin-top: 12px; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
-.ins-chart-wrap     { flex: 1; min-height: 0; }
+.ins-chart-wrap     { flex: 1; min-height: 120px; }
 
 /* Shared table styles */
 .ins-scroll { overflow: auto; flex: 1; }
@@ -104,7 +104,7 @@
   grid-template-columns: 3fr 1fr;
   gap: 12px;
   flex: 1;
-  min-height: 0;
+  min-height: 200px;
 }
 .ins-chart-panel {
   background: var(--bg-card);
@@ -124,7 +124,7 @@
 }
 .ins-mini-chart {
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
 }
 
 /* Horizontal bars */
