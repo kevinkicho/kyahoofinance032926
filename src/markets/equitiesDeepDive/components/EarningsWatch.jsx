@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
 function beatColor(rate) {
@@ -9,16 +10,16 @@ function beatColor(rate) {
   return '#ef4444';
 }
 
-function buildBeatRateOption(beatRates) {
+function buildBeatRateOption(beatRates, colors) {
   const sorted = [...beatRates].sort((a, b) => (b.beatRate ?? 0) - (a.beatRate ?? 0));
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => {
         const item = sorted[params[0].dataIndex];
         const base = `${params[0].name}: ${params[0].value?.toFixed(1)}%`;
@@ -29,16 +30,16 @@ function buildBeatRateOption(beatRates) {
     xAxis: {
       type: 'value',
       min: 0, max: 100,
-      axisLine: { lineStyle: { color: '#1e293b' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     yAxis: {
       type: 'category',
       data: sorted.map(s => s.sector),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: '#94a3b8', fontSize: 9 },
+      axisLabel: { color: colors.textSecondary, fontSize: 9 },
     },
     series: [{
       type: 'bar',
@@ -49,16 +50,23 @@ function buildBeatRateOption(beatRates) {
       markLine: {
         data: [{ xAxis: 50 }],
         symbol: 'none',
-        lineStyle: { color: '#475569', type: 'dashed', width: 1 },
-        label: { show: true, formatter: '50%', color: '#94a3b8', fontSize: 9 },
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
+        label: { show: true, formatter: '50%', color: colors.textSecondary, fontSize: 9 },
       },
     }],
   };
 }
 
 export default function EarningsWatch({ earningsData }) {
+  const { colors } = useTheme();
+  const { upcoming = [], beatRates = [] } = earningsData ?? {};
+
+  const beatRateOption = useMemo(
+    () => beatRates.length > 0 ? buildBeatRateOption(beatRates, colors) : null,
+    [beatRates, colors]
+  );
+
   if (!earningsData) return null;
-  const { upcoming = [], beatRates = [] } = earningsData;
 
   return (
     <div className="eq-panel">
@@ -101,18 +109,18 @@ export default function EarningsWatch({ earningsData }) {
           </div>
         </div>
         <div className="eq-chart-panel">
-          {beatRates && beatRates.length > 0 ? (
+          {beatRateOption ? (
             <>
               <div className="eq-chart-title">Sector Beat Rate</div>
               <div className="eq-chart-subtitle">Last quarter EPS beat % · indigo ≥70% · amber 50–70% · red &lt;50%</div>
               <div className="eq-chart-wrap">
-                <ReactECharts option={buildBeatRateOption(beatRates)} style={{ height: '100%', width: '100%' }} />
+                <ReactECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </>
           ) : (
             <>
               <div className="eq-chart-title">Sector Beat Rate</div>
-              <div className="eq-chart-subtitle" style={{ color: '#475569', padding: 20, textAlign: 'center' }}>
+              <div className="eq-chart-subtitle" style={{ color: colors.textDim, padding: 20, textAlign: 'center' }}>
                 Beat rate data not available — requires historical earnings data
               </div>
             </>

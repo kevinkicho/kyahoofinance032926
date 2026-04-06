@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
 function shortBarColor(v) {
@@ -9,16 +10,16 @@ function shortBarColor(v) {
   return '#22c55e';
 }
 
-function buildShortedOption(mostShorted) {
+function buildShortedOption(mostShorted, colors) {
   const sorted = [...mostShorted].sort((a, b) => (b.shortFloat ?? 0) - (a.shortFloat ?? 0));
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => {
         const item = sorted[params[0].dataIndex];
         const base = `${params[0].name}: ${params[0].value?.toFixed(1)}% short`;
@@ -28,16 +29,16 @@ function buildShortedOption(mostShorted) {
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
-      axisLine: { lineStyle: { color: '#1e293b' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     yAxis: {
       type: 'category',
       data: sorted.map(s => s.ticker),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: '#94a3b8', fontSize: 10 },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
     },
     series: [{
       type: 'bar',
@@ -48,41 +49,41 @@ function buildShortedOption(mostShorted) {
       markLine: {
         data: [{ xAxis: 20 }, { xAxis: 10 }],
         symbol: 'none',
-        lineStyle: { color: '#475569', type: 'dashed', width: 1 },
-        label: { show: true, color: '#64748b', fontSize: 9 },
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
+        label: { show: true, color: colors.textMuted, fontSize: 9 },
       },
     }],
   };
 }
 
-function buildSqueezeOption(mostShorted) {
+function buildSqueezeOption(mostShorted, colors) {
   const candidates = mostShorted.filter(s => (s.shortFloat ?? 0) > 10);
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: p => `${p.data[3]}<br/>Short Float: ${p.data[0]?.toFixed(1)}%<br/>1W Return: ${p.data[1]?.toFixed(1)}%`,
     },
     grid: { top: 28, right: 8, bottom: 28, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
       name: 'Short Float %',
-      nameTextStyle: { color: '#64748b', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#334155' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      nameTextStyle: { color: colors.textMuted, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     yAxis: {
       type: 'value',
       name: '1W Return %',
-      nameTextStyle: { color: '#64748b', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#334155' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      nameTextStyle: { color: colors.textMuted, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     series: [{
       type: 'scatter',
@@ -93,13 +94,13 @@ function buildSqueezeOption(mostShorted) {
         show: true,
         formatter: p => p.data[3],
         position: 'right',
-        color: '#94a3b8',
+        color: colors.textSecondary,
         fontSize: 9,
       },
       markLine: {
         data: [{ xAxis: 15 }, { yAxis: 0 }],
         symbol: 'none',
-        lineStyle: { color: '#475569', type: 'dashed', width: 1 },
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
         label: { show: false },
       },
     }],
@@ -107,8 +108,13 @@ function buildSqueezeOption(mostShorted) {
 }
 
 export default function ShortInterest({ shortData }) {
+  const { colors } = useTheme();
+  const { mostShorted = [] } = shortData ?? {};
+
+  const shortedOption = useMemo(() => buildShortedOption(mostShorted, colors), [mostShorted, colors]);
+  const squeezeOption = useMemo(() => buildSqueezeOption(mostShorted, colors), [mostShorted, colors]);
+
   if (!shortData) return null;
-  const { mostShorted = [] } = shortData;
 
   return (
     <div className="eq-panel">
@@ -121,14 +127,14 @@ export default function ShortInterest({ shortData }) {
           <div className="eq-chart-title">Most Shorted</div>
           <div className="eq-chart-subtitle">Red &gt;20% · amber 10–20% · green &lt;10%</div>
           <div className="eq-chart-wrap">
-            <ReactECharts option={buildShortedOption(mostShorted)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={shortedOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Squeeze Watch</div>
           <div className="eq-chart-subtitle">X = short float · Y = 1W return · size = market cap · short &gt;10%</div>
           <div className="eq-chart-wrap">
-            <ReactECharts option={buildSqueezeOption(mostShorted)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={squeezeOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

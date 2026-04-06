@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './REComponents.css';
 
 const MARKET_COLORS = {
@@ -8,6 +9,8 @@ const MARKET_COLORS = {
 };
 
 export default function PriceIndex({ priceIndexData }) {
+  const { colors } = useTheme();
+
   const option = useMemo(() => {
     const markets = Object.keys(priceIndexData);
     const dates = priceIndexData[markets[0]]?.dates ?? [];
@@ -23,31 +26,31 @@ export default function PriceIndex({ priceIndexData }) {
       legend: {
         data: markets,
         top: 0,
-        textStyle: { color: '#94a3b8', fontSize: 11 },
+        textStyle: { color: colors.textSecondary, fontSize: 11 },
       },
       grid: { top: 40, right: 20, bottom: 30, left: 50 },
       xAxis: {
         type: 'category',
         data: dates,
-        axisLabel: { color: '#64748b', fontSize: 10, rotate: 30 },
-        axisLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textMuted, fontSize: 10, rotate: 30 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#64748b', fontSize: 11 },
-        splitLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textMuted, fontSize: 11 },
+        splitLine: { lineStyle: { color: colors.cardBg } },
       },
       series: markets.map(m => ({
         name: m,
         type: 'line',
         smooth: true,
         data: priceIndexData[m].values,
-        itemStyle: { color: MARKET_COLORS[m] || '#94a3b8' },
+        itemStyle: { color: MARKET_COLORS[m] || colors.textSecondary },
         lineStyle: { width: 2 },
         symbol: 'none',
       })),
     };
-  }, [priceIndexData]);
+  }, [priceIndexData, colors]);
 
   const marketCount = Object.keys(priceIndexData).length;
 

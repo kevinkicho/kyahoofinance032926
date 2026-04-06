@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './MacroComponents.css';
 
 const HISTORY_COLORS = {
@@ -14,31 +15,31 @@ function barColor(rate) {
   return '#ef4444';
 }
 
-function buildRankedOption(current) {
+function buildRankedOption(current, colors) {
   const sorted = [...current].sort((a, b) => (b.rate ?? -99) - (a.rate ?? -99));
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => `${params[0].name}: ${params[0].value?.toFixed(2)}%`,
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
-      axisLine: { lineStyle: { color: '#1e293b' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     yAxis: {
       type: 'category',
       data: sorted.map(c => `${c.flag} ${c.name}`),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: '#94a3b8', fontSize: 10 },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
     },
     series: [{
       type: 'bar',
@@ -50,20 +51,20 @@ function buildRankedOption(current) {
   };
 }
 
-function buildHistoryOption(history) {
+function buildHistoryOption(history, colors) {
   const { dates = [], series = [] } = history;
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
     },
     legend: {
       data: series.map(s => s.name),
-      textStyle: { color: '#64748b', fontSize: 9 },
+      textStyle: { color: colors.textMuted, fontSize: 9 },
       top: 0, right: 0,
       itemWidth: 12, itemHeight: 8,
     },
@@ -71,9 +72,9 @@ function buildHistoryOption(history) {
     xAxis: {
       type: 'category',
       data: dates,
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLine: { lineStyle: { color: colors.cardBg } },
       axisLabel: {
-        color: '#64748b', fontSize: 9,
+        color: colors.textMuted, fontSize: 9,
         interval: Math.floor(dates.length / 8),
         formatter: v => v ? v.slice(0, 7) : v,
       },
@@ -81,8 +82,8 @@ function buildHistoryOption(history) {
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     series: [
       ...series.map(s => ({
@@ -91,15 +92,15 @@ function buildHistoryOption(history) {
         data: s.values,
         symbol: 'none',
         smooth: false,
-        lineStyle: { color: HISTORY_COLORS[s.code] || '#94a3b8', width: 1.5 },
-        itemStyle: { color: HISTORY_COLORS[s.code] || '#94a3b8' },
+        lineStyle: { color: HISTORY_COLORS[s.code] || colors.textSecondary, width: 1.5 },
+        itemStyle: { color: HISTORY_COLORS[s.code] || colors.textSecondary },
       })),
       {
         name: 'Neutral',
         type: 'line',
         data: Array(dates.length).fill(2),
         symbol: 'none',
-        lineStyle: { color: '#475569', type: 'dashed', width: 1 },
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
         silent: true,
       },
     ],
@@ -107,8 +108,13 @@ function buildHistoryOption(history) {
 }
 
 export default function CentralBankRates({ centralBankData }) {
+  const { colors } = useTheme();
+  const { current = [], history = { dates: [], series: [] } } = centralBankData ?? {};
+
+  const rankedOption = useMemo(() => buildRankedOption(current, colors), [current, colors]);
+  const historyOption = useMemo(() => buildHistoryOption(history, colors), [history, colors]);
+
   if (!centralBankData) return null;
-  const { current = [], history = { dates: [], series: [] } } = centralBankData;
 
   return (
     <div className="mac-panel">
@@ -121,14 +127,14 @@ export default function CentralBankRates({ centralBankData }) {
           <div className="mac-chart-title">Current Rates — Ranked</div>
           <div className="mac-chart-subtitle">Highest to lowest · green &lt;3% · amber 3–6% · red &gt;6%</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={buildRankedOption(current)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="mac-chart-panel">
           <div className="mac-chart-title">5-Year Rate History</div>
           <div className="mac-chart-subtitle">G7 + Australia + Sweden · dashed line = 2% neutral rate</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={buildHistoryOption(history)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

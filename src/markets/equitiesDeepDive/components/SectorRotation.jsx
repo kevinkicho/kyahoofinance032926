@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
-function buildRankedOption(sectors) {
+function buildRankedOption(sectors, colors) {
   const spy = sectors.find(s => s.code === 'SPY');
   const spyRef = spy?.perf1m ?? 0;
   const etfs = [...sectors]
@@ -14,24 +15,24 @@ function buildRankedOption(sectors) {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => `${params[0].name}: ${params[0].value?.toFixed(1)}%`,
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
-      axisLine: { lineStyle: { color: '#1e293b' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     yAxis: {
       type: 'category',
       data: etfs.map(s => s.name),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: '#94a3b8', fontSize: 9 },
+      axisLabel: { color: colors.textSecondary, fontSize: 9 },
     },
     series: [{
       type: 'bar',
@@ -42,41 +43,41 @@ function buildRankedOption(sectors) {
       markLine: {
         data: [{ xAxis: spyRef }],
         symbol: 'none',
-        lineStyle: { color: '#e2e8f0', type: 'dashed', width: 1 },
-        label: { show: true, formatter: 'SPY', color: '#94a3b8', fontSize: 9 },
+        lineStyle: { color: colors.text, type: 'dashed', width: 1 },
+        label: { show: true, formatter: 'SPY', color: colors.textSecondary, fontSize: 9 },
       },
     }],
   };
 }
 
-function buildRotationOption(sectors) {
+function buildRotationOption(sectors, colors) {
   const etfs = sectors.filter(s => s.code !== 'SPY');
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: p => `${p.data[2]}<br/>1M: ${p.data[0]?.toFixed(1)}%<br/>3M: ${p.data[1]?.toFixed(1)}%`,
     },
     grid: { top: 28, right: 8, bottom: 28, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
       name: '1M %',
-      nameTextStyle: { color: '#64748b', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#334155' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      nameTextStyle: { color: colors.textMuted, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     yAxis: {
       type: 'value',
       name: '3M %',
-      nameTextStyle: { color: '#64748b', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#334155' } },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
+      nameTextStyle: { color: colors.textMuted, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
     },
     series: [{
       type: 'scatter',
@@ -87,13 +88,13 @@ function buildRotationOption(sectors) {
         show: true,
         formatter: p => p.data[2],
         position: 'right',
-        color: '#94a3b8',
+        color: colors.textSecondary,
         fontSize: 9,
       },
       markLine: {
         data: [{ xAxis: 0 }, { yAxis: 0 }],
         symbol: 'none',
-        lineStyle: { color: '#475569', type: 'dashed', width: 1 },
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
         label: { show: false },
       },
     }],
@@ -101,8 +102,13 @@ function buildRotationOption(sectors) {
 }
 
 export default function SectorRotation({ sectorData }) {
+  const { colors } = useTheme();
+  const { sectors = [] } = sectorData ?? {};
+
+  const rankedOption = useMemo(() => buildRankedOption(sectors, colors), [sectors, colors]);
+  const rotationOption = useMemo(() => buildRotationOption(sectors, colors), [sectors, colors]);
+
   if (!sectorData) return null;
-  const { sectors = [] } = sectorData;
 
   return (
     <div className="eq-panel">
@@ -115,14 +121,14 @@ export default function SectorRotation({ sectorData }) {
           <div className="eq-chart-title">ETF Performance</div>
           <div className="eq-chart-subtitle">1M return vs SPY benchmark · indigo = outperforming</div>
           <div className="eq-chart-wrap">
-            <ReactECharts option={buildRankedOption(sectors)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Rotation Quadrant</div>
           <div className="eq-chart-subtitle">X = 1M · Y = 3M · top-right = Leading · top-left = Improving</div>
           <div className="eq-chart-wrap">
-            <ReactECharts option={buildRotationOption(sectors)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={rotationOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

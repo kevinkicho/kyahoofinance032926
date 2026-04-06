@@ -1,6 +1,7 @@
 // src/markets/realEstate/components/CapRateMonitor.jsx
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './REComponents.css';
 
 function yieldColor(y) {
@@ -11,6 +12,8 @@ function yieldColor(y) {
 }
 
 export default function CapRateMonitor({ capRateData }) {
+  const { colors } = useTheme();
+
   const option = useMemo(() => {
     if (!capRateData?.length) return null;
     const sorted = [...capRateData].sort((a, b) => a.impliedYield - b.impliedYield);
@@ -19,22 +22,22 @@ export default function CapRateMonitor({ capRateData }) {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis', axisPointer: { type: 'shadow' },
-        backgroundColor: '#1e293b', borderColor: '#334155',
-        textStyle: { color: '#e2e8f0', fontSize: 11 },
+        backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+        textStyle: { color: colors.text, fontSize: 11 },
         formatter: params => `${params[0].name}: ${params[0].value}%`,
       },
       grid: { top: 8, right: 60, bottom: 8, left: 8, containLabel: true },
       xAxis: {
         type: 'value',
-        axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
-        splitLine: { lineStyle: { color: '#1e293b' } },
-        axisLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+        axisLine: { lineStyle: { color: colors.cardBg } },
       },
       yAxis: {
         type: 'category',
         data: sorted.map(s => s.sector),
         axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: { color: '#94a3b8', fontSize: 10 },
+        axisLabel: { color: colors.textSecondary, fontSize: 10 },
       },
       series: [{
         type: 'bar', barMaxWidth: 20,
@@ -45,11 +48,11 @@ export default function CapRateMonitor({ capRateData }) {
         label: {
           show: true, position: 'right',
           formatter: p => `${p.value}%`,
-          color: '#94a3b8', fontSize: 9,
+          color: colors.textSecondary, fontSize: 9,
         },
       }],
     };
-  }, [capRateData]);
+  }, [capRateData, colors]);
 
   if (!option) return null;
 
