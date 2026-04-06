@@ -38,7 +38,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.65rem;
-  color: #475569;
+  color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
@@ -47,7 +47,7 @@
   margin-top: 0.5rem;
   padding: 0.5rem;
   background: rgba(15, 23, 42, 0.8);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   color: var(--text-secondary);
   border-radius: 0.25rem;
   font-size: 0.75rem;

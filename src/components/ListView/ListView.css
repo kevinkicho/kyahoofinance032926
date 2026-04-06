@@ -4,14 +4,14 @@
   height: 100%;
   background-color: var(--card-bg);
   border-radius: 0.5rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   overflow: hidden;
 }
 
 /* ─── Toolbar ─────────────────────────────────────────────── */
 .list-toolbar {
   padding: 0.65rem 1rem;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -20,9 +20,9 @@
 }
 
 .search-input {
-  background-color: #0f172a;
-  color: #e2e8f0;
-  border: 1px solid #334155;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   padding: 0.45rem 0.8rem;
   border-radius: 0.3rem;
   width: 260px;
@@ -32,7 +32,7 @@
   transition: border-color 0.2s;
 }
 .search-input:focus { border-color: #7c3aed; }
-.search-input::placeholder { color: #475569; }
+.search-input::placeholder { color: var(--text-dim); }
 
 .lv-toolbar-right {
   display: flex;
@@ -52,7 +52,7 @@
 }
 
 .results-count {
-  color: #475569;
+  color: var(--text-dim);
   font-size: 0.8rem;
   white-space: nowrap;
 }
@@ -72,15 +72,15 @@
 }
 
 .data-grid th {
-  background-color: #0a0f1e;
-  color: #475569;
+  background-color: var(--bg-deep);
+  color: var(--text-dim);
   text-transform: uppercase;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   padding: 0.55rem 0.8rem;
   text-align: left;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
   cursor: pointer;
@@ -90,11 +90,11 @@
 }
 .data-grid th.text-right { text-align: right; }
 .data-grid th.lv-th-rank { width: 40px; text-align: center; cursor: default; }
-.data-grid th:hover { background-color: #0f172a; color: #94a3b8; }
+.data-grid th:hover { background-color: var(--bg-primary); color: var(--text-secondary); }
 
 .data-grid td {
   padding: 0.55rem 0.8rem;
-  border-bottom: 1px solid #0f172a;
+  border-bottom: 1px solid var(--bg-primary);
   color: #cbd5e1;
   font-weight: 500;
   vertical-align: middle;
@@ -108,7 +108,7 @@
   display: inline-block;
   font-size: 0.68rem;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-dim);
   min-width: 24px;
   text-align: center;
 }
@@ -128,7 +128,7 @@
 
 /* ─── Company name ───────────────────────────────────────── */
 .lv-name {
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-weight: 500;
   max-width: 220px;
   overflow: hidden;
@@ -155,7 +155,7 @@
   padding-left: 0.45rem;
   border-left: 3px solid transparent;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -177,8 +177,8 @@
 /* ─── Group headers ──────────────────────────────────────── */
 .lv-group-header td {
   background: rgba(15, 23, 42, 0.9) !important;
-  border-bottom: 1px solid #1e293b;
-  border-top: 2px solid #1e293b;
+  border-bottom: 1px solid var(--border-subtle);
+  border-top: 2px solid var(--border-subtle);
   padding: 0.45rem 0.8rem;
   position: sticky;
   top: 35px;
@@ -195,19 +195,19 @@
 .lv-group-name {
   font-size: 0.78rem;
   font-weight: 800;
-  color: #e2e8f0;
+  color: var(--text-primary);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .lv-group-meta {
   font-size: 0.68rem;
-  color: #475569;
+  color: var(--text-dim);
   margin-left: 0.75rem;
 }
 
 .lv-subgroup-header td {
   background: rgba(10, 15, 30, 0.7) !important;
-  border-bottom: 1px solid #0f172a;
+  border-bottom: 1px solid var(--bg-primary);
   padding: 0.3rem 1.2rem;
 }
 .lv-subgroup-dot {
@@ -222,7 +222,7 @@
 .lv-subgroup-name {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -231,6 +231,6 @@
 .empty-state {
   text-align: center;
   padding: 3rem !important;
-  color: #334155;
+  color: var(--border-color);
   font-style: italic;
 }

@@ -8,7 +8,7 @@
 /* ── Real Date Slider ──────────────────────────────────── */
 .tt-slider-section {
   background: rgba(15, 23, 42, 0.6);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.75rem;
   display: flex;
@@ -27,7 +27,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #64748b;
+  color: var(--text-muted);
   flex: 1;
 }
 
@@ -52,7 +52,7 @@
 
 .tt-model-badge {
   font-size: 0.65rem;
-  color: #475569;
+  color: var(--text-dim);
 }
 
 .tt-slider {
@@ -85,7 +85,7 @@
   display: flex;
   align-items: center;
   font-size: 0.65rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .tt-date-edge { flex: 0 0 auto; }
@@ -94,18 +94,18 @@
   flex: 1;
   text-align: center;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-size: 0.72rem;
 }
 
 .tt-date-ago {
   font-weight: 400;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .tt-now-btn {
   background: none;
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   color: #60a5fa;
   font-size: 0.65rem;
   font-weight: 700;
@@ -154,14 +154,14 @@
   overflow-x: auto;
   padding: 0.5rem 0.25rem;
   scrollbar-width: thin;
-  scrollbar-color: #334155 transparent;
+  scrollbar-color: var(--border-color) transparent;
 }
 
 .era-connector {
   flex: 1;
   height: 2px;
   min-width: 8px;
-  background: linear-gradient(90deg, #334155, #475569);
+  background: linear-gradient(90deg, var(--border-color), var(--text-dim));
 }
 
 .era-node {
@@ -170,7 +170,7 @@
   align-items: center;
   gap: 0.2rem;
   background: rgba(15, 23, 42, 0.7);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.4rem 0.5rem;
   cursor: pointer;
@@ -240,7 +240,7 @@
 /* --- Story Card --- */
 .era-card {
   background: rgba(15, 23, 42, 0.5);
-  border: 1px solid color-mix(in srgb, var(--era-color) 40%, #334155);
+  border: 1px solid color-mix(in srgb, var(--era-color) 40%, var(--border-color));
   border-radius: 0.5rem;
   padding: 0.875rem;
   display: flex;
@@ -299,7 +299,7 @@
 .era-ctx-chip {
   font-size: 0.65rem;
   background: rgba(15, 23, 42, 0.8);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.25rem;
   padding: 0.2rem 0.5rem;
   color: var(--text-secondary);

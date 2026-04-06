@@ -11,7 +11,7 @@
   background: rgba(15, 23, 42, 0.4);
   padding: 1.25rem;
   border-radius: 0.5rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-left: 4px solid #a855f7;
 }
 
@@ -43,7 +43,7 @@
 
 .ml-card {
   background: rgba(15, 23, 42, 0.6);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 1.25rem;
 }
@@ -54,7 +54,7 @@
   color: #fff;
   text-transform: uppercase;
   font-weight: 700;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.5rem;
 }
 
@@ -66,7 +66,7 @@
   font-size: 0.8rem;
 }
 
-.ml-table th { color: var(--text-secondary); padding: 0.5rem; font-weight: 600; border-bottom: 1px solid #334155; }
+.ml-table th { color: var(--text-secondary); padding: 0.5rem; font-weight: 600; border-bottom: 1px solid var(--border-color); }
 .ml-table td { padding: 0.5rem; color: #fff; border-bottom: 1px solid rgba(51, 65, 85, 0.4); }
 .mono { font-family: 'JetBrains Mono', monospace; }
 
@@ -93,7 +93,7 @@
   border-radius: 6px;
   overflow: hidden;
 }
-.w-zero-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #64748b; }
+.w-zero-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--text-muted); }
 .w-fill { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
 .w-pos { background: linear-gradient(90deg, #16a34a, #22c55e); }
 .w-neg { background: linear-gradient(-90deg, #b91c1c, #ef4444); }

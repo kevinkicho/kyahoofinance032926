@@ -1,7 +1,7 @@
 .sidebar {
   width: var(--sidebar-width);
   background-color: var(--card-bg);
-  border-left: 1px solid #334155;
+  border-left: 1px solid var(--border-color);
   padding: 1.5rem;
   overflow-y: auto;
   display: flex;
@@ -56,7 +56,7 @@
 
 .stat-card {
   background: rgba(15, 23, 42, 0.5);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 1rem;
   transition: transform 0.2s, background-color 0.2s;
@@ -105,7 +105,7 @@
 
 .fx-card {
   background: rgba(15, 23, 42, 0.5);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.25rem;
   padding: 0.5rem;
   display: flex;
@@ -118,8 +118,8 @@
   background: rgba(15, 23, 42, 0.9);
 }
 
-.fx-card strong { 
-  color: var(--text-secondary); 
+.fx-card strong {
+  color: var(--text-secondary);
 }
 
 /* Macro Stat Grid */

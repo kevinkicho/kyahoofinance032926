@@ -11,7 +11,7 @@
   background: rgba(15, 23, 42, 0.4);
   padding: 1.25rem;
   border-radius: 0.5rem;
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-left: 4px solid #ef4444; /* Alert color */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -43,7 +43,7 @@
 .radar-card {
   flex: 1;
   background: rgba(15, 23, 42, 0.6);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -52,7 +52,7 @@
 .rc-header {
   padding: 1rem 1.25rem;
   background: rgba(51, 65, 85, 0.3);
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .rc-header h3 {
@@ -85,7 +85,7 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   font-size: 0.65rem;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .radar-table td {
@@ -104,7 +104,7 @@
 .radar-ticker-btn {
   background: transparent;
   border: none;
-  color: #e2e8f0;
+  color: var(--text-primary);
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.9rem;
@@ -115,7 +115,7 @@
 
 .radar-ticker-btn:hover { color: var(--accent-color); }
 .radar-flag { font-size: 0.7rem; opacity: 0.8; margin-left: 0.25rem; }
-.radar-badge { background: #334155; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 600; color: #cbd5e1; }
+.radar-badge { background: var(--border-color); padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.65rem; font-weight: 600; color: #cbd5e1; }
 
 .mono { font-family: 'JetBrains Mono', monospace; }
 .fw-bold { font-weight: 700; }
@@ -132,7 +132,7 @@
 
 .sec-bubble {
   background: rgba(51, 65, 85, 0.2);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 1rem;
 }
@@ -174,9 +174,9 @@
   background: rgba(15, 23, 42, 0.4);
 }
 
-.sec-extreme:hover { 
-  transform: translateX(4px); 
-  background: rgba(51, 65, 85, 0.6); 
+.sec-extreme:hover {
+  transform: translateX(4px);
+  background: rgba(51, 65, 85, 0.6);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 

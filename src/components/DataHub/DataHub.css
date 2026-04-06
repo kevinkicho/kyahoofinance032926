@@ -11,8 +11,8 @@
   background: rgba(15, 23, 42, 0.4);
   padding: 1.25rem;
   border-radius: 0.5rem;
-  border: 1px solid #334155;
-  border-left: 4px solid #3b82f6; 
+  border: 1px solid var(--border-color);
+  border-left: 4px solid #3b82f6;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -53,7 +53,7 @@
 
 .dh-card {
   background: rgba(15, 23, 42, 0.6);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 1.25rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -82,7 +82,7 @@
 .dh-input-group input {
   flex: 1;
   background: rgba(51, 65, 85, 0.2);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   color: #fff;
   padding: 0.5rem 0.75rem;
   border-radius: 0.25rem;
@@ -152,7 +152,7 @@
 .staging-list {
   flex: 1;
   background: rgba(0,0,0,0.2);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   border-radius: 0.35rem;
   overflow-y: auto;
   max-height: 400px;
@@ -185,7 +185,7 @@
   width: 100%;
   height: 120px;
   background: rgba(15, 23, 42, 0.8);
-  border: 1px solid #334155;
+  border: 1px solid var(--border-color);
   color: #fff;
   padding: 0.75rem;
   border-radius: 0.35rem;
@@ -204,7 +204,7 @@
 .dh-ollama-btn {
   width: 100%;
   background: #f59e0b;
-  color: #1e293b;
+  color: var(--bg-card);
   border: none;
   padding: 0.6rem 1rem;
   font-weight: 800;
@@ -217,7 +217,7 @@
 }
 
 .dh-ollama-btn:hover:not(:disabled) { background: #d97706; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
-.dh-ollama-btn:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; }
+.dh-ollama-btn:disabled { background: #475569; color: var(--text-secondary); cursor: not-allowed; }
 
 .sec-result-box {
   background: rgba(15, 23, 42, 0.8);
@@ -252,5 +252,5 @@
 .srb-stat span { font-size: 0.85rem; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; }
 
 .srb-risks label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; display: block; margin-bottom: 0.25rem; }
-.srb-risks ul { margin: 0; padding-left: 1rem; font-size: 0.75rem; color: #e2e8f0; line-height: 1.5; }
+.srb-risks ul { margin: 0; padding-left: 1rem; font-size: 0.75rem; color: var(--text-primary); line-height: 1.5; }
 .srb-risks li { margin-bottom: 0.25rem; }
