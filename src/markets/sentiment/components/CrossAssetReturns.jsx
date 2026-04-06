@@ -1,5 +1,5 @@
 // src/markets/sentiment/components/CrossAssetReturns.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
@@ -31,6 +31,19 @@ export default function CrossAssetReturns({ returnsData }) {
     assets: assets.filter(a => a.category === cat),
   })).filter(g => g.assets.length > 0);
 
+  const kpi = useMemo(() => {
+    const with1m = assets.filter(a => a.ret1m != null);
+    const with1d = assets.filter(a => a.ret1d != null);
+    if (!with1m.length) return null;
+    const best1m = with1m.reduce((a, b) => (b.ret1m > a.ret1m ? b : a), with1m[0]);
+    const worst1m = with1m.reduce((a, b) => (b.ret1m < a.ret1m ? b : a), with1m[0]);
+    const best1d = with1d.length
+      ? with1d.reduce((a, b) => (b.ret1d > a.ret1d ? b : a), with1d[0])
+      : null;
+    const pos1mCount = with1m.filter(a => a.ret1m > 0).length;
+    return { best1m, worst1m, best1d, pos1mCount, total: with1m.length };
+  }, [assets]);
+
   return (
     <div className="sent-panel">
       <div className="sent-panel-header">
@@ -40,6 +53,32 @@ export default function CrossAssetReturns({ returnsData }) {
           {asOf && <> · as of {asOf}</>}
         </span>
       </div>
+      {kpi && (
+        <div className="sent-kpi-strip">
+          <div className="sent-kpi-pill">
+            <span className="sent-kpi-label">Best 1M</span>
+            <span className="sent-kpi-value accent">
+              {kpi.best1m.label} {kpi.best1m.ret1m >= 0 ? '+' : ''}{kpi.best1m.ret1m.toFixed(2)}%
+            </span>
+          </div>
+          <div className="sent-kpi-pill">
+            <span className="sent-kpi-label">Worst 1M</span>
+            <span className="sent-kpi-value">{kpi.worst1m.label} {kpi.worst1m.ret1m.toFixed(2)}%</span>
+          </div>
+          {kpi.best1d && (
+            <div className="sent-kpi-pill">
+              <span className="sent-kpi-label">Best 1D</span>
+              <span className="sent-kpi-value">
+                {kpi.best1d.label} {kpi.best1d.ret1d >= 0 ? '+' : ''}{kpi.best1d.ret1d.toFixed(2)}%
+              </span>
+            </div>
+          )}
+          <div className="sent-kpi-pill">
+            <span className="sent-kpi-label"># Positive 1M</span>
+            <span className="sent-kpi-value">{kpi.pos1mCount}/{kpi.total}</span>
+          </div>
+        </div>
+      )}
       <div className="sent-scroll">
         <table className="sent-returns-table">
           <thead>

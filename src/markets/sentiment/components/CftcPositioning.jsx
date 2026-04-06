@@ -1,5 +1,5 @@
 // src/markets/sentiment/components/CftcPositioning.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
@@ -61,6 +61,16 @@ export default function CftcPositioning({ cftcData }) {
   const { colors } = useTheme();
   const { currencies = [], equities = [], rates = [], commodities = [], asOf } = cftcData;
 
+  const kpi = useMemo(() => {
+    const allItems = [...currencies, ...equities, ...rates, ...commodities];
+    if (!allItems.length) return null;
+    const mostLong = allItems.reduce((a, b) => (b.netPct > a.netPct ? b : a), allItems[0]);
+    const mostShort = allItems.reduce((a, b) => (b.netPct < a.netPct ? b : a), allItems[0]);
+    const avg = allItems.reduce((s, i) => s + i.netPct, 0) / allItems.length;
+    const netLongCount = allItems.filter(i => i.netPct > 0).length;
+    return { mostLong, mostShort, avg, netLongCount };
+  }, [currencies, equities, rates, commodities]);
+
   return (
     <div className="sent-panel">
       <div className="sent-panel-header">
@@ -70,6 +80,26 @@ export default function CftcPositioning({ cftcData }) {
           {asOf && <> · as of {asOf}</>}
         </span>
       </div>
+      {kpi && (
+        <div className="sent-kpi-strip">
+          <div className="sent-kpi-pill">
+            <span className="sent-kpi-label">Most Long</span>
+            <span className="sent-kpi-value accent">{kpi.mostLong.code} +{kpi.mostLong.netPct}%</span>
+          </div>
+          <div className="sent-kpi-pill">
+            <span className="sent-kpi-label">Most Short</span>
+            <span className="sent-kpi-value">{kpi.mostShort.code} {kpi.mostShort.netPct}%</span>
+          </div>
+          <div className="sent-kpi-pill">
+            <span className="sent-kpi-label">Avg Net %</span>
+            <span className="sent-kpi-value">{kpi.avg >= 0 ? '+' : ''}{kpi.avg.toFixed(1)}%</span>
+          </div>
+          <div className="sent-kpi-pill">
+            <span className="sent-kpi-label"># Net Long</span>
+            <span className="sent-kpi-value">{kpi.netLongCount}</span>
+          </div>
+        </div>
+      )}
       <div className="sent-two-col">
         <div style={{ overflowY: 'auto', background: colors.bg, padding: '4px 0' }}>
           <Section title="Currencies" items={currencies} height={200} colors={colors} />
