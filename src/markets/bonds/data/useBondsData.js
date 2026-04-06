@@ -5,6 +5,7 @@ import {
   spreadData as mockSpreadData,
   durationLadderData,
   spreadIndicators as mockSpreadIndicators,
+  breakevensData as mockBreakevensData,
 } from './mockBondsData';
 
 const SERVER = '';
@@ -48,6 +49,7 @@ export function useBondsData() {
   const [yieldCurveData, setYieldCurveData]   = useState(mockYieldCurveData);
   const [spreadData, setSpreadData]           = useState(mockSpreadData);
   const [spreadIndicators, setSpreadIndicators] = useState(mockSpreadIndicators);
+  const [breakevensData, setBreakevensData]     = useState(mockBreakevensData);
   const [treasuryRates, setTreasuryRates]     = useState(null);
   const [isLive, setIsLive]                   = useState(false);
   const [lastUpdated, setLastUpdated]         = useState('Mock data — Apr 2025');
@@ -66,6 +68,9 @@ export function useBondsData() {
         if (data.spreadIndicators && Object.keys(data.spreadIndicators).length >= 3) {
           setSpreadIndicators(data.spreadIndicators);
         }
+        if (data.breakevensData?.history?.dates?.length >= 20) {
+          setBreakevensData(data.breakevensData);
+        }
         if (data.treasuryRates && Object.values(data.treasuryRates).some(v => v != null)) {
           setTreasuryRates(data.treasuryRates);
         }
@@ -82,5 +87,5 @@ export function useBondsData() {
     load();
   }, []);
 
-  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, treasuryRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, treasuryRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

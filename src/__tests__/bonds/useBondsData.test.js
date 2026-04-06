@@ -75,4 +75,29 @@ describe('useBondsData', () => {
     expect(result.current.creditRatingsData.length).toBeGreaterThan(0);
     expect(Array.isArray(result.current.durationLadderData)).toBe(true);
   });
+
+  it('returns mock breakevensData on server failure', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
+    const { result } = renderHook(() => useBondsData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { breakevensData } = result.current;
+    expect(breakevensData.current.be5y).toBeDefined();
+    expect(breakevensData.current.real10y).toBeDefined();
+    expect(breakevensData.history.dates.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('guard: does not apply breakevensData when history dates < 20', async () => {
+    const liveData = {
+      yieldCurveData: { US: { '10y': 4.0 } },
+      spreadData: null,
+      breakevensData: { current: { be5y: 3.0, be10y: 3.1, forward5y5y: 3.2, real5y: 1.5, real10y: 1.6 }, history: { dates: ['Jan-25'], be5y: [3.0], be10y: [3.1], forward5y5y: [3.2] } },
+      lastUpdated: '2026-04-05',
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useBondsData());
+    await waitFor(() => expect(result.current.isLive).toBe(true));
+    // Should keep mock breakevensData because live only has 1 date
+    expect(result.current.breakevensData.current.be5y).toBe(2.31);
+    expect(result.current.breakevensData.history.dates.length).toBeGreaterThanOrEqual(20);
+  });
 });
