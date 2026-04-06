@@ -103,7 +103,7 @@ export default function TopMovers({
           <span className="fx-kpi-value">{avgMag.toFixed(3)}%</span>
         </div>
         <div className="fx-kpi-pill">
-          <span className="fx-kpi-label">Big Moves (>0.3%)</span>
+          <span className="fx-kpi-label">Big Moves (&gt;0.3%)</span>
           <span className="fx-kpi-value">{bigMovers}</span>
           <span className="fx-kpi-sub">of {movers.length} tracked</span>
         </div>
