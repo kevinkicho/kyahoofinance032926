@@ -105,3 +105,11 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+
+/* Breakeven Monitor */
+.be-pills { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.be-pill { background: #1e293b; border-radius: 6px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 100px; }
+.be-pill-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+.be-pill-value { font-size: 16px; font-weight: 700; color: #e2e8f0; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
+.be-pill-value.green { color: #10b981; }
+.be-footer { margin-top: 8px; font-size: 10px; color: #475569; }

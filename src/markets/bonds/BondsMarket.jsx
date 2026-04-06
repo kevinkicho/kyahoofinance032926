@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useBondsData } from './data/useBondsData';
-import YieldCurve     from './components/YieldCurve';
-import CreditMatrix   from './components/CreditMatrix';
-import SpreadMonitor  from './components/SpreadMonitor';
-import DurationLadder from './components/DurationLadder';
+import YieldCurve        from './components/YieldCurve';
+import CreditMatrix      from './components/CreditMatrix';
+import SpreadMonitor     from './components/SpreadMonitor';
+import DurationLadder    from './components/DurationLadder';
+import BreakevenMonitor  from './components/BreakevenMonitor';
 import './BondsMarket.css';
 
 const SUB_TABS = [
@@ -11,11 +12,12 @@ const SUB_TABS = [
   { id: 'credit-matrix',   label: 'Credit Matrix'  },
   { id: 'spread-monitor',  label: 'Spread Monitor' },
   { id: 'duration-ladder', label: 'Duration Ladder' },
+  { id: 'breakevens',      label: 'Breakevens'     },
 ];
 
 export default function BondsMarket() {
   const [activeTab, setActiveTab] = useState('yield-curve');
-  const { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, treasuryRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useBondsData();
+  const { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, treasuryRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useBondsData();
 
   if (isLoading) {
     return (
@@ -51,6 +53,7 @@ export default function BondsMarket() {
         {activeTab === 'credit-matrix'   && <CreditMatrix   creditRatingsData={creditRatingsData} />}
         {activeTab === 'spread-monitor'  && <SpreadMonitor  spreadData={spreadData} />}
         {activeTab === 'duration-ladder' && <DurationLadder durationLadderData={durationLadderData} treasuryRates={treasuryRates} />}
+        {activeTab === 'breakevens'      && <BreakevenMonitor breakevensData={breakevensData} />}
       </div>
     </div>
   );
