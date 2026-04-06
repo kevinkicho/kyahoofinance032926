@@ -5,6 +5,7 @@ import CoinMarketOverview    from './components/CoinMarketOverview';
 import CycleIndicators       from './components/CycleIndicators';
 import DefiChains            from './components/DefiChains';
 import FundingAndPositioning from './components/FundingAndPositioning';
+import OnChainMetrics from './components/OnChainMetrics';
 import './CryptoMarket.css';
 
 const SUB_TABS = [
@@ -16,7 +17,7 @@ const SUB_TABS = [
 
 export default function CryptoMarket() {
   const [activeTab, setActiveTab] = useState('market');
-  const { coinMarketData, fearGreedData, defiData, fundingData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData();
+  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData();
 
   if (isLoading) {
     return (
@@ -48,7 +49,10 @@ export default function CryptoMarket() {
         {!isCurrent && fetchedOn && <span className="crypto-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="crypto-content">
-        {activeTab === 'market'  && <CoinMarketOverview    coinMarketData={coinMarketData} />}
+        {activeTab === 'market'  && <>
+          <CoinMarketOverview coinMarketData={coinMarketData} />
+          <OnChainMetrics onChainData={onChainData} />
+        </>}
         {activeTab === 'cycle'   && <CycleIndicators       fearGreedData={fearGreedData} />}
         {activeTab === 'defi'    && <DefiChains            defiData={defiData} />}
         {activeTab === 'funding' && <FundingAndPositioning fundingData={fundingData} />}

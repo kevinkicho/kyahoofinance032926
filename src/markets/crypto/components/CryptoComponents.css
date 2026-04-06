@@ -45,3 +45,13 @@
 .crypto-stat-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
 .crypto-stat-value { font-size: 12px; font-weight: 600; color: #e2e8f0; }
 .crypto-stat-value.amber { color: #f59e0b; }
+
+/* On-chain metrics */
+.onchain-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px 12px; flex-shrink: 0; }
+.onchain-card { background: #1e293b; border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.onchain-card-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+.onchain-card-value { font-size: 18px; font-weight: 700; color: #e2e8f0; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
+.onchain-card-value.amber { color: #f59e0b; }
+.onchain-card-value small { font-size: 10px; font-weight: 400; color: #64748b; }
+.onchain-card-sub { font-size: 10px; color: #64748b; }
+.onchain-chart-wrap { padding: 4px 12px 8px; flex-shrink: 0; }
