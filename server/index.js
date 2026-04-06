@@ -1265,17 +1265,23 @@ const COMMODITY_META = {
   'BZ=F': { name: 'Brent Crude', sector: 'Energy',      unit: '$/bbl'   },
   'NG=F': { name: 'Natural Gas', sector: 'Energy',      unit: '$/MMBtu' },
   'RB=F': { name: 'Gasoline',    sector: 'Energy',      unit: '$/gal'   },
+  'HO=F': { name: 'Heating Oil', sector: 'Energy',      unit: '$/gal'   },
   'GC=F': { name: 'Gold',        sector: 'Metals',      unit: '$/oz'    },
   'SI=F': { name: 'Silver',      sector: 'Metals',      unit: '$/oz'    },
   'HG=F': { name: 'Copper',      sector: 'Metals',      unit: '$/lb'    },
   'PL=F': { name: 'Platinum',    sector: 'Metals',      unit: '$/oz'    },
+  'PA=F': { name: 'Palladium',   sector: 'Metals',      unit: '$/oz'    },
   'ZW=F': { name: 'Wheat',       sector: 'Agriculture', unit: '\u00a2/bu' },
   'ZC=F': { name: 'Corn',        sector: 'Agriculture', unit: '\u00a2/bu' },
   'ZS=F': { name: 'Soybeans',    sector: 'Agriculture', unit: '\u00a2/bu' },
   'KC=F': { name: 'Coffee',      sector: 'Agriculture', unit: '\u00a2/lb' },
+  'CT=F': { name: 'Cotton',      sector: 'Agriculture', unit: '\u00a2/lb' },
+  'SB=F': { name: 'Sugar',       sector: 'Agriculture', unit: '\u00a2/lb' },
+  'LE=F': { name: 'Live Cattle', sector: 'Livestock',   unit: '\u00a2/lb' },
+  'LBS=F':{ name: 'Lumber',      sector: 'Livestock',   unit: '$/MBF'   },
 };
 const COMMODITY_TICKERS = Object.keys(COMMODITY_META);
-const COMM_SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture'];
+const COMM_SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture', 'Livestock'];
 
 const FUTURES_MONTH_CODES = ['F','G','H','J','K','M','N','Q','U','V','X','Z'];
 const FUTURES_MONTH_NAMES = { F:'Jan',G:'Feb',H:'Mar',J:'Apr',K:'May',M:'Jun',N:'Jul',Q:'Aug',U:'Sep',V:'Oct',X:'Nov',Z:'Dec' };
@@ -1297,6 +1303,33 @@ function getWTIFuturesTickers(numMonths = 8) {
 }
 
 function futuresTickerToLabel(ticker) {
+  const code = ticker[2];
+  const yr = ticker.slice(3, 5);
+  return `${FUTURES_MONTH_NAMES[code] || '?'} '${yr}`;
+}
+
+const GOLD_FUTURES_MONTHS = ['G','J','M','Q','V','Z']; // Feb,Apr,Jun,Aug,Oct,Dec
+function getGoldFuturesTickers(numMonths = 8) {
+  const tickers = [];
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth() + 1; // 1-indexed, current month
+  const validMonths = [2,4,6,8,10,12];
+  let startMonth = validMonths.find(m => m > month);
+  if (!startMonth) { startMonth = validMonths[0]; year++; }
+  let mIdx = validMonths.indexOf(startMonth);
+  for (let i = 0; i < numMonths; i++) {
+    const m = validMonths[mIdx];
+    const code = FUTURES_MONTH_CODES[m - 1];
+    const yr = String(year).slice(-2);
+    tickers.push(`GC${code}${yr}.CMX`);
+    mIdx++;
+    if (mIdx >= validMonths.length) { mIdx = 0; year++; }
+  }
+  return tickers;
+}
+
+function goldFuturesTickerToLabel(ticker) {
   const code = ticker[2];
   const yr = ticker.slice(3, 5);
   return `${FUTURES_MONTH_NAMES[code] || '?'} '${yr}`;
@@ -1374,7 +1407,7 @@ app.get('/api/commodities', async (req, res) => {
     });
 
     // 3. Build priceDashboardData + sectorHeatmapData
-    const sectorGroups = { Energy: [], Metals: [], Agriculture: [] };
+    const sectorGroups = { Energy: [], Metals: [], Agriculture: [], Livestock: [] };
     const heatmapRows  = [];
 
     for (const ticker of COMMODITY_TICKERS) {
@@ -1502,12 +1535,100 @@ app.get('/api/commodities', async (req, res) => {
       console.warn('CFTC COT fetch failed:', e.message);
     }
 
+    // 7. FRED commodity price histories + indicators
+    let fredCommodities = null;
+    if (FRED_API_KEY) {
+      try {
+        const [wtiHist, goldHist, brentHist, natGasHist, ppiHist, dollarHist, gasRetailVal] = await Promise.all([
+          fetchFredHistory('DCOILWTICO', 252).catch(() => []),
+          fetchFredHistory('GOLDAMGBD228NLBM', 252).catch(() => []),
+          fetchFredHistory('DCOILBRENTEU', 252).catch(() => []),
+          fetchFredHistory('DHHNGSP', 252).catch(() => []),
+          fetchFredHistory('WPUFD49207', 36).catch(() => []),
+          fetchFredHistory('DTWEXBGS', 252).catch(() => []),
+          fetchFredLatest('GASREGW').catch(() => null),
+        ]);
+        const toSeries = (hist) => hist.length >= 10 ? {
+          dates: hist.map(p => p.date),
+          values: hist.map(p => Math.round(p.value * 100) / 100),
+        } : null;
+        fredCommodities = {
+          wtiHistory:    toSeries(wtiHist),
+          goldHistory:   toSeries(goldHist),
+          brentHistory:  toSeries(brentHist),
+          natGasHistory: toSeries(natGasHist),
+          ppiCommodity:  ppiHist.length >= 6 ? {
+            dates: ppiHist.map(p => p.date.slice(0, 7)),
+            values: ppiHist.map(p => Math.round(p.value * 10) / 10),
+          } : null,
+          dollarIndex:   toSeries(dollarHist),
+          gasRetail:     gasRetailVal != null ? Math.round(gasRetailVal * 1000) / 1000 : null,
+        };
+      } catch { /* use null */ }
+    }
+
+    // 8. Gold futures curve (COMEX, bi-monthly contracts)
+    let goldFuturesCurve = null;
+    try {
+      const goldTickers = getGoldFuturesTickers(8);
+      const goldQuotes = await yf.quote(goldTickers);
+      const goldArr = Array.isArray(goldQuotes) ? goldQuotes : [goldQuotes];
+      const goldMap = {};
+      goldArr.filter(q => q).forEach(q => { goldMap[q.symbol] = q; });
+      const validGold = goldTickers
+        .map(t => ({ ticker: t, label: goldFuturesTickerToLabel(t), price: goldMap[t]?.regularMarketPrice ?? null }))
+        .filter(f => f.price != null);
+      if (validGold.length >= 3) {
+        goldFuturesCurve = {
+          labels:    validGold.map(f => f.label),
+          prices:    validGold.map(f => Math.round(f.price * 100) / 100),
+          commodity: 'Gold',
+          unit:      '$/oz',
+          spotPrice: quotesMap['GC=F']?.regularMarketPrice ?? validGold[0]?.price ?? null,
+        };
+      }
+    } catch (e) {
+      console.warn('Gold futures curve failed:', e.message);
+    }
+
+    // 9. DBC (broad commodity ETF) quote + 1yr chart
+    let dbcEtf = null;
+    try {
+      const dbcQuote = await yf.quote(['DBC']);
+      const dbcArr = Array.isArray(dbcQuote) ? dbcQuote : [dbcQuote];
+      const dq = dbcArr.find(q => q?.symbol === 'DBC');
+      if (dq?.regularMarketPrice) {
+        const histStart = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().split('T')[0]; })();
+        const histEnd = new Date().toISOString().split('T')[0];
+        let dbcHistory = null;
+        try {
+          const chart = await yf.chart('DBC', { period1: histStart, period2: histEnd, interval: '1d' });
+          const quotes = (chart.quotes || []).filter(q => q.close != null);
+          if (quotes.length >= 20) {
+            dbcHistory = {
+              dates: quotes.map(q => q.date.toISOString().split('T')[0]),
+              closes: quotes.map(q => Math.round(q.close * 100) / 100),
+            };
+          }
+        } catch { /* no history */ }
+        dbcEtf = {
+          price: Math.round(dq.regularMarketPrice * 100) / 100,
+          changePct: Math.round((dq.regularMarketChangePercent ?? 0) * 100) / 100,
+          ytd: dq.ytdReturn != null ? Math.round(dq.ytdReturn * 1000) / 10 : null,
+          history: dbcHistory,
+        };
+      }
+    } catch { /* use null */ }
+
     const result = {
       priceDashboardData,
       sectorHeatmapData,
-      futuresCurveData:  futuresCurveData  ?? null,
-      supplyDemandData:  supplyDemandData  ?? null,
-      cotData:           cotData            ?? null,
+      futuresCurveData:    futuresCurveData    ?? null,
+      supplyDemandData:    supplyDemandData    ?? null,
+      cotData:             cotData             ?? null,
+      fredCommodities:     fredCommodities     ?? null,
+      goldFuturesCurve:    goldFuturesCurve    ?? null,
+      dbcEtf:              dbcEtf              ?? null,
       lastUpdated: today,
     };
 
