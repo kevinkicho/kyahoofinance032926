@@ -65,6 +65,21 @@ export default function FactorRankings({ factorData }) {
 
   const inFavorOption = useMemo(() => buildInFavorOption(inFavor, colors), [inFavor, colors]);
 
+  const kpis = useMemo(() => {
+    if (!stocks.length) return null;
+    const factors = [
+      { name: 'Momentum', val: inFavor.momentum ?? 0 },
+      { name: 'Value', val: inFavor.value ?? 0 },
+      { name: 'Quality', val: inFavor.quality ?? 0 },
+      { name: 'Low-Vol', val: inFavor.lowVol ?? 0 },
+    ];
+    const topFactor = factors.reduce((a, b) => a.val > b.val ? a : b);
+    const topStock = stocks.reduce((a, b) => (a.composite ?? 0) > (b.composite ?? 0) ? a : b);
+    const avgComposite = stocks.reduce((s, st) => s + (st.composite ?? 0), 0) / stocks.length;
+    const highQuality = stocks.filter(s => (s.quality ?? 0) >= 70).length;
+    return { topFactor, topStock, avgComposite, highQuality };
+  }, [inFavor, stocks]);
+
   if (!factorData) return null;
 
   return (
@@ -73,6 +88,30 @@ export default function FactorRankings({ factorData }) {
         <span className="eq-panel-title">Factor Rankings</span>
         <span className="eq-panel-subtitle">Percentile scores 1–100 · composite = average of 4 factors</span>
       </div>
+      {/* KPI Strip */}
+      {kpis && (
+        <div className="eq-kpi-strip">
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Top Factor</span>
+            <span className="eq-kpi-value accent">{kpis.topFactor.name}</span>
+            <span className="eq-kpi-sub">{kpis.topFactor.val >= 0 ? '+' : ''}{kpis.topFactor.val.toFixed(1)}%</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Top Stock</span>
+            <span className="eq-kpi-value accent">{kpis.topStock.ticker}</span>
+            <span className="eq-kpi-sub">Composite {kpis.topStock.composite}</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Avg Composite</span>
+            <span className="eq-kpi-value accent">{kpis.avgComposite.toFixed(0)}</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">{`Quality \u2265 70`}</span>
+            <span className="eq-kpi-value accent">{kpis.highQuality}</span>
+            <span className="eq-kpi-sub">of {stocks.length}</span>
+          </div>
+        </div>
+      )}
       <div className="eq-two-row">
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Factor In Favor</div>

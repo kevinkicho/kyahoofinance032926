@@ -108,6 +108,17 @@ export default function SectorRotation({ sectorData }) {
   const rankedOption = useMemo(() => buildRankedOption(sectors, colors), [sectors, colors]);
   const rotationOption = useMemo(() => buildRotationOption(sectors, colors), [sectors, colors]);
 
+  const kpis = useMemo(() => {
+    const spy = sectors.find(s => s.code === 'SPY');
+    const etfs = sectors.filter(s => s.code !== 'SPY');
+    if (!etfs.length) return null;
+    const best = etfs.reduce((a, b) => (a.perf1m ?? -99) > (b.perf1m ?? -99) ? a : b);
+    const worst = etfs.reduce((a, b) => (a.perf1m ?? 99) < (b.perf1m ?? 99) ? a : b);
+    const spyPerf = spy?.perf1m ?? 0;
+    const outperforming = etfs.filter(s => (s.perf1m ?? 0) >= spyPerf).length;
+    return { best, worst, spyPerf, outperforming, total: etfs.length };
+  }, [sectors]);
+
   if (!sectorData) return null;
 
   return (
@@ -116,6 +127,32 @@ export default function SectorRotation({ sectorData }) {
         <span className="eq-panel-title">Sector Rotation</span>
         <span className="eq-panel-subtitle">1M performance vs S&amp;P 500 · quadrant scatter chart</span>
       </div>
+      {/* KPI Strip */}
+      {kpis && (
+        <div className="eq-kpi-strip">
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Best Sector</span>
+            <span className="eq-kpi-value accent">{kpis.best.name}</span>
+            <span className="eq-kpi-sub">{kpis.best.perf1m >= 0 ? '+' : ''}{kpis.best.perf1m?.toFixed(1)}%</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Worst Sector</span>
+            <span className="eq-kpi-value" style={{ color: '#ef4444' }}>{kpis.worst.name}</span>
+            <span className="eq-kpi-sub">{kpis.worst.perf1m >= 0 ? '+' : ''}{kpis.worst.perf1m?.toFixed(1)}%</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">SPY 1M</span>
+            <span className={`eq-kpi-value ${kpis.spyPerf >= 0 ? 'positive' : 'negative'}`}>
+              {kpis.spyPerf >= 0 ? '+' : ''}{kpis.spyPerf.toFixed(1)}%
+            </span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Outperforming</span>
+            <span className="eq-kpi-value accent">{kpis.outperforming}</span>
+            <span className="eq-kpi-sub">of {kpis.total} sectors</span>
+          </div>
+        </div>
+      )}
       <div className="eq-two-col">
         <div className="eq-chart-panel">
           <div className="eq-chart-title">ETF Performance</div>
