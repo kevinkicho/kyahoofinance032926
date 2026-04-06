@@ -1332,11 +1332,64 @@ app.get('/api/commodities', async (req, res) => {
       console.warn('EIA fetch failed:', e.message);
     }
 
+    // 6. CFTC COT positioning for WTI crude + gold
+    let cotData = null;
+    try {
+      const cotUrl = `https://publicreporting.cftc.gov/resource/jun7-fc8e.json?$where=market_and_exchange_names like 'CRUDE OIL%25' OR market_and_exchange_names like 'GOLD%25'&$order=report_date_as_yyyy_mm_dd DESC&$limit=24`;
+      const cotRaw = await fetchJSON(cotUrl);
+      if (Array.isArray(cotRaw) && cotRaw.length > 0) {
+        const grouped = {};
+        for (const row of cotRaw) {
+          const isCrude = /CRUDE OIL/i.test(row.market_and_exchange_names);
+          const isGold  = /GOLD/i.test(row.market_and_exchange_names);
+          const key = isCrude ? 'WTI Crude Oil' : isGold ? 'Gold' : null;
+          if (!key) continue;
+          if (!grouped[key]) grouped[key] = [];
+          const noncommLong  = parseInt(row.noncomm_positions_long_all || '0');
+          const noncommShort = parseInt(row.noncomm_positions_short_all || '0');
+          const commLong     = parseInt(row.comm_positions_long_all || '0');
+          const commShort    = parseInt(row.comm_positions_short_all || '0');
+          const totalOI      = parseInt(row.open_interest_all || '0');
+          grouped[key].push({
+            date:       row.report_date_as_yyyy_mm_dd,
+            noncommNet: noncommLong - noncommShort,
+            commNet:    commLong - commShort,
+            totalOI,
+          });
+        }
+
+        const commodities = [];
+        for (const name of ['WTI Crude Oil', 'Gold']) {
+          const rows = (grouped[name] || []).slice(0, 12);
+          if (rows.length === 0) continue;
+          const latest = rows[0];
+          const prev = rows.length >= 2 ? rows[1] : null;
+          commodities.push({
+            name,
+            latest: {
+              noncommNet: latest.noncommNet,
+              commNet:    latest.commNet,
+              totalOI:    latest.totalOI,
+              netChange:  prev ? latest.noncommNet - prev.noncommNet : 0,
+            },
+            history: rows.map(r => ({ date: r.date, noncommNet: r.noncommNet })),
+          });
+        }
+
+        if (commodities.length >= 2) {
+          cotData = { commodities };
+        }
+      }
+    } catch (e) {
+      console.warn('CFTC COT fetch failed:', e.message);
+    }
+
     const result = {
       priceDashboardData,
       sectorHeatmapData,
       futuresCurveData:  futuresCurveData  ?? null,
       supplyDemandData:  supplyDemandData  ?? null,
+      cotData:           cotData            ?? null,
       lastUpdated: today,
     };
 
