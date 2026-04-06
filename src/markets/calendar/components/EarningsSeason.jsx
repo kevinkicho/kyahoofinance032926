@@ -22,6 +22,24 @@ function isCurrentWeek(dateStr) {
 
 export default function EarningsSeason({ earningsSeason }) {
   const { colors } = useTheme();
+
+  const kpis = useMemo(() => {
+    if (!earningsSeason?.length) return null;
+    const total = earningsSeason.length;
+    const thisWeek = earningsSeason.filter(e => isCurrentWeek(e.date)).length;
+    let largestMktCap = null;
+    let largestCapVal = -Infinity;
+    earningsSeason.forEach(e => {
+      if (e.marketCapB != null && e.marketCapB > largestCapVal) {
+        largestCapVal = e.marketCapB;
+        largestMktCap = { ticker: e.ticker, marketCapB: e.marketCapB };
+      }
+    });
+    const epsVals = earningsSeason.map(e => e.epsEst).filter(v => v != null);
+    const avgEps = epsVals.length ? epsVals.reduce((a, b) => a + b, 0) / epsVals.length : null;
+    return { total, thisWeek, largestMktCap, avgEps };
+  }, [earningsSeason]);
+
   const grouped = useMemo(() => {
     if (!earningsSeason?.length) return [];
     const groups = {};
@@ -39,6 +57,30 @@ export default function EarningsSeason({ earningsSeason }) {
         <span className="cal-panel-title">Earnings Season</span>
         <span className="cal-panel-subtitle">Mega-cap earnings dates · next 60 days · Yahoo Finance calendarEvents</span>
       </div>
+      {kpis && (
+        <div className="cal-kpi-strip">
+          <div className="cal-kpi-pill">
+            <span className="cal-kpi-label">Total Reports</span>
+            <span className="cal-kpi-value accent">{kpis.total}</span>
+          </div>
+          <div className="cal-kpi-pill">
+            <span className="cal-kpi-label">This Week</span>
+            <span className="cal-kpi-value">{kpis.thisWeek}</span>
+          </div>
+          {kpis.largestMktCap && (
+            <div className="cal-kpi-pill" style={{ minWidth: 120 }}>
+              <span className="cal-kpi-label">Largest Mkt Cap</span>
+              <span className="cal-kpi-value">{kpis.largestMktCap.ticker} ${kpis.largestMktCap.marketCapB}B</span>
+            </div>
+          )}
+          {kpis.avgEps != null && (
+            <div className="cal-kpi-pill">
+              <span className="cal-kpi-label">Avg EPS Est</span>
+              <span className="cal-kpi-value">${kpis.avgEps.toFixed(2)}</span>
+            </div>
+          )}
+        </div>
+      )}
       {grouped.map(g => (
         <div key={g.label} className="cal-week-group">
           <div className={`cal-week-header${g.isCurrent ? ' cal-week-current' : ''}`}>

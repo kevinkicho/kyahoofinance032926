@@ -100,3 +100,10 @@
 .cal-cat-consumer   { background: #78350f; color: #fcd34d; }
 .cal-cat-housing    { background: #7c2d12; color: #fdba74; }
 .cal-cat-sentiment  { background: #3b0764; color: #c4b5fd; }
+
+/* — KPI strip (dense enrichment) — */
+.cal-kpi-strip { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; flex-wrap: wrap; }
+.cal-kpi-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
+.cal-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.cal-kpi-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.cal-kpi-value.accent { color: #f43f5e; }

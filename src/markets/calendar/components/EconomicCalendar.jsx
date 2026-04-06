@@ -19,6 +19,25 @@ export default function EconomicCalendar({ economicEvents }) {
   const { colors } = useTheme();
   const [filter, setFilter] = useState('all');
 
+  const kpis = useMemo(() => {
+    if (!economicEvents?.length) return null;
+    const total = economicEvents.length;
+    const upcoming = economicEvents.filter(e => e.actual == null).length;
+    const released = economicEvents.filter(e => e.actual != null).length;
+    let biggestSurprise = null;
+    let biggestAbs = -Infinity;
+    economicEvents.forEach(e => {
+      if (e.actual != null && e.expected != null) {
+        const diff = e.actual - e.expected;
+        if (Math.abs(diff) > biggestAbs) {
+          biggestAbs = Math.abs(diff);
+          biggestSurprise = { event: e.event, surprise: Math.round(diff * 100) / 100 };
+        }
+      }
+    });
+    return { total, upcoming, released, biggestSurprise };
+  }, [economicEvents]);
+
   const filtered = useMemo(() => {
     if (!economicEvents?.length) return [];
     const f = REGION_FILTERS.find(r => r.id === filter);
@@ -32,6 +51,30 @@ export default function EconomicCalendar({ economicEvents }) {
         <span className="cal-panel-title">Economic Calendar</span>
         <span className="cal-panel-subtitle">High-importance macro releases · next 30 days · Econdb</span>
       </div>
+      {kpis && (
+        <div className="cal-kpi-strip">
+          <div className="cal-kpi-pill">
+            <span className="cal-kpi-label">Total Events</span>
+            <span className="cal-kpi-value accent">{kpis.total}</span>
+          </div>
+          <div className="cal-kpi-pill">
+            <span className="cal-kpi-label">Upcoming</span>
+            <span className="cal-kpi-value">{kpis.upcoming}</span>
+          </div>
+          <div className="cal-kpi-pill">
+            <span className="cal-kpi-label">Released</span>
+            <span className="cal-kpi-value">{kpis.released}</span>
+          </div>
+          {kpis.biggestSurprise && (
+            <div className="cal-kpi-pill" style={{ minWidth: 160 }}>
+              <span className="cal-kpi-label">Biggest Surprise</span>
+              <span className="cal-kpi-value">
+                {kpis.biggestSurprise.event} {kpis.biggestSurprise.surprise > 0 ? '+' : ''}{kpis.biggestSurprise.surprise}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
       <div className="cal-filter-bar">
         {REGION_FILTERS.map(r => (
           <button
