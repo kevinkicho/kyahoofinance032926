@@ -18,7 +18,11 @@ const SUB_TABS = [
 
 export default function CommoditiesMarket() {
   const [activeTab, setActiveTab] = useState('price-dashboard');
-  const { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCommoditiesData();
+  const {
+    priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,
+    fredCommodities, goldFuturesCurve, dbcEtf,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+  } = useCommoditiesData();
 
   if (isLoading) {
     return (
@@ -44,16 +48,16 @@ export default function CommoditiesMarket() {
       </div>
       <div className="com-status-bar">
         <span className={isLive ? 'com-status-live' : ''}>
-          {isLive ? '● Live · Yahoo Finance / EIA' : '○ Mock data — static'}
+          {isLive ? '● Live · Yahoo Finance / EIA / FRED' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="com-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="com-content">
-        {activeTab === 'price-dashboard' && <PriceDashboard priceDashboardData={priceDashboardData} />}
-        {activeTab === 'futures-curve'   && <FuturesCurve   futuresCurveData={futuresCurveData} />}
-        {activeTab === 'sector-heatmap'  && <SectorHeatmap  sectorHeatmapData={sectorHeatmapData} />}
-        {activeTab === 'supply-demand'   && <SupplyDemand   supplyDemandData={supplyDemandData} />}
+        {activeTab === 'price-dashboard' && <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} />}
+        {activeTab === 'futures-curve'   && <FuturesCurve   futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} />}
+        {activeTab === 'sector-heatmap'  && <SectorHeatmap  sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} />}
+        {activeTab === 'supply-demand'   && <SupplyDemand   supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} />}
         {activeTab === 'cot'             && <CotPositioning cotData={cotData} />}
       </div>
     </div>
