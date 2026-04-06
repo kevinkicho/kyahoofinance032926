@@ -133,3 +133,92 @@
 .cot-metric-value { font-size: 14px; font-weight: 700; color: var(--text-primary); font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
 .cot-metric-value.green { color: #10b981; }
 .cot-metric-value.red { color: #ef4444; }
+
+/* ── Shared dense-dashboard layout ──────────── */
+.com-kpi-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.com-kpi-pill {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+.com-kpi-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.com-kpi-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  color: var(--text-primary);
+}
+.com-kpi-value.positive { color: #22c55e; }
+.com-kpi-value.negative { color: #ef4444; }
+.com-kpi-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.com-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.com-wide-narrow {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.com-three-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.com-chart-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.com-chart-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+.com-mini-chart {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Sector performance bars (Heatmap enrichment) */
+.com-sector-bars { display: flex; flex-direction: column; gap: 6px; }
+.com-sector-bar-row { display: flex; align-items: center; gap: 8px; }
+.com-sector-bar-name { font-size: 11px; color: var(--text-secondary); width: 80px; flex-shrink: 0; text-align: right; }
+.com-sector-bar-wrap { flex: 1; height: 14px; background: var(--bg-primary); border-radius: 3px; overflow: hidden; position: relative; }
+.com-sector-bar-fill { height: 100%; border-radius: 3px; position: absolute; top: 0; }
+.com-sector-bar-center { position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: var(--text-dim); }
+.com-sector-bar-val { font-size: 11px; font-weight: 600; width: 55px; text-align: right; }
+.com-sector-bar-val.positive { color: #22c55e; }
+.com-sector-bar-val.negative { color: #ef4444; }
