@@ -1,5 +1,5 @@
 // src/markets/globalMacro/components/MacroScorecard.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import './MacroComponents.css';
 
 function gdpHeat(v) {
@@ -53,11 +53,48 @@ function fmt1(v) { return v != null ? v.toFixed(1) + '%' : '—'; }
 function fmtRate(v) { return v != null ? v.toFixed(2) + '%' : '—'; }
 
 export default function MacroScorecard({ scorecardData = [] }) {
+  const kpis = useMemo(() => {
+    const g7 = scorecardData.filter(c => c.region === 'G7');
+    const em = scorecardData.filter(c => c.region === 'EM');
+    const avgG7Gdp = g7.length ? g7.reduce((s, c) => s + (c.gdp || 0), 0) / g7.length : 0;
+    const avgEmGdp = em.length ? em.reduce((s, c) => s + (c.gdp || 0), 0) / em.length : 0;
+    const withCpi = scorecardData.filter(c => c.cpi != null);
+    const lowestCpi = withCpi.length ? withCpi.reduce((a, b) => a.cpi < b.cpi ? a : b) : null;
+    const withDebt = scorecardData.filter(c => c.debt != null);
+    const highestDebt = withDebt.length ? withDebt.reduce((a, b) => a.debt > b.debt ? a : b) : null;
+    return { avgG7Gdp, avgEmGdp, lowestCpi, highestDebt };
+  }, [scorecardData]);
+
   return (
     <div className="mac-panel">
       <div className="mac-panel-header">
         <span className="mac-panel-title">Macro Scorecard</span>
         <span className="mac-panel-subtitle">12 countries · latest annual data · World Bank + central banks</span>
+      </div>
+      {/* KPI Strip */}
+      <div className="mac-kpi-strip">
+        <div className="mac-kpi-pill">
+          <span className="mac-kpi-label">Avg G7 GDP</span>
+          <span className={`mac-kpi-value ${kpis.avgG7Gdp >= 0 ? 'positive' : 'negative'}`}>
+            {kpis.avgG7Gdp.toFixed(1)}%
+          </span>
+        </div>
+        <div className="mac-kpi-pill">
+          <span className="mac-kpi-label">Avg EM GDP</span>
+          <span className={`mac-kpi-value ${kpis.avgEmGdp >= 0 ? 'positive' : 'negative'}`}>
+            {kpis.avgEmGdp.toFixed(1)}%
+          </span>
+        </div>
+        <div className="mac-kpi-pill">
+          <span className="mac-kpi-label">Lowest CPI</span>
+          <span className="mac-kpi-value accent">{kpis.lowestCpi ? kpis.lowestCpi.name : '\u2014'}</span>
+          {kpis.lowestCpi && <span className="mac-kpi-sub">{kpis.lowestCpi.cpi.toFixed(1)}%</span>}
+        </div>
+        <div className="mac-kpi-pill">
+          <span className="mac-kpi-label">Highest Debt</span>
+          <span className="mac-kpi-value" style={{ color: '#ef4444' }}>{kpis.highestDebt ? kpis.highestDebt.name : '\u2014'}</span>
+          {kpis.highestDebt && <span className="mac-kpi-sub">{kpis.highestDebt.debt.toFixed(0)}% GDP</span>}
+        </div>
       </div>
       <div className="mac-scroll">
         <table className="mac-table">

@@ -89,3 +89,42 @@
   flex: 1;
   overflow: hidden;
 }
+
+/* ── KPI strip (macro enrichment) ── */
+.mac-kpi-strip {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.mac-kpi-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px 12px;
+  min-width: 90px;
+  flex: 1;
+}
+.mac-kpi-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mac-kpi-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+.mac-kpi-value.accent { color: #14b8a6; }
+.mac-kpi-value.positive { color: #4ade80; }
+.mac-kpi-value.negative { color: #f87171; }
+.mac-kpi-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
