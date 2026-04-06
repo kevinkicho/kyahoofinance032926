@@ -164,6 +164,17 @@ function macroApiPlugin() {
 
 export default defineConfig({
   plugins: [react(), macroApiPlugin()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-echarts': ['echarts', 'echarts-for-react'],
+          'vendor-utils': ['html2canvas', 'papaparse'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {
