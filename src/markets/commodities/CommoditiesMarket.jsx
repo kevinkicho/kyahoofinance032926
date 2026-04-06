@@ -1,10 +1,11 @@
 // src/markets/commodities/CommoditiesMarket.jsx
 import React, { useState } from 'react';
 import { useCommoditiesData } from './data/useCommoditiesData';
-import PriceDashboard from './components/PriceDashboard';
-import FuturesCurve   from './components/FuturesCurve';
-import SectorHeatmap  from './components/SectorHeatmap';
-import SupplyDemand   from './components/SupplyDemand';
+import PriceDashboard  from './components/PriceDashboard';
+import FuturesCurve    from './components/FuturesCurve';
+import SectorHeatmap   from './components/SectorHeatmap';
+import SupplyDemand    from './components/SupplyDemand';
+import CotPositioning  from './components/CotPositioning';
 import './CommoditiesMarket.css';
 
 const SUB_TABS = [
@@ -12,11 +13,12 @@ const SUB_TABS = [
   { id: 'futures-curve',   label: 'Futures Curve'   },
   { id: 'sector-heatmap',  label: 'Sector Heatmap'  },
   { id: 'supply-demand',   label: 'Supply & Demand'  },
+  { id: 'cot',             label: 'COT Positioning'  },
 ];
 
 export default function CommoditiesMarket() {
   const [activeTab, setActiveTab] = useState('price-dashboard');
-  const { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCommoditiesData();
+  const { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCommoditiesData();
 
   if (isLoading) {
     return (
@@ -52,6 +54,7 @@ export default function CommoditiesMarket() {
         {activeTab === 'futures-curve'   && <FuturesCurve   futuresCurveData={futuresCurveData} />}
         {activeTab === 'sector-heatmap'  && <SectorHeatmap  sectorHeatmapData={sectorHeatmapData} />}
         {activeTab === 'supply-demand'   && <SupplyDemand   supplyDemandData={supplyDemandData} />}
+        {activeTab === 'cot'             && <CotPositioning cotData={cotData} />}
       </div>
     </div>
   );

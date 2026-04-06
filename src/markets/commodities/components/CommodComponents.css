@@ -122,3 +122,14 @@
   flex-shrink: 0;
 }
 .com-sd-chart { flex: 1; min-height: 0; }
+
+/* COT Positioning */
+.cot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; overflow: auto; }
+.cot-commodity { background: #1e293b; border-radius: 6px; padding: 12px; }
+.cot-name { font-size: 13px; font-weight: 600; color: #ca8a04; margin-bottom: 8px; }
+.cot-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.cot-metric { display: flex; flex-direction: column; gap: 2px; }
+.cot-metric-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+.cot-metric-value { font-size: 14px; font-weight: 700; color: #e2e8f0; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
+.cot-metric-value.green { color: #10b981; }
+.cot-metric-value.red { color: #ef4444; }
