@@ -3141,6 +3141,66 @@ app.get('/api/calendar', async (req, res) => {
   }
 });
 
+// --- FX Market Data (FRED bilateral rates) ---
+app.get('/api/fx', async (req, res) => {
+  const cacheKey = 'fx_data';
+  const today = todayStr();
+
+  const daily = readDailyCache('fx');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+
+  try {
+    let fredFxRates = null;
+    if (FRED_API_KEY) {
+      try {
+        const FRED_FX_SERIES = {
+          eurUsd:      'DEXUSEU',
+          usdJpy:      'DEXJPUS',
+          gbpUsd:      'DEXUSUK',
+          usdChf:      'DEXSZUS',
+          usdCad:      'DEXCAUS',
+          audUsd:      'DEXUSAL',
+          dollarIndex: 'DTWEXBGS',
+        };
+        const entries = Object.entries(FRED_FX_SERIES);
+        const results = await Promise.allSettled(
+          entries.map(([key, sid]) => fetchFredHistory(sid, 252).then(hist => [key, hist]))
+        );
+        const rates = {};
+        results.forEach(r => {
+          if (r.status === 'fulfilled') {
+            const [key, hist] = r.value;
+            if (hist.length >= 10) {
+              rates[key] = {
+                dates: hist.map(p => p.date),
+                values: hist.map(p => Math.round(p.value * 10000) / 10000),
+              };
+            }
+          }
+        });
+        if (Object.keys(rates).length >= 3) fredFxRates = rates;
+      } catch { /* use null */ }
+    }
+
+    const result = {
+      fredFxRates: fredFxRates ?? null,
+      lastUpdated: today,
+    };
+
+    writeDailyCache('fx', result);
+    cache.set(cacheKey, result, 900);
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
+  } catch (error) {
+    console.error('FX API error:', error);
+    const fallback = readLatestCache('fx');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Kick off index build at startup (non-blocking)
 buildSnapshotIndex();
 
@@ -3148,5 +3208,5 @@ app.listen(port, () => {
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
   console.log(`Global Macro Backend running at http://localhost:${port}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
-  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/summary/:t  /api/history/:t`);
+  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/fx  /api/summary/:t  /api/history/:t`);
 });
