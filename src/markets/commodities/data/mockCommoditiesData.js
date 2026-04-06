@@ -63,3 +63,44 @@ export const supplyDemandData = {
   natGasStorage:  { periods: CRUDE_PERIODS, values: [3821, 3748, 3672, 3591, 3508, 3421, 3339, 3254, 3168, 3082, 2994, 2908],               avg5yr: 3142 },
   crudeProduction:{ periods: CRUDE_PERIODS, values: [13.1, 13.2, 13.1, 13.3, 13.2, 13.3, 13.4, 13.3, 13.2, 13.4, 13.5, 13.4] },
 };
+
+export const cotData = {
+  commodities: [
+    {
+      name: 'WTI Crude Oil',
+      latest: { noncommNet: 215400, commNet: -198200, totalOI: 1842000, netChange: 12800 },
+      history: [
+        { date: '2026-04-01', noncommNet: 215400 },
+        { date: '2026-03-25', noncommNet: 202600 },
+        { date: '2026-03-18', noncommNet: 198400 },
+        { date: '2026-03-11', noncommNet: 210200 },
+        { date: '2026-03-04', noncommNet: 205800 },
+        { date: '2026-02-25', noncommNet: 195200 },
+        { date: '2026-02-18', noncommNet: 188400 },
+        { date: '2026-02-11', noncommNet: 192600 },
+        { date: '2026-02-04', noncommNet: 201000 },
+        { date: '2026-01-28', noncommNet: 208200 },
+        { date: '2026-01-21', noncommNet: 198800 },
+        { date: '2026-01-14', noncommNet: 194200 },
+      ],
+    },
+    {
+      name: 'Gold',
+      latest: { noncommNet: 268400, commNet: -245800, totalOI: 524000, netChange: 8200 },
+      history: [
+        { date: '2026-04-01', noncommNet: 268400 },
+        { date: '2026-03-25', noncommNet: 260200 },
+        { date: '2026-03-18', noncommNet: 255800 },
+        { date: '2026-03-11', noncommNet: 248200 },
+        { date: '2026-03-04', noncommNet: 252400 },
+        { date: '2026-02-25', noncommNet: 242800 },
+        { date: '2026-02-18', noncommNet: 238200 },
+        { date: '2026-02-11', noncommNet: 235400 },
+        { date: '2026-02-04', noncommNet: 240600 },
+        { date: '2026-01-28', noncommNet: 245800 },
+        { date: '2026-01-21', noncommNet: 238400 },
+        { date: '2026-01-14', noncommNet: 232800 },
+      ],
+    },
+  ],
+};

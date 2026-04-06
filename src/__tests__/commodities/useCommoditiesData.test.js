@@ -85,4 +85,37 @@ describe('useCommoditiesData', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isLive).toBe(false);
   });
+
+  it('returns cotData with 2 commodities on mock fallback', async () => {
+    mockFetch.mockRejectedValue(new Error('no server'));
+    const { result } = renderHook(() => useCommoditiesData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const { cotData } = result.current;
+    expect(cotData.commodities).toHaveLength(2);
+    expect(cotData.commodities[0].name).toBe('WTI Crude Oil');
+    expect(cotData.commodities[1].name).toBe('Gold');
+    expect(cotData.commodities[0].history.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('guard: does not apply cotData when commodities length < 2', async () => {
+    const liveData = {
+      priceDashboardData: [
+        { sector: 'Energy', commodities: [{ ticker: 'CL=F', name: 'WTI Crude', unit: '$/bbl', price: 90.0, change1d: 1.5, change1w: 2.0, change1m: 3.0, sparkline: [88, 89, 90] }] },
+        { sector: 'Metals', commodities: [{ ticker: 'GC=F', name: 'Gold', unit: '$/oz', price: 2400, change1d: 0.5, change1w: 1.0, change1m: 2.0, sparkline: [2380, 2390, 2400] }] },
+        { sector: 'Agriculture', commodities: [{ ticker: 'ZW=F', name: 'Wheat', unit: '¢/bu', price: 550, change1d: -0.5, change1w: -1.0, change1m: -2.0, sparkline: [560, 555, 550] }] },
+      ],
+      futuresCurveData: { labels: ["Jun '26"], prices: [90.0], commodity: 'WTI', spotPrice: 90.0 },
+      sectorHeatmapData: { commodities: [], columns: [] },
+      supplyDemandData: null,
+      cotData: { commodities: [{ name: 'WTI Crude Oil', latest: { noncommNet: 100, commNet: -80, totalOI: 500, netChange: 5 }, history: [] }] },
+      lastUpdated: '2026-04-05',
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useCommoditiesData());
+    await waitFor(() => expect(result.current.isLive).toBe(true));
+    // Should keep mock cotData because live only has 1 commodity (need >= 2)
+    expect(result.current.cotData.commodities).toHaveLength(2);
+    expect(result.current.cotData.commodities[0].name).toBe('WTI Crude Oil');
+    expect(result.current.cotData.commodities[0].history.length).toBeGreaterThanOrEqual(10);
+  });
 });

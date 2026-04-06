@@ -5,6 +5,7 @@ import {
   futuresCurveData    as mockFuturesCurveData,
   sectorHeatmapData   as mockSectorHeatmapData,
   supplyDemandData    as mockSupplyDemandData,
+  cotData             as mockCotData,
 } from './mockCommoditiesData';
 
 const SERVER = '';
@@ -14,6 +15,7 @@ export function useCommoditiesData() {
   const [futuresCurveData,    setFuturesCurveData]    = useState(mockFuturesCurveData);
   const [sectorHeatmapData,   setSectorHeatmapData]   = useState(mockSectorHeatmapData);
   const [supplyDemandData,    setSupplyDemandData]    = useState(mockSupplyDemandData);
+  const [cotData,             setCotData]             = useState(mockCotData);
   const [isLive,              setIsLive]              = useState(false);
   const [lastUpdated,         setLastUpdated]         = useState('Mock data — Dec 2025');
   const [isLoading,           setIsLoading]           = useState(true);
@@ -28,6 +30,7 @@ export function useCommoditiesData() {
         if (data.futuresCurveData?.prices?.length >= 4)       setFuturesCurveData(data.futuresCurveData);
         if (data.sectorHeatmapData?.commodities?.length >= 4) setSectorHeatmapData(data.sectorHeatmapData);
         if (data.supplyDemandData?.crudeStocks?.periods?.length) setSupplyDemandData(data.supplyDemandData);
+        if (data.cotData?.commodities?.length >= 2)           setCotData(data.cotData);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -37,5 +40,5 @@ export function useCommoditiesData() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  return { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }
