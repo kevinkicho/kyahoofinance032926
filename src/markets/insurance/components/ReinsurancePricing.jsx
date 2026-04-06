@@ -15,7 +15,7 @@ function fmtChange(v) {
   return v >= 0 ? `+${v.toFixed(1)}%` : `${v.toFixed(1)}%`;
 }
 
-export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistory }) {
+export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistory, sectorETF }) {
   const { colors } = useTheme();
 
   const stats = useMemo(() => {
@@ -120,6 +120,64 @@ export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistor
           </tbody>
         </table>
       </div>
+
+      {/* KIE Sector ETF 52-Week Range */}
+      {sectorETF && sectorETF.high52w != null && sectorETF.low52w != null && (
+        <div className="ins-chart-panel" style={{ flexShrink: 0, marginTop: 12, padding: '10px 12px' }}>
+          <div className="ins-chart-title" style={{ marginBottom: 8 }}>
+            KIE Insurance ETF — 52-Week Range
+            <span style={{ marginLeft: 8, fontWeight: 400, color: colors.textSecondary }}>
+              ${sectorETF.price?.toFixed(2)}
+              <span style={{ marginLeft: 6, color: sectorETF.changePct >= 0 ? '#22c55e' : '#ef4444' }}>
+                {sectorETF.changePct >= 0 ? '+' : ''}{sectorETF.changePct?.toFixed(2)}%
+              </span>
+            </span>
+          </div>
+          {(() => {
+            const { price, high52w, low52w, sma50 } = sectorETF;
+            const range = high52w - low52w;
+            const pricePct = range > 0 ? ((price - low52w) / range) * 100 : 50;
+            const smaPct   = range > 0 && sma50 != null ? ((sma50 - low52w) / range) * 100 : null;
+            return (
+              <div style={{ position: 'relative', paddingBottom: 20 }}>
+                {/* Range bar */}
+                <div style={{ position: 'relative', height: 10, borderRadius: 5, background: colors.cardBg, overflow: 'visible' }}>
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, height: '100%',
+                    width: `${Math.min(Math.max(pricePct, 0), 100)}%`,
+                    borderRadius: 5,
+                    background: pricePct > 66 ? '#22c55e' : pricePct > 33 ? '#f59e0b' : '#ef4444',
+                  }} />
+                  {/* Price marker */}
+                  <div style={{
+                    position: 'absolute', top: -3, width: 2, height: 16,
+                    left: `${Math.min(Math.max(pricePct, 0), 100)}%`,
+                    background: colors.text, borderRadius: 1,
+                    transform: 'translateX(-50%)',
+                  }} />
+                  {/* SMA50 marker */}
+                  {smaPct != null && (
+                    <div style={{
+                      position: 'absolute', top: -3, width: 2, height: 16,
+                      left: `${Math.min(Math.max(smaPct, 0), 100)}%`,
+                      background: '#a78bfa', borderRadius: 1,
+                      transform: 'translateX(-50%)',
+                    }} />
+                  )}
+                </div>
+                {/* Labels */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: colors.textMuted }}>
+                  <span>52W Low ${low52w.toFixed(2)}</span>
+                  {smaPct != null && (
+                    <span style={{ color: '#a78bfa' }}>SMA50 ${sma50.toFixed(2)}</span>
+                  )}
+                  <span>52W High ${high52w.toFixed(2)}</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* FRED HY OAS 1yr chart */}
       {fredOption && (

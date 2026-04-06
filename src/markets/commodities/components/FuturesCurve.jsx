@@ -53,7 +53,72 @@ function structureLabel(spread) {
   return spread > 0 ? 'Contango' : spread < 0 ? 'Backwardation' : 'Flat';
 }
 
-export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredCommodities }) {
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function buildSeasonalOption(seasonalPatterns, colors) {
+  if (!seasonalPatterns) return null;
+  const { CL, GC, ZC } = seasonalPatterns;
+  if (!CL?.length || !GC?.length || !ZC?.length) return null;
+
+  function makeSeries(name, data, color) {
+    return {
+      name,
+      type: 'bar',
+      data: data.map((v, i) => ({
+        value: v,
+        itemStyle: { color: v >= 0 ? '#22c55e' : '#ef4444', opacity: 0.85 },
+      })),
+      barMaxWidth: 20,
+      label: { show: false },
+    };
+  }
+
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => {
+        const month = MONTH_LABELS[params[0]?.dataIndex ?? 0];
+        const lines = params.map(p => {
+          const val = p.value;
+          const sign = val >= 0 ? '+' : '';
+          const col = val >= 0 ? '#22c55e' : '#ef4444';
+          return `<span style="color:${col}">● ${p.seriesName}: ${sign}${val.toFixed(2)}%</span>`;
+        });
+        return `<b>${month}</b><br/>${lines.join('<br/>')}`;
+      },
+    },
+    legend: {
+      data: ['CL (Crude)', 'GC (Gold)', 'ZC (Corn)'],
+      textStyle: { color: colors.textMuted, fontSize: 10 },
+      top: 0, right: 0,
+    },
+    grid: { top: 28, right: 8, bottom: 32, left: 44, containLabel: false },
+    xAxis: {
+      type: 'category',
+      data: MONTH_LABELS,
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 10 },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    series: [
+      makeSeries('CL (Crude)', CL, '#ca8a04'),
+      makeSeries('GC (Gold)', GC, '#f59e0b'),
+      makeSeries('ZC (Corn)', ZC, '#4ade80'),
+    ],
+  };
+}
+
+export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredCommodities, seasonalPatterns }) {
   const { colors } = useTheme();
   const wti = futuresCurveData || {};
   const gold = goldFuturesCurve || {};
@@ -61,8 +126,9 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
   const wtiSpread  = spreadPct(wti.prices);
   const goldSpread = spreadPct(gold.prices);
 
-  const wtiOption  = wti.labels?.length >= 2  ? buildCurveOption(wti.labels, wti.prices, '#ca8a04', wti.unit, colors) : null;
-  const goldOption = gold.labels?.length >= 2 ? buildCurveOption(gold.labels, gold.prices, '#f59e0b', gold.unit, colors) : null;
+  const wtiOption      = wti.labels?.length >= 2  ? buildCurveOption(wti.labels, wti.prices, '#ca8a04', wti.unit, colors) : null;
+  const goldOption     = gold.labels?.length >= 2 ? buildCurveOption(gold.labels, gold.prices, '#f59e0b', gold.unit, colors) : null;
+  const seasonalOption = buildSeasonalOption(seasonalPatterns, colors);
 
   // Dollar Index vs WTI overlay (dual Y-axis)
   const dollarH = fredCommodities?.dollarIndex;
@@ -181,7 +247,17 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
         </div>
       )}
 
-      <div className="com-panel-footer">Source: CME futures (Yahoo Finance) · FRED DCOILWTICO / DTWEXBGS</div>
+      {/* Seasonal Patterns */}
+      {seasonalOption && (
+        <div className="com-chart-panel" style={{ height: 210, flexShrink: 0, marginTop: 12 }}>
+          <div className="com-chart-title">Seasonal Patterns — 5-Year Avg Monthly Returns (CL, GC, ZC)</div>
+          <div className="com-mini-chart">
+            <ReactECharts option={seasonalOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      )}
+
+      <div className="com-panel-footer">Source: CME futures (Yahoo Finance) · FRED DCOILWTICO / DTWEXBGS · Seasonal: 5yr monthly avg</div>
     </div>
   );
 }

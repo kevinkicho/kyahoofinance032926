@@ -18,16 +18,16 @@ describe('DerivativesMarket', () => {
   it('renders exactly 3 sub-tabs', async () => {
     render(<DerivativesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Vol Surface'        })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'VIX Term Structure' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Options Flow'       })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Vol Surface'        })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'VIX Term Structure' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Options Flow'       })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Fear & Greed'     })).not.toBeInTheDocument();
   });
 
   it('switches to Options Flow on click', async () => {
     render(<DerivativesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Options Flow' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Options Flow' }));
     expect(screen.getByText(/unusual options activity/i)).toBeInTheDocument();
   });
 

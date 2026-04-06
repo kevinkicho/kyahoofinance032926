@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import {
   catBondSpreads as mockCatBondSpreads,
   combinedRatioData as mockCombinedRatioData,
@@ -29,12 +30,14 @@ export function useInsuranceData() {
   const [isLoading, setIsLoading]                   = useState(true);
   const [fetchedOn, setFetchedOn]                   = useState(null);
   const [isCurrent, setIsCurrent]                   = useState(false);
+  const [sectorETF, setSectorETF]                   = useState(null);
+  const [catBondProxy, setCatBondProxy]             = useState(null);
+  const [industryAvgCombinedRatio, setIndustryAvgCombinedRatio] = useState(null);
+  const [treasury10y, setTreasury10y]               = useState(null);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
-    fetch(`${SERVER}/api/insurance`, { signal: controller.signal })
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    fetchWithRetry(`${SERVER}/api/insurance`)
+      .then(r => r.json())
       .then(data => {
         if (data.combinedRatioData?.quarters?.length) setCombinedRatioData(data.combinedRatioData);
         if (data.reserveAdequacyData?.lines?.length)  setReserveAdequacyData(data.reserveAdequacyData);
@@ -43,13 +46,17 @@ export function useInsuranceData() {
         if (data.igOAS != null)                        setIgOAS(data.igOAS);
         setCatBondSpreads(scaleCatBondSpreads(mockCatBondSpreads, data.hyOAS));
         if (data.fredHyOasHistory?.dates?.length >= 20) setFredHyOasHistory(data.fredHyOasHistory);
+        if (data.sectorETF)                          setSectorETF(data.sectorETF);
+        if (data.catBondProxy)                        setCatBondProxy(data.catBondProxy);
+        if (data.industryAvgCombinedRatio != null)    setIndustryAvgCombinedRatio(data.industryAvgCombinedRatio);
+        if (data.treasury10y != null)                 setTreasury10y(data.treasury10y);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
         setIsCurrent(!!data.isCurrent);
       })
       .catch(() => {}) // silent fallback to mock
-      .finally(() => { clearTimeout(timer); setIsLoading(false); });
+      .finally(() => setIsLoading(false));
   }, []);
 
   return {
@@ -61,6 +68,10 @@ export function useInsuranceData() {
     hyOAS,
     igOAS,
     fredHyOasHistory,
+    sectorETF,
+    catBondProxy,
+    industryAvgCombinedRatio,
+    treasury10y,
     isLive,
     lastUpdated,
     isLoading,

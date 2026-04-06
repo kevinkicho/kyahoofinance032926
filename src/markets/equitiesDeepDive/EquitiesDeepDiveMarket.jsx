@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useEquityDeepDiveData } from './data/useEquityDeepDiveData';
+import MarketSkeleton from '../../hub/MarketSkeleton';
 import SectorRotation from './components/SectorRotation';
 import FactorRankings from './components/FactorRankings';
 import EarningsWatch  from './components/EarningsWatch';
@@ -16,23 +17,22 @@ const SUB_TABS = [
 // snapshotDate/currency not used — equity analytics are market-session-based, not snapshot-dependent
 function EquitiesDeepDiveMarket() {
   const [activeTab, setActiveTab] = useState('sectors');
-  const { sectorData, factorData, earningsData, shortData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useEquityDeepDiveData();
+  const {
+    sectorData, factorData, earningsData, shortData,
+    equityRiskPremium, spPE, breadthDivergence, buffettIndicator,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+  } = useEquityDeepDiveData();
 
-  if (isLoading) {
-    return (
-      <div className="eq-market eq-loading">
-        <div className="eq-loading-spinner" />
-        <span className="eq-loading-text">Loading equity data…</span>
-      </div>
-    );
-  }
+  if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="eq-market">
-      <div className="eq-sub-tabs">
+      <div className="eq-sub-tabs" role="tablist" aria-label="Sub-tabs">
         {SUB_TABS.map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
             className={`eq-sub-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
           >
@@ -48,8 +48,8 @@ function EquitiesDeepDiveMarket() {
         {!isCurrent && fetchedOn && <span className="eq-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="eq-content">
-        {activeTab === 'sectors'  && <SectorRotation sectorData={sectorData} />}
-        {activeTab === 'factors'  && <FactorRankings factorData={factorData} />}
+        {activeTab === 'sectors'  && <SectorRotation sectorData={sectorData} spPE={spPE} buffettIndicator={buffettIndicator} equityRiskPremium={equityRiskPremium} />}
+        {activeTab === 'factors'  && <FactorRankings factorData={factorData} breadthDivergence={breadthDivergence} equityRiskPremium={equityRiskPremium} />}
         {activeTab === 'earnings' && <EarningsWatch  earningsData={earningsData} />}
         {activeTab === 'shorts'   && <ShortInterest  shortData={shortData} />}
       </div>

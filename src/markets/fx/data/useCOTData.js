@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 
 const CFTC_URL =
   'https://publicreporting.cftc.gov/resource/jun7-fc8e.json' +
@@ -21,8 +22,8 @@ export function useCOTData() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetch(CFTC_URL)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    fetchWithRetry(CFTC_URL)
+      .then(r => r.json())
       .then(rows => {
         const result = {};
         Object.entries(NAME_MAP).forEach(([code, needle]) => {

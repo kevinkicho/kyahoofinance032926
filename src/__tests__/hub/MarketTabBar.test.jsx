@@ -38,7 +38,7 @@ describe('MarketTabBar', () => {
   it('calls setCurrency when the currency select changes', () => {
     const setCurrency = vi.fn();
     render(<MarketTabBar {...defaultProps} setCurrency={setCurrency} />);
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'EUR' } });
+    fireEvent.change(screen.getByRole('combobox', { name: /currency/i }), { target: { value: 'EUR' } });
     expect(setCurrency).toHaveBeenCalledWith('EUR');
   });
 });

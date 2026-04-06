@@ -37,7 +37,7 @@ function Sparkline({ values }) {
 
 const SECTOR_ICONS = { Energy: '⚡', Metals: '⚙️', Agriculture: '🌾', Livestock: '🐄' };
 
-export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodities }) {
+export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodities, goldOilRatio, contangoIndicator, commodityCurrencies }) {
   const { colors } = useTheme();
 
   // KPI computations
@@ -145,6 +145,52 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
             <span className="com-kpi-label">Best 1M Performer</span>
             <span className="com-kpi-value" style={{ color: '#ca8a04' }}>{best1m.name}</span>
             <span className="com-kpi-sub com-up">{fmtPct(best1m.change1m)}</span>
+          </div>
+        )}
+        {goldOilRatio != null && (
+          <div className="com-kpi-pill">
+            <span className="com-kpi-label">Gold/Oil Ratio</span>
+            <span className="com-kpi-value">{goldOilRatio.toFixed(1)}</span>
+            <span className="com-kpi-sub">oz gold / bbl oil</span>
+          </div>
+        )}
+        {contangoIndicator?.structure && (
+          <div className="com-kpi-pill">
+            <span className="com-kpi-label">WTI Structure</span>
+            <span className="com-kpi-value">
+              <span className={contangoIndicator.structure === 'Contango' ? 'com-up' : 'com-down'}>
+                {contangoIndicator.structure}
+              </span>
+            </span>
+            <span className="com-kpi-sub">
+              spread {contangoIndicator.spread != null
+                ? `${contangoIndicator.spread > 0 ? '+' : ''}$${contangoIndicator.spread.toFixed(2)}`
+                : '—'}
+            </span>
+          </div>
+        )}
+        {commodityCurrencies && (
+          <div className="com-kpi-pill">
+            <span className="com-kpi-label">Commodity FX</span>
+            <span className="com-kpi-value" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+              {['CAD', 'AUD', 'NOK'].map(ccy => (
+                commodityCurrencies[ccy] != null && (
+                  <span
+                    key={ccy}
+                    style={{
+                      fontSize: 11,
+                      padding: '1px 6px',
+                      borderRadius: 10,
+                      background: colors.cardBg,
+                      border: `1px solid ${colors.cardBorder || colors.tooltipBorder}`,
+                      color: colors.text,
+                    }}
+                  >
+                    {ccy} {commodityCurrencies[ccy].toFixed(4)}
+                  </span>
+                )
+              ))}
+            </span>
           </div>
         )}
       </div>

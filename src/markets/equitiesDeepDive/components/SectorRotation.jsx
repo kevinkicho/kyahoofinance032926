@@ -101,7 +101,28 @@ function buildRotationOption(sectors, colors) {
   };
 }
 
-export default function SectorRotation({ sectorData }) {
+function peBadgeColor(pe) {
+  if (pe == null) return '#6b7280';
+  if (pe < 18)   return '#22c55e';
+  if (pe <= 25)  return '#f59e0b';
+  return '#ef4444';
+}
+
+function buffettBadgeColor(ratio) {
+  if (ratio == null) return '#6b7280';
+  if (ratio < 100)   return '#22c55e';
+  if (ratio <= 150)  return '#f59e0b';
+  return '#ef4444';
+}
+
+function erpBadgeColor(erp) {
+  if (erp == null) return '#6b7280';
+  if (erp > 3)    return '#22c55e';
+  if (erp >= 1)   return '#f59e0b';
+  return '#ef4444';
+}
+
+export default function SectorRotation({ sectorData, spPE, buffettIndicator, equityRiskPremium }) {
   const { colors } = useTheme();
   const { sectors = [] } = sectorData ?? {};
 
@@ -150,6 +171,39 @@ export default function SectorRotation({ sectorData }) {
             <span className="eq-kpi-label">Outperforming</span>
             <span className="eq-kpi-value accent">{kpis.outperforming}</span>
             <span className="eq-kpi-sub">of {kpis.total} sectors</span>
+          </div>
+        </div>
+      )}
+      {/* Market Valuation KPI Strip */}
+      {(spPE != null || buffettIndicator || equityRiskPremium) && (
+        <div style={{ marginBottom: '12px' }}>
+          <div className="eq-chart-title" style={{ marginBottom: '6px' }}>Market Valuation</div>
+          <div className="eq-kpi-strip">
+            {spPE != null && (
+              <div className="eq-kpi-pill">
+                <span className="eq-kpi-label">S&amp;P P/E</span>
+                <span className="eq-kpi-value" style={{ color: peBadgeColor(spPE) }}>{spPE.toFixed(1)}x</span>
+                <span className="eq-kpi-sub">{spPE < 18 ? 'Cheap' : spPE <= 25 ? 'Fair' : 'Elevated'}</span>
+              </div>
+            )}
+            {buffettIndicator && (
+              <div className="eq-kpi-pill">
+                <span className="eq-kpi-label">Buffett Indicator</span>
+                <span className="eq-kpi-value" style={{ color: buffettBadgeColor(buffettIndicator.ratio) }}>
+                  {buffettIndicator.ratio?.toFixed(1)}%
+                </span>
+                <span className="eq-kpi-sub">{buffettIndicator.ratio < 100 ? 'Undervalued' : buffettIndicator.ratio <= 150 ? 'Fair value' : 'Overvalued'}</span>
+              </div>
+            )}
+            {equityRiskPremium && (
+              <div className="eq-kpi-pill">
+                <span className="eq-kpi-label">ERP Spread</span>
+                <span className="eq-kpi-value" style={{ color: erpBadgeColor(equityRiskPremium.erp) }}>
+                  {equityRiskPremium.erp?.toFixed(2)}%
+                </span>
+                <span className="eq-kpi-sub">{equityRiskPremium.erp > 3 ? 'Attractive' : equityRiskPremium.erp >= 1 ? 'Fair' : 'Unattractive'}</span>
+              </div>
+            )}
           </div>
         </div>
       )}

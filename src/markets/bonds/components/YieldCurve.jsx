@@ -10,7 +10,7 @@ const COUNTRY_COLORS = {
   CN: '#f87171', AU: '#4ade80',
 };
 
-export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYieldHistory }) {
+export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYieldHistory, yieldHistory }) {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
@@ -50,6 +50,50 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
       })),
     };
   }, [yieldCurveData, colors]);
+
+  // Multi-line yield history chart (2Y/10Y/30Y)
+  const yieldHistoryOption = useMemo(() => {
+    if (!yieldHistory?.dates?.length) return null;
+    const d = yieldHistory.dates;
+    // Subsample to ~80 points for performance
+    const step = Math.max(1, Math.floor(d.length / 80));
+    const dates = d.filter((_, i) => i % step === 0 || i === d.length - 1);
+    const subsample = (arr) => arr
+      ? arr.filter((_, i) => i % step === 0 || i === arr.length - 1)
+      : [];
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params) =>
+          `<b>${params[0].axisValue}</b><br/>` +
+          params.map(p => `${p.seriesName}: <b>${p.value != null ? p.value.toFixed(2) + '%' : '—'}</b>`).join('<br/>'),
+      },
+      legend: {
+        data: ['2Y', '10Y', '30Y'],
+        top: 0,
+        textStyle: { color: colors.textSecondary, fontSize: 10 },
+      },
+      grid: { top: 24, right: 20, bottom: 24, left: 50 },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLabel: { color: colors.textMuted, fontSize: 10, interval: Math.floor(dates.length / 5) },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '{value}%' },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series: [
+        { name: '2Y',  type: 'line', data: subsample(yieldHistory.dgs2),  symbol: 'none', smooth: true, lineStyle: { color: '#60a5fa', width: 1.5 }, itemStyle: { color: '#60a5fa' } },
+        { name: '10Y', type: 'line', data: subsample(yieldHistory.dgs10), symbol: 'none', smooth: true, lineStyle: { color: '#fbbf24', width: 1.5 }, itemStyle: { color: '#fbbf24' } },
+        { name: '30Y', type: 'line', data: subsample(yieldHistory.dgs30), symbol: 'none', smooth: true, lineStyle: { color: '#f87171', width: 1.5 }, itemStyle: { color: '#f87171' } },
+      ],
+    };
+  }, [yieldHistory, colors]);
 
   // FRED 10Y history chart
   const historyOption = useMemo(() => {
@@ -171,6 +215,14 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
         <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
           <div className="bonds-chart-title">US 10Y Yield &mdash; 1yr History (FRED DGS10)</div>
           <ReactECharts option={historyOption} style={{ height: 120, width: '100%' }} />
+        </div>
+      )}
+
+      {/* Multi-tenor Yield History (2Y / 10Y / 30Y) */}
+      {yieldHistoryOption && (
+        <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
+          <div className="bonds-chart-title">2Y / 10Y / 30Y Yield &mdash; 252-day History</div>
+          <ReactECharts option={yieldHistoryOption} style={{ height: 140, width: '100%' }} />
         </div>
       )}
 

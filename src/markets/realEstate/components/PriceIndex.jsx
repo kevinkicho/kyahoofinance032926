@@ -70,10 +70,76 @@ function buildCaseShillerOption(national, colors) {
   };
 }
 
-export default function PriceIndex({ priceIndexData, caseShillerData }) {
+function buildHousingStartsOption(housingStarts, colors) {
+  return {
+    animation: false, backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: params =>
+        `${params[0].axisValue}<br/>` +
+        params.map(p => `${p.seriesName}: <b>${(p.value / 1000).toFixed(2)}M</b>`).join('<br/>'),
+    },
+    legend: { data: ['Starts', 'Permits'], top: 2, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+    grid: { top: 28, right: 16, bottom: 24, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: housingStarts.dates,
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(housingStarts.dates.length / 6) },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${(v / 1000).toFixed(1)}M` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+    },
+    series: [
+      { name: 'Starts', type: 'line', data: housingStarts.starts, symbol: 'none', lineStyle: { color: '#60a5fa', width: 2 }, itemStyle: { color: '#60a5fa' } },
+      { name: 'Permits', type: 'line', data: housingStarts.permits, symbol: 'none', lineStyle: { color: '#fbbf24', width: 2 }, itemStyle: { color: '#fbbf24' } },
+    ],
+  };
+}
+
+function buildExistingHomeSalesOption(existingHomeSales, colors) {
+  return {
+    animation: false, backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: p => `${p[0].axisValue}<br/>Existing Sales: <b>${(p[0].value / 1000).toFixed(2)}M</b>`,
+    },
+    grid: { top: 8, right: 16, bottom: 24, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: existingHomeSales.dates,
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(existingHomeSales.dates.length / 6) },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${(v / 1000).toFixed(1)}M` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+    },
+    series: [{
+      type: 'line', data: existingHomeSales.values, symbol: 'none',
+      lineStyle: { color: '#a78bfa', width: 2 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(167,139,250,0.25)' }, { offset: 1, color: 'rgba(167,139,250,0)' }] } },
+    }],
+  };
+}
+
+export default function PriceIndex({ priceIndexData, caseShillerData, housingStarts, existingHomeSales }) {
   const { colors } = useTheme();
   const bisOption = useMemo(() => buildBisOption(priceIndexData, colors), [priceIndexData, colors]);
   const csOption = useMemo(() => caseShillerData?.national ? buildCaseShillerOption(caseShillerData.national, colors) : null, [caseShillerData, colors]);
+  const startsOption = useMemo(() => housingStarts?.starts?.length >= 4 ? buildHousingStartsOption(housingStarts, colors) : null, [housingStarts, colors]);
+  const salesOption = useMemo(() => existingHomeSales?.dates?.length >= 4 ? buildExistingHomeSalesOption(existingHomeSales, colors) : null, [existingHomeSales, colors]);
+
+  const salesLatest = existingHomeSales?.values?.at(-1);
+  const salesPrev = existingHomeSales?.values?.at(-13);
+  const salesYoy = salesLatest != null && salesPrev != null ? Math.round((salesLatest / salesPrev - 1) * 1000) / 10 : null;
+  const startsLatest = housingStarts?.starts?.at(-1);
+  const permitsLatest = housingStarts?.permits?.at(-1);
 
   const usData = priceIndexData.US;
   const usLatest = usData?.values?.[usData.values.length - 1] ?? null;
@@ -128,6 +194,25 @@ export default function PriceIndex({ priceIndexData, caseShillerData }) {
             <span className="re-kpi-sub">+{fastest.growth}% YoY</span>
           </div>
         )}
+        {salesLatest != null && (
+          <div className="re-kpi-pill">
+            <span className="re-kpi-label">Existing Sales</span>
+            <span className="re-kpi-value">{(salesLatest / 1000).toFixed(2)}M</span>
+            {salesYoy != null && <span className={`re-kpi-sub ${salesYoy >= 0 ? 'positive' : 'negative'}`}>{salesYoy > 0 ? '+' : ''}{salesYoy}% YoY</span>}
+          </div>
+        )}
+        {startsLatest != null && (
+          <div className="re-kpi-pill">
+            <span className="re-kpi-label">Housing Starts</span>
+            <span className="re-kpi-value">{(startsLatest / 1000).toFixed(2)}M</span>
+          </div>
+        )}
+        {permitsLatest != null && (
+          <div className="re-kpi-pill">
+            <span className="re-kpi-label">Permits</span>
+            <span className="re-kpi-value">{(permitsLatest / 1000).toFixed(2)}M</span>
+          </div>
+        )}
       </div>
 
       <div className="re-wide-narrow">
@@ -167,6 +252,24 @@ export default function PriceIndex({ priceIndexData, caseShillerData }) {
           <div className="re-chart-title">Case-Shiller National Home Price Index</div>
           <div className="re-mini-chart">
             <ReactECharts option={csOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      )}
+
+      {startsOption && (
+        <div className="re-chart-panel" style={{ marginTop: 8, height: 150, flexShrink: 0 }}>
+          <div className="re-chart-title">Housing Starts &amp; Building Permits (24-Month)</div>
+          <div className="re-mini-chart">
+            <ReactECharts option={startsOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      )}
+
+      {salesOption && (
+        <div className="re-chart-panel" style={{ marginTop: 8, height: 140, flexShrink: 0 }}>
+          <div className="re-chart-title">Existing Home Sales (24-Month)</div>
+          <div className="re-mini-chart">
+            <ReactECharts option={salesOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

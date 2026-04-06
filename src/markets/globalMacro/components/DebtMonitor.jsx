@@ -94,12 +94,104 @@ function buildCurrentAcctOption(countries, colors) {
   };
 }
 
-export default function DebtMonitor({ debtData }) {
+function buildYieldSpreadOption(yieldSpread, colors) {
+  const { dates = [], values = [] } = yieldSpread ?? {};
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => {
+        const v = params[0].value;
+        return `${params[0].axisValue}: ${v != null ? v.toFixed(2) : '—'}% ${v != null && v < 0 ? '⚠ Inverted' : ''}`;
+      },
+    },
+    grid: { top: 12, right: 12, bottom: 28, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 6) },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    visualMap: {
+      show: false,
+      dimension: 1,
+      pieces: [
+        { lte: 0, color: '#ef4444' },
+        { gt: 0, color: '#14b8a6' },
+      ],
+    },
+    series: [{
+      type: 'line',
+      data: values,
+      smooth: false,
+      symbol: 'none',
+      lineStyle: { width: 2 },
+      areaStyle: { opacity: 0.15 },
+      markLine: {
+        data: [{ yAxis: 0 }],
+        symbol: 'none',
+        lineStyle: { color: '#ef4444', type: 'dashed', width: 1.5 },
+        label: { show: true, formatter: 'Inversion →', color: '#ef4444', fontSize: 9, position: 'end' },
+      },
+    }],
+  };
+}
+
+function buildM2GrowthOption(m2Growth, colors) {
+  const { dates = [], yoyPct = [] } = m2Growth ?? {};
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => `${params[0].axisValue}: ${params[0].value != null ? params[0].value.toFixed(1) : '—'}%`,
+    },
+    grid: { top: 8, right: 12, bottom: 28, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 6) },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    series: [{
+      type: 'bar',
+      data: yoyPct.map(v => ({
+        value: v,
+        itemStyle: { color: v > 8 ? '#ef4444' : v > 4 ? '#f59e0b' : '#14b8a6' },
+      })),
+    }],
+  };
+}
+
+export default function DebtMonitor({ debtData, yieldSpread, m2Growth }) {
   const { colors } = useTheme();
   const { year = '', countries = [] } = debtData ?? {};
 
-  const debtOption = useMemo(() => buildDebtOption(countries, colors), [countries, colors]);
+  const debtOption        = useMemo(() => buildDebtOption(countries, colors), [countries, colors]);
   const currentAcctOption = useMemo(() => buildCurrentAcctOption(countries, colors), [countries, colors]);
+  const yieldSpreadOption = useMemo(() => buildYieldSpreadOption(yieldSpread, colors), [yieldSpread, colors]);
+  const m2GrowthOption    = useMemo(() => buildM2GrowthOption(m2Growth, colors), [m2Growth, colors]);
 
   const kpis = useMemo(() => {
     if (!countries.length) return null;
@@ -170,7 +262,29 @@ export default function DebtMonitor({ debtData }) {
           </div>
         </div>
       </div>
-      <div className="mac-panel-footer">Source: World Bank · Annual data · CA positive = capital exporter, negative = importer</div>
+      {(yieldSpread || m2Growth) && (
+        <div className="mac-two-col" style={{ marginTop: 16 }}>
+          {yieldSpread && (
+            <div className="mac-chart-panel">
+              <div className="mac-chart-title">Yield Spread — 10Y minus 2Y (Recession Indicator)</div>
+              <div className="mac-chart-subtitle">36 months · teal = normal · red = inverted (below 0) · dashed = inversion threshold</div>
+              <div className="mac-chart-wrap">
+                <ReactECharts option={yieldSpreadOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+          {m2Growth && (
+            <div className="mac-chart-panel">
+              <div className="mac-chart-title">M2 Money Supply Growth (YoY %)</div>
+              <div className="mac-chart-subtitle">Teal &lt;4% · amber 4–8% · red &gt;8% — elevated M2 growth signals inflation risk</div>
+              <div className="mac-chart-wrap">
+                <ReactECharts option={m2GrowthOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="mac-panel-footer">Source: World Bank · Annual data · CA positive = capital exporter, negative = importer · Yield spread: FRED T10Y2Y</div>
     </div>
   );
 }

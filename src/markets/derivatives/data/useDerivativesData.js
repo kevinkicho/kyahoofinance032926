@@ -1,5 +1,6 @@
 // src/markets/derivatives/data/useDerivativesData.js
 import { useState, useEffect } from 'react';
+import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import {
   volSurfaceData  as mockVolSurfaceData,
   vixTermStructure as mockVixTermStructure,
@@ -16,6 +17,10 @@ export function useDerivativesData() {
   const [vixEnrichment,    setVixEnrichment]    = useState(null);
   const [volPremium,       setVolPremium]       = useState(null);
   const [fredVixHistory,   setFredVixHistory]   = useState(mockFredVixHistory);
+  const [putCallRatio,     setPutCallRatio]     = useState(null);
+  const [skewIndex,        setSkewIndex]        = useState(null);
+  const [vixPercentile,    setVixPercentile]    = useState(null);
+  const [termSpread,       setTermSpread]       = useState(null);
   const [isLive,           setIsLive]           = useState(false);
   const [lastUpdated,      setLastUpdated]      = useState('Mock data — Apr 2025');
   const [isLoading,        setIsLoading]        = useState(true);
@@ -23,10 +28,8 @@ export function useDerivativesData() {
   const [isCurrent,        setIsCurrent]        = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 10000);
-    fetch(`${SERVER}/api/derivatives`, { signal: controller.signal })
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    fetchWithRetry(`${SERVER}/api/derivatives`)
+      .then(r => r.json())
       .then(data => {
         if (data.vixTermStructure?.dates?.length)           setVixTermStructure(data.vixTermStructure);
         if (data.optionsFlow?.length >= 4)                  setOptionsFlow(data.optionsFlow);
@@ -36,15 +39,18 @@ export function useDerivativesData() {
         }
         if (data.volPremium?.atm1mIV != null) setVolPremium(data.volPremium);
         if (data.fredVixHistory?.dates?.length >= 20) setFredVixHistory(data.fredVixHistory);
+        if (data.putCallRatio != null)              setPutCallRatio(data.putCallRatio);
+        if (data.skewIndex?.value != null)          setSkewIndex(data.skewIndex);
+        if (data.vixPercentile != null)             setVixPercentile(data.vixPercentile);
+        if (data.termSpread?.value != null)         setTermSpread(data.termSpread);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
         setIsCurrent(!!data.isCurrent);
       })
       .catch(() => {})
-      .finally(() => { clearTimeout(timer); setIsLoading(false); });
-    return () => { clearTimeout(timer); controller.abort(); };
+      .finally(() => setIsLoading(false));
   }, []);
 
-  return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

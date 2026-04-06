@@ -1,6 +1,7 @@
 // src/markets/crypto/CryptoMarket.jsx
 import React, { useState } from 'react';
 import { useCryptoData } from './data/useCryptoData';
+import MarketSkeleton from '../../hub/MarketSkeleton';
 import CoinMarketOverview    from './components/CoinMarketOverview';
 import CycleIndicators       from './components/CycleIndicators';
 import DefiChains            from './components/DefiChains';
@@ -17,23 +18,18 @@ const SUB_TABS = [
 
 function CryptoMarket() {
   const [activeTab, setActiveTab] = useState('market');
-  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData();
+  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData();
 
-  if (isLoading) {
-    return (
-      <div className="crypto-market crypto-loading">
-        <div className="crypto-loading-spinner" />
-        <span className="crypto-loading-text">Loading crypto data…</span>
-      </div>
-    );
-  }
+  if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="crypto-market">
-      <div className="crypto-sub-tabs">
+      <div className="crypto-sub-tabs" role="tablist" aria-label="Sub-tabs">
         {SUB_TABS.map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
             className={`crypto-sub-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
           >
@@ -50,8 +46,8 @@ function CryptoMarket() {
       </div>
       <div className="crypto-content">
         {activeTab === 'market'  && <>
-          <CoinMarketOverview coinMarketData={coinMarketData} />
-          <OnChainMetrics onChainData={onChainData} />
+          <CoinMarketOverview coinMarketData={coinMarketData} btcDominance={btcDominance} stablecoinMcap={stablecoinMcap} ethGas={ethGas} />
+          <OnChainMetrics onChainData={onChainData} topExchanges={topExchanges} />
         </>}
         {activeTab === 'cycle'   && <CycleIndicators       fearGreedData={fearGreedData} />}
         {activeTab === 'defi'    && <DefiChains            defiData={defiData} />}

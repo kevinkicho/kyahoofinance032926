@@ -18,23 +18,23 @@ describe('BondsMarket', () => {
   it('renders all 4 sub-tabs', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Yield Curve'     })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Credit Matrix'   })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Spread Monitor'  })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Duration Ladder' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Yield Curve'     })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Credit Matrix'   })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Spread Monitor'  })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Duration Ladder' })).toBeInTheDocument();
   });
 
   it('switches to Credit Matrix on click', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Credit Matrix' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Credit Matrix' }));
     expect(screen.getAllByText(/S&P|AAA|rating/i).length).toBeGreaterThan(0);
   });
 
   it('switches to Spread Monitor on click', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Spread Monitor' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Spread Monitor' }));
     expect(screen.getAllByText(/spread|OAS|IG|HY/i).length).toBeGreaterThan(0);
   });
 

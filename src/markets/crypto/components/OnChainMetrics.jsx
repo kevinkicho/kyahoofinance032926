@@ -4,6 +4,48 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
+function buildExchangesOption(exchanges, colors) {
+  const items = [...exchanges].reverse(); // smallest at top so largest appears at bottom → natural bar chart reading
+  const names = items.map(e => e.name);
+  const volumes = items.map(e => +(e.volume24h / 1e9).toFixed(2));
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    grid: { top: 4, right: 56, bottom: 4, left: 80 },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'none' },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: params => `${params[0].name}<br/>$${params[0].value}B`,
+    },
+    xAxis: {
+      type: 'value',
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${v}B` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLine: { show: false },
+    },
+    yAxis: {
+      type: 'category',
+      data: names,
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [{
+      type: 'bar',
+      data: volumes,
+      barMaxWidth: 18,
+      itemStyle: {
+        color: { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: 'rgba(99,102,241,0.55)' }, { offset: 1, color: '#818cf8' }] },
+        borderRadius: [0, 3, 3, 0],
+      },
+      label: { show: true, position: 'right', color: colors.textMuted, fontSize: 9, formatter: p => `$${p.value}B` },
+    }],
+  };
+}
+
 function buildHashrateOption(history, colors) {
   const dates = history.map(h => {
     const d = new Date(h.timestamp * 1000);
@@ -44,7 +86,7 @@ function buildHashrateOption(history, colors) {
   };
 }
 
-export default function OnChainMetrics({ onChainData }) {
+export default function OnChainMetrics({ onChainData, topExchanges = [] }) {
   const { colors } = useTheme();
   if (!onChainData) return null;
   const { fees, mempool, difficulty, hashrate } = onChainData;
@@ -81,6 +123,15 @@ export default function OnChainMetrics({ onChainData }) {
         <div className="onchain-chart-wrap">
           <div className="crypto-chart-title">Hashrate Trend (30d)</div>
           <ReactECharts option={buildHashrateOption(hashrate.history, colors)} style={{ height: 160, width: '100%' }} />
+        </div>
+      )}
+      {topExchanges.length > 0 && (
+        <div className="onchain-chart-wrap">
+          <div className="crypto-chart-title">Top Exchanges by 24h Volume</div>
+          <ReactECharts
+            option={buildExchangesOption(topExchanges.slice(0, 10), colors)}
+            style={{ height: Math.max(160, topExchanges.slice(0, 10).length * 22 + 16), width: '100%' }}
+          />
         </div>
       )}
     </div>

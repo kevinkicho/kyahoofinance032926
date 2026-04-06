@@ -20,8 +20,13 @@ function isCurrentWeek(dateStr) {
   return nowMon.toISOString().split('T')[0] === dMon.toISOString().split('T')[0];
 }
 
-export default function EarningsSeason({ earningsSeason }) {
+export default function EarningsSeason({ earningsSeason, dividendCalendar }) {
   const { colors } = useTheme();
+
+  const sortedDividends = useMemo(() => {
+    if (!dividendCalendar?.length) return [];
+    return [...dividendCalendar].sort((a, b) => (a.exDate ?? '').localeCompare(b.exDate ?? ''));
+  }, [dividendCalendar]);
 
   const kpis = useMemo(() => {
     if (!earningsSeason?.length) return null;
@@ -115,6 +120,36 @@ export default function EarningsSeason({ earningsSeason }) {
       <div className="cal-panel-footer">
         30 mega-cap stocks tracked · EPS estimates from Yahoo Finance earningsTrend
       </div>
+
+      {/* ── Dividend Calendar ─────────────────────────────────────────────── */}
+      {sortedDividends.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="cal-panel-header" style={{ padding: '8px 14px' }}>
+            <span className="cal-panel-title">Dividend Calendar</span>
+            <span className="cal-panel-subtitle">Upcoming ex-dividend dates · major stocks</span>
+          </div>
+          <table className="cal-table">
+            <thead>
+              <tr>
+                <th>Ticker</th>
+                <th>Ex-Date</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedDividends.map((d, i) => (
+                <tr key={i}>
+                  <td style={{ fontWeight: 700, fontSize: 11, color: '#f43f5e' }}>{d.ticker}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{d.exDate}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}>
+                    {d.amount != null ? `$${Number(d.amount).toFixed(4)}` : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

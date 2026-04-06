@@ -41,6 +41,34 @@ function buildHistoryOption(history, colors) {
   };
 }
 
+function buildMedianPriceOption(medianHomePrice, colors) {
+  return {
+    animation: false, backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: p => `${p[0].axisValue}<br/>Median Price: <b>$${Number(p[0].value).toLocaleString()}</b>`,
+    },
+    grid: { top: 8, right: 16, bottom: 24, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: medianHomePrice.dates,
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(medianHomePrice.dates.length / 6) },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${(v / 1000).toFixed(0)}K` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+    },
+    series: [{
+      type: 'line', data: medianHomePrice.values, symbol: 'none',
+      lineStyle: { color: '#34d399', width: 2 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(52,211,153,0.25)' }, { offset: 1, color: 'rgba(52,211,153,0)' }] } },
+    }],
+  };
+}
+
 function buildSupplyOption(supplyData, colors) {
   const dates = supplyData.housingStarts.dates;
   return {
@@ -69,12 +97,13 @@ function buildSupplyOption(supplyData, colors) {
   };
 }
 
-export default function AffordabilityMap({ affordabilityData, mortgageRates, supplyData }) {
+export default function AffordabilityMap({ affordabilityData, mortgageRates, supplyData, medianHomePrice, rentalVacancy }) {
   const { colors } = useTheme();
   if (!affordabilityData) return null;
   const { current, history = [] } = affordabilityData;
   const historyOption = useMemo(() => history.length >= 2 ? buildHistoryOption(history, colors) : null, [history, colors]);
   const supplyOption = useMemo(() => supplyData?.housingStarts?.values?.length >= 4 ? buildSupplyOption(supplyData, colors) : null, [supplyData, colors]);
+  const medianPriceOption = useMemo(() => medianHomePrice?.dates?.length >= 4 ? buildMedianPriceOption(medianHomePrice, colors) : null, [medianHomePrice, colors]);
 
   const startsLatest = supplyData?.housingStarts?.values?.at(-1);
   const permitsLatest = supplyData?.permits?.values?.at(-1);
@@ -155,6 +184,12 @@ export default function AffordabilityMap({ affordabilityData, mortgageRates, sup
                     <div className="re-supply-value">{(supplyData.activeListings / 1e6).toFixed(2)}M</div>
                   </div>
                 )}
+                {rentalVacancy != null && (
+                  <div className="re-supply-card">
+                    <div className="re-supply-label">Rental Vacancy</div>
+                    <div className="re-supply-value" style={{ color: rentalVacancy < 5 ? '#ef4444' : rentalVacancy < 7 ? '#f97316' : '#22c55e' }}>{rentalVacancy.toFixed(1)}%</div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -180,6 +215,15 @@ export default function AffordabilityMap({ affordabilityData, mortgageRates, sup
           <div className="re-chart-title">Housing Starts + Building Permits Trend</div>
           <div className="re-mini-chart">
             <ReactECharts option={supplyOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      )}
+
+      {medianPriceOption && (
+        <div className="re-chart-panel" style={{ marginTop: 8, height: 150, flexShrink: 0 }}>
+          <div className="re-chart-title">Median Home Sale Price (24-Month)</div>
+          <div className="re-mini-chart">
+            <ReactECharts option={medianPriceOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

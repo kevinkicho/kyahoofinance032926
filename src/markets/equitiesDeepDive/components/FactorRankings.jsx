@@ -59,7 +59,14 @@ function factorHeat(score) {
   return 'eq-heat-dr';
 }
 
-export default function FactorRankings({ factorData }) {
+function breadthSignal(divergence) {
+  if (divergence == null) return { label: 'N/A', color: '#6b7280' };
+  if (divergence > 2)    return { label: 'Narrow breadth (top-heavy)', color: '#ef4444' };
+  if (divergence < -2)   return { label: 'Broad breadth', color: '#22c55e' };
+  return { label: 'Neutral', color: '#f59e0b' };
+}
+
+export default function FactorRankings({ factorData, breadthDivergence, equityRiskPremium }) {
   const { colors } = useTheme();
   const { inFavor = {}, stocks = [] } = factorData ?? {};
 
@@ -109,6 +116,61 @@ export default function FactorRankings({ factorData }) {
             <span className="eq-kpi-label">{`Quality \u2265 70`}</span>
             <span className="eq-kpi-value accent">{kpis.highQuality}</span>
             <span className="eq-kpi-sub">of {stocks.length}</span>
+          </div>
+        </div>
+      )}
+      {/* Breadth Divergence */}
+      {breadthDivergence && (() => {
+        const signal = breadthSignal(breadthDivergence.divergence);
+        return (
+          <div style={{ marginBottom: '12px' }}>
+            <div className="eq-chart-title" style={{ marginBottom: '6px' }}>Breadth Divergence</div>
+            <div className="eq-kpi-strip">
+              <div className="eq-kpi-pill">
+                <span className="eq-kpi-label">SPY 1M</span>
+                <span className={`eq-kpi-value ${(breadthDivergence.spy1m ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+                  {(breadthDivergence.spy1m ?? 0) >= 0 ? '+' : ''}{breadthDivergence.spy1m?.toFixed(2)}%
+                </span>
+              </div>
+              <div className="eq-kpi-pill">
+                <span className="eq-kpi-label">RSP 1M</span>
+                <span className={`eq-kpi-value ${(breadthDivergence.rsp1m ?? 0) >= 0 ? 'positive' : 'negative'}`}>
+                  {(breadthDivergence.rsp1m ?? 0) >= 0 ? '+' : ''}{breadthDivergence.rsp1m?.toFixed(2)}%
+                </span>
+              </div>
+              <div className="eq-kpi-pill">
+                <span className="eq-kpi-label">Divergence</span>
+                <span className="eq-kpi-value" style={{ color: signal.color }}>
+                  {(breadthDivergence.divergence ?? 0) >= 0 ? '+' : ''}{breadthDivergence.divergence?.toFixed(2)}%
+                </span>
+                <span className="eq-kpi-sub" style={{ color: signal.color }}>{signal.label}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {/* Equity Risk Premium */}
+      {equityRiskPremium && (
+        <div style={{ marginBottom: '12px' }}>
+          <div className="eq-chart-title" style={{ marginBottom: '6px' }}>Equity Risk Premium</div>
+          <div className="eq-kpi-strip">
+            <div className="eq-kpi-pill">
+              <span className="eq-kpi-label">Earnings Yield</span>
+              <span className="eq-kpi-value accent">{equityRiskPremium.earningsYield?.toFixed(2)}%</span>
+              <span className="eq-kpi-sub">1 / P/E</span>
+            </div>
+            <div className="eq-kpi-pill">
+              <span className="eq-kpi-label">10Y Treasury</span>
+              <span className="eq-kpi-value accent">{equityRiskPremium.treasury10y?.toFixed(2)}%</span>
+              <span className="eq-kpi-sub">Risk-free rate</span>
+            </div>
+            <div className="eq-kpi-pill">
+              <span className="eq-kpi-label">ERP</span>
+              <span className="eq-kpi-value" style={{ color: equityRiskPremium.erp > 3 ? '#22c55e' : equityRiskPremium.erp >= 1 ? '#f59e0b' : '#ef4444' }}>
+                {equityRiskPremium.erp?.toFixed(2)}%
+              </span>
+              <span className="eq-kpi-sub">Earnings yield − 10Y</span>
+            </div>
           </div>
         </div>
       )}

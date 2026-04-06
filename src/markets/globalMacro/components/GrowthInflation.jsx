@@ -92,12 +92,94 @@ function buildCpiOption(countries, colors) {
   };
 }
 
-export default function GrowthInflation({ growthInflationData }) {
+function buildIndustrialProdOption(industrialProd, colors) {
+  const { dates = [], yoyPct = [] } = industrialProd ?? {};
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => `${params[0].axisValue}: ${params[0].value != null ? params[0].value.toFixed(1) : '—'}%`,
+    },
+    grid: { top: 8, right: 12, bottom: 28, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 6) },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    series: [{
+      type: 'line',
+      data: yoyPct,
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { color: '#a78bfa', width: 2 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(167,139,250,0.25)' }, { offset: 1, color: 'rgba(167,139,250,0)' }] } },
+      markLine: {
+        data: [{ yAxis: 0 }],
+        symbol: 'none',
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
+        label: { show: false },
+      },
+    }],
+  };
+}
+
+function buildConsumerSentimentOption(consumerSentiment, colors) {
+  const { dates = [], values = [] } = consumerSentiment ?? {};
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => `${params[0].axisValue}: ${params[0].value != null ? params[0].value.toFixed(1) : '—'}`,
+    },
+    grid: { top: 8, right: 12, bottom: 28, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: dates,
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 6) },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9 },
+    },
+    series: [{
+      type: 'line',
+      data: values,
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { color: '#f59e0b', width: 2 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(245,158,11,0.22)' }, { offset: 1, color: 'rgba(245,158,11,0)' }] } },
+    }],
+  };
+}
+
+export default function GrowthInflation({ growthInflationData, industrialProd, consumerSentiment }) {
   const { colors } = useTheme();
   const { year = '', countries = [] } = growthInflationData ?? {};
 
-  const gdpOption = useMemo(() => buildGdpOption(countries, colors), [countries, colors]);
-  const cpiOption = useMemo(() => buildCpiOption(countries, colors), [countries, colors]);
+  const gdpOption           = useMemo(() => buildGdpOption(countries, colors), [countries, colors]);
+  const cpiOption           = useMemo(() => buildCpiOption(countries, colors), [countries, colors]);
+  const indProdOption       = useMemo(() => buildIndustrialProdOption(industrialProd, colors), [industrialProd, colors]);
+  const sentimentOption     = useMemo(() => buildConsumerSentimentOption(consumerSentiment, colors), [consumerSentiment, colors]);
 
   const kpis = useMemo(() => {
     if (!countries.length) return null;
@@ -164,6 +246,28 @@ export default function GrowthInflation({ growthInflationData }) {
           </div>
         </div>
       </div>
+      {(industrialProd || consumerSentiment) && (
+        <div className="mac-two-col" style={{ marginTop: 16 }}>
+          {industrialProd && (
+            <div className="mac-chart-panel">
+              <div className="mac-chart-title">Industrial Production (YoY %)</div>
+              <div className="mac-chart-subtitle">US Fed — monthly · purple line · dashed zero = contraction boundary</div>
+              <div className="mac-chart-wrap">
+                <ReactECharts option={indProdOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+          {consumerSentiment && (
+            <div className="mac-chart-panel">
+              <div className="mac-chart-title">Consumer Sentiment (U. Michigan)</div>
+              <div className="mac-chart-subtitle">Index level — higher = more optimistic · amber line</div>
+              <div className="mac-chart-wrap">
+                <ReactECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

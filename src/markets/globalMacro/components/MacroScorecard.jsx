@@ -2,6 +2,12 @@
 import React, { useMemo } from 'react';
 import './MacroComponents.css';
 
+function fmtBillions(v) {
+  if (v == null) return '—';
+  const b = v / 1e9;
+  return (b >= 0 ? '+' : '') + b.toFixed(1) + 'B';
+}
+
 function gdpHeat(v) {
   if (v == null) return 'mac-heat-neu';
   if (v > 3)    return 'mac-heat-dg';
@@ -52,7 +58,7 @@ function debtHeat(v) {
 function fmt1(v) { return v != null ? v.toFixed(1) + '%' : '—'; }
 function fmtRate(v) { return v != null ? v.toFixed(2) + '%' : '—'; }
 
-export default function MacroScorecard({ scorecardData = [] }) {
+export default function MacroScorecard({ scorecardData = [], consumerSentiment, tradeBalance, m2Growth }) {
   const kpis = useMemo(() => {
     const g7 = scorecardData.filter(c => c.region === 'G7');
     const em = scorecardData.filter(c => c.region === 'EM');
@@ -62,8 +68,18 @@ export default function MacroScorecard({ scorecardData = [] }) {
     const lowestCpi = withCpi.length ? withCpi.reduce((a, b) => a.cpi < b.cpi ? a : b) : null;
     const withDebt = scorecardData.filter(c => c.debt != null);
     const highestDebt = withDebt.length ? withDebt.reduce((a, b) => a.debt > b.debt ? a : b) : null;
-    return { avgG7Gdp, avgEmGdp, lowestCpi, highestDebt };
-  }, [scorecardData]);
+    // New FRED series KPIs
+    const latestSentiment = consumerSentiment?.values?.length
+      ? consumerSentiment.values[consumerSentiment.values.length - 1]
+      : null;
+    const latestTradeBalance = tradeBalance?.values?.length
+      ? tradeBalance.values[tradeBalance.values.length - 1]
+      : null;
+    const latestM2Yoy = m2Growth?.yoyPct?.length
+      ? m2Growth.yoyPct[m2Growth.yoyPct.length - 1]
+      : null;
+    return { avgG7Gdp, avgEmGdp, lowestCpi, highestDebt, latestSentiment, latestTradeBalance, latestM2Yoy };
+  }, [scorecardData, consumerSentiment, tradeBalance, m2Growth]);
 
   return (
     <div className="mac-panel">
@@ -95,6 +111,33 @@ export default function MacroScorecard({ scorecardData = [] }) {
           <span className="mac-kpi-value" style={{ color: '#ef4444' }}>{kpis.highestDebt ? kpis.highestDebt.name : '\u2014'}</span>
           {kpis.highestDebt && <span className="mac-kpi-sub">{kpis.highestDebt.debt.toFixed(0)}% GDP</span>}
         </div>
+        {kpis.latestSentiment != null && (
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Consumer Sentiment</span>
+            <span className="mac-kpi-value" style={{ color: kpis.latestSentiment >= 80 ? '#4ade80' : kpis.latestSentiment >= 60 ? '#f59e0b' : '#ef4444' }}>
+              {kpis.latestSentiment.toFixed(1)}
+            </span>
+            <span className="mac-kpi-sub">U. Michigan Index</span>
+          </div>
+        )}
+        {kpis.latestTradeBalance != null && (
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Trade Balance</span>
+            <span className="mac-kpi-value" style={{ color: kpis.latestTradeBalance >= 0 ? '#4ade80' : '#ef4444' }}>
+              {fmtBillions(kpis.latestTradeBalance)}
+            </span>
+            <span className="mac-kpi-sub">Latest month</span>
+          </div>
+        )}
+        {kpis.latestM2Yoy != null && (
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">M2 YoY Growth</span>
+            <span className="mac-kpi-value" style={{ color: kpis.latestM2Yoy > 8 ? '#ef4444' : kpis.latestM2Yoy > 4 ? '#f59e0b' : '#4ade80' }}>
+              {kpis.latestM2Yoy >= 0 ? '+' : ''}{kpis.latestM2Yoy.toFixed(1)}%
+            </span>
+            <span className="mac-kpi-sub">Money supply</span>
+          </div>
+        )}
       </div>
       <div className="mac-scroll">
         <table className="mac-table">

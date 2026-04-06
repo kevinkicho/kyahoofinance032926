@@ -7,7 +7,7 @@ function spreadClass(spread) {
   return 'ins-spread-low';
 }
 
-export default function CatBondSpreads({ catBondSpreads }) {
+export default function CatBondSpreads({ catBondSpreads, catBondProxy }) {
   const stats = useMemo(() => {
     const avgSpread = catBondSpreads.reduce((s, b) => s + b.spread, 0) / catBondSpreads.length;
     const highest = catBondSpreads.reduce((a, b) => b.spread > a.spread ? b : a);
@@ -55,6 +55,15 @@ export default function CatBondSpreads({ catBondSpreads }) {
           <span className="ins-kpi-label">Avg Expected Loss</span>
           <span className="ins-kpi-value">{stats.avgEL.toFixed(1)}%</span>
         </div>
+        {catBondProxy && (
+          <div className="ins-kpi-pill">
+            <span className="ins-kpi-label">ILS Proxy ({catBondProxy.ticker})</span>
+            <span className="ins-kpi-value">${catBondProxy.price?.toFixed(2)}</span>
+            <span className="ins-kpi-sub" style={{ color: catBondProxy.changePct >= 0 ? '#22c55e' : '#ef4444' }}>
+              {catBondProxy.changePct >= 0 ? '+' : ''}{catBondProxy.changePct?.toFixed(2)}%
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Main: table (wide) + spread by peril (narrow) */}

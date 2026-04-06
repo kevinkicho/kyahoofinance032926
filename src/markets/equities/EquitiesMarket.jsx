@@ -424,19 +424,6 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
     setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive, summaryData, historyData }));
   };
 
-  const onChartClick = (params) => {
-    if (params.data && params.data.value !== undefined && !params.data.children) {
-      const found = flatData.find(f => f.ticker === params.data.name);
-      if (found) handleSelectTicker(found);
-    }
-  };
-
-  // Triggered when user holds hover over a stock cell for 1.5s — populates sidebar
-  const onHoverActivate = (stockData) => {
-    const found = flatData.find(f => f.ticker === stockData.name);
-    if (found) handleSelectTicker(found);
-  };
-
   return (
     <div className="app-container">
       <Header
@@ -451,17 +438,12 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
           {viewMode === 'heatmap' && (
             <HeatmapView
               data={heatmapData}
-              onChartClick={onChartClick}
               currentRate={currentRate}
               currentSymbol={currentSymbol}
               currency={currency}
               rankMetric={rankMetric}
               groupBy={groupBy}
-              snapshotPrices={snapshotPrices}
-              comparisonPrices={comparisonPrices}
-              snapshotDate={snapshotDate}
               colorByPerf={colorByPerf}
-              onHoverActivate={onHoverActivate}
             />
           )}
           {viewMode === 'race' && (

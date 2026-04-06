@@ -132,3 +132,34 @@ body {
   max-width: 400px;
   line-height: 1.6;
 }
+
+/* Accessibility: screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+.sr-only-focusable:focus {
+  position: fixed;
+  top: 4px;
+  left: 4px;
+  width: auto;
+  height: auto;
+  padding: 8px 16px;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 2px solid var(--accent-color);
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 9999;
+}

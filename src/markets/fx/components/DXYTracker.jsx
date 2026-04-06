@@ -11,7 +11,10 @@ const DXY_COMPONENT_COLORS = {
 };
 const DXY_PROXY_COLOR = '#3b82f6';
 
-export default function DXYTracker({ history, fredFxRates }) {
+const RATE_LABELS = { fed: 'Fed', ecb: 'ECB', boe: 'BoE', boj: 'BoJ' };
+const DIFF_LABELS = { usFed_ecb: 'Fed−ECB', usFed_boe: 'Fed−BoE', usFed_boj: 'Fed−BoJ' };
+
+export default function DXYTracker({ history, fredFxRates, dxyHistory, rateDifferentials }) {
   const { colors } = useTheme();
 
   const { chartOption, dxyLatest, dxy30dChange, componentChanges } = useMemo(() => {
@@ -109,6 +112,48 @@ export default function DXYTracker({ history, fredFxRates }) {
 
     return { chartOption: option, dxyLatest: latest, dxy30dChange: change, componentChanges: compChanges };
   }, [history, colors]);
+
+  // DXY History (server-supplied) chart option
+  const dxyHistoryOption = useMemo(() => {
+    if (!dxyHistory?.dates?.length || !dxyHistory?.values?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: colors.tooltipBg,
+        borderColor: colors.tooltipBorder,
+        textStyle: { color: colors.text, fontSize: 11 },
+        formatter: params => {
+          const p = params[0];
+          return `<div style="font-size:11px"><b>${p.axisValue}</b><br/>DXY: <b>${Number(p.value).toFixed(2)}</b></div>`;
+        },
+      },
+      grid: { top: 24, right: 16, bottom: 28, left: 48 },
+      xAxis: {
+        type: 'category',
+        data: dxyHistory.dates,
+        axisLabel: { color: colors.textMuted, fontSize: 9, rotate: 30, interval: Math.floor(dxyHistory.dates.length / 6) },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+      },
+      yAxis: {
+        type: 'value',
+        scale: true,
+        axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => v.toFixed(1) },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series: [{
+        name: 'DXY',
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 2.5, color: '#3b82f6' },
+        itemStyle: { color: '#3b82f6' },
+        areaStyle: { color: 'rgba(59,130,246,0.08)' },
+        data: dxyHistory.values,
+      }],
+    };
+  }, [dxyHistory, colors]);
 
   // FRED 1yr chart: EUR/USD + USD/JPY overlay
   const eurH = fredFxRates?.eurUsd;
@@ -233,6 +278,69 @@ export default function DXYTracker({ history, fredFxRates }) {
           <div className="fx-chart-title">EUR/USD + USD/JPY — 1 Year (FRED daily)</div>
           <div className="fx-mini-chart">
             <ReactECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      )}
+
+      {/* DXY History (server data) */}
+      {dxyHistoryOption && (
+        <div className="fx-chart-panel" style={{ height: 180, flexShrink: 0, marginTop: 12 }}>
+          <div className="fx-chart-title">Dollar Index (DXY) — Historical</div>
+          <div className="fx-mini-chart">
+            <ReactECharts option={dxyHistoryOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Rate Differentials */}
+      {rateDifferentials && (
+        <div className="fx-chart-panel" style={{ flexShrink: 0, marginTop: 12, padding: '10px 14px' }}>
+          <div className="fx-chart-title" style={{ marginBottom: 8 }}>Rate Differentials — Central Bank Policy Rates</div>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            {/* Policy rates */}
+            <div>
+              <div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Policy Rates</div>
+              <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+                <tbody>
+                  {Object.entries(RATE_LABELS).map(([key, label]) => {
+                    const val = rateDifferentials[key];
+                    return (
+                      <tr key={key}>
+                        <td style={{ paddingRight: 12, color: colors.textSecondary, paddingBottom: 4 }}>{label}</td>
+                        <td style={{ fontWeight: 600, color: colors.text, paddingBottom: 4 }}>
+                          {val != null ? `${Number(val).toFixed(2)}%` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {/* US vs others differentials */}
+            <div>
+              <div style={{ fontSize: 10, color: colors.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>US Spread vs.</div>
+              <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+                <tbody>
+                  {Object.entries(DIFF_LABELS).map(([key, label]) => {
+                    const val = rateDifferentials[key];
+                    const isPos = val != null && Number(val) >= 0;
+                    const isNeg = val != null && Number(val) < 0;
+                    return (
+                      <tr key={key}>
+                        <td style={{ paddingRight: 12, color: colors.textSecondary, paddingBottom: 4 }}>{label}</td>
+                        <td style={{
+                          fontWeight: 600,
+                          color: isPos ? '#22c55e' : isNeg ? '#ef4444' : colors.text,
+                          paddingBottom: 4,
+                        }}>
+                          {val != null ? `${isPos ? '+' : ''}${Number(val).toFixed(2)}%` : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './DerivComponents.css';
 
-export default function VIXTermStructure({ vixTermStructure, vixEnrichment, fredVixHistory }) {
+export default function VIXTermStructure({ vixTermStructure, vixEnrichment, fredVixHistory, vixPercentile: vixPctProp, termSpread, putCallRatio }) {
   const { colors } = useTheme();
   const { dates, values, prevValues } = vixTermStructure;
 
@@ -17,6 +17,11 @@ export default function VIXTermStructure({ vixTermStructure, vixEnrichment, fred
     : null;
   const vvix = vixEnrichment?.vvix ?? null;
   const percentile = vixEnrichment?.vixPercentile ?? null;
+
+  // New server-direct fields
+  const resolvedVixPct  = vixPctProp ?? percentile;  // prefer direct field, fall back to enrichment
+  const resolvedTermSpread  = termSpread ?? null;
+  const resolvedPCR         = putCallRatio ?? null;
 
   // Day changes for bar panel
   const dayChanges = dates.map((d, i) => ({
@@ -142,13 +147,38 @@ export default function VIXTermStructure({ vixTermStructure, vixEnrichment, fred
             <span className="deriv-kpi-sub">vol of VIX</span>
           </div>
         )}
-        {percentile != null && (
+        {resolvedVixPct != null && (
           <div className="deriv-kpi-pill">
             <span className="deriv-kpi-label">VIX Percentile</span>
-            <span className={`deriv-kpi-value ${percentile > 80 ? 'negative' : percentile < 20 ? 'positive' : ''}`}>
-              {percentile}th
+            <span className={`deriv-kpi-value ${resolvedVixPct > 75 ? 'negative' : resolvedVixPct < 25 ? 'positive' : 'amber'}`}>
+              {resolvedVixPct}th
             </span>
-            <span className="deriv-kpi-sub">252-day</span>
+            <span className="deriv-kpi-sub">1yr rank</span>
+          </div>
+        )}
+        {resolvedTermSpread != null && (
+          <div className="deriv-kpi-pill">
+            <span className="deriv-kpi-label">Term Spread</span>
+            <span className="deriv-kpi-value accent">
+              {resolvedTermSpread.value >= 0 ? '+' : ''}{resolvedTermSpread.value.toFixed(2)}
+            </span>
+            {resolvedTermSpread.state && (
+              <span
+                className="deriv-kpi-sub"
+                style={{ color: resolvedTermSpread.state === 'contango' ? '#22c55e' : '#ef4444', fontWeight: 600 }}
+              >
+                {resolvedTermSpread.state}
+              </span>
+            )}
+          </div>
+        )}
+        {resolvedPCR != null && (
+          <div className="deriv-kpi-pill">
+            <span className="deriv-kpi-label">Put/Call Ratio</span>
+            <span className={`deriv-kpi-value ${resolvedPCR > 1.0 ? 'negative' : resolvedPCR < 0.7 ? 'positive' : 'amber'}`}>
+              {resolvedPCR.toFixed(2)}
+            </span>
+            <span className="deriv-kpi-sub">CBOE equity</span>
           </div>
         )}
       </div>

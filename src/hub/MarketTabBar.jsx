@@ -19,7 +19,7 @@ function highlightMatch(text, query) {
   );
 }
 
-export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency, onExport }) {
+export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency, onExport, onExportData }) {
   function handlePopout() {
     window.open('/?popout=' + activeMarket, '_blank', 'width=1200,height=800,menubar=no,toolbar=no');
   }
@@ -84,15 +84,19 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
   }
 
   return (
-    <div className="market-tab-bar">
-      <nav className="market-tabs">
-        {MARKETS.map(m => (
+    <div className="market-tab-bar" role="banner">
+      <a href="#main-content" className="sr-only sr-only-focusable">Skip to content</a>
+      <nav className="market-tabs" role="tablist" aria-label="Market tabs">
+        {MARKETS.map((m, i) => (
           <button
             key={m.id}
+            role="tab"
+            aria-selected={activeMarket === m.id}
+            aria-label={`${m.label} market (${i + 1})`}
             className={`market-tab${activeMarket === m.id ? ' active' : ''}`}
             onClick={() => setActiveMarket(m.id)}
           >
-            <span className="market-tab-icon">{m.icon}</span>
+            <span className="market-tab-icon" aria-hidden="true">{m.icon}</span>
             <span className="market-tab-label">{m.label}</span>
           </button>
         ))}
@@ -100,6 +104,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
       <button
         className="hub-theme-toggle"
         onClick={toggle}
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       >
         {theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}
@@ -107,10 +112,17 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
       <button
         className="hub-export-btn"
         onClick={onExport}
+        aria-label="Export view as PNG"
         title="Export view as PNG"
       >
         {'\uD83D\uDCF7'}
       </button>
+      {onExportData && (
+        <>
+          <button className="hub-export-btn" onClick={() => onExportData('csv')} title="Download data as CSV">CSV</button>
+          <button className="hub-export-btn" onClick={() => onExportData('json')} title="Download data as JSON">JSON</button>
+        </>
+      )}
       <button
         className="hub-popout-btn"
         onClick={handlePopout}
@@ -118,12 +130,17 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
       >
         &#10697;
       </button>
-      <div className="hub-search-wrap" ref={wrapRef}>
-        <span className="hub-search-icon">&#128269;</span>
+      <div className="hub-search-wrap" ref={wrapRef} role="search">
+        <span className="hub-search-icon" aria-hidden="true">&#128269;</span>
         <input
           ref={inputRef}
           className="hub-search-input"
           type="text"
+          role="combobox"
+          aria-label="Search markets and sub-tabs (Ctrl+K)"
+          aria-expanded={open && results.length > 0}
+          aria-autocomplete="list"
+          aria-controls="hub-search-results"
           placeholder="Search markets..."
           value={query}
           onChange={handleChange}
@@ -133,13 +150,15 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
           spellCheck={false}
         />
         {open && results.length > 0 && (
-          <div className="hub-search-dropdown">
+          <div className="hub-search-dropdown" id="hub-search-results" role="listbox">
             {results.map((entry, i) => {
               const q = query.trim().toLowerCase();
               const matchingSubs = entry.subTabs.filter(s => s.toLowerCase().includes(q));
               return (
                 <div
                   key={entry.marketId}
+                  role="option"
+                  aria-selected={i === highlighted}
                   className={`hub-search-item${i === highlighted ? ' highlighted' : ''}`}
                   onMouseEnter={() => setHighlighted(i)}
                   onMouseDown={e => { e.preventDefault(); handleSelect(entry.marketId); }}
@@ -169,9 +188,11 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
         )}
       </div>
       <div className="hub-currency-picker">
-        <label className="hub-currency-label">Currency</label>
+        <label className="hub-currency-label" htmlFor="hub-currency-select">Currency</label>
         <select
+          id="hub-currency-select"
           className="hub-currency-select"
+          aria-label="Currency"
           value={currency}
           onChange={e => setCurrency(e.target.value)}
         >

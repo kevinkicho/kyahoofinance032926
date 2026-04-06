@@ -1,0 +1,335 @@
+/* ============================================================
+   responsive.css — Global Market Hub responsive breakpoints
+   Desktop-first. Breakpoints: 1024px (tablet), 768px (small
+   tablet), 480px (mobile). No existing CSS is modified here.
+   ============================================================ */
+
+/* ──────────────────────────────────────────────────────────────
+   1024px — Tablet
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* Main tab bar: prevent wrapping, enable horizontal scroll */
+  .market-tab-bar {
+    padding: 0 8px;
+  }
+  .market-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .market-tabs::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  /* Narrow the search input so it doesn't squeeze tabs */
+  .hub-search-input {
+    width: 120px;
+  }
+  .hub-search-input:focus {
+    width: 160px;
+  }
+
+  /* Three-column grids → two columns */
+  .com-three-col {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* COT four-column metric rows → two columns */
+  .cot-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* On-chain 4-column cards → 2 columns */
+  .onchain-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Fear & Greed layout: stack gauge above indicators */
+  .fg-layout {
+    flex-direction: column;
+  }
+  .fg-gauge-wrap {
+    min-width: unset;
+    width: 100%;
+  }
+
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   768px — Small tablet
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Main tab bar: smaller font */
+  .market-tab {
+    font-size: 11px;
+    padding: 0 10px;
+  }
+
+  /* All two-column grids → single column */
+  .com-two-col,
+  .com-sd-grid,
+  .cot-grid,
+  .fx-two-col,
+  .re-two-col,
+  .re-supply-grid,
+  .re-sector-cards,
+  .mac-two-col,
+  .eq-two-col,
+  .crypto-two-col,
+  .credit-two-col,
+  .sent-two-col,
+  .sent-risk-grid,
+  .cal-cb-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Wide-narrow grids → single column */
+  .com-wide-narrow,
+  .fx-wide-narrow,
+  .re-wide-narrow,
+  .deriv-wide-narrow,
+  .ins-wide-narrow {
+    grid-template-columns: 1fr;
+  }
+
+  /* bonds wide-narrow (flex-based) → stack vertically */
+  .bonds-wide-narrow {
+    flex-direction: column;
+  }
+  .bonds-wide-narrow > :last-child {
+    min-width: unset;
+    flex: unset;
+  }
+
+  /* Three-column grids → single column */
+  .com-three-col {
+    grid-template-columns: 1fr;
+  }
+
+  /* On-chain 4-col → 2-col retained, but 2-col → 1-col below */
+  .onchain-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* COT metrics → 2 cols (4→2 already done at 1024, keep) */
+  .cot-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* KPI strips: tighter gap, allow natural wrapping */
+  .com-kpi-strip,
+  .fx-kpi-strip,
+  .bonds-kpi-strip,
+  .re-kpi-strip,
+  .deriv-kpi-strip,
+  .ins-kpi-strip,
+  .mac-kpi-strip,
+  .eq-kpi-strip,
+  .crypto-kpi-strip,
+  .credit-kpi-strip,
+  .sent-kpi-strip,
+  .cal-kpi-strip {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* KPI pills: allow them to stretch but cap minimum width */
+  .com-kpi-pill,
+  .fx-kpi-pill,
+  .re-kpi-pill,
+  .deriv-kpi-pill,
+  .ins-kpi-pill {
+    min-width: 90px;
+    flex: 1;
+  }
+
+  /* Market sub-tab bars → horizontally scrollable */
+  .com-sub-tabs,
+  .bonds-sub-tabs,
+  .fx-sub-tabs,
+  .re-sub-tabs,
+  .deriv-sub-tabs,
+  .ins-sub-tabs,
+  .mac-sub-tabs,
+  .eq-sub-tabs,
+  .crypto-sub-tabs,
+  .credit-sub-tabs,
+  .sent-sub-tabs,
+  .cal-sub-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .com-sub-tabs::-webkit-scrollbar,
+  .bonds-sub-tabs::-webkit-scrollbar,
+  .fx-sub-tabs::-webkit-scrollbar,
+  .re-sub-tabs::-webkit-scrollbar,
+  .deriv-sub-tabs::-webkit-scrollbar,
+  .ins-sub-tabs::-webkit-scrollbar,
+  .mac-sub-tabs::-webkit-scrollbar,
+  .eq-sub-tabs::-webkit-scrollbar,
+  .crypto-sub-tabs::-webkit-scrollbar,
+  .credit-sub-tabs::-webkit-scrollbar,
+  .sent-sub-tabs::-webkit-scrollbar,
+  .cal-sub-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide global search to save space */
+  .hub-search-wrap {
+    display: none;
+  }
+
+  /* Shrink currency picker label */
+  .hub-currency-label {
+    display: none;
+  }
+
+  /* Panel padding reduction */
+  .com-panel,
+  .fx-panel,
+  .re-panel,
+  .deriv-panel,
+  .ins-panel,
+  .mac-panel {
+    padding: 12px;
+  }
+
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   480px — Mobile
+   ────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* Tab bar: icons only — hide label text */
+  .market-tab-label {
+    display: none;
+  }
+  .market-tab {
+    font-size: 10px;
+    padding: 0 8px;
+    gap: 0;
+  }
+  .market-tab-icon {
+    font-size: 16px;
+  }
+
+  /* Hide accessory controls to free space */
+  .hub-theme-toggle,
+  .hub-export-btn,
+  .hub-popout-btn,
+  .hub-currency-picker {
+    display: none;
+  }
+
+  /* Footer: stack vertically */
+  .hub-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+  .hub-footer-sources {
+    margin-left: 0;
+  }
+
+  /* KPI pills: full width on mobile */
+  .com-kpi-pill,
+  .fx-kpi-pill,
+  .re-kpi-pill,
+  .deriv-kpi-pill,
+  .ins-kpi-pill,
+  .bonds-kpi-pill,
+  .mac-kpi-pill,
+  .eq-kpi-pill,
+  .crypto-kpi-pill,
+  .credit-kpi-pill,
+  .sent-kpi-pill,
+  .cal-kpi-pill {
+    flex: 1 1 100%;
+    min-width: unset;
+  }
+
+  /* On-chain → single column */
+  .onchain-cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* COT metrics → single column */
+  .cot-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Global font size reductions */
+  .com-panel-title,
+  .fx-panel-title,
+  .re-panel-title,
+  .deriv-panel-title,
+  .ins-panel-title,
+  .mac-panel-title {
+    font-size: 14px;
+  }
+
+  .com-kpi-value,
+  .fx-kpi-value,
+  .re-kpi-value,
+  .deriv-kpi-value,
+  .ins-kpi-value {
+    font-size: 14px;
+  }
+
+  .bonds-kpi-value,
+  .mac-kpi-value,
+  .eq-kpi-value,
+  .crypto-kpi-value {
+    font-size: 13px;
+  }
+
+  /* Panel content padding: compact on mobile */
+  .com-panel,
+  .fx-panel,
+  .re-panel,
+  .deriv-panel,
+  .ins-panel,
+  .mac-panel {
+    padding: 8px;
+  }
+
+  /* Crypto stats row pills: compact */
+  .crypto-stats-row {
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  /* Cal central bank grid → single column */
+  .cal-cb-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sent risk grid → single column */
+  .sent-risk-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Fear & Greed score font: smaller */
+  .fg-score {
+    font-size: 48px;
+  }
+  .fg-label {
+    font-size: 15px;
+  }
+
+  /* Search dropdown: full width on mobile */
+  .hub-search-dropdown {
+    width: 240px;
+  }
+
+}

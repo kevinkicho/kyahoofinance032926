@@ -29,6 +29,6 @@ export const SEARCH_INDEX = [
   { marketId: 'equitiesDeepDive', label: 'Equity+',      icon: '🔍', subTabs: ['Sector Rotation', 'Factor Rankings', 'Earnings Watch', 'Short Interest'] },
   { marketId: 'crypto',           label: 'Crypto',       icon: '🪙', subTabs: ['Market Overview', 'Cycle Indicators', 'DeFi & Chains', 'Funding & Positioning'] },
   { marketId: 'credit',           label: 'Credit',       icon: '🏦', subTabs: ['IG / HY Dashboard', 'EM Bonds', 'Loan Market', 'Default Watch'] },
-  { marketId: 'sentiment',        label: 'Sentiment',    icon: '🎭', subTabs: ['Fear & Greed', 'CFTC Positioning', 'Risk Dashboard', 'Cross-Asset Returns'] },
+  { marketId: 'sentiment',        label: 'Sentiment',    icon: '🎭', subTabs: ['Fear & Greed', 'CFTC Positioning', 'Risk Dashboard', 'Cross-Asset Returns', 'Correlation Matrix'] },
   { marketId: 'calendar',         label: 'Calendar',     icon: '📅', subTabs: ['Economic Calendar', 'Central Banks', 'Earnings Season', 'Key Releases'] },
 ];

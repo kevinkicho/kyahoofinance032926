@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useInsuranceData } from './data/useInsuranceData';
+import MarketSkeleton from '../../hub/MarketSkeleton';
 import CatBondSpreads       from './components/CatBondSpreads';
 import CombinedRatioMonitor from './components/CombinedRatioMonitor';
 import ReserveAdequacy      from './components/ReserveAdequacy';
@@ -23,24 +24,20 @@ function InsuranceMarket() {
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
     reinsurancePricing, reinsurers, hyOAS, igOAS, fredHyOasHistory,
+    sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
   } = useInsuranceData();
 
-  if (isLoading) {
-    return (
-      <div className="ins-market ins-loading">
-        <div className="ins-loading-spinner" />
-        <span className="ins-loading-text">Loading insurance data…</span>
-      </div>
-    );
-  }
+  if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="ins-market">
-      <div className="ins-sub-tabs">
+      <div className="ins-sub-tabs" role="tablist" aria-label="Sub-tabs">
         {SUB_TABS.map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
             className={`ins-sub-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
           >
@@ -63,10 +60,10 @@ function InsuranceMarket() {
         ))}
       </div>
       <div className="ins-content">
-        {activeTab === 'cat-bond-spreads'    && <CatBondSpreads       catBondSpreads={catBondSpreads} />}
-        {activeTab === 'combined-ratio'      && <CombinedRatioMonitor combinedRatioData={combinedRatioData} />}
+        {activeTab === 'cat-bond-spreads'    && <CatBondSpreads       catBondSpreads={catBondSpreads} catBondProxy={catBondProxy} />}
+        {activeTab === 'combined-ratio'      && <CombinedRatioMonitor combinedRatioData={combinedRatioData} industryAvgCombinedRatio={industryAvgCombinedRatio} treasury10y={treasury10y} sectorETF={sectorETF} />}
         {activeTab === 'reserve-adequacy'    && <ReserveAdequacy      reserveAdequacyData={reserveAdequacyData} />}
-        {activeTab === 'reinsurance-pricing' && <ReinsurancePricing reinsurancePricing={reinsurancePricing} fredHyOasHistory={fredHyOasHistory} />}
+        {activeTab === 'reinsurance-pricing' && <ReinsurancePricing reinsurancePricing={reinsurancePricing} fredHyOasHistory={fredHyOasHistory} sectorETF={sectorETF} />}
       </div>
     </div>
   );

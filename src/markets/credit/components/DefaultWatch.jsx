@@ -4,6 +4,69 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
+function buildDelinquencyOption(delinquencyRates, colors) {
+  const { dates = [], commercial = [], allLoans = [] } = delinquencyRates || {};
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: params => `${params[0].axisValue}<br/>${params.map(p => `${p.seriesName}: ${p.value?.toFixed(2)}%`).join('<br/>')}`,
+    },
+    legend: { data: ['Commercial RE', 'All Loans'], textStyle: { color: colors.textSecondary, fontSize: 9 }, top: 2 },
+    grid: { top: 28, right: 16, bottom: 24, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: dates,
+      axisLabel: { color: colors.textDim, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+    },
+    series: [
+      { name: 'Commercial RE', type: 'line', data: commercial, lineStyle: { color: '#f87171', width: 2 }, symbol: 'circle', symbolSize: 4, itemStyle: { color: '#f87171' } },
+      { name: 'All Loans',     type: 'line', data: allLoans,   lineStyle: { color: '#f59e0b', width: 2 }, symbol: 'circle', symbolSize: 4, itemStyle: { color: '#f59e0b' } },
+    ],
+  };
+}
+
+function buildLendingStandardsOption(lendingStandards, colors) {
+  const { dates = [], values = [] } = lendingStandards || {};
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis', axisPointer: { type: 'shadow' },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: params => `${params[0].axisValue}: ${params[0].value?.toFixed(1)}% net tightening`,
+    },
+    grid: { top: 16, right: 16, bottom: 24, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: dates,
+      axisLabel: { color: colors.textDim, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+    },
+    series: [{
+      type: 'bar',
+      data: values.map(v => ({
+        value: v,
+        itemStyle: { color: v >= 0 ? '#f87171' : '#34d399' },
+      })),
+      barMaxWidth: 32,
+    }],
+  };
+}
+
 function buildDefaultHistoryOption(defaultHistory, colors) {
   const { dates = [], hy = [], loan = [] } = defaultHistory;
   return {
@@ -64,7 +127,7 @@ function buildChargeoffOption(chargeoffs, colors) {
   };
 }
 
-export default function DefaultWatch({ defaultData }) {
+export default function DefaultWatch({ defaultData, delinquencyRates, lendingStandards }) {
   if (!defaultData) return null;
   const { colors } = useTheme();
   const { rates = [], chargeoffs = { dates:[], commercial:[], consumer:[] }, defaultHistory = { dates:[], hy:[], loan:[] } } = defaultData;
@@ -101,6 +164,28 @@ export default function DefaultWatch({ defaultData }) {
           <span className="credit-kpi-value">{kpis.deteriorating}</span>
         </div>
       </div>
+      {(delinquencyRates || lendingStandards) && (
+        <div className="credit-two-col" style={{ marginBottom: 0 }}>
+          {delinquencyRates && (
+            <div className="credit-chart-panel">
+              <div className="credit-chart-title">Delinquency Rates</div>
+              <div className="credit-chart-subtitle">FRED quarterly · commercial RE (red) · all loans (amber) · % past-due</div>
+              <div className="credit-chart-wrap">
+                <ReactECharts option={buildDelinquencyOption(delinquencyRates, colors)} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+          {lendingStandards && (
+            <div className="credit-chart-panel">
+              <div className="credit-chart-title">Lending Standards (C&amp;I)</div>
+              <div className="credit-chart-subtitle">Net % of banks tightening C&amp;I loan standards · red = tightening · green = easing</div>
+              <div className="credit-chart-wrap">
+                <ReactECharts option={buildLendingStandardsOption(lendingStandards, colors)} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <div className="credit-two-col">
         <div className="credit-two-row">
           <div className="credit-chart-panel">

@@ -47,6 +47,37 @@ function buildCloOption(tranches, colors) {
   };
 }
 
+function buildExcessReservesOption(excessReserves, colors) {
+  const { dates = [], values = [] } = excessReserves || {};
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: params => `${params[0].axisValue}: $${(params[0].value / 1000).toFixed(2)}T`,
+    },
+    grid: { top: 8, right: 16, bottom: 24, left: 8, containLabel: true },
+    xAxis: {
+      type: 'category', data: dates,
+      axisLabel: { color: colors.textDim, fontSize: 9, interval: Math.floor(dates.length / 5) },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+    },
+    yAxis: {
+      type: 'value', scale: true,
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${(v / 1000).toFixed(1)}T` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+    },
+    series: [{
+      type: 'line', data: values,
+      lineStyle: { color: '#818cf8', width: 2 },
+      areaStyle: { color: { type:'linear', x:0, y:0, x2:0, y2:1, colorStops:[{offset:0,color:'rgba(129,140,248,0.25)'},{offset:1,color:'rgba(129,140,248,0.02)'}] } },
+      symbol: 'none', itemStyle: { color: '#818cf8' },
+    }],
+  };
+}
+
 function buildBklnOption(priceHistory, colors) {
   const { dates = [], bkln = [] } = priceHistory;
   return {
@@ -78,7 +109,7 @@ function buildBklnOption(priceHistory, colors) {
   };
 }
 
-export default function LoanMarket({ loanData }) {
+export default function LoanMarket({ loanData, excessReserves }) {
   if (!loanData) return null;
   const { colors } = useTheme();
   const { cloTranches = [], indices = [], priceHistory = { dates: [], bkln: [] } } = loanData;
@@ -113,6 +144,15 @@ export default function LoanMarket({ loanData }) {
               <ReactECharts option={buildBklnOption(priceHistory, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
+          {excessReserves?.dates?.length >= 2 && (
+            <div className="credit-chart-panel">
+              <div className="credit-chart-title">Excess Reserves (3-Year)</div>
+              <div className="credit-chart-subtitle">FRED · bank excess reserves held at Fed ($B) · EXCSRESNW</div>
+              <div className="credit-chart-wrap">
+                <ReactECharts option={buildExcessReservesOption(excessReserves, colors)} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
           <div className="credit-chart-panel">
             <div className="credit-chart-title">CLO Tranche Details</div>
             <div className="credit-chart-subtitle">Tranche · rating · spread (bps) · yield · attachment (LTV)</div>

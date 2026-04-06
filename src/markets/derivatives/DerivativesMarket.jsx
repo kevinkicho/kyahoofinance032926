@@ -1,6 +1,7 @@
 // src/markets/derivatives/DerivativesMarket.jsx
 import React, { useState } from 'react';
 import { useDerivativesData } from './data/useDerivativesData';
+import MarketSkeleton from '../../hub/MarketSkeleton';
 import VolSurface       from './components/VolSurface';
 import VIXTermStructure from './components/VIXTermStructure';
 import OptionsFlow      from './components/OptionsFlow';
@@ -14,23 +15,18 @@ const SUB_TABS = [
 
 function DerivativesMarket() {
   const [activeTab, setActiveTab] = useState('vol-surface');
-  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
+  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
 
-  if (isLoading) {
-    return (
-      <div className="deriv-market deriv-loading">
-        <div className="deriv-loading-spinner" />
-        <span className="deriv-loading-text">Loading derivatives data…</span>
-      </div>
-    );
-  }
+  if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="deriv-market">
-      <div className="deriv-sub-tabs">
+      <div className="deriv-sub-tabs" role="tablist" aria-label="Sub-tabs">
         {SUB_TABS.map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
             className={`deriv-sub-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
           >
@@ -46,8 +42,8 @@ function DerivativesMarket() {
         {!isCurrent && fetchedOn && <span className="deriv-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="deriv-content">
-        {activeTab === 'vol-surface'        && <VolSurface       volSurfaceData={volSurfaceData} volPremium={volPremium} />}
-        {activeTab === 'vix-term-structure' && <VIXTermStructure vixTermStructure={vixTermStructure} vixEnrichment={vixEnrichment} fredVixHistory={fredVixHistory} />}
+        {activeTab === 'vol-surface'        && <VolSurface       volSurfaceData={volSurfaceData} volPremium={volPremium} skewIndex={skewIndex} />}
+        {activeTab === 'vix-term-structure' && <VIXTermStructure vixTermStructure={vixTermStructure} vixEnrichment={vixEnrichment} fredVixHistory={fredVixHistory} vixPercentile={vixPercentile} termSpread={termSpread} putCallRatio={putCallRatio} />}
         {activeTab === 'options-flow'       && <OptionsFlow      optionsFlow={optionsFlow} />}
       </div>
     </div>

@@ -19,30 +19,30 @@ describe('InsuranceMarket', () => {
   it('renders all 4 sub-tabs', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Cat Bond Spreads'    })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Combined Ratio'      })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reserve Adequacy'    })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reinsurance Pricing' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Cat Bond Spreads'    })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Combined Ratio'      })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Reserve Adequacy'    })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Reinsurance Pricing' })).toBeInTheDocument();
   });
 
   it('switches to Combined Ratio on click', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Combined Ratio' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Combined Ratio' }));
     expect(screen.getByText(/combined ratio monitor/i)).toBeInTheDocument();
   });
 
   it('switches to Reserve Adequacy on click', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Reserve Adequacy' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Reserve Adequacy' }));
     expect(screen.getByText(/reserve adequacy/i)).toBeInTheDocument();
   });
 
   it('switches to Reinsurance Pricing on click', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Reinsurance Pricing' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Reinsurance Pricing' }));
     expect(screen.getByText(/treaty reinsurance market/i)).toBeInTheDocument();
   });
 

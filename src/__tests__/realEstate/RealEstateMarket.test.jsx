@@ -18,23 +18,23 @@ describe('RealEstateMarket', () => {
   it('renders all 4 sub-tabs', async () => {
     render(<RealEstateMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Price Index'       })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'REIT Screen'       })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Affordability Map' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cap Rate Monitor'  })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Price Index'       })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'REIT Screen'       })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Affordability Map' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Cap Rate Monitor'  })).toBeInTheDocument();
   });
 
   it('switches to REIT Screen on click', async () => {
     render(<RealEstateMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'REIT Screen' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'REIT Screen' }));
     expect(screen.getAllByText(/PLD|Prologis|Industrial|REIT/i).length).toBeGreaterThan(0);
   });
 
   it('switches to Affordability Map on click', async () => {
     render(<RealEstateMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Affordability Map' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Affordability Map' }));
     expect(screen.getAllByText(/Hong Kong|Sydney|price.to.income/i).length).toBeGreaterThan(0);
   });
 

@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './RateMatrix.css';
 import './FXComponents.css';
 
@@ -8,7 +10,66 @@ function formatRate(value, quote) {
   return (quote === 'JPY' || quote === 'CNY') ? value.toFixed(2) : value.toFixed(4);
 }
 
-export default function RateMatrix({ spotRates, prevRates, changes = {} }) {
+const REER_COLORS = { US: '#3b82f6', EU: '#10b981', JP: '#ef4444', GB: '#f59e0b', CN: '#a855f7' };
+const REER_KEYS = ['US', 'EU', 'JP', 'GB', 'CN'];
+
+export default function RateMatrix({ spotRates, prevRates, changes = {}, reer }) {
+  const { colors } = useTheme();
+
+  const reerOption = useMemo(() => {
+    if (!reer?.dates?.length) return null;
+    const series = REER_KEYS
+      .filter(k => reer[k]?.length)
+      .map(k => ({
+        name: k,
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 2, color: REER_COLORS[k] },
+        itemStyle: { color: REER_COLORS[k] },
+        data: reer[k],
+      }));
+    if (!series.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: colors.tooltipBg,
+        borderColor: colors.tooltipBorder,
+        textStyle: { color: colors.text, fontSize: 11 },
+        formatter: params => {
+          const date = params[0]?.axisValue;
+          const lines = params.map(p =>
+            `<span style="color:${p.color}">●</span> ${p.seriesName}: ${Number(p.value).toFixed(1)}`
+          );
+          return `<div style="font-size:11px"><b>${date}</b><br/>${lines.join('<br/>')}</div>`;
+        },
+      },
+      legend: {
+        data: REER_KEYS,
+        top: 2,
+        textStyle: { color: colors.textSecondary, fontSize: 10 },
+      },
+      grid: { top: 30, right: 16, bottom: 28, left: 48 },
+      xAxis: {
+        type: 'category',
+        data: reer.dates,
+        axisLabel: { color: colors.textMuted, fontSize: 9, rotate: 30, interval: Math.floor(reer.dates.length / 6) },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+      },
+      yAxis: {
+        type: 'value',
+        scale: true,
+        name: 'Index',
+        nameTextStyle: { color: colors.textMuted, fontSize: 9 },
+        axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => v.toFixed(0) },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series,
+    };
+  }, [reer, colors]);
+
   const cells = useMemo(() => {
     const result = {};
     for (const base of MATRIX_CURRENCIES) {
@@ -149,6 +210,16 @@ export default function RateMatrix({ spotRates, prevRates, changes = {} }) {
         <span className="legend-sep">·</span>
         <span className="legend-red">Red = base weakened vs quote</span>
       </div>
+
+      {/* Real Effective Exchange Rates */}
+      {reerOption && (
+        <div className="fx-chart-panel" style={{ height: 200, flexShrink: 0, marginTop: 16 }}>
+          <div className="fx-chart-title">Real Effective Exchange Rates (BIS) — 24 Months</div>
+          <div className="fx-mini-chart">
+            <ReactECharts option={reerOption} style={{ height: '100%', width: '100%' }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

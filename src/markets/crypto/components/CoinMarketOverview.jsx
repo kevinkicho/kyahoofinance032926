@@ -51,7 +51,14 @@ function buildDominanceOption(globalStats, colors) {
   };
 }
 
-export default function CoinMarketOverview({ coinMarketData }) {
+function gasColor(avg) {
+  if (avg == null) return undefined;
+  if (avg < 20) return 'positive';
+  if (avg <= 50) return 'accent';
+  return 'negative';
+}
+
+export default function CoinMarketOverview({ coinMarketData, btcDominance, stablecoinMcap, ethGas }) {
   const { colors } = useTheme();
   if (!coinMarketData) return null;
   const { coins = [], globalStats = {} } = coinMarketData;
@@ -59,12 +66,37 @@ export default function CoinMarketOverview({ coinMarketData }) {
   const { totalMarketCapT, totalVolumeB, activeCryptocurrencies, marketCapChange24h } = globalStats;
   const ch24 = fmtChange(marketCapChange24h);
 
+  const gasCls = gasColor(ethGas?.average);
+
   return (
     <div className="crypto-panel">
       <div className="crypto-panel-header">
         <span className="crypto-panel-title">Coin Market Overview</span>
         <span className="crypto-panel-subtitle">Top 20 by market cap · CoinGecko</span>
       </div>
+      {(btcDominance != null || stablecoinMcap != null || ethGas != null) && (
+        <div className="crypto-kpi-strip">
+          {btcDominance != null && (
+            <div className="crypto-kpi-pill">
+              <span className="crypto-kpi-label">BTC Dominance</span>
+              <span className="crypto-kpi-value accent">{btcDominance.toFixed(1)}%</span>
+            </div>
+          )}
+          {stablecoinMcap != null && (
+            <div className="crypto-kpi-pill">
+              <span className="crypto-kpi-label">Stablecoin Mkt Cap</span>
+              <span className="crypto-kpi-value">${(stablecoinMcap / 1e9).toFixed(0)}B</span>
+            </div>
+          )}
+          {ethGas != null && (
+            <div className="crypto-kpi-pill">
+              <span className="crypto-kpi-label">ETH Gas (avg)</span>
+              <span className={`crypto-kpi-value ${gasCls}`}>{ethGas.average} <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)' }}>gwei</span></span>
+              <span className="crypto-kpi-sub">lo {ethGas.low} · hi {ethGas.high}</span>
+            </div>
+          )}
+        </div>
+      )}
       <div className="crypto-stats-row">
         <div className="crypto-stat-pill">
           <span className="crypto-stat-label">Total Mkt Cap</span>

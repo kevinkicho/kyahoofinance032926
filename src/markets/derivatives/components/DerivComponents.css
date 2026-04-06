@@ -206,6 +206,7 @@
 .deriv-kpi-value.positive { color: #22c55e; }
 .deriv-kpi-value.negative { color: #ef4444; }
 .deriv-kpi-value.accent   { color: #a78bfa; }
+.deriv-kpi-value.amber    { color: #f59e0b; }
 .deriv-kpi-sub {
   font-size: 9px;
   color: var(--text-dim);

@@ -5,7 +5,10 @@ import './BondsComponents.css';
 
 const MIDPOINTS = { '0\u20132y': 1, '2\u20135y': 3.5, '5\u201310y': 7.5, '10y+': 15 };
 
-export default function DurationLadder({ durationLadderData, treasuryRates = null }) {
+const FFF_MONTHS = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'];
+const FFF_LABELS = ['1M', '2M', '3M', '4M', '5M', '6M'];
+
+export default function DurationLadder({ durationLadderData, treasuryRates = null, fedFundsFutures = null }) {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
@@ -77,6 +80,48 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
     ? (shortBucket.pct / longBucket.pct).toFixed(1) + 'x'
     : '\u2014';
 
+  const fffOption = useMemo(() => {
+    if (!fedFundsFutures) return null;
+    const vals = FFF_MONTHS.map(k => fedFundsFutures[k] ?? null);
+    if (vals.every(v => v == null)) return null;
+    const minVal = Math.min(...vals.filter(v => v != null));
+    const yMin = Math.max(0, Math.floor((minVal - 0.25) * 4) / 4);
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => `${params[0].name}: <b>${params[0].value?.toFixed(3)}%</b>`,
+      },
+      grid: { top: 10, right: 10, bottom: 24, left: 50 },
+      xAxis: {
+        type: 'category',
+        data: FFF_LABELS,
+        axisLabel: { color: colors.textMuted, fontSize: 11 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+      },
+      yAxis: {
+        type: 'value',
+        min: yMin,
+        axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '{value}%' },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series: [{
+        type: 'bar',
+        data: vals,
+        itemStyle: { color: '#60a5fa', borderRadius: [3, 3, 0, 0] },
+        label: {
+          show: true,
+          position: 'top',
+          color: colors.textSecondary,
+          fontSize: 10,
+          formatter: (p) => p.value != null ? p.value.toFixed(2) + '%' : '',
+        },
+      }],
+    };
+  }, [fedFundsFutures, colors]);
+
   const fmtTotal = totalAmount >= 1000
     ? `$${(totalAmount / 1000).toFixed(1)}B`
     : `$${totalAmount.toLocaleString()}M`;
@@ -131,6 +176,14 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
           </div>
         )}
       </div>
+
+      {/* Fed Funds Futures */}
+      {fffOption && (
+        <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
+          <div className="bonds-chart-title">Fed Funds Futures &mdash; Implied Rate 1&ndash;6 Months Out</div>
+          <ReactECharts option={fffOption} style={{ height: 130, width: '100%' }} />
+        </div>
+      )}
 
       <div className="bonds-panel-footer">
         Maturity buckets: 0{'\u2013'}2y (short), 2{'\u2013'}5y (medium), 5{'\u2013'}10y (long), 10y+ (ultra-long)

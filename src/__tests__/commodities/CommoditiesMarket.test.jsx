@@ -13,10 +13,10 @@ describe('CommoditiesMarket', () => {
   it('renders all 4 sub-tabs after loading', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Price Dashboard' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Futures Curve'   })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sector Heatmap'  })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Supply & Demand' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Price Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Futures Curve'   })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sector Heatmap'  })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Supply & Demand' })).toBeInTheDocument();
   });
 
   it('shows Price Dashboard tab by default', async () => {
@@ -28,21 +28,21 @@ describe('CommoditiesMarket', () => {
   it('switches to Futures Curve tab on click', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Futures Curve' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Futures Curve' }));
     expect(screen.getByText(/WTI Crude Oil/i)).toBeInTheDocument();
   });
 
   it('switches to Sector Heatmap tab on click', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Sector Heatmap' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Sector Heatmap' }));
     expect(screen.getByText(/sector performance/i)).toBeInTheDocument();
   });
 
   it('switches to Supply & Demand tab on click', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: 'Supply & Demand' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Supply & Demand' }));
     expect(screen.getByText(/crude oil/i)).toBeInTheDocument();
   });
 

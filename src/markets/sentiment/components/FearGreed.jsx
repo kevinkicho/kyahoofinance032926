@@ -82,13 +82,63 @@ function buildHistoryOption(history, colors) {
   };
 }
 
-export default function FearGreed({ fearGreedData }) {
+function buildCreditMiniOption(dates, values, colors) {
+  const labels = dates.map(d => d.slice(5));
+  const last = values[values.length - 1];
+  const prev = values[values.length - 2];
+  const rising = last != null && prev != null && last >= prev;
+  const lineColor = rising ? '#34d399' : '#f87171';
+  const interval = Math.max(0, Math.floor(labels.length / 4) - 1);
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 10 },
+      formatter: params => `${params[0].axisValue}: $${params[0].value != null ? (params[0].value / 1000).toFixed(1) : '—'}T`,
+    },
+    grid: { top: 4, right: 6, bottom: 16, left: 6, containLabel: true },
+    xAxis: {
+      type: 'category', data: labels,
+      axisLabel: { color: colors.textDim, fontSize: 8, interval },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: colors.textMuted, fontSize: 8, formatter: v => `$${(v / 1000).toFixed(1)}T` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+    },
+    series: [{
+      type: 'line', data: values,
+      lineStyle: { width: 1.5, color: lineColor },
+      itemStyle: { color: lineColor },
+      symbol: 'none',
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: lineColor + '44' }, { offset: 1, color: lineColor + '05' }] } },
+    }],
+  };
+}
+
+export default function FearGreed({ fearGreedData, consumerCredit }) {
   if (!fearGreedData) return null;
   const { colors } = useTheme();
   const { score = 50, label = 'Neutral', altmeScore, history = [], indicators = [] } = fearGreedData;
   const color = scoreColor(score);
   const gaugeOption = useMemo(() => buildGaugeOption(score, colors), [score, colors]);
   const historyOption = useMemo(() => buildHistoryOption(history, colors), [history, colors]);
+
+  const creditMiniOption = useMemo(() => {
+    if (!consumerCredit?.dates?.length) return null;
+    return buildCreditMiniOption(consumerCredit.dates, consumerCredit.values, colors);
+  }, [consumerCredit, colors]);
+
+  const creditLatest = consumerCredit?.values?.length
+    ? consumerCredit.values[consumerCredit.values.length - 1]
+    : null;
+  const creditPrev = consumerCredit?.values?.length > 1
+    ? consumerCredit.values[consumerCredit.values.length - 2]
+    : null;
+  const creditRising = creditLatest != null && creditPrev != null && creditLatest >= creditPrev;
 
   return (
     <div className="sent-panel">
@@ -120,13 +170,38 @@ export default function FearGreed({ fearGreedData }) {
             ))}
           </div>
         </div>
-        {/* Right: 252-day history */}
+        {/* Right: 252-day history + Consumer Credit */}
         <div className="sent-chart-panel">
           <div className="sent-chart-title">252-Day Fear &amp; Greed History</div>
           <div className="sent-chart-subtitle">Alternative.me daily score · 0 = Extreme Fear · 100 = Extreme Greed</div>
           <div className="sent-chart-wrap">
             <ReactECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
           </div>
+
+          {/* Consumer Credit strip */}
+          {creditLatest != null && (
+            <div style={{ borderTop: `1px solid ${colors.cardBg}`, paddingTop: 6, marginTop: 4, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <div>
+                  <div className="sent-chart-title" style={{ marginBottom: 0 }}>Consumer Credit</div>
+                  <div className="sent-chart-subtitle" style={{ marginBottom: 0 }}>Total outstanding · FRED G.19 · 2yr monthly · confidence signal</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: creditRising ? '#34d399' : '#f87171' }}>
+                    ${(creditLatest / 1000).toFixed(2)}T
+                  </div>
+                  <div style={{ fontSize: 9, color: creditRising ? '#34d399' : '#f87171' }}>
+                    {creditRising ? '▲ Expanding · bullish' : '▼ Contracting · cautious'}
+                  </div>
+                </div>
+              </div>
+              {creditMiniOption && (
+                <div style={{ height: 80 }}>
+                  <ReactECharts option={creditMiniOption} style={{ height: '100%', width: '100%' }} />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

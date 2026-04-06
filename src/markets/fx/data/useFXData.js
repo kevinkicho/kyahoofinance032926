@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { exchangeRates } from '../../../utils/constants';
 import { fredFxRates as mockFredFxRates } from './mockFxData';
 
@@ -23,7 +24,10 @@ export function useFXData() {
   const [isLive,      setIsLive]      = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isLoading,   setIsLoading]   = useState(true);
-  const [fredFxRates, setFredFxRates] = useState(mockFredFxRates);
+  const [fredFxRates,      setFredFxRates]      = useState(mockFredFxRates);
+  const [reer,             setReer]             = useState(null);
+  const [rateDifferentials,setRateDifferentials]= useState(null);
+  const [dxyHistory,       setDxyHistory]       = useState(null);
 
   useEffect(() => {
     const today     = getDateStr(0);
@@ -32,16 +36,16 @@ export function useFXData() {
     const sevenAgo  = getDateStr(7);
 
     Promise.all([
-      fetch('https://api.frankfurter.dev/v1/latest?base=USD')
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`)
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`https://api.frankfurter.dev/v1/${dxyStart}..${today}?base=USD&symbols=${DXY_SYMBOLS}`)
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`https://api.frankfurter.dev/v1/${sevenAgo}..${today}?base=USD&symbols=${MOVER_SYMBOLS}`)
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`https://api.frankfurter.dev/v1/${getDateStr(HISTORY_DAYS)}?base=USD&symbols=${MOVER_SYMBOLS}`)
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+      fetchWithRetry('https://api.frankfurter.dev/v1/latest?base=USD')
+        .then(r => r.json()),
+      fetchWithRetry(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`)
+        .then(r => r.json()),
+      fetchWithRetry(`https://api.frankfurter.dev/v1/${dxyStart}..${today}?base=USD&symbols=${DXY_SYMBOLS}`)
+        .then(r => r.json()),
+      fetchWithRetry(`https://api.frankfurter.dev/v1/${sevenAgo}..${today}?base=USD&symbols=${MOVER_SYMBOLS}`)
+        .then(r => r.json()),
+      fetchWithRetry(`https://api.frankfurter.dev/v1/${getDateStr(HISTORY_DAYS)}?base=USD&symbols=${MOVER_SYMBOLS}`)
+        .then(r => r.json()),
     ])
       .then(([latest, prev, hist, weekHist, month30]) => {
         let spot = fallback;
@@ -94,18 +98,17 @@ export function useFXData() {
   }, []);
 
   useEffect(() => {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 10000);
-    fetch('/api/fx', { signal: ctrl.signal })
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    fetchWithRetry('/api/fx')
+      .then(r => r.json())
       .then(data => {
         if (data.fredFxRates && Object.keys(data.fredFxRates).length >= 3) {
           setFredFxRates(data.fredFxRates);
         }
+        if (data.reer)             setReer(data.reer);
+        if (data.rateDifferentials)setRateDifferentials(data.rateDifferentials);
+        if (data.dxyHistory)       setDxyHistory(data.dxyHistory);
       })
-      .catch(() => {})
-      .finally(() => clearTimeout(timer));
-    return () => { ctrl.abort(); clearTimeout(timer); };
+      .catch(() => {});
   }, []);
 
   // 24h changes: positive = currency strengthened vs USD
@@ -116,5 +119,5 @@ export function useFXData() {
     return acc;
   }, {});
 
-  return { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, isLive, lastUpdated, isLoading };
+  return { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, isLive, lastUpdated, isLoading };
 }

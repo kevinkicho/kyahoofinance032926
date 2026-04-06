@@ -41,7 +41,7 @@ function buildSpreadHistoryOption(history, colors) {
   };
 }
 
-export default function IgHyDashboard({ spreadData }) {
+export default function IgHyDashboard({ spreadData, commercialPaper }) {
   if (!spreadData) return null;
   const { colors } = useTheme();
   const { current = {}, history = {}, etfs = [] } = spreadData;
@@ -71,6 +71,18 @@ export default function IgHyDashboard({ spreadData }) {
             </div>
           );
         })}
+        {commercialPaper?.financial3m != null && (
+          <div className="credit-stat-pill">
+            <span className="credit-stat-label">Fin CP 3M</span>
+            <span className="credit-stat-value">{commercialPaper.financial3m.toFixed(2)}%</span>
+          </div>
+        )}
+        {commercialPaper?.nonfinancial3m != null && (
+          <div className="credit-stat-pill">
+            <span className="credit-stat-label">Non-Fin CP 3M</span>
+            <span className="credit-stat-value">{commercialPaper.nonfinancial3m.toFixed(2)}%</span>
+          </div>
+        )}
       </div>
       <div className="credit-two-col">
         <div className="credit-chart-panel">

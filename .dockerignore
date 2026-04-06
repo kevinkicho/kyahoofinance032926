@@ -1,0 +1,28 @@
+# Dependencies (rebuilt inside image)
+node_modules
+server/node_modules
+
+# Build output (rebuilt inside image)
+dist
+
+# Git internals
+.git
+.gitignore
+.worktrees
+
+# Runtime cache (persisted via Docker volume)
+server/datacache
+
+# Docs / notes
+*.md
+!Dockerfile*
+
+# Local dev tooling
+.env
+.env.*
+.vscode
+.idea
+
+# OS artifacts
+.DS_Store
+Thumbs.db

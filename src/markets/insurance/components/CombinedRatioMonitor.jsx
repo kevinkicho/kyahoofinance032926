@@ -5,7 +5,7 @@ import './InsComponents.css';
 
 const LINE_COLORS = ['#0ea5e9', '#a78bfa', '#f59e0b', '#22c55e'];
 
-export default function CombinedRatioMonitor({ combinedRatioData }) {
+export default function CombinedRatioMonitor({ combinedRatioData, industryAvgCombinedRatio, treasury10y, sectorETF }) {
   const { colors } = useTheme();
   const { quarters, lines } = combinedRatioData;
   const lineNames = Object.keys(lines);
@@ -49,6 +49,38 @@ export default function CombinedRatioMonitor({ combinedRatioData }) {
         <span className="ins-panel-title">Combined Ratio Monitor</span>
         <span className="ins-panel-subtitle">Loss ratio + expense ratio by line · below 100% = underwriting profit</span>
       </div>
+
+      {/* Live data KPI Strip */}
+      {(industryAvgCombinedRatio != null || treasury10y != null || sectorETF) && (
+        <div className="ins-kpi-strip" style={{ borderBottom: `1px solid`, marginBottom: 4 }}>
+          {industryAvgCombinedRatio != null && (
+            <div className="ins-kpi-pill">
+              <span className="ins-kpi-label">Industry Avg CR</span>
+              <span className={`ins-kpi-value ${industryAvgCombinedRatio < 95 ? 'positive' : industryAvgCombinedRatio <= 100 ? '' : 'negative'}`}
+                    style={industryAvgCombinedRatio >= 95 && industryAvgCombinedRatio <= 100 ? { color: '#f59e0b' } : undefined}>
+                {industryAvgCombinedRatio.toFixed(1)}%
+              </span>
+              <span className="ins-kpi-sub">5-insurer avg</span>
+            </div>
+          )}
+          {treasury10y != null && (
+            <div className="ins-kpi-pill">
+              <span className="ins-kpi-label">10Y Treasury</span>
+              <span className="ins-kpi-value accent">{treasury10y.toFixed(2)}%</span>
+              <span className="ins-kpi-sub">investment income</span>
+            </div>
+          )}
+          {sectorETF && (
+            <div className="ins-kpi-pill">
+              <span className="ins-kpi-label">KIE ETF</span>
+              <span className="ins-kpi-value">${sectorETF.price?.toFixed(2)}</span>
+              <span className="ins-kpi-sub" style={{ color: sectorETF.changePct >= 0 ? '#22c55e' : '#ef4444' }}>
+                {sectorETF.changePct >= 0 ? '+' : ''}{sectorETF.changePct?.toFixed(2)}%
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* KPI Strip */}
       <div className="ins-kpi-strip">

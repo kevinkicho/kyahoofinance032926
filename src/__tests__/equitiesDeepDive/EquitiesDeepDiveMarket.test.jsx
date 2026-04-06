@@ -17,10 +17,10 @@ vi.mock('../../markets/equitiesDeepDive/data/useEquityDeepDiveData', () => ({
 describe('EquitiesDeepDiveMarket', () => {
   it('renders 4 sub-tab buttons', () => {
     render(<EquitiesDeepDiveMarket />);
-    expect(screen.getByRole('button', { name: 'Sector Rotation' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Factor Rankings' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Earnings Watch'  })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Short Interest'  })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Sector Rotation' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Factor Rankings' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Earnings Watch'  })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Short Interest'  })).toBeInTheDocument();
   });
 
   it('shows Sector Rotation view by default', () => {
@@ -30,19 +30,19 @@ describe('EquitiesDeepDiveMarket', () => {
 
   it('switches to Factor Rankings tab on click', () => {
     render(<EquitiesDeepDiveMarket />);
-    fireEvent.click(screen.getByRole('button', { name: 'Factor Rankings' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Factor Rankings' }));
     expect(screen.getByText(/factor in favor/i)).toBeInTheDocument();
   });
 
   it('switches to Earnings Watch tab on click', () => {
     render(<EquitiesDeepDiveMarket />);
-    fireEvent.click(screen.getByRole('button', { name: 'Earnings Watch' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Earnings Watch' }));
     expect(screen.getByText(/upcoming earnings/i)).toBeInTheDocument();
   });
 
   it('switches to Short Interest tab on click', () => {
     render(<EquitiesDeepDiveMarket />);
-    fireEvent.click(screen.getByRole('button', { name: 'Short Interest' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Short Interest' }));
     expect(screen.getByText(/most shorted/i)).toBeInTheDocument();
   });
 

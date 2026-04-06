@@ -1,5 +1,6 @@
 // src/markets/calendar/components/KeyReleases.jsx
 import React, { useMemo } from 'react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CalendarComponents.css';
 
 const CAT_CSS = {
@@ -11,7 +12,8 @@ const CAT_CSS = {
   sentiment:  'cal-cat-sentiment',
 };
 
-export default function KeyReleases({ keyReleases }) {
+export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpiry }) {
+  const { colors } = useTheme();
   const kpis = useMemo(() => {
     if (!keyReleases?.length) return null;
     const total = keyReleases.length;
@@ -74,6 +76,56 @@ export default function KeyReleases({ keyReleases }) {
       <div className="cal-panel-footer">
         Dates from FRED release schedule · Previous values shown where available · No consensus forecasts (proprietary)
       </div>
+
+      {/* ── Treasury Auctions ─────────────────────────────────────────────── */}
+      {treasuryAuctions?.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="cal-panel-header" style={{ padding: '8px 14px' }}>
+            <span className="cal-panel-title">Treasury Auctions</span>
+            <span className="cal-panel-subtitle">Upcoming US Treasury auction schedule</span>
+          </div>
+          <table className="cal-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Security Type</th>
+                <th>Offering Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {treasuryAuctions.map((a, i) => (
+                <tr key={i}>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{a.date}</td>
+                  <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{a.type}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}>{a.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── Options Expiry ────────────────────────────────────────────────── */}
+      {optionsExpiry?.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '8px 14px' }}>
+          <div style={{ marginBottom: 8 }}>
+            <span className="cal-panel-title">Options Expiry</span>
+            <span className="cal-panel-subtitle" style={{ marginLeft: 8 }}>Next monthly expiry dates</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {optionsExpiry.map((e, i) => (
+              <div key={i} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                borderRadius: 8, padding: '5px 14px', minWidth: 90,
+              }}>
+                <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#f43f5e' }}>{e.date}</span>
+                <span style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{e.type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ const SERIES_CONFIG = [
   { key: 'BBB', label: 'BBB-Rated (Crossover)',  color: '#a78bfa' },
 ];
 
-export default function SpreadMonitor({ spreadData }) {
+export default function SpreadMonitor({ spreadData, mortgageSpread }) {
   const { colors } = useTheme();
 
   const option = useMemo(() => ({
@@ -103,6 +103,16 @@ export default function SpreadMonitor({ spreadData }) {
           <span className="bonds-kpi-label">{`HY\u2212IG Gap`}</span>
           <span className="bonds-kpi-value accent">{latest.hyIgGap != null ? `${latest.hyIgGap} bps` : '\u2014'}</span>
         </div>
+        {mortgageSpread != null && (
+          <div className="bonds-kpi-pill">
+            <span className="bonds-kpi-label">Mtg Spread</span>
+            <span className="bonds-kpi-value" style={{
+              color: mortgageSpread < 1.5 ? '#34d399' : mortgageSpread <= 2.0 ? '#fbbf24' : '#f87171'
+            }}>
+              {`+${mortgageSpread.toFixed(2)}%`}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Wide-Narrow: Chart + Latest Bars */}

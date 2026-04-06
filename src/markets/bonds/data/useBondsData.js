@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import {
   yieldCurveData as mockYieldCurveData,
   creditRatingsData,
@@ -53,6 +54,9 @@ export function useBondsData() {
   const [breakevensData, setBreakevensData]     = useState(mockBreakevensData);
   const [fredYieldHistory, setFredYieldHistory] = useState(mockFredYieldHistory);
   const [treasuryRates, setTreasuryRates]     = useState(null);
+  const [fedFundsFutures, setFedFundsFutures] = useState(null);
+  const [yieldHistory, setYieldHistory]       = useState(null);
+  const [mortgageSpread, setMortgageSpread]   = useState(null);
   const [isLive, setIsLive]                   = useState(false);
   const [lastUpdated, setLastUpdated]         = useState('Mock data — Apr 2025');
   const [isLoading, setIsLoading]             = useState(true);
@@ -62,8 +66,7 @@ export function useBondsData() {
   useEffect(() => {
     async function load() {
       try {
-        const r = await fetch(`${SERVER}/api/bonds`);
-        if (!r.ok) throw new Error(r.status);
+        const r = await fetchWithRetry(`${SERVER}/api/bonds`);
         const data = await r.json();
         if (data.yieldCurveData) setYieldCurveData(mergeYieldCurves(data.yieldCurveData, mockYieldCurveData));
         if (data.spreadData?.dates?.length === 12) setSpreadData(data.spreadData);
@@ -79,6 +82,15 @@ export function useBondsData() {
         if (data.treasuryRates && Object.values(data.treasuryRates).some(v => v != null)) {
           setTreasuryRates(data.treasuryRates);
         }
+        if (data.fedFundsFutures && Object.values(data.fedFundsFutures).some(v => v != null)) {
+          setFedFundsFutures(data.fedFundsFutures);
+        }
+        if (data.yieldHistory?.dates?.length >= 20) {
+          setYieldHistory(data.yieldHistory);
+        }
+        if (data.mortgageSpread != null) {
+          setMortgageSpread(data.mortgageSpread);
+        }
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -92,5 +104,5 @@ export function useBondsData() {
     load();
   }, []);
 
-  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, fredYieldHistory, treasuryRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, fredYieldHistory, treasuryRates, fedFundsFutures, yieldHistory, mortgageSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

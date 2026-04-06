@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import {
   scorecardData       as mockScorecardData,
   growthInflationData as mockGrowthInflationData,
@@ -13,6 +14,11 @@ export function useGlobalMacroData() {
   const [growthInflationData, setGrowthInflationData] = useState(mockGrowthInflationData);
   const [centralBankData,     setCentralBankData]     = useState(mockCentralBankData);
   const [debtData,            setDebtData]            = useState(mockDebtData);
+  const [m2Growth,            setM2Growth]            = useState(null);
+  const [tradeBalance,        setTradeBalance]        = useState(null);
+  const [industrialProd,      setIndustrialProd]      = useState(null);
+  const [consumerSentiment,   setConsumerSentiment]   = useState(null);
+  const [yieldSpread,         setYieldSpread]         = useState(null);
   const [isLive,              setIsLive]              = useState(false);
   const [lastUpdated,         setLastUpdated]         = useState('Mock data — 2023');
   const [isLoading,           setIsLoading]           = useState(true);
@@ -20,14 +26,19 @@ export function useGlobalMacroData() {
   const [isCurrent,           setIsCurrent]           = useState(false);
 
   useEffect(() => {
-    fetch(`${SERVER}/api/globalMacro`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    fetchWithRetry(`${SERVER}/api/globalMacro`)
+      .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
         if (data.scorecardData?.length >= 8)                  { setScorecardData(data.scorecardData);             anyReplaced = true; }
         if (data.growthInflationData?.countries?.length >= 8) { setGrowthInflationData(data.growthInflationData); anyReplaced = true; }
         if (data.centralBankData?.current?.length >= 8)       { setCentralBankData(data.centralBankData);         anyReplaced = true; }
         if (data.debtData?.countries?.length >= 8)            { setDebtData(data.debtData);                       anyReplaced = true; }
+        if (data.m2Growth?.dates?.length)          { setM2Growth(data.m2Growth);                 anyReplaced = true; }
+        if (data.tradeBalance?.dates?.length)      { setTradeBalance(data.tradeBalance);         anyReplaced = true; }
+        if (data.industrialProd?.dates?.length)    { setIndustrialProd(data.industrialProd);     anyReplaced = true; }
+        if (data.consumerSentiment?.dates?.length) { setConsumerSentiment(data.consumerSentiment); anyReplaced = true; }
+        if (data.yieldSpread?.dates?.length)       { setYieldSpread(data.yieldSpread);           anyReplaced = true; }
         setIsLive(anyReplaced);
         if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -37,5 +48,9 @@ export function useGlobalMacroData() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  return { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return {
+    scorecardData, growthInflationData, centralBankData, debtData,
+    m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+  };
 }

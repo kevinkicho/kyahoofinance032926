@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react';
 import { useTheme } from '../../../hub/ThemeContext';
 import './DerivComponents.css';
 
-export default function VolSurface({ volSurfaceData, volPremium = null }) {
+export default function VolSurface({ volSurfaceData, volPremium = null, skewIndex = null }) {
   const { colors } = useTheme();
   const { strikes, expiries, grid } = volSurfaceData;
 
@@ -151,6 +151,23 @@ export default function VolSurface({ volSurfaceData, volPremium = null }) {
             <span className="deriv-kpi-label">25Δ Skew (1M)</span>
             <span className="deriv-kpi-value accent">{skew25d > 0 ? '+' : ''}{skew25d.toFixed(1)}%</span>
             <span className="deriv-kpi-sub">90% IV − 110% IV</span>
+          </div>
+        )}
+        {skewIndex?.value != null && (
+          <div className="deriv-kpi-pill">
+            <span className="deriv-kpi-label">CBOE SKEW</span>
+            <span className={`deriv-kpi-value ${
+              skewIndex.interpretation?.toLowerCase().includes('elevated')
+                ? 'negative'
+                : skewIndex.interpretation?.toLowerCase().includes('low')
+                  ? 'positive'
+                  : 'amber'
+            }`}>
+              {skewIndex.value.toFixed(1)}
+            </span>
+            {skewIndex.interpretation && (
+              <span className="deriv-kpi-sub">{skewIndex.interpretation}</span>
+            )}
           </div>
         )}
       </div>

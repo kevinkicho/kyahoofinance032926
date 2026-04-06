@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGlobalMacroData } from './data/useGlobalMacroData';
+import MarketSkeleton from '../../hub/MarketSkeleton';
 import MacroScorecard    from './components/MacroScorecard';
 import GrowthInflation   from './components/GrowthInflation';
 import CentralBankRates  from './components/CentralBankRates';
@@ -16,23 +17,22 @@ const SUB_TABS = [
 // snapshotDate/currency not used — macro data is annual, not snapshot-dependent
 function GlobalMacroMarket() {
   const [activeTab, setActiveTab] = useState('scorecard');
-  const { scorecardData, growthInflationData, centralBankData, debtData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useGlobalMacroData();
+  const {
+    scorecardData, growthInflationData, centralBankData, debtData,
+    m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+  } = useGlobalMacroData();
 
-  if (isLoading) {
-    return (
-      <div className="mac-market mac-loading">
-        <div className="mac-loading-spinner" />
-        <span className="mac-loading-text">Loading macro data…</span>
-      </div>
-    );
-  }
+  if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="mac-market">
-      <div className="mac-sub-tabs">
+      <div className="mac-sub-tabs" role="tablist" aria-label="Sub-tabs">
         {SUB_TABS.map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
             className={`mac-sub-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
           >
@@ -48,10 +48,10 @@ function GlobalMacroMarket() {
         {!isCurrent && fetchedOn && <span className="mac-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="mac-content">
-        {activeTab === 'scorecard'     && <MacroScorecard   scorecardData={scorecardData} />}
-        {activeTab === 'growth'        && <GrowthInflation  growthInflationData={growthInflationData} />}
+        {activeTab === 'scorecard'     && <MacroScorecard   scorecardData={scorecardData} consumerSentiment={consumerSentiment} tradeBalance={tradeBalance} m2Growth={m2Growth} />}
+        {activeTab === 'growth'        && <GrowthInflation  growthInflationData={growthInflationData} industrialProd={industrialProd} consumerSentiment={consumerSentiment} />}
         {activeTab === 'central-banks' && <CentralBankRates centralBankData={centralBankData} />}
-        {activeTab === 'debt'          && <DebtMonitor      debtData={debtData} />}
+        {activeTab === 'debt'          && <DebtMonitor      debtData={debtData} yieldSpread={yieldSpread} m2Growth={m2Growth} />}
       </div>
     </div>
   );

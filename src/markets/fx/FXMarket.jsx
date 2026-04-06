@@ -17,15 +17,17 @@ const SUB_TABS = [
 
 function FXMarket() {
   const [activeTab, setActiveTab] = useState('rate-matrix');
-  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, isLive, lastUpdated, isLoading } = useFXData();
+  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, isLive, lastUpdated, isLoading } = useFXData();
   const { cotData } = useCOTData();
 
   return (
     <div className="fx-market">
-      <div className="fx-sub-tabs">
+      <div className="fx-sub-tabs" role="tablist" aria-label="Sub-tabs">
         {SUB_TABS.map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
             className={`fx-sub-tab${activeTab === t.id ? ' active' : ''}`}
             onClick={() => setActiveTab(t.id)}
           >
@@ -42,10 +44,12 @@ function FXMarket() {
       </div>
       <div className="fx-content">
         {activeTab === 'rate-matrix' && (
-          <RateMatrix spotRates={spotRates} prevRates={prevRates} changes={changes} />
+          <RateMatrix spotRates={spotRates} prevRates={prevRates} changes={changes} reer={reer} />
         )}
         {activeTab === 'carry-map'   && <CarryMap />}
-        {activeTab === 'dxy-tracker' && <DXYTracker history={history} fredFxRates={fredFxRates} />}
+        {activeTab === 'dxy-tracker' && (
+          <DXYTracker history={history} fredFxRates={fredFxRates} dxyHistory={dxyHistory} rateDifferentials={rateDifferentials} />
+        )}
         {activeTab === 'top-movers'  && <TopMovers changes={changes} changes1w={changes1w} changes1m={changes1m} sparklines={sparklines} cotData={cotData} />}
       </div>
     </div>

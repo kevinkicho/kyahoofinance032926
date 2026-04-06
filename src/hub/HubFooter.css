@@ -46,3 +46,36 @@
   color: var(--text-muted);
   border: 1px solid var(--border-color);
 }
+
+/* Source attribution */
+.hub-footer-sources {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.hub-footer-sources-label {
+  color: var(--text-dim, #64748b);
+  font-size: 10px;
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-footer-source a {
+  color: #60a5fa;
+  text-decoration: none;
+  font-size: 10px;
+  transition: color 0.15s;
+}
+
+.hub-footer-source a:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.hub-footer-dot {
+  color: var(--text-dim, #64748b);
+}
