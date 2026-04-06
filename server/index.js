@@ -1257,12 +1257,27 @@ app.get('/api/insurance', async (req, res) => {
     }
   }
 
+  // 4. FRED HY OAS 1yr history
+  let fredHyOasHistory = null;
+  if (FRED_API_KEY) {
+    try {
+      const hyHist = await fetchFredHistory('BAMLH0A0HYM2', 252);
+      if (hyHist.length >= 20) {
+        fredHyOasHistory = {
+          dates: hyHist.map(p => p.date),
+          values: hyHist.map(p => Math.round(p.value * 100) / 100),
+        };
+      }
+    } catch { /* use null */ }
+  }
+
   const result = {
     combinedRatioData,
     reserveAdequacyData,
     reinsurers,
     hyOAS,
     igOAS,
+    fredHyOasHistory,
     lastUpdated: today,
   };
 
