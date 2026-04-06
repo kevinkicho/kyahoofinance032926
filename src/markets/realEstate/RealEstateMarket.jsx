@@ -15,7 +15,11 @@ const SUB_TABS = [
 
 export default function RealEstateMarket() {
   const [activeTab, setActiveTab] = useState('price-index');
-  const { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useRealEstateData();
+  const {
+    priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,
+    caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+  } = useRealEstateData();
 
   if (isLoading) {
     return (
@@ -41,16 +45,16 @@ export default function RealEstateMarket() {
       </div>
       <div className="re-status-bar">
         <span className={isLive ? 're-status-live' : ''}>
-          {isLive ? '● Live · Yahoo Finance / BIS' : '○ Mock data — static'}
+          {isLive ? '● Live · Yahoo Finance / BIS / FRED' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="re-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
       <div className="re-content">
-        {activeTab === 'price-index'       && <PriceIndex       priceIndexData={priceIndexData} />}
-        {activeTab === 'reit-screen'       && <REITScreen       reitData={reitData} />}
-        {activeTab === 'affordability-map' && <AffordabilityMap affordabilityData={affordabilityData} mortgageRates={mortgageRates} />}
-        {activeTab === 'cap-rate-monitor'  && <CapRateMonitor   capRateData={capRateData} />}
+        {activeTab === 'price-index'       && <PriceIndex priceIndexData={priceIndexData} caseShillerData={caseShillerData} />}
+        {activeTab === 'reit-screen'       && <REITScreen reitData={reitData} reitEtf={reitEtf} />}
+        {activeTab === 'affordability-map' && <AffordabilityMap affordabilityData={affordabilityData} mortgageRates={mortgageRates} supplyData={supplyData} />}
+        {activeTab === 'cap-rate-monitor'  && <CapRateMonitor capRateData={capRateData} reitData={reitData} treasury10y={treasury10y} homeownershipRate={homeownershipRate} rentCpi={rentCpi} />}
       </div>
     </div>
   );
