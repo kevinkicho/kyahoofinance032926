@@ -22,7 +22,7 @@ describe('MacroScorecard', () => {
     render(<MacroScorecard scorecardData={scorecardData} />);
     ['United States','Euro Area','United Kingdom','Japan','Canada',
      'China','India','Brazil','South Korea','Australia','Mexico','Sweden'].forEach(name => {
-      expect(screen.getByText(name)).toBeInTheDocument();
+      expect(screen.getAllByText(name).length).toBeGreaterThanOrEqual(1);
     });
   });
 

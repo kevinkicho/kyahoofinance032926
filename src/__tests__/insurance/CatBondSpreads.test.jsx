@@ -17,7 +17,7 @@ describe('CatBondSpreads', () => {
   it('renders all bond names', () => {
     render(<CatBondSpreads catBondSpreads={mockData} />);
     expect(screen.getByText('Kilimanjaro Re 2025-1')).toBeInTheDocument();
-    expect(screen.getByText('Montoya Re 2025-2')).toBeInTheDocument();
+    expect(screen.getAllByText('Montoya Re 2025-2').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Resilience Re 2024-A')).toBeInTheDocument();
   });
 

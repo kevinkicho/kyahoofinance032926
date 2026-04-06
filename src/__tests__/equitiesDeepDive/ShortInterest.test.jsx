@@ -13,7 +13,7 @@ describe('ShortInterest', () => {
 
   it('renders most shorted chart title', () => {
     render(<ShortInterest shortData={shortData} />);
-    expect(screen.getByText(/most shorted/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/most shorted/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders squeeze watch chart title', () => {

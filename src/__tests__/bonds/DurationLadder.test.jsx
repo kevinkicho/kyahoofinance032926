@@ -18,15 +18,15 @@ describe('DurationLadder', () => {
     expect(screen.getByTestId('echarts-mock')).toBeInTheDocument();
   });
 
-  it('does not show rate pills when treasuryRates is null', () => {
+  it('does not show rate items when treasuryRates is null', () => {
     render(<DurationLadder durationLadderData={MOCK_DATA} />);
-    expect(document.querySelectorAll('.dur-rate-pill').length).toBe(0);
+    expect(document.querySelectorAll('.bonds-rate-item').length).toBe(0);
   });
 
-  it('shows four rate pills when treasuryRates provided', () => {
+  it('shows four rate items when treasuryRates provided', () => {
     const rates = { '0\u20132y': 4.82, '2\u20135y': 4.01, '5\u201310y': 4.01, '10y+': 4.55 };
     render(<DurationLadder durationLadderData={MOCK_DATA} treasuryRates={rates} />);
-    expect(document.querySelectorAll('.dur-rate-pill').length).toBe(4);
+    expect(document.querySelectorAll('.bonds-rate-item').length).toBe(4);
   });
 
   it('shows formatted rate values in pills', () => {

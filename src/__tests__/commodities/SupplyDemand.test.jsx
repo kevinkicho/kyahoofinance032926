@@ -24,7 +24,7 @@ describe('SupplyDemand', () => {
 
   it('renders crude production panel', () => {
     render(<SupplyDemand supplyDemandData={supplyDemandData} />);
-    expect(screen.getByText(/production/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/production/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders 3 echarts instances', () => {

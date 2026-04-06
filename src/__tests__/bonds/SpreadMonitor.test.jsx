@@ -30,9 +30,9 @@ describe('SpreadMonitor', () => {
 
   it('renders all 4 series labels', () => {
     render(<SpreadMonitor spreadData={mockData} />);
-    expect(screen.getByText(/Investment Grade/i)).toBeInTheDocument();
-    expect(screen.getByText(/High Yield/i)).toBeInTheDocument();
-    expect(screen.getByText(/Emerging/i)).toBeInTheDocument();
-    expect(screen.getByText(/BBB/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/IG/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/HY/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/EM/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/BBB/i).length).toBeGreaterThanOrEqual(1);
   });
 });

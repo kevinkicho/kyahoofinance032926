@@ -14,7 +14,7 @@ describe('SectorHeatmap', () => {
     ['WTI Crude', 'Brent Crude', 'Nat Gas', 'Gasoline',
      'Gold', 'Silver', 'Copper', 'Platinum',
      'Wheat', 'Corn', 'Soybeans', 'Coffee'].forEach(name => {
-      expect(screen.getByText(name)).toBeInTheDocument();
+      expect(screen.getAllByText(name).length).toBeGreaterThanOrEqual(1);
     });
   });
 

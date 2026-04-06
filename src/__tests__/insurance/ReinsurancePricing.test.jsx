@@ -19,7 +19,7 @@ describe('ReinsurancePricing', () => {
     render(<ReinsurancePricing reinsurancePricing={mockData} />);
     expect(screen.getByText('US Hurricane')).toBeInTheDocument();
     expect(screen.getByText('California EQ')).toBeInTheDocument();
-    expect(screen.getByText('Wildfire')).toBeInTheDocument();
+    expect(screen.getAllByText('Wildfire').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders column headers', () => {

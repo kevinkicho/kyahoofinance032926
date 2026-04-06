@@ -7,14 +7,16 @@ const BASE_CHANGES = { EUR: -0.5, GBP: 0.3, JPY: 0.1 };
 describe('TopMovers', () => {
   it('renders rows for currencies present in changes', () => {
     render(<TopMovers changes={BASE_CHANGES} />);
-    expect(screen.getByText('EUR')).toBeInTheDocument();
-    expect(screen.getByText('GBP')).toBeInTheDocument();
+    expect(screen.getAllByText('EUR').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('GBP').length).toBeGreaterThanOrEqual(1);
   });
 
   it('sorts by absolute change magnitude', () => {
     render(<TopMovers changes={BASE_CHANGES} />);
-    const codes = screen.getAllByText(/^(EUR|GBP|JPY)$/).map(el => el.textContent);
-    // EUR: changePct = +0.5, GBP: -0.3, JPY: -0.1 → EUR first
+    // mover-code elements are in the movers list, ordered by abs magnitude
+    const codeEls = document.querySelectorAll('.mover-code');
+    const codes = [...codeEls].map(el => el.textContent);
+    // EUR: abs(-0.5)=0.5 is largest → first in list
     expect(codes[0]).toBe('EUR');
   });
 

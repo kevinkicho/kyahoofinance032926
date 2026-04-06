@@ -23,9 +23,9 @@ describe('CreditMatrix', () => {
 
   it('renders country names', () => {
     render(<CreditMatrix creditRatingsData={mockData} />);
-    expect(screen.getByText('Germany')).toBeInTheDocument();
-    expect(screen.getByText('United States')).toBeInTheDocument();
-    expect(screen.getByText('Italy')).toBeInTheDocument();
+    expect(screen.getAllByText('Germany').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('United States').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Italy').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders rating values in cells', () => {

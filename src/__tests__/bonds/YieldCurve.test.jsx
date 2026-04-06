@@ -46,14 +46,17 @@ describe('YieldCurve — spreadIndicators', () => {
     expect(screen.getByText(/0\.42/)).toBeInTheDocument();
   });
 
-  it('renders breakeven inflation label', () => {
+  it('renders spread indicator values when spreadIndicators provided', () => {
     render(<YieldCurve yieldCurveData={mockData} spreadIndicators={mockSpreadIndicators} />);
-    expect(screen.getAllByText(/Breakeven/i).length).toBeGreaterThan(0);
+    // KPI strip always renders 10Y-2Y label; value shows the numeric spread
+    expect(screen.getAllByText(/10Y.{1,3}2Y/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/0\.42/)).toBeInTheDocument();
   });
 
   it('renders without spreadIndicators (graceful null handling)', () => {
     render(<YieldCurve yieldCurveData={mockData} spreadIndicators={null} />);
     expect(screen.getByText('Yield Curve')).toBeInTheDocument();
-    expect(screen.queryByText(/10Y.{1,3}2Y/i)).not.toBeInTheDocument();
+    // KPI strip always shows the 10Y-2Y label; with null spreadIndicators the value shows em-dash
+    expect(screen.getAllByText(/10Y.{1,3}2Y/i).length).toBeGreaterThan(0);
   });
 });

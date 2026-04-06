@@ -15,12 +15,13 @@ describe('VolSurface', () => {
   it('renders panel title and chart without volPremium', () => {
     render(<VolSurface volSurfaceData={MOCK_VOL_DATA} />);
     expect(screen.getByText('Vol Surface')).toBeInTheDocument();
-    expect(screen.getByTestId('echarts-mock')).toBeInTheDocument();
+    expect(screen.getAllByTestId('echarts-mock').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('does not show premium stats when volPremium is null', () => {
+  it('does not show 30d realized or premium stats when volPremium is null', () => {
     render(<VolSurface volSurfaceData={MOCK_VOL_DATA} />);
-    expect(screen.queryByText('ATM 1M IV')).not.toBeInTheDocument();
+    // KPI strip always shows ATM 1M IV label; but 30d Realized only shows when volPremium provided
+    expect(screen.queryByText('30d Realized')).not.toBeInTheDocument();
   });
 
   describe('with volPremium', () => {

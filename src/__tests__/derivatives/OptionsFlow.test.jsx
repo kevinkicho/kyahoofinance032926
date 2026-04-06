@@ -16,7 +16,7 @@ describe('OptionsFlow', () => {
 
   it('renders all ticker symbols', () => {
     render(<OptionsFlow optionsFlow={mockData} />);
-    expect(screen.getByText('SPY')).toBeInTheDocument();
+    expect(screen.getAllByText('SPY').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('NVDA')).toBeInTheDocument();
     expect(screen.getByText('TLT')).toBeInTheDocument();
   });
