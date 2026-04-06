@@ -960,7 +960,125 @@ app.get('/api/realEstate', async (req, res) => {
       if (sectors.length >= 3) capRateData = sectors;
     }
 
-    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, lastUpdated: today };
+    // 6. Case-Shiller metro price indices
+    let caseShillerData = null;
+    if (FRED_API_KEY) {
+      try {
+        const csMetros = {
+          national:       'CSUSHPISA',
+          'San Francisco':'SFXRSA',
+          'New York':     'NYXRSA',
+          'Los Angeles':  'LXXRSA',
+          'Miami':        'MIXRSA',
+          'Chicago':      'CHXRSA',
+        };
+        const csResults = await Promise.allSettled(
+          Object.entries(csMetros).map(async ([name, sid]) => {
+            const hist = await fetchFredHistory(sid, 60);
+            return [name, hist];
+          })
+        );
+        const natHist = csResults[0]?.status === 'fulfilled' ? csResults[0].value[1] : [];
+        const metros = {};
+        csResults.slice(1).forEach(r => {
+          if (r.status === 'fulfilled' && r.value[1].length >= 2) {
+            const pts = r.value[1];
+            const latest = pts[pts.length - 1].value;
+            const yr = pts.length >= 13 ? pts[pts.length - 13].value : pts[0].value;
+            metros[r.value[0]] = {
+              latest: Math.round(latest * 10) / 10,
+              yoy: Math.round((latest / yr - 1) * 1000) / 10,
+            };
+          }
+        });
+        if (natHist.length >= 12) {
+          caseShillerData = {
+            national: {
+              dates: natHist.map(p => p.date.slice(0, 7)),
+              values: natHist.map(p => Math.round(p.value * 10) / 10),
+            },
+            metros,
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    // 7. Housing supply indicators
+    let supplyData = null;
+    if (FRED_API_KEY) {
+      try {
+        const [startsHist, permitsHist, monthsSupplyVal, listingsVal] = await Promise.all([
+          fetchFredHistory('HOUST', 36).catch(() => []),
+          fetchFredHistory('PERMIT', 36).catch(() => []),
+          fetchFredLatest('MSACSR').catch(() => null),
+          fetchFredLatest('ACTLISCOUUS').catch(() => null),
+        ]);
+        if (startsHist.length >= 6 || permitsHist.length >= 6) {
+          supplyData = {
+            housingStarts: { dates: startsHist.map(p => p.date.slice(0, 7)), values: startsHist.map(p => Math.round(p.value)) },
+            permits:       { dates: permitsHist.map(p => p.date.slice(0, 7)), values: permitsHist.map(p => Math.round(p.value)) },
+            monthsSupply:  monthsSupplyVal != null ? Math.round(monthsSupplyVal * 10) / 10 : null,
+            activeListings: listingsVal != null ? Math.round(listingsVal) : null,
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    // 8. Homeownership rate + Rent CPI
+    let homeownershipRate = null;
+    let rentCpi = null;
+    if (FRED_API_KEY) {
+      try {
+        const [hoRate, rentHist] = await Promise.all([
+          fetchFredLatest('RHORUSQ156N').catch(() => null),
+          fetchFredHistory('CUSR0000SEHA', 36).catch(() => []),
+        ]);
+        homeownershipRate = hoRate != null ? Math.round(hoRate * 10) / 10 : null;
+        if (rentHist.length >= 6) {
+          rentCpi = {
+            dates: rentHist.map(p => p.date.slice(0, 7)),
+            values: rentHist.map(p => Math.round(p.value * 10) / 10),
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    // 9. REIT ETF (VNQ) price + 1yr history
+    let reitEtf = null;
+    try {
+      const vnqQuote = await yf.quote(['VNQ']);
+      const vnqArr = Array.isArray(vnqQuote) ? vnqQuote : [vnqQuote];
+      const vq = vnqArr.find(q => q?.symbol === 'VNQ');
+      if (vq?.regularMarketPrice) {
+        const histStart = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 1); return d.toISOString().split('T')[0]; })();
+        const histEnd = new Date().toISOString().split('T')[0];
+        let vnqHistory = null;
+        try {
+          const chart = await yf.chart('VNQ', { period1: histStart, period2: histEnd, interval: '1d' });
+          const quotes = (chart.quotes || []).filter(q => q.close != null);
+          if (quotes.length >= 20) {
+            vnqHistory = {
+              dates: quotes.map(q => q.date.toISOString().split('T')[0]),
+              closes: quotes.map(q => Math.round(q.close * 100) / 100),
+            };
+          }
+        } catch { /* no history */ }
+        reitEtf = {
+          price: Math.round(vq.regularMarketPrice * 100) / 100,
+          changePct: Math.round((vq.regularMarketChangePercent ?? 0) * 100) / 100,
+          ytd: vq.ytdReturn != null ? Math.round(vq.ytdReturn * 1000) / 10 : null,
+          history: vnqHistory,
+        };
+      }
+    } catch { /* use null */ }
+
+    // 10. 10Y Treasury for cap rate spread
+    let treasury10y = null;
+    if (FRED_API_KEY) {
+      try { treasury10y = await fetchFredLatest('DGS10'); } catch { /* null */ }
+    }
+
+    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, lastUpdated: today };
     writeDailyCache('realEstate', result);   // persist to disk
     cache.set(cacheKey, result, 900);        // keep in memory too
     res.json({ ...result, fetchedOn: today, isCurrent: true });
