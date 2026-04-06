@@ -60,3 +60,17 @@ export const breakevensData = {
     forward5y5y: [2.26,2.28,2.28,2.30,2.27,2.24,2.27,2.29,2.30,2.32,2.32,2.32,2.29,2.27,2.27,2.28,2.30,2.31,2.29,2.28,2.27,2.27,2.28,2.25],
   },
 };
+
+// 60-day sinusoidal mock for FRED DGS10 1yr history
+export const fredYieldHistory = (() => {
+  const dates = [];
+  const values = [];
+  const base = new Date('2025-03-01');
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+    dates.push(d.toISOString().split('T')[0]);
+    values.push(+(4.20 + 0.25 * Math.sin(i / 10)).toFixed(2));
+  }
+  return { dates, values };
+})();
