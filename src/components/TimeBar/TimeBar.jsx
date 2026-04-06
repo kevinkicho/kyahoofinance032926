@@ -84,6 +84,7 @@ const SlotDate = ({ dateStr, dir }) => {
 
 // Timeline scrubber — horizontal drag-to-seek bar with event markers + hover tooltip
 const Scrubber = ({ snapshotDate, setSnapshotDate, isPlaying, yesterday }) => {
+  const { colors } = useTheme();
   const minDay = dateToDay(DATA_START_STR);
   const maxDay = dateToDay(yesterday);
   const curDay = snapshotDate ? Math.min(dateToDay(snapshotDate), maxDay) : maxDay;
