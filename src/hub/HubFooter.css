@@ -4,14 +4,14 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 6px 16px;
-  background: #111827;
-  border-top: 1px solid #1f2937;
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border-subtle);
   font-size: 11px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .hub-footer-time {
-  color: #9ca3af;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -42,7 +42,7 @@
 }
 
 .hub-badge-none {
-  background: #1f2937;
-  color: #6b7280;
-  border: 1px solid #374151;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
 }
