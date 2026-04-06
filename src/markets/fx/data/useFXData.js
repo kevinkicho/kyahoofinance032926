@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { exchangeRates } from '../../../utils/constants';
+import { fredFxRates as mockFredFxRates } from './mockFxData';
 
 const DXY_SYMBOLS = 'EUR,GBP,JPY,CAD,SEK,CHF';
 const MOVER_SYMBOLS = 'EUR,GBP,JPY,CNY,CHF,AUD,CAD,SEK,NOK,NZD,HKD,SGD,INR,KRW,MXN,BRL,ZAR';
@@ -22,6 +23,7 @@ export function useFXData() {
   const [isLive,      setIsLive]      = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isLoading,   setIsLoading]   = useState(true);
+  const [fredFxRates, setFredFxRates] = useState(mockFredFxRates);
 
   useEffect(() => {
     const today     = getDateStr(0);
@@ -91,6 +93,21 @@ export function useFXData() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
+    fetch('/api/fx', { signal: ctrl.signal })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(data => {
+        if (data.fredFxRates && Object.keys(data.fredFxRates).length >= 3) {
+          setFredFxRates(data.fredFxRates);
+        }
+      })
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+    return () => { ctrl.abort(); clearTimeout(timer); };
+  }, []);
+
   // 24h changes: positive = currency strengthened vs USD
   const changes = Object.keys(spotRates).reduce((acc, code) => {
     if (code === 'USD') return { ...acc, [code]: 0 };
@@ -99,5 +116,5 @@ export function useFXData() {
     return acc;
   }, {});
 
-  return { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, isLive, lastUpdated, isLoading };
+  return { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, isLive, lastUpdated, isLoading };
 }
