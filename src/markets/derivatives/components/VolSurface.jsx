@@ -174,7 +174,7 @@ export default function VolSurface({ volSurfaceData, volPremium = null, skewInde
 
       {/* Main: heatmap (wide) + skew profile (narrow) */}
       <div className="deriv-wide-narrow">
-        <div style={{ minHeight: 0, display: 'flex' }}>
+        <div style={{ minHeight: 200, display: 'flex' }}>
           <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
         </div>
         {skewOption && (

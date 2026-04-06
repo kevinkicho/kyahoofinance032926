@@ -217,7 +217,7 @@
   grid-template-columns: 3fr 1fr;
   gap: 12px;
   flex: 1;
-  min-height: 0;
+  min-height: 200px;
 }
 .deriv-chart-panel {
   background: var(--bg-card);
@@ -237,7 +237,7 @@
 }
 .deriv-mini-chart {
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
 }
 
 /* Day change / spread bars */
