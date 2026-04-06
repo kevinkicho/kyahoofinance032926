@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './DerivComponents.css';
 
 export default function VolSurface({ volSurfaceData, volPremium = null }) {
+  const { colors } = useTheme();
   const { strikes, expiries, grid } = volSurfaceData;
 
   const option = useMemo(() => {
@@ -33,9 +35,9 @@ export default function VolSurface({ volSurfaceData, volPremium = null }) {
         name: 'Strike (% of spot)',
         nameLocation: 'middle',
         nameGap: 28,
-        nameTextStyle: { color: '#64748b', fontSize: 10 },
-        axisLabel: { color: '#64748b', fontSize: 11 },
-        axisLine: { lineStyle: { color: '#1e293b' } },
+        nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+        axisLabel: { color: colors.textMuted, fontSize: 11 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
         splitLine: { show: false },
       },
       yAxis: {
@@ -44,9 +46,9 @@ export default function VolSurface({ volSurfaceData, volPremium = null }) {
         name: 'Expiry',
         nameLocation: 'middle',
         nameGap: 42,
-        nameTextStyle: { color: '#64748b', fontSize: 10 },
-        axisLabel: { color: '#64748b', fontSize: 11 },
-        axisLine: { lineStyle: { color: '#1e293b' } },
+        nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+        axisLabel: { color: colors.textMuted, fontSize: 11 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
         splitLine: { show: false },
       },
       visualMap: {
@@ -56,7 +58,7 @@ export default function VolSurface({ volSurfaceData, volPremium = null }) {
         orient: 'vertical',
         right: 10,
         top: 60,
-        textStyle: { color: '#64748b', fontSize: 10 },
+        textStyle: { color: colors.textMuted, fontSize: 10 },
         inRange: {
           color: ['#1e3a5f', '#2563eb', '#7c3aed', '#db2777', '#ef4444'],
         },
@@ -64,11 +66,11 @@ export default function VolSurface({ volSurfaceData, volPremium = null }) {
       series: [{
         type: 'heatmap',
         data,
-        label: { show: true, fontSize: 9, color: '#e2e8f0', formatter: p => p.data[2].toFixed(1) },
+        label: { show: true, fontSize: 9, color: colors.text, formatter: p => p.data[2].toFixed(1) },
         emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' } },
       }],
     };
-  }, [volSurfaceData]);
+  }, [volSurfaceData, colors]);
 
   return (
     <div className="deriv-panel">

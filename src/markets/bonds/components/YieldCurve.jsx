@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
 const TENORS = ['3m', '6m', '1y', '2y', '5y', '10y', '30y'];
@@ -10,6 +11,7 @@ const COUNTRY_COLORS = {
 };
 
 export default function YieldCurve({ yieldCurveData, spreadIndicators }) {
+  const { colors } = useTheme();
   const option = useMemo(() => {
     const countries = Object.keys(yieldCurveData);
     return {
@@ -21,19 +23,19 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators }) {
       legend: {
         data: countries,
         top: 0,
-        textStyle: { color: '#94a3b8', fontSize: 11 },
+        textStyle: { color: colors.textSecondary, fontSize: 11 },
       },
       grid: { top: 40, right: 20, bottom: 30, left: 50 },
       xAxis: {
         type: 'category',
         data: TENORS,
-        axisLabel: { color: '#64748b', fontSize: 11 },
-        axisLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textMuted, fontSize: 11 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
       },
       yAxis: {
         type: 'value',
-        axisLabel: { color: '#64748b', fontSize: 11, formatter: '{value}%' },
-        splitLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textMuted, fontSize: 11, formatter: '{value}%' },
+        splitLine: { lineStyle: { color: colors.cardBg } },
       },
       series: countries.map(c => ({
         name: c,
@@ -46,7 +48,7 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators }) {
         symbolSize: 5,
       })),
     };
-  }, [yieldCurveData]);
+  }, [yieldCurveData, colors]);
 
   const countryCount = Object.keys(yieldCurveData).length;
 

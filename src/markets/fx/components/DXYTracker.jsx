@@ -1,6 +1,7 @@
 // src/markets/fx/components/DXYTracker.jsx
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './FXComponents.css';
 
 // Standard DXY currency weights (ICE futures contract)
@@ -12,6 +13,7 @@ const DXY_COMPONENT_COLORS = {
 const DXY_PROXY_COLOR = '#3b82f6';
 
 export default function DXYTracker({ history }) {
+  const { colors } = useTheme();
   const chartOption = useMemo(() => {
     const dates = Object.keys(history).sort();
     if (dates.length < 2) return null;
@@ -65,9 +67,9 @@ export default function DXYTracker({ history }) {
       grid: { top: 40, right: 24, bottom: 54, left: 54 },
       tooltip: {
         trigger: 'axis',
-        backgroundColor: '#1e293b',
-        borderColor: '#334155',
-        textStyle: { color: '#e2e8f0', fontSize: 11 },
+        backgroundColor: colors.tooltipBg,
+        borderColor: colors.tooltipBorder,
+        textStyle: { color: colors.text, fontSize: 11 },
         formatter: params => {
           const date = params[0]?.axisValue;
           const lines = params.map(p =>
@@ -79,24 +81,24 @@ export default function DXYTracker({ history }) {
       legend: {
         data: ['DXY Proxy', ...currencies],
         top: 4,
-        textStyle: { color: '#94a3b8', fontSize: 10 },
+        textStyle: { color: colors.textSecondary, fontSize: 10 },
       },
       xAxis: {
         type: 'category',
         data: dates,
-        axisLabel: { color: '#64748b', fontSize: 10, rotate: 30 },
-        axisLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textMuted, fontSize: 10, rotate: 30 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
       },
       yAxis: {
         type: 'value',
         name: 'Index (start = 100)',
-        nameTextStyle: { color: '#64748b', fontSize: 10 },
-        axisLabel: { color: '#64748b', fontSize: 10, formatter: v => v.toFixed(1) },
-        splitLine: { lineStyle: { color: '#1e293b' } },
+        nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+        axisLabel: { color: colors.textMuted, fontSize: 10, formatter: v => v.toFixed(1) },
+        splitLine: { lineStyle: { color: colors.cardBg } },
       },
       series: allSeries,
     };
-  }, [history]);
+  }, [history, colors]);
 
   if (!chartOption) {
     return (

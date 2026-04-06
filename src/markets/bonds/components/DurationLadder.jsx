@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
 export default function DurationLadder({ durationLadderData, treasuryRates = null }) {
+  const { colors } = useTheme();
   const option = useMemo(() => {
     const buckets  = durationLadderData.map(d => d.bucket);
     const amounts  = durationLadderData.map(d => d.amount);
@@ -23,36 +25,36 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
       grid: { top: 20, right: 80, bottom: 30, left: 80 },
       xAxis: {
         type: 'value',
-        axisLabel: { color: '#64748b', fontSize: 11, formatter: '${value}M' },
-        splitLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textMuted, fontSize: 11, formatter: '${value}M' },
+        splitLine: { lineStyle: { color: colors.cardBg } },
       },
       yAxis: {
         type: 'category',
         data: buckets,
         inverse: true,
-        axisLabel: { color: '#94a3b8', fontSize: 12, fontWeight: 500 },
-        axisLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: 500 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
       },
       series: [{
         type: 'bar',
         data: amounts,
         itemStyle: {
           color: (params) => {
-            const colors = ['#34d399', '#60a5fa', '#a78bfa', '#f472b6'];
-            return colors[params.dataIndex % colors.length];
+            const seriesColors = ['#34d399', '#60a5fa', '#a78bfa', '#f472b6'];
+            return seriesColors[params.dataIndex % seriesColors.length];
           },
           borderRadius: [0, 4, 4, 0],
         },
         label: {
           show: true,
           position: 'right',
-          color: '#94a3b8',
+          color: colors.textSecondary,
           fontSize: 11,
           formatter: (params) => `${pcts[params.dataIndex]}%`,
         },
       }],
     };
-  }, [durationLadderData]);
+  }, [durationLadderData, colors]);
 
   const totalAmount = durationLadderData.reduce((s, d) => s + d.amount, 0);
 

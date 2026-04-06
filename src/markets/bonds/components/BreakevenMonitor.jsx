@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
 function fmt(v) { return v != null ? `${v.toFixed(2)}%` : '—'; }
 
-function buildBreakevenOption(history) {
+function buildBreakevenOption(history, colors) {
   const { dates, be5y, be10y, forward5y5y } = history;
   // Subsample to ~40 points max for readability
   const step = dates.length > 40 ? Math.ceil(dates.length / 40) : 1;
@@ -20,26 +21,26 @@ function buildBreakevenOption(history) {
     legend: {
       data: ['5Y BE', '10Y BE', '5Y5Y Fwd'],
       top: 0, right: 0,
-      textStyle: { color: '#94a3b8', fontSize: 10 },
+      textStyle: { color: colors.textSecondary, fontSize: 10 },
       itemWidth: 14, itemHeight: 2,
     },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
     },
     xAxis: {
       type: 'category',
       data: d,
-      axisLine: { lineStyle: { color: '#334155' } },
-      axisLabel: { color: '#64748b', fontSize: 9, interval: Math.floor(d.length / 6) },
+      axisLine: { lineStyle: { color: colors.border } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(d.length / 6) },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v.toFixed(1)}%` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v.toFixed(1)}%` },
     },
     series: [
       { name: '5Y BE',     type: 'line', data: s5, smooth: true, showSymbol: false, lineStyle: { color: '#10b981', width: 2 } },
@@ -50,6 +51,7 @@ function buildBreakevenOption(history) {
 }
 
 export default function BreakevenMonitor({ breakevensData }) {
+  const { colors } = useTheme();
   if (!breakevensData) return null;
   const { current, history } = breakevensData;
 
@@ -83,7 +85,7 @@ export default function BreakevenMonitor({ breakevensData }) {
       </div>
       {history?.dates?.length > 5 && (
         <div className="bonds-chart-wrap">
-          <ReactECharts option={buildBreakevenOption(history)} style={{ height: '100%', width: '100%' }} />
+          <ReactECharts option={buildBreakevenOption(history, colors)} style={{ height: '100%', width: '100%' }} />
         </div>
       )}
       <div className="be-footer">

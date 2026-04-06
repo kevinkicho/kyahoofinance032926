@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './DerivComponents.css';
 
 export default function VIXTermStructure({ vixTermStructure, vixEnrichment }) {
+  const { colors } = useTheme();
   const { dates, values, prevValues } = vixTermStructure;
 
   const isContango = values[values.length - 1] > values[0];
@@ -22,21 +24,21 @@ export default function VIXTermStructure({ vixTermStructure, vixEnrichment }) {
     legend: {
       data: ['Current', 'Previous Close'],
       top: 0,
-      textStyle: { color: '#94a3b8', fontSize: 11 },
+      textStyle: { color: colors.textSecondary, fontSize: 11 },
     },
     grid: { top: 40, right: 20, bottom: 30, left: 50 },
     xAxis: {
       type: 'category',
       data: dates,
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 11 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
       name: 'VIX',
-      nameTextStyle: { color: '#64748b', fontSize: 10 },
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+      axisLabel: { color: colors.textMuted, fontSize: 11 },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [
       {
@@ -53,12 +55,12 @@ export default function VIXTermStructure({ vixTermStructure, vixEnrichment }) {
         name: 'Previous Close',
         type: 'line',
         data: prevValues,
-        itemStyle: { color: '#475569' },
+        itemStyle: { color: colors.textDim },
         lineStyle: { width: 1.5, type: 'dashed' },
         symbol: 'none',
       },
     ],
-  }), [vixTermStructure]);
+  }), [vixTermStructure, colors]);
 
   return (
     <div className="deriv-panel">

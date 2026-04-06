@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
 const SERIES_CONFIG = [
@@ -10,6 +11,7 @@ const SERIES_CONFIG = [
 ];
 
 export default function SpreadMonitor({ spreadData }) {
+  const { colors } = useTheme();
   const option = useMemo(() => ({
     animation: false,
     backgroundColor: 'transparent',
@@ -22,21 +24,21 @@ export default function SpreadMonitor({ spreadData }) {
     legend: {
       data: SERIES_CONFIG.map(s => s.label),
       top: 0,
-      textStyle: { color: '#94a3b8', fontSize: 11 },
+      textStyle: { color: colors.textSecondary, fontSize: 11 },
     },
     grid: { top: 40, right: 20, bottom: 30, left: 60 },
     xAxis: {
       type: 'category',
       data: spreadData.dates,
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 11 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
       name: 'bps',
-      nameTextStyle: { color: '#64748b', fontSize: 10 },
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+      axisLabel: { color: colors.textMuted, fontSize: 11 },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: SERIES_CONFIG.map(({ key, label, color }) => ({
       name: label,
@@ -48,7 +50,7 @@ export default function SpreadMonitor({ spreadData }) {
       areaStyle: { color, opacity: 0.06 },
       symbol: 'none',
     })),
-  }), [spreadData]);
+  }), [spreadData, colors]);
 
   return (
     <div className="bonds-panel">
