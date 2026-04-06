@@ -104,3 +104,66 @@ export const cotData = {
     },
   ],
 };
+
+// --- New enrichment data (mock) ---
+
+const MOCK_DATES_DAILY = Array.from({ length: 60 }, (_, i) => {
+  const d = new Date('2026-01-02');
+  d.setDate(d.getDate() + i);
+  return d.toISOString().split('T')[0];
+});
+
+const MOCK_DATES_MONTHLY = [
+  '2023-07','2023-08','2023-09','2023-10','2023-11','2023-12',
+  '2024-01','2024-02','2024-03','2024-04','2024-05','2024-06',
+  '2024-07','2024-08','2024-09','2024-10','2024-11','2024-12',
+  '2025-01','2025-02','2025-03','2025-04','2025-05','2025-06',
+  '2025-07','2025-08','2025-09','2025-10','2025-11','2025-12',
+  '2026-01','2026-02','2026-03',
+];
+
+export const fredCommodities = {
+  wtiHistory: {
+    dates: MOCK_DATES_DAILY,
+    values: MOCK_DATES_DAILY.map((_, i) => 78 + Math.sin(i / 8) * 6 + Math.random() * 2),
+  },
+  goldHistory: {
+    dates: MOCK_DATES_DAILY,
+    values: MOCK_DATES_DAILY.map((_, i) => 2100 + i * 3.5 + Math.sin(i / 5) * 40),
+  },
+  brentHistory: {
+    dates: MOCK_DATES_DAILY,
+    values: MOCK_DATES_DAILY.map((_, i) => 82 + Math.sin(i / 8) * 5 + Math.random() * 2),
+  },
+  natGasHistory: {
+    dates: MOCK_DATES_DAILY,
+    values: MOCK_DATES_DAILY.map((_, i) => 1.8 + Math.sin(i / 10) * 0.4 + Math.random() * 0.1),
+  },
+  ppiCommodity: {
+    dates: MOCK_DATES_MONTHLY,
+    values: [248.1,249.3,250.8,251.2,252.4,253.1,254.8,255.2,256.1,257.3,258.4,259.2,260.1,261.4,262.8,263.1,264.2,265.4,266.1,267.3,268.8,269.4,270.1,271.2,272.4,273.1,274.2,275.4,276.1,277.3,278.4,279.2,280.1],
+  },
+  dollarIndex: {
+    dates: MOCK_DATES_DAILY,
+    values: MOCK_DATES_DAILY.map((_, i) => 104 - Math.sin(i / 12) * 3 + Math.random()),
+  },
+  gasRetail: 3.421,
+};
+
+export const goldFuturesCurve = {
+  labels: ["Jun '26", "Aug '26", "Oct '26", "Dec '26", "Feb '27", "Apr '27", "Jun '27", "Aug '27"],
+  prices: [2314.0, 2328.5, 2342.8, 2356.1, 2370.4, 2384.2, 2398.1, 2412.5],
+  commodity: 'Gold',
+  unit: '$/oz',
+  spotPrice: 2314.0,
+};
+
+export const dbcEtf = {
+  price: 22.84,
+  changePct: -0.32,
+  ytd: -4.2,
+  history: {
+    dates: MOCK_DATES_DAILY,
+    closes: MOCK_DATES_DAILY.map((_, i) => 23.8 - i * 0.02 + Math.sin(i / 7) * 0.4),
+  },
+};
