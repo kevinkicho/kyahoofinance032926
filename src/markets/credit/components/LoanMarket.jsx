@@ -1,6 +1,7 @@
 // src/markets/credit/components/LoanMarket.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
 function trancheColor(tranche) {
@@ -14,59 +15,59 @@ function trancheColor(tranche) {
   return '#f87171'; // Equity / NR
 }
 
-function buildCloOption(tranches) {
+function buildCloOption(tranches, colors) {
   const withSpread = tranches.filter(t => t.spread != null);
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].name}: ${params[0].value}bps spread · ${tranches.find(t=>t.tranche===params[0].name)?.yield?.toFixed(1)}% yield`,
     },
     grid: { top: 8, right: 16, bottom: 24, left: 8, containLabel: true },
     xAxis: {
       type: 'category',
       data: withSpread.map(t => t.tranche),
-      axisLabel: { color: '#94a3b8', fontSize: 10 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}bps` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}bps` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [{
       type: 'bar',
       data: withSpread.map(t => ({ value: t.spread, itemStyle: { color: trancheColor(t.tranche) } })),
-      label: { show: true, position: 'top', formatter: p => `${p.value}`, color: '#94a3b8', fontSize: 9 },
+      label: { show: true, position: 'top', formatter: p => `${p.value}`, color: colors.textSecondary, fontSize: 9 },
       barMaxWidth: 48,
     }],
   };
 }
 
-function buildBklnOption(priceHistory) {
+function buildBklnOption(priceHistory, colors) {
   const { dates = [], bkln = [] } = priceHistory;
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}: $${params[0].value?.toFixed(2)}`,
     },
     grid: { top: 8, right: 16, bottom: 24, left: 8, containLabel: true },
     xAxis: {
       type: 'category', data: dates,
-      axisLabel: { color: '#475569', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textDim, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value', scale: true,
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `$${v.toFixed(1)}` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${v.toFixed(1)}` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [{
       type: 'line', data: bkln,
@@ -79,6 +80,7 @@ function buildBklnOption(priceHistory) {
 
 export default function LoanMarket({ loanData }) {
   if (!loanData) return null;
+  const { colors } = useTheme();
   const { cloTranches = [], indices = [], priceHistory = { dates: [], bkln: [] } } = loanData;
 
   return (
@@ -100,7 +102,7 @@ export default function LoanMarket({ loanData }) {
           <div className="credit-chart-title">CLO Tranche Spreads</div>
           <div className="credit-chart-subtitle">AAA → Equity waterfall · OAS spread (bps) by tranche rating</div>
           <div className="credit-chart-wrap">
-            <ReactECharts option={buildCloOption(cloTranches)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={buildCloOption(cloTranches, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="credit-two-row">
@@ -108,7 +110,7 @@ export default function LoanMarket({ loanData }) {
             <div className="credit-chart-title">BKLN Price (6-Month)</div>
             <div className="credit-chart-subtitle">Invesco Senior Loan ETF — floating-rate leveraged loan proxy</div>
             <div className="credit-chart-wrap">
-              <ReactECharts option={buildBklnOption(priceHistory)} style={{ height: '100%', width: '100%' }} />
+              <ReactECharts option={buildBklnOption(priceHistory, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
           <div className="credit-chart-panel">

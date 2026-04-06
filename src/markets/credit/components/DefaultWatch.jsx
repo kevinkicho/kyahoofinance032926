@@ -1,30 +1,31 @@
 // src/markets/credit/components/DefaultWatch.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
-function buildDefaultHistoryOption(defaultHistory) {
+function buildDefaultHistoryOption(defaultHistory, colors) {
   const { dates = [], hy = [], loan = [] } = defaultHistory;
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}<br/>${params.map(p => `${p.seriesName}: ${p.value?.toFixed(1)}%`).join('<br/>')}`,
     },
-    legend: { data: ['HY Default','Loan Default'], textStyle: { color: '#94a3b8', fontSize: 9 }, top: 2 },
+    legend: { data: ['HY Default','Loan Default'], textStyle: { color: colors.textSecondary, fontSize: 9 }, top: 2 },
     grid: { top: 28, right: 16, bottom: 24, left: 8, containLabel: true },
     xAxis: {
       type: 'category', data: dates,
-      axisLabel: { color: '#475569', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textDim, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [
       { name: 'HY Default',   type: 'line', data: hy,   lineStyle: { color: '#f59e0b', width: 2 }, symbol: 'circle', symbolSize: 4, itemStyle: { color: '#f59e0b' } },
@@ -33,28 +34,28 @@ function buildDefaultHistoryOption(defaultHistory) {
   };
 }
 
-function buildChargeoffOption(chargeoffs) {
+function buildChargeoffOption(chargeoffs, colors) {
   const { dates = [], commercial = [], consumer = [] } = chargeoffs;
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}<br/>${params.map(p => `${p.seriesName}: ${p.value?.toFixed(2)}%`).join('<br/>')}`,
     },
-    legend: { data: ['C&I Loans','Consumer'], textStyle: { color: '#94a3b8', fontSize: 9 }, top: 2 },
+    legend: { data: ['C&I Loans','Consumer'], textStyle: { color: colors.textSecondary, fontSize: 9 }, top: 2 },
     grid: { top: 28, right: 16, bottom: 24, left: 8, containLabel: true },
     xAxis: {
       type: 'category', data: dates,
-      axisLabel: { color: '#475569', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textDim, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [
       { name: 'C&I Loans', type: 'line', data: commercial, lineStyle: { color: '#818cf8', width: 2 }, areaStyle: { color: 'rgba(129,140,248,0.1)' }, symbol: 'none' },
@@ -65,6 +66,7 @@ function buildChargeoffOption(chargeoffs) {
 
 export default function DefaultWatch({ defaultData }) {
   if (!defaultData) return null;
+  const { colors } = useTheme();
   const { rates = [], chargeoffs = { dates:[], commercial:[], consumer:[] }, defaultHistory = { dates:[], hy:[], loan:[] } } = defaultData;
 
   return (
@@ -79,14 +81,14 @@ export default function DefaultWatch({ defaultData }) {
             <div className="credit-chart-title">Default Rate Trend</div>
             <div className="credit-chart-subtitle">HY bond & leveraged loan TTM default rates (%) — amber = HY · cyan = loans</div>
             <div className="credit-chart-wrap">
-              <ReactECharts option={buildDefaultHistoryOption(defaultHistory)} style={{ height: '100%', width: '100%' }} />
+              <ReactECharts option={buildDefaultHistoryOption(defaultHistory, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
           <div className="credit-chart-panel">
             <div className="credit-chart-title">Bank Charge-Off Rates</div>
             <div className="credit-chart-subtitle">FRED quarterly charge-off rates (%) — commercial & consumer loans · DRALACBN / DRSFRMACBS</div>
             <div className="credit-chart-wrap">
-              <ReactECharts option={buildChargeoffOption(chargeoffs)} style={{ height: '100%', width: '100%' }} />
+              <ReactECharts option={buildChargeoffOption(chargeoffs, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         </div>

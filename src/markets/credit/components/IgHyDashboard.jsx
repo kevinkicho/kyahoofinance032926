@@ -1,6 +1,7 @@
 // src/markets/credit/components/IgHyDashboard.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
 function spreadTrend(cur, prev) {
@@ -9,28 +10,28 @@ function spreadTrend(cur, prev) {
   return { text: `${d >= 0 ? '+' : ''}${d}bps`, cls: d > 0 ? 'credit-neg' : d < 0 ? 'credit-pos' : 'credit-neu' };
 }
 
-function buildSpreadHistoryOption(history) {
+function buildSpreadHistoryOption(history, colors) {
   const { dates = [], IG = [], HY = [], BBB = [] } = history;
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}<br/>${params.map(p => `${p.seriesName}: ${p.value}bps`).join('<br/>')}`,
     },
-    legend: { data: ['IG','HY','BBB'], textStyle: { color: '#94a3b8', fontSize: 9 }, top: 2 },
+    legend: { data: ['IG','HY','BBB'], textStyle: { color: colors.textSecondary, fontSize: 9 }, top: 2 },
     grid: { top: 28, right: 16, bottom: 24, left: 8, containLabel: true },
     xAxis: {
       type: 'category', data: dates,
-      axisLabel: { color: '#475569', fontSize: 9, interval: Math.floor(dates.length / 5) },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textDim, fontSize: 9, interval: Math.floor(dates.length / 5) },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [
       { name: 'IG',  type: 'line', data: IG,  lineStyle: { color: '#06b6d4', width: 2 }, symbol: 'none', itemStyle: { color: '#06b6d4' } },
@@ -42,6 +43,7 @@ function buildSpreadHistoryOption(history) {
 
 export default function IgHyDashboard({ spreadData }) {
   if (!spreadData) return null;
+  const { colors } = useTheme();
   const { current = {}, history = {}, etfs = [] } = spreadData;
 
   const spreads = [
@@ -65,7 +67,7 @@ export default function IgHyDashboard({ spreadData }) {
             <div key={s.label} className="credit-stat-pill">
               <span className="credit-stat-label">{s.label}</span>
               <span className="credit-stat-value cyan">{s.value != null ? `${s.value}bps` : '—'}</span>
-              {s.prev != null && <span style={{ fontSize: 9, color: trend.cls === 'credit-pos' ? '#34d399' : trend.cls === 'credit-neg' ? '#f87171' : '#64748b' }}>{trend.text} MoM</span>}
+              {s.prev != null && <span style={{ fontSize: 9, color: trend.cls === 'credit-pos' ? '#34d399' : trend.cls === 'credit-neg' ? '#f87171' : colors.textMuted }}>{trend.text} MoM</span>}
             </div>
           );
         })}
@@ -75,7 +77,7 @@ export default function IgHyDashboard({ spreadData }) {
           <div className="credit-chart-title">12-Month Spread History</div>
           <div className="credit-chart-subtitle">IG · HY · BBB OAS in basis points · cyan narrows = compression</div>
           <div className="credit-chart-wrap">
-            <ReactECharts option={buildSpreadHistoryOption(history)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={buildSpreadHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="credit-chart-panel">

@@ -1,10 +1,12 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './InsComponents.css';
 
 const LINE_COLORS = ['#0ea5e9', '#a78bfa', '#f59e0b', '#22c55e'];
 
 export default function CombinedRatioMonitor({ combinedRatioData }) {
+  const { colors } = useTheme();
   const { quarters, lines } = combinedRatioData;
   const lineNames = Object.keys(lines);
 
@@ -24,28 +26,31 @@ export default function CombinedRatioMonitor({ combinedRatioData }) {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) =>
         params[0].axisValue + '<br/>' +
         params.map(p => `${p.seriesName}: ${p.value.toFixed(1)}`).join('<br/>'),
     },
     legend: {
       data: lineNames,
-      textStyle: { color: '#94a3b8', fontSize: 11 },
+      textStyle: { color: colors.textSecondary, fontSize: 11 },
       top: 0,
     },
     grid: { left: 60, right: 20, top: 40, bottom: 40 },
     xAxis: {
       type: 'category',
       data: quarters,
-      axisLabel: { color: '#64748b', fontSize: 11 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 11 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
       name: 'Combined Ratio (%)',
-      nameTextStyle: { color: '#64748b', fontSize: 10 },
-      axisLabel: { color: '#64748b', fontSize: 11, formatter: '{value}%' },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+      axisLabel: { color: colors.textMuted, fontSize: 11, formatter: '{value}%' },
+      splitLine: { lineStyle: { color: colors.cardBg } },
       markLine: { silent: true },
     },
     series: [

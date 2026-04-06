@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './InsComponents.css';
 
 function adequacyColor(pct) {
@@ -10,6 +11,7 @@ function adequacyColor(pct) {
 }
 
 export default function ReserveAdequacy({ reserveAdequacyData }) {
+  const { colors } = useTheme();
   const { lines, reserves, required, adequacy } = reserveAdequacyData;
 
   const option = {
@@ -18,6 +20,9 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => {
         const idx = params[0].dataIndex;
         return `${lines[idx]}<br/>Reserves: $${reserves[idx].toLocaleString()}M<br/>Required: $${required[idx].toLocaleString()}M<br/>Adequacy: ${adequacy[idx].toFixed(1)}%`;
@@ -25,20 +30,20 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
     },
     legend: {
       data: ['Held Reserves ($M)', 'Required Reserves ($M)'],
-      textStyle: { color: '#94a3b8', fontSize: 11 },
+      textStyle: { color: colors.textSecondary, fontSize: 11 },
       top: 0,
     },
     grid: { left: 160, right: 20, top: 40, bottom: 20 },
     xAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 11, formatter: '${value}M' },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 11, formatter: '${value}M' },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'category',
       data: lines,
-      axisLabel: { color: '#94a3b8', fontSize: 11 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textSecondary, fontSize: 11 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [
       {
@@ -46,14 +51,14 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
         type: 'bar',
         data: reserves.map((v, i) => ({ value: v, itemStyle: { color: adequacyColor(adequacy[i]) } })),
         barMaxWidth: 24,
-        label: { show: true, position: 'right', formatter: (p) => `${adequacy[p.dataIndex].toFixed(1)}%`, color: '#94a3b8', fontSize: 10 },
+        label: { show: true, position: 'right', formatter: (p) => `${adequacy[p.dataIndex].toFixed(1)}%`, color: colors.textSecondary, fontSize: 10 },
       },
       {
         name: 'Required Reserves ($M)',
         type: 'bar',
         data: required,
         barMaxWidth: 24,
-        itemStyle: { color: '#1e293b', borderColor: '#475569', borderWidth: 1 },
+        itemStyle: { color: colors.cardBg, borderColor: colors.textDim, borderWidth: 1 },
       },
     ],
   };

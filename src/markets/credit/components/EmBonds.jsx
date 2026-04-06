@@ -1,6 +1,7 @@
 // src/markets/credit/components/EmBonds.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
 function ratingClass(r) {
@@ -17,29 +18,29 @@ function fmtChange(v) {
   return { text: `${v >= 0 ? '+' : ''}${v}bps`, cls };
 }
 
-function buildRegionOption(regions) {
+function buildRegionOption(regions, colors) {
   const sorted = [...regions].sort((a, b) => b.avgSpread - a.avgSpread);
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].name}: ${params[0].value}bps avg spread`,
     },
     grid: { top: 8, right: 64, bottom: 8, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}bps` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}bps` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'category',
       data: sorted.map(r => r.region),
       axisLine: { show: false }, axisTick: { show: false },
-      axisLabel: { color: '#94a3b8', fontSize: 10 },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
     },
     series: [{
       type: 'bar',
@@ -50,7 +51,7 @@ function buildRegionOption(regions) {
       label: {
         show: true, position: 'right',
         formatter: p => `${p.value}bps`,
-        color: '#94a3b8', fontSize: 9,
+        color: colors.textSecondary, fontSize: 9,
       },
     }],
   };
@@ -58,6 +59,7 @@ function buildRegionOption(regions) {
 
 export default function EmBonds({ emBondData }) {
   if (!emBondData) return null;
+  const { colors } = useTheme();
   const { countries = [], regions = [] } = emBondData;
 
   return (
@@ -106,7 +108,7 @@ export default function EmBonds({ emBondData }) {
           <div className="credit-chart-title">EM Region Spread Comparison</div>
           <div className="credit-chart-subtitle">Average EMBI spread by region · red = widest · blue = tightest</div>
           <div className="credit-chart-wrap">
-            <ReactECharts option={buildRegionOption(regions)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={buildRegionOption(regions, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

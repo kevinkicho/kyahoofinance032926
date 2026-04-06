@@ -1,6 +1,7 @@
 // src/markets/sentiment/components/FearGreed.jsx
 import React, { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
 function scoreColor(score) {
@@ -17,7 +18,7 @@ function signalColor(signal) {
   return '#94a3b8';
 }
 
-function buildGaugeOption(score) {
+function buildGaugeOption(score, colors) {
   const color = scoreColor(score);
   return {
     animation: false,
@@ -29,7 +30,7 @@ function buildGaugeOption(score) {
       radius: '88%',
       pointer: { show: true, length: '55%', width: 4, itemStyle: { color } },
       progress: { show: true, width: 10, itemStyle: { color } },
-      axisLine: { lineStyle: { width: 10, color: [[1, '#1e293b']] } },
+      axisLine: { lineStyle: { width: 10, color: [[1, colors.cardBg]] } },
       axisTick: { show: false },
       splitLine: { show: false },
       axisLabel: { show: false },
@@ -46,7 +47,7 @@ function buildGaugeOption(score) {
   };
 }
 
-function buildHistoryOption(history) {
+function buildHistoryOption(history, colors) {
   const dates  = history.map(h => h.date.slice(5));
   const values = history.map(h => h.value);
   return {
@@ -54,20 +55,20 @@ function buildHistoryOption(history) {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}: ${params[0].value}`,
     },
     grid: { top: 8, right: 8, bottom: 20, left: 8, containLabel: true },
     xAxis: {
       type: 'category', data: dates,
-      axisLabel: { color: '#475569', fontSize: 9, interval: Math.floor(dates.length / 6) },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textDim, fontSize: 9, interval: Math.floor(dates.length / 6) },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value', min: 0, max: 100,
-      axisLabel: { color: '#64748b', fontSize: 9 },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9 },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     visualMap: {
       show: false, type: 'continuous', min: 0, max: 100,
@@ -83,10 +84,11 @@ function buildHistoryOption(history) {
 
 export default function FearGreed({ fearGreedData }) {
   if (!fearGreedData) return null;
+  const { colors } = useTheme();
   const { score = 50, label = 'Neutral', altmeScore, history = [], indicators = [] } = fearGreedData;
   const color = scoreColor(score);
-  const gaugeOption = useMemo(() => buildGaugeOption(score), [score]);
-  const historyOption = useMemo(() => buildHistoryOption(history), [history]);
+  const gaugeOption = useMemo(() => buildGaugeOption(score, colors), [score, colors]);
+  const historyOption = useMemo(() => buildHistoryOption(history, colors), [history, colors]);
 
   return (
     <div className="sent-panel">
@@ -102,14 +104,14 @@ export default function FearGreed({ fearGreedData }) {
           </div>
           <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 8 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color }}>{label}</div>
-            {altmeScore != null && <div style={{ fontSize: 10, color: '#64748b' }}>Alt.me raw: {altmeScore}</div>}
+            {altmeScore != null && <div style={{ fontSize: 10, color: colors.textMuted }}>Alt.me raw: {altmeScore}</div>}
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {indicators.map(ind => (
-              <div key={ind.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', borderBottom: '1px solid #1e293b' }}>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>{ind.name}</span>
+              <div key={ind.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', borderBottom: `1px solid ${colors.cardBg}` }}>
+                <span style={{ fontSize: 11, color: colors.textSecondary }}>{ind.name}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {ind.percentile != null && <span style={{ fontSize: 9, color: '#475569' }}>{ind.percentile}th pct</span>}
+                  {ind.percentile != null && <span style={{ fontSize: 9, color: colors.textDim }}>{ind.percentile}th pct</span>}
                   <span style={{ fontSize: 11, fontFamily: 'monospace', color: signalColor(ind.signal) }}>
                     {typeof ind.value === 'number' ? (ind.value > 100 ? `${Math.round(ind.value)}bps` : ind.value.toFixed(ind.value > 10 ? 1 : 2)) : ind.value}
                   </span>

@@ -1,17 +1,18 @@
 // src/markets/sentiment/components/CftcPositioning.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
-function buildBarOption(items) {
+function buildBarOption(items, colors) {
   const sorted = [...items].sort((a, b) => b.netPct - a.netPct);
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => {
         const item = items.find(i => i.code === params[0].name || i.name === params[0].name);
         return `${params[0].name}: ${params[0].value > 0 ? '+' : ''}${params[0].value}% net<br/>Long: ${item?.longK}K · Short: ${item?.shortK}K · OI: ${item?.oiK}K`;
@@ -20,15 +21,15 @@ function buildBarOption(items) {
     grid: { top: 4, right: 60, bottom: 4, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}%` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'category',
       data: sorted.map(i => i.code),
       axisLine: { show: false }, axisTick: { show: false },
-      axisLabel: { color: '#94a3b8', fontSize: 10 },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
     },
     series: [{
       type: 'bar', barMaxWidth: 20,
@@ -39,24 +40,25 @@ function buildBarOption(items) {
       label: {
         show: true, position: 'right',
         formatter: p => `${p.value >= 0 ? '+' : ''}${p.value}%`,
-        color: '#94a3b8', fontSize: 9,
+        color: colors.textSecondary, fontSize: 9,
       },
     }],
   };
 }
 
-function Section({ title, items, height = 180 }) {
+function Section({ title, items, height = 180, colors }) {
   if (!items?.length) return null;
   return (
     <div className="sent-cftc-section">
       <div className="sent-cftc-section-label">{title}</div>
-      <ReactECharts option={buildBarOption(items)} style={{ height, width: '100%' }} />
+      <ReactECharts option={buildBarOption(items, colors)} style={{ height, width: '100%' }} />
     </div>
   );
 }
 
 export default function CftcPositioning({ cftcData }) {
   if (!cftcData) return null;
+  const { colors } = useTheme();
   const { currencies = [], equities = [], rates = [], commodities = [], asOf } = cftcData;
 
   return (
@@ -69,13 +71,13 @@ export default function CftcPositioning({ cftcData }) {
         </span>
       </div>
       <div className="sent-two-col">
-        <div style={{ overflowY: 'auto', background: '#0f172a', padding: '4px 0' }}>
-          <Section title="Currencies" items={currencies} height={200} />
+        <div style={{ overflowY: 'auto', background: colors.bg, padding: '4px 0' }}>
+          <Section title="Currencies" items={currencies} height={200} colors={colors} />
         </div>
-        <div style={{ overflowY: 'auto', background: '#0f172a', padding: '4px 0' }}>
-          <Section title="Equity Index Futures" items={equities} height={100} />
-          <Section title="Rates" items={rates} height={80} />
-          <Section title="Commodities" items={commodities} height={100} />
+        <div style={{ overflowY: 'auto', background: colors.bg, padding: '4px 0' }}>
+          <Section title="Equity Index Futures" items={equities} height={100} colors={colors} />
+          <Section title="Rates" items={rates} height={80} colors={colors} />
+          <Section title="Commodities" items={commodities} height={100} colors={colors} />
         </div>
       </div>
     </div>

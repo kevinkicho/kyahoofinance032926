@@ -1,5 +1,6 @@
 // src/markets/sentiment/components/CrossAssetReturns.jsx
 import React from 'react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
 function retColor(v) {
@@ -21,6 +22,7 @@ const CATEGORY_ORDER = ['US Equity', 'Global', 'Fixed Income', 'Real Assets', 'C
 
 export default function CrossAssetReturns({ returnsData }) {
   if (!returnsData) return null;
+  const { colors } = useTheme();
   const { assets = [], asOf } = returnsData;
 
   // Group by category in defined order
@@ -59,13 +61,13 @@ export default function CrossAssetReturns({ returnsData }) {
                   <tr key={a.ticker} className="sent-returns-row">
                     <td className="sent-returns-td">
                       <strong>{a.label}</strong>
-                      <span style={{ fontSize: 9, color: '#64748b', marginLeft: 6 }}>{a.ticker}</span>
+                      <span style={{ fontSize: 9, color: colors.textMuted, marginLeft: 6 }}>{a.ticker}</span>
                     </td>
                     {[a.ret1d, a.ret1w, a.ret1m, a.ret3m].map((v, i) => (
                       <td
                         key={i}
                         className="sent-returns-td"
-                        style={{ background: retColor(v), color: v == null ? '#475569' : v >= 0 ? '#e2e8f0' : '#fca5a5' }}
+                        style={{ background: retColor(v), color: v == null ? colors.textDim : v >= 0 ? colors.text : '#fca5a5' }}
                       >
                         {fmtRet(v)}
                       </td>
