@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   priceIndexData     as mockPriceIndexData,
   reitData           as mockReitData,
@@ -15,7 +16,7 @@ import {
 
 const SERVER = '';
 
-export function useRealEstateData() {
+export function useRealEstateData(autoRefresh = false) {
   const [priceIndexData,    setPriceIndexData]    = useState(mockPriceIndexData);
   const [reitData,          setReitData]          = useState(mockReitData);
   const [affordabilityData, setAffordabilityData] = useState(mockAffordabilityData);
@@ -37,7 +38,7 @@ export function useRealEstateData() {
   const [fetchedOn,         setFetchedOn]         = useState(null);
   const [isCurrent,         setIsCurrent]         = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/realEstate`)
       .then(r => r.json())
       .then(data => {
@@ -68,6 +69,10 @@ export function useRealEstateData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, housingStarts, existingHomeSales, rentalVacancy, medianHomePrice, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

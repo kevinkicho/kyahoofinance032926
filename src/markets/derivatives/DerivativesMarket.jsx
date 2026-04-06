@@ -13,9 +13,9 @@ const SUB_TABS = [
   { id: 'options-flow',       label: 'Options Flow'       },
 ];
 
-function DerivativesMarket() {
+function DerivativesMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('vol-surface');
-  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData();
+  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

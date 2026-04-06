@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   yieldCurveData as mockYieldCurveData,
   creditRatingsData,
@@ -47,7 +48,7 @@ function mergeYieldCurves(serverData, mock) {
   return merged;
 }
 
-export function useBondsData() {
+export function useBondsData(autoRefresh = false) {
   const [yieldCurveData, setYieldCurveData]   = useState(mockYieldCurveData);
   const [spreadData, setSpreadData]           = useState(mockSpreadData);
   const [spreadIndicators, setSpreadIndicators] = useState(mockSpreadIndicators);
@@ -63,46 +64,47 @@ export function useBondsData() {
   const [fetchedOn, setFetchedOn]             = useState(null);
   const [isCurrent, setIsCurrent]             = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const r = await fetchWithRetry(`${SERVER}/api/bonds`);
-        const data = await r.json();
-        if (data.yieldCurveData) setYieldCurveData(mergeYieldCurves(data.yieldCurveData, mockYieldCurveData));
-        if (data.spreadData?.dates?.length === 12) setSpreadData(data.spreadData);
-        if (data.spreadIndicators && Object.keys(data.spreadIndicators).length >= 3) {
-          setSpreadIndicators(data.spreadIndicators);
-        }
-        if (data.breakevensData?.history?.dates?.length >= 20) {
-          setBreakevensData(data.breakevensData);
-        }
-        if (data.fredYieldHistory?.dates?.length >= 20) {
-          setFredYieldHistory(data.fredYieldHistory);
-        }
-        if (data.treasuryRates && Object.values(data.treasuryRates).some(v => v != null)) {
-          setTreasuryRates(data.treasuryRates);
-        }
-        if (data.fedFundsFutures && Object.values(data.fedFundsFutures).some(v => v != null)) {
-          setFedFundsFutures(data.fedFundsFutures);
-        }
-        if (data.yieldHistory?.dates?.length >= 20) {
-          setYieldHistory(data.yieldHistory);
-        }
-        if (data.mortgageSpread != null) {
-          setMortgageSpread(data.mortgageSpread);
-        }
-        setIsLive(true);
-        setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
-      } catch {
-        // silent fallback to mock
-      } finally {
-        setIsLoading(false);
+  const refetch = useCallback(async () => {
+    try {
+      const r = await fetchWithRetry(`${SERVER}/api/bonds`);
+      const data = await r.json();
+      if (data.yieldCurveData) setYieldCurveData(mergeYieldCurves(data.yieldCurveData, mockYieldCurveData));
+      if (data.spreadData?.dates?.length === 12) setSpreadData(data.spreadData);
+      if (data.spreadIndicators && Object.keys(data.spreadIndicators).length >= 3) {
+        setSpreadIndicators(data.spreadIndicators);
       }
+      if (data.breakevensData?.history?.dates?.length >= 20) {
+        setBreakevensData(data.breakevensData);
+      }
+      if (data.fredYieldHistory?.dates?.length >= 20) {
+        setFredYieldHistory(data.fredYieldHistory);
+      }
+      if (data.treasuryRates && Object.values(data.treasuryRates).some(v => v != null)) {
+        setTreasuryRates(data.treasuryRates);
+      }
+      if (data.fedFundsFutures && Object.values(data.fedFundsFutures).some(v => v != null)) {
+        setFedFundsFutures(data.fedFundsFutures);
+      }
+      if (data.yieldHistory?.dates?.length >= 20) {
+        setYieldHistory(data.yieldHistory);
+      }
+      if (data.mortgageSpread != null) {
+        setMortgageSpread(data.mortgageSpread);
+      }
+      setIsLive(true);
+      setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
+      if (data.fetchedOn) setFetchedOn(data.fetchedOn);
+      setIsCurrent(!!data.isCurrent);
+    } catch {
+      // silent fallback to mock
+    } finally {
+      setIsLoading(false);
     }
-    load();
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, fredYieldHistory, treasuryRates, fedFundsFutures, yieldHistory, mortgageSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

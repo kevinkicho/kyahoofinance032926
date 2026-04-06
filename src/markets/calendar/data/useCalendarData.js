@@ -1,6 +1,7 @@
 // src/markets/calendar/data/useCalendarData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   economicEvents  as mockEconomicEvents,
   centralBanks    as mockCentralBanks,
@@ -10,7 +11,7 @@ import {
 
 const SERVER = '';
 
-export function useCalendarData() {
+export function useCalendarData(autoRefresh = false) {
   const [economicEvents,    setEconomicEvents]    = useState(mockEconomicEvents);
   const [centralBanks,      setCentralBanks]      = useState(mockCentralBanks);
   const [earningsSeason,    setEarningsSeason]    = useState(mockEarningsSeason);
@@ -24,7 +25,7 @@ export function useCalendarData() {
   const [fetchedOn,         setFetchedOn]         = useState(null);
   const [isCurrent,         setIsCurrent]         = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/calendar`)
       .then(r => r.json())
       .then(data => {
@@ -44,6 +45,10 @@ export function useCalendarData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return {
     economicEvents, centralBanks, earningsSeason, keyReleases,

@@ -15,9 +15,9 @@ const SUB_TABS = [
   { id: 'top-movers',  label: 'Top Movers'  },
 ];
 
-function FXMarket() {
+function FXMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('rate-matrix');
-  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, isLive, lastUpdated, isLoading } = useFXData();
+  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, isLive, lastUpdated, isLoading } = useFXData(autoRefresh);
   const { cotData } = useCOTData();
 
   return (

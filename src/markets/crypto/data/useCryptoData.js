@@ -1,6 +1,7 @@
 // src/markets/crypto/data/useCryptoData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   coinMarketData as mockCoinMarketData,
   fearGreedData  as mockFearGreedData,
@@ -11,7 +12,7 @@ import {
 
 const SERVER = '';
 
-export function useCryptoData() {
+export function useCryptoData(autoRefresh = false) {
   const [coinMarketData,  setCoinMarketData]  = useState(mockCoinMarketData);
   const [fearGreedData,   setFearGreedData]   = useState(mockFearGreedData);
   const [defiData,        setDefiData]        = useState(mockDefiData);
@@ -27,7 +28,7 @@ export function useCryptoData() {
   const [fetchedOn,       setFetchedOn]       = useState(null);
   const [isCurrent,       setIsCurrent]       = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/crypto`)
       .then(r => r.json())
       .then(data => {
@@ -49,6 +50,10 @@ export function useCryptoData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

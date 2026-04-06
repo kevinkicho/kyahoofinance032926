@@ -15,9 +15,9 @@ const SUB_TABS = [
   { id: 'default', label: 'Default Watch'     },
 ];
 
-function CreditMarket() {
+function CreditMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('ighy');
-  const { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCreditData();
+  const { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCreditData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

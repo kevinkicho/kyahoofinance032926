@@ -15,13 +15,13 @@ const SUB_TABS = [
   { id: 'releases',      label: 'Key Releases'       },
 ];
 
-function CalendarMarket() {
+function CalendarMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('economic');
   const {
     economicEvents, centralBanks, earningsSeason, keyReleases,
     treasuryAuctions, optionsExpiry, dividendCalendar,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useCalendarData();
+  } = useCalendarData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

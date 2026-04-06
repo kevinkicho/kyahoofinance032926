@@ -1,6 +1,7 @@
 // src/markets/commodities/data/useCommoditiesData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   priceDashboardData  as mockPriceDashboardData,
   futuresCurveData    as mockFuturesCurveData,
@@ -14,7 +15,7 @@ import {
 
 const SERVER = '';
 
-export function useCommoditiesData() {
+export function useCommoditiesData(autoRefresh = false) {
   const [priceDashboardData,  setPriceDashboardData]  = useState(mockPriceDashboardData);
   const [futuresCurveData,    setFuturesCurveData]    = useState(mockFuturesCurveData);
   const [sectorHeatmapData,   setSectorHeatmapData]   = useState(mockSectorHeatmapData);
@@ -33,7 +34,7 @@ export function useCommoditiesData() {
   const [fetchedOn,           setFetchedOn]           = useState(null);
   const [isCurrent,           setIsCurrent]           = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/commodities`)
       .then(r => r.json())
       .then(data => {
@@ -58,6 +59,10 @@ export function useCommoditiesData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return {
     priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,

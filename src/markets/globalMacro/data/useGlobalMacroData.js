@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   scorecardData       as mockScorecardData,
   growthInflationData as mockGrowthInflationData,
@@ -9,7 +10,7 @@ import {
 
 const SERVER = '';
 
-export function useGlobalMacroData() {
+export function useGlobalMacroData(autoRefresh = false) {
   const [scorecardData,       setScorecardData]       = useState(mockScorecardData);
   const [growthInflationData, setGrowthInflationData] = useState(mockGrowthInflationData);
   const [centralBankData,     setCentralBankData]     = useState(mockCentralBankData);
@@ -25,7 +26,7 @@ export function useGlobalMacroData() {
   const [fetchedOn,           setFetchedOn]           = useState(null);
   const [isCurrent,           setIsCurrent]           = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/globalMacro`)
       .then(r => r.json())
       .then(data => {
@@ -47,6 +48,10 @@ export function useGlobalMacroData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return {
     scorecardData, growthInflationData, centralBankData, debtData,

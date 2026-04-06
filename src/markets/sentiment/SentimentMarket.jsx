@@ -17,9 +17,9 @@ const SUB_TABS = [
   { id: 'correlation',  label: 'Correlation Matrix'  },
 ];
 
-function SentimentMarket() {
+function SentimentMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('feargreed');
-  const { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useSentimentData();
+  const { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useSentimentData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

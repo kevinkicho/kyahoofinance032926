@@ -16,9 +16,9 @@ const SUB_TABS = [
   { id: 'breakevens',      label: 'Breakevens'     },
 ];
 
-function BondsMarket() {
+function BondsMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('yield-curve');
-  const { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, treasuryRates, fredYieldHistory, fedFundsFutures, yieldHistory, mortgageSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useBondsData();
+  const { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, treasuryRates, fredYieldHistory, fedFundsFutures, yieldHistory, mortgageSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useBondsData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

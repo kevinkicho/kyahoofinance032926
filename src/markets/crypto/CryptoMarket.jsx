@@ -16,9 +16,9 @@ const SUB_TABS = [
   { id: 'funding',  label: 'Funding & Positioning'  },
 ];
 
-function CryptoMarket() {
+function CryptoMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('market');
-  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData();
+  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

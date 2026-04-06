@@ -17,14 +17,14 @@ const SUB_TABS = [
   { id: 'cot',             label: 'COT Positioning'  },
 ];
 
-function CommoditiesMarket() {
+function CommoditiesMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('price-dashboard');
   const {
     priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,
     fredCommodities, goldFuturesCurve, dbcEtf,
     goldOilRatio, contangoIndicator, commodityCurrencies, seasonalPatterns,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useCommoditiesData();
+  } = useCommoditiesData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

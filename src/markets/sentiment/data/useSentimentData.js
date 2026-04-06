@@ -1,6 +1,7 @@
 // src/markets/sentiment/data/useSentimentData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   fearGreedData as mockFearGreedData,
   cftcData      as mockCftcData,
@@ -10,7 +11,7 @@ import {
 
 const SERVER = '';
 
-export function useSentimentData() {
+export function useSentimentData(autoRefresh = false) {
   const [fearGreedData, setFearGreedData] = useState(mockFearGreedData);
   const [cftcData,      setCftcData]      = useState(mockCftcData);
   const [riskData,      setRiskData]      = useState(mockRiskData);
@@ -24,7 +25,7 @@ export function useSentimentData() {
   const [fetchedOn,     setFetchedOn]     = useState(null);
   const [isCurrent,     setIsCurrent]     = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/sentiment`)
       .then(r => r.json())
       .then(data => {
@@ -44,6 +45,10 @@ export function useSentimentData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

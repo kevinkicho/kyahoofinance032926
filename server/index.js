@@ -61,6 +61,18 @@ const cache = new NodeCache({ stdTTL: 900 }); // 15 min default
 app.use(cors());
 app.use(express.json());
 
+// Request logging — method, path, status, duration
+app.use('/api', (req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    const status = res.statusCode;
+    const color = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
+    console.log(`${color}[${req.method}]\x1b[0m ${req.originalUrl} ${status} ${ms}ms`);
+  });
+  next();
+});
+
 // HTTP cache headers — match in-memory TTL (15 min for market data, 5 min for health/status)
 app.use('/api', (req, res, next) => {
   // Skip caching for POST (stock quotes are user-specific ticker lists)

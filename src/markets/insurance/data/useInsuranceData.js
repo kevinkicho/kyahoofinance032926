@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   catBondSpreads as mockCatBondSpreads,
   combinedRatioData as mockCombinedRatioData,
@@ -17,7 +18,7 @@ function scaleCatBondSpreads(bonds, hyOAS) {
   return bonds.map(b => ({ ...b, spread: Math.round(b.spread * factor) }));
 }
 
-export function useInsuranceData() {
+export function useInsuranceData(autoRefresh = false) {
   const [catBondSpreads, setCatBondSpreads]         = useState(mockCatBondSpreads);
   const [combinedRatioData, setCombinedRatioData]   = useState(mockCombinedRatioData);
   const [reserveAdequacyData, setReserveAdequacyData] = useState(mockReserveAdequacyData);
@@ -35,7 +36,7 @@ export function useInsuranceData() {
   const [industryAvgCombinedRatio, setIndustryAvgCombinedRatio] = useState(null);
   const [treasury10y, setTreasury10y]               = useState(null);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/insurance`)
       .then(r => r.json())
       .then(data => {
@@ -58,6 +59,10 @@ export function useInsuranceData() {
       .catch(() => {}) // silent fallback to mock
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return {
     catBondSpreads,

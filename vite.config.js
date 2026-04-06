@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { visualizer } from 'rollup-plugin-visualizer'
 import https from 'https'
 
 // Lightweight in-memory cache — no npm package needed
@@ -163,7 +164,11 @@ function macroApiPlugin() {
 }
 
 export default defineConfig({
-  plugins: [react(), macroApiPlugin()],
+  plugins: [
+    react(),
+    macroApiPlugin(),
+    visualizer({ filename: 'dist/bundle-stats.html', gzipSize: true, brotliSize: true }),
+  ],
   build: {
     rollupOptions: {
       output: {
@@ -172,6 +177,7 @@ export default defineConfig({
           'vendor-echarts': ['echarts', 'echarts-for-react'],
           'vendor-utils': ['html2canvas', 'papaparse'],
         },
+        chunkFileNames: 'assets/[name]-[hash].js',
       },
     },
   },
@@ -194,6 +200,8 @@ export default defineConfig({
       '/api/credit':       { target: 'http://localhost:3001', changeOrigin: true },
       '/api/sentiment':    { target: 'http://localhost:3001', changeOrigin: true },
       '/api/calendar':     { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/fx':           { target: 'http://localhost:3001', changeOrigin: true },
+      '/api/rate-limits':  { target: 'http://localhost:3001', changeOrigin: true },
     }
   }
 })

@@ -15,13 +15,13 @@ const SUB_TABS = [
 ];
 
 // snapshotDate/currency not used — equity analytics are market-session-based, not snapshot-dependent
-function EquitiesDeepDiveMarket() {
+function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('sectors');
   const {
     sectorData, factorData, earningsData, shortData,
     equityRiskPremium, spPE, breadthDivergence, buffettIndicator,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useEquityDeepDiveData();
+  } = useEquityDeepDiveData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import { exchangeRates } from '../../../utils/constants';
 import { fredFxRates as mockFredFxRates } from './mockFxData';
 
@@ -13,7 +14,7 @@ function getDateStr(daysAgo = 0) {
   return d.toISOString().split('T')[0];
 }
 
-export function useFXData() {
+export function useFXData(autoRefresh = false) {
   const fallback = { USD: 1, ...exchangeRates };
   const [spotRates,   setSpotRates]   = useState(fallback);
   const [prevRates,   setPrevRates]   = useState(fallback);
@@ -29,7 +30,7 @@ export function useFXData() {
   const [rateDifferentials,setRateDifferentials]= useState(null);
   const [dxyHistory,       setDxyHistory]       = useState(null);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     const today     = getDateStr(0);
     const yesterday = getDateStr(1);
     const dxyStart  = getDateStr(HISTORY_DAYS);
@@ -95,9 +96,7 @@ export function useFXData() {
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, []);
 
-  useEffect(() => {
     fetchWithRetry('/api/fx')
       .then(r => r.json())
       .then(data => {
@@ -110,6 +109,10 @@ export function useFXData() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   // 24h changes: positive = currency strengthened vs USD
   const changes = Object.keys(spotRates).reduce((acc, code) => {

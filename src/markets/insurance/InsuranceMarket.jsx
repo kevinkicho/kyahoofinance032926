@@ -19,14 +19,14 @@ function fmtChangePct(v) {
   return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 }
 
-function InsuranceMarket() {
+function InsuranceMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('cat-bond-spreads');
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
     reinsurancePricing, reinsurers, hyOAS, igOAS, fredHyOasHistory,
     sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useInsuranceData();
+  } = useInsuranceData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

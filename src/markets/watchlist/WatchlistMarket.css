@@ -1,0 +1,87 @@
+/* src/markets/watchlist/WatchlistMarket.css */
+.watch-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
+
+.watch-sub-tabs {
+  display: flex; gap: 2px; padding: 8px 12px 0;
+  border-bottom: 1px solid var(--border-subtle); background: var(--bg-primary);
+}
+.watch-sub-tab {
+  padding: 6px 14px; font-size: 12px; color: var(--text-muted); background: none;
+  border: none; border-bottom: 2px solid transparent; cursor: pointer;
+}
+.watch-sub-tab:hover { color: var(--text-primary); }
+.watch-sub-tab.active { color: #eab308; border-bottom-color: #eab308; }
+
+.watch-content { flex: 1; overflow: auto; padding: 12px 14px; }
+
+/* --- Add ticker bar --- */
+.watch-add-bar {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 14px;
+}
+.watch-add-input {
+  padding: 6px 10px; font-size: 13px; border-radius: 6px;
+  border: 1px solid var(--border-color); background: var(--bg-card);
+  color: var(--text-primary); width: 160px; text-transform: uppercase;
+}
+.watch-add-input::placeholder { text-transform: none; }
+.watch-add-btn {
+  padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 6px;
+  border: none; background: #eab308; color: #1a1a1a; cursor: pointer;
+}
+.watch-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.watch-ticker-limit { font-size: 11px; color: var(--text-dim); margin-left: 8px; }
+
+/* --- Ticker table --- */
+.watch-ticker-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.watch-ticker-table th {
+  text-align: left; padding: 6px 10px; color: var(--text-muted); font-weight: 600;
+  border-bottom: 1px solid var(--border-subtle); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.watch-ticker-table td {
+  padding: 7px 10px; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary);
+}
+.watch-ticker-table tr:hover td { background: var(--bg-card); }
+.watch-price-up { color: #22c55e; }
+.watch-price-down { color: #ef4444; }
+.watch-price-flat { color: var(--text-muted); }
+.watch-remove-btn {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 14px; padding: 2px 6px; border-radius: 4px;
+}
+.watch-remove-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+.watch-ticker-loading {
+  display: inline-block; width: 50px; height: 12px; border-radius: 4px;
+  background: var(--border-subtle); animation: watch-pulse 1.2s ease-in-out infinite;
+}
+@keyframes watch-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.watch-ticker-error { color: var(--text-dim); font-style: italic; font-size: 11px; }
+.watch-empty { color: var(--text-muted); font-size: 13px; padding: 24px 0; text-align: center; }
+
+/* --- Metric cards --- */
+.watch-metrics-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.watch-metric-card {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  background: var(--bg-card); border: 1px solid var(--border-subtle);
+  border-radius: 8px; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.watch-metric-card:hover { border-color: #eab308; box-shadow: 0 0 0 1px #eab30833; }
+.watch-metric-card.favorited { border-color: #eab308; }
+.watch-metric-label { font-size: 13px; color: var(--text-primary); flex: 1; }
+.watch-metric-star {
+  font-size: 16px; background: none; border: none; cursor: pointer; padding: 0;
+  color: var(--text-dim); transition: color 0.15s;
+}
+.watch-metric-star.active { color: #eab308; }
+.watch-metric-star:hover { color: #eab308; }
+.watch-metrics-hint {
+  font-size: 11px; color: var(--text-dim); margin-bottom: 10px;
+}

@@ -19,7 +19,7 @@ function highlightMatch(text, query) {
   );
 }
 
-export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency, onExport, onExportData }) {
+export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency, onExport, onExportData, autoRefresh, onToggleRefresh }) {
   function handlePopout() {
     window.open('/?popout=' + activeMarket, '_blank', 'width=1200,height=800,menubar=no,toolbar=no');
   }
@@ -123,6 +123,14 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
           <button className="hub-export-btn" onClick={() => onExportData('json')} title="Download data as JSON">JSON</button>
         </>
       )}
+      <button
+        className="hub-refresh-toggle"
+        onClick={onToggleRefresh}
+        title={autoRefresh ? 'Auto-refresh ON (5 min)' : 'Auto-refresh OFF'}
+        aria-label={autoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh'}
+      >
+        {autoRefresh ? '\uD83D\uDD04' : '\u23F8\uFE0F'}
+      </button>
       <button
         className="hub-popout-btn"
         onClick={handlePopout}

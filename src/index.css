@@ -163,3 +163,18 @@ body {
   font-size: 13px;
   z-index: 9999;
 }
+
+/* ── Print-friendly stylesheet ────────────────── */
+@media print {
+  body { overflow: visible; height: auto; background: #fff; color: #000; }
+  .hub-layout { height: auto; overflow: visible; }
+  .market-tab-bar, .hub-footer, .hub-theme-toggle,
+  .hub-export-btn, .hub-popout-btn, .hub-search-wrap,
+  .hub-currency-picker, .sr-only-focusable { display: none !important; }
+  main[role="tabpanel"] { overflow: visible !important; height: auto !important; }
+  /* Force light colors for charts/cards */
+  * { color-adjust: exact; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sent-market, .bonds-market, .fx-market, .deriv-market,
+  .re-market, .ins-market, .com-market, .macro-market,
+  .eq-market, .crypto-market, .credit-market, .cal-market { overflow: visible; height: auto; }
+}

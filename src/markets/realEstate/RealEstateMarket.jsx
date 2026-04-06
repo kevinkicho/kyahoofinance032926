@@ -14,14 +14,14 @@ const SUB_TABS = [
   { id: 'cap-rate-monitor',  label: 'Cap Rate Monitor'  },
 ];
 
-function RealEstateMarket() {
+function RealEstateMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('price-index');
   const {
     priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,
     caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
     housingStarts, existingHomeSales, rentalVacancy, medianHomePrice,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useRealEstateData();
+  } = useRealEstateData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

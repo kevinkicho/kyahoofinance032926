@@ -15,13 +15,13 @@ const SUB_TABS = [
 ];
 
 // snapshotDate/currency not used — macro data is annual, not snapshot-dependent
-function GlobalMacroMarket() {
+function GlobalMacroMarket({ autoRefresh } = {}) {
   const [activeTab, setActiveTab] = useState('scorecard');
   const {
     scorecardData, growthInflationData, centralBankData, debtData,
     m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useGlobalMacroData();
+  } = useGlobalMacroData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 

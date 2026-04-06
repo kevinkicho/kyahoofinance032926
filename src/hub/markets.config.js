@@ -13,6 +13,8 @@ export const MARKETS = [
   { id: 'credit',           label: 'Credit',       icon: '🏦' },
   { id: 'sentiment', label: 'Sentiment', icon: '🎭' },
   { id: 'calendar', label: 'Calendar', icon: '📅' },
+  { id: 'alerts', label: 'Alerts', icon: '🚨' },
+  { id: 'watchlist', label: 'Watchlist', icon: '⭐' },
 ];
 
 export const DEFAULT_MARKET = 'equities';
@@ -31,4 +33,6 @@ export const SEARCH_INDEX = [
   { marketId: 'credit',           label: 'Credit',       icon: '🏦', subTabs: ['IG / HY Dashboard', 'EM Bonds', 'Loan Market', 'Default Watch'] },
   { marketId: 'sentiment',        label: 'Sentiment',    icon: '🎭', subTabs: ['Fear & Greed', 'CFTC Positioning', 'Risk Dashboard', 'Cross-Asset Returns', 'Correlation Matrix'] },
   { marketId: 'calendar',         label: 'Calendar',     icon: '📅', subTabs: ['Economic Calendar', 'Central Banks', 'Earnings Season', 'Key Releases'] },
+  { marketId: 'alerts',           label: 'Alerts',       icon: '🚨', subTabs: ['Active Alerts', 'Alert Rules'] },
+  { marketId: 'watchlist',        label: 'Watchlist',    icon: '⭐', subTabs: ['My Tickers', 'My Metrics'] },
 ];

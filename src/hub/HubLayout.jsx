@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, Suspense, lazy, Compon
 import MarketTabBar from './MarketTabBar';
 import { DEFAULT_MARKET, MARKETS } from './markets.config';
 import HubFooter from './HubFooter';
+import { useToast } from './ToastContext';
 import './Skeleton.css';
 import './responsive.css';
 
@@ -64,6 +65,8 @@ const MARKET_COMPONENTS = {
   credit:            lazy(() => import('../markets/credit/CreditMarket')),
   sentiment:         lazy(() => import('../markets/sentiment/SentimentMarket')),
   calendar:          lazy(() => import('../markets/calendar/CalendarMarket')),
+  alerts:            lazy(() => import('../markets/alerts/AlertsMarket')),
+  watchlist:         lazy(() => import('../markets/watchlist/WatchlistMarket')),
 };
 
 function MarketFallback() {
@@ -87,10 +90,40 @@ function MarketFallback() {
 }
 
 export default function HubLayout() {
-  const [activeMarket, setActiveMarket] = useState(DEFAULT_MARKET);
+  const [activeMarket, setActiveMarket] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('market');
+    if (fromUrl && MARKETS.some(m => m.id === fromUrl)) return fromUrl;
+    const saved = localStorage.getItem('hub-active-market');
+    return saved && MARKETS.some(m => m.id === saved) ? saved : DEFAULT_MARKET;
+  });
   const [currency, setCurrency] = useState('USD');
   const [snapshotDate, setSnapshotDate] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('hub-auto-refresh') !== 'off');
   const contentRef = useRef(null);
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    localStorage.setItem('hub-active-market', activeMarket);
+    // Don't modify URL in popout windows
+    if (window.location.search.includes('popout=')) return;
+    const url = new URL(window.location);
+    url.searchParams.set('market', activeMarket);
+    window.history.pushState({}, '', url);
+  }, [activeMarket]);
+
+  // Sync market from browser back/forward navigation
+  useEffect(() => {
+    function handlePopState() {
+      const params = new URLSearchParams(window.location.search);
+      const m = params.get('market');
+      if (m && MARKETS.some(mk => mk.id === m)) setActiveMarket(m);
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => { localStorage.setItem('hub-auto-refresh', autoRefresh ? 'on' : 'off'); }, [autoRefresh]);
 
   const ActiveMarket = MARKET_COMPONENTS[activeMarket];
 
@@ -104,7 +137,8 @@ export default function HubLayout() {
     link.download = `${marketLabel}-${date}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
-  }, [activeMarket]);
+    addToast('Screenshot saved', 'success');
+  }, [activeMarket, addToast]);
 
   const API_MAP = { equities: null, equitiesDeepDive: 'equityDeepDive' };
   const handleExportData = useCallback(async (format) => {
@@ -131,10 +165,12 @@ export default function HubLayout() {
       link.href = URL.createObjectURL(blob);
       link.click();
       URL.revokeObjectURL(link.href);
+      addToast(`Data exported as ${ext.toUpperCase()}`, 'success');
     } catch (e) {
       console.warn('Data export failed:', e.message);
+      addToast('Export failed: ' + e.message, 'error');
     }
-  }, [activeMarket]);
+  }, [activeMarket, addToast]);
 
   // Keyboard shortcuts: 1-9,0 for markets, Ctrl+E export, Ctrl+K search, Escape
   useEffect(() => {
@@ -187,6 +223,8 @@ export default function HubLayout() {
         setCurrency={setCurrency}
         onExport={handleExport}
         onExportData={handleExportData}
+        autoRefresh={autoRefresh}
+        onToggleRefresh={() => setAutoRefresh(r => !r)}
       />
       <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
@@ -196,6 +234,7 @@ export default function HubLayout() {
               setCurrency={setCurrency}
               snapshotDate={snapshotDate}
               setSnapshotDate={setSnapshotDate}
+              autoRefresh={autoRefresh}
             />
           </Suspense>
         </MarketErrorBoundary>

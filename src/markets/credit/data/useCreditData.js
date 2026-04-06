@@ -1,6 +1,7 @@
 // src/markets/credit/data/useCreditData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   spreadData   as mockSpreadData,
   emBondData   as mockEmBondData,
@@ -10,7 +11,7 @@ import {
 
 const SERVER = '';
 
-export function useCreditData() {
+export function useCreditData(autoRefresh = false) {
   const [spreadData,       setSpreadData]       = useState(mockSpreadData);
   const [emBondData,       setEmBondData]       = useState(mockEmBondData);
   const [loanData,         setLoanData]         = useState(mockLoanData);
@@ -25,7 +26,7 @@ export function useCreditData() {
   const [fetchedOn,        setFetchedOn]        = useState(null);
   const [isCurrent,        setIsCurrent]        = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/credit`)
       .then(r => r.json())
       .then(data => {
@@ -46,6 +47,10 @@ export function useCreditData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

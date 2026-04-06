@@ -1,6 +1,7 @@
 // src/markets/derivatives/data/useDerivativesData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   volSurfaceData  as mockVolSurfaceData,
   vixTermStructure as mockVixTermStructure,
@@ -10,7 +11,7 @@ import {
 
 const SERVER = '';
 
-export function useDerivativesData() {
+export function useDerivativesData(autoRefresh = false) {
   const [volSurfaceData,   setVolSurfaceData]   = useState(mockVolSurfaceData);
   const [vixTermStructure, setVixTermStructure] = useState(mockVixTermStructure);
   const [optionsFlow,      setOptionsFlow]      = useState(mockOptionsFlow);
@@ -27,7 +28,7 @@ export function useDerivativesData() {
   const [fetchedOn,        setFetchedOn]        = useState(null);
   const [isCurrent,        setIsCurrent]        = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/derivatives`)
       .then(r => r.json())
       .then(data => {
@@ -51,6 +52,10 @@ export function useDerivativesData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

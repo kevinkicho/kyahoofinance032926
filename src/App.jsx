@@ -2,6 +2,7 @@
 import React, { Suspense, lazy } from 'react';
 import './index.css';
 import { ThemeProvider } from './hub/ThemeContext';
+import { ToastProvider } from './hub/ToastContext';
 import HubLayout from './hub/HubLayout';
 import { MARKETS } from './hub/markets.config';
 
@@ -124,18 +125,22 @@ export default function App() {
   if (isValidPopout) {
     return (
       <ThemeProvider>
-        <ErrorBoundary>
-          <PopoutView marketId={popoutId} />
-        </ErrorBoundary>
+        <ToastProvider>
+          <ErrorBoundary>
+            <PopoutView marketId={popoutId} />
+          </ErrorBoundary>
+        </ToastProvider>
       </ThemeProvider>
     );
   }
 
   return (
     <ThemeProvider>
-      <ErrorBoundary>
-        <HubLayout />
-      </ErrorBoundary>
+      <ToastProvider>
+        <ErrorBoundary>
+          <HubLayout />
+        </ErrorBoundary>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

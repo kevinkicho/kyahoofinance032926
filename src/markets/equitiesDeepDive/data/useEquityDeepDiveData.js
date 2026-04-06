@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useInterval } from '../../../hooks/useInterval';
 import {
   sectorData    as mockSectorData,
   factorData    as mockFactorData,
@@ -9,7 +10,7 @@ import {
 
 const SERVER = '';
 
-export function useEquityDeepDiveData() {
+export function useEquityDeepDiveData(autoRefresh = false) {
   const [sectorData,         setSectorData]         = useState(mockSectorData);
   const [factorData,         setFactorData]         = useState(mockFactorData);
   const [earningsData,       setEarningsData]       = useState(mockEarningsData);
@@ -24,7 +25,7 @@ export function useEquityDeepDiveData() {
   const [fetchedOn,          setFetchedOn]          = useState(null);
   const [isCurrent,          setIsCurrent]          = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/equityDeepDive`)
       .then(r => r.json())
       .then(data => {
@@ -45,6 +46,10 @@ export function useEquityDeepDiveData() {
       .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
+  useInterval(refetch, autoRefresh ? 300000 : null);
 
   return {
     sectorData, factorData, earningsData, shortData,
