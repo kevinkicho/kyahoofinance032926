@@ -753,12 +753,27 @@ app.get('/api/derivatives', async (req, res) => {
       }
     } catch { /* use null */ }
 
+    // 7. FRED VIX history (1yr daily)
+    let fredVixHistory = null;
+    if (FRED_API_KEY) {
+      try {
+        const vixHist = await fetchFredHistory('VIXCLS', 252);
+        if (vixHist.length >= 20) {
+          fredVixHistory = {
+            dates: vixHist.map(p => p.date),
+            values: vixHist.map(p => Math.round(p.value * 10) / 10),
+          };
+        }
+      } catch { /* use null */ }
+    }
+
     const result = {
       vixTermStructure,
       optionsFlow,
       volSurfaceData,
       vixEnrichment,
       volPremium,
+      fredVixHistory,
       lastUpdated: today,
     };
 
