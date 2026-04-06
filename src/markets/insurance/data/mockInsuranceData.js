@@ -39,3 +39,14 @@ export const reinsurancePricing = [
   { peril: 'Cyber',             layer: '$25M xs $10M',    rol: 16.4, rolChange: +11.2, rpl: 4.6, rplChange: +8.8,  capacity: 'Tight',      renewalDate: 'Jan 2026' },
   { peril: 'Marine',            layer: '$75M xs $25M',    rol:  5.8, rolChange: +1.6,  rpl: 1.4, rplChange: +0.9,  capacity: 'Ample',      renewalDate: 'Jan 2026' },
 ];
+
+const MOCK_OAS_DATES = Array.from({ length: 60 }, (_, i) => {
+  const d = new Date('2026-01-02');
+  d.setDate(d.getDate() + i);
+  return d.toISOString().split('T')[0];
+});
+
+export const fredHyOasHistory = {
+  dates: MOCK_OAS_DATES,
+  values: MOCK_OAS_DATES.map((_, i) => 350 + Math.sin(i / 10) * 50 + Math.random() * 20),
+};

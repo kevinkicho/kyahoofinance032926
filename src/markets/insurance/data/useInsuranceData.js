@@ -4,6 +4,7 @@ import {
   combinedRatioData as mockCombinedRatioData,
   reserveAdequacyData as mockReserveAdequacyData,
   reinsurancePricing,
+  fredHyOasHistory as mockFredHyOasHistory,
 } from './mockInsuranceData';
 
 const SERVER = '';
@@ -22,6 +23,7 @@ export function useInsuranceData() {
   const [reinsurers, setReinsurers]                 = useState([]);
   const [hyOAS, setHyOAS]                           = useState(null);
   const [igOAS, setIgOAS]                           = useState(null);
+  const [fredHyOasHistory, setFredHyOasHistory]     = useState(mockFredHyOasHistory);
   const [isLive, setIsLive]                         = useState(false);
   const [lastUpdated, setLastUpdated]               = useState('Mock data — Apr 2025');
   const [isLoading, setIsLoading]                   = useState(true);
@@ -40,6 +42,7 @@ export function useInsuranceData() {
         if (data.hyOAS != null)                        setHyOAS(data.hyOAS);
         if (data.igOAS != null)                        setIgOAS(data.igOAS);
         setCatBondSpreads(scaleCatBondSpreads(mockCatBondSpreads, data.hyOAS));
+        if (data.fredHyOasHistory?.dates?.length >= 20) setFredHyOasHistory(data.fredHyOasHistory);
         setIsLive(true);
         setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -57,6 +60,7 @@ export function useInsuranceData() {
     reinsurers,
     hyOAS,
     igOAS,
+    fredHyOasHistory,
     isLive,
     lastUpdated,
     isLoading,
