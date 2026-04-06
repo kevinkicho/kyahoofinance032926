@@ -66,6 +66,17 @@ export default function EarningsWatch({ earningsData }) {
     [beatRates, colors]
   );
 
+  const kpis = useMemo(() => {
+    const nextReport = upcoming.length ? upcoming[0] : null;
+    const avgBeat = beatRates.length
+      ? beatRates.reduce((s, b) => s + (b.beatRate ?? 0), 0) / beatRates.length
+      : null;
+    const bestSector = beatRates.length
+      ? beatRates.reduce((a, b) => (a.beatRate ?? 0) > (b.beatRate ?? 0) ? a : b)
+      : null;
+    return { nextReport, upcomingCount: upcoming.length, avgBeat, bestSector };
+  }, [upcoming, beatRates]);
+
   if (!earningsData) return null;
 
   return (
@@ -73,6 +84,32 @@ export default function EarningsWatch({ earningsData }) {
       <div className="eq-panel-header">
         <span className="eq-panel-title">Earnings Watch</span>
         <span className="eq-panel-subtitle">Next 14 days · EPS estimate vs prior quarter · last quarter beat rates</span>
+      </div>
+      {/* KPI Strip */}
+      <div className="eq-kpi-strip">
+        {kpis.nextReport && (
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Next Report</span>
+            <span className="eq-kpi-value accent">{kpis.nextReport.ticker}</span>
+            <span className="eq-kpi-sub">{kpis.nextReport.date}</span>
+          </div>
+        )}
+        <div className="eq-kpi-pill">
+          <span className="eq-kpi-label">Upcoming</span>
+          <span className="eq-kpi-value accent">{kpis.upcomingCount}</span>
+          <span className="eq-kpi-sub">reports</span>
+        </div>
+        <div className="eq-kpi-pill">
+          <span className="eq-kpi-label">Avg Beat Rate</span>
+          <span className="eq-kpi-value accent">{kpis.avgBeat != null ? `${kpis.avgBeat.toFixed(1)}%` : '\u2014'}</span>
+        </div>
+        {kpis.bestSector && (
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Best Beat Sector</span>
+            <span className="eq-kpi-value accent">{kpis.bestSector.sector}</span>
+            <span className="eq-kpi-sub">{kpis.bestSector.beatRate?.toFixed(1)}%</span>
+          </div>
+        )}
       </div>
       <div className="eq-two-col">
         <div className="eq-chart-panel">

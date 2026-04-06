@@ -114,6 +114,16 @@ export default function ShortInterest({ shortData }) {
   const shortedOption = useMemo(() => buildShortedOption(mostShorted, colors), [mostShorted, colors]);
   const squeezeOption = useMemo(() => buildSqueezeOption(mostShorted, colors), [mostShorted, colors]);
 
+  const kpis = useMemo(() => {
+    if (!mostShorted.length) return null;
+    const top = mostShorted.reduce((a, b) => (a.shortFloat ?? 0) > (b.shortFloat ?? 0) ? a : b);
+    const avgShort = mostShorted.reduce((s, st) => s + (st.shortFloat ?? 0), 0) / mostShorted.length;
+    const above20 = mostShorted.filter(s => (s.shortFloat ?? 0) > 20).length;
+    const avgDays = mostShorted.filter(s => s.daysToCover != null);
+    const avgDtc = avgDays.length ? avgDays.reduce((s, st) => s + st.daysToCover, 0) / avgDays.length : null;
+    return { top, avgShort, above20, avgDtc, total: mostShorted.length };
+  }, [mostShorted]);
+
   if (!shortData) return null;
 
   return (
@@ -122,6 +132,31 @@ export default function ShortInterest({ shortData }) {
         <span className="eq-panel-title">Short Interest</span>
         <span className="eq-panel-subtitle">Short float % · squeeze candidates: short &gt;10% + positive 1W momentum</span>
       </div>
+      {/* KPI Strip */}
+      {kpis && (
+        <div className="eq-kpi-strip">
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Most Shorted</span>
+            <span className="eq-kpi-value" style={{ color: '#ef4444' }}>{kpis.top.ticker}</span>
+            <span className="eq-kpi-sub">{kpis.top.shortFloat?.toFixed(1)}%</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Avg Short Float</span>
+            <span className="eq-kpi-value accent">{kpis.avgShort.toFixed(1)}%</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">{'Short > 20%'}</span>
+            <span className="eq-kpi-value" style={{ color: kpis.above20 > 3 ? '#ef4444' : '#6366f1' }}>
+              {kpis.above20}
+            </span>
+            <span className="eq-kpi-sub">of {kpis.total}</span>
+          </div>
+          <div className="eq-kpi-pill">
+            <span className="eq-kpi-label">Avg Days to Cover</span>
+            <span className="eq-kpi-value accent">{kpis.avgDtc != null ? `${kpis.avgDtc.toFixed(1)}d` : '\u2014'}</span>
+          </div>
+        </div>
+      )}
       <div className="eq-two-col">
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Most Shorted</div>
