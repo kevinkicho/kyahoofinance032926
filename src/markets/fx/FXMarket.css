@@ -4,15 +4,15 @@
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  background: #0a0f1a;
+  background: var(--bg-deep);
 }
 
 /* Sub-tab navigation bar (renders below the hub tab bar) */
 .fx-sub-tabs {
   display: flex;
   align-items: center;
-  background: #0d1117;
-  border-bottom: 1px solid #1e293b;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border-subtle);
   padding: 0 16px;
   height: 38px;
   flex-shrink: 0;
@@ -23,14 +23,14 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #475569;
+  color: var(--text-dim);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
-.fx-sub-tab:hover  { color: #94a3b8; }
+.fx-sub-tab:hover  { color: var(--text-secondary); }
 .fx-sub-tab.active { color: #f59e0b; border-bottom-color: #f59e0b; }
 
 /* Status bar: shows live/static indicator + last-updated date */
@@ -39,10 +39,10 @@
   align-items: center;
   gap: 10px;
   padding: 3px 20px;
-  background: #0d1117;
-  border-bottom: 1px solid #0f172a;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--bg-primary);
   font-size: 10px;
-  color: #475569;
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 .fx-status-live { color: #22c55e; }

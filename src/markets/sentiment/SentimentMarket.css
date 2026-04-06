@@ -1,28 +1,28 @@
 /* src/markets/sentiment/SentimentMarket.css */
-.sent-market { display: flex; flex-direction: column; height: 100%; background: #0f172a; }
+.sent-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
 .sent-market.sent-loading { align-items: center; justify-content: center; gap: 12px; }
 .sent-loading-spinner {
-  width: 36px; height: 36px; border: 3px solid #1e293b;
+  width: 36px; height: 36px; border: 3px solid var(--border-subtle);
   border-top-color: #7c3aed; border-radius: 50%;
   animation: sent-spin 0.8s linear infinite;
 }
 @keyframes sent-spin { to { transform: rotate(360deg); } }
-.sent-loading-text { font-size: 12px; color: #64748b; }
+.sent-loading-text { font-size: 12px; color: var(--text-muted); }
 
 .sent-sub-tabs {
   display: flex; gap: 2px; padding: 8px 12px 0;
-  border-bottom: 1px solid #1e293b; background: #0f172a;
+  border-bottom: 1px solid var(--border-subtle); background: var(--bg-primary);
 }
 .sent-sub-tab {
-  padding: 6px 14px; font-size: 12px; color: #64748b; background: none;
+  padding: 6px 14px; font-size: 12px; color: var(--text-muted); background: none;
   border: none; border-bottom: 2px solid transparent; cursor: pointer;
 }
-.sent-sub-tab:hover { color: #e2e8f0; }
+.sent-sub-tab:hover { color: var(--text-primary); }
 .sent-sub-tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
 
 .sent-status-bar {
   display: flex; align-items: center; gap: 12px; padding: 4px 14px;
-  font-size: 10px; color: #475569; border-bottom: 1px solid #1e293b;
+  font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);
 }
 .sent-status-live { color: #7c3aed; }
 .sent-content { flex: 1; overflow: hidden; }
