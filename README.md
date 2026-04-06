@@ -1,6 +1,6 @@
 # Global Market Hub
 
-A comprehensive multi-market financial dashboard built with React 18 + Vite 5. Covers 13 asset classes with 55+ interactive sub-views, live data from Yahoo Finance, FRED, CoinGecko, and more. Includes a 350+ stock global equity heatmap with historical playback.
+A comprehensive multi-market financial dashboard built with React 18 + Vite 5. Covers 15 asset classes with 60+ interactive sub-views, live data from Yahoo Finance, FRED, CoinGecko, and more. Includes a 350+ stock global equity heatmap with historical playback.
 
 ---
 
@@ -19,17 +19,40 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 | 9 | **Equity+** | Sector Rotation, Factor Rankings, Earnings Watch, Short Interest | Indigo `#6366f1` | Yahoo Finance (12 sector ETFs, quoteSummary, chart) |
 | 10 | **Crypto** | Market Overview, Cycle Indicators, DeFi & Chains, Funding & Positioning | Amber `#f59e0b` | CoinGecko (top 20 + global), DeFiLlama (TVL), Alternative.me (F&G), Bybit (funding), mempool.space (on-chain) |
 | 11 | **Credit** | IG/HY Dashboard, EM Bonds, Loan Market, Default Watch | Cyan `#06b6d4` | FRED (5 spread series), Yahoo (LQD, HYG, EMB, JNK, BKLN, MUB) |
-| 12 | **Sentiment** | Fear & Greed, CFTC Positioning, Risk Dashboard, Cross-Asset Returns | Violet `#7c3aed` | Alternative.me (252d), FRED (VIX, HY, YC), CFTC Socrata, Yahoo (8 ETFs) |
+| 12 | **Sentiment** | Fear & Greed, CFTC Positioning, Risk Dashboard, Cross-Asset Returns, Correlation Matrix | Violet `#7c3aed` | Alternative.me (252d), FRED (VIX, HY, YC), CFTC Socrata, Yahoo (8 ETFs) |
 | 13 | **Calendar** | Economic Calendar, Central Banks, Earnings Season, Key Releases | Rose `#f43f5e` | Econdb, FRED (releases/dates), Yahoo (calendarEvents, 30 tickers) |
+| 14 | **Alerts** | Active Alerts, Alert Rules | Red `#ef4444` | Aggregates 6 market endpoints, 8 anomaly rules (VIX spike, curve inversion, HY stress, F&G extremes, BTC/Gold/DXY moves) |
+| 15 | **Watchlist** | My Tickers, My Metrics | Gold `#eab308` | Yahoo Finance (live quotes per ticker), cross-market metric shortcuts |
 
 ## App-Level Features
 
 - **Dark / Light Theme** — toggle in the tab bar, persisted to localStorage
 - **PNG Export** — capture any market view as a high-res PNG screenshot
-- **Global Search** — search across all 13 markets and 55+ sub-tabs with keyboard navigation
+- **CSV / JSON Export** — download raw market data in either format
+- **Global Search** — search across all 15 markets and 60+ sub-tabs with keyboard navigation
 - **Multi-Monitor Mode** — pop out any market into its own browser window for side-by-side analysis
 - **Currency Picker** — display values in USD, EUR, GBP, JPY, CNY, and 5 more currencies
 - **Live Clock & Cache Badges** — footer shows current time + per-market freshness indicators
+- **URL Routing** — `?market=bonds` in the URL, shareable links, browser back/forward support
+- **Tab Persistence** — last-viewed market restored on page refresh via localStorage
+- **Auto-Refresh** — toggle 5-minute polling for all market data (button in tab bar)
+- **Toast Notifications** — visual feedback for exports, errors, and data events
+- **Keyboard Shortcuts** — `1`–`9`/`0` switch tabs, arrows prev/next, `Ctrl+E` export, `Ctrl+K` search
+- **Print-Friendly** — `@media print` stylesheet hides chrome, maximizes content
+- **Loading Skeletons** — shimmer placeholders during lazy-load and data fetch
+- **Error Boundaries** — per-market crash isolation with retry button
+
+## Infrastructure
+
+- **Backend Modularization** — `server/index.js` is a thin orchestrator (130 lines), 15 route files in `server/routes/`, 5 lib modules
+- **HTTP Cache Headers** — `Cache-Control` on all API routes (15min market data, 5min health/status)
+- **Fetch Retry** — `fetchWithRetry` with exponential backoff + AbortController timeout in all data hooks
+- **Rate Limit Monitoring** — `/api/rate-limits` endpoint tracking 13 free API sources
+- **Request Logging** — colored Express middleware showing method, path, status, and duration
+- **Responsive CSS** — breakpoints at 1024px, 768px, and 480px with progressive grid collapse
+- **Accessibility** — ARIA roles/labels on all tab bars, skip-to-content link, combobox search, tabpanel semantics
+- **Docker Deployment** — multi-stage `Dockerfile`, `docker-compose.yml`, SPA catch-all
+- **Bundle Analysis** — `rollup-plugin-visualizer` generates `dist/bundle-stats.html` on build
 
 ## Dense Dashboard Design
 
@@ -47,20 +70,22 @@ Every sub-tab follows a consistent dense-dashboard pattern:
 - **ECharts** via `echarts-for-react` — all charts use `animation: false`, `backgroundColor: 'transparent'`
 - **CSS Variables** — 12 semantic variables in `:root` / `[data-theme]` for theming
 - **ThemeContext** — `useTheme()` hook provides `{ theme, colors, toggle }`
+- **ToastContext** — `useToast()` hook for notification management
 
 ### Backend
-- **Express 4** on port 3001
+- **Express 4** on port 3001, modularized into 15 route files + 5 lib modules
 - **yahoo-finance2** — quotes, options chains, historical prices, calendar events
 - **FRED API** — 40+ economic series
 - **Two-tier cache** — in-memory `node-cache` (15 min TTL) wraps file-based daily cache in `server/datacache/`
 - **Fallback** — on error, serves latest cached data with `isCurrent: false`
 
 ### Data Hooks
-Each market has an async hook (`useState` + `useEffect` + `fetch`) that:
+Each market has an async hook (`useState` + `useEffect` + `fetchWithRetry`) that:
 1. Initializes with mock data
-2. Fetches `/api/*` with AbortController + 10s timeout
+2. Fetches `/api/*` with retry logic (2 retries, exponential backoff) + AbortController timeout
 3. Upgrades to live data on success (`isLive: true`)
 4. Falls back silently to mock on failure
+5. Supports auto-refresh polling via `useInterval` (5min when enabled)
 
 ## Global Equity Dashboard
 
@@ -91,11 +116,12 @@ Each market has an async hook (`useState` + `useEffect` + `fetch`) that:
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite 5, ECharts (`echarts-for-react`), `html2canvas` |
+| Frontend | React 18, Vite 5, ECharts (`echarts-for-react`), `html2canvas`, PapaParse |
 | Backend | Express 4, `yahoo-finance2`, `node-cache` |
 | Data | Yahoo Finance, FRED API, CoinGecko, DeFiLlama, Bybit, CFTC Socrata, Econdb, EIA, mempool.space, Frankfurter, World Bank |
-| Styling | Plain CSS with CSS variables (dark/light themes) |
+| Styling | Plain CSS with CSS variables (dark/light themes), responsive breakpoints |
 | Tests | Vitest 4, @testing-library/react — 329 tests across 51 files |
+| Deploy | Docker (multi-stage Node 20 alpine), docker-compose |
 
 ## Getting Started
 
@@ -135,7 +161,21 @@ Open [http://localhost:5173](http://localhost:5173)
 npx vitest run
 ```
 
-### 5. (Optional) Pre-fetch equity data
+### 5. Build for production
+
+```bash
+npm run build
+# Bundle analysis available at dist/bundle-stats.html
+```
+
+### 6. Docker deployment
+
+```bash
+docker-compose up --build
+# Serves at http://localhost:3001
+```
+
+### 7. (Optional) Pre-fetch equity data
 
 Downloads 5 years of history + fundamentals for 350+ tickers (~52 MB, ~21 minutes):
 
@@ -148,11 +188,18 @@ node scripts/fetch-universe.js
 ```
 src/
   hub/                          # Hub shell, routing, tab bar, theme, footer
-    HubLayout.jsx               # Market routing + PNG export
-    MarketTabBar.jsx             # Tabs + search + theme + export + pop-out + currency
-    markets.config.js            # Market definitions + search index
+    HubLayout.jsx               # Market routing + URL sync + exports + keyboard shortcuts
+    MarketTabBar.jsx             # Tabs + search + theme + export + refresh + pop-out + currency
+    markets.config.js            # Market definitions + search index (15 markets)
     ThemeContext.jsx              # Dark/light theme provider
-    HubFooter.jsx                # Clock + cache status badges
+    ToastContext.jsx              # Toast notification provider
+    HubFooter.jsx                # Clock + cache status + data source attribution
+    MarketSkeleton.jsx           # Shimmer loading placeholder
+    Skeleton.css                 # Skeleton animation keyframes
+    responsive.css               # Responsive breakpoints (1024/768/480px)
+    dataSources.js               # Central data source registry
+  hooks/
+    useInterval.js               # Reusable polling interval hook
   markets/
     equities/                   # Global equity heatmap + all views
     bonds/                      # 5 sub-tabs (yield, credit, spread, duration, breakevens)
@@ -165,13 +212,17 @@ src/
     equitiesDeepDive/           # 4 sub-tabs (sectors, factors, earnings, shorts)
     crypto/                     # 4 sub-tabs (market, cycles, defi, funding)
     credit/                     # 4 sub-tabs (IG/HY, EM bonds, loans, defaults)
-    sentiment/                  # 4 sub-tabs (F&G, CFTC, risk, returns)
+    sentiment/                  # 5 sub-tabs (F&G, CFTC, risk, returns, correlation)
     calendar/                   # 4 sub-tabs (economic, central banks, earnings, releases)
+    alerts/                     # 2 sub-tabs (active alerts, alert rules)
+    watchlist/                  # 2 sub-tabs (my tickers, my metrics)
   components/                   # Equities-specific: Header, Heatmap, BarRace, List, etc.
-  utils/                        # FX rates, data helpers, ML engine, constants
+  utils/                        # FX rates, fetchWithRetry, data helpers, constants
   __tests__/                    # 329 tests across 51 files
 server/
-  index.js                      # Express API — all /api/* endpoints
+  index.js                      # Express orchestrator (130 lines)
+  routes/                       # 15 route modules (bonds, fx, crypto, etc.)
+  lib/                          # 5 shared modules (cache, fetch, yahoo, stocks, rateLimits)
   datacache/                    # gitignored — daily JSON file cache
 ```
 
