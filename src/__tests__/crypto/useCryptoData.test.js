@@ -125,4 +125,19 @@ describe('useCryptoData', () => {
     expect(result.current.fetchedOn).toBe('2026-04-05');
     expect(result.current.isCurrent).toBe(true);
   });
+
+  it('guard: does not apply onChainData when fees.fastest is null', async () => {
+    const liveData = {
+      coinMarketData: { coins: Array.from({ length: 12 }, (_, i) => ({ id: `coin${i}`, symbol: `C${i}`, name: `Coin ${i}`, price: 100, change24h: 1, change7d: 2, change30d: 5, marketCapB: 10, volumeB: 1, dominance: 1 })), globalStats: {} },
+      fearGreedData: { value: 50, label: 'Neutral', history: Array.from({ length: 10 }, () => 50), correlations: [] },
+      defiData: { protocols: Array.from({ length: 6 }, (_, i) => ({ name: `P${i}`, category: 'DEX', chain: 'ETH', tvlB: 5, change1d: 0, change7d: 0 })), chains: [] },
+      fundingData: { rates: Array.from({ length: 4 }, (_, i) => ({ symbol: `F${i}`, rate8h: 0.01, rateAnnualized: 10, openInterestB: 1, exchange: 'X' })), openInterestHistory: null },
+      onChainData: { fees: { fastest: null, halfHour: null, hour: null, economy: null, minimum: null }, mempool: null, difficulty: null, hashrate: null },
+    };
+    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    const { result } = renderHook(() => useCryptoData());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    // Should keep mock onChainData (fastest = 12) because live has fastest = null
+    expect(result.current.onChainData.fees.fastest).toBe(12);
+  });
 });

@@ -5,6 +5,7 @@ import {
   fearGreedData  as mockFearGreedData,
   defiData       as mockDefiData,
   fundingData    as mockFundingData,
+  onChainData    as mockOnChainData,
 } from './mockCryptoData';
 
 const SERVER = '';
@@ -14,6 +15,7 @@ export function useCryptoData() {
   const [fearGreedData,  setFearGreedData]  = useState(mockFearGreedData);
   const [defiData,       setDefiData]       = useState(mockDefiData);
   const [fundingData,    setFundingData]    = useState(mockFundingData);
+  const [onChainData,    setOnChainData]    = useState(mockOnChainData);
   const [isLive,         setIsLive]         = useState(false);
   const [lastUpdated,    setLastUpdated]    = useState('Mock data — 2026');
   const [isLoading,      setIsLoading]      = useState(true);
@@ -32,6 +34,7 @@ export function useCryptoData() {
         if (data.fearGreedData?.history?.length >= 7)       { setFearGreedData(data.fearGreedData);   anyReplaced = true; }
         if (data.defiData?.protocols?.length >= 5)          { setDefiData(data.defiData);             anyReplaced = true; }
         if (data.fundingData?.rates?.length >= 3)           { setFundingData(data.fundingData);       anyReplaced = true; }
+        if (data.onChainData?.fees?.fastest != null)        { setOnChainData(data.onChainData);       anyReplaced = true; }
         setIsLive(anyReplaced);
         if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -43,5 +46,5 @@ export function useCryptoData() {
     return () => { clearTimeout(timer); controller.abort(); };
   }, []);
 
-  return { coinMarketData, fearGreedData, defiData, fundingData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { coinMarketData, fearGreedData, defiData, fundingData, onChainData, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

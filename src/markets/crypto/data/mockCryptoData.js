@@ -100,3 +100,24 @@ export const fundingData = {
     ethOIB: [ 6.4,    6.8,    7.2,    7.6,    8.0,     8.2],
   },
 };
+
+export const onChainData = {
+  fees: { fastest: 12, halfHour: 8, hour: 5, economy: 3, minimum: 1 },
+  mempool: { count: 24500, vsize: 142.3 },
+  difficulty: { progressPercent: 62.4, difficultyChange: 3.2, remainingBlocks: 1248, estimatedRetargetDate: '2026-04-18' },
+  hashrate: {
+    current: 642.8,
+    history: [
+      { timestamp: 1711900000, avgHashrate: 610.2 },
+      { timestamp: 1712500000, avgHashrate: 615.8 },
+      { timestamp: 1713100000, avgHashrate: 620.4 },
+      { timestamp: 1713700000, avgHashrate: 618.9 },
+      { timestamp: 1714300000, avgHashrate: 625.1 },
+      { timestamp: 1714900000, avgHashrate: 630.6 },
+      { timestamp: 1715500000, avgHashrate: 634.2 },
+      { timestamp: 1716100000, avgHashrate: 638.7 },
+      { timestamp: 1716700000, avgHashrate: 640.1 },
+      { timestamp: 1717300000, avgHashrate: 642.8 },
+    ],
+  },
+};
