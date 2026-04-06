@@ -22,7 +22,7 @@ export default function InsuranceMarket() {
   const [activeTab, setActiveTab] = useState('cat-bond-spreads');
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
-    reinsurancePricing, reinsurers, hyOAS, igOAS,
+    reinsurancePricing, reinsurers, hyOAS, igOAS, fredHyOasHistory,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
   } = useInsuranceData();
 
@@ -66,7 +66,7 @@ export default function InsuranceMarket() {
         {activeTab === 'cat-bond-spreads'    && <CatBondSpreads       catBondSpreads={catBondSpreads} />}
         {activeTab === 'combined-ratio'      && <CombinedRatioMonitor combinedRatioData={combinedRatioData} />}
         {activeTab === 'reserve-adequacy'    && <ReserveAdequacy      reserveAdequacyData={reserveAdequacyData} />}
-        {activeTab === 'reinsurance-pricing' && <ReinsurancePricing   reinsurancePricing={reinsurancePricing} />}
+        {activeTab === 'reinsurance-pricing' && <ReinsurancePricing reinsurancePricing={reinsurancePricing} fredHyOasHistory={fredHyOasHistory} />}
       </div>
     </div>
   );
