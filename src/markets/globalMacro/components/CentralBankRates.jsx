@@ -114,6 +114,16 @@ export default function CentralBankRates({ centralBankData }) {
   const rankedOption = useMemo(() => buildRankedOption(current, colors), [current, colors]);
   const historyOption = useMemo(() => buildHistoryOption(history, colors), [history, colors]);
 
+  const kpis = useMemo(() => {
+    const withRate = current.filter(c => c.rate != null);
+    if (!withRate.length) return null;
+    const highest = withRate.reduce((a, b) => a.rate > b.rate ? a : b);
+    const lowest = withRate.reduce((a, b) => a.rate < b.rate ? a : b);
+    const avg = withRate.reduce((s, c) => s + c.rate, 0) / withRate.length;
+    const lowRate = withRate.filter(c => c.rate <= 2).length;
+    return { highest, lowest, avg, lowRate };
+  }, [current]);
+
   if (!centralBankData) return null;
 
   return (
@@ -122,6 +132,30 @@ export default function CentralBankRates({ centralBankData }) {
         <span className="mac-panel-title">Policy Rates</span>
         <span className="mac-panel-subtitle">Ranked + 5-year history · FRED + central bank sources</span>
       </div>
+      {/* KPI Strip */}
+      {kpis && (
+        <div className="mac-kpi-strip">
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Highest Rate</span>
+            <span className="mac-kpi-value" style={{ color: '#ef4444' }}>{kpis.highest.name}</span>
+            <span className="mac-kpi-sub">{kpis.highest.rate.toFixed(2)}%</span>
+          </div>
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Lowest Rate</span>
+            <span className="mac-kpi-value accent">{kpis.lowest.name}</span>
+            <span className="mac-kpi-sub">{kpis.lowest.rate.toFixed(2)}%</span>
+          </div>
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Avg Rate</span>
+            <span className="mac-kpi-value accent">{kpis.avg.toFixed(2)}%</span>
+          </div>
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">{`Rate \u2264 2%`}</span>
+            <span className="mac-kpi-value accent">{kpis.lowRate}</span>
+            <span className="mac-kpi-sub">of {current.length}</span>
+          </div>
+        </div>
+      )}
       <div className="mac-two-row">
         <div className="mac-chart-panel">
           <div className="mac-chart-title">Current Rates — Ranked</div>

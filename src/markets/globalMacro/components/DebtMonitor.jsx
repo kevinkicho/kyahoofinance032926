@@ -101,6 +101,17 @@ export default function DebtMonitor({ debtData }) {
   const debtOption = useMemo(() => buildDebtOption(countries, colors), [countries, colors]);
   const currentAcctOption = useMemo(() => buildCurrentAcctOption(countries, colors), [countries, colors]);
 
+  const kpis = useMemo(() => {
+    if (!countries.length) return null;
+    const withDebt = countries.filter(c => c.debt != null);
+    const highestDebt = withDebt.length ? withDebt.reduce((a, b) => a.debt > b.debt ? a : b) : null;
+    const withCA = countries.filter(c => c.currentAccount != null);
+    const largestSurplus = withCA.length ? withCA.reduce((a, b) => a.currentAccount > b.currentAccount ? a : b) : null;
+    const above90 = withDebt.filter(c => c.debt > 90).length;
+    const avgDebt = withDebt.length ? withDebt.reduce((s, c) => s + c.debt, 0) / withDebt.length : 0;
+    return { highestDebt, largestSurplus, above90, avgDebt, totalCountries: withDebt.length };
+  }, [countries]);
+
   if (!debtData) return null;
 
   return (
@@ -109,6 +120,40 @@ export default function DebtMonitor({ debtData }) {
         <span className="mac-panel-title">Debt Monitor</span>
         <span className="mac-panel-subtitle">{year} data — World Bank · Maastricht reference lines at 60% and 100%</span>
       </div>
+      {/* KPI Strip */}
+      {kpis && (
+        <div className="mac-kpi-strip">
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Highest Debt</span>
+            <span className="mac-kpi-value" style={{ color: '#ef4444' }}>
+              {kpis.highestDebt ? kpis.highestDebt.name : '\u2014'}
+            </span>
+            {kpis.highestDebt && <span className="mac-kpi-sub">{kpis.highestDebt.debt.toFixed(0)}% GDP</span>}
+          </div>
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Largest Surplus</span>
+            <span className="mac-kpi-value accent">
+              {kpis.largestSurplus ? kpis.largestSurplus.name : '\u2014'}
+            </span>
+            {kpis.largestSurplus && (
+              <span className="mac-kpi-sub">
+                {kpis.largestSurplus.currentAccount >= 0 ? '+' : ''}{kpis.largestSurplus.currentAccount.toFixed(1)}%
+              </span>
+            )}
+          </div>
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Debt &gt; 90%</span>
+            <span className="mac-kpi-value" style={{ color: kpis.above90 > 3 ? '#ef4444' : '#14b8a6' }}>
+              {kpis.above90}
+            </span>
+            <span className="mac-kpi-sub">of {kpis.totalCountries}</span>
+          </div>
+          <div className="mac-kpi-pill">
+            <span className="mac-kpi-label">Avg Debt/GDP</span>
+            <span className="mac-kpi-value accent">{kpis.avgDebt.toFixed(0)}%</span>
+          </div>
+        </div>
+      )}
       <div className="mac-two-col">
         <div className="mac-chart-panel">
           <div className="mac-chart-title">Government Debt (% of GDP)</div>
