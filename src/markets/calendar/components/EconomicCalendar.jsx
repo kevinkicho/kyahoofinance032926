@@ -1,5 +1,6 @@
 // src/markets/calendar/components/EconomicCalendar.jsx
 import React, { useState, useMemo } from 'react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CalendarComponents.css';
 
 function countryFlag(cc) {
@@ -15,6 +16,7 @@ const REGION_FILTERS = [
 ];
 
 export default function EconomicCalendar({ economicEvents }) {
+  const { colors } = useTheme();
   const [filter, setFilter] = useState('all');
 
   const filtered = useMemo(() => {
@@ -59,12 +61,12 @@ export default function EconomicCalendar({ economicEvents }) {
               const surprise = e.actual != null && e.expected != null ? Math.round((e.actual - e.expected) * 100) / 100 : null;
               return (
                 <tr key={i} className={e.actual != null ? 'cal-released' : 'cal-upcoming'}>
-                  <td style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{e.date}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 10, color: colors.textMuted }}>{e.date}</td>
                   <td><span className="cal-flag">{countryFlag(e.country)}</span></td>
                   <td style={{ fontWeight: 500 }}>{e.event}</td>
                   <td style={{ fontFamily: 'monospace' }}>{e.actual ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: '#94a3b8' }}>{e.expected ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{e.previous ?? '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}>{e.expected ?? '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textMuted }}>{e.previous ?? '—'}</td>
                   <td className={surprise > 0 ? 'cal-surprise-pos' : surprise < 0 ? 'cal-surprise-neg' : 'cal-surprise-na'}>
                     {surprise != null ? (surprise > 0 ? '+' : '') + surprise : '—'}
                   </td>

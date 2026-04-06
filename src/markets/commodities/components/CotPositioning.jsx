@@ -1,10 +1,12 @@
+// src/markets/commodities/components/CotPositioning.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CommodComponents.css';
 
 function fmtK(v) { return v != null ? `${(v / 1000).toFixed(0)}K` : '—'; }
 
-function buildHistoryOption(history, name) {
+function buildHistoryOption(history, name, colors) {
   const dates = history.map(h => h.date.slice(5));
   const values = history.map(h => h.noncommNet);
   return {
@@ -13,22 +15,22 @@ function buildHistoryOption(history, name) {
     grid: { top: 8, right: 8, bottom: 24, left: 52 },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}<br/>Net: ${fmtK(params[0].value)} contracts`,
     },
     xAxis: {
       type: 'category',
       data: dates,
-      axisLine: { lineStyle: { color: '#334155' } },
-      axisLabel: { color: '#64748b', fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      axisLabel: { color: colors.textMuted, fontSize: 9 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => fmtK(v) },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => fmtK(v) },
     },
     series: [{
       type: 'bar',
@@ -42,6 +44,7 @@ function buildHistoryOption(history, name) {
 }
 
 export default function CotPositioning({ cotData }) {
+  const { colors } = useTheme();
   if (!cotData?.commodities?.length) return null;
 
   return (
@@ -80,7 +83,7 @@ export default function CotPositioning({ cotData }) {
             </div>
             {c.history?.length > 2 && (
               <div style={{ height: 140 }}>
-                <ReactECharts option={buildHistoryOption(c.history, c.name)} style={{ height: '100%', width: '100%' }} />
+                <ReactECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             )}
           </div>

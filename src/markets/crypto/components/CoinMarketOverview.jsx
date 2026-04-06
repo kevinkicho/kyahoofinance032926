@@ -1,6 +1,7 @@
 // src/markets/crypto/components/CoinMarketOverview.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
 function fmtPrice(p) {
@@ -18,16 +19,16 @@ function fmtChange(v) {
   return { text: `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, cls };
 }
 
-function buildDominanceOption(globalStats) {
+function buildDominanceOption(globalStats, colors) {
   const { btcDominance = 52, ethDominance = 15, altDominance = 33 } = globalStats || {};
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: p => `${p.name}: ${p.value.toFixed(1)}%`,
     },
     legend: { show: false },
@@ -38,19 +39,20 @@ function buildDominanceOption(globalStats) {
       data: [
         { name: 'BTC',   value: btcDominance, itemStyle: { color: '#f59e0b' } },
         { name: 'ETH',   value: ethDominance, itemStyle: { color: '#818cf8' } },
-        { name: 'Alts',  value: altDominance, itemStyle: { color: '#334155' } },
+        { name: 'Alts',  value: altDominance, itemStyle: { color: colors.border } },
       ],
       label: {
         show: true, formatter: p => `${p.name}\n${p.value.toFixed(1)}%`,
-        color: '#94a3b8', fontSize: 10,
+        color: colors.textSecondary, fontSize: 10,
       },
-      labelLine: { lineStyle: { color: '#475569' } },
+      labelLine: { lineStyle: { color: colors.textDim } },
       emphasis: { disabled: true },
     }],
   };
 }
 
 export default function CoinMarketOverview({ coinMarketData }) {
+  const { colors } = useTheme();
   if (!coinMarketData) return null;
   const { coins = [], globalStats = {} } = coinMarketData;
 
@@ -128,7 +130,7 @@ export default function CoinMarketOverview({ coinMarketData }) {
           <div className="crypto-chart-title">Market Dominance</div>
           <div className="crypto-chart-subtitle">BTC · ETH · Alts share of total market cap</div>
           <div className="crypto-chart-wrap">
-            <ReactECharts option={buildDominanceOption(globalStats)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={buildDominanceOption(globalStats, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

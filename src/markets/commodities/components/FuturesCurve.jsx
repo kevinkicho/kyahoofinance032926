@@ -1,9 +1,11 @@
 // src/markets/commodities/components/FuturesCurve.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CommodComponents.css';
 
 export default function FuturesCurve({ futuresCurveData }) {
+  const { colors } = useTheme();
   const { labels = [], prices = [], commodity = 'WTI Crude Oil', spotPrice, unit = '$/bbl' } = futuresCurveData;
 
   const isContango      = prices.length >= 2 && prices[prices.length - 1] > prices[0];
@@ -14,9 +16,9 @@ export default function FuturesCurve({ futuresCurveData }) {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 12 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 12 },
       formatter: (params) => {
         const p = params[0];
         return `${p.name}<br/><span style="color:#ca8a04">$${p.value.toFixed(2)}${unit.replace('$','')}</span>`;
@@ -26,14 +28,14 @@ export default function FuturesCurve({ futuresCurveData }) {
     xAxis: {
       type: 'category',
       data: labels,
-      axisLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 11 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 11 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 11, formatter: (v) => `$${v}` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 11, formatter: (v) => `$${v}` },
     },
     series: [{
       type: 'line',

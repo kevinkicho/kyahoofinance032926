@@ -1,6 +1,7 @@
 // src/markets/crypto/components/FundingAndPositioning.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
 function fundingColor(rate) {
@@ -10,28 +11,28 @@ function fundingColor(rate) {
   return '#818cf8';
 }
 
-function buildOIHistoryOption(history) {
+function buildOIHistoryOption(history, colors) {
   const { dates = [], btcOIB = [], ethOIB = [] } = history;
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}<br/>${params.map(p => `${p.seriesName}: $${p.value.toFixed(1)}B`).join('<br/>')}`,
     },
-    legend: { data: ['BTC OI', 'ETH OI'], textStyle: { color: '#94a3b8', fontSize: 9 }, top: 2 },
+    legend: { data: ['BTC OI', 'ETH OI'], textStyle: { color: colors.textSecondary, fontSize: 9 }, top: 2 },
     grid: { top: 28, right: 16, bottom: 24, left: 8, containLabel: true },
     xAxis: {
       type: 'category', data: dates,
-      axisLabel: { color: '#475569', fontSize: 9 },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textDim, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `$${v}B` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${v}B` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [
       { name: 'BTC OI', type: 'line', data: btcOIB, lineStyle: { color: '#f59e0b', width: 2 }, symbol: 'circle', symbolSize: 4, itemStyle: { color: '#f59e0b' } },
@@ -41,6 +42,7 @@ function buildOIHistoryOption(history) {
 }
 
 export default function FundingAndPositioning({ fundingData }) {
+  const { colors } = useTheme();
   if (!fundingData) return null;
   const { rates = [], openInterestHistory } = fundingData;
 
@@ -88,13 +90,13 @@ export default function FundingAndPositioning({ fundingData }) {
               <div className="crypto-chart-title">Open Interest History</div>
               <div className="crypto-chart-subtitle">BTC & ETH perpetual open interest (billions USD) · 6-week trend</div>
               <div className="crypto-chart-wrap">
-                <ReactECharts option={buildOIHistoryOption(openInterestHistory)} style={{ height: '100%', width: '100%' }} />
+                <ReactECharts option={buildOIHistoryOption(openInterestHistory, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             </>
           ) : (
             <>
               <div className="crypto-chart-title">Open Interest History</div>
-              <div className="crypto-chart-subtitle" style={{ color: '#475569', padding: 20, textAlign: 'center' }}>
+              <div className="crypto-chart-subtitle" style={{ color: colors.textDim, padding: 20, textAlign: 'center' }}>
                 Historical OI data not available — showing current rates only
               </div>
             </>

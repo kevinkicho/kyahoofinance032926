@@ -1,6 +1,7 @@
 // src/markets/crypto/components/DefiChains.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
 function fmtChange(v) {
@@ -9,29 +10,29 @@ function fmtChange(v) {
   return { text: `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, cls };
 }
 
-function buildChainTvlOption(chains) {
+function buildChainTvlOption(chains, colors) {
   const sorted = [...chains].sort((a, b) => b.tvlB - a.tvlB).slice(0, 10);
   return {
     animation: false,
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: '#1e293b', borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg, borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].name}: $${params[0].value.toFixed(1)}B TVL`,
     },
     grid: { top: 8, right: 48, bottom: 8, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `$${v}B` },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLine: { lineStyle: { color: '#1e293b' } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${v}B` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
       type: 'category',
       data: sorted.map(c => c.name),
       axisLine: { show: false }, axisTick: { show: false },
-      axisLabel: { color: '#94a3b8', fontSize: 10 },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
     },
     series: [{
       type: 'bar',
@@ -42,13 +43,14 @@ function buildChainTvlOption(chains) {
       label: {
         show: true, position: 'right',
         formatter: p => `$${p.value.toFixed(1)}B`,
-        color: '#94a3b8', fontSize: 9,
+        color: colors.textSecondary, fontSize: 9,
       },
     }],
   };
 }
 
 export default function DefiChains({ defiData }) {
+  const { colors } = useTheme();
   if (!defiData) return null;
   const { protocols = [], chains = [] } = defiData;
 
@@ -97,7 +99,7 @@ export default function DefiChains({ defiData }) {
           <div className="crypto-chart-title">Chain TVL</div>
           <div className="crypto-chart-subtitle">Top 10 chains by total value locked (billions USD)</div>
           <div className="crypto-chart-wrap">
-            <ReactECharts option={buildChainTvlOption(chains)} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts option={buildChainTvlOption(chains, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

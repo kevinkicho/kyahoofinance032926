@@ -1,5 +1,6 @@
 // src/markets/calendar/components/EarningsSeason.jsx
 import React, { useMemo } from 'react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CalendarComponents.css';
 
 function weekLabel(dateStr) {
@@ -20,6 +21,7 @@ function isCurrentWeek(dateStr) {
 }
 
 export default function EarningsSeason({ earningsSeason }) {
+  const { colors } = useTheme();
   const grouped = useMemo(() => {
     if (!earningsSeason?.length) return [];
     const groups = {};
@@ -56,12 +58,12 @@ export default function EarningsSeason({ earningsSeason }) {
             <tbody>
               {g.entries.map((e, i) => (
                 <tr key={i}>
-                  <td style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748b' }}>{e.date}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 10, color: colors.textMuted }}>{e.date}</td>
                   <td style={{ fontWeight: 700, color: '#f43f5e' }}>{e.ticker}</td>
                   <td>{e.name}</td>
                   <td style={{ fontFamily: 'monospace' }}>{e.epsEst != null ? `$${e.epsEst.toFixed(2)}` : '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{e.epsPrev != null ? `$${e.epsPrev.toFixed(2)}` : '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: '#94a3b8' }}>{e.marketCapB != null ? `$${e.marketCapB.toLocaleString()}` : '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textMuted }}>{e.epsPrev != null ? `$${e.epsPrev.toFixed(2)}` : '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}>{e.marketCapB != null ? `$${e.marketCapB.toLocaleString()}` : '—'}</td>
                 </tr>
               ))}
             </tbody>

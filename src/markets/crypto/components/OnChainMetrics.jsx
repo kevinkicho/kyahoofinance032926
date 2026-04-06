@@ -1,8 +1,10 @@
+// src/markets/crypto/components/OnChainMetrics.jsx
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
-function buildHashrateOption(history) {
+function buildHashrateOption(history, colors) {
   const dates = history.map(h => {
     const d = new Date(h.timestamp * 1000);
     return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -14,22 +16,22 @@ function buildHashrateOption(history) {
     grid: { top: 10, right: 12, bottom: 24, left: 48 },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#1e293b',
-      borderColor: '#334155',
-      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
       formatter: params => `${params[0].axisValue}<br/>${params[0].value} EH/s`,
     },
     xAxis: {
       type: 'category',
       data: dates,
-      axisLine: { lineStyle: { color: '#334155' } },
-      axisLabel: { color: '#64748b', fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      axisLabel: { color: colors.textMuted, fontSize: 9 },
     },
     yAxis: {
       type: 'value',
       axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#1e293b' } },
-      axisLabel: { color: '#64748b', fontSize: 9, formatter: v => `${v}` },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}` },
     },
     series: [{
       type: 'line',
@@ -43,6 +45,7 @@ function buildHashrateOption(history) {
 }
 
 export default function OnChainMetrics({ onChainData }) {
+  const { colors } = useTheme();
   if (!onChainData) return null;
   const { fees, mempool, difficulty, hashrate } = onChainData;
 
@@ -77,7 +80,7 @@ export default function OnChainMetrics({ onChainData }) {
       {hashrate?.history?.length > 2 && (
         <div className="onchain-chart-wrap">
           <div className="crypto-chart-title">Hashrate Trend (30d)</div>
-          <ReactECharts option={buildHashrateOption(hashrate.history)} style={{ height: 160, width: '100%' }} />
+          <ReactECharts option={buildHashrateOption(hashrate.history, colors)} style={{ height: 160, width: '100%' }} />
         </div>
       )}
     </div>
