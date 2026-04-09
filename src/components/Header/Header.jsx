@@ -18,7 +18,6 @@ const GROUP_OPTIONS = [
 
 const Header = ({
   viewMode, setViewMode,
-  showTimeTravel, setShowTimeTravel,
   rankMetric, setRankMetric,
   groupBy, setGroupBy,
   colorByPerf, setColorByPerf,
@@ -37,11 +36,6 @@ const Header = ({
               style={{ color: viewMode === 'race' ? '#fff' : '#f59e0b', borderColor: '#f59e0b' }}
             >Bar Race</button>
           </div>
-          <button
-            className={`timetravel-btn ${showTimeTravel ? 'active' : ''}`}
-            onClick={() => setShowTimeTravel(v => !v)}
-            title="Toggle time-travel era panel in sidebar"
-          >News</button>
         </div>
       </div>
 

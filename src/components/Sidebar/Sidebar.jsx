@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../hub/ThemeContext';
 import DetailPanel from '../DetailPanel/DetailPanel';
-import TimeTravel from '../TimeTravel/TimeTravel';
-import CountryMacro from './CountryMacro';
-import { ERAS } from '../TimeTravel/TimeTravel';
 import { exchangeRates } from '../../utils/constants'; // fallback only
 import './Sidebar.css';
 
@@ -38,19 +35,11 @@ const Sidebar = ({
   rates,
   ratesIsLive,
   ratesDate,
-  activeEra,
-  setActiveEra,
-  showTimeTravel,
-  snapshotDate,
-  setSnapshotDate,
-  snapshotLoading,
-  hasRealData
 }) => {
   const { colors } = useTheme();
   const fxRates = rates || exchangeRates;
   const [macroData, setMacroData] = useState(MOCK_MACRO);
   const [macroLive, setMacroLive] = useState(false);
-  const currentEraLabel = ERAS.find(e => e.id === activeEra)?.label || 'Current';
 
   useEffect(() => {
     fetch('/api/macro')
@@ -75,30 +64,10 @@ const Sidebar = ({
         />
       ) : (
         <>
-          {showTimeTravel && (
-            <>
-              <h2>&#128197; Time Machine</h2>
-              <TimeTravel
-                activeEra={activeEra} setActiveEra={setActiveEra}
-                snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate}
-                snapshotLoading={snapshotLoading} hasRealData={hasRealData}
-              />
-            </>
-          )}
-          <h2>Market Summary {showTimeTravel ? <span style={{color:'#a855f7',fontSize:'0.7rem'}}>({currentEraLabel})</span> : '(Mock)'}</h2>
+          <h2>Market Summary</h2>
           <div className="stat-card">
             <h3>Global Validated Cap ({currency})</h3>
             <p className="stat-value">{currentSymbol}{(flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0) * currentRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} B</p>
-            {(() => {
-              const orig = flatData.reduce((acc, curr) => acc + curr.value, 0);
-              const adj  = flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0);
-              const diff = ((adj - orig) / orig) * 100;
-              return (
-                <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }} className={diff >= 0 ? 'text-green' : 'text-red'}>
-                  {diff >= 0 ? '↑' : '↓'} {Math.abs(diff).toFixed(2)}% Systemic Impact
-                </div>
-              );
-            })()}
           </div>
 
           <h2>Macro Indicators {macroLive ? <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span> : <span style={{fontSize:'0.6rem',color:colors.textDim}}>(Mock)</span>}</h2>
