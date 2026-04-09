@@ -1,6 +1,6 @@
 // src/markets/crypto/components/DefiChains.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
@@ -132,7 +132,7 @@ export default function DefiChains({ defiData }) {
           <div className="crypto-chart-title">Chain TVL</div>
           <div className="crypto-chart-subtitle">Top 10 chains by total value locked (billions USD)</div>
           <div className="crypto-chart-wrap">
-            <ReactECharts option={buildChainTvlOption(chains, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildChainTvlOption(chains, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

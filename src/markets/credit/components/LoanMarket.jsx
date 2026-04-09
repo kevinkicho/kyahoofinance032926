@@ -1,6 +1,6 @@
 // src/markets/credit/components/LoanMarket.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
@@ -133,7 +133,7 @@ export default function LoanMarket({ loanData, excessReserves }) {
           <div className="credit-chart-title">CLO Tranche Spreads</div>
           <div className="credit-chart-subtitle">AAA → Equity waterfall · OAS spread (bps) by tranche rating</div>
           <div className="credit-chart-wrap">
-            <ReactECharts option={buildCloOption(cloTranches, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildCloOption(cloTranches, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="credit-two-row">
@@ -141,7 +141,7 @@ export default function LoanMarket({ loanData, excessReserves }) {
             <div className="credit-chart-title">BKLN Price (6-Month)</div>
             <div className="credit-chart-subtitle">Invesco Senior Loan ETF — floating-rate leveraged loan proxy</div>
             <div className="credit-chart-wrap">
-              <ReactECharts option={buildBklnOption(priceHistory, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildBklnOption(priceHistory, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
           {excessReserves?.dates?.length >= 2 && (
@@ -149,7 +149,7 @@ export default function LoanMarket({ loanData, excessReserves }) {
               <div className="credit-chart-title">Excess Reserves (3-Year)</div>
               <div className="credit-chart-subtitle">FRED · bank excess reserves held at Fed ($B) · EXCSRESNW</div>
               <div className="credit-chart-wrap">
-                <ReactECharts option={buildExcessReservesOption(excessReserves, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildExcessReservesOption(excessReserves, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           )}

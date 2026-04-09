@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useEquityDeepDiveData } from './data/useEquityDeepDiveData';
+import { useInstitutionalData } from './data/useInstitutionalData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import SectorRotation from './components/SectorRotation';
 import FactorRankings from './components/FactorRankings';
 import EarningsWatch  from './components/EarningsWatch';
 import ShortInterest  from './components/ShortInterest';
+import InstitutionalHoldings from './components/InstitutionalHoldings';
 import './EquitiesDeepDiveMarket.css';
 
 const SUB_TABS = [
@@ -12,6 +14,7 @@ const SUB_TABS = [
   { id: 'factors',  label: 'Factor Rankings' },
   { id: 'earnings', label: 'Earnings Watch'  },
   { id: 'shorts',   label: 'Short Interest'  },
+  { id: 'holdings', label: 'Inst. Holdings'  },
 ];
 
 // snapshotDate/currency not used — equity analytics are market-session-based, not snapshot-dependent
@@ -22,6 +25,8 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
     equityRiskPremium, spPE, breadthDivergence, buffettIndicator,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
   } = useEquityDeepDiveData(autoRefresh);
+
+  const institutionalData = useInstitutionalData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -52,6 +57,7 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
         {activeTab === 'factors'  && <FactorRankings factorData={factorData} breadthDivergence={breadthDivergence} equityRiskPremium={equityRiskPremium} />}
         {activeTab === 'earnings' && <EarningsWatch  earningsData={earningsData} />}
         {activeTab === 'shorts'   && <ShortInterest  shortData={shortData} />}
+        {activeTab === 'holdings' && <InstitutionalHoldings {...institutionalData} />}
       </div>
     </div>
   );

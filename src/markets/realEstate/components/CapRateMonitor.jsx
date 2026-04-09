@@ -1,6 +1,6 @@
 // src/markets/realEstate/components/CapRateMonitor.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './REComponents.css';
 
@@ -142,7 +142,7 @@ export default function CapRateMonitor({ capRateData, reitData, treasury10y, hom
         <div className="re-chart-panel">
           <div className="re-chart-title">Implied Yield by Sector</div>
           <div className="re-mini-chart">
-            <ReactECharts option={yieldOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={yieldOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="re-chart-panel" style={{ overflow: 'auto' }}>
@@ -181,7 +181,7 @@ export default function CapRateMonitor({ capRateData, reitData, treasury10y, hom
         <div className="re-chart-panel" style={{ marginTop: 8, height: 130, flexShrink: 0 }}>
           <div className="re-chart-title">Rent CPI (Primary Residence)</div>
           <div className="re-mini-chart">
-            <ReactECharts option={rentOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={rentOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

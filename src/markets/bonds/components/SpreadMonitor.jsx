@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
@@ -118,7 +118,7 @@ export default function SpreadMonitor({ spreadData, mortgageSpread }) {
       {/* Wide-Narrow: Chart + Latest Bars */}
       <div className="bonds-wide-narrow">
         <div className="bonds-chart-wrap">
-          <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} />
         </div>
         <div className="bonds-chart-panel">
           <div className="bonds-chart-title">Latest Spreads</div>

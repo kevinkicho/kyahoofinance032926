@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
@@ -157,7 +157,7 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
       {/* Wide-Narrow: Chart + Rate Panel */}
       <div className={treasuryRates ? 'bonds-wide-narrow' : ''}>
         <div className="bonds-chart-wrap">
-          <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} />
         </div>
         {treasuryRates && (
           <div className="bonds-chart-panel">
@@ -181,7 +181,7 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
       {fffOption && (
         <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
           <div className="bonds-chart-title">Fed Funds Futures &mdash; Implied Rate 1&ndash;6 Months Out</div>
-          <ReactECharts option={fffOption} style={{ height: 130, width: '100%' }} />
+          <SafeECharts option={fffOption} style={{ height: 130, width: '100%' }} />
         </div>
       )}
 

@@ -1,6 +1,6 @@
 // src/markets/crypto/components/FundingAndPositioning.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
@@ -124,7 +124,7 @@ export default function FundingAndPositioning({ fundingData }) {
               <div className="crypto-chart-title">Open Interest History</div>
               <div className="crypto-chart-subtitle">BTC & ETH perpetual open interest (billions USD) · 6-week trend</div>
               <div className="crypto-chart-wrap">
-                <ReactECharts option={buildOIHistoryOption(openInterestHistory, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildOIHistoryOption(openInterestHistory, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             </>
           ) : (

@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './InsComponents.css';
 
@@ -79,7 +79,7 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
       {/* Main: chart (wide) + adequacy list (narrow) */}
       <div className="ins-wide-narrow">
         <div style={{ minHeight: 0, display: 'flex' }}>
-          <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} />
         </div>
         <div className="ins-chart-panel">
           <div className="ins-chart-title">Adequacy Ratio by Line</div>

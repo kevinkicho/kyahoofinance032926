@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
@@ -179,7 +179,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-chart-title">Factor In Favor</div>
           <div className="eq-chart-subtitle">Month-to-date factor return · indigo = positive · which factor is working</div>
           <div className="eq-chart-wrap">
-            <ReactECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="eq-chart-panel">

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import BondsMarket from '../../markets/bonds/BondsMarket';
 
 vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
@@ -9,38 +9,40 @@ beforeEach(() => {
 });
 
 describe('BondsMarket', () => {
-  it('renders Yield Curve tab by default after loading', async () => {
+  it('renders unified dashboard after loading', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getAllByText('Yield Curve').length).toBeGreaterThanOrEqual(1);
+    // Dashboard shows yield curve section (may appear in multiple places)
+    const yieldCurveElements = screen.getAllByText(/Yield Curve/i);
+    expect(yieldCurveElements.length).toBeGreaterThan(0);
   });
 
-  it('renders all 4 sub-tabs', async () => {
+  it('shows KPI strip with key metrics', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('tab', { name: 'Yield Curve'     })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Credit Matrix'   })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Spread Monitor'  })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Duration Ladder' })).toBeInTheDocument();
+    // KPI strip shows key indicators
+    expect(screen.getByText(/10Y-2Y Spread|Fed Funds|10Y Treasury/i)).toBeInTheDocument();
   });
 
-  it('switches to Credit Matrix on click', async () => {
+  it('shows Credit Spreads section', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Credit Matrix' }));
-    expect(screen.getAllByText(/S&P|AAA|rating/i).length).toBeGreaterThan(0);
+    // Dashboard shows credit spreads
+    expect(screen.getByText('Credit Spreads')).toBeInTheDocument();
   });
 
-  it('switches to Spread Monitor on click', async () => {
+  it('shows Duration Ladder section', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Spread Monitor' }));
-    expect(screen.getAllByText(/spread|OAS|IG|HY/i).length).toBeGreaterThan(0);
+    // Dashboard shows duration ladder
+    expect(screen.getByText('Duration Ladder')).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getAllByText(/mock data/i).length).toBeGreaterThan(0);
+    // Multiple components may show mock data status
+    const mockDataElements = screen.getAllByText(/mock data/i);
+    expect(mockDataElements.length).toBeGreaterThan(0);
   });
 });

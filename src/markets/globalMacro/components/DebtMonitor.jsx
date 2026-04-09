@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './MacroComponents.css';
 
@@ -251,14 +251,14 @@ export default function DebtMonitor({ debtData, yieldSpread, m2Growth }) {
           <div className="mac-chart-title">Government Debt (% of GDP)</div>
           <div className="mac-chart-subtitle">Green &lt;60% · amber 60–90% · red &gt;90% (Maastricht criteria)</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={debtOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={debtOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="mac-chart-panel">
           <div className="mac-chart-title">Current Account Balance (% of GDP)</div>
           <div className="mac-chart-subtitle">Teal = surplus · red = deficit · sorted surplus to deficit</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={currentAcctOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={currentAcctOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>
@@ -269,7 +269,7 @@ export default function DebtMonitor({ debtData, yieldSpread, m2Growth }) {
               <div className="mac-chart-title">Yield Spread — 10Y minus 2Y (Recession Indicator)</div>
               <div className="mac-chart-subtitle">36 months · teal = normal · red = inverted (below 0) · dashed = inversion threshold</div>
               <div className="mac-chart-wrap">
-                <ReactECharts option={yieldSpreadOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={yieldSpreadOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           )}
@@ -278,7 +278,7 @@ export default function DebtMonitor({ debtData, yieldSpread, m2Growth }) {
               <div className="mac-chart-title">M2 Money Supply Growth (YoY %)</div>
               <div className="mac-chart-subtitle">Teal &lt;4% · amber 4–8% · red &gt;8% — elevated M2 growth signals inflation risk</div>
               <div className="mac-chart-wrap">
-                <ReactECharts option={m2GrowthOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={m2GrowthOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           )}

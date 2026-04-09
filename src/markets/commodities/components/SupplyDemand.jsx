@@ -1,6 +1,6 @@
 // src/markets/commodities/components/SupplyDemand.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommodComponents.css';
 
@@ -161,7 +161,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
         <div className="com-chart-panel">
           <div className="com-chart-title">US Crude Oil Stocks (M bbl)</div>
           <div className="com-mini-chart">
-            <ReactECharts
+            <SafeECharts
               option={buildStocksOption('Crude Stocks', crudeStocks.periods, crudeStocks.values, crudeStocks.avg5yr, colors)}
               style={{ height: '100%', width: '100%' }}
             />
@@ -170,7 +170,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
         <div className="com-chart-panel">
           <div className="com-chart-title">Natural Gas Storage (Bcf)</div>
           <div className="com-mini-chart">
-            <ReactECharts
+            <SafeECharts
               option={buildStocksOption('Nat Gas', natGasStorage.periods, natGasStorage.values, natGasStorage.avg5yr, colors)}
               style={{ height: '100%', width: '100%' }}
             />
@@ -180,7 +180,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
           <div className="com-chart-panel">
             <div className="com-chart-title">Gold Price — 1 Year (FRED)</div>
             <div className="com-mini-chart">
-              <ReactECharts option={goldOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={goldOption} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         ) : (
@@ -197,7 +197,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       <div className="com-chart-panel" style={{ height: 170, flexShrink: 0 }}>
         <div className="com-chart-title">US Crude Production (M bbl/day) — 52 Weeks</div>
         <div className="com-mini-chart">
-          <ReactECharts
+          <SafeECharts
             option={buildStocksOption('Production', crudeProduction.periods, crudeProduction.values, null, colors)}
             style={{ height: '100%', width: '100%' }}
           />

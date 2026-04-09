@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
@@ -59,22 +59,23 @@ function buildBeatRateOption(beatRates, colors) {
 
 export default function EarningsWatch({ earningsData }) {
   const { colors } = useTheme();
-  const { upcoming = [], beatRates = [] } = earningsData ?? {};
+  const upcoming = earningsData?.upcoming ?? [];
+  const beatRates = earningsData?.beatRates ?? [];
 
   const beatRateOption = useMemo(
-    () => beatRates.length > 0 ? buildBeatRateOption(beatRates, colors) : null,
+    () => beatRates?.length > 0 ? buildBeatRateOption(beatRates, colors) : null,
     [beatRates, colors]
   );
 
   const kpis = useMemo(() => {
-    const nextReport = upcoming.length ? upcoming[0] : null;
-    const avgBeat = beatRates.length
+    const nextReport = upcoming?.length ? upcoming[0] : null;
+    const avgBeat = beatRates?.length
       ? beatRates.reduce((s, b) => s + (b.beatRate ?? 0), 0) / beatRates.length
       : null;
-    const bestSector = beatRates.length
+    const bestSector = beatRates?.length
       ? beatRates.reduce((a, b) => (a.beatRate ?? 0) > (b.beatRate ?? 0) ? a : b)
       : null;
-    return { nextReport, upcomingCount: upcoming.length, avgBeat, bestSector };
+    return { nextReport, upcomingCount: upcoming?.length || 0, avgBeat, bestSector };
   }, [upcoming, beatRates]);
 
   if (!earningsData) return null;
@@ -151,7 +152,7 @@ export default function EarningsWatch({ earningsData }) {
               <div className="eq-chart-title">Sector Beat Rate</div>
               <div className="eq-chart-subtitle">Last quarter EPS beat % · indigo ≥70% · amber 50–70% · red &lt;50%</div>
               <div className="eq-chart-wrap">
-                <ReactECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </>
           ) : (

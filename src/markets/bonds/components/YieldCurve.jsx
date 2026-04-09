@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
@@ -190,7 +190,7 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
       {/* Wide-Narrow: Chart + US Tenor Bars */}
       <div className="bonds-wide-narrow">
         <div className="bonds-chart-wrap">
-          <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} />
         </div>
         <div className="bonds-chart-panel">
           <div className="bonds-chart-title">US Yield by Tenor</div>
@@ -214,7 +214,7 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
       {historyOption && (
         <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
           <div className="bonds-chart-title">US 10Y Yield &mdash; 1yr History (FRED DGS10)</div>
-          <ReactECharts option={historyOption} style={{ height: 120, width: '100%' }} />
+          <SafeECharts option={historyOption} style={{ height: 120, width: '100%' }} />
         </div>
       )}
 
@@ -222,7 +222,7 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
       {yieldHistoryOption && (
         <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
           <div className="bonds-chart-title">2Y / 10Y / 30Y Yield &mdash; 252-day History</div>
-          <ReactECharts option={yieldHistoryOption} style={{ height: 140, width: '100%' }} />
+          <SafeECharts option={yieldHistoryOption} style={{ height: 140, width: '100%' }} />
         </div>
       )}
 

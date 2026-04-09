@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../SafeECharts';
 import { useTheme } from '../../hub/ThemeContext';
 
 const METRIC_LABEL = {
@@ -67,6 +67,7 @@ const HeatmapView = ({
   currentRate, currentSymbol, currency,
   rankMetric = 'marketCap', groupBy = 'market',
   colorByPerf,
+  onSelect, // callback when a cell is clicked
 }) => {
   const { colors } = useTheme();
   const chartRef = useRef(null);
@@ -135,6 +136,7 @@ const HeatmapView = ({
   }), [chartData, levels, currentRate, currentSymbol, currency, rankMetric, colors]);
 
   // Background click → zoom-to-fit (reset to root view)
+  // Cell click → select ticker
   useEffect(() => {
     const inst = chartRef.current?.getEchartsInstance?.();
     if (!inst) return;
@@ -147,12 +149,37 @@ const HeatmapView = ({
     };
     zr.on('click', handleBgClick);
 
-    return () => { zr.off('click', handleBgClick); };
-  }, []);
+    // Handle cell click for ticker selection
+    const handleCellClick = (params) => {
+      if (params.data && !params.data.children && onSelect) {
+        // This is a leaf node (individual stock)
+        // Normalize the data to match expected tickerInfo structure
+        const stock = params.data;
+        onSelect({
+          ticker: stock.name || stock.ticker,
+          name: stock.fullName || stock.name,
+          fullName: stock.fullName || stock.name,
+          sector: stock.sector,
+          value: stock.adjustedValue || stock.metricValue || stock.value,
+          marketCap: stock.marketCap || stock.value,
+          region: stock.regionName || stock.region,
+          regionSymbol: stock.regionSymbol,
+          regionCurrency: stock.regionCurrency,
+          ...stock,
+        });
+      }
+    };
+    inst.on('click', handleCellClick);
+
+    return () => {
+      zr.off('click', handleBgClick);
+      inst.off('click', handleCellClick);
+    };
+  }, [onSelect]);
 
   return (
     <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-      <ReactECharts
+      <SafeECharts
         ref={chartRef}
         key={`${colorByPerf ? 'perf' : 'rank'}-${rankMetric}`}
         option={chartOption}

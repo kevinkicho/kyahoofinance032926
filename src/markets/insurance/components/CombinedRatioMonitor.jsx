@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './InsComponents.css';
 
@@ -116,7 +116,7 @@ export default function CombinedRatioMonitor({ combinedRatioData, industryAvgCom
       {/* Main: chart (wide) + latest quarter bars (narrow) */}
       <div className="ins-wide-narrow">
         <div style={{ minHeight: 0, display: 'flex' }}>
-          <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} />
         </div>
         <div className="ins-chart-panel">
           <div className="ins-chart-title">Latest Quarter — {quarters[latestIdx]}</div>

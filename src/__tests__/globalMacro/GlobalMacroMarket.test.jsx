@@ -9,45 +9,57 @@ beforeEach(() => {
 });
 
 describe('GlobalMacroMarket', () => {
-  it('renders all 4 sub-tabs after loading', async () => {
+  it('renders unified dashboard after loading', async () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('tab', { name: 'Scorecard'       })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Growth & Inflation' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Central Bank Rates' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Debt Monitor'    })).toBeInTheDocument();
+    // Dashboard shows country scorecard section
+    expect(screen.getByText(/country scorecard/i)).toBeInTheDocument();
   });
 
-  it('shows Scorecard tab by default', async () => {
+  it('shows KPI strip with global metrics', async () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByText(/macro scorecard/i)).toBeInTheDocument();
+    // KPI strip shows key indicators
+    expect(screen.getByText(/g7 gdp/i)).toBeInTheDocument();
+    expect(screen.getByText(/global cpi/i)).toBeInTheDocument();
   });
 
-  it('switches to Growth & Inflation tab on click', async () => {
+  it('shows compact scorecard table with countries', async () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Growth & Inflation' }));
+    // Scorecard shows country flags and metrics
+    expect(screen.getByText('GDP')).toBeInTheDocument();
+    expect(screen.getByText('CPI')).toBeInTheDocument();
+  });
+
+  it('shows chart panels with GDP, CPI, Rates, Debt', async () => {
+    render(<GlobalMacroMarket />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    // Chart panels are visible
     expect(screen.getByText(/gdp growth/i)).toBeInTheDocument();
-  });
-
-  it('switches to Central Bank Rates tab on click', async () => {
-    render(<GlobalMacroMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Central Bank Rates' }));
+    expect(screen.getByText(/cpi inflation/i)).toBeInTheDocument();
     expect(screen.getByText(/policy rates/i)).toBeInTheDocument();
+    expect(screen.getByText(/debt \/ gdp/i)).toBeInTheDocument();
   });
 
-  it('switches to Debt Monitor tab on click', async () => {
+  it('shows economic activity panel with CFNAI and OECD CLI', async () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Debt Monitor' }));
-    expect(screen.getByText(/government debt \(% of gdp\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/economic activity/i)).toBeInTheDocument();
+    expect(screen.getByText(/oecd leading/i)).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {
     render(<GlobalMacroMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     expect(screen.getAllByText(/mock data/i).length).toBeGreaterThan(0);
+  });
+
+  it('shows country detail panel on row click', async () => {
+    render(<GlobalMacroMarket />);
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    // Scorecard rows are clickable - verify they exist
+    const scorecardRows = document.querySelectorAll('.mac-scorecard-row');
+    expect(scorecardRows.length).toBeGreaterThan(0);
   });
 });

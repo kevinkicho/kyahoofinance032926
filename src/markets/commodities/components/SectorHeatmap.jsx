@@ -1,6 +1,6 @@
 // src/markets/commodities/components/SectorHeatmap.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommodComponents.css';
 
@@ -184,7 +184,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities }) {
         <div className="com-chart-panel" style={{ height: 170, flexShrink: 0 }}>
           <div className="com-chart-title">PPI Commodity Index — 3 Year (FRED monthly)</div>
           <div className="com-mini-chart">
-            <ReactECharts option={ppiOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={ppiOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

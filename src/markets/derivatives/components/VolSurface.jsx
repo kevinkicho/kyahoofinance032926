@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './DerivComponents.css';
 
@@ -175,13 +175,13 @@ export default function VolSurface({ volSurfaceData, volPremium = null, skewInde
       {/* Main: heatmap (wide) + skew profile (narrow) */}
       <div className="deriv-wide-narrow">
         <div style={{ minHeight: 200, display: 'flex' }}>
-          <ReactECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
         </div>
         {skewOption && (
           <div className="deriv-chart-panel">
             <div className="deriv-chart-title">Skew Profile — 1M Expiry</div>
             <div className="deriv-mini-chart">
-              <ReactECharts option={skewOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         )}

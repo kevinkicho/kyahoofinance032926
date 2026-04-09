@@ -1,6 +1,6 @@
 // src/markets/fx/components/DXYTracker.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './FXComponents.css';
 
@@ -244,7 +244,7 @@ export default function DXYTracker({ history, fredFxRates, dxyHistory, rateDiffe
       {/* Main: DXY chart (wide) + component breakdown (narrow) */}
       <div className="fx-wide-narrow" style={{ marginBottom: 12 }}>
         <div style={{ minHeight: 0, display: 'flex' }}>
-          <ReactECharts option={chartOption} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={chartOption} style={{ height: '100%', width: '100%' }} />
         </div>
         <div className="fx-chart-panel">
           <div className="fx-chart-title">DXY Component Weights + 30d %</div>
@@ -277,7 +277,7 @@ export default function DXYTracker({ history, fredFxRates, dxyHistory, rateDiffe
         <div className="fx-chart-panel" style={{ height: 170, flexShrink: 0 }}>
           <div className="fx-chart-title">EUR/USD + USD/JPY — 1 Year (FRED daily)</div>
           <div className="fx-mini-chart">
-            <ReactECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}
@@ -287,7 +287,7 @@ export default function DXYTracker({ history, fredFxRates, dxyHistory, rateDiffe
         <div className="fx-chart-panel" style={{ height: 180, flexShrink: 0, marginTop: 12 }}>
           <div className="fx-chart-title">Dollar Index (DXY) — Historical</div>
           <div className="fx-mini-chart">
-            <ReactECharts option={dxyHistoryOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={dxyHistoryOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

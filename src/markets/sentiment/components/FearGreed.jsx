@@ -1,6 +1,6 @@
 // src/markets/sentiment/components/FearGreed.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
@@ -150,7 +150,7 @@ export default function FearGreed({ fearGreedData, consumerCredit }) {
         {/* Left: gauge + score + indicators */}
         <div className="sent-chart-panel">
           <div className="sent-chart-wrap" style={{ maxHeight: 200, flexShrink: 0 }}>
-            <ReactECharts option={gaugeOption} style={{ height: 200, width: '100%' }} />
+            <SafeECharts option={gaugeOption} style={{ height: 200, width: '100%' }} />
           </div>
           <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 8 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color }}>{label}</div>
@@ -175,7 +175,7 @@ export default function FearGreed({ fearGreedData, consumerCredit }) {
           <div className="sent-chart-title">252-Day Fear &amp; Greed History</div>
           <div className="sent-chart-subtitle">Alternative.me daily score · 0 = Extreme Fear · 100 = Extreme Greed</div>
           <div className="sent-chart-wrap">
-            <ReactECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
           </div>
 
           {/* Consumer Credit strip */}
@@ -197,7 +197,7 @@ export default function FearGreed({ fearGreedData, consumerCredit }) {
               </div>
               {creditMiniOption && (
                 <div style={{ height: 80 }}>
-                  <ReactECharts option={creditMiniOption} style={{ height: '100%', width: '100%' }} />
+                  <SafeECharts option={creditMiniOption} style={{ height: '100%', width: '100%' }} />
                 </div>
               )}
             </div>

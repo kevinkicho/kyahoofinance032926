@@ -30,6 +30,7 @@ import sentimentRouter from './routes/sentiment.js';
 import calendarRouter from './routes/calendar.js';
 import fxRouter from './routes/fx.js';
 import tickerRouter from './routes/ticker.js';
+import institutionalRouter from './routes/institutional.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -136,6 +137,7 @@ app.use('/api/credit', creditRouter);
 app.use('/api/sentiment', sentimentRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/fx', fxRouter);
+app.use('/api/institutional', institutionalRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

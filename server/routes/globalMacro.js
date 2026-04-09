@@ -39,6 +39,143 @@ const MACRO_MOCK_RATES = {
   MX: { rate: 11.00, name: 'Mexico',      flag: '🇲🇽', bank: 'Banxico' },
 };
 
+// OECD CLI country codes mapping
+const OECD_CLI_CODES = {
+  US: 'USA', EA: 'EA19', GB: 'GBR', JP: 'JPN', CA: 'CAN',
+  CN: 'CHN', IN: 'IND', BR: 'BRA', KR: 'KOR', AU: 'AUS', MX: 'MEX', SE: 'SWE',
+};
+
+// BLS CPI series for breakdown analysis
+const BLS_CPI_SERIES = {
+  all:      { id: 'CUSR0000SA0',    name: 'All Items',       weight: 1.0 },
+  core:     { id: 'CUSR0000SA0L1E1', name: 'Core (ex Food/Energy)', weight: 0.784 },
+  food:     { id: 'CUSR0000SAF1',    name: 'Food',            weight: 0.138 },
+  energy:   { id: 'CUSR0000SA0E1',   name: 'Energy',          weight: 0.069 },
+  shelter:  { id: 'CUSR0000SAS2',    name: 'Shelter',         weight: 0.362 },
+  medical:  { id: 'CUSR0000SAM2',    name: 'Medical Care',    weight: 0.085 },
+  usedCars: { id: 'CUSR0000SETA02',  name: 'Used Cars/Trucks', weight: 0.024 },
+};
+
+async function fetchBlsCpiBreakdown(BLS_API_KEY) {
+  if (!BLS_API_KEY) return null;
+
+  const endYear = new Date().getFullYear();
+  const startYear = endYear - 2; // Last 3 years
+
+  const seriesIds = Object.values(BLS_CPI_SERIES).map(s => s.id);
+  const url = 'https://api.bls.gov/publicAPI/v2/timeseries/data/';
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        seriesid: seriesIds,
+        startyear: startYear,
+        endyear: endYear,
+        registrationkey: BLS_API_KEY,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.status !== 'REQUEST_SUCCEEDED' || !data.Results?.series) return null;
+
+    const result = { components: [], latest: {}, history: {} };
+
+    // Process each series
+    for (const series of data.Results.series) {
+      const seriesId = series.seriesID;
+      const key = Object.keys(BLS_CPI_SERIES).find(k => BLS_CPI_SERIES[k].id === seriesId);
+      if (!key) continue;
+
+      const meta = BLS_CPI_SERIES[key];
+      const observations = (series.data || []).filter(d => d.value !== '-' && d.periodName);
+
+      if (observations.length === 0) continue;
+
+      // Latest value and YoY change
+      const latest = observations[0];
+      const yearAgo = observations.find(d =>
+        d.period === latest.period &&
+        d.year === String(parseInt(latest.year) - 1)
+      );
+
+      const latestValue = parseFloat(latest.value);
+      const yoyValue = yearAgo ? ((latestValue - parseFloat(yearAgo.value)) / parseFloat(yearAgo.value) * 100) : null;
+
+      result.components.push({
+        key,
+        name: meta.name,
+        value: Math.round(latestValue * 10) / 10,
+        yoy: yoyValue != null ? Math.round(yoyValue * 10) / 10 : null,
+        weight: meta.weight,
+        period: `${latest.periodName?.slice(0, 3)} ${latest.year}`,
+      });
+
+      result.latest[key] = { value: latestValue, yoy: yoyValue };
+      result.history[key] = observations.slice(0, 24).reverse().map(d => ({
+        date: `${d.year}-${d.period.slice(1).padStart(2, '0')}`,
+        value: parseFloat(d.value),
+      }));
+    }
+
+    // Sort components by weight
+    result.components.sort((a, b) => b.weight - a.weight);
+    result.asOf = result.components[0]?.period || null;
+
+    return result;
+  } catch (e) {
+    console.warn('BLS CPI fetch failed:', e.message);
+    return null;
+  }
+}
+
+async function fetchOECDCli() {
+  // OECD SDMX API for CLI (Leading Indicators)
+  // MEI_CLI_LOLITO_AGG = CLI Amplitude adjusted (LOLITO)
+  const codes = Object.values(OECD_CLI_CODES).join('+');
+  const url = `https://stats.oecd.org/sdmx-json/data/MEI_CLI/LOLITO_AGG.M.${codes}?contentType=csv`;
+  try {
+    const response = await fetch(url);
+    const text = await response.text();
+    const lines = text.split('\n');
+    if (lines.length < 2) return null;
+
+    // Parse CSV - find header and data
+    const headerIdx = lines.findIndex(l => l.includes('LOCATION') || l.includes('TIME'));
+    if (headerIdx < 0) return null;
+
+    const result = {};
+    // Get the latest value for each country
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const cols = line.split(',');
+      if (cols.length < 3) continue;
+
+      // OECD CSV format: LOCATION, SUBJECT, MEASURE, FREQUENCY, TIME, Value, ...
+      const location = cols[0]?.replace(/"/g, '');
+      const time = cols[4]?.replace(/"/g, '');
+      const value = parseFloat(cols[5]?.replace(/"/g, ''));
+
+      if (!location || isNaN(value)) continue;
+
+      // Map back to our country codes
+      const countryCode = Object.keys(OECD_CLI_CODES).find(k => OECD_CLI_CODES[k] === location);
+      if (!countryCode) continue;
+
+      // Keep the most recent value
+      if (!result[countryCode] || time > result[countryCode].date) {
+        result[countryCode] = { value: Math.round(value * 10) / 10, date: time };
+      }
+    }
+    return result;
+  } catch (e) {
+    console.warn('OECD CLI fetch failed:', e.message);
+    return null;
+  }
+}
+
 async function fetchWBIndicator(indicator) {
   const url = `https://api.worldbank.org/v2/country/${MACRO_WB_CODES}/indicator/${indicator}?format=json&mrv=8&per_page=200`;
   const json = await fetchJSON(url);
@@ -82,6 +219,7 @@ async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
 
 router.get('/', async (req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY || '';
+  const BLS_API_KEY = process.env.BLS_API_KEY || '';
   const cache = req.app.locals.cache;
   const cacheKey = 'globalMacro_data';
   const today = todayStr();
@@ -135,15 +273,17 @@ router.get('/', async (req, res) => {
     let industrialProd    = null;
     let consumerSentiment = null;
     let yieldSpread       = null;
+    let cfnai             = null;
 
     if (FRED_API_KEY) {
       trackApiCall('FRED');
-      const [m2Res, tbRes, ipRes, csRes, ysRes] = await Promise.allSettled([
+      const [m2Res, tbRes, ipRes, csRes, ysRes, cfnaiRes] = await Promise.allSettled([
         fetchFredHistory('M2SL',    FRED_API_KEY, 36).catch(() => null),
         fetchFredHistory('BOPGSTB', FRED_API_KEY, 24).catch(() => null),
         fetchFredHistory('INDPRO',  FRED_API_KEY, 24).catch(() => null),
         fetchFredHistory('UMCSENT', FRED_API_KEY, 24).catch(() => null),
         fetchFredHistory('T10Y2Y',  FRED_API_KEY, 36).catch(() => null),
+        fetchFredHistory('CFNAIMA', FRED_API_KEY, 36).catch(() => null),
       ]);
 
       function computeYoY(obs) {
@@ -204,6 +344,37 @@ router.get('/', async (req, res) => {
           };
         }
       } catch (_) { /* leave null */ }
+
+      try {
+        const obs = cfnaiRes.status === 'fulfilled' && cfnaiRes.value;
+        if (obs && obs.length >= 1) {
+          cfnai = {
+            dates:  obs.map(o => o.date.slice(0, 7)),
+            values: obs.map(o => Math.round(o.value * 1000) / 1000),
+            latest: obs.length > 0 ? Math.round(obs[obs.length - 1].value * 1000) / 1000 : null,
+          };
+        }
+      } catch (_) { /* leave null */ }
+    }
+
+    // Fetch OECD Composite Leading Indicators
+    let oecdCli = null;
+    try {
+      trackApiCall('OECD');
+      oecdCli = await fetchOECDCli();
+    } catch (e) {
+      console.warn('OECD CLI fetch failed:', e.message);
+    }
+
+    // Fetch BLS CPI breakdown
+    let cpiBreakdown = null;
+    if (BLS_API_KEY) {
+      try {
+        trackApiCall('BLS');
+        cpiBreakdown = await fetchBlsCpiBreakdown(BLS_API_KEY);
+      } catch (e) {
+        console.warn('BLS CPI fetch failed:', e.message);
+      }
     }
 
     const scorecardData = MACRO_COUNTRIES.map(c => ({
@@ -272,6 +443,9 @@ router.get('/', async (req, res) => {
       industrialProd,
       consumerSentiment,
       yieldSpread,
+      cfnai,
+      oecdCli,
+      cpiBreakdown,
       lastUpdated: today,
     };
 

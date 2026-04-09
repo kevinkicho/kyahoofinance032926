@@ -1,0 +1,271 @@
+/* src/markets/globalMacro/components/GlobalMacroDashboard.css */
+
+/* Main Dashboard Layout */
+.mac-dashboard {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+.mac-dashboard-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.mac-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Scorecard Section */
+.mac-scorecard-section {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mac-scorecard-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mac-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mac-section-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Compact Scorecard Table */
+.mac-scorecard-compact {
+  display: grid;
+  grid-template-columns: 32px 48px repeat(5, 1fr);
+  gap: 1px;
+  border-radius: 6px;
+  font-size: 11px;
+  overflow: hidden;
+}
+
+.mac-scorecard-header-row {
+  display: contents;
+}
+
+.mac-scorecell {
+  padding: 6px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mac-scorecell-flag {
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.mac-scorecell-country {
+  text-align: left;
+  font-weight: 600;
+}
+
+.mac-scorecard-row {
+  display: contents;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mac-scorecard-row:hover .mac-scorecell {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mac-scorecard-row.selected .mac-scorecell {
+  background: rgba(20, 184, 166, 0.15);
+}
+
+/* Heat Colors */
+.mac-heat-dg { background: #14532d; color: #86efac; }
+.mac-heat-lg { background: #1a3a28; color: #4ade80; }
+.mac-heat-neu { background: var(--bg-card); color: var(--text-secondary); }
+.mac-heat-lr { background: #3b1a1a; color: #f87171; }
+.mac-heat-dr { background: #7f1d1d; color: #fca5a5; }
+
+/* Chart Grid */
+.mac-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: start;
+}
+
+@media (max-width: 1200px) {
+  .mac-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel Card */
+.mac-panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.mac-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.mac-chart-wrap {
+  flex: 1;
+  min-height: 160px;
+}
+
+/* Mini Bars (inline charts) */
+.mac-mini-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mac-mini-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.mac-mini-label {
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.mac-mini-bar-track {
+  flex: 1;
+  height: 12px;
+  background: var(--bg-primary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mac-mini-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.mac-mini-value {
+  width: 45px;
+  text-align: right;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Activity Summary */
+.mac-activity-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.mac-activity-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.mac-activity-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mac-activity-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
+}
+
+.mac-activity-status {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* CLI Mini Grid */
+.mac-cli-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.mac-cli-mini-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+}
+
+.mac-cli-mini-flag {
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+
+.mac-cli-mini-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.mac-cli-mini-trend {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 900px) {
+  .mac-scorecard-compact {
+    grid-template-columns: 32px 48px repeat(4, 1fr);
+    font-size: 10px;
+  }
+
+  .mac-activity-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .mac-cli-mini-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .mac-scorecard-compact {
+    grid-template-columns: 32px 60px repeat(3, 1fr);
+  }
+}

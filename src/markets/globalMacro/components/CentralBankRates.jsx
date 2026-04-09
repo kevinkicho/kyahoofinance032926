@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './MacroComponents.css';
 
@@ -161,14 +161,14 @@ export default function CentralBankRates({ centralBankData }) {
           <div className="mac-chart-title">Current Rates — Ranked</div>
           <div className="mac-chart-subtitle">Highest to lowest · green &lt;3% · amber 3–6% · red &gt;6%</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="mac-chart-panel">
           <div className="mac-chart-title">5-Year Rate History</div>
           <div className="mac-chart-subtitle">G7 + Australia + Sweden · dashed line = 2% neutral rate</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

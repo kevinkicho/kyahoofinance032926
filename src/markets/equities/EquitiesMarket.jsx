@@ -444,6 +444,7 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
               rankMetric={rankMetric}
               groupBy={groupBy}
               colorByPerf={colorByPerf}
+              onSelect={handleSelectTicker}
             />
           )}
           {viewMode === 'race' && (

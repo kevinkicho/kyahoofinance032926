@@ -1,54 +1,43 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import InsuranceMarket from '../../markets/insurance/InsuranceMarket';
 
 vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
 
-// Make fetch fail fast so hook falls back to mock data
 beforeEach(() => {
   global.fetch = vi.fn().mockRejectedValue(new Error('no server'));
 });
 
 describe('InsuranceMarket', () => {
-  it('renders Cat Bond Spreads tab by default after loading', async () => {
+  it('renders unified dashboard after loading', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getAllByText('Cat Bond Spreads').length).toBeGreaterThanOrEqual(1);
+    // Dashboard shows HY OAS section (may appear multiple times)
+    const hyElements = screen.getAllByText(/HY OAS/i);
+    expect(hyElements.length).toBeGreaterThan(0);
   });
 
-  it('renders all 4 sub-tabs', async () => {
+  it('shows KPI strip with key metrics', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getByRole('tab', { name: 'Cat Bond Spreads'    })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Combined Ratio'      })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Reserve Adequacy'    })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Reinsurance Pricing' })).toBeInTheDocument();
+    // KPI strip shows key indicators (may appear multiple times)
+    const kpiElements = screen.getAllByText(/HY OAS|IG OAS|Combined Ratio/i);
+    expect(kpiElements.length).toBeGreaterThan(0);
   });
 
-  it('switches to Combined Ratio on click', async () => {
+  it('shows Combined Ratio section', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Combined Ratio' }));
-    expect(screen.getByText(/combined ratio monitor/i)).toBeInTheDocument();
-  });
-
-  it('switches to Reserve Adequacy on click', async () => {
-    render(<InsuranceMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Reserve Adequacy' }));
-    expect(screen.getByText(/reserve adequacy/i)).toBeInTheDocument();
-  });
-
-  it('switches to Reinsurance Pricing on click', async () => {
-    render(<InsuranceMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    fireEvent.click(screen.getByRole('tab', { name: 'Reinsurance Pricing' }));
-    expect(screen.getByText(/treaty reinsurance market/i)).toBeInTheDocument();
+    // Dashboard shows combined ratio (may appear multiple times)
+    const ratioElements = screen.getAllByText(/Combined Ratio/i);
+    expect(ratioElements.length).toBeGreaterThan(0);
   });
 
   it('shows mock data status when server unavailable', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    expect(screen.getAllByText(/mock data/i).length).toBeGreaterThan(0);
+    // Multiple components may show mock data status
+    const mockDataElements = screen.getAllByText(/mock data/i);
+    expect(mockDataElements.length).toBeGreaterThan(0);
   });
 });

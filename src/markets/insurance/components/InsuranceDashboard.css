@@ -1,0 +1,110 @@
+/* src/markets/insurance/components/InsuranceDashboard.css */
+
+.ins-dashboard {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+/* KPI Strip */
+.ins-kpi-strip {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ins-kpi-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.ins-kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ins-kpi-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+/* Chart Grid */
+.ins-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: start;
+}
+
+@media (max-width: 1200px) {
+  .ins-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel Card */
+.ins-panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.ins-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.ins-chart-wrap {
+  flex: 1;
+  min-height: 160px;
+}
+
+/* Mini Table */
+.ins-mini-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ins-mini-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.ins-mini-name {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ins-mini-value {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 600;
+}

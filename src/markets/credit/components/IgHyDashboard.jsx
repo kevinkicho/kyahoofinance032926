@@ -1,6 +1,6 @@
 // src/markets/credit/components/IgHyDashboard.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
@@ -89,7 +89,7 @@ export default function IgHyDashboard({ spreadData, commercialPaper }) {
           <div className="credit-chart-title">12-Month Spread History</div>
           <div className="credit-chart-subtitle">IG · HY · BBB OAS in basis points · cyan narrows = compression</div>
           <div className="credit-chart-wrap">
-            <ReactECharts option={buildSpreadHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildSpreadHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="credit-chart-panel">

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './InsComponents.css';
 
@@ -184,7 +184,7 @@ export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistor
         <div className="ins-chart-panel" style={{ height: 160, flexShrink: 0, marginTop: 12 }}>
           <div className="ins-chart-title">HY Credit Spread — 1 Year (FRED OAS, bps)</div>
           <div className="ins-mini-chart">
-            <ReactECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

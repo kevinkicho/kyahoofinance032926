@@ -5,9 +5,10 @@ import { exchangeRates } from './constants';
 export const getExtendedDetails = (tickerInfo, rates) => {
   if (!tickerInfo) return null;
   const isCrypto = tickerInfo.sector === 'Crypto';
+  const ticker = tickerInfo.ticker || tickerInfo.name || '';
 
   let hash = 0;
-  for (let i = 0; i < tickerInfo.ticker.length; i++) hash = tickerInfo.ticker.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < ticker.length; i++) hash = ticker.charCodeAt(i) + ((hash << 5) - hash);
   const seed = Math.abs(hash);
   const rand = (min, max) => min + (seed % 1000) / 1000 * (max - min);
 

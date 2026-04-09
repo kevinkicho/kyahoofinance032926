@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './REComponents.css';
 
@@ -219,7 +219,7 @@ export default function PriceIndex({ priceIndexData, caseShillerData, housingSta
         <div className="re-chart-panel">
           <div className="re-chart-title">Global House Price Indices (BIS)</div>
           <div className="re-mini-chart">
-            <ReactECharts option={bisOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={bisOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="re-chart-panel">
@@ -251,7 +251,7 @@ export default function PriceIndex({ priceIndexData, caseShillerData, housingSta
         <div className="re-chart-panel" style={{ marginTop: 12, height: 140, flexShrink: 0 }}>
           <div className="re-chart-title">Case-Shiller National Home Price Index</div>
           <div className="re-mini-chart">
-            <ReactECharts option={csOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={csOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}
@@ -260,7 +260,7 @@ export default function PriceIndex({ priceIndexData, caseShillerData, housingSta
         <div className="re-chart-panel" style={{ marginTop: 8, height: 150, flexShrink: 0 }}>
           <div className="re-chart-title">Housing Starts &amp; Building Permits (24-Month)</div>
           <div className="re-mini-chart">
-            <ReactECharts option={startsOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={startsOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}
@@ -269,7 +269,7 @@ export default function PriceIndex({ priceIndexData, caseShillerData, housingSta
         <div className="re-chart-panel" style={{ marginTop: 8, height: 140, flexShrink: 0 }}>
           <div className="re-chart-title">Existing Home Sales (24-Month)</div>
           <div className="re-mini-chart">
-            <ReactECharts option={salesOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={salesOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

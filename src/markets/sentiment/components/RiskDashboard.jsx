@@ -1,6 +1,6 @@
 // src/markets/sentiment/components/RiskDashboard.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './SentimentComponents.css';
 
@@ -71,7 +71,7 @@ function buildLineOption({ dates, values, color, minBuffer = 0, yLabel = '', col
   };
 }
 
-export default function RiskDashboard({ riskData, marginDebt, vvixHistory }) {
+export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHistory }) {
   const { colors } = useTheme();
   if (!riskData) return null;
   const { signals = [], overallScore = 50, overallLabel = 'Neutral' } = riskData;
@@ -87,6 +87,65 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory }) {
       areaColor: '#f97316',
     });
   }, [vvixHistory, colors]);
+
+  const fsiOption = useMemo(() => {
+    if (!fsiHistory?.dates?.length) return null;
+    const labels = fsiHistory.dates.map(d => d.slice(0, 7));
+    const interval = Math.max(0, Math.floor(labels.length / 6) - 1);
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: colors.tooltipBg,
+        borderColor: colors.tooltipBorder,
+        textStyle: { color: colors.text, fontSize: 11 },
+        formatter: params => {
+          const v = params[0]?.value;
+          const status = v < 0 ? 'Below average (calm)' : v > 1 ? 'Elevated stress' : 'Near normal';
+          return `<b>${params[0].axisValue}</b><br/>FSI: <b>${v?.toFixed(2)}</b><br/><span style="color:#94a3b8">${status}</span>`;
+        },
+      },
+      grid: { top: 6, right: 8, bottom: 18, left: 8, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLabel: { color: colors.textDim, fontSize: 9, interval },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: colors.textMuted, fontSize: 9 },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series: [{
+        type: 'line',
+        data: fsiHistory.values,
+        lineStyle: { width: 1.5, color: '#06b6d4' },
+        itemStyle: { color: '#06b6d4' },
+        symbol: 'none',
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(6, 182, 212, 0.3)' },
+              { offset: 1, color: 'rgba(6, 182, 212, 0.02)' },
+            ],
+          },
+        },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { type: 'dashed', width: 1 },
+          data: [
+            { yAxis: 0, lineStyle: { color: '#64748b' }, label: { formatter: 'Normal', position: 'end' } },
+            { yAxis: 1, lineStyle: { color: '#f59e0b' }, label: { formatter: 'Stress', position: 'end' } },
+          ],
+        },
+      }],
+    };
+  }, [fsiHistory, colors]);
 
   const marginOption = useMemo(() => {
     if (!marginDebt?.dates?.length) return null;
@@ -130,15 +189,25 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory }) {
         <div className="sent-score-label">Overall Risk Appetite Score · {overallLabel}</div>
       </div>
 
-      {/* VVIX + Margin Debt charts */}
-      {(vvixOption || marginOption) && (
-        <div className="sent-two-col" style={{ flex: 'none', height: 160 }}>
+      {/* VVIX + Margin Debt + FSI charts */}
+      {(vvixOption || marginOption || fsiOption) && (
+        <div className="sent-three-col" style={{ flex: 'none', height: 160 }}>
           {vvixOption ? (
             <div className="sent-chart-panel">
-              <div className="sent-chart-title">VVIX — Volatility of Volatility</div>
-              <div className="sent-chart-subtitle">VIX of VIX · 6-month window · elevated = tail-risk regime</div>
+              <div className="sent-chart-title">VVIX — Vol of Vol</div>
+              <div className="sent-chart-subtitle">VIX of VIX · elevated = tail-risk</div>
               <div className="sent-chart-wrap">
-                <ReactECharts option={vvixOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={vvixOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          ) : <div className="sent-chart-panel" />}
+
+          {fsiOption ? (
+            <div className="sent-chart-panel">
+              <div className="sent-chart-title">Financial Stress Index</div>
+              <div className="sent-chart-subtitle">St. Louis Fed FSI · &lt;0 = calm · &gt;1 = stress</div>
+              <div className="sent-chart-wrap">
+                <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           ) : <div className="sent-chart-panel" />}
@@ -148,12 +217,12 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory }) {
               <div className="sent-chart-title">
                 Margin Debt
                 <span style={{ marginLeft: 6, fontSize: 9, color: marginOption.rising ? '#7c3aed' : '#f87171' }}>
-                  {marginOption.rising ? '▲ Rising · risk appetite' : '▼ Falling · de-risking'}
+                  {marginOption.rising ? '▲ Rising' : '▼ Falling'}
                 </span>
               </div>
-              <div className="sent-chart-subtitle">FINRA margin balances · quarterly · USD bn</div>
+              <div className="sent-chart-subtitle">FINRA margin · quarterly · USD bn</div>
               <div className="sent-chart-wrap">
-                <ReactECharts option={marginOption.option} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={marginOption.option} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           ) : <div className="sent-chart-panel" />}

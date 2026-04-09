@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './REComponents.css';
 
@@ -144,7 +144,7 @@ export default function REITScreen({ reitData, reitEtf }) {
           <div className="re-chart-title">VNQ 1-Year</div>
           {vnqOption ? (
             <div className="re-mini-chart">
-              <ReactECharts option={vnqOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={vnqOption} style={{ height: '100%', width: '100%' }} />
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textDim, fontSize: 11 }}>

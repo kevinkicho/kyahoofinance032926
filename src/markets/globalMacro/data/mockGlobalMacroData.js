@@ -98,3 +98,84 @@ export const debtData = {
     { code: 'SE', name: 'Sweden',         flag: '🇸🇪', debt:  31.4, currentAccount:  5.5 },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// cfnai — Chicago Fed National Activity Index (3-month moving average)
+// Simulated data showing economic activity fluctuations
+// ---------------------------------------------------------------------------
+function makeCfnaiHistory() {
+  // Generate realistic CFNAI values: typically ranges from -2 to +2
+  // Values < -0.7 indicate recession probability
+  const values = [];
+  let val = 0.15; // Start near trend
+  for (let i = 0; i < 36; i++) {
+    // Simulate economic cycle with some volatility
+    const cycle = Math.sin(i * 0.15) * 0.5; // Mild cycle
+    const noise = (Math.random() - 0.5) * 0.4; // Random volatility
+    val = cycle + noise + 0.05; // Slight positive bias (expansion)
+    // Simulate a brief recession dip around month 18-24
+    if (i >= 18 && i <= 24) val -= 0.8;
+    values.push(Math.round(val * 1000) / 1000);
+  }
+  return values;
+}
+
+export const cfnai = {
+  dates: HISTORY_DATES.slice(-36), // Last 36 months
+  values: makeCfnaiHistory(),
+  latest: 0.12,
+};
+
+// ---------------------------------------------------------------------------
+// oecdCli — OECD Composite Leading Indicators (amplitude adjusted)
+// Simulated data showing leading economic indicators by country
+// Values > 100 = above trend growth, < 100 = below trend
+// ---------------------------------------------------------------------------
+export const oecdCli = {
+  asOf: '2024-12',
+  countries: [
+    { code: 'US', name: 'United States',  flag: '🇺🇸', cli: 101.2, trend: 'improving' },
+    { code: 'EA', name: 'Euro Area',      flag: '🇪🇺', cli: 99.8,  trend: 'stable' },
+    { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', cli: 100.4,  trend: 'improving' },
+    { code: 'JP', name: 'Japan',          flag: '🇯🇵', cli: 99.5,  trend: 'stable' },
+    { code: 'CA', name: 'Canada',         flag: '🇨🇦', cli: 100.8,  trend: 'improving' },
+    { code: 'CN', name: 'China',          flag: '🇨🇳', cli: 98.7,  trend: 'slowing' },
+    { code: 'IN', name: 'India',          flag: '🇮🇳', cli: 102.5,  trend: 'improving' },
+    { code: 'BR', name: 'Brazil',         flag: '🇧🇷', cli: 100.1,  trend: 'stable' },
+    { code: 'KR', name: 'South Korea',   flag: '🇰🇷', cli: 99.2,  trend: 'stable' },
+    { code: 'AU', name: 'Australia',      flag: '🇦🇺', cli: 100.6,  trend: 'improving' },
+    { code: 'MX', name: 'Mexico',         flag: '🇲🇽', cli: 99.9,  trend: 'stable' },
+    { code: 'SE', name: 'Sweden',         flag: '🇸🇪', cli: 99.4,  trend: 'slowing' },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// cpiBreakdown — BLS CPI components with YoY changes
+// Simulated data showing CPI breakdown by category
+// ---------------------------------------------------------------------------
+export const cpiBreakdown = {
+  asOf: 'Dec 2024',
+  components: [
+    { key: 'all',      name: 'All Items',              value: 314.5, yoy: 2.9, weight: 1.0 },
+    { key: 'core',     name: 'Core (ex Food/Energy)',  value: 312.8, yoy: 3.2, weight: 0.784 },
+    { key: 'shelter',  name: 'Shelter',                value: 350.2, yoy: 6.1, weight: 0.362 },
+    { key: 'food',     name: 'Food',                   value: 340.1, yoy: 2.3, weight: 0.138 },
+    { key: 'medical',  name: 'Medical Care',           value: 520.4, yoy: 1.8, weight: 0.085 },
+    { key: 'energy',   name: 'Energy',                 value: 280.3, yoy: -1.5, weight: 0.069 },
+    { key: 'usedCars', name: 'Used Cars/Trucks',       value: 145.2, yoy: -3.2, weight: 0.024 },
+  ],
+  latest: {
+    all:      { value: 314.5, yoy: 2.9 },
+    core:     { value: 312.8, yoy: 3.2 },
+    shelter:  { value: 350.2, yoy: 6.1 },
+    food:     { value: 340.1, yoy: 2.3 },
+    medical:  { value: 520.4, yoy: 1.8 },
+    energy:   { value: 280.3, yoy: -1.5 },
+    usedCars: { value: 145.2, yoy: -3.2 },
+  },
+  history: {
+    all: HISTORY_DATES.slice(-12).map((d, i) => ({ date: d, value: 305 + i * 0.8 })),
+    core: HISTORY_DATES.slice(-12).map((d, i) => ({ date: d, value: 303 + i * 0.9 })),
+    shelter: HISTORY_DATES.slice(-12).map((d, i) => ({ date: d, value: 330 + i * 1.8 })),
+  },
+};

@@ -94,6 +94,7 @@ router.get('/', async (_req, res) => {
       mutualFundFlowsResult,
       consumerCreditResult,
       vvixHistResult,
+      fsiResult,
       ...yahooResults
     ] = await Promise.allSettled([
       fetchJson('https://api.alternative.me/fng/?limit=252'),
@@ -106,6 +107,7 @@ router.get('/', async (_req, res) => {
       FRED_API_KEY ? fetchFredHistory('WDDNS', FRED_API_KEY, 12)             : Promise.resolve([]),
       FRED_API_KEY ? fetchFredHistory('TOTALSL', FRED_API_KEY, 24)           : Promise.resolve([]),
       FRED_API_KEY ? fetchFredHistory('VXVCLS', FRED_API_KEY, 6)             : Promise.resolve([]),
+      FRED_API_KEY ? fetchFredHistory('STLFSI4', FRED_API_KEY, 36)          : Promise.resolve([]),
       ...RETURN_TICKERS.map(t => yf.historical(t, { period1, period2: today, interval: '1d' })),
     ]);
 
@@ -234,6 +236,7 @@ router.get('/', async (_req, res) => {
       if (name === 'VIX')             return value == null ? 'neutral' : value < 15 ? 'risk-on' : value > 25 ? 'risk-off' : 'neutral';
       if (name === 'Gold vs USD')     return value == null ? 'neutral' : value > 2 ? 'risk-off' : value < -2 ? 'risk-on' : 'neutral';
       if (name === 'EM vs US Equities') return value == null ? 'neutral' : value > 2 ? 'risk-on' : value < -2 ? 'risk-off' : 'neutral';
+      if (name === 'Financial Stress') return value == null ? 'neutral' : value < 0 ? 'risk-on' : value > 1 ? 'risk-off' : 'neutral';
       return 'neutral';
     }
     function riskDesc(name, value, signal) {
@@ -243,6 +246,7 @@ router.get('/', async (_req, res) => {
       if (name === 'VIX')             return signal === 'risk-on' ? 'Low vol — complacency' : signal === 'risk-off' ? 'Elevated fear' : 'Moderate uncertainty';
       if (name === 'Gold vs USD')     return signal === 'risk-off' ? 'Gold bid — safe haven' : signal === 'risk-on' ? 'Dollar bid — risk appetite' : 'Mixed signals';
       if (name === 'EM vs US Equities') return signal === 'risk-on' ? 'EM outperforming — global risk-on' : signal === 'risk-off' ? 'EM lagging — flight to quality' : 'Mixed';
+      if (name === 'Financial Stress') return signal === 'risk-on' ? 'Below average — calm' : signal === 'risk-off' ? 'Elevated — stress detected' : 'Near normal';
       return '';
     }
     function riskFmt(name, value) {
@@ -250,16 +254,21 @@ router.get('/', async (_req, res) => {
       if (name === 'HY Credit Spread' || name === 'IG Credit Spread') return `${Math.round(value)}bps`;
       if (name === 'Yield Curve') return `${value.toFixed(2)}%`;
       if (name === 'VIX') return value.toFixed(1);
+      if (name === 'Financial Stress') return value.toFixed(2);
       return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
     }
+
+    const fsiHist = fsiResult.status === 'fulfilled' ? fsiResult.value : [];
+    const fsiValue = fsiHist.length > 0 ? fsiHist[fsiHist.length - 1].value : null;
 
     const rawSignals = [
       { name: 'Yield Curve',       value: yieldCurve },
       { name: 'HY Credit Spread',  value: hySpread },
-      { name: 'IG Credit Spread',  value: igSpread },
+      { name: 'IG Credit Spread',   value: igSpread },
       { name: 'VIX',               value: vixValue },
       { name: 'Gold vs USD',       value: goldVsUsd },
       { name: 'EM vs US Equities', value: emVsUs },
+      { name: 'Financial Stress',  value: fsiValue },
     ];
 
     const signals = rawSignals.map(s => {
@@ -309,11 +318,12 @@ router.get('/', async (_req, res) => {
     const marginDebt      = fredHistToSeries(marginDebtResult);
     const mutualFundFlows = fredHistToSeries(mutualFundFlowsResult);
     const consumerCredit  = fredHistToSeries(consumerCreditResult);
-    const vvixHistory     = fredHistToSeries(vvixHistResult);
+    const vvixHistory      = fredHistToSeries(vvixHistResult);
+    const fsiHistory       = fredHistToSeries(fsiResult);
 
     const result = {
       fearGreedData, cftcData, riskData, returnsData,
-      marginDebt, mutualFundFlows, consumerCredit, vvixHistory,
+      marginDebt, mutualFundFlows, consumerCredit, vvixHistory, fsiHistory,
       lastUpdated: today,
     };
 

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './RateMatrix.css';
 import './FXComponents.css';
@@ -216,7 +216,7 @@ export default function RateMatrix({ spotRates, prevRates, changes = {}, reer })
         <div className="fx-chart-panel" style={{ height: 200, flexShrink: 0, marginTop: 16 }}>
           <div className="fx-chart-title">Real Effective Exchange Rates (BIS) — 24 Months</div>
           <div className="fx-mini-chart">
-            <ReactECharts option={reerOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

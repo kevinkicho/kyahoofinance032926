@@ -1,6 +1,6 @@
 // src/markets/credit/components/EmBonds.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
@@ -141,7 +141,7 @@ export default function EmBonds({ emBondData }) {
           <div className="credit-chart-title">EM Region Spread Comparison</div>
           <div className="credit-chart-subtitle">Average EMBI spread by region · red = widest · blue = tightest</div>
           <div className="credit-chart-wrap">
-            <ReactECharts option={buildRegionOption(regions, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildRegionOption(regions, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

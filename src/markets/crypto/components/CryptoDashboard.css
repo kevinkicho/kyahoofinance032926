@@ -1,0 +1,140 @@
+/* src/markets/crypto/components/CryptoDashboard.css */
+
+.crypto-dashboard {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+/* KPI Strip */
+.crypto-kpi-strip {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.crypto-kpi-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.crypto-kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.crypto-kpi-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.crypto-kpi-change {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.crypto-kpi-status {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* Chart Grid */
+.crypto-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: start;
+}
+
+@media (max-width: 1200px) {
+  .crypto-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel Card */
+.crypto-panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.crypto-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.crypto-chart-wrap {
+  flex: 1;
+  min-height: 160px;
+}
+
+/* Mini Table */
+.crypto-mini-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.crypto-mini-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.crypto-mini-rank {
+  width: 18px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.crypto-mini-name {
+  flex: 1;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.crypto-mini-price {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 600;
+  margin-right: 12px;
+}
+
+.crypto-mini-change {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 600;
+}
+
+.crypto-mini-value {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 600;
+}

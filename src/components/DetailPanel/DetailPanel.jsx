@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../SafeECharts';
 import './DetailPanel.css';
 import { useTheme } from '../../hub/ThemeContext';
 
@@ -142,7 +142,7 @@ const ChartTab = ({ historyData, sym }) => {
           {isUp ? '+' : ''}{changePct.toFixed(2)}%
         </span>
       </div>
-      <ReactECharts option={option} style={{ height: '220px' }} opts={{ renderer: 'canvas' }} />
+      <SafeECharts option={option} style={{ height: '220px' }} opts={{ renderer: 'canvas' }} />
     </div>
   );
 };

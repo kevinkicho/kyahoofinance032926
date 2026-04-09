@@ -19,6 +19,7 @@ export function useSentimentData(autoRefresh = false) {
   const [marginDebt,    setMarginDebt]    = useState(null);
   const [consumerCredit, setConsumerCredit] = useState(null);
   const [vvixHistory,   setVvixHistory]   = useState(null);
+  const [fsiHistory,    setFsiHistory]    = useState(null);
   const [isLive,        setIsLive]        = useState(false);
   const [lastUpdated,   setLastUpdated]   = useState('Mock data — 2026');
   const [isLoading,     setIsLoading]     = useState(true);
@@ -37,6 +38,7 @@ export function useSentimentData(autoRefresh = false) {
         if (data.marginDebt?.dates?.length >= 1)       { setMarginDebt(data.marginDebt);       anyReplaced = true; }
         if (data.consumerCredit?.dates?.length >= 1)   { setConsumerCredit(data.consumerCredit); anyReplaced = true; }
         if (data.vvixHistory?.dates?.length >= 1)      { setVvixHistory(data.vvixHistory);     anyReplaced = true; }
+        if (data.fsiHistory?.dates?.length >= 1)       { setFsiHistory(data.fsiHistory);       anyReplaced = true; }
         setIsLive(anyReplaced);
         if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -50,5 +52,5 @@ export function useSentimentData(autoRefresh = false) {
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, fsiHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
 }

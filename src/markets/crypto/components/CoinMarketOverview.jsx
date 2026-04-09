@@ -1,6 +1,6 @@
 // src/markets/crypto/components/CoinMarketOverview.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
@@ -162,7 +162,7 @@ export default function CoinMarketOverview({ coinMarketData, btcDominance, stabl
           <div className="crypto-chart-title">Market Dominance</div>
           <div className="crypto-chart-subtitle">BTC · ETH · Alts share of total market cap</div>
           <div className="crypto-chart-wrap">
-            <ReactECharts option={buildDominanceOption(globalStats, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildDominanceOption(globalStats, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

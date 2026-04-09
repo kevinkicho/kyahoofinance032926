@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquityComponents.css';
 
@@ -162,14 +162,14 @@ export default function ShortInterest({ shortData }) {
           <div className="eq-chart-title">Most Shorted</div>
           <div className="eq-chart-subtitle">Red &gt;20% · amber 10–20% · green &lt;10%</div>
           <div className="eq-chart-wrap">
-            <ReactECharts option={shortedOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Squeeze Watch</div>
           <div className="eq-chart-subtitle">X = short float · Y = 1W return · size = market cap · short &gt;10%</div>
           <div className="eq-chart-wrap">
-            <ReactECharts option={squeezeOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={squeezeOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../SafeECharts';
 import { useTheme } from '../../hub/ThemeContext';
 
 const SECTOR_COLORS = {
@@ -176,7 +176,7 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
 
       {/* Chart */}
       <div style={{ flex: 1, minHeight: 0 }}>
-        <ReactECharts
+        <SafeECharts
           option={option}
           notMerge={false}
           lazyUpdate={false}

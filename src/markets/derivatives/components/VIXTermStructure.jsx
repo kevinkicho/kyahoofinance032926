@@ -1,6 +1,6 @@
 // src/markets/derivatives/components/VIXTermStructure.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './DerivComponents.css';
 
@@ -186,7 +186,7 @@ export default function VIXTermStructure({ vixTermStructure, vixEnrichment, fred
       {/* Main: term structure (wide) + day change bars (narrow) */}
       <div className="deriv-wide-narrow" style={{ marginBottom: 12 }}>
         <div style={{ minHeight: 0, display: 'flex' }}>
-          <ReactECharts option={termOption} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={termOption} style={{ height: '100%', width: '100%' }} />
         </div>
         <div className="deriv-chart-panel">
           <div className="deriv-chart-title">Day Change by Tenor</div>
@@ -223,7 +223,7 @@ export default function VIXTermStructure({ vixTermStructure, vixEnrichment, fred
         <div className="deriv-chart-panel" style={{ height: 160, flexShrink: 0 }}>
           <div className="deriv-chart-title">VIX — 1 Year (FRED VIXCLS daily)</div>
           <div className="deriv-mini-chart">
-            <ReactECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

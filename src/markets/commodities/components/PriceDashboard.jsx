@@ -1,6 +1,6 @@
 // src/markets/commodities/components/PriceDashboard.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommodComponents.css';
 
@@ -236,7 +236,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
           <div className="com-chart-panel">
             <div className="com-chart-title">DBC Commodity ETF — 1 Year</div>
             <div className="com-mini-chart">
-              <ReactECharts option={dbcOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={dbcOption} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         )}
@@ -247,7 +247,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
         <div className="com-chart-panel" style={{ height: 180, flexShrink: 0 }}>
           <div className="com-chart-title">WTI vs Brent Crude — 1 Year (FRED daily)</div>
           <div className="com-mini-chart">
-            <ReactECharts option={overlayOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={overlayOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

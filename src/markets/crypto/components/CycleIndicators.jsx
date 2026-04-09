@@ -1,6 +1,6 @@
 // src/markets/crypto/components/CycleIndicators.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
@@ -175,7 +175,7 @@ export default function CycleIndicators({ fearGreedData }) {
             <div className="crypto-chart-title">Fear & Greed Index</div>
             <div className="crypto-chart-subtitle">0 = Extreme Fear · 100 = Extreme Greed · Alternative.me</div>
             <div className="crypto-chart-wrap" style={{ position: 'relative' }}>
-              <ReactECharts option={buildGaugeOption(value, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildGaugeOption(value, colors)} style={{ height: '100%', width: '100%' }} />
               <div style={{ position: 'absolute', bottom: '18%', left: 0, right: 0, textAlign: 'center', fontSize: 11, color: fearGreedColor(value, colors.textSecondary), fontWeight: 600, pointerEvents: 'none' }}>{label}</div>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function CycleIndicators({ fearGreedData }) {
             <div className="crypto-chart-title">30-Day F&G History</div>
             <div className="crypto-chart-subtitle">Daily fear & greed score over the past month</div>
             <div className="crypto-chart-wrap">
-              <ReactECharts option={buildHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function CycleIndicators({ fearGreedData }) {
           <div className="crypto-chart-title">BTC Cross-Asset Correlation</div>
           <div className="crypto-chart-subtitle">30d vs 90d rolling correlation · amber = positive · indigo = negative</div>
           <div className="crypto-chart-wrap">
-            <ReactECharts option={buildCorrelationOption(correlations, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildCorrelationOption(correlations, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>

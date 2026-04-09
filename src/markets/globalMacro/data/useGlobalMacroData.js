@@ -6,6 +6,9 @@ import {
   growthInflationData as mockGrowthInflationData,
   centralBankData     as mockCentralBankData,
   debtData            as mockDebtData,
+  cfnai               as mockCfnai,
+  oecdCli             as mockOecdCli,
+  cpiBreakdown        as mockCpiBreakdown,
 } from './mockGlobalMacroData';
 
 const SERVER = '';
@@ -20,6 +23,9 @@ export function useGlobalMacroData(autoRefresh = false) {
   const [industrialProd,      setIndustrialProd]      = useState(null);
   const [consumerSentiment,   setConsumerSentiment]   = useState(null);
   const [yieldSpread,         setYieldSpread]         = useState(null);
+  const [cfnai,               setCfnai]               = useState(mockCfnai);
+  const [oecdCli,             setOecdCli]             = useState(mockOecdCli);
+  const [cpiBreakdown,        setCpiBreakdown]        = useState(mockCpiBreakdown);
   const [isLive,              setIsLive]              = useState(false);
   const [lastUpdated,         setLastUpdated]         = useState('Mock data — 2023');
   const [isLoading,           setIsLoading]           = useState(true);
@@ -40,6 +46,9 @@ export function useGlobalMacroData(autoRefresh = false) {
         if (data.industrialProd?.dates?.length)    { setIndustrialProd(data.industrialProd);     anyReplaced = true; }
         if (data.consumerSentiment?.dates?.length) { setConsumerSentiment(data.consumerSentiment); anyReplaced = true; }
         if (data.yieldSpread?.dates?.length)       { setYieldSpread(data.yieldSpread);           anyReplaced = true; }
+        if (data.cfnai?.dates?.length)              { setCfnai(data.cfnai);                      anyReplaced = true; }
+        if (data.oecdCli?.countries?.length >= 5)   { setOecdCli(data.oecdCli);                   anyReplaced = true; }
+        if (data.cpiBreakdown?.components?.length >= 3) { setCpiBreakdown(data.cpiBreakdown);       anyReplaced = true; }
         setIsLive(anyReplaced);
         if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
         if (data.fetchedOn) setFetchedOn(data.fetchedOn);
@@ -55,7 +64,7 @@ export function useGlobalMacroData(autoRefresh = false) {
 
   return {
     scorecardData, growthInflationData, centralBankData, debtData,
-    m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread,
+    m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
   };
 }

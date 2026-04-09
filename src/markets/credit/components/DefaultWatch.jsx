@@ -1,6 +1,6 @@
 // src/markets/credit/components/DefaultWatch.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CreditComponents.css';
 
@@ -171,7 +171,7 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
               <div className="credit-chart-title">Delinquency Rates</div>
               <div className="credit-chart-subtitle">FRED quarterly · commercial RE (red) · all loans (amber) · % past-due</div>
               <div className="credit-chart-wrap">
-                <ReactECharts option={buildDelinquencyOption(delinquencyRates, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildDelinquencyOption(delinquencyRates, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           )}
@@ -180,7 +180,7 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
               <div className="credit-chart-title">Lending Standards (C&amp;I)</div>
               <div className="credit-chart-subtitle">Net % of banks tightening C&amp;I loan standards · red = tightening · green = easing</div>
               <div className="credit-chart-wrap">
-                <ReactECharts option={buildLendingStandardsOption(lendingStandards, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildLendingStandardsOption(lendingStandards, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           )}
@@ -192,14 +192,14 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
             <div className="credit-chart-title">Default Rate Trend</div>
             <div className="credit-chart-subtitle">HY bond & leveraged loan TTM default rates (%) — amber = HY · cyan = loans</div>
             <div className="credit-chart-wrap">
-              <ReactECharts option={buildDefaultHistoryOption(defaultHistory, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildDefaultHistoryOption(defaultHistory, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
           <div className="credit-chart-panel">
             <div className="credit-chart-title">Bank Charge-Off Rates</div>
             <div className="credit-chart-subtitle">FRED quarterly charge-off rates (%) — commercial & consumer loans · DRALACBN / DRSFRMACBS</div>
             <div className="credit-chart-wrap">
-              <ReactECharts option={buildChargeoffOption(chargeoffs, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildChargeoffOption(chargeoffs, colors)} style={{ height: '100%', width: '100%' }} />
             </div>
           </div>
         </div>

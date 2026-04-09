@@ -1,6 +1,6 @@
 // src/markets/commodities/components/CotPositioning.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommodComponents.css';
 
@@ -175,7 +175,7 @@ export default function CotPositioning({ cotData }) {
             </div>
             {c.history?.length > 2 && (
               <div style={{ height: 140 }}>
-                <ReactECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             )}
           </div>
@@ -187,7 +187,7 @@ export default function CotPositioning({ cotData }) {
         <div className="com-chart-panel" style={{ height: 170, flexShrink: 0 }}>
           <div className="com-chart-title">Net Speculative Positioning — 12 Week Trend</div>
           <div className="com-mini-chart">
-            <ReactECharts option={buildTrendOption(cotData.commodities, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildTrendOption(cotData.commodities, colors)} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

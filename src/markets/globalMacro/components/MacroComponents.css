@@ -128,3 +128,67 @@
   font-size: 10px;
   color: var(--text-secondary);
 }
+
+/* ── OECD CLI Grid ── */
+.mac-cli-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+.mac-cli-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+}
+.mac-cli-country {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.mac-cli-flag { font-size: 14px; }
+.mac-cli-name { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+.mac-cli-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+.mac-cli-trend {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ── CPI Breakdown Table ── */
+.mac-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mac-cpi-breakdown {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mac-cpi-row {
+  display: grid;
+  grid-template-columns: 1fr 60px 60px;
+  align-items: center;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.mac-cpi-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.mac-cpi-weight {
+  text-align: center;
+  font-size: 10px;
+}
+.mac-cpi-yoy {
+  text-align: right;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+}

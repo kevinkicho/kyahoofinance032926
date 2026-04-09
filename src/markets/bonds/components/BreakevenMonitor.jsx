@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './BondsComponents.css';
 
@@ -85,7 +85,7 @@ export default function BreakevenMonitor({ breakevensData }) {
       </div>
       {history?.dates?.length > 5 && (
         <div className="bonds-chart-wrap">
-          <ReactECharts option={buildBreakevenOption(history, colors)} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={buildBreakevenOption(history, colors)} style={{ height: '100%', width: '100%' }} />
         </div>
       )}
       <div className="be-footer">

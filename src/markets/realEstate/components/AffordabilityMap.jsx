@@ -1,6 +1,6 @@
 // src/markets/realEstate/components/AffordabilityMap.jsx
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './REComponents.css';
 
@@ -198,7 +198,7 @@ export default function AffordabilityMap({ affordabilityData, mortgageRates, sup
               <>
                 <div className="re-chart-title">Median Home Price + Price/Income Trend</div>
                 <div className="re-mini-chart">
-                  <ReactECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
+                  <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
                 </div>
               </>
             ) : (
@@ -214,7 +214,7 @@ export default function AffordabilityMap({ affordabilityData, mortgageRates, sup
         <div className="re-chart-panel" style={{ marginTop: 8, height: 150, flexShrink: 0 }}>
           <div className="re-chart-title">Housing Starts + Building Permits Trend</div>
           <div className="re-mini-chart">
-            <ReactECharts option={supplyOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={supplyOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}
@@ -223,7 +223,7 @@ export default function AffordabilityMap({ affordabilityData, mortgageRates, sup
         <div className="re-chart-panel" style={{ marginTop: 8, height: 150, flexShrink: 0 }}>
           <div className="re-chart-title">Median Home Sale Price (24-Month)</div>
           <div className="re-mini-chart">
-            <ReactECharts option={medianPriceOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={medianPriceOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       )}

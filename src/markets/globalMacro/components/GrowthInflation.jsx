@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './MacroComponents.css';
 
@@ -172,7 +172,7 @@ function buildConsumerSentimentOption(consumerSentiment, colors) {
   };
 }
 
-export default function GrowthInflation({ growthInflationData, industrialProd, consumerSentiment }) {
+export default function GrowthInflation({ growthInflationData, industrialProd, consumerSentiment, cpiBreakdown }) {
   const { colors } = useTheme();
   const { year = '', countries = [] } = growthInflationData ?? {};
 
@@ -235,14 +235,14 @@ export default function GrowthInflation({ growthInflationData, industrialProd, c
           <div className="mac-chart-title">GDP Growth (%)</div>
           <div className="mac-chart-subtitle">Ranked highest to lowest · teal = positive · red = contraction</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={gdpOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={gdpOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
         <div className="mac-chart-panel">
           <div className="mac-chart-title">CPI Inflation (%)</div>
           <div className="mac-chart-subtitle">Ranked highest to lowest · teal = on target (1–3%) · amber = elevated · red = high</div>
           <div className="mac-chart-wrap">
-            <ReactECharts option={cpiOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={cpiOption} style={{ height: '100%', width: '100%' }} />
           </div>
         </div>
       </div>
@@ -253,7 +253,7 @@ export default function GrowthInflation({ growthInflationData, industrialProd, c
               <div className="mac-chart-title">Industrial Production (YoY %)</div>
               <div className="mac-chart-subtitle">US Fed — monthly · purple line · dashed zero = contraction boundary</div>
               <div className="mac-chart-wrap">
-                <ReactECharts option={indProdOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={indProdOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           )}
@@ -262,10 +262,34 @@ export default function GrowthInflation({ growthInflationData, industrialProd, c
               <div className="mac-chart-title">Consumer Sentiment (U. Michigan)</div>
               <div className="mac-chart-subtitle">Index level — higher = more optimistic · amber line</div>
               <div className="mac-chart-wrap">
-                <ReactECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
           )}
+        </div>
+      )}
+      {/* CPI Breakdown */}
+      {cpiBreakdown?.components?.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div className="mac-section-header" style={{ marginBottom: 12 }}>
+            <span className="mac-panel-title" style={{ fontSize: 14 }}>US CPI Components (BLS)</span>
+            <span className="mac-panel-subtitle" style={{ fontSize: 11 }}>Year-over-year change by category</span>
+            {cpiBreakdown.asOf && <span style={{ marginLeft: 'auto', fontSize: 11, color: colors.textMuted }}>as of {cpiBreakdown.asOf}</span>}
+          </div>
+          <div className="mac-cpi-breakdown">
+            {cpiBreakdown.components.map((c, i) => {
+              const yoyColor = c.yoy == null ? colors.textMuted : c.yoy < 0 ? '#4ade80' : c.yoy < 2 ? '#4ade80' : c.yoy < 4 ? '#f59e0b' : '#ef4444';
+              return (
+                <div key={c.key} className="mac-cpi-row" style={{ background: i % 2 === 0 ? 'transparent' : colors.cardBg }}>
+                  <span className="mac-cpi-name">{c.name}</span>
+                  <span className="mac-cpi-weight" style={{ color: colors.textMuted }}>{(c.weight * 100).toFixed(1)}%</span>
+                  <span className="mac-cpi-yoy" style={{ color: yoyColor, fontWeight: 600 }}>
+                    {c.yoy != null ? `${c.yoy > 0 ? '+' : ''}${c.yoy.toFixed(1)}%` : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

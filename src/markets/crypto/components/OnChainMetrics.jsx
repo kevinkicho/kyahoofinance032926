@@ -1,6 +1,6 @@
 // src/markets/crypto/components/OnChainMetrics.jsx
 import React from 'react';
-import ReactECharts from 'echarts-for-react';
+import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoComponents.css';
 
@@ -122,13 +122,13 @@ export default function OnChainMetrics({ onChainData, topExchanges = [] }) {
       {hashrate?.history?.length > 2 && (
         <div className="onchain-chart-wrap">
           <div className="crypto-chart-title">Hashrate Trend (30d)</div>
-          <ReactECharts option={buildHashrateOption(hashrate.history, colors)} style={{ height: 160, width: '100%' }} />
+          <SafeECharts option={buildHashrateOption(hashrate.history, colors)} style={{ height: 160, width: '100%' }} />
         </div>
       )}
       {topExchanges.length > 0 && (
         <div className="onchain-chart-wrap">
           <div className="crypto-chart-title">Top Exchanges by 24h Volume</div>
-          <ReactECharts
+          <SafeECharts
             option={buildExchangesOption(topExchanges.slice(0, 10), colors)}
             style={{ height: Math.max(160, topExchanges.slice(0, 10).length * 22 + 16), width: '100%' }}
           />

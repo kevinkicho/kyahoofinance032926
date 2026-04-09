@@ -1,0 +1,160 @@
+/* src/markets/fx/components/FXDashboard.css */
+
+.fx-dashboard {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+/* KPI Strip */
+.fx-kpi-strip-new {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fx-kpi-pill-new {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.fx-kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.fx-kpi-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.fx-kpi-change {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Chart Grid */
+.fx-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+  align-content: start;
+}
+
+@media (max-width: 1200px) {
+  .fx-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel Card */
+.fx-panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.fx-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.fx-chart-wrap {
+  flex: 1;
+  min-height: 160px;
+}
+
+/* Movers List */
+.fx-movers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fx-mover-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.fx-mover-rank {
+  width: 20px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.fx-mover-code {
+  width: 36px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fx-mover-pct {
+  width: 65px;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 600;
+}
+
+.fx-mover-1w {
+  width: 55px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.fx-spark {
+  flex-shrink: 0;
+}
+
+/* Mini Table */
+.fx-mini-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fx-mini-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.fx-mini-name {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.fx-mini-value {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 600;
+}
