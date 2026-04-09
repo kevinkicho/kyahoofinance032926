@@ -6,55 +6,175 @@
   flex: 1;
   overflow: hidden;
   background: var(--bg-deep);
+  gap: 12px;
+  padding: 12px;
+}
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* YIELD CURVE SECTION - Full-width comprehensive panel */
+/* ═════════════════════════════════════════════════════════════════ */
+
+.bonds-yield-section {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.bonds-panel-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.bonds-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bonds-panel-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.bonds-panel-footer {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* KPI Strip */
 .bonds-kpi-strip {
   display: flex;
   gap: 8px;
-  padding: 8px 16px;
-  overflow-x: auto;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border-subtle);
 }
 
 .bonds-kpi-pill {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 16px;
   background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  white-space: nowrap;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px 12px;
+  min-width: 90px;
+  flex: 1;
 }
 
 .bonds-kpi-label {
-  font-size: 11px;
+  font-size: 9px;
   color: var(--text-muted);
-  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .bonds-kpi-value {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
+  color: var(--text-primary);
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
+
+.bonds-kpi-value.accent { color: #10b981; }
+.bonds-kpi-value.positive { color: #4ade80; }
+.bonds-kpi-value.negative { color: #f87171; }
 
 .bonds-kpi-status {
   font-size: 10px;
   color: var(--text-dim);
-  background: var(--bg-primary);
-  padding: 2px 6px;
-  border-radius: 8px;
+  margin-top: 2px;
 }
 
-/* Chart Grid - 2 columns */
+/* Wide-Narrow Layout: Chart (70%) + Bars (30%) */
+.bonds-wide-narrow {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-height: 280px;
+}
+
+.bonds-wide-narrow > :first-child { flex: 7; min-width: 0; }
+.bonds-wide-narrow > :last-child  { flex: 3; min-width: 120px; }
+
+.bonds-chart-wrap {
+  flex: 1;
+  min-height: 200px;
+  position: relative;
+}
+
+.bonds-chart-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px;
+  flex-shrink: 0;
+}
+
+.bonds-chart-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+/* US Tenor Bars */
+.bonds-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.bonds-bar-label {
+  width: 32px;
+  text-align: right;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.bonds-bar-track {
+  flex: 1;
+  height: 14px;
+  background: var(--bg-deep);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bonds-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.bonds-bar-val {
+  min-width: 48px;
+  text-align: right;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 10px;
+}
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* OTHER PANELS - 2-column grid */
+/* ═════════════════════════════════════════════════════════════════ */
+
 .bonds-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  padding: 12px 16px;
   overflow-y: auto;
   flex: 1;
   align-content: start;
@@ -74,20 +194,7 @@
   padding: 12px;
   display: flex;
   flex-direction: column;
-  min-height: 200px;
-}
-
-.bonds-panel-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-
-.bonds-chart-wrap {
-  flex: 1;
-  min-height: 160px;
+  min-height: 140px;
 }
 
 /* Mini Table */
@@ -123,74 +230,26 @@
   margin-left: 8px;
 }
 
-/* Yield Curve Split Layout */
-.bonds-yield-split {
-  display: flex;
-  flex: 1;
-  min-height: 180px;
-  gap: 8px;
-}
-
-/* US Tenor Bars */
-.bonds-tenor-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 120px;
-}
-
-.bonds-bar-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-}
-
-.bonds-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-}
-
-.bonds-bar-label {
-  width: 24px;
-  color: var(--text-muted);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.bonds-bar-track {
-  flex: 1;
-  height: 8px;
-  background: var(--bg-primary);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.bonds-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.bonds-bar-val {
-  min-width: 52px;
-  text-align: right;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 10px;
-}
-
+/* Responsive */
 @media (max-width: 900px) {
-  .bonds-yield-split {
+  .bonds-wide-narrow {
     flex-direction: column;
   }
-  .bonds-tenor-bars {
+  .bonds-wide-narrow > :last-child {
     min-width: unset;
-    padding-left: 0 !important;
-    padding-top: 12px;
-    border-top: 1px solid var(--border-subtle);
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .bonds-kpi-strip {
+    gap: 6px;
+  }
+  .bonds-kpi-pill {
+    min-width: 70px;
+    padding: 4px 8px;
+  }
+  .bonds-kpi-value {
+    font-size: 13px;
   }
 }

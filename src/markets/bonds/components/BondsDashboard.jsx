@@ -13,7 +13,7 @@ const COUNTRY_COLORS = {
 
 /**
  * BondsDashboard - Unified view showing all bond data at once
- * Combines: Yield Curve, Credit Matrix, Spread Monitor, Duration Ladder, Breakevens
+ * Layout: Yield Curve section (full-width) + Other panels (2-column grid)
  */
 export default function BondsDashboard({
   yieldCurveData,
@@ -30,7 +30,7 @@ export default function BondsDashboard({
 }) {
   const { colors } = useTheme();
 
-  // Find steepest curve (country with largest 30Y-3M spread)
+  // Find steepest curve
   const steepest = useMemo(() => {
     if (!yieldCurveData) return null;
     let best = null;
@@ -58,81 +58,7 @@ export default function BondsDashboard({
     }));
   }, [yieldCurveData]);
 
-  // KPI calculations
-  const kpis = useMemo(() => {
-    const result = [];
-    // US 10Y
-    const us10y = yieldCurveData?.US?.['10y'];
-    if (us10y != null) {
-      result.push({
-        label: 'US 10Y',
-        value: us10y.toFixed(2),
-        unit: '%',
-        color: '#a78bfa',
-      });
-    }
-    // 10Y-2Y Spread
-    if (spreadIndicators?.t10y2y != null) {
-      result.push({
-        label: '10Y-2Y',
-        value: (spreadIndicators.t10y2y >= 0 ? '+' : '') + spreadIndicators.t10y2y.toFixed(2),
-        unit: '%',
-        color: spreadIndicators.t10y2y < 0 ? '#f87171' : '#4ade80',
-        status: spreadIndicators.t10y2y < 0 ? 'Inverted' : 'Normal',
-      });
-    }
-    // 10Y-3M Spread
-    if (spreadIndicators?.t10y3m != null) {
-      result.push({
-        label: '10Y-3M',
-        value: (spreadIndicators.t10y3m >= 0 ? '+' : '') + spreadIndicators.t10y3m.toFixed(2),
-        unit: '%',
-        color: spreadIndicators.t10y3m < 0 ? '#f87171' : '#4ade80',
-        status: spreadIndicators.t10y3m < 0 ? 'Inverted' : 'Normal',
-      });
-    }
-    // Steepest Curve
-    if (steepest) {
-      result.push({
-        label: 'Steepest',
-        value: steepest.country,
-        unit: '',
-        color: '#60a5fa',
-        status: `${steepest.spread.toFixed(2)}%`,
-      });
-    }
-    // Fed Funds Rate
-    if (treasuryRates?.fedFunds != null) {
-      result.push({
-        label: 'Fed Funds',
-        value: treasuryRates.fedFunds.toFixed(2),
-        unit: '%',
-        color: treasuryRates.fedFunds < 3 ? '#4ade80' : '#fbbf24',
-      });
-    }
-    // IG Spread
-    const igSpread = spreadData?.IG?.length ? spreadData.IG[spreadData.IG.length - 1] : null;
-    if (igSpread != null) {
-      result.push({
-        label: 'IG OAS',
-        value: igSpread.toFixed(0),
-        unit: 'bp',
-        color: igSpread > 150 ? '#f87171' : '#4ade80',
-      });
-    }
-    // 5Y Breakeven
-    if (breakevensData?.fiveYear != null) {
-      result.push({
-        label: '5Y Breakeven',
-        value: breakevensData.fiveYear.toFixed(2),
-        unit: '%',
-        color: breakevensData.fiveYear > 3 ? '#fbbf24' : '#4ade80',
-      });
-    }
-    return result;
-  }, [spreadIndicators, treasuryRates, spreadData, breakevensData, yieldCurveData, steepest]);
-
-  // Yield Curve chart - multi-country
+  // Yield Curve chart
   const yieldCurveOption = useMemo(() => {
     if (!yieldCurveData || !Object.keys(yieldCurveData).length) return null;
     const countries = Object.keys(yieldCurveData);
@@ -157,7 +83,7 @@ export default function BondsDashboard({
     };
   }, [yieldCurveData, colors]);
 
-  // FRED 10Y history chart
+  // FRED 10Y history
   const historyOption = useMemo(() => {
     if (!fredYieldHistory?.dates?.length) return null;
     const d = fredYieldHistory.dates;
@@ -176,7 +102,7 @@ export default function BondsDashboard({
     };
   }, [fredYieldHistory, colors]);
 
-  // Multi-tenor history (2Y/10Y/30Y)
+  // Multi-tenor history
   const multiTenorOption = useMemo(() => {
     if (!yieldHistory?.dates?.length) return null;
     const d = yieldHistory.dates;
@@ -199,73 +125,91 @@ export default function BondsDashboard({
     };
   }, [yieldHistory, colors]);
 
-  // Country count for display
   const countryCount = yieldCurveData ? Object.keys(yieldCurveData).length : 0;
+  const us10y = yieldCurveData?.US?.['10y'];
 
   return (
     <div className="bonds-dashboard">
-      {/* KPI Strip */}
-      <div className="bonds-kpi-strip">
-        {kpis.map((kpi, i) => (
-          <div key={i} className="bonds-kpi-pill" style={{ background: colors.bgCard }}>
-            <span className="bonds-kpi-label">{kpi.label}</span>
-            <span className="bonds-kpi-value" style={{ color: kpi.color }}>
-              {kpi.value}{kpi.unit}
-            </span>
-            {kpi.status && <span className="bonds-kpi-status">{kpi.status}</span>}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* YIELD CURVE SECTION - Full-width comprehensive panel */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className="bonds-yield-section" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+        {/* Header */}
+        <div className="bonds-panel-header">
+          <span className="bonds-panel-title">Yield Curve</span>
+          <span className="bonds-panel-subtitle">{countryCount} countries · sovereign benchmark rates</span>
+        </div>
+
+        {/* KPI Strip */}
+        <div className="bonds-kpi-strip">
+          <div className="bonds-kpi-pill">
+            <span className="bonds-kpi-label">US 10Y</span>
+            <span className="bonds-kpi-value accent">{us10y != null ? `${us10y.toFixed(2)}%` : '—'}</span>
           </div>
-        ))}
+          <div className="bonds-kpi-pill">
+            <span className="bonds-kpi-label">10Y−2Y</span>
+            <span className={`bonds-kpi-value ${spreadIndicators?.t10y2y != null && spreadIndicators.t10y2y >= 0 ? 'positive' : 'negative'}`}>
+              {spreadIndicators?.t10y2y != null ? `${spreadIndicators.t10y2y >= 0 ? '+' : ''}${spreadIndicators.t10y2y.toFixed(2)}%` : '—'}
+            </span>
+          </div>
+          <div className="bonds-kpi-pill">
+            <span className="bonds-kpi-label">10Y−3M</span>
+            <span className={`bonds-kpi-value ${spreadIndicators?.t10y3m != null && spreadIndicators.t10y3m >= 0 ? 'positive' : 'negative'}`}>
+              {spreadIndicators?.t10y3m != null ? `${spreadIndicators.t10y3m >= 0 ? '+' : ''}${spreadIndicators.t10y3m.toFixed(2)}%` : '—'}
+            </span>
+          </div>
+          <div className="bonds-kpi-pill">
+            <span className="bonds-kpi-label">Steepest</span>
+            <span className="bonds-kpi-value accent">{steepest?.country || '—'}</span>
+          </div>
+        </div>
+
+        {/* Wide-Narrow: Chart + US Tenor Bars */}
+        {yieldCurveOption && (
+          <div className="bonds-wide-narrow">
+            <div className="bonds-chart-wrap">
+              <SafeECharts option={yieldCurveOption} style={{ height: '100%', width: '100%' }} />
+            </div>
+            <div className="bonds-chart-panel">
+              <div className="bonds-chart-title">US Yield by Tenor</div>
+              {usYieldBars && usYieldBars.map(({ tenor, value, pct }) => (
+                <div key={tenor} className="bonds-bar-row">
+                  <span className="bonds-bar-label">{tenor}</span>
+                  <div className="bonds-bar-track">
+                    <div className="bonds-bar-fill" style={{ width: `${pct}%`, background: '#10b981' }} />
+                  </div>
+                  <span className="bonds-bar-val">{value != null ? `${value.toFixed(2)}%` : '—'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* History Charts - Stacked */}
+        {historyOption && (
+          <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
+            <div className="bonds-chart-title">US 10Y Yield — 1yr History (FRED DGS10)</div>
+            <SafeECharts option={historyOption} style={{ height: 120, width: '100%' }} />
+          </div>
+        )}
+
+        {multiTenorOption && (
+          <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
+            <div className="bonds-chart-title">2Y / 10Y / 30Y Yield — 252-day History</div>
+            <SafeECharts option={multiTenorOption} style={{ height: 140, width: '100%' }} />
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="bonds-panel-footer">
+          X-axis: 3m → 30y · Y-axis: yield % · Hover for details
+        </div>
       </div>
 
-      {/* Chart Grid - 2 columns */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* OTHER PANELS - 2-column grid */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
       <div className="bonds-chart-grid">
-        {/* Yield Curve + US Tenor Bars */}
-        {yieldCurveOption && (
-          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="bonds-panel-title">Yield Curve ({countryCount} Countries)</div>
-            <div className="bonds-yield-split">
-              <div className="bonds-chart-wrap" style={{ minHeight: 200, flex: '2 1 65%' }}>
-                <SafeECharts option={yieldCurveOption} style={{ height: '100%', width: '100%' }} />
-              </div>
-              {/* US Yield by Tenor Bar Chart */}
-              {usYieldBars && (
-                <div className="bonds-tenor-bars" style={{ flex: '1 1 35%', paddingLeft: 12 }}>
-                  <div className="bonds-bar-title">US Yield by Tenor</div>
-                  {usYieldBars.map(({ tenor, value, pct }) => (
-                    <div key={tenor} className="bonds-bar-row">
-                      <span className="bonds-bar-label">{tenor}</span>
-                      <div className="bonds-bar-track">
-                        <div className="bonds-bar-fill" style={{ width: `${pct}%`, background: '#10b981' }} />
-                      </div>
-                      <span className="bonds-bar-val">{value != null ? `${value.toFixed(2)}%` : '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* US 10Y History */}
-        {historyOption && (
-          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="bonds-panel-title">US 10Y Yield — 1Y History (FRED)</div>
-            <div className="bonds-chart-wrap" style={{ minHeight: 200 }}>
-              <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
-            </div>
-          </div>
-        )}
-
-        {/* Multi-Tenor History */}
-        {multiTenorOption && (
-          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="bonds-panel-title">2Y / 10Y / 30Y Yield — 252-Day History</div>
-            <div className="bonds-chart-wrap" style={{ minHeight: 180 }}>
-              <SafeECharts option={multiTenorOption} style={{ height: '100%', width: '100%' }} />
-            </div>
-          </div>
-        )}
-
         {/* Credit Spreads */}
         <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
           <div className="bonds-panel-title">Credit Spreads</div>
@@ -362,7 +306,7 @@ export default function BondsDashboard({
         {/* Mortgage Spread */}
         {mortgageSpread && (
           <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="bonds-panel-title">Mortgage Spreads</div>
+            <div className="bonds-panel-title">Mortgage Rates</div>
             <div className="bonds-mini-table">
               <div className="bonds-mini-row">
                 <span className="bonds-mini-name">30Y Fixed</span>
@@ -372,6 +316,25 @@ export default function BondsDashboard({
                 <span className="bonds-mini-name">15Y Fixed</span>
                 <span className="bonds-mini-value">{mortgageSpread.rate15Y?.toFixed(2)}%</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Fed Funds */}
+        {treasuryRates?.fedFunds != null && (
+          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="bonds-panel-title">Policy Rate</div>
+            <div className="bonds-mini-table">
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">Fed Funds</span>
+                <span className="bonds-mini-value">{treasuryRates.fedFunds.toFixed(2)}%</span>
+              </div>
+              {treasuryRates.discountWindow && (
+                <div className="bonds-mini-row">
+                  <span className="bonds-mini-name">Discount</span>
+                  <span className="bonds-mini-value">{treasuryRates.discountWindow.toFixed(2)}%</span>
+                </div>
+              )}
             </div>
           </div>
         )}
