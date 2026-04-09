@@ -15,7 +15,7 @@ import './BondsMarket.css';
 function BondsMarket({ autoRefresh } = {}) {
   const {
     yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData,
-    breakevensData, treasuryRates, fedFundsFutures, yieldHistory, mortgageSpread,
+    breakevensData, treasuryRates, fredYieldHistory, fedFundsFutures, yieldHistory, mortgageSpread,
     tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory, m2HistoryData,
     creditIndices, auctionData, nationalDebt,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent
