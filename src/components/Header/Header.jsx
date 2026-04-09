@@ -36,18 +36,6 @@ const Header = ({
               onClick={() => setViewMode('race')}
               style={{ color: viewMode === 'race' ? '#fff' : '#f59e0b', borderColor: '#f59e0b' }}
             >Bar Race</button>
-            <button className={viewMode === 'portfolio' ? 'active' : ''} onClick={() => setViewMode('portfolio')}>Portfolio</button>
-            <button className={viewMode === 'radar'     ? 'active' : ''} onClick={() => setViewMode('radar')}>Radar</button>
-            <button
-              className={viewMode === 'ml-explorer' ? 'active' : ''}
-              onClick={() => setViewMode('ml-explorer')}
-              style={{ color: viewMode === 'ml-explorer' ? '#fff' : '#a855f7', borderColor: '#a855f7' }}
-            >ML Engine</button>
-            <button
-              className={viewMode === 'data-hub' ? 'active' : ''}
-              onClick={() => setViewMode('data-hub')}
-              style={{ color: viewMode === 'data-hub' ? '#fff' : '#10b981', borderColor: '#10b981', marginLeft: '0.5rem' }}
-            >Data Hub</button>
           </div>
           <button
             className={`timetravel-btn ${showTimeTravel ? 'active' : ''}`}

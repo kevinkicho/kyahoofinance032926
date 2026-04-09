@@ -2,16 +2,11 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Header from '../../components/Header/Header';
 import HeatmapView from '../../components/HeatmapView/HeatmapView';
 import ListView from '../../components/ListView/ListView';
-import PortfolioView from '../../components/PortfolioView/PortfolioView';
-import RadarView from '../../components/RadarView/RadarView';
-import ModelExplorer from '../../components/ModelExplorer/ModelExplorer';
-import DataHub from '../../components/DataHub/DataHub';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import { mockTreemapData } from '../../mockData';
 import { currencySymbols, REGION_SUFFIX } from '../../utils/constants';
 import { useFrankfurterRates } from '../../utils/useFrankfurterRates';
 import { getExtendedDetails } from '../../utils/dataHelpers';
-import { buildGlobalMacroEngine, predictMacroImpact } from '../../utils/mlEngine';
 import { ERAS } from '../../components/TimeTravel/TimeTravel';
 import TimeBar from '../../components/TimeBar/TimeBar';
 import BarRaceView from '../../components/BarRaceView/BarRaceView';
@@ -22,21 +17,8 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'value', direction: 'descending' });
   const [selectedTicker, setSelectedTicker] = useState(null);
-  const [scenarios, setScenarios] = useState({
-    riskAppetite: 50,
-    interestRate: 0,
-    inflation: 2.0,
-    ppi: 2.0,
-    gini: 48.0
-  });
   const [activeEra, setActiveEra] = useState('2025');
   const [showTimeTravel, setShowTimeTravel] = useState(false);
-  const [portfolio, setPortfolio] = useState([
-    { ticker: 'AAPL', amount: 15000, id: 1 },
-    { ticker: '1398', amount: 5000, id: 2 } // ICBC Bank, High Beta logic demo
-  ]);
-  const [useMlEngine, setUseMlEngine] = useState(false);
-  const [mlModels, setMlModels] = useState(null);
   const [rankMetric, setRankMetric] = useState('marketCap');
   const [groupBy, setGroupBy] = useState('market');
   const [colorByPerf, setColorByPerf] = useState(false);
@@ -51,10 +33,6 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
   const [marketUniverse, setMarketUniverse] = useState(mockTreemapData);
 
   const { rates, isLive: ratesIsLive, lastUpdated: ratesDate } = useFrankfurterRates();
-
-  useEffect(() => {
-    setMlModels(buildGlobalMacroEngine());
-  }, []);
 
   // Fetch baseline (today) once on mount — needed for TimeBar and Time Travel
   useEffect(() => {
@@ -117,30 +95,11 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
     }
   }
 
-  // Macro Valuation Engine — composes era multiplier × scenario slider
-  const getAdjustedValue = (item, scenarios, eraMultipliers) => {
-    // Phase 7/8: ML Regression Override
-    if (useMlEngine && mlModels) {
-      const preds = predictMacroImpact(mlModels, scenarios.riskAppetite, scenarios.interestRate, scenarios.inflation, scenarios.ppi, scenarios.gini);
-      return Math.max(0.1, item.value * (preds[item.sector] || 1.0));
-    }
-
-    // Layer 1: Historical era baseline
+  // Macro Valuation Engine — composes era multiplier
+  const getAdjustedValue = (item, eraMultipliers) => {
+    // Historical era baseline
     const eraMult = eraMultipliers[item.sector] || 1.0;
-
-    // Layer 2: Scenario slider adjustments
-    let scenarioMult = 1.0;
-    const riskFactor = (scenarios.riskAppetite - 50) / 100;
-    if (item.sector === 'Technology') scenarioMult += riskFactor * 0.4;
-    if (item.sector === 'Healthcare') scenarioMult -= riskFactor * 0.2;
-    const rateFactor = scenarios.interestRate / 10000;
-    if (item.sector === 'Technology') scenarioMult -= rateFactor * 15;
-    if (item.sector === 'Financials') scenarioMult += rateFactor * 10;
-    const inflationFactor = (scenarios.inflation - 2) / 100;
-    if (item.sector === 'Energy') scenarioMult += inflationFactor * 5;
-    if (item.sector === 'Consumer') scenarioMult -= inflationFactor * 2;
-
-    return Math.max(0.1, item.value * eraMult * Math.max(0.1, scenarioMult));
+    return Math.max(0.1, item.value * eraMult);
   };
 
   // Pick the treemap sizing metric — revenue/netIncome resize cells; pe/divYield use marketCap size
@@ -196,7 +155,7 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
   ];
   const rankColorFn = (rank) => RANK_PALETTE[(rank - 1) % RANK_PALETTE.length];
 
-  // Processed Treemap with Era + Scenario Impacts + Ranking
+  // Processed Treemap with Era + Ranking
   const adjustedTreemapData = useMemo(() => {
     const era = ERAS.find(e => e.id === activeEra) || ERAS[ERAS.length - 1];
     const useRealSnapshot = snapshotPrices && baselinePrices && snapshotDate;
@@ -218,7 +177,7 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
         }
         // Fall back to era multiplier if no real data for this ticker
         if (!adjustedValue) {
-          adjustedValue = getAdjustedValue(stock, scenarios, era.multipliers);
+          adjustedValue = getAdjustedValue(stock, era.multipliers);
         }
 
         // metricValue drives treemap sizing.
@@ -253,7 +212,7 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
         }),
       };
     });
-  }, [marketUniverse, scenarios, activeEra, useMlEngine, mlModels, rankMetric, snapshotPrices, baselinePrices, snapshotDate, colorByPerf]);
+  }, [marketUniverse, activeEra, rankMetric, snapshotPrices, baselinePrices, snapshotDate, colorByPerf]);
 
   // Reorganize treemap data for sector views
   const heatmapData = useMemo(() => {
@@ -480,41 +439,15 @@ export default function EquitiesMarket({ currency, setCurrency, snapshotDate, se
               snapshotLoading={snapshotLoading}
             />
           )}
-          {viewMode === 'portfolio' && (
-            <PortfolioView
-              portfolio={portfolio} setPortfolio={setPortfolio}
-              flatData={flatData} handleSelectTicker={handleSelectTicker}
-              currentRate={currentRate} currentSymbol={currentSymbol}
-              currency={currency}
-            />
-          )}
-          {viewMode === 'ml-explorer' && (
-            <ModelExplorer scenarios={scenarios} setScenarios={setScenarios} />
-          )}
-          {viewMode === 'radar' && (
-            <RadarView
-              flatData={flatData} handleSelectTicker={handleSelectTicker}
-              currentRate={currentRate} currentSymbol={currentSymbol}
-              currency={currency} useMlEngine={useMlEngine}
-            />
-          )}
-          {viewMode === 'data-hub' && (
-            <DataHub
-              setMarketUniverse={setMarketUniverse}
-              setViewMode={setViewMode}
-            />
-          )}
         </div>
         <Sidebar
           selectedTicker={selectedTicker} setSelectedTicker={setSelectedTicker} flatData={flatData}
           currentRate={currentRate} currentSymbol={currentSymbol} currency={currency}
           rates={rates} ratesIsLive={ratesIsLive} ratesDate={ratesDate}
-          scenarios={scenarios} setScenarios={setScenarios}
           activeEra={activeEra} setActiveEra={setActiveEra}
           showTimeTravel={showTimeTravel}
           snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate}
           snapshotLoading={snapshotLoading} hasRealData={!!baselinePrices}
-          useMlEngine={useMlEngine} setUseMlEngine={setUseMlEngine}
         />
       </main>
     </div>

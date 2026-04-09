@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../hub/ThemeContext';
 import DetailPanel from '../DetailPanel/DetailPanel';
-import ScenarioController from './ScenarioController';
 import TimeTravel from '../TimeTravel/TimeTravel';
 import CountryMacro from './CountryMacro';
 import { ERAS } from '../TimeTravel/TimeTravel';
@@ -39,23 +38,18 @@ const Sidebar = ({
   rates,
   ratesIsLive,
   ratesDate,
-  scenarios,
-  setScenarios,
   activeEra,
   setActiveEra,
   showTimeTravel,
   snapshotDate,
   setSnapshotDate,
   snapshotLoading,
-  hasRealData,
-  useMlEngine,
-  setUseMlEngine
+  hasRealData
 }) => {
   const { colors } = useTheme();
   const fxRates = rates || exchangeRates;
   const [macroData, setMacroData] = useState(MOCK_MACRO);
   const [macroLive, setMacroLive] = useState(false);
-  const [macroMode, setMacroMode] = useState('global'); // 'global' or 'regional'
   const currentEraLabel = ERAS.find(e => e.id === activeEra)?.label || 'Current';
 
   useEffect(() => {
@@ -78,7 +72,6 @@ const Sidebar = ({
           setSelectedTicker={setSelectedTicker}
           currentRate={currentRate}
           currentSymbol={currentSymbol}
-          scenarios={scenarios}
         />
       ) : (
         <>
@@ -108,46 +101,26 @@ const Sidebar = ({
             })()}
           </div>
 
-          <h2>Market Modeling Scenarios</h2>
-          <ScenarioController 
-            scenarios={scenarios} setScenarios={setScenarios} 
-            useMlEngine={useMlEngine} setUseMlEngine={setUseMlEngine}
-          />
-
-          <div className="macro-mode-toggle">
-            <button className={macroMode === 'global' ? 'active' : ''} onClick={() => setMacroMode('global')}>Global</button>
-            <button className={macroMode === 'regional' ? 'active' : ''} onClick={() => setMacroMode('regional')}>Regional Twin</button>
+          <h2>Macro Indicators {macroLive ? <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span> : <span style={{fontSize:'0.6rem',color:colors.textDim}}>(Mock)</span>}</h2>
+          <div className="macro-grid">
+            <MacroCard label="M1 MONEY SUPPLY" latest={macroData.M1?.latest} prev={macroData.M1?.prev} prefix="$" unit="B" />
+            <MacroCard label="M2 MONEY SUPPLY" latest={macroData.M2?.latest} prev={macroData.M2?.prev} prefix="$" unit="B" />
+            <MacroCard label="CPI (ALL URBAN)" latest={macroData.CPI?.latest} prev={macroData.CPI?.prev} />
+            <MacroCard label="FED FUNDS RATE" latest={macroData.FFR?.latest} prev={macroData.FFR?.prev} unit="%" />
+            <MacroCard label="UNEMPLOYMENT" latest={macroData.UNEMP?.latest} prev={macroData.UNEMP?.prev} unit="%" />
+            <MacroCard label="NOMINAL GDP" latest={macroData.GDP?.latest} prev={macroData.GDP?.prev} prefix="$" unit="B" />
           </div>
-
-          {macroMode === 'global' ? (
+          {macroLive && (macroData.IG_OAS || macroData.HY_OAS || macroData.BAA_SPREAD) && (
             <>
-              <h2>Macro Indicators {macroLive ? <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span> : <span style={{fontSize:'0.6rem',color:colors.textDim}}>(Mock)</span>}</h2>
+              <h2 style={{marginTop:'0.25rem'}}>Credit Spreads <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span></h2>
               <div className="macro-grid">
-                <MacroCard label="M1 MONEY SUPPLY" latest={macroData.M1?.latest} prev={macroData.M1?.prev} prefix="$" unit="B" />
-                <MacroCard label="M2 MONEY SUPPLY" latest={macroData.M2?.latest} prev={macroData.M2?.prev} prefix="$" unit="B" />
-                <MacroCard label="CPI (ALL URBAN)" latest={macroData.CPI?.latest} prev={macroData.CPI?.prev} />
-                <MacroCard label="FED FUNDS RATE" latest={macroData.FFR?.latest} prev={macroData.FFR?.prev} unit="%" />
-                <MacroCard label="UNEMPLOYMENT" latest={macroData.UNEMP?.latest} prev={macroData.UNEMP?.prev} unit="%" />
-                <MacroCard label="NOMINAL GDP" latest={macroData.GDP?.latest} prev={macroData.GDP?.prev} prefix="$" unit="B" />
+                {macroData.IG_OAS     && <MacroCard label="IG OAS (bps)"        latest={macroData.IG_OAS.latest}     prev={macroData.IG_OAS.prev} />}
+                {macroData.HY_OAS     && <MacroCard label="HY OAS (bps)"        latest={macroData.HY_OAS.latest}     prev={macroData.HY_OAS.prev} />}
+                {macroData.BAA_SPREAD && <MacroCard label="Baa–10yr Sprd (%)" latest={macroData.BAA_SPREAD.latest} prev={macroData.BAA_SPREAD.prev} />}
               </div>
-              {macroLive && (macroData.IG_OAS || macroData.HY_OAS || macroData.BAA_SPREAD) && (
-                <>
-                  <h2 style={{marginTop:'0.25rem'}}>Credit Spreads <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span></h2>
-                  <div className="macro-grid">
-                    {macroData.IG_OAS     && <MacroCard label="IG OAS (bps)"        latest={macroData.IG_OAS.latest}     prev={macroData.IG_OAS.prev} />}
-                    {macroData.HY_OAS     && <MacroCard label="HY OAS (bps)"        latest={macroData.HY_OAS.latest}     prev={macroData.HY_OAS.prev} />}
-                    {macroData.BAA_SPREAD && <MacroCard label="Baa–10yr Sprd (%)" latest={macroData.BAA_SPREAD.latest} prev={macroData.BAA_SPREAD.prev} />}
-                  </div>
-                  <p style={{fontSize:'0.6rem',color:colors.border,margin:'-0.25rem 0 0'}}>
-                    ICE BofA OAS · Baa–10yr Treasury spread · FRED{macroData.IG_OAS?.date ? ` · ${macroData.IG_OAS.date}` : ''}
-                  </p>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <h2>Regional Context (Predictive Mode)</h2>
-              <CountryMacro scenarios={scenarios} />
+              <p style={{fontSize:'0.6rem',color:colors.border,margin:'-0.25rem 0 0'}}>
+                ICE BofA OAS · Baa–10yr Treasury spread · FRED{macroData.IG_OAS?.date ? ` · ${macroData.IG_OAS.date}` : ''}
+              </p>
             </>
           )}
 

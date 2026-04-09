@@ -382,14 +382,14 @@ const TABS = [
   { id: 'fairvalue',    label: 'Fair Value' },
 ];
 
-const DetailPanel = ({ selectedTicker, setSelectedTicker, scenarios }) => {
+const DetailPanel = ({ selectedTicker, setSelectedTicker }) => {
   const { details, summaryData, historyData } = selectedTicker;
   const isCrypto = selectedTicker.sector === 'Crypto';
   const [activeTab, setActiveTab] = useState('summary');
   const sym = selectedTicker.regionSymbol || '$';
   const fv = computeFairValue(
     selectedTicker, details,
-    scenarios || { riskAppetite: 50, interestRate: 0, inflation: 2 }
+    { riskAppetite: 50, interestRate: 0, inflation: 2 }
   );
 
   return (
