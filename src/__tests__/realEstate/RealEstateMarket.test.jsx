@@ -17,20 +17,21 @@ describe('RealEstateMarket', () => {
     expect(caseShillerElements.length).toBeGreaterThan(0);
   });
 
-  it('shows KPI strip with key metrics', async () => {
+  it('shows sidebar with key metrics', async () => {
     render(<RealEstateMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // KPI strip shows key indicators (may appear multiple times)
-    const kpiElements = screen.getAllByText(/Case-Shiller|Homeownership|Housing/i);
-    expect(kpiElements.length).toBeGreaterThan(0);
+    // Sidebar shows Home Prices section
+    const homePricesSection = screen.getByText('Home Prices');
+    expect(homePricesSection).toBeInTheDocument();
   });
 
-  it('shows Housing Activity section', async () => {
+  it('shows content grid with all sections visible', async () => {
     render(<RealEstateMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows Housing Activity (mock data provides this)
-    const activityElements = screen.getAllByText(/Housing Activity/i);
-    expect(activityElements.length).toBeGreaterThan(0);
+    // All content is visible without tabs - check for various panels
+    // Case-Shiller appears in sidebar and as a chart panel
+    const caseShillerElements = screen.getAllByText(/Case-Shiller/i);
+    expect(caseShillerElements.length).toBeGreaterThan(0);
   });
 
   it('shows mock data status when server unavailable', async () => {

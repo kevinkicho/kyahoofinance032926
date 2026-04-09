@@ -2,147 +2,268 @@
 
 .bonds-dashboard {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex: 1;
   overflow: hidden;
   background: var(--bg-deep);
-  gap: 12px;
-  padding: 12px;
+  height: 100%;
+  gap: 0;
 }
 
 /* ═════════════════════════════════════════════════════════════════ */
-/* YIELD CURVE SECTION - Full-width comprehensive panel */
+/* LEFT SIDEBAR - Key Metrics */
 /* ═════════════════════════════════════════════════════════════════ */
 
-.bonds-yield-section {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 16px;
+.bonds-sidebar {
+  width: 220px;
+  min-width: 220px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+}
+
+.bonds-sidebar-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bonds-sidebar-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+/* Metric Cards in Sidebar */
+.bonds-metric-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.bonds-metric-card:last-child {
+  margin-bottom: 0;
+}
+
+.bonds-metric-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bonds-metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
+}
+
+.bonds-metric-value.positive { color: #4ade80; }
+.bonds-metric-value.negative { color: #f87171; }
+.bonds-metric-value.accent { color: #10b981; }
+.bonds-metric-value.warning { color: #fbbf24; }
+.bonds-metric-value.info { color: #60a5fa; }
+
+.bonds-metric-change {
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.bonds-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.bonds-metric-row:last-child {
+  margin-bottom: 0;
+}
+
+.bonds-metric-name {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.bonds-metric-num {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* MAIN CONTENT AREA */
+/* ═════════════════════════════════════════════════════════════════ */
+
+.bonds-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* Tab Navigation */
+.bonds-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
+}
+
+.bonds-tab {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bonds-tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-card);
+}
+
+.bonds-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: #10b981;
+}
+
+/* Tab Content */
+.bonds-tab-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.bonds-tab-panel {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+
+.bonds-tab-panel.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid Layout for Tab Content */
+.bonds-content-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+  align-content: start;
+}
+
+.bonds-content-grid.wide-2 {
+  grid-template-columns: 2fr 1fr;
+}
+
+.bonds-content-grid.single {
+  grid-template-columns: 1fr;
+}
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* CHART PANELS */
+/* ═════════════════════════════════════════════════════════════════ */
+
+.bonds-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .bonds-panel-header {
   display: flex;
-  flex-direction: column;
-  margin-bottom: 12px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
 }
 
 .bonds-panel-title {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .bonds-panel-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.bonds-panel-footer {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
 }
-
-/* Section Title */
-.bonds-section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 8px 0 4px;
-  margin-top: 4px;
-}
-
-/* KPI Strip */
-.bonds-kpi-strip {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-.bonds-kpi-pill {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 5px 12px;
-  min-width: 90px;
-  flex: 1;
-}
-
-.bonds-kpi-label {
-  font-size: 9px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.bonds-kpi-value {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-}
-
-.bonds-kpi-value.accent { color: #10b981; }
-.bonds-kpi-value.positive { color: #4ade80; }
-.bonds-kpi-value.negative { color: #f87171; }
-
-/* Wide-Narrow Layout: Chart (70%) + Bars (30%) */
-.bonds-wide-narrow {
-  display: flex;
-  gap: 12px;
-  flex: 1;
-  min-height: 280px;
-}
-
-.bonds-wide-narrow > :first-child { flex: 7; min-width: 0; }
-.bonds-wide-narrow > :last-child  { flex: 3; min-width: 120px; }
 
 .bonds-chart-wrap {
   flex: 1;
-  min-height: 200px;
-  position: relative;
+  min-height: 100px;
 }
 
-.bonds-chart-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 10px;
+.bonds-panel-footer {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
 
-.bonds-chart-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
+/* ═════════════════════════════════════════════════════════════════ */
+/* YIELD CURVE SPECIAL PANEL */
+/* ═════════════════════════════════════════════════════════════════ */
+
+.bonds-yield-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  min-height: 200px;
 }
 
-/* US Tenor Bars */
+.bonds-yield-chart {
+  flex: 1;
+  min-width: 0;
+}
+
+.bonds-yield-bars {
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 20px;
+}
+
 .bonds-bar-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-  font-size: 11px;
+  gap: 4px;
+  font-size: 10px;
 }
 
 .bonds-bar-label {
-  width: 32px;
+  width: 24px;
   text-align: right;
   color: var(--text-secondary);
   font-weight: 500;
@@ -151,102 +272,47 @@
 
 .bonds-bar-track {
   flex: 1;
-  height: 14px;
+  height: 10px;
   background: var(--bg-deep);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .bonds-bar-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 2px;
   transition: width 0.3s;
 }
 
 .bonds-bar-val {
-  min-width: 48px;
+  min-width: 36px;
   text-align: right;
   color: var(--text-primary);
   font-weight: 600;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 /* ═════════════════════════════════════════════════════════════════ */
-/* OTHER PANELS - 2-column grid */
+/* MINI TABLES */
 /* ═════════════════════════════════════════════════════════════════ */
 
-.bonds-chart-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  overflow-y: auto;
-  flex: 1;
-  align-content: start;
-}
-
-.bonds-full-width {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 1200px) {
-  .bonds-chart-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Panel Card */
-.bonds-panel-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  min-height: 140px;
-}
-
-/* Mini KPI Row */
-.bonds-kpi-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.bonds-mini-kpi {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.bonds-mini-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.bonds-mini-val {
-  font-size: 16px;
-  font-weight: 700;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  color: var(--text-primary);
-}
-
-/* Mini Table */
 .bonds-mini-table {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .bonds-mini-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 4px 6px;
   background: var(--bg-primary);
-  border-radius: 4px;
-  font-size: 11px;
+  border-radius: 3px;
+  font-size: 10px;
 }
 
 .bonds-mini-name {
@@ -261,23 +327,23 @@
 
 .bonds-mini-duration {
   color: var(--text-muted);
-  font-size: 10px;
-  margin-left: 8px;
+  font-size: 9px;
+  margin-left: 4px;
 }
 
 /* Auction Table */
 .bonds-auction-table {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .bonds-auction-header {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 6px 8px;
-  font-size: 10px;
+  gap: 6px;
+  padding: 4px 6px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -287,15 +353,15 @@
 .bonds-auction-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 6px 8px;
-  font-size: 11px;
+  gap: 6px;
+  padding: 4px 6px;
+  font-size: 10px;
   color: var(--text-primary);
 }
 
 .bonds-auction-row:hover {
   background: var(--bg-primary);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .bonds-auction-yield {
@@ -308,26 +374,47 @@
   font-weight: 600;
 }
 
-/* Responsive */
-@media (max-width: 900px) {
-  .bonds-wide-narrow {
-    flex-direction: column;
+/* ═════════════════════════════════════════════════════════════════ */
+/* RESPONSIVE */
+/* ═════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1400px) {
+  .bonds-content-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
-  .bonds-wide-narrow > :last-child {
-    min-width: unset;
-    margin-top: 12px;
+  .bonds-sidebar {
+    width: 180px;
+    min-width: 180px;
   }
 }
 
-@media (max-width: 600px) {
-  .bonds-kpi-strip {
-    gap: 6px;
+@media (max-width: 1000px) {
+  .bonds-dashboard {
+    flex-direction: column;
   }
-  .bonds-kpi-pill {
-    min-width: 70px;
-    padding: 4px 8px;
+  .bonds-sidebar {
+    width: 100%;
+    min-width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-x: auto;
+    max-height: 120px;
   }
-  .bonds-kpi-value {
-    font-size: 13px;
+  .bonds-sidebar-section {
+    min-width: 160px;
+    border-right: 1px solid var(--border-subtle);
+    border-bottom: none;
+  }
+  .bonds-content-grid {
+    grid-template-columns: 1fr;
+  }
+  .bonds-yield-panel {
+    flex-direction: column;
+  }
+  .bonds-yield-bars {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-top: 8px;
   }
 }

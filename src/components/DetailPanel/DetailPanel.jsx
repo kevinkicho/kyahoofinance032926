@@ -402,7 +402,7 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, scenarios }) => {
           </h2>
           <p className="detail-region">{selectedTicker.region} ({selectedTicker.regionCurrency})</p>
         </div>
-        <button className="close-btn" onClick={() => setSelectedTicker(null)}>✕</button>
+        <button className="close-btn" onClick={() => setSelectedTicker(null)}>Close</button>
       </div>
 
       <div className="detail-price-section">
@@ -451,7 +451,7 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, scenarios }) => {
       {activeTab === 'fairvalue' && (
         <div className="fv-panel">
           <div className={`fv-verdict ${fv.upside ? 'undervalued' : 'overvalued'}`}>
-            <span className="fv-label">{fv.upside ? '🟢 UNDERVALUED' : '🔴 OVERVALUED'}</span>
+            <span className="fv-label">{fv.upside ? 'UNDERVALUED' : 'OVERVALUED'}</span>
             <span className="fv-pct">{fv.upside ? '+' : ''}{fv.pctDiff.toFixed(1)}% vs. current</span>
           </div>
           <div className="fv-grid">
@@ -477,7 +477,7 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, scenarios }) => {
             <FairValueBar rawPrice={fv.rawPrice} fairPrice={fv.fairPrice} rangeLow={fv.rangeLow} rangeHigh={fv.rangeHigh} sym={sym} />
           </div>
           <div className="fv-disclaimer">
-            ⚠ Model-generated estimate. Based on active macro scenario.
+            Model-generated estimate. Based on active macro scenario.
             Adjust scenario sliders to see how rates &amp; inflation shift valuations.
           </div>
         </div>

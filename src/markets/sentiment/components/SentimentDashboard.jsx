@@ -1,5 +1,5 @@
 // src/markets/sentiment/components/SentimentDashboard.jsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './SentimentDashboard.css';
@@ -15,69 +15,16 @@ export default function SentimentDashboard({
   fsiHistory,
 }) {
   const { colors } = useTheme();
+  const [activeTab, setActiveTab] = useState('sentiment');
 
-  // KPI calculations
-  const kpis = useMemo(() => {
-    const result = [];
-    // Fear & Greed - handle both { value, classification } and { score, label } structures
-    const fgiValue = fearGreedData?.value ?? fearGreedData?.score;
-    const fgiLabel = fearGreedData?.classification ?? fearGreedData?.label;
-    if (fgiValue != null) {
-      result.push({
-        label: 'Fear & Greed',
-        value: fgiValue,
-        classification: fgiLabel,
-        color: fgiValue < 25 ? '#ef4444' : fgiValue < 50 ? '#f59e0b' : fgiValue < 75 ? '#22c55e' : '#14b8a6',
-      });
-    }
-    // VIX - handle both direct property and signals array
-    const vixValue = riskData?.vix ?? riskData?.signals?.find(s => s.name === 'VIX')?.value;
-    if (vixValue != null) {
-      result.push({
-        label: 'VIX',
-        value: vixValue.toFixed(1),
-        color: vixValue > 25 ? '#ef4444' : vixValue > 18 ? '#f59e0b' : '#22c55e',
-      });
-    }
-    // Put/Call - check for direct property
-    if (riskData?.putCallRatio != null) {
-      result.push({
-        label: 'Put/Call',
-        value: riskData.putCallRatio.toFixed(2),
-        color: riskData.putCallRatio > 1.2 ? '#22c55e' : riskData.putCallRatio < 0.8 ? '#ef4444' : '#f59e0b',
-      });
-    }
-    // Margin Debt
-    if (marginDebt?.value != null) {
-      result.push({
-        label: 'Margin Debt',
-        value: `$${(marginDebt.value / 1e9).toFixed(0)}B`,
-        color: '#a78bfa',
-      });
-    }
-    // Consumer Credit
-    if (consumerCredit?.value != null) {
-      result.push({
-        label: 'Consumer Credit',
-        value: `$${(consumerCredit.value / 1e9).toFixed(0)}B`,
-        color: '#60a5fa',
-      });
-    }
-    // HY Spread from signals
-    const hySpread = riskData?.signals?.find(s => s.name?.includes('HY') || s.name?.includes('Credit'))?.value;
-    if (hySpread != null) {
-      result.push({
-        label: 'HY Spread',
-        value: `${hySpread.toFixed(0)} bps`,
-        color: hySpread > 400 ? '#ef4444' : hySpread > 250 ? '#f59e0b' : '#22c55e',
-      });
-    }
-    return result;
-  }, [fearGreedData, riskData, marginDebt, consumerCredit]);
+  // Extract key values
+  const fgiValue = fearGreedData?.value ?? fearGreedData?.score;
+  const fgiLabel = fearGreedData?.classification ?? fearGreedData?.label;
+  const vixValue = riskData?.vix ?? riskData?.signals?.find(s => s.name === 'VIX')?.value;
+  const putCallRatio = riskData?.putCallRatio;
 
   // Fear & Greed chart
   const fgiOption = useMemo(() => {
-    // Handle both { history: [{ date, value }] } and { history: { dates, values } }
     const history = fearGreedData?.history;
     if (!history?.length && !history?.dates?.length) return null;
 
@@ -111,7 +58,7 @@ export default function SentimentDashboard({
     };
   }, [fearGreedData, colors]);
 
-  // Risk dashboard (VIX + VVIX)
+  // VIX / VVIX chart
   const riskOption = useMemo(() => {
     if (!vvixHistory?.dates?.length) return null;
     return {
@@ -129,9 +76,22 @@ export default function SentimentDashboard({
     };
   }, [vvixHistory, colors]);
 
-  // CFTC Positioning
+  // Financial Stress Index chart
+  const fsiOption = useMemo(() => {
+    if (!fsiHistory?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      grid: { top: 20, right: 30, bottom: 30, left: 50 },
+      xAxis: { type: 'category', data: fsiHistory.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(fsiHistory.dates.length / 6) } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{ type: 'line', data: fsiHistory.values, smooth: true, symbol: 'none', lineStyle: { color: '#14b8a6', width: 2 } }],
+    };
+  }, [fsiHistory, colors]);
+
+  // CFTC chart
   const cftcOption = useMemo(() => {
-    // Handle both { currencies: [...] } and direct array
     const currencies = cftcData?.currencies || cftcData;
     if (!currencies?.length) return null;
     const names = currencies.slice(0, 6).map(c => c.name || c.code);
@@ -164,105 +124,215 @@ export default function SentimentDashboard({
 
   return (
     <div className="sent-dashboard">
-      {/* KPI Strip */}
-      <div className="sent-kpi-strip">
-        {kpis.map((kpi, i) => (
-          <div key={i} className="sent-kpi-pill" style={{ background: colors.bgCard }}>
-            <span className="sent-kpi-label">{kpi.label}</span>
-            <span className="sent-kpi-value" style={{ color: kpi.color }}>{kpi.value}</span>
-            {kpi.classification && (
-              <span className="sent-kpi-status">{kpi.classification}</span>
+      {/* Left Sidebar */}
+      <div className="sent-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+        {/* Fear & Greed */}
+        <div className="sent-sidebar-section">
+          <div className="sent-sidebar-title">Fear & Greed</div>
+          {fgiValue != null && (
+            <div className="sent-metric-card">
+              <div className="sent-metric-label">Current</div>
+              <div className="sent-metric-value" style={{
+                color: fgiValue < 25 ? '#ef4444' : fgiValue < 50 ? '#fbbf24' : fgiValue < 75 ? '#22c55e' : '#14b8a6'
+              }}>
+                {fgiValue}
+              </div>
+              {fgiLabel && <div className="sent-metric-status">{fgiLabel}</div>}
+            </div>
+          )}
+        </div>
+
+        {/* Risk Metrics */}
+        <div className="sent-sidebar-section">
+          <div className="sent-sidebar-title">Risk Metrics</div>
+          {typeof vixValue === 'number' && (
+            <div className="sent-metric-card">
+              <div className="sent-metric-row">
+                <span className="sent-metric-name">VIX</span>
+                <span className="sent-metric-num" style={{ color: vixValue > 25 ? '#f87171' : vixValue > 18 ? '#fbbf24' : '#22c55e' }}>
+                  {vixValue.toFixed(1)}
+                </span>
+              </div>
+            </div>
+          )}
+          {typeof putCallRatio === 'number' && (
+            <div className="sent-metric-card">
+              <div className="sent-metric-row">
+                <span className="sent-metric-name">Put/Call</span>
+                <span className="sent-metric-num" style={{ color: putCallRatio > 1.2 ? '#22c55e' : putCallRatio < 0.8 ? '#f87171' : '#fbbf24' }}>
+                  {putCallRatio.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
+          {(() => {
+            const hySignal = riskData?.signals?.find(s => s.name?.includes('HY'));
+            return hySignal && typeof hySignal.value === 'number' ? (
+              <div className="sent-metric-card">
+                <div className="sent-metric-row">
+                  <span className="sent-metric-name">HY Spread</span>
+                  <span className="sent-metric-num" style={{ color: hySignal.value > 400 ? '#f87171' : '#fbbf24' }}>
+                    {hySignal.value.toFixed(0)} bps
+                  </span>
+                </div>
+              </div>
+            ) : null;
+          })()}
+        </div>
+
+        {/* Leverage */}
+        {(marginDebt || consumerCredit) && (
+          <div className="sent-sidebar-section">
+            <div className="sent-sidebar-title">Leverage</div>
+            {typeof marginDebt?.value === 'number' && (
+              <div className="sent-metric-card">
+                <div className="sent-metric-row">
+                  <span className="sent-metric-name">Margin Debt</span>
+                  <span className="sent-metric-num" style={{ color: '#a78bfa' }}>
+                    ${(marginDebt.value / 1e9).toFixed(0)}B
+                  </span>
+                </div>
+              </div>
+            )}
+            {typeof consumerCredit?.value === 'number' && (
+              <div className="sent-metric-card">
+                <div className="sent-metric-row">
+                  <span className="sent-metric-name">Consumer Credit</span>
+                  <span className="sent-metric-num" style={{ color: '#60a5fa' }}>
+                    ${(consumerCredit.value / 1e9).toFixed(0)}B
+                  </span>
+                </div>
+              </div>
             )}
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Chart Grid */}
-      <div className="sent-chart-grid">
-        {/* Fear & Greed */}
-        {fgiOption && (
-          <div className="sent-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="sent-panel-title">Fear & Greed Index</div>
-            <div className="sent-chart-wrap" style={{ minHeight: 180 }}>
-              <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} />
-            </div>
-          </div>
-        )}
+      {/* Main Content */}
+      <div className="sent-main">
+        {/* Tab Navigation */}
+        <div className="sent-tabs" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+          <button className={`sent-tab ${activeTab === 'sentiment' ? 'active' : ''}`} onClick={() => setActiveTab('sentiment')}>Sentiment</button>
+          <button className={`sent-tab ${activeTab === 'positioning' ? 'active' : ''}`} onClick={() => setActiveTab('positioning')}>Positioning</button>
+          <button className={`sent-tab ${activeTab === 'risk' ? 'active' : ''}`} onClick={() => setActiveTab('risk')}>Risk</button>
+        </div>
 
-        {/* VIX / VVIX */}
-        {riskOption && (
-          <div className="sent-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="sent-panel-title">VIX & VVIX</div>
-            <div className="sent-chart-wrap" style={{ minHeight: 180 }}>
-              <SafeECharts option={riskOption} style={{ height: '100%', width: '100%' }} />
-            </div>
-          </div>
-        )}
-
-        {/* CFTC Positioning */}
-        {cftcOption && (
-          <div className="sent-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="sent-panel-title">CFTC Positioning</div>
-            <div className="sent-chart-wrap" style={{ minHeight: 180 }}>
-              <SafeECharts option={cftcOption} style={{ height: '100%', width: '100%' }} />
-            </div>
-          </div>
-        )}
-
-        {/* Cross-Asset Returns */}
-        {returnsList.length > 0 && (
-          <div className="sent-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="sent-panel-title">Cross-Asset Returns</div>
-            <div className="sent-mini-table">
-              {returnsList.slice(0, 8).map((r, i) => (
-                <div key={i} className="sent-mini-row">
-                  <span className="sent-mini-name">{r.asset}</span>
-                  <span className="sent-mini-value" style={{ color: (r.return || 0) >= 0 ? '#22c55e' : '#ef4444' }}>
-                    {(r.return || 0) >= 0 ? '+' : ''}{(r.return || 0).toFixed(2)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Risk Summary */}
-        {riskData?.signals?.length > 0 && (
-          <div className="sent-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="sent-panel-title">Risk Metrics</div>
-            <div className="sent-mini-table">
-              {riskData.signals.slice(0, 6).map((s, i) => (
-                <div key={i} className="sent-mini-row">
-                  <span className="sent-mini-name">{s.name}</span>
-                  <span className="sent-mini-value" style={{ color: s.signal === 'risk-on' ? '#22c55e' : s.signal === 'risk-off' ? '#ef4444' : '#f59e0b' }}>
-                    {s.fmt || s.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Margin & Credit */}
-        {(marginDebt || consumerCredit) && (
-          <div className="sent-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="sent-panel-title">Leverage Metrics</div>
-            <div className="sent-mini-table">
-              {marginDebt?.value != null && (
-                <div className="sent-mini-row">
-                  <span className="sent-mini-name">Margin Debt</span>
-                  <span className="sent-mini-value">${(marginDebt.value / 1e9).toFixed(0)}B</span>
+        {/* Tab Content */}
+        <div className="sent-tab-content">
+          {/* SENTIMENT TAB */}
+          <div className={`sent-tab-panel ${activeTab === 'sentiment' ? 'active' : ''}`}>
+            <div className="sent-content-grid">
+              {fgiOption && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">Fear & Greed Index</div>
+                  <div className="sent-chart-wrap">
+                    <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} />
+                  </div>
                 </div>
               )}
-              {consumerCredit?.value != null && (
-                <div className="sent-mini-row">
-                  <span className="sent-mini-name">Consumer Credit</span>
-                  <span className="sent-mini-value">${(consumerCredit.value / 1e9).toFixed(0)}B</span>
+              {returnsList.length > 0 && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">Cross-Asset Returns</div>
+                  <div className="sent-mini-table" style={{ paddingTop: 8 }}>
+                    {returnsList.slice(0, 8).map((r, i) => (
+                      <div key={i} className="sent-mini-row">
+                        <span className="sent-mini-name">{r.asset}</span>
+                        <span className="sent-mini-value" style={{ color: (r.return || 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                          {(r.return || 0) >= 0 ? '+' : ''}{(r.return || 0).toFixed(2)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
-        )}
+
+          {/* POSITIONING TAB */}
+          <div className={`sent-tab-panel ${activeTab === 'positioning' ? 'active' : ''}`}>
+            <div className="sent-content-grid">
+              {cftcOption && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">CFTC Positioning</div>
+                  <div className="sent-chart-wrap">
+                    <SafeECharts option={cftcOption} style={{ height: '100%', width: '100%' }} />
+                  </div>
+                </div>
+              )}
+              {cftcData?.currencies?.length > 0 && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">CFTC Summary</div>
+                  <div className="sent-mini-table" style={{ paddingTop: 8 }}>
+                    {cftcData.currencies.slice(0, 8).map((c, i) => (
+                      <div key={i} className="sent-mini-row">
+                        <span className="sent-mini-name">{c.name || c.code}</span>
+                        <span className="sent-mini-value" style={{ color: (c.netLong || 0) > 0 ? '#22c55e' : '#f87171' }}>
+                          {(c.netLong || 0) > 0 ? 'Long' : 'Short'} {Math.abs(c.netLong || 0).toFixed(0)}K
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RISK TAB */}
+          <div className={`sent-tab-panel ${activeTab === 'risk' ? 'active' : ''}`}>
+            <div className="sent-content-grid">
+              {riskOption && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">VIX & VVIX</div>
+                  <div className="sent-chart-wrap">
+                    <SafeECharts option={riskOption} style={{ height: '100%', width: '100%' }} />
+                  </div>
+                </div>
+              )}
+              {fsiOption && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">Financial Stress Index</div>
+                  <div className="sent-chart-wrap">
+                    <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} />
+                  </div>
+                </div>
+              )}
+              {riskData?.signals?.length > 0 && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">Risk Signals</div>
+                  <div className="sent-mini-table" style={{ paddingTop: 8 }}>
+                    {riskData.signals.slice(0, 8).map((s, i) => (
+                      <div key={i} className="sent-mini-row">
+                        <span className="sent-mini-name">{s.name}</span>
+                        <span className="sent-mini-value" style={{ color: s.signal === 'risk-on' ? '#22c55e' : s.signal === 'risk-off' ? '#f87171' : '#fbbf24' }}>
+                          {s.fmt || s.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(marginDebt || consumerCredit) && (
+                <div className="sent-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+                  <div className="sent-panel-title">Leverage Metrics</div>
+                  <div className="sent-mini-table" style={{ paddingTop: 8 }}>
+                    {marginDebt?.value != null && (
+                      <div className="sent-mini-row">
+                        <span className="sent-mini-name">Margin Debt</span>
+                        <span className="sent-mini-value">${(marginDebt.value / 1e9).toFixed(0)}B</span>
+                      </div>
+                    )}
+                    {consumerCredit?.value != null && (
+                      <div className="sent-mini-row">
+                        <span className="sent-mini-name">Consumer Credit</span>
+                        <span className="sent-mini-value">${(consumerCredit.value / 1e9).toFixed(0)}B</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

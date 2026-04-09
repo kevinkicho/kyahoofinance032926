@@ -19,7 +19,7 @@ function fmtPct(v) {
 }
 
 const SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture', 'Livestock'];
-const SECTOR_ICONS  = { Energy: '⚡', Metals: '⚙️', Agriculture: '🌾', Livestock: '🐄' };
+const SECTOR_ICONS  = { Energy: '', Metals: '', Agriculture: '', Livestock: '' };
 
 export default function SectorHeatmap({ sectorHeatmapData, fredCommodities }) {
   const { colors } = useTheme();

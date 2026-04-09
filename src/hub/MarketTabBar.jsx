@@ -96,7 +96,6 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
             className={`market-tab${activeMarket === m.id ? ' active' : ''}`}
             onClick={() => setActiveMarket(m.id)}
           >
-            <span className="market-tab-icon" aria-hidden="true">{m.icon}</span>
             <span className="market-tab-label">{m.label}</span>
           </button>
         ))}
@@ -107,7 +106,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
         aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
         title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
       >
-        {theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19'}
+        {theme === 'dark' ? 'Light' : 'Dark'}
       </button>
       <button
         className="hub-export-btn"
@@ -115,7 +114,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
         aria-label="Export view as PNG"
         title="Export view as PNG"
       >
-        {'\uD83D\uDCF7'}
+        Export
       </button>
       {onExportData && (
         <>
@@ -129,7 +128,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
         title={autoRefresh ? 'Auto-refresh ON (5 min)' : 'Auto-refresh OFF'}
         aria-label={autoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh'}
       >
-        {autoRefresh ? '\uD83D\uDD04' : '\u23F8\uFE0F'}
+        {autoRefresh ? 'On' : 'Off'}
       </button>
       <button
         className="hub-popout-btn"
@@ -139,7 +138,6 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
         &#10697;
       </button>
       <div className="hub-search-wrap" ref={wrapRef} role="search">
-        <span className="hub-search-icon" aria-hidden="true">&#128269;</span>
         <input
           ref={inputRef}
           className="hub-search-input"
@@ -172,7 +170,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
                   onMouseDown={e => { e.preventDefault(); handleSelect(entry.marketId); }}
                 >
                   <div className="hub-search-item-label">
-                    {entry.icon} {highlightMatch(entry.label, query.trim())}
+                    {highlightMatch(entry.label, query.trim())}
                   </div>
                   {matchingSubs.length > 0 && (
                     <div className="hub-search-item-subs">

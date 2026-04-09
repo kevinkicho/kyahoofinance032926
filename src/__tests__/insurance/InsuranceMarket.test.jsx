@@ -12,25 +12,26 @@ describe('InsuranceMarket', () => {
   it('renders unified dashboard after loading', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows HY OAS section (may appear multiple times)
-    const hyElements = screen.getAllByText(/HY OAS/i);
-    expect(hyElements.length).toBeGreaterThan(0);
+    // Dashboard shows sidebar with Credit Spreads section
+    const creditSpreadsSection = screen.getByText('Credit Spreads');
+    expect(creditSpreadsSection).toBeInTheDocument();
   });
 
-  it('shows KPI strip with key metrics', async () => {
+  it('shows sidebar with key metrics', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // KPI strip shows key indicators (may appear multiple times)
-    const kpiElements = screen.getAllByText(/HY OAS|IG OAS|Combined Ratio/i);
-    expect(kpiElements.length).toBeGreaterThan(0);
+    // Sidebar shows Combined Ratio section if data available
+    const combinedRatioSections = screen.queryAllByText('Combined Ratio');
+    expect(combinedRatioSections.length).toBeGreaterThan(0);
   });
 
-  it('shows Combined Ratio section', async () => {
+  it('shows content grid with all sections visible', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows combined ratio (may appear multiple times)
-    const ratioElements = screen.getAllByText(/Combined Ratio/i);
-    expect(ratioElements.length).toBeGreaterThan(0);
+    // All content is visible without tabs - check for various panels
+    // HY OAS should appear in sidebar
+    const creditSpreadsSection = screen.getByText('Credit Spreads');
+    expect(creditSpreadsSection).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {

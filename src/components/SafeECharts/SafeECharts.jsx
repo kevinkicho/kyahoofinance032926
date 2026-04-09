@@ -13,6 +13,7 @@ import ReactECharts from 'echarts-for-react';
  * - Uses lazyUpdate by default to reduce race conditions
  * - Wraps onEvents to check disposal before firing
  * - Forwards refs to the underlying ReactECharts component
+ * - Suppresses "Can't get DOM width or height" warnings via notMerge
  *
  * Props: same as ReactECharts (option, style, className, etc.)
  */

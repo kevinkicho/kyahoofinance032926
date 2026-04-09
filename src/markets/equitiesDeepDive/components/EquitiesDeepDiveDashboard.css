@@ -1,6 +1,6 @@
-/* src/markets/realEstate/components/RealEstateDashboard.css */
+/* src/markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.css */
 
-.re-dashboard {
+.eqd-dashboard {
   display: flex;
   flex-direction: row;
   flex: 1;
@@ -11,7 +11,7 @@
 }
 
 /* Left Sidebar */
-.re-sidebar {
+.eqd-sidebar {
   width: 200px;
   min-width: 200px;
   flex-shrink: 0;
@@ -22,12 +22,12 @@
   overflow-y: auto;
 }
 
-.re-sidebar-section {
+.eqd-sidebar-section {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.re-sidebar-title {
+.eqd-sidebar-title {
   font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
@@ -36,7 +36,7 @@
   margin-bottom: 8px;
 }
 
-.re-metric-card {
+.eqd-metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
@@ -44,44 +44,50 @@
   margin-bottom: 6px;
 }
 
-.re-metric-card:last-child { margin-bottom: 0; }
+.eqd-metric-card:last-child { margin-bottom: 0; }
 
-.re-metric-label {
+.eqd-metric-label {
   font-size: 10px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
-.re-metric-value {
+.eqd-metric-value {
   font-size: 18px;
   font-weight: 700;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   color: var(--text-primary);
 }
 
-.re-metric-row {
+.eqd-metric-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.eqd-metric-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 4px;
 }
 
-.re-metric-row:last-child { margin-bottom: 0; }
+.eqd-metric-row:last-child { margin-bottom: 0; }
 
-.re-metric-name {
+.eqd-metric-name {
   font-size: 11px;
   color: var(--text-secondary);
 }
 
-.re-metric-num {
+.eqd-metric-num {
   font-size: 12px;
   font-weight: 600;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
 /* Main Content */
-.re-main {
+.eqd-main {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -90,7 +96,7 @@
 }
 
 /* Content Grid - 3 columns */
-.re-content-grid {
+.eqd-content-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
@@ -101,14 +107,14 @@
 }
 
 @media (max-width: 1400px) {
-  .re-content-grid {
+  .eqd-content-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 1000px) {
-  .re-dashboard { flex-direction: column; }
-  .re-sidebar {
+  .eqd-dashboard { flex-direction: column; }
+  .eqd-sidebar {
     width: 100%;
     min-width: 100%;
     flex-direction: row;
@@ -116,16 +122,16 @@
     overflow-x: auto;
     max-height: 100px;
   }
-  .re-sidebar-section {
+  .eqd-sidebar-section {
     min-width: 140px;
     border-right: 1px solid var(--border-subtle);
     border-bottom: none;
   }
-  .re-content-grid { grid-template-columns: 1fr; }
+  .eqd-content-grid { grid-template-columns: 1fr; }
 }
 
 /* Chart Panels */
-.re-panel {
+.eqd-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
@@ -136,20 +142,85 @@
   min-height: 0;
 }
 
-.re-panel-title {
+.eqd-panel-title {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 6px;
 }
 
-.re-chart-wrap {
+.eqd-chart-wrap {
   flex: 1;
   min-height: 100px;
 }
 
+/* Scrollable Tables */
+.eqd-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 120px;
+}
+
+.eqd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.eqd-th {
+  text-align: left;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+}
+
+.eqd-row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.eqd-row:hover {
+  background: var(--bg-hover);
+}
+
+.eqd-cell {
+  padding: 6px 8px;
+  color: var(--text-primary);
+}
+
+.eqd-cell eqd-date {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.eqd-num {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  text-align: right;
+}
+
+.eqd-dir {
+  text-align: center;
+  font-size: 12px;
+}
+
+/* Heat Map Colors */
+.eqd-heat-dg { background: #dcfce7; color: #166534; }
+.eqd-heat-lg { background: #bbf7d0; color: #166534; }
+.eqd-heat-neu { background: var(--bg-primary); color: var(--text-secondary); }
+.eqd-heat-lr { background: #fecaca; color: #991b1b; }
+.eqd-heat-dr { background: #fca5a5; color: #991b1b; }
+
+.eqd-score {
+  text-align: center;
+  border-radius: 4px;
+}
+
 /* Mini Tables */
-.re-mini-table {
+.eqd-mini-table {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -158,7 +229,7 @@
   padding-top: 8px;
 }
 
-.re-mini-row {
+.eqd-mini-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -168,12 +239,16 @@
   font-size: 10px;
 }
 
-.re-mini-name {
+.eqd-mini-name {
   color: var(--text-secondary);
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.re-mini-value {
+.eqd-mini-value {
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   font-weight: 600;
+  color: #6366f1;
 }

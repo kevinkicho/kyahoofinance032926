@@ -35,7 +35,7 @@ function Sparkline({ values }) {
   );
 }
 
-const SECTOR_ICONS = { Energy: '⚡', Metals: '⚙️', Agriculture: '🌾', Livestock: '🐄' };
+const SECTOR_ICONS = { Energy: '', Metals: '', Agriculture: '', Livestock: '' };
 
 export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodities, goldOilRatio, contangoIndicator, commodityCurrencies }) {
   const { colors } = useTheme();

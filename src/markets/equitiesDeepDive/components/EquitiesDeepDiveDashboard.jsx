@@ -1,0 +1,570 @@
+// src/markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx
+import React, { useMemo } from 'react';
+import SafeECharts from '../../../components/SafeECharts';
+import { useTheme } from '../../../hub/ThemeContext';
+import './EquitiesDeepDiveDashboard.css';
+
+// Helper functions
+function fmtChangePct(v) {
+  if (v == null) return '';
+  return v >= 0 ? `+${v.toFixed(1)}%` : `${v.toFixed(1)}%`;
+}
+
+function peBadgeColor(pe) {
+  if (pe == null) return '#6b7280';
+  if (pe < 18) return '#22c55e';
+  if (pe <= 25) return '#f59e0b';
+  return '#ef4444';
+}
+
+function buffettBadgeColor(ratio) {
+  if (ratio == null) return '#6b7280';
+  if (ratio < 100) return '#22c55e';
+  if (ratio <= 150) return '#f59e0b';
+  return '#ef4444';
+}
+
+function erpBadgeColor(erp) {
+  if (erp == null) return '#6b7280';
+  if (erp > 3) return '#22c55e';
+  if (erp >= 1) return '#f59e0b';
+  return '#ef4444';
+}
+
+function beatColor(rate) {
+  if (rate == null || Number.isNaN(rate)) return '#6b7280';
+  if (rate >= 70) return '#6366f1';
+  if (rate >= 50) return '#f59e0b';
+  return '#ef4444';
+}
+
+function shortBarColor(v) {
+  if (v == null || Number.isNaN(v)) return '#6b7280';
+  if (v > 20) return '#ef4444';
+  if (v > 10) return '#f59e0b';
+  return '#22c55e';
+}
+
+function factorHeat(score) {
+  if (score == null || Number.isNaN(score)) return 'eqd-heat-neu';
+  if (score >= 70) return 'eqd-heat-dg';
+  if (score >= 50) return 'eqd-heat-lg';
+  if (score >= 30) return 'eqd-heat-neu';
+  if (score >= 15) return 'eqd-heat-lr';
+  return 'eqd-heat-dr';
+}
+
+// Chart builders
+function buildRankedOption(sectors, colors) {
+  const spy = sectors.find(s => s.code === 'SPY');
+  const spyRef = spy?.perf1m ?? 0;
+  const etfs = [...sectors]
+    .filter(s => s.code !== 'SPY')
+    .sort((a, b) => (b.perf1m ?? -99) - (a.perf1m ?? -99));
+
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => `${params[0].name}: ${params[0].value?.toFixed(1)}%`,
+    },
+    grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    yAxis: {
+      type: 'category',
+      data: etfs.map(s => s.name),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textSecondary, fontSize: 9 },
+    },
+    series: [{
+      type: 'bar',
+      data: etfs.map(s => ({
+        value: s.perf1m,
+        itemStyle: { color: (s.perf1m ?? 0) >= spyRef ? '#6366f1' : '#ef4444' },
+      })),
+      markLine: {
+        data: [{ xAxis: spyRef }],
+        symbol: 'none',
+        lineStyle: { color: colors.text, type: 'dashed', width: 1 },
+        label: { show: true, formatter: 'SPY', color: colors.textSecondary, fontSize: 9 },
+      },
+    }],
+  };
+}
+
+function buildInFavorOption(inFavor, colors) {
+  const factors = [
+    { name: 'Low-Vol', value: inFavor.lowVol ?? 0 },
+    { name: 'Quality', value: inFavor.quality ?? 0 },
+    { name: 'Value', value: inFavor.value ?? 0 },
+    { name: 'Momentum', value: inFavor.momentum ?? 0 },
+  ];
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => `${params[0].name}: ${params[0].value?.toFixed(1)}%`,
+    },
+    grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    yAxis: {
+      type: 'category',
+      data: factors.map(f => f.name),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
+    },
+    series: [{
+      type: 'bar',
+      data: factors.map(f => ({
+        value: f.value,
+        itemStyle: { color: f.value >= 0 ? '#6366f1' : '#ef4444' },
+      })),
+      markLine: {
+        data: [{ xAxis: 0 }],
+        symbol: 'none',
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
+        label: { show: false },
+      },
+    }],
+  };
+}
+
+function buildBeatRateOption(beatRates, colors) {
+  const sorted = [...beatRates].sort((a, b) => (b.beatRate ?? 0) - (a.beatRate ?? 0));
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => {
+        const item = sorted[params[0].dataIndex];
+        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}%`;
+        return item ? `${base} (${item.beatCount}/${item.totalCount})` : base;
+      },
+    },
+    grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
+    xAxis: {
+      type: 'value',
+      min: 0, max: 100,
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    yAxis: {
+      type: 'category',
+      data: sorted.map(s => s.sector),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textSecondary, fontSize: 9 },
+    },
+    series: [{
+      type: 'bar',
+      data: sorted.map(s => ({
+        value: s.beatRate,
+        itemStyle: { color: beatColor(s.beatRate) },
+      })),
+      markLine: {
+        data: [{ xAxis: 50 }],
+        symbol: 'none',
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
+        label: { show: true, formatter: '50%', color: colors.textSecondary, fontSize: 9 },
+      },
+    }],
+  };
+}
+
+function buildShortedOption(mostShorted, colors) {
+  const sorted = [...mostShorted].sort((a, b) => (b.shortFloat ?? 0) - (a.shortFloat ?? 0));
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: (params) => {
+        const item = sorted[params[0].dataIndex];
+        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}% short`;
+        return item ? `${base} · ${item.daysToCover?.toFixed(1)}d to cover` : base;
+      },
+    },
+    grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
+    xAxis: {
+      type: 'value',
+      axisLine: { lineStyle: { color: colors.cardBg } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    yAxis: {
+      type: 'category',
+      data: sorted.map(s => s.ticker),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: colors.textSecondary, fontSize: 10 },
+    },
+    series: [{
+      type: 'bar',
+      data: sorted.map(s => ({
+        value: s.shortFloat,
+        itemStyle: { color: shortBarColor(s.shortFloat) },
+      })),
+      markLine: {
+        data: [{ xAxis: 20 }, { xAxis: 10 }],
+        symbol: 'none',
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
+        label: { show: true, color: colors.textMuted, fontSize: 9 },
+      },
+    }],
+  };
+}
+
+export default function EquitiesDeepDiveDashboard({
+  sectorData,
+  factorData,
+  earningsData,
+  shortData,
+  institutionalData,
+  equityRiskPremium,
+  spPE,
+  buffettIndicator,
+  breadthDivergence,
+}) {
+  const { colors } = useTheme();
+
+  // Extract data
+  const { sectors = [] } = sectorData ?? {};
+  const { inFavor = {}, stocks = [] } = factorData ?? {};
+  const upcoming = earningsData?.upcoming ?? [];
+  const beatRates = earningsData?.beatRates ?? [];
+  const { mostShorted = [] } = shortData ?? {};
+  const { institutions = [], aggregateTopHoldings = [], recentChanges = {} } = institutionalData ?? {};
+
+  // Chart options
+  const rankedOption = useMemo(() => sectors?.length > 0 ? buildRankedOption(sectors, colors) : null, [sectors, colors]);
+  const inFavorOption = useMemo(() => inFavor ? buildInFavorOption(inFavor, colors) : null, [inFavor, colors]);
+  const beatRateOption = useMemo(() => beatRates?.length > 0 ? buildBeatRateOption(beatRates, colors) : null, [beatRates, colors]);
+  const shortedOption = useMemo(() => mostShorted?.length > 0 ? buildShortedOption(mostShorted, colors) : null, [mostShorted, colors]);
+
+  // Sidebar KPIs
+  const sectorKpis = useMemo(() => {
+    if (!sectors.length) return null;
+    const spy = sectors.find(s => s.code === 'SPY');
+    const etfs = sectors.filter(s => s.code !== 'SPY');
+    if (!etfs.length) return null;
+    const best = etfs.reduce((a, b) => (a.perf1m ?? -99) > (b.perf1m ?? -99) ? a : b);
+    const worst = etfs.reduce((a, b) => (a.perf1m ?? 99) < (b.perf1m ?? 99) ? a : b);
+    const spyPerf = spy?.perf1m ?? 0;
+    const outperforming = etfs.filter(s => (s.perf1m ?? 0) >= spyPerf).length;
+    return { best, worst, spyPerf, outperforming, total: etfs.length };
+  }, [sectors]);
+
+  const factorKpis = useMemo(() => {
+    if (!stocks.length) return null;
+    const factors = [
+      { name: 'Momentum', val: inFavor.momentum ?? 0 },
+      { name: 'Value', val: inFavor.value ?? 0 },
+      { name: 'Quality', val: inFavor.quality ?? 0 },
+      { name: 'Low-Vol', val: inFavor.lowVol ?? 0 },
+    ];
+    const topFactor = factors.reduce((a, b) => a.val > b.val ? a : b);
+    const topStock = stocks.reduce((a, b) => (a.composite ?? 0) > (b.composite ?? 0) ? a : b);
+    const avgComposite = stocks.reduce((s, st) => s + (st.composite ?? 0), 0) / stocks.length;
+    const highQuality = stocks.filter(s => (s.quality ?? 0) >= 70).length;
+    return { topFactor, topStock, avgComposite, highQuality };
+  }, [inFavor, stocks]);
+
+  const shortKpis = useMemo(() => {
+    if (!mostShorted.length) return null;
+    const top = mostShorted.reduce((a, b) => (a.shortFloat ?? 0) > (b.shortFloat ?? 0) ? a : b);
+    const avgShort = mostShorted.reduce((s, st) => s + (st.shortFloat ?? 0), 0) / mostShorted.length;
+    const above20 = mostShorted.filter(s => (s.shortFloat ?? 0) > 20).length;
+    return { top, avgShort, above20, total: mostShorted.length };
+  }, [mostShorted]);
+
+  return (
+    <div className="eqd-dashboard">
+      {/* Left Sidebar */}
+      <div className="eqd-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+        {/* Market Valuation */}
+        {(spPE != null || buffettIndicator || equityRiskPremium) && (
+          <div className="eqd-sidebar-section">
+            <div className="eqd-sidebar-title">Market Valuation</div>
+            {spPE != null && (
+              <div className="eqd-metric-card">
+                <div className="eqd-metric-label">S&P P/E</div>
+                <div className="eqd-metric-value" style={{ color: peBadgeColor(spPE) }}>
+                  {spPE.toFixed(1)}x
+                </div>
+                <div className="eqd-metric-sub">{spPE < 18 ? 'Cheap' : spPE <= 25 ? 'Fair' : 'Elevated'}</div>
+              </div>
+            )}
+            {buffettIndicator && (
+              <div className="eqd-metric-card">
+                <div className="eqd-metric-label">Buffett</div>
+                <div className="eqd-metric-value" style={{ color: buffettBadgeColor(buffettIndicator.ratio) }}>
+                  {buffettIndicator.ratio?.toFixed(0)}%
+                </div>
+                <div className="eqd-metric-sub">{buffettIndicator.ratio < 100 ? 'Undervalued' : buffettIndicator.ratio <= 150 ? 'Fair' : 'Overvalued'}</div>
+              </div>
+            )}
+            {equityRiskPremium && (
+              <div className="eqd-metric-card">
+                <div className="eqd-metric-label">ERP</div>
+                <div className="eqd-metric-value" style={{ color: erpBadgeColor(equityRiskPremium.erp) }}>
+                  {equityRiskPremium.erp?.toFixed(1)}%
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sector Performance */}
+        {sectorKpis && (
+          <div className="eqd-sidebar-section">
+            <div className="eqd-sidebar-title">Sector Performance</div>
+            <div className="eqd-metric-card">
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Best</span>
+                <span className="eqd-metric-num" style={{ color: '#22c55e' }}>{sectorKpis.best.name}</span>
+              </div>
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Worst</span>
+                <span className="eqd-metric-num" style={{ color: '#ef4444' }}>{sectorKpis.worst.name}</span>
+              </div>
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">SPY</span>
+                <span className="eqd-metric-num">{fmtChangePct(sectorKpis.spyPerf)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Factor Scores */}
+        {factorKpis && (
+          <div className="eqd-sidebar-section">
+            <div className="eqd-sidebar-title">Factor Scores</div>
+            <div className="eqd-metric-card">
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Top Factor</span>
+                <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{factorKpis.topFactor.name}</span>
+              </div>
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Top Stock</span>
+                <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{factorKpis.topStock.ticker}</span>
+              </div>
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Avg Composite</span>
+                <span className="eqd-metric-num">{factorKpis.avgComposite.toFixed(0)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Short Interest */}
+        {shortKpis && (
+          <div className="eqd-sidebar-section">
+            <div className="eqd-sidebar-title">Short Interest</div>
+            <div className="eqd-metric-card">
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Most Shorted</span>
+                <span className="eqd-metric-num" style={{ color: '#ef4444' }}>{shortKpis.top.ticker}</span>
+              </div>
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Avg Float</span>
+                <span className="eqd-metric-num">{shortKpis.avgShort.toFixed(1)}%</span>
+              </div>
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">{`Short > 20%`}</span>
+                <span className="eqd-metric-num" style={{ color: shortKpis.above20 > 3 ? '#ef4444' : '#6366f1' }}>
+                  {shortKpis.above20}/{shortKpis.total}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Earnings */}
+        {upcoming.length > 0 && (
+          <div className="eqd-sidebar-section">
+            <div className="eqd-sidebar-title">Earnings</div>
+            <div className="eqd-metric-card">
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Next Report</span>
+                <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{upcoming[0].ticker}</span>
+              </div>
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Upcoming</span>
+                <span className="eqd-metric-num">{upcoming.length}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Institutions */}
+        {institutions.length > 0 && (
+          <div className="eqd-sidebar-section">
+            <div className="eqd-sidebar-title">Institutions</div>
+            <div className="eqd-metric-card">
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Tracked</span>
+                <span className="eqd-metric-num">{institutions.length}</span>
+              </div>
+              {aggregateTopHoldings?.[0] && (
+                <div className="eqd-metric-row">
+                  <span className="eqd-metric-name">Top Holding</span>
+                  <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{aggregateTopHoldings[0].ticker}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="eqd-main">
+        <div className="eqd-content-grid">
+          {/* ETF Performance Chart */}
+          {rankedOption && (
+            <div className="eqd-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="eqd-panel-title">ETF Performance</div>
+              <div className="eqd-chart-wrap">
+                <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Factor In Favor Chart */}
+          {inFavorOption && (
+            <div className="eqd-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="eqd-panel-title">Factor In Favor</div>
+              <div className="eqd-chart-wrap">
+                <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Sector Beat Rate Chart */}
+          {beatRateOption && (
+            <div className="eqd-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="eqd-panel-title">Sector Beat Rate</div>
+              <div className="eqd-chart-wrap">
+                <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Most Shorted Chart */}
+          {shortedOption && (
+            <div className="eqd-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="eqd-panel-title">Most Shorted</div>
+              <div className="eqd-chart-wrap">
+                <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Stock Factor Scores Table */}
+          {stocks.length > 0 && (
+            <div className="eqd-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="eqd-panel-title">Stock Factor Scores</div>
+              <div className="eqd-scroll">
+                <table className="eqd-table">
+                  <thead>
+                    <tr>
+                      <th className="eqd-th">Ticker</th>
+                      <th className="eqd-th">Value</th>
+                      <th className="eqd-th">Momentum</th>
+                      <th className="eqd-th">Quality</th>
+                      <th className="eqd-th">Composite</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stocks.slice(0, 10).map(s => (
+                      <tr key={s.ticker} className="eqd-row">
+                        <td className="eqd-cell"><strong>{s.ticker}</strong></td>
+                        <td className={`eqd-cell eqd-score ${factorHeat(s.value)}`}>{s.value}</td>
+                        <td className={`eqd-cell eqd-score ${factorHeat(s.momentum)}`}>{s.momentum}</td>
+                        <td className={`eqd-cell eqd-score ${factorHeat(s.quality)}`}>{s.quality}</td>
+                        <td className={`eqd-cell eqd-score ${factorHeat(s.composite)}`}><strong>{s.composite}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Earnings */}
+          {upcoming.length > 0 && (
+            <div className="eqd-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="eqd-panel-title">Upcoming Earnings</div>
+              <div className="eqd-scroll">
+                <table className="eqd-table">
+                  <thead>
+                    <tr>
+                      <th className="eqd-th">Date</th>
+                      <th className="eqd-th">Ticker</th>
+                      <th className="eqd-th">EPS Est</th>
+                      <th className="eqd-th">Dir</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {upcoming.slice(0, 10).map(e => (
+                      <tr key={e.ticker} className="eqd-row">
+                        <td className="eqd-cell eqd-date">{e.date}</td>
+                        <td className="eqd-cell"><strong>{e.ticker}</strong></td>
+                        <td className="eqd-cell eqd-num">${e.epsEst?.toFixed(2)}</td>
+                        <td className="eqd-cell eqd-dir">
+                          {(e.epsEst ?? 0) >= (e.epsPrev ?? 0) ? '▲' : '▼'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Institutions */}
+          {institutions.length > 0 && (
+            <div className="eqd-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="eqd-panel-title">Top Institutions</div>
+              <div className="eqd-mini-table">
+                {institutions.slice(0, 6).map((inst, i) => (
+                  <div key={i} className="eqd-mini-row">
+                    <span className="eqd-mini-name">{inst.name.length > 18 ? inst.name.slice(0, 18) + '…' : inst.name}</span>
+                    <span className="eqd-mini-value">${(inst.totalValue / 1000).toFixed(1)}T</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

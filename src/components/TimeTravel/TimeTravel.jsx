@@ -6,7 +6,6 @@ export const ERAS = [
     id: '2019',
     year: '2019',
     label: 'Pre-COVID Bull',
-    emoji: '\u{1F7E2}',
     color: '#22c55e',
     headline: 'Zero-Rate Paradise',
     snapDate: null, // outside 5yr data window — uses multipliers
@@ -18,7 +17,6 @@ export const ERAS = [
     id: 'mar2020',
     year: "Mar '20",
     label: 'COVID Crash',
-    emoji: '\u{1F534}',
     color: '#ef4444',
     headline: 'The World Stops',
     snapDate: null, // outside 5yr data window — uses multipliers
@@ -30,7 +28,6 @@ export const ERAS = [
     id: 'dec2021',
     year: "Nov '21",
     label: 'Meme Peak',
-    emoji: '\u{1F680}',
     color: '#a855f7',
     headline: 'Stimulus Overflow',
     snapDate: '2021-11-18',
@@ -42,7 +39,6 @@ export const ERAS = [
     id: 'dec2022',
     year: "Dec '22",
     label: 'Rate Shock',
-    emoji: '\u{1F4C9}',
     color: '#f97316',
     headline: "The Fed's Hammer",
     snapDate: '2022-12-30',
@@ -54,7 +50,6 @@ export const ERAS = [
     id: 'dec2023',
     year: "Dec '23",
     label: 'AI Awakening',
-    emoji: '\u{1F916}',
     color: '#38bdf8',
     headline: 'The Nvidia Supercycle',
     snapDate: '2023-12-29',
@@ -66,7 +61,6 @@ export const ERAS = [
     id: '2025',
     year: 'Now',
     label: 'Your Scenario',
-    emoji: '\u{1F4CD}',
     color: '#3b82f6',
     headline: 'The Sandbox',
     snapDate: null,
@@ -142,10 +136,10 @@ const TimeTravel = ({ activeEra, setActiveEra, snapshotDate, setSnapshotDate, sn
           <span className="tt-slider-label">Navigate History</span>
           {snapshotLoading && <span className="tt-loading">⟳ Loading…</span>}
           {isRealData && !snapshotLoading && (
-            <span className="tt-real-badge">📊 Real data</span>
+            <span className="tt-real-badge">Real data</span>
           )}
           {!isRealData && !snapshotLoading && (
-            <span className="tt-model-badge">⚙ Era model</span>
+            <span className="tt-model-badge">Era model</span>
           )}
         </div>
 
@@ -180,12 +174,11 @@ const TimeTravel = ({ activeEra, setActiveEra, snapshotDate, setSnapshotDate, sn
               onClick={() => handleEraClick(e)}
               title={e.snapDate ? `${e.label} · ${e.snapDate}` : `${e.label} · model only`}
             >
-              <span className="era-emoji">{e.emoji}</span>
               <span className="era-year">{e.year}</span>
               {e.snapDate && <span className="era-data-dot" />}
               <div className="era-tooltip">
                 <span className="et-label">{e.label}</span>
-                <span className="et-hint">{e.snapDate ? '📊 Real data' : '⚙ Model'}</span>
+                <span className="et-hint">{e.snapDate ? 'Real data' : 'Model'}</span>
               </div>
             </button>
             {idx < ERAS.length - 1 && <div className="era-connector" />}
@@ -232,7 +225,7 @@ const TimeTravel = ({ activeEra, setActiveEra, snapshotDate, setSnapshotDate, sn
         )}
         {isRealData && era.snapDate && (
           <div className="tt-real-note">
-            📊 Treemap sized by actual closing prices on {formatDisplayDate(snapshotDate)}.
+            Treemap sized by actual closing prices on {formatDisplayDate(snapshotDate)}.
             Cell sizes show real relative market caps — not estimates.
           </div>
         )}

@@ -1,29 +1,27 @@
-import React, { useState } from 'react';
+// src/markets/equitiesDeepDive/EquitiesDeepDiveMarket.jsx
+import React from 'react';
 import { useEquityDeepDiveData } from './data/useEquityDeepDiveData';
 import { useInstitutionalData } from './data/useInstitutionalData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
-import SectorRotation from './components/SectorRotation';
-import FactorRankings from './components/FactorRankings';
-import EarningsWatch  from './components/EarningsWatch';
-import ShortInterest  from './components/ShortInterest';
-import InstitutionalHoldings from './components/InstitutionalHoldings';
+import EquitiesDeepDiveDashboard from './components/EquitiesDeepDiveDashboard';
 import './EquitiesDeepDiveMarket.css';
 
-const SUB_TABS = [
-  { id: 'sectors',  label: 'Sector Rotation' },
-  { id: 'factors',  label: 'Factor Rankings' },
-  { id: 'earnings', label: 'Earnings Watch'  },
-  { id: 'shorts',   label: 'Short Interest'  },
-  { id: 'holdings', label: 'Inst. Holdings'  },
-];
-
-// snapshotDate/currency not used — equity analytics are market-session-based, not snapshot-dependent
+// Unified dashboard - all content visible at once
 function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
-  const [activeTab, setActiveTab] = useState('sectors');
   const {
-    sectorData, factorData, earningsData, shortData,
-    equityRiskPremium, spPE, breadthDivergence, buffettIndicator,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+    sectorData,
+    factorData,
+    earningsData,
+    shortData,
+    equityRiskPremium,
+    spPE,
+    breadthDivergence,
+    buffettIndicator,
+    isLive,
+    lastUpdated,
+    isLoading,
+    fetchedOn,
+    isCurrent,
   } = useEquityDeepDiveData(autoRefresh);
 
   const institutionalData = useInstitutionalData(autoRefresh);
@@ -32,19 +30,6 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
 
   return (
     <div className="eq-market">
-      <div className="eq-sub-tabs" role="tablist" aria-label="Sub-tabs">
-        {SUB_TABS.map(t => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={activeTab === t.id}
-            className={`eq-sub-tab${activeTab === t.id ? ' active' : ''}`}
-            onClick={() => setActiveTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
       <div className="eq-status-bar">
         <span className={isLive ? 'eq-status-live' : ''}>
           {isLive ? '● Live · Yahoo Finance' : '○ Mock data — static'}
@@ -52,12 +37,18 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="eq-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
-      <div className="eq-content">
-        {activeTab === 'sectors'  && <SectorRotation sectorData={sectorData} spPE={spPE} buffettIndicator={buffettIndicator} equityRiskPremium={equityRiskPremium} />}
-        {activeTab === 'factors'  && <FactorRankings factorData={factorData} breadthDivergence={breadthDivergence} equityRiskPremium={equityRiskPremium} />}
-        {activeTab === 'earnings' && <EarningsWatch  earningsData={earningsData} />}
-        {activeTab === 'shorts'   && <ShortInterest  shortData={shortData} />}
-        {activeTab === 'holdings' && <InstitutionalHoldings {...institutionalData} />}
+      <div className="eq-dashboard-wrap">
+        <EquitiesDeepDiveDashboard
+          sectorData={sectorData}
+          factorData={factorData}
+          earningsData={earningsData}
+          shortData={shortData}
+          institutionalData={institutionalData}
+          equityRiskPremium={equityRiskPremium}
+          spPE={spPE}
+          buffettIndicator={buffettIndicator}
+          breadthDivergence={breadthDivergence}
+        />
       </div>
     </div>
   );

@@ -57,7 +57,6 @@ function PopoutView({ marketId }) {
   const marketMeta = MARKETS.find(m => m.id === marketId);
   const MarketComponent = MARKET_COMPONENTS[marketId];
   const label = marketMeta ? marketMeta.label : marketId;
-  const icon = marketMeta ? marketMeta.icon : '';
 
   React.useEffect(() => {
     document.title = label + ' — Market Hub';
@@ -85,7 +84,6 @@ function PopoutView({ marketId }) {
         borderBottom: '1px solid var(--border-subtle)',
       }}>
         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }}>{icon}</span>
           {label}
           <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-dim)', marginLeft: 4 }}>— Pop-out View</span>
         </span>

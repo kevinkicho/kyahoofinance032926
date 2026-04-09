@@ -1,33 +1,33 @@
-/* src/markets/credit/components/CreditDashboard.css */
+/* Shared Sidebar + Tabs Dashboard Layout */
 
-.credit-dashboard {
+/* Main dashboard container */
+.dashboard-layout {
   display: flex;
   flex-direction: row;
   flex: 1;
   overflow: hidden;
-  background: var(--bg-deep);
   height: 100%;
   gap: 0;
 }
 
-/* Left Sidebar */
-.credit-sidebar {
+/* Left sidebar */
+.dashboard-sidebar {
   width: 200px;
   min-width: 200px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-subtle);
   overflow-y: auto;
+  border-right: 1px solid var(--border-subtle);
 }
 
-.credit-sidebar-section {
+/* Sidebar sections */
+.sidebar-section {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.credit-sidebar-title {
+.sidebar-title {
   font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
@@ -36,7 +36,8 @@
   margin-bottom: 8px;
 }
 
-.credit-metric-card {
+/* Metric cards */
+.metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
@@ -44,44 +45,52 @@
   margin-bottom: 6px;
 }
 
-.credit-metric-card:last-child { margin-bottom: 0; }
+.metric-card:last-child {
+  margin-bottom: 0;
+}
 
-.credit-metric-label {
+.metric-label {
   font-size: 10px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
-.credit-metric-value {
+.metric-value {
   font-size: 18px;
   font-weight: 700;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   color: var(--text-primary);
 }
 
-.credit-metric-row {
+.metric-value.positive { color: #4ade80; }
+.metric-value.negative { color: #f87171; }
+.metric-value.accent { color: #a78bfa; }
+
+.metric-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 4px;
 }
 
-.credit-metric-row:last-child { margin-bottom: 0; }
+.metric-row:last-child {
+  margin-bottom: 0;
+}
 
-.credit-metric-name {
+.metric-name {
   font-size: 11px;
   color: var(--text-secondary);
 }
 
-.credit-metric-num {
+.metric-num {
   font-size: 12px;
   font-weight: 600;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
-/* Main Content */
-.credit-main {
+/* Main content area */
+.dashboard-main {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -89,16 +98,16 @@
   min-width: 0;
 }
 
-/* Tab Navigation */
-.credit-tabs {
+/* Tab navigation */
+.dashboard-tabs {
   display: flex;
   gap: 0;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.credit-tab {
+.dashboard-tab {
   padding: 10px 16px;
   font-size: 12px;
   font-weight: 500;
@@ -110,32 +119,39 @@
   transition: all 0.15s;
 }
 
-.credit-tab:hover { color: var(--text-secondary); background: var(--bg-card); }
-.credit-tab.active { color: var(--text-primary); border-bottom-color: #3b82f6; }
+.dashboard-tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-card);
+}
 
-/* Tab Content */
-.credit-tab-content {
+.dashboard-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-color, #10b981);
+}
+
+/* Tab content */
+.tab-content {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.credit-tab-panel {
+.tab-panel {
   display: none;
   flex: 1;
   overflow: hidden;
 }
 
-.credit-tab-panel.active {
+.tab-panel.active {
   display: flex;
   flex-direction: column;
 }
 
-/* Grid Layout */
-.credit-content-grid {
+/* Grid layout */
+.content-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 8px;
   flex: 1;
@@ -143,34 +159,50 @@
   align-content: start;
 }
 
-.credit-content-grid.single { grid-template-columns: 1fr; }
+.content-grid.wide-2 {
+  grid-template-columns: 2fr 1fr;
+}
 
-/* Chart Panels */
-.credit-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 8px 10px;
+.content-grid.single {
+  grid-template-columns: 1fr;
+}
+
+/* Chart panels */
+.chart-panel {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
 }
 
-.credit-panel-title {
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.panel-title {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 6px;
 }
 
-.credit-chart-wrap {
+.panel-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.chart-wrap {
   flex: 1;
   min-height: 100px;
 }
 
-/* Mini Tables */
-.credit-mini-table {
+/* Mini tables */
+.mini-table {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -179,30 +211,41 @@
   padding-top: 8px;
 }
 
-.credit-mini-row {
+.mini-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 4px 6px;
-  background: var(--bg-primary);
   border-radius: 4px;
   font-size: 10px;
 }
 
-.credit-mini-name {
+.mini-name {
   color: var(--text-secondary);
   font-weight: 500;
 }
 
-.credit-mini-value {
+.mini-value {
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   font-weight: 600;
 }
 
 /* Responsive */
+@media (max-width: 1400px) {
+  .content-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-sidebar {
+    width: 180px;
+    min-width: 180px;
+  }
+}
+
 @media (max-width: 1000px) {
-  .credit-dashboard { flex-direction: column; }
-  .credit-sidebar {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+  .dashboard-sidebar {
     width: 100%;
     min-width: 100%;
     flex-direction: row;
@@ -210,10 +253,12 @@
     overflow-x: auto;
     max-height: 100px;
   }
-  .credit-sidebar-section {
+  .sidebar-section {
     min-width: 140px;
     border-right: 1px solid var(--border-subtle);
     border-bottom: none;
   }
-  .credit-content-grid { grid-template-columns: 1fr; }
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
 }

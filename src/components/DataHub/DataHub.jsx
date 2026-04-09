@@ -144,17 +144,17 @@ const DataHub = ({ setMarketUniverse, setViewMode }) => {
   return (
     <div className="data-hub">
       <div className="dh-header">
-        <h2>🌐 External Data Pipeline</h2>
+        <h2>External Data Pipeline</h2>
         <p>Replace the simulated engine with live market data or ingest your 40-year CSV archives. Once compiled, apply the Universe to seamlessly wire it into the ML Engine.</p>
       </div>
 
       <div className="dh-split">
         {/* Left: Sources */}
         <div className="dh-sources">
-          
+
           {/* Live API */}
           <div className="dh-card">
-            <h3>🌩️ Live Alpha Vantage API</h3>
+            <h3>Live Alpha Vantage API</h3>
             <p className="dh-desc">Pull real-time quotes, sector metadata, and market caps directly from Alpha Vantage. (Max 25/day student limit protected by local cache).</p>
             <div className="dh-input-group">
               <input 
@@ -173,7 +173,7 @@ const DataHub = ({ setMarketUniverse, setViewMode }) => {
 
           {/* CSV Upload */}
           <div className="dh-card">
-            <h3>📊 Bulk CSV Ingestion</h3>
+            <h3>Bulk CSV Ingestion</h3>
             <p className="dh-desc">Browser-native lightning parser (PapaParse). Ingest historical performance without server roundtrips. Expected headers: <code>Ticker</code>, <code>Sector</code>, <code>MarketCap</code>.</p>
             <div className="dh-file-drop">
               <input type="file" accept=".csv" onChange={handleFileUpload} id="csv-upload" />
@@ -183,7 +183,7 @@ const DataHub = ({ setMarketUniverse, setViewMode }) => {
 
           {/* Offline Ollama Extraction */}
           <div className="dh-card sec-ai-card">
-            <h3 style={{ borderColor: '#f59e0b', color: '#fcd34d' }}>🦙 Local Ollama Extraction Engine</h3>
+            <h3 style={{ borderColor: '#f59e0b', color: '#fcd34d' }}>Local Ollama Extraction Engine</h3>
             <p className="dh-desc">100% Free & Offline. Feed raw balance sheet text dumped from any 10-K or PDF. Your local AI will parse it into structural intelligence instantly.</p>
             
             <div className="dh-input-group" style={{ marginBottom: '0.5rem' }}>

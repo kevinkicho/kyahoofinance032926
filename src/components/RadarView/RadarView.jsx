@@ -78,7 +78,7 @@ const RadarView = ({ flatData, handleSelectTicker, currentSymbol, currentRate, c
   return (
     <div className="radar-view">
       <div className="radar-header-banner">
-        <h2>🎯 Macro Divergence Radar</h2>
+        <h2>Macro Divergence Radar</h2>
         <p>Scanning 2,500+ global assets. Engine: <strong>{useMlEngine ? 'Statistical ML Regression' : 'Static Hardcoded Rules'}</strong>.</p>
         <p className="radar-subtext">This tool isolates the absolute mathematical extremes—companies functionally breaking under your monetary constraints versus those structurally positioned to explode.</p>
       </div>
@@ -88,7 +88,7 @@ const RadarView = ({ flatData, handleSelectTicker, currentSymbol, currentRate, c
         {/* The Winners */}
         <div className="radar-card radar-winners">
           <div className="rc-header">
-            <h3>🟢 Top 10 Beneficiaries</h3>
+            <h3>Top 10 Beneficiaries</h3>
             <span>Greatest positive beta to current scenario</span>
           </div>
           {renderTable(top10, true)}
@@ -97,7 +97,7 @@ const RadarView = ({ flatData, handleSelectTicker, currentSymbol, currentRate, c
         {/* The Losers */}
         <div className="radar-card radar-losers">
           <div className="rc-header">
-            <h3>🔴 Highest Casualties</h3>
+            <h3>Highest Casualties</h3>
             <span>Greatest negative beta to current scenario</span>
           </div>
           {renderTable(bottom10, false)}

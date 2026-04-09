@@ -1,53 +1,44 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import EquitiesDeepDiveMarket from '../../markets/equitiesDeepDive/EquitiesDeepDiveMarket';
 
-vi.mock('../../markets/equitiesDeepDive/data/useEquityDeepDiveData', () => ({
-  useEquityDeepDiveData: () => ({
-    sectorData:   { sectors: [] },
-    factorData:   { inFavor: {}, stocks: [] },
-    earningsData: { upcoming: [], beatRates: [] },
-    shortData:    { mostShorted: [] },
-    isLive:       false,
-    lastUpdated:  null,
-    isLoading:    false,
-  }),
-}));
+vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+
+beforeEach(() => {
+  global.fetch = vi.fn().mockRejectedValue(new Error('no server'));
+});
 
 describe('EquitiesDeepDiveMarket', () => {
-  it('renders 4 sub-tab buttons', () => {
+  it('renders unified dashboard after loading', async () => {
     render(<EquitiesDeepDiveMarket />);
-    expect(screen.getByRole('tab', { name: 'Sector Rotation' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Factor Rankings' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Earnings Watch'  })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Short Interest'  })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    // Dashboard shows sidebar with Sector Performance section
+    const sectorSections = screen.getAllByText('Sector Performance');
+    expect(sectorSections.length).toBeGreaterThan(0);
   });
 
-  it('shows Sector Rotation view by default', () => {
+  it('shows sidebar with key metrics', async () => {
     render(<EquitiesDeepDiveMarket />);
-    expect(screen.getByText(/etf performance/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    // Sidebar shows Factor Scores section
+    const factorSections = screen.getAllByText('Factor Scores');
+    expect(factorSections.length).toBeGreaterThan(0);
   });
 
-  it('switches to Factor Rankings tab on click', () => {
+  it('shows content grid with all sections visible', async () => {
     render(<EquitiesDeepDiveMarket />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Factor Rankings' }));
-    expect(screen.getByText(/factor in favor/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    // All content is visible without tabs - check for various panels
+    // ETF Performance should appear as a panel
+    const etfPanel = screen.getByText('ETF Performance');
+    expect(etfPanel).toBeInTheDocument();
   });
 
-  it('switches to Earnings Watch tab on click', () => {
+  it('shows mock data status when server unavailable', async () => {
     render(<EquitiesDeepDiveMarket />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Earnings Watch' }));
-    expect(screen.getByText(/upcoming earnings/i)).toBeInTheDocument();
-  });
-
-  it('switches to Short Interest tab on click', () => {
-    render(<EquitiesDeepDiveMarket />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Short Interest' }));
-    expect(screen.getByText(/most shorted/i)).toBeInTheDocument();
-  });
-
-  it('shows mock status bar when not live', () => {
-    render(<EquitiesDeepDiveMarket />);
-    expect(screen.getByText(/mock data/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    // Status bar shows mock data
+    const mockDataElements = screen.getAllByText(/mock data/i);
+    expect(mockDataElements.length).toBeGreaterThan(0);
   });
 });

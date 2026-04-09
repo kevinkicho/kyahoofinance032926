@@ -35,3 +35,10 @@
   font-size: 10px;
   font-weight: 500;
 }
+
+/* Dashboard wrapper - fills remaining space */
+.eq-dashboard-wrap {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}

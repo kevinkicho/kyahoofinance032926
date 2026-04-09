@@ -25,40 +25,6 @@ export default function InsuranceDashboard({
 }) {
   const { colors } = useTheme();
 
-  // KPI calculations
-  const kpis = useMemo(() => {
-    const result = [];
-    if (hyOAS != null) {
-      result.push({
-        label: 'HY OAS',
-        value: `${hyOAS.toFixed(0)} bps`,
-        color: hyOAS > 400 ? '#ef4444' : hyOAS > 250 ? '#f59e0b' : '#22c55e',
-      });
-    }
-    if (igOAS != null) {
-      result.push({
-        label: 'IG OAS',
-        value: `${igOAS.toFixed(0)} bps`,
-        color: igOAS > 150 ? '#ef4444' : igOAS > 100 ? '#f59e0b' : '#22c55e',
-      });
-    }
-    if (combinedRatioData?.industry != null) {
-      result.push({
-        label: 'Combined Ratio',
-        value: `${combinedRatioData.industry.toFixed(0)}%`,
-        color: combinedRatioData.industry > 100 ? '#ef4444' : '#22c55e',
-      });
-    }
-    if (reinsurancePricing?.avgRate != null) {
-      result.push({
-        label: 'Reins Rate',
-        value: `${reinsurancePricing.avgRate.toFixed(1)}%`,
-        color: '#a78bfa',
-      });
-    }
-    return result;
-  }, [hyOAS, igOAS, combinedRatioData, reinsurancePricing]);
-
   // HY OAS chart
   const hyOasOption = useMemo(() => {
     if (!fredHyOasHistory?.dates?.length) return null;
@@ -69,113 +35,176 @@ export default function InsuranceDashboard({
       grid: { top: 20, right: 30, bottom: 30, left: 50 },
       xAxis: { type: 'category', data: fredHyOasHistory.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(fredHyOasHistory.dates.length / 6) } },
       yAxis: { type: 'value', name: 'bps', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{ type: 'line', data: fredHyOasHistory.values, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 2 }, areaStyle: { color: '#f59e0b', opacity: 0.1 } }],
+      series: [{ type: 'line', data: fredHyOasHistory.values, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 2 }, areaStyle: { color: 'rgba(245,158,11,0.1)' } }],
     };
   }, [fredHyOasHistory, colors]);
 
   return (
     <div className="ins-dashboard">
-      {/* KPI Strip */}
-      <div className="ins-kpi-strip">
-        {kpis.map((kpi, i) => (
-          <div key={i} className="ins-kpi-pill" style={{ background: colors.bgCard }}>
-            <span className="ins-kpi-label">{kpi.label}</span>
-            <span className="ins-kpi-value" style={{ color: kpi.color }}>{kpi.value}</span>
-          </div>
-        ))}
-        {reinsurers?.map(r => (
-          <div key={r.ticker} className="ins-kpi-pill" style={{ background: colors.bgCard }}>
-            <span className="ins-kpi-label">{r.ticker}</span>
-            <span className="ins-kpi-value" style={{ color: (r.changePct || 0) >= 0 ? '#22c55e' : '#ef4444' }}>
-              {fmtChangePct(r.changePct)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Chart Grid */}
-      <div className="ins-chart-grid">
-        {/* HY OAS History */}
-        {hyOasOption && (
-          <div className="ins-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="ins-panel-title">HY OAS Spread</div>
-            <div className="ins-chart-wrap" style={{ minHeight: 180 }}>
-              <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} />
+      {/* Left Sidebar */}
+      <div className="ins-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+        {/* Credit Spreads */}
+        <div className="ins-sidebar-section">
+          <div className="ins-sidebar-title">Credit Spreads</div>
+          {typeof hyOAS === 'number' && (
+            <div className="ins-metric-card">
+              <div className="ins-metric-label">HY OAS</div>
+              <div className="ins-metric-value" style={{ color: hyOAS > 400 ? '#f87171' : hyOAS > 250 ? '#fbbf24' : '#4ade80' }}>
+                {hyOAS.toFixed(0)} bps
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          {typeof igOAS === 'number' && (
+            <div className="ins-metric-card">
+              <div className="ins-metric-row">
+                <span className="ins-metric-name">IG OAS</span>
+                <span className="ins-metric-num" style={{ color: igOAS > 150 ? '#f87171' : igOAS > 100 ? '#fbbf24' : '#4ade80' }}>
+                  {igOAS.toFixed(0)} bps
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Combined Ratio */}
         {combinedRatioData && (
-          <div className="ins-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="ins-panel-title">Combined Ratio</div>
-            <div className="ins-mini-table">
-              <div className="ins-mini-row">
-                <span className="ins-mini-name">Industry</span>
-                <span className="ins-mini-value" style={{ color: combinedRatioData.industry > 100 ? '#ef4444' : '#22c55e' }}>
-                  {combinedRatioData.industry?.toFixed(1)}%
-                </span>
+          <div className="ins-sidebar-section">
+            <div className="ins-sidebar-title">Combined Ratio</div>
+            <div className="ins-metric-card">
+              {typeof combinedRatioData.industry === 'number' && (
+                <div className="ins-metric-row">
+                  <span className="ins-metric-name">Industry</span>
+                  <span className="ins-metric-num" style={{ color: combinedRatioData.industry > 100 ? '#f87171' : '#4ade80' }}>
+                    {combinedRatioData.industry.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+              {typeof industryAvgCombinedRatio === 'number' && (
+                <div className="ins-metric-row">
+                  <span className="ins-metric-name">Avg</span>
+                  <span className="ins-metric-num" style={{ color: industryAvgCombinedRatio > 100 ? '#f87171' : '#4ade80' }}>
+                    {industryAvgCombinedRatio.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Reinsurers */}
+        {reinsurers?.length > 0 && (
+          <div className="ins-sidebar-section">
+            <div className="ins-sidebar-title">Reinsurers</div>
+            <div className="ins-metric-card">
+              {reinsurers.slice(0, 4).map((r, i) => (
+                <div key={i} className="ins-metric-row">
+                  <span className="ins-metric-name">{r.ticker}</span>
+                  <span className="ins-metric-num" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
+                    {fmtChangePct(r.changePct)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content - ALL visible at once */}
+      <div className="ins-main">
+        <div className="ins-content-grid">
+          {/* HY OAS History Chart */}
+          {hyOasOption && (
+            <div className="ins-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="ins-panel-title">HY OAS Spread</div>
+              <div className="ins-chart-wrap">
+                <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} />
               </div>
-              {combinedRatioData.byLine?.slice(0, 5).map((l, i) => (
-                <div key={i} className="ins-mini-row">
-                  <span className="ins-mini-name">{l.line}</span>
-                  <span className="ins-mini-value" style={{ color: l.ratio > 100 ? '#ef4444' : '#22c55e' }}>
-                    {l.ratio?.toFixed(1)}%
-                  </span>
-                </div>
-              ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Reinsurance Pricing */}
-        {reinsurancePricing?.byCategory?.length > 0 && (
-          <div className="ins-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="ins-panel-title">Reinsurance Rates</div>
-            <div className="ins-mini-table">
-              {reinsurancePricing.byCategory.slice(0, 6).map((c, i) => (
-                <div key={i} className="ins-mini-row">
-                  <span className="ins-mini-name">{c.category}</span>
-                  <span className="ins-mini-value">{c.rate?.toFixed(1)}%</span>
-                </div>
-              ))}
+          {/* Combined Ratio by Line */}
+          {combinedRatioData?.byLine?.length > 0 && (
+            <div className="ins-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="ins-panel-title">Combined Ratio by Line</div>
+              <div className="ins-mini-table">
+                {combinedRatioData.byLine.slice(0, 8).map((l, i) => (
+                  <div key={i} className="ins-mini-row">
+                    <span className="ins-mini-name">{l.line}</span>
+                    <span className="ins-mini-value" style={{ color: l.ratio > 100 ? '#f87171' : '#4ade80' }}>
+                      {l.ratio?.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Reserve Adequacy */}
-        {reserveAdequacyData?.length > 0 && (
-          <div className="ins-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="ins-panel-title">Reserve Adequacy</div>
-            <div className="ins-mini-table">
-              {reserveAdequacyData.slice(0, 6).map((r, i) => (
-                <div key={i} className="ins-mini-row">
-                  <span className="ins-mini-name">{r.insurer}</span>
-                  <span className="ins-mini-value" style={{ color: r.ratio > 1.1 ? '#22c55e' : r.ratio < 1 ? '#ef4444' : '#f59e0b' }}>
-                    {r.ratio?.toFixed(2)}x
-                  </span>
-                </div>
-              ))}
+          {/* Reinsurance Rates */}
+          {reinsurancePricing?.byCategory?.length > 0 && (
+            <div className="ins-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="ins-panel-title">Reinsurance Rates</div>
+              <div className="ins-mini-table">
+                {reinsurancePricing.byCategory.slice(0, 8).map((c, i) => (
+                  <div key={i} className="ins-mini-row">
+                    <span className="ins-mini-name">{c.category}</span>
+                    <span className="ins-mini-value">{c.rate?.toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Cat Bond Spreads */}
-        {catBondSpreads?.length > 0 && (
-          <div className="ins-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="ins-panel-title">Cat Bond Spreads</div>
-            <div className="ins-mini-table">
-              {catBondSpreads.slice(0, 6).map((b, i) => (
-                <div key={i} className="ins-mini-row">
-                  <span className="ins-mini-name">{b.name}</span>
-                  <span className="ins-mini-value" style={{ color: b.spread > 8 ? '#22c55e' : '#f59e0b' }}>
-                    {b.spread?.toFixed(1)}%
-                  </span>
-                </div>
-              ))}
+          {/* Reserve Adequacy */}
+          {reserveAdequacyData?.length > 0 && (
+            <div className="ins-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="ins-panel-title">Reserve Adequacy</div>
+              <div className="ins-mini-table">
+                {reserveAdequacyData.slice(0, 8).map((r, i) => (
+                  <div key={i} className="ins-mini-row">
+                    <span className="ins-mini-name">{r.insurer}</span>
+                    <span className="ins-mini-value" style={{ color: r.ratio > 1.1 ? '#4ade80' : r.ratio < 1 ? '#f87171' : '#fbbf24' }}>
+                      {r.ratio?.toFixed(2)}x
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Cat Bond Spreads */}
+          {catBondSpreads?.length > 0 && (
+            <div className="ins-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="ins-panel-title">Cat Bond Spreads</div>
+              <div className="ins-mini-table">
+                {catBondSpreads.slice(0, 8).map((b, i) => (
+                  <div key={i} className="ins-mini-row">
+                    <span className="ins-mini-name">{b.name}</span>
+                    <span className="ins-mini-value" style={{ color: b.spread > 8 ? '#4ade80' : '#fbbf24' }}>
+                      {b.spread?.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sector ETF */}
+          {sectorETF?.length > 0 && (
+            <div className="ins-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="ins-panel-title">Sector ETFs</div>
+              <div className="ins-mini-table">
+                {sectorETF.slice(0, 8).map((e, i) => (
+                  <div key={i} className="ins-mini-row">
+                    <span className="ins-mini-name">{e.symbol}</span>
+                    <span className="ins-mini-value" style={{ color: (e.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
+                      {(e.changePct || 0) >= 0 ? '+' : ''}{(e.changePct || 0).toFixed(2)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

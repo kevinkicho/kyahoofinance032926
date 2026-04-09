@@ -23,10 +23,69 @@
   min-width: 0;
 }
 
+/* KPI Strip - horizontally scrollable */
+.mac-kpi-strip {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+
+.mac-kpi-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.mac-kpi-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mac-kpi-strip::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 2px;
+}
+
+.mac-kpi-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 14px;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.mac-kpi-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mac-kpi-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.mac-kpi-value.accent { color: #14b8a6; }
+.mac-kpi-value.positive { color: #4ade80; }
+.mac-kpi-value.negative { color: #f87171; }
+
+.mac-kpi-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
 /* Scorecard Section */
 .mac-scorecard-section {
   flex-shrink: 0;
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -34,17 +93,17 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .mac-section-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .mac-section-subtitle {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
 }
 
@@ -102,17 +161,34 @@
 /* Chart Grid */
 .mac-chart-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  padding: 12px 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px 12px;
   overflow-y: auto;
   flex: 1;
   align-content: start;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
+  .mac-chart-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
   .mac-chart-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mac-scorecard-compact {
+    grid-template-columns: 32px 48px repeat(4, 1fr);
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .mac-scorecard-compact {
+    grid-template-columns: 32px 60px repeat(3, 1fr);
   }
 }
 
@@ -121,23 +197,23 @@
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  min-height: 200px;
+  min-height: 180px;
 }
 
 .mac-panel-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   flex-shrink: 0;
 }
 
 .mac-chart-wrap {
   flex: 1;
-  min-height: 160px;
+  min-height: 120px;
 }
 
 /* Mini Bars (inline charts) */
@@ -246,26 +322,4 @@
 .mac-cli-mini-trend {
   font-size: 12px;
   font-weight: 600;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 900px) {
-  .mac-scorecard-compact {
-    grid-template-columns: 32px 48px repeat(4, 1fr);
-    font-size: 10px;
-  }
-
-  .mac-activity-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .mac-cli-mini-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  .mac-scorecard-compact {
-    grid-template-columns: 32px 60px repeat(3, 1fr);
-  }
 }

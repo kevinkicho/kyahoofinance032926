@@ -13,25 +13,26 @@ describe('CommoditiesMarket', () => {
   it('renders unified dashboard after loading', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows commodity prices section
-    const priceElements = screen.getAllByText(/Commodity Prices/i);
-    expect(priceElements.length).toBeGreaterThan(0);
+    // Dashboard shows sidebar with key prices section
+    const keyPricesSection = screen.getByText('Key Prices');
+    expect(keyPricesSection).toBeInTheDocument();
   });
 
-  it('shows KPI strip with key metrics', async () => {
+  it('shows sidebar with key metrics', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // KPI strip shows key indicators (may appear multiple times)
-    const kpiElements = screen.getAllByText(/Gold|Oil|Nat Gas/i);
-    expect(kpiElements.length).toBeGreaterThan(0);
+    // Sidebar shows key indicators in metric cards
+    // Gold, Oil, Nat Gas should appear in sidebar
+    const goldElements = screen.getAllByText(/Gold/i);
+    expect(goldElements.length).toBeGreaterThan(0);
   });
 
-  it('shows sector performance section', async () => {
+  it('shows tabs for navigation', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows sector performance (may appear multiple times)
-    const sectorElements = screen.getAllByText(/Sector Performance/i);
-    expect(sectorElements.length).toBeGreaterThan(0);
+    // Dashboard has tab navigation
+    expect(screen.getByRole('button', { name: 'Prices' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Charts' })).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {

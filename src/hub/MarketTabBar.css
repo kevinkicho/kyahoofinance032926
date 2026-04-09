@@ -32,7 +32,6 @@
 }
 .market-tab:hover { color: var(--text-secondary); }
 .market-tab.active { color: var(--text-primary); border-bottom-color: #3b82f6; }
-.market-tab-icon { font-size: 14px; line-height: 1; }
 .hub-theme-toggle {
   background: none;
   border: 1px solid var(--border-color);
@@ -109,22 +108,13 @@
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 11px;
-  padding: 4px 8px 4px 24px;
-  width: 160px;
+  padding: 4px 8px;
+  width: 140px;
   outline: none;
   transition: border-color 0.15s, width 0.2s;
 }
-.hub-search-input:focus { border-color: #3b82f6; width: 220px; }
+.hub-search-input:focus { border-color: #3b82f6; width: 200px; }
 .hub-search-input::placeholder { color: var(--text-dim); }
-.hub-search-icon {
-  position: absolute;
-  left: 7px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 11px;
-  color: var(--text-dim);
-  pointer-events: none;
-}
 .hub-search-dropdown {
   position: absolute;
   top: calc(100% + 4px);

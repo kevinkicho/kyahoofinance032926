@@ -17,25 +17,21 @@ describe('BondsMarket', () => {
     expect(yieldCurveElements.length).toBeGreaterThan(0);
   });
 
-  it('shows KPI strip with key metrics', async () => {
+  it('shows sidebar with key metrics', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // KPI strip shows key indicators
-    expect(screen.getByText(/10Y-2Y Spread|Fed Funds|10Y Treasury/i)).toBeInTheDocument();
+    // Sidebar shows key indicators in metric cards
+    // Check for sidebar sections
+    const yieldsSection = screen.getByText('Yields');
+    expect(yieldsSection).toBeInTheDocument();
   });
 
-  it('shows Credit Spreads section', async () => {
+  it('shows tabs for navigation', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows credit spreads
-    expect(screen.getByText('Credit Spreads')).toBeInTheDocument();
-  });
-
-  it('shows Duration Ladder section', async () => {
-    render(<BondsMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows duration ladder
-    expect(screen.getByText('Duration Ladder')).toBeInTheDocument();
+    // Dashboard has tab navigation - check for Yield Curves tab button
+    const yieldsTab = screen.getByRole('button', { name: 'Yield Curves' });
+    expect(yieldsTab).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {
