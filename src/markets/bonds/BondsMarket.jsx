@@ -7,11 +7,19 @@ import './BondsMarket.css';
 /**
  * BondsMarket - Unified bonds dashboard
  * Shows all bond data in one glanceable view:
- * - KPI strip (10Y-2Y Spread, Fed Funds, 10Y Treasury, IG Spread, 5Y Breakeven)
- * - Chart grid (Yield Curve, Credit Spreads, Duration Ladder, Breakevens, Mortgage)
+ * - Yield Curve section (full-width with history charts)
+ * - Macro & Real Yields section
+ * - Credit & Spreads section
+ * - Treasury Auctions section
  */
 function BondsMarket({ autoRefresh } = {}) {
-  const { yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData, breakevensData, treasuryRates, fredYieldHistory, fedFundsFutures, yieldHistory, mortgageSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useBondsData(autoRefresh);
+  const {
+    yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData,
+    breakevensData, treasuryRates, fedFundsFutures, yieldHistory, mortgageSpread,
+    tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory, m2HistoryData,
+    creditIndices, auctionData, nationalDebt,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent
+  } = useBondsData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -19,7 +27,7 @@ function BondsMarket({ autoRefresh } = {}) {
     <div className="bonds-market">
       <div className="bonds-status-bar">
         <span className={isLive ? 'bonds-status-live' : ''}>
-          {isLive ? '● Live · FRED / Treasury' : '○ Mock data — static'}
+          {isLive ? '● Live · FRED / Treasury / World Bank' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="bonds-stale-badge">Stale · fetched {fetchedOn}</span>}
@@ -36,6 +44,14 @@ function BondsMarket({ autoRefresh } = {}) {
         fedFundsFutures={fedFundsFutures}
         yieldHistory={yieldHistory}
         mortgageSpread={mortgageSpread}
+        tipsYields={tipsYields}
+        realYieldHistory={realYieldHistory}
+        macroData={macroData}
+        fedBalanceSheetHistory={fedBalanceSheetHistory}
+        m2HistoryData={m2HistoryData}
+        creditIndices={creditIndices}
+        auctionData={auctionData}
+        nationalDebt={nationalDebt}
       />
     </div>
   );

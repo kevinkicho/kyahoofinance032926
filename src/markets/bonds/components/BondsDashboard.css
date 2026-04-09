@@ -50,6 +50,17 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+/* Section Title */
+.bonds-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 0 4px;
+  margin-top: 4px;
+}
+
 /* KPI Strip */
 .bonds-kpi-strip {
   display: flex;
@@ -88,12 +99,6 @@
 .bonds-kpi-value.accent { color: #10b981; }
 .bonds-kpi-value.positive { color: #4ade80; }
 .bonds-kpi-value.negative { color: #f87171; }
-
-.bonds-kpi-status {
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
 
 /* Wide-Narrow Layout: Chart (70%) + Bars (30%) */
 .bonds-wide-narrow {
@@ -180,6 +185,10 @@
   align-content: start;
 }
 
+.bonds-full-width {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 1200px) {
   .bonds-chart-grid {
     grid-template-columns: 1fr;
@@ -195,6 +204,32 @@
   display: flex;
   flex-direction: column;
   min-height: 140px;
+}
+
+/* Mini KPI Row */
+.bonds-kpi-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.bonds-mini-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bonds-mini-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.bonds-mini-val {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
 }
 
 /* Mini Table */
@@ -228,6 +263,49 @@
   color: var(--text-muted);
   font-size: 10px;
   margin-left: 8px;
+}
+
+/* Auction Table */
+.bonds-auction-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bonds-auction-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.bonds-auction-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.bonds-auction-row:hover {
+  background: var(--bg-primary);
+  border-radius: 4px;
+}
+
+.bonds-auction-yield {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 600;
+}
+
+.bonds-auction-btc {
+  color: #60a5fa;
+  font-weight: 600;
 }
 
 /* Responsive */

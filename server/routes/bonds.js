@@ -5,20 +5,62 @@ import { trackApiCall } from '../lib/rateLimits.js';
 
 const router = Router();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FRED SERIES DEFINITIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
 const TENOR_SERIES = {
-  '3m': 'DGS3MO', '6m': 'DGS6MO', '1y': 'DGS1', '2y': 'DGS2',
-  '5y': 'DGS5',  '7y': 'DGS7',  '10y': 'DGS10', '20y': 'DGS20', '30y': 'DGS30',
+  '1m': 'DGS1MO', '3m': 'DGS3MO', '6m': 'DGS6MO',
+  '1y': 'DGS1', '2y': 'DGS2', '3y': 'DGS3', '5y': 'DGS5',
+  '7y': 'DGS7', '10y': 'DGS10', '20y': 'DGS20', '30y': 'DGS30',
 };
+
+// Real Yields (TIPS)
+const TIPS_SERIES = {
+  '5y': 'DFII5', '10y': 'DFII10', '30y': 'DFII30',
+};
+
+// International 10Y Yields - Extended
 const INTL_10Y = {
   DE: 'IRLTLT01DEM156N', JP: 'IRLTLT01JPM156N', GB: 'IRLTLT01GBM156N',
   IT: 'IRLTLT01ITM156N', FR: 'IRLTLT01FRM156N', AU: 'IRLTLT01AUM156N',
+  CA: 'IRLTLT01CAM156N', CH: 'IRLTLT01CHM156N', SE: 'IRLTLT01SEM156N',
+  ES: 'IRLTLT01ESM156N', NL: 'IRLTLT01NLM156N', BE: 'IRLTLT01BEM156N',
+  AT: 'IRLTLT01ATM156N', FI: 'IRLTLT01FIM156N', PT: 'IRLTLT01PTM156N',
+  GR: 'IRLTLT01GRM156N', IE: 'IRLTLT01IEM156N', DK: 'IRLTLT01DKM156N',
+  NO: 'IRLTLT01NOM156N', NZ: 'IRLTLT01NZM156N',
 };
+
+// Credit Spread Series
 const SPREAD_SERIES = {
   IG:  'BAMLC0A0CM',
   HY:  'BAMLH0A0HYM2',
   EM:  'BAMLEMCBPIOAS',
   BBB: 'BAMLC0A4CBBB',
 };
+
+// Additional Credit Indices
+const CREDIT_INDICES = {
+  aaa10y: 'AAA10Y',
+  baa10y: 'BAA10Y',
+};
+
+// Macro Indicators
+const MACRO_SERIES = {
+  fedBalanceSheet: 'WALCL',
+  m2: 'M2SL',
+  federalDebt: 'GFDEBTN',
+  surplusDeficit: 'FYFSD',
+  unemployment: 'UNRATE',
+  laborParticipation: 'CIVPART',
+  gdp: 'GDP',
+  pce: 'PCEPI',
+  tb3ms: 'TB3MS',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
 
 function dateToMonthLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
@@ -41,6 +83,10 @@ async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
     .reverse();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN ROUTE
+// ─────────────────────────────────────────────────────────────────────────────
+
 router.get('/', async (req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY || '';
   const cache = req.app.locals.cache;
@@ -56,6 +102,9 @@ router.get('/', async (req, res) => {
   if (!FRED_API_KEY) return res.status(503).json({ error: 'FRED_API_KEY not configured' });
 
   try {
+    // ═══════════════════════════════════════════════════════════════════════
+    // US TREASURY YIELD CURVE (Full Tenors)
+    // ═══════════════════════════════════════════════════════════════════════
     trackApiCall('FRED');
     const usEntries = await Promise.allSettled(
       Object.entries(TENOR_SERIES).map(async ([tenor, sid]) => [tenor, await fetchFredLatest(sid, FRED_API_KEY)])
@@ -63,6 +112,37 @@ router.get('/', async (req, res) => {
     const usYields = {};
     usEntries.forEach(r => { if (r.status === 'fulfilled' && r.value[1] != null) usYields[r.value[0]] = r.value[1]; });
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // REAL YIELDS (TIPS)
+    // ═══════════════════════════════════════════════════════════════════════
+    trackApiCall('FRED');
+    const tipsEntries = await Promise.allSettled(
+      Object.entries(TIPS_SERIES).map(async ([tenor, sid]) => [tenor, await fetchFredLatest(sid, FRED_API_KEY)])
+    );
+    const tipsYields = {};
+    tipsEntries.forEach(r => { if (r.status === 'fulfilled' && r.value[1] != null) tipsYields[r.value[0]] = r.value[1]; });
+
+    // Get TIPS history for charting
+    trackApiCall('FRED');
+    const tipsHistory = await Promise.all([
+      fetchFredHistory('DFII5', FRED_API_KEY, 252).catch(() => null),
+      fetchFredHistory('DFII10', FRED_API_KEY, 252).catch(() => null),
+    ]);
+    let realYieldHistory = null;
+    if (tipsHistory[1]?.length >= 20) {
+      const dates = tipsHistory[1].map(p => p.date);
+      const map5y = {};
+      (tipsHistory[0] || []).forEach(p => { map5y[p.date] = p.value; });
+      realYieldHistory = {
+        dates,
+        d5y: dates.map(d => map5y[d] ?? null),
+        d10y: tipsHistory[1].map(p => p.value),
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // INTERNATIONAL YIELD CURVE (Extended to 20 countries)
+    // ═══════════════════════════════════════════════════════════════════════
     const yieldCurveData = {
       US: {
         '3m': usYields['3m'] ?? null, '6m': usYields['6m'] ?? null,
@@ -82,6 +162,9 @@ router.get('/', async (req, res) => {
       }
     });
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // CREDIT SPREADS
+    // ═══════════════════════════════════════════════════════════════════════
     trackApiCall('FRED');
     const spreadEntries = await Promise.allSettled(
       Object.entries(SPREAD_SERIES).map(async ([key, sid]) => [key, await fetchFredHistory(sid, FRED_API_KEY, 13)])
@@ -102,6 +185,19 @@ router.get('/', async (req, res) => {
       BBB:   bbbArr.length === 12 ? bbbArr.map(p => Math.round(p.value))  : anchorArr.map(() => null),
     } : null;
 
+    // Additional Credit Indices (AAA-10Y spread, BAA-AAA spread)
+    trackApiCall('FRED');
+    const creditIndexEntries = await Promise.allSettled(
+      Object.entries(CREDIT_INDICES).map(async ([key, sid]) => [key, await fetchFredLatest(sid, FRED_API_KEY)])
+    );
+    const creditIndices = {};
+    creditIndexEntries.forEach(r => {
+      if (r.status === 'fulfilled' && r.value[1] != null) creditIndices[r.value[0]] = r.value[1];
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SPREAD INDICATORS & FED FUTURES
+    // ═══════════════════════════════════════════════════════════════════════
     const SPREAD_INDICATOR_SERIES = {
       t10y2y: 'T10Y2Y',
       t10y3m: 'T10Y3M',
@@ -137,6 +233,9 @@ router.get('/', async (req, res) => {
       ? Math.round((mortgage30yRaw - usYields['10y']) * 100) / 100
       : null;
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // BREAKEVENS & REAL YIELDS
+    // ═══════════════════════════════════════════════════════════════════════
     let breakevensData = null;
     try {
       trackApiCall('FRED');
@@ -175,6 +274,9 @@ router.get('/', async (req, res) => {
       }
     } catch { /* use null */ }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // YIELD HISTORY (252-day)
+    // ═══════════════════════════════════════════════════════════════════════
     let fredYieldHistory = null;
     let yieldHistory = null;
     try {
@@ -207,6 +309,81 @@ router.get('/', async (req, res) => {
       }
     } catch { /* use null */ }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // MACRO INDICATORS (Fed Balance Sheet, M2, Debt, Unemployment, GDP)
+    // ═══════════════════════════════════════════════════════════════════════
+    trackApiCall('FRED');
+    const macroEntries = await Promise.allSettled(
+      Object.entries(MACRO_SERIES).map(async ([key, sid]) => [key, await fetchFredLatest(sid, FRED_API_KEY)])
+    );
+    const macroData = {};
+    macroEntries.forEach(r => {
+      if (r.status === 'fulfilled' && r.value[1] != null) macroData[r.value[0]] = r.value[1];
+    });
+
+    // Fed Balance Sheet History (for charting)
+    trackApiCall('FRED');
+    const fedBalanceHistory = await fetchFredHistory('WALCL', FRED_API_KEY, 52).catch(() => null);
+    let fedBalanceSheetHistory = null;
+    if (fedBalanceHistory?.length >= 12) {
+      fedBalanceSheetHistory = {
+        dates: fedBalanceHistory.map(p => dateToMonthLabel(p.date)),
+        values: fedBalanceHistory.map(p => p.value / 1000), // Convert to trillions
+      };
+    }
+
+    // M2 History (for charting)
+    trackApiCall('FRED');
+    const m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(() => null);
+    let m2HistoryData = null;
+    if (m2History?.length >= 12) {
+      m2HistoryData = {
+        dates: m2History.map(p => dateToMonthLabel(p.date)),
+        values: m2History.map(p => p.value / 1000), // Convert to trillions
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TREASURY AUCTION RESULTS
+    // ═══════════════════════════════════════════════════════════════════════
+    let auctionData = null;
+    try {
+      const auctionUrl = 'https://api.fiscaldata.treasury.gov/services/api/v1/accounting/od/auctions' +
+        '?filter=security_type:eq:Bill' +
+        '&fields=record_date,security_term,security_type,high_investment_rate,high_discount_rate,bid_to_cover_ratio' +
+        '&sort=-record_date&page%5Bsize%5D=10';
+      trackApiCall('Treasury Fiscal Data');
+      const auctionResp = await fetchJSON(auctionUrl);
+      const records = auctionResp?.data || [];
+      if (records.length > 0) {
+        auctionData = records.slice(0, 6).map(r => ({
+          date: r.record_date,
+          term: r.security_term,
+          type: r.security_type,
+          yield: r.high_investment_rate ? parseFloat(r.high_investment_rate) : (r.high_discount_rate ? parseFloat(r.high_discount_rate) : null),
+          bidToCover: r.bid_to_cover_ratio ? parseFloat(r.bid_to_cover_ratio) : null,
+        }));
+      }
+    } catch { /* use null */ }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NATIONAL DEBT DAILY
+    // ═══════════════════════════════════════════════════════════════════════
+    let nationalDebt = null;
+    try {
+      const debtUrl = 'https://api.fiscaldata.treasury.gov/services/api/v1/accounting/od/debt_to_penny' +
+        '?fields=record_date,tot_pub_debt_out_amt' +
+        '&sort=-record_date&page%5Bsize%5D=1';
+      trackApiCall('Treasury Fiscal Data');
+      const debtResp = await fetchJSON(debtUrl);
+      if (debtResp?.data?.[0]) {
+        nationalDebt = parseFloat(debtResp.data[0].tot_pub_debt_out_amt) / 1e12; // Trillions
+      }
+    } catch { /* use null */ }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // TREASURY RATES (Average Interest)
+    // ═══════════════════════════════════════════════════════════════════════
     let treasuryRates = null;
     try {
       const tUrl = 'https://api.fiscaldata.treasury.gov/services/api/v1/accounting/od/avg_interest_rates' +
@@ -222,37 +399,54 @@ router.get('/', async (req, res) => {
         const bills = latest.find(r => r.security_desc === 'Treasury Bills');
         const notes = latest.find(r => r.security_desc === 'Treasury Notes');
         const bonds = latest.find(r => r.security_desc === 'Treasury Bonds');
-        if (bills || notes || bonds) {
-          treasuryRates = {
-            '0\u20132y':  bills ? parseFloat(bills.avg_interest_rate_amt) : null,
-            '2\u20135y':  notes ? parseFloat(notes.avg_interest_rate_amt) : null,
-            '5\u201310y': notes ? parseFloat(notes.avg_interest_rate_amt) : null,
-            '10y+':       bonds ? parseFloat(bonds.avg_interest_rate_amt) : null,
-          };
-        }
+        treasuryRates = {
+          fedFunds: macroData.unemployment ? null : (usYields['3m'] ?? null), // Approximate
+          bills: bills ? parseFloat(bills.avg_interest_rate_amt) : null,
+          notes: notes ? parseFloat(notes.avg_interest_rate_amt) : null,
+          bonds: bonds ? parseFloat(bonds.avg_interest_rate_amt) : null,
+        };
       }
     } catch { /* use null */ }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // BUILD RESULT
+    // ═══════════════════════════════════════════════════════════════════════
     const result = {
+      // Core yield data
       yieldCurveData,
+      tipsYields,
+      realYieldHistory,
       spreadData,
       spreadIndicators: Object.keys(spreadIndicators).length >= 3 ? spreadIndicators : null,
-      treasuryRates,
+      creditIndices,
       breakevensData,
       fredYieldHistory,
-      fedFundsFutures,
       yieldHistory,
+      fedFundsFutures,
       mortgageSpread,
+      treasuryRates,
+
+      // Macro indicators
+      macroData,
+      fedBalanceSheetHistory,
+      m2HistoryData,
+
+      // Treasury data
+      auctionData,
+      nationalDebt,
+
+      // Metadata
       lastUpdated: today,
+      countryCount: Object.keys(yieldCurveData).length,
     };
 
     writeDailyCache('bonds', result);
     cache.set(cacheKey, result, 900);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
+    res.json({ ...result, fetchedOn: today, isLive: true });
   } catch (error) {
     console.error('Bonds API error:', error);
     const fallback = readLatestCache('bonds');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isLive: false });
     res.status(500).json({ error: 'Internal server error' });
   }
 });

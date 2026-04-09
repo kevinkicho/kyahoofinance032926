@@ -74,3 +74,86 @@ export const fredYieldHistory = (() => {
   }
   return { dates, values };
 })();
+
+// Real Yields (TIPS)
+export const tipsYields = {
+  '5y': 1.85,
+  '10y': 1.92,
+  '30y': 2.05,
+};
+
+// Real Yield History (for charting)
+export const realYieldHistory = (() => {
+  const dates = [];
+  const d5y = [];
+  const d10y = [];
+  const base = new Date('2024-04-01');
+  for (let i = 0; i < 52; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i * 7);
+    dates.push(d.toISOString().split('T')[0]);
+    d5y.push(+(1.75 + 0.15 * Math.sin(i / 8)).toFixed(2));
+    d10y.push(+(1.85 + 0.12 * Math.sin(i / 10)).toFixed(2));
+  }
+  return { dates, d5y, d10y };
+})();
+
+// Macro Indicators
+export const macroData = {
+  fedBalanceSheet: 7.2, // Trillions
+  m2: 20.8, // Trillions
+  federalDebt: 34.5, // Trillions
+  surplusDeficit: -1.7, // Trillions (annual)
+  unemployment: 4.1, // Percent
+  laborParticipation: 62.5, // Percent
+  gdp: 2.8, // Percent (annualized)
+  pce: 2.4, // Percent (YoY)
+  tb3ms: 5.25, // Percent
+};
+
+// Fed Balance Sheet History (for charting)
+export const fedBalanceSheetHistory = (() => {
+  const dates = [];
+  const values = [];
+  const base = new Date('2024-04-01');
+  for (let i = 0; i < 52; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i * 7);
+    dates.push(d.toISOString().split('T')[0].slice(5).replace('-', '-'));
+    values.push(+(8.5 - i * 0.025).toFixed(2)); // Declining (QT)
+  }
+  return { dates, values };
+})();
+
+// M2 History (for charting)
+export const m2HistoryData = (() => {
+  const dates = [];
+  const values = [];
+  const base = new Date('2024-04-01');
+  for (let i = 0; i < 52; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i * 7);
+    dates.push(d.toISOString().split('T')[0].slice(5).replace('-', '-'));
+    values.push(+(20.5 + i * 0.01).toFixed(2));
+  }
+  return { dates, values };
+})();
+
+// Credit Indices
+export const creditIndices = {
+  aaa10y: 0.25, // AAA-10Y spread (bp)
+  baa10y: 1.85, // BAA-AAA spread (%)
+};
+
+// Treasury Auction Data
+export const auctionData = [
+  { date: '2025-04-01', term: '4-Week', type: 'Bill', yield: 4.35, bidToCover: 2.45 },
+  { date: '2025-04-01', term: '8-Week', type: 'Bill', yield: 4.30, bidToCover: 2.38 },
+  { date: '2025-04-01', term: '13-Week', type: 'Bill', yield: 4.25, bidToCover: 2.52 },
+  { date: '2025-04-01', term: '26-Week', type: 'Bill', yield: 4.15, bidToCover: 2.41 },
+  { date: '2025-04-01', term: '52-Week', type: 'Bill', yield: 4.00, bidToCover: 2.33 },
+  { date: '2025-03-25', term: '4-Week', type: 'Bill', yield: 4.38, bidToCover: 2.42 },
+];
+
+// National Debt (Trillions)
+export const nationalDebt = 34.5;

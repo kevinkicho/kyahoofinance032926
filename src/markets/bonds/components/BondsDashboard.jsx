@@ -8,7 +8,11 @@ const TENORS = ['3m', '6m', '1y', '2y', '5y', '10y', '30y'];
 const COUNTRY_COLORS = {
   US: '#60a5fa', DE: '#34d399', JP: '#f472b6',
   GB: '#a78bfa', IT: '#fb923c', FR: '#facc15',
-  CN: '#f87171', AU: '#4ade80',
+  CN: '#f87171', AU: '#4ade80', CA: '#38bdf8',
+  CH: '#a3e635', SE: '#fbbf24', ES: '#fb7185',
+  NL: '#818cf8', BE: '#34d399', AT: '#c084fc',
+  FI: '#2dd4bf', PT: '#f97316', GR: '#ef4444',
+  IE: '#22d3ee', DK: '#84cc16', NO: '#0ea5e9', NZ: '#ec4899',
 };
 
 /**
@@ -22,11 +26,20 @@ export default function BondsDashboard({
   spreadIndicators,
   durationLadderData,
   breakevensData,
-  treasuryRates,
   fredYieldHistory,
+  treasuryRates,
   fedFundsFutures,
   yieldHistory,
   mortgageSpread,
+  // New data props
+  tipsYields,
+  realYieldHistory,
+  macroData,
+  fedBalanceSheetHistory,
+  m2HistoryData,
+  creditIndices,
+  auctionData,
+  nationalDebt,
 }) {
   const { colors } = useTheme();
 
@@ -66,7 +79,7 @@ export default function BondsDashboard({
       animation: false,
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis', formatter: (params) => params.map(p => `${p.seriesName}: ${p.value?.toFixed(2)}%`).join('<br/>') },
-      legend: { data: countries, top: 0, textStyle: { color: colors.textSecondary, fontSize: 11 } },
+      legend: { data: countries, top: 0, textStyle: { color: colors.textSecondary, fontSize: 11 }, type: 'scroll' },
       grid: { top: 40, right: 20, bottom: 30, left: 50 },
       xAxis: { type: 'category', data: TENORS, axisLabel: { color: colors.textMuted, fontSize: 11 }, axisLine: { lineStyle: { color: colors.cardBg } } },
       yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 11, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
@@ -125,6 +138,56 @@ export default function BondsDashboard({
     };
   }, [yieldHistory, colors]);
 
+  // Real Yields (TIPS) chart
+  const realYieldOption = useMemo(() => {
+    if (!realYieldHistory?.dates?.length) return null;
+    const d = realYieldHistory.dates;
+    const step = Math.max(1, Math.floor(d.length / 60));
+    const dates = d.filter((_, i) => i % step === 0 || i === d.length - 1);
+    const subsample = (arr) => arr ? arr.filter((_, i) => i % step === 0 || i === arr.length - 1) : [];
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', formatter: (params) => `<b>${params[0].axisValue}</b><br/>` + params.map(p => `${p.seriesName}: <b>${p.value != null ? p.value.toFixed(2) + '%' : '—'}</b>`).join('<br/>') },
+      legend: { data: ['5Y TIPS', '10Y TIPS'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
+      grid: { top: 24, right: 20, bottom: 24, left: 50 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 10, interval: Math.floor(dates.length / 5) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [
+        { name: '5Y TIPS', type: 'line', data: subsample(realYieldHistory.d5y), symbol: 'none', smooth: true, lineStyle: { color: '#22d3ee', width: 1.5 }, itemStyle: { color: '#22d3ee' } },
+        { name: '10Y TIPS', type: 'line', data: subsample(realYieldHistory.d10y), symbol: 'none', smooth: true, lineStyle: { color: '#a78bfa', width: 1.5 }, itemStyle: { color: '#a78bfa' } },
+      ],
+    };
+  }, [realYieldHistory, colors]);
+
+  // Fed Balance Sheet chart
+  const fedBalanceOption = useMemo(() => {
+    if (!fedBalanceSheetHistory?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', formatter: (p) => `${p[0].axisValue}<br/>Fed Balance: <b>$${p[0].value?.toFixed(1)}T</b>` },
+      grid: { top: 10, right: 20, bottom: 24, left: 50 },
+      xAxis: { type: 'category', data: fedBalanceSheetHistory.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(fedBalanceSheetHistory.dates.length / 5) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '${value}T' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{ type: 'line', data: fedBalanceSheetHistory.values, areaStyle: { color: 'rgba(167,139,250,0.12)' }, lineStyle: { color: '#a78bfa', width: 1.5 }, itemStyle: { color: '#a78bfa' }, symbol: 'none', smooth: true }],
+    };
+  }, [fedBalanceSheetHistory, colors]);
+
+  // M2 chart
+  const m2Option = useMemo(() => {
+    if (!m2HistoryData?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', formatter: (p) => `${p[0].axisValue}<br/>M2: <b>$${p[0].value?.toFixed(1)}T</b>` },
+      grid: { top: 10, right: 20, bottom: 24, left: 50 },
+      xAxis: { type: 'category', data: m2HistoryData.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(m2HistoryData.dates.length / 5) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '${value}T' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{ type: 'line', data: m2HistoryData.values, areaStyle: { color: 'rgba(96,165,250,0.12)' }, lineStyle: { color: '#60a5fa', width: 1.5 }, itemStyle: { color: '#60a5fa' }, symbol: 'none', smooth: true }],
+    };
+  }, [m2HistoryData, colors]);
+
   const countryCount = yieldCurveData ? Object.keys(yieldCurveData).length : 0;
   const us10y = yieldCurveData?.US?.['10y'];
 
@@ -162,6 +225,18 @@ export default function BondsDashboard({
             <span className="bonds-kpi-label">Steepest</span>
             <span className="bonds-kpi-value accent">{steepest?.country || '—'}</span>
           </div>
+          {tipsYields?.['10y'] != null && (
+            <div className="bonds-kpi-pill">
+              <span className="bonds-kpi-label">Real 10Y</span>
+              <span className="bonds-kpi-value" style={{ color: '#22d3ee' }}>{tipsYields['10y'].toFixed(2)}%</span>
+            </div>
+          )}
+          {nationalDebt != null && (
+            <div className="bonds-kpi-pill">
+              <span className="bonds-kpi-label">US Debt</span>
+              <span className="bonds-kpi-value" style={{ color: '#f87171' }}>${nationalDebt.toFixed(1)}T</span>
+            </div>
+          )}
         </div>
 
         {/* Wide-Narrow: Chart + US Tenor Bars */}
@@ -188,14 +263,14 @@ export default function BondsDashboard({
         {/* History Charts - Stacked */}
         {historyOption && (
           <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
-            <div className="bonds-chart-title">US 10Y Yield — 1yr History (FRED DGS10)</div>
+            <div className="bonds-chart-title">US 10Y Yield — 1Y History (FRED DGS10)</div>
             <SafeECharts option={historyOption} style={{ height: 120, width: '100%' }} />
           </div>
         )}
 
         {multiTenorOption && (
           <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
-            <div className="bonds-chart-title">2Y / 10Y / 30Y Yield — 252-day History</div>
+            <div className="bonds-chart-title">2Y / 10Y / 30Y Yield — 252-Day History</div>
             <SafeECharts option={multiTenorOption} style={{ height: 140, width: '100%' }} />
           </div>
         )}
@@ -207,8 +282,118 @@ export default function BondsDashboard({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* OTHER PANELS - 2-column grid */}
+      {/* MACRO & REAL YIELDS SECTION */}
       {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className="bonds-section-title">Macro & Real Yields</div>
+      <div className="bonds-chart-grid">
+        {/* Real Yields (TIPS) */}
+        {realYieldOption && (
+          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="bonds-panel-title">Real Yields (TIPS)</div>
+            <div className="bonds-kpi-row">
+              {tipsYields?.['5y'] != null && (
+                <div className="bonds-mini-kpi">
+                  <span className="bonds-mini-label">5Y Real</span>
+                  <span className="bonds-mini-val" style={{ color: '#22d3ee' }}>{tipsYields['5y'].toFixed(2)}%</span>
+                </div>
+              )}
+              {tipsYields?.['10y'] != null && (
+                <div className="bonds-mini-kpi">
+                  <span className="bonds-mini-label">10Y Real</span>
+                  <span className="bonds-mini-val" style={{ color: '#a78bfa' }}>{tipsYields['10y'].toFixed(2)}%</span>
+                </div>
+              )}
+              {tipsYields?.['30y'] != null && (
+                <div className="bonds-mini-kpi">
+                  <span className="bonds-mini-label">30Y Real</span>
+                  <span className="bonds-mini-val">{tipsYields['30y'].toFixed(2)}%</span>
+                </div>
+              )}
+            </div>
+            <div className="bonds-chart-wrap" style={{ minHeight: 140 }}>
+              <SafeECharts option={realYieldOption} style={{ height: '100%', width: '100%' }} />
+            </div>
+          </div>
+        )}
+
+        {/* Fed Balance Sheet */}
+        {fedBalanceOption && (
+          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="bonds-panel-title">Fed Balance Sheet (QE/QT)</div>
+            <div className="bonds-kpi-row">
+              <div className="bonds-mini-kpi">
+                <span className="bonds-mini-label">Current</span>
+                <span className="bonds-mini-val" style={{ color: '#a78bfa' }}>${macroData?.fedBalanceSheet?.toFixed(1)}T</span>
+              </div>
+              <div className="bonds-mini-kpi">
+                <span className="bonds-mini-label">M2</span>
+                <span className="bonds-mini-val">${macroData?.m2?.toFixed(1)}T</span>
+              </div>
+            </div>
+            <div className="bonds-chart-wrap" style={{ minHeight: 140 }}>
+              <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} />
+            </div>
+          </div>
+        )}
+
+        {/* M2 Money Supply */}
+        {m2Option && (
+          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="bonds-panel-title">M2 Money Supply</div>
+            <div className="bonds-chart-wrap" style={{ minHeight: 140 }}>
+              <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} />
+            </div>
+          </div>
+        )}
+
+        {/* Macro Indicators */}
+        <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+          <div className="bonds-panel-title">Macro Indicators</div>
+          <div className="bonds-mini-table">
+            {macroData?.unemployment != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">Unemployment</span>
+                <span className="bonds-mini-value">{macroData.unemployment.toFixed(1)}%</span>
+              </div>
+            )}
+            {macroData?.gdp != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">GDP Growth</span>
+                <span className="bonds-mini-value" style={{ color: macroData.gdp > 0 ? '#4ade80' : '#f87171' }}>{macroData.gdp.toFixed(1)}%</span>
+              </div>
+            )}
+            {macroData?.pce != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">PCE Inflation</span>
+                <span className="bonds-mini-value" style={{ color: macroData.pce > 2 ? '#fbbf24' : '#4ade80' }}>{macroData.pce.toFixed(1)}%</span>
+              </div>
+            )}
+            {macroData?.laborParticipation != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">Labor Participation</span>
+                <span className="bonds-mini-value">{macroData.laborParticipation.toFixed(1)}%</span>
+              </div>
+            )}
+            {nationalDebt != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">National Debt</span>
+                <span className="bonds-mini-value" style={{ color: '#f87171' }}>${nationalDebt.toFixed(1)}T</span>
+              </div>
+            )}
+            {macroData?.surplusDeficit != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">FY Deficit</span>
+                <span className="bonds-mini-value" style={{ color: '#f87171' }}>${Math.abs(macroData.surplusDeficit).toFixed(1)}T</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* CREDIT & SPREADS SECTION */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <div className="bonds-section-title">Credit & Spreads</div>
       <div className="bonds-chart-grid">
         {/* Credit Spreads */}
         <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
@@ -246,6 +431,18 @@ export default function BondsDashboard({
                 </span>
               </div>
             )}
+            {creditIndices?.aaa10y != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">AAA-10Y</span>
+                <span className="bonds-mini-value">{creditIndices.aaa10y.toFixed(2)}%</span>
+              </div>
+            )}
+            {creditIndices?.baa10y != null && (
+              <div className="bonds-mini-row">
+                <span className="bonds-mini-name">BAA-AAA</span>
+                <span className="bonds-mini-value">{creditIndices.baa10y.toFixed(2)}%</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -271,16 +468,22 @@ export default function BondsDashboard({
               <>
                 <div className="bonds-mini-row">
                   <span className="bonds-mini-name">5-Year</span>
-                  <span className="bonds-mini-value">{breakevensData.fiveYear?.toFixed(2)}%</span>
+                  <span className="bonds-mini-value">{breakevensData.current?.be5y?.toFixed(2)}%</span>
                 </div>
                 <div className="bonds-mini-row">
                   <span className="bonds-mini-name">10-Year</span>
-                  <span className="bonds-mini-value">{breakevensData.tenYear?.toFixed(2)}%</span>
+                  <span className="bonds-mini-value">{breakevensData.current?.be10y?.toFixed(2)}%</span>
                 </div>
                 <div className="bonds-mini-row">
                   <span className="bonds-mini-name">5Y5Y Forward</span>
-                  <span className="bonds-mini-value">{breakevensData.fiveYear5Year?.toFixed(2)}%</span>
+                  <span className="bonds-mini-value">{breakevensData.current?.forward5y5y?.toFixed(2)}%</span>
                 </div>
+                {breakevensData.current?.real5y != null && (
+                  <div className="bonds-mini-row">
+                    <span className="bonds-mini-name">Real 5Y</span>
+                    <span className="bonds-mini-value" style={{ color: '#22d3ee' }}>{breakevensData.current.real5y.toFixed(2)}%</span>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -302,43 +505,37 @@ export default function BondsDashboard({
             </div>
           </div>
         )}
-
-        {/* Mortgage Spread */}
-        {mortgageSpread && (
-          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="bonds-panel-title">Mortgage Rates</div>
-            <div className="bonds-mini-table">
-              <div className="bonds-mini-row">
-                <span className="bonds-mini-name">30Y Fixed</span>
-                <span className="bonds-mini-value">{mortgageSpread.rate30Y?.toFixed(2)}%</span>
-              </div>
-              <div className="bonds-mini-row">
-                <span className="bonds-mini-name">15Y Fixed</span>
-                <span className="bonds-mini-value">{mortgageSpread.rate15Y?.toFixed(2)}%</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Fed Funds */}
-        {treasuryRates?.fedFunds != null && (
-          <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-            <div className="bonds-panel-title">Policy Rate</div>
-            <div className="bonds-mini-table">
-              <div className="bonds-mini-row">
-                <span className="bonds-mini-name">Fed Funds</span>
-                <span className="bonds-mini-value">{treasuryRates.fedFunds.toFixed(2)}%</span>
-              </div>
-              {treasuryRates.discountWindow && (
-                <div className="bonds-mini-row">
-                  <span className="bonds-mini-name">Discount</span>
-                  <span className="bonds-mini-value">{treasuryRates.discountWindow.toFixed(2)}%</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* TREASURY AUCTIONS SECTION */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {auctionData && auctionData.length > 0 && (
+        <>
+          <div className="bonds-section-title">Treasury Auctions</div>
+          <div className="bonds-chart-grid">
+            <div className="bonds-panel-card bonds-full-width" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">Recent Auction Results</div>
+              <div className="bonds-auction-table">
+                <div className="bonds-auction-header">
+                  <span>Date</span>
+                  <span>Term</span>
+                  <span>Yield</span>
+                  <span>Bid/Cover</span>
+                </div>
+                {auctionData.slice(0, 6).map((a, i) => (
+                  <div key={i} className="bonds-auction-row">
+                    <span>{a.date}</span>
+                    <span>{a.term}</span>
+                    <span className="bonds-auction-yield">{a.yield?.toFixed(2)}%</span>
+                    <span className="bonds-auction-btc">{a.bidToCover?.toFixed(2)}x</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
