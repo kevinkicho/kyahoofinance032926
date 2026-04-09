@@ -30,17 +30,75 @@ export default function BondsDashboard({
 }) {
   const { colors } = useTheme();
 
+  // Find steepest curve (country with largest 30Y-3M spread)
+  const steepest = useMemo(() => {
+    if (!yieldCurveData) return null;
+    let best = null;
+    let bestSpread = -Infinity;
+    for (const [cc, curve] of Object.entries(yieldCurveData)) {
+      const s30 = curve?.['30y'];
+      const s3m = curve?.['3m'];
+      if (s30 != null && s3m != null) {
+        const spread = s30 - s3m;
+        if (spread > bestSpread) { bestSpread = spread; best = cc; }
+      }
+    }
+    return best ? { country: best, spread: bestSpread } : null;
+  }, [yieldCurveData]);
+
+  // US yield curve bar data
+  const usYieldBars = useMemo(() => {
+    if (!yieldCurveData?.US) return null;
+    const us = yieldCurveData.US;
+    const maxVal = Math.max(...TENORS.map(t => us[t] ?? 0), 0.01);
+    return TENORS.map(t => ({
+      tenor: t,
+      value: us[t],
+      pct: us[t] != null ? (us[t] / maxVal) * 100 : 0,
+    }));
+  }, [yieldCurveData]);
+
   // KPI calculations
   const kpis = useMemo(() => {
     const result = [];
+    // US 10Y
+    const us10y = yieldCurveData?.US?.['10y'];
+    if (us10y != null) {
+      result.push({
+        label: 'US 10Y',
+        value: us10y.toFixed(2),
+        unit: '%',
+        color: '#a78bfa',
+      });
+    }
     // 10Y-2Y Spread
     if (spreadIndicators?.t10y2y != null) {
       result.push({
-        label: '10Y-2Y Spread',
-        value: spreadIndicators.t10y2y.toFixed(2),
+        label: '10Y-2Y',
+        value: (spreadIndicators.t10y2y >= 0 ? '+' : '') + spreadIndicators.t10y2y.toFixed(2),
         unit: '%',
         color: spreadIndicators.t10y2y < 0 ? '#f87171' : '#4ade80',
         status: spreadIndicators.t10y2y < 0 ? 'Inverted' : 'Normal',
+      });
+    }
+    // 10Y-3M Spread
+    if (spreadIndicators?.t10y3m != null) {
+      result.push({
+        label: '10Y-3M',
+        value: (spreadIndicators.t10y3m >= 0 ? '+' : '') + spreadIndicators.t10y3m.toFixed(2),
+        unit: '%',
+        color: spreadIndicators.t10y3m < 0 ? '#f87171' : '#4ade80',
+        status: spreadIndicators.t10y3m < 0 ? 'Inverted' : 'Normal',
+      });
+    }
+    // Steepest Curve
+    if (steepest) {
+      result.push({
+        label: 'Steepest',
+        value: steepest.country,
+        unit: '',
+        color: '#60a5fa',
+        status: `${steepest.spread.toFixed(2)}%`,
       });
     }
     // Fed Funds Rate
@@ -52,26 +110,17 @@ export default function BondsDashboard({
         color: treasuryRates.fedFunds < 3 ? '#4ade80' : '#fbbf24',
       });
     }
-    // 10Y Treasury
-    if (treasuryRates?.tenYear != null) {
-      result.push({
-        label: '10Y Treasury',
-        value: treasuryRates.tenYear.toFixed(2),
-        unit: '%',
-        color: '#a78bfa',
-      });
-    }
-    // Credit Spread (IG)
+    // IG Spread
     const igSpread = spreadData?.IG?.length ? spreadData.IG[spreadData.IG.length - 1] : null;
     if (igSpread != null) {
       result.push({
-        label: 'IG Spread',
+        label: 'IG OAS',
         value: igSpread.toFixed(0),
         unit: 'bp',
         color: igSpread > 150 ? '#f87171' : '#4ade80',
       });
     }
-    // Breakeven Inflation
+    // 5Y Breakeven
     if (breakevensData?.fiveYear != null) {
       result.push({
         label: '5Y Breakeven',
@@ -81,7 +130,7 @@ export default function BondsDashboard({
       });
     }
     return result;
-  }, [spreadIndicators, treasuryRates, spreadData, breakevensData]);
+  }, [spreadIndicators, treasuryRates, spreadData, breakevensData, yieldCurveData, steepest]);
 
   // Yield Curve chart - multi-country
   const yieldCurveOption = useMemo(() => {
@@ -170,12 +219,29 @@ export default function BondsDashboard({
 
       {/* Chart Grid - 2 columns */}
       <div className="bonds-chart-grid">
-        {/* Yield Curve - Multi-country */}
+        {/* Yield Curve + US Tenor Bars */}
         {yieldCurveOption && (
           <div className="bonds-panel-card" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
             <div className="bonds-panel-title">Yield Curve ({countryCount} Countries)</div>
-            <div className="bonds-chart-wrap" style={{ minHeight: 200 }}>
-              <SafeECharts option={yieldCurveOption} style={{ height: '100%', width: '100%' }} />
+            <div className="bonds-yield-split">
+              <div className="bonds-chart-wrap" style={{ minHeight: 200, flex: '2 1 65%' }}>
+                <SafeECharts option={yieldCurveOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+              {/* US Yield by Tenor Bar Chart */}
+              {usYieldBars && (
+                <div className="bonds-tenor-bars" style={{ flex: '1 1 35%', paddingLeft: 12 }}>
+                  <div className="bonds-bar-title">US Yield by Tenor</div>
+                  {usYieldBars.map(({ tenor, value, pct }) => (
+                    <div key={tenor} className="bonds-bar-row">
+                      <span className="bonds-bar-label">{tenor}</span>
+                      <div className="bonds-bar-track">
+                        <div className="bonds-bar-fill" style={{ width: `${pct}%`, background: '#10b981' }} />
+                      </div>
+                      <span className="bonds-bar-val">{value != null ? `${value.toFixed(2)}%` : '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
