@@ -61,7 +61,7 @@ function groupTooltip(d, currentRate, currentSymbol, currency, metricKey, themeC
   return body;
 }
 
-// ─── Main component ───────────────────────────��───────────────────────────────
+// Main component
 const HeatmapView = ({
   data,
   currentRate, currentSymbol, currency,
@@ -71,6 +71,19 @@ const HeatmapView = ({
 }) => {
   const { colors } = useTheme();
   const chartRef = useRef(null);
+  const mountedRef = useRef(false);
+  const instRef = useRef(null);
+  const zrRef = useRef(null);
+
+  // Track mounted state
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      instRef.current = null;
+      zrRef.current = null;
+    };
+  }, []);
 
   const chartData = useMemo(() => {
     const norm = (node) => node.children
@@ -139,18 +152,24 @@ const HeatmapView = ({
   // Cell click → select ticker
   useEffect(() => {
     const inst = chartRef.current?.getEchartsInstance?.();
-    if (!inst) return;
+    if (!inst || !mountedRef.current) return;
 
+    // Store instance references for cleanup
+    instRef.current = inst;
     const zr = inst.getZr();
+    zrRef.current = zr;
+
     const handleBgClick = (e) => {
+      if (!mountedRef.current) return;
       if (!e.target) {
-        inst.dispatchAction({ type: 'restore' });
+        if (instRef.current && !instRef.current.isDisposed?.()) {
+          instRef.current.dispatchAction({ type: 'restore' });
+        }
       }
     };
-    zr.on('click', handleBgClick);
 
-    // Handle cell click for ticker selection
     const handleCellClick = (params) => {
+      if (!mountedRef.current) return;
       if (params.data && !params.data.children && onSelect) {
         // This is a leaf node (individual stock)
         // Normalize the data to match expected tickerInfo structure
@@ -169,11 +188,23 @@ const HeatmapView = ({
         });
       }
     };
+
+    zr.on('click', handleBgClick);
     inst.on('click', handleCellClick);
 
+    // Cleanup: only remove listeners if still mounted and instance not disposed
     return () => {
-      zr.off('click', handleBgClick);
-      inst.off('click', handleCellClick);
+      // Skip cleanup if unmounted - ECharts will clean up when instance is disposed
+      if (!mountedRef.current) return;
+
+      try {
+        if (zr && inst && !inst.isDisposed?.()) {
+          zr.off('click', handleBgClick);
+          inst.off('click', handleCellClick);
+        }
+      } catch {
+        // Instance already disposed, ignore
+      }
     };
   }, [onSelect]);
 
