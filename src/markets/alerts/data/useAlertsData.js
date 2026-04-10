@@ -1,6 +1,7 @@
 // src/markets/alerts/data/useAlertsData.js
 import { useState, useEffect } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 
 const SERVER = '';
 
@@ -124,10 +125,9 @@ const ENDPOINTS = [
 
 export function useAlertsData() {
   const [alerts, setAlerts]       = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLive, setIsLive]       = useState(false);
-  const [fetchedOn, setFetchedOn] = useState(null);
-  const [isCurrent, setIsCurrent] = useState(false);
+
+  // Status with error handling
+  const { isLoading, error, fetchedOn, handleFinally, setFetchedOn } = useDataStatus();
 
   useEffect(() => {
     const promises = ENDPOINTS.map(ep =>
@@ -141,7 +141,6 @@ export function useAlertsData() {
       const combined = {};
       let anyLive = false;
       let latestFetchedOn = null;
-      let allCurrent = true;
 
       for (const result of results) {
         const val = result.status === 'fulfilled' ? result.value : { key: null, data: null, ok: false };
@@ -151,7 +150,6 @@ export function useAlertsData() {
           if (val.data.fetchedOn) {
             if (!latestFetchedOn || val.data.fetchedOn > latestFetchedOn) latestFetchedOn = val.data.fetchedOn;
           }
-          if (!val.data.isCurrent) allCurrent = false;
         }
       }
 
@@ -179,12 +177,10 @@ export function useAlertsData() {
       triggered.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
 
       setAlerts(triggered);
-      setIsLive(anyLive);
-      setFetchedOn(latestFetchedOn);
-      setIsCurrent(anyLive && allCurrent);
-      setIsLoading(false);
+      if (latestFetchedOn) setFetchedOn(latestFetchedOn);
+      handleFinally();
     });
-  }, []);
+  }, [handleFinally, setFetchedOn]);
 
-  return { alerts, rules: ALERT_RULES, isLoading, isLive, fetchedOn, isCurrent };
+  return { alerts, rules: ALERT_RULES, isLoading, error, fetchedOn };
 }

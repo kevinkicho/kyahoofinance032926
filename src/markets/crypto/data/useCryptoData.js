@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   coinMarketData as mockCoinMarketData,
   fearGreedData  as mockFearGreedData,
@@ -22,11 +23,9 @@ export function useCryptoData(autoRefresh = false) {
   const [btcDominance,    setBtcDominance]    = useState(null);
   const [topExchanges,    setTopExchanges]    = useState([]);
   const [ethGas,          setEthGas]          = useState(null);
-  const [isLive,          setIsLive]          = useState(false);
-  const [lastUpdated,     setLastUpdated]     = useState('Mock data — 2026');
-  const [isLoading,       setIsLoading]       = useState(true);
-  const [fetchedOn,       setFetchedOn]       = useState(null);
-  const [isCurrent,       setIsCurrent]       = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/crypto`)
@@ -42,18 +41,15 @@ export function useCryptoData(autoRefresh = false) {
         if (data.btcDominance != null)                       { setBtcDominance(data.btcDominance);      anyReplaced = true; }
         if (Array.isArray(data.topExchanges) && data.topExchanges.length > 0) { setTopExchanges(data.topExchanges); anyReplaced = true; }
         if (data.ethGas?.average != null)                    { setEthGas(data.ethGas);                  anyReplaced = true; }
-        setIsLive(anyReplaced);
-        if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (anyReplaced) handleSuccess(data);
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Crypto'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
 }

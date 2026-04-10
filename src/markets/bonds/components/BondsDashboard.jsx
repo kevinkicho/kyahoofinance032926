@@ -1,5 +1,5 @@
 // src/markets/bonds/components/BondsDashboard.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './BondsDashboard.css';
@@ -18,12 +18,11 @@ const COUNTRY_COLORS = {
 /**
  * BondsDashboard - Command Center Layout
  * Left sidebar: Key metrics at a glance
- * Main content: Tabbed panels with charts
+ * Main content: All charts visible in grid layout
  */
-export default function BondsDashboard({
+function BondsDashboard({
   yieldCurveData,
   creditRatingsData,
-  spreadData,
   spreadIndicators,
   durationLadderData,
   breakevensData,
@@ -37,12 +36,13 @@ export default function BondsDashboard({
   macroData,
   fedBalanceSheetHistory,
   m2HistoryData,
-  creditIndices,
   auctionData,
   nationalDebt,
+  spreadHistory,
+  cpiComponents,
+  debtToGdpHistory,
 }) {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('yields');
 
   // Find steepest curve
   const steepest = useMemo(() => {
@@ -189,15 +189,66 @@ export default function BondsDashboard({
     };
   }, [m2HistoryData, colors]);
 
+  // Spread History chart (2s10s, 10s3s, 5s30s)
+  const spreadHistoryOption = useMemo(() => {
+    if (!spreadHistory?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['2s10s', '10s3s', '5s30s'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 20, right: 16, bottom: 20, left: 44 },
+      xAxis: { type: 'category', data: spreadHistory.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(spreadHistory.dates.length / 4) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [
+        { name: '2s10s', type: 'line', data: spreadHistory.t10y2y, symbol: 'none', smooth: true, lineStyle: { color: '#60a5fa', width: 1.5 } },
+        { name: '10s3s', type: 'line', data: spreadHistory.t10y3m, symbol: 'none', smooth: true, lineStyle: { color: '#f59e0b', width: 1.5 } },
+        { name: '5s30s', type: 'line', data: spreadHistory.t5y30y, symbol: 'none', smooth: true, lineStyle: { color: '#10b981', width: 1.5 } },
+      ],
+    };
+  }, [spreadHistory, colors]);
+
+  // CPI Components chart
+  const cpiOption = useMemo(() => {
+    if (!cpiComponents?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['All', 'Core', 'Food', 'Energy'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 20, right: 16, bottom: 20, left: 44 },
+      xAxis: { type: 'category', data: cpiComponents.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(cpiComponents.dates.length / 4) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [
+        { name: 'All', type: 'line', data: cpiComponents.all, symbol: 'none', smooth: true, lineStyle: { color: '#60a5fa', width: 1.5 } },
+        { name: 'Core', type: 'line', data: cpiComponents.core, symbol: 'none', smooth: true, lineStyle: { color: '#a78bfa', width: 1.5 } },
+        { name: 'Food', type: 'line', data: cpiComponents.food, symbol: 'none', smooth: true, lineStyle: { color: '#22c55e', width: 1.5 } },
+        { name: 'Energy', type: 'line', data: cpiComponents.energy, symbol: 'none', smooth: true, lineStyle: { color: '#f59e0b', width: 1.5 } },
+      ],
+    };
+  }, [cpiComponents, colors]);
+
+  // Debt-to-GDP chart
+  const debtToGdpOption = useMemo(() => {
+    if (!debtToGdpHistory?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      grid: { top: 8, right: 16, bottom: 20, left: 44 },
+      xAxis: { type: 'category', data: debtToGdpHistory.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(debtToGdpHistory.dates.length / 4) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{ type: 'line', data: debtToGdpHistory.values, areaStyle: { color: 'rgba(239,68,68,0.1)' }, lineStyle: { color: '#ef4444', width: 1.5 }, symbol: 'none', smooth: true }],
+    };
+  }, [debtToGdpHistory, colors]);
+
   const countryCount = yieldCurveData ? Object.keys(yieldCurveData).length : 0;
   const us10y = yieldCurveData?.US?.['10y'];
 
   return (
-    <div className="bonds-dashboard">
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* LEFT SIDEBAR - Key Metrics */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="bonds-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+    <div className="bonds-dashboard" role="region" aria-label="Bonds Market Dashboard">
+      {/* Left Sidebar */}
+      <div className="bonds-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="Key Metrics">
         {/* Yield Metrics */}
         <div className="bonds-sidebar-section">
           <div className="bonds-sidebar-title">Yields</div>
@@ -254,35 +305,6 @@ export default function BondsDashboard({
           </div>
         )}
 
-        {/* Spreads */}
-        <div className="bonds-sidebar-section">
-          <div className="bonds-sidebar-title">Spreads</div>
-          <div className="bonds-metric-card">
-            {spreadData?.IG && (
-              <div className="bonds-metric-row">
-                <span className="bonds-metric-name">IG OAS</span>
-                <span className="bonds-metric-num" style={{ color: spreadData.IG[spreadData.IG.length - 1] > 150 ? '#f87171' : '#4ade80' }}>
-                  {spreadData.IG[spreadData.IG.length - 1]?.toFixed(0)}bp
-                </span>
-              </div>
-            )}
-            {spreadData?.HY && (
-              <div className="bonds-metric-row">
-                <span className="bonds-metric-name">HY OAS</span>
-                <span className="bonds-metric-num" style={{ color: spreadData.HY[spreadData.HY.length - 1] > 400 ? '#f87171' : spreadData.HY[spreadData.HY.length - 1] > 250 ? '#fbbf24' : '#4ade80' }}>
-                  {spreadData.HY[spreadData.HY.length - 1]?.toFixed(0)}bp
-                </span>
-              </div>
-            )}
-            {creditIndices?.aaa10y != null && (
-              <div className="bonds-metric-row">
-                <span className="bonds-metric-name">AAA-10Y</span>
-                <span className="bonds-metric-num">{creditIndices.aaa10y.toFixed(2)}%</span>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Macro */}
         {macroData && (
           <div className="bonds-sidebar-section">
@@ -312,229 +334,204 @@ export default function BondsDashboard({
                   <span className="bonds-metric-num" style={{ color: '#f87171' }}>${nationalDebt.toFixed(1)}T</span>
                 </div>
               )}
+              {debtToGdpHistory?.latest != null && (
+                <div className="bonds-metric-row">
+                  <span className="bonds-metric-name">Debt/GDP</span>
+                  <span className="bonds-metric-num" style={{ color: '#f87171' }}>{debtToGdpHistory.latest.toFixed(1)}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* CPI Components */}
+        {cpiComponents?.latest && (
+          <div className="bonds-sidebar-section">
+            <div className="bonds-sidebar-title">CPI YoY</div>
+            <div className="bonds-metric-card">
+              {cpiComponents.latest.allYoy != null && (
+                <div className="bonds-metric-row">
+                  <span className="bonds-metric-name">All Items</span>
+                  <span className="bonds-metric-num" style={{ color: cpiComponents.latest.allYoy > 3 ? '#f87171' : cpiComponents.latest.allYoy > 2 ? '#fbbf24' : '#4ade80' }}>
+                    {cpiComponents.latest.allYoy.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+              {cpiComponents.core?.[cpiComponents.core.length - 1] != null && (
+                <div className="bonds-metric-row">
+                  <span className="bonds-metric-name">Core</span>
+                  <span className="bonds-metric-num" style={{ color: '#a78bfa' }}>
+                    {cpiComponents.core[cpiComponents.core.length - 1].toFixed(1)}%
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* MAIN CONTENT */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="bonds-main">
-        {/* Tab Navigation */}
-        <div className="bonds-tabs">
-          <button className={`bonds-tab ${activeTab === 'yields' ? 'active' : ''}`} onClick={() => setActiveTab('yields')}>Yield Curves</button>
-          <button className={`bonds-tab ${activeTab === 'real' ? 'active' : ''}`} onClick={() => setActiveTab('real')}>Real Yields</button>
-          <button className={`bonds-tab ${activeTab === 'macro' ? 'active' : ''}`} onClick={() => setActiveTab('macro')}>Macro</button>
-          <button className={`bonds-tab ${activeTab === 'credit' ? 'active' : ''}`} onClick={() => setActiveTab('credit')}>Credit</button>
-          <button className={`bonds-tab ${activeTab === 'auctions' ? 'active' : ''}`} onClick={() => setActiveTab('auctions')}>Auctions</button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="bonds-tab-content">
-          {/* YIELDS TAB */}
-          <div className={`bonds-tab-panel ${activeTab === 'yields' ? 'active' : ''}`}>
-            <div className="bonds-content-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
-              {yieldCurveOption && (
-                <div className="bonds-panel" style={{ gridColumn: '1', gridRow: 'span 2', background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-header">
-                    <span className="bonds-panel-title">Yield Curve Comparison</span>
-                    <span className="bonds-panel-subtitle">{countryCount} countries</span>
-                  </div>
-                  <div className="bonds-chart-wrap">
-                    <SafeECharts option={yieldCurveOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-              {/* US Yield Bars */}
-              <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="bonds-panel-title">US Treasury</div>
-                <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
-                  {usYieldBars && usYieldBars.map(({ tenor, value, pct }) => (
-                    <div key={tenor} className="bonds-mini-row" style={{ gap: 6 }}>
-                      <span style={{ width: 24, fontWeight: 600, color: colors.textSecondary }}>{tenor}</span>
-                      <div style={{ flex: 1, height: 8, background: colors.bgDeep, borderRadius: 2, overflow: 'hidden' }}>
-                        <div style={{ width: `${pct}%`, height: '100%', background: '#10b981', borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontFamily: 'SF Mono', fontSize: 10, fontWeight: 600 }}>{value != null ? `${value.toFixed(2)}%` : '—'}</span>
-                    </div>
-                  ))}
-                </div>
+      {/* Main Content - ALL visible at once */}
+      <div className="bonds-main" role="region" aria-label="Bonds Charts">
+        <div className="bonds-content-grid">
+          {/* Yield Curve Comparison */}
+          {yieldCurveOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }} role="figure" aria-label="Yield Curve Comparison">
+              <div className="bonds-panel-header">
+                <span className="bonds-panel-title">Yield Curve Comparison</span>
+                <span className="bonds-panel-subtitle">{countryCount} countries</span>
               </div>
-              {/* History */}
-              {historyOption && (
-                <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-title">10Y History</div>
-                  <div className="bonds-chart-wrap" style={{ minHeight: 80 }}>
-                    <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={yieldCurveOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* 10Y History */}
+          {historyOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">10Y Treasury History</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Multi-Tenor Trend */}
+          {multiTenorOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">2Y/10Y/30Y Trend</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={multiTenorOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* TIPS Real Yields */}
+          {realYieldOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">TIPS Real Yields</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={realYieldOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Curve Spreads */}
+          {spreadHistoryOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">Curve Spreads (2s10s, 10s3s, 5s30s)</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={spreadHistoryOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Fed Balance Sheet */}
+          {fedBalanceOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">Fed Balance Sheet</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* M2 Money Supply */}
+          {m2Option && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">M2 Money Supply</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* CPI Components */}
+          {cpiOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">CPI Components (YoY)</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={cpiOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Debt-to-GDP */}
+          {debtToGdpOption && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">Debt-to-GDP Ratio</div>
+              <div className="bonds-chart-wrap">
+                <SafeECharts option={debtToGdpOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* US Treasury Bars */}
+          <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="bonds-panel-title">US Treasury Yields</div>
+            <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
+              {usYieldBars && usYieldBars.map(({ tenor, value, pct }) => (
+                <div key={tenor} className="bonds-mini-row" style={{ gap: 6 }}>
+                  <span style={{ width: 24, fontWeight: 600, color: colors.textSecondary }}>{tenor}</span>
+                  <div style={{ flex: 1, height: 8, background: colors.bgDeep, borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: '#10b981', borderRadius: 2 }} />
                   </div>
+                  <span style={{ fontFamily: 'SF Mono', fontSize: 10, fontWeight: 600 }}>{value != null ? `${value.toFixed(2)}%` : '—'}</span>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Inflation Breakevens */}
+          <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="bonds-panel-title">Inflation Breakevens</div>
+            <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
+              {breakevensData && (
+                <>
+                  <div className="bonds-mini-row">
+                    <span className="bonds-mini-name">5Y Breakeven</span>
+                    <span className="bonds-mini-value">{breakevensData.current?.be5y?.toFixed(2)}%</span>
+                  </div>
+                  <div className="bonds-mini-row">
+                    <span className="bonds-mini-name">10Y Breakeven</span>
+                    <span className="bonds-mini-value">{breakevensData.current?.be10y?.toFixed(2)}%</span>
+                  </div>
+                  <div className="bonds-mini-row">
+                    <span className="bonds-mini-name">5Y5Y Forward</span>
+                    <span className="bonds-mini-value">{breakevensData.current?.forward5y5y?.toFixed(2)}%</span>
+                  </div>
+                </>
               )}
             </div>
           </div>
 
-          {/* REAL YIELDS TAB */}
-          <div className={`bonds-tab-panel ${activeTab === 'real' ? 'active' : ''}`}>
-            <div className="bonds-content-grid">
-              {realYieldOption && (
-                <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-title">TIPS Real Yields</div>
-                  <div className="bonds-chart-wrap">
-                    <SafeECharts option={realYieldOption} style={{ height: '100%', width: '100%' }} />
+          {/* Treasury Auctions */}
+          {auctionData && auctionData.length > 0 && (
+            <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="bonds-panel-title">Recent Auctions</div>
+              <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
+                {auctionData.slice(0, 6).map((a, i) => (
+                  <div key={i} className="bonds-mini-row">
+                    <span className="bonds-mini-name">{a.term}</span>
+                    <span className="bonds-mini-value">{a.yield?.toFixed(2)}%</span>
+                    <span style={{ color: colors.textMuted, fontSize: 9, marginLeft: 4 }}>{a.bidToCover?.toFixed(2)}x</span>
                   </div>
-                </div>
-              )}
-              {multiTenorOption && (
-                <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-title">2Y/10Y/30Y Trend</div>
-                  <div className="bonds-chart-wrap">
-                    <SafeECharts option={multiTenorOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-              {/* Breakevens */}
-              <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="bonds-panel-title">Inflation Breakevens</div>
-                <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
-                  {breakevensData && (
-                    <>
-                      <div className="bonds-mini-row">
-                        <span className="bonds-mini-name">5Y Breakeven</span>
-                        <span className="bonds-mini-value">{breakevensData.current?.be5y?.toFixed(2)}%</span>
-                      </div>
-                      <div className="bonds-mini-row">
-                        <span className="bonds-mini-name">10Y Breakeven</span>
-                        <span className="bonds-mini-value">{breakevensData.current?.be10y?.toFixed(2)}%</span>
-                      </div>
-                      <div className="bonds-mini-row">
-                        <span className="bonds-mini-name">5Y5Y Forward</span>
-                        <span className="bonds-mini-value">{breakevensData.current?.forward5y5y?.toFixed(2)}%</span>
-                      </div>
-                    </>
-                  )}
-                </div>
+                ))}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* MACRO TAB */}
-          <div className={`bonds-tab-panel ${activeTab === 'macro' ? 'active' : ''}`}>
-            <div className="bonds-content-grid">
-              {fedBalanceOption && (
-                <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-header">
-                    <span className="bonds-panel-title">Fed Balance Sheet</span>
-                    <span className="bonds-panel-subtitle">QE/QT</span>
-                  </div>
-                  <div className="bonds-chart-wrap">
-                    <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
+          {/* Duration Ladder */}
+          <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="bonds-panel-title">Treasury Duration</div>
+            <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
+              {durationLadderData?.slice(0, 6).map((d, i) => (
+                <div key={i} className="bonds-mini-row">
+                  <span className="bonds-mini-name">{d.bucket}</span>
+                  <span className="bonds-mini-value">${(d.amount / 1000).toFixed(0)}B</span>
+                  <span style={{ color: colors.textMuted, fontSize: 9, marginLeft: 4 }}>{d.pct?.toFixed(1)}%</span>
                 </div>
-              )}
-              {m2Option && (
-                <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-title">M2 Money Supply</div>
-                  <div className="bonds-chart-wrap">
-                    <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-              {/* Duration Ladder */}
-              <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="bonds-panel-title">Treasury Duration</div>
-                <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
-                  {durationLadderData?.slice(0, 6).map((d, i) => (
-                    <div key={i} className="bonds-mini-row">
-                      <span className="bonds-mini-name">{d.bucket}</span>
-                      <span className="bonds-mini-value">${(d.amount / 1000).toFixed(0)}B</span>
-                      <span style={{ color: colors.textMuted, fontSize: 9, marginLeft: 4 }}>{d.pct?.toFixed(1)}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* CREDIT TAB */}
-          <div className={`bonds-tab-panel ${activeTab === 'credit' ? 'active' : ''}`}>
-            <div className="bonds-content-grid">
-              {/* Credit Spreads */}
-              <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="bonds-panel-title">Credit Spreads</div>
-                <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
-                  {spreadData?.IG && (
-                    <div className="bonds-mini-row">
-                      <span className="bonds-mini-name">IG OAS</span>
-                      <span className="bonds-mini-value" style={{ color: spreadData.IG[spreadData.IG.length - 1] > 150 ? '#f87171' : '#4ade80' }}>
-                        {spreadData.IG[spreadData.IG.length - 1]?.toFixed(0)}bp
-                      </span>
-                    </div>
-                  )}
-                  {spreadData?.HY && (
-                    <div className="bonds-mini-row">
-                      <span className="bonds-mini-name">HY OAS</span>
-                      <span className="bonds-mini-value" style={{ color: spreadData.HY[spreadData.HY.length - 1] > 400 ? '#f87171' : '#fbbf24' }}>
-                        {spreadData.HY[spreadData.HY.length - 1]?.toFixed(0)}bp
-                      </span>
-                    </div>
-                  )}
-                  {spreadData?.EM && (
-                    <div className="bonds-mini-row">
-                      <span className="bonds-mini-name">EM Spread</span>
-                      <span className="bonds-mini-value" style={{ color: '#fbbf24' }}>{spreadData.EM[spreadData.EM.length - 1]?.toFixed(0)}bp</span>
-                    </div>
-                  )}
-                  {creditIndices?.baa10y != null && (
-                    <div className="bonds-mini-row">
-                      <span className="bonds-mini-name">BAA-AAA</span>
-                      <span className="bonds-mini-value">{creditIndices.baa10y.toFixed(2)}%</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {/* Credit Ratings */}
-              {creditRatingsData?.length > 0 && (
-                <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-title">Credit Quality</div>
-                  <div className="bonds-mini-table" style={{ paddingTop: 8 }}>
-                    {creditRatingsData.slice(0, 5).map((c, i) => (
-                      <div key={i} className="bonds-mini-row">
-                        <span className="bonds-mini-name">{c.rating}</span>
-                        <span className="bonds-mini-value" style={{ color: c.rating?.startsWith('A') ? '#4ade80' : c.rating?.startsWith('B') ? '#fbbf24' : '#f87171' }}>
-                          {c.yield?.toFixed(2)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* AUCTIONS TAB */}
-          <div className={`bonds-tab-panel ${activeTab === 'auctions' ? 'active' : ''}`}>
-            <div className="bonds-content-grid single">
-              {auctionData && auctionData.length > 0 && (
-                <div className="bonds-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="bonds-panel-title">Recent Treasury Auctions</div>
-                  <div className="bonds-auction-table">
-                    <div className="bonds-auction-header">
-                      <span>Date</span>
-                      <span>Term</span>
-                      <span>Yield</span>
-                      <span>Bid/Cover</span>
-                    </div>
-                    {auctionData.slice(0, 8).map((a, i) => (
-                      <div key={i} className="bonds-auction-row">
-                        <span>{a.date}</span>
-                        <span>{a.term}</span>
-                        <span className="bonds-auction-yield">{a.yield?.toFixed(2)}%</span>
-                        <span className="bonds-auction-btc">{a.bidToCover?.toFixed(2)}x</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
@@ -542,3 +539,5 @@ export default function BondsDashboard({
     </div>
   );
 }
+
+export default React.memo(BondsDashboard);

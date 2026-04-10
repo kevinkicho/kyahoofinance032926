@@ -19,9 +19,9 @@ function AlertsDashboard({ alerts, rules, isLive, fetchedOn, isCurrent }) {
   }, {});
 
   return (
-    <div className="alerts-dashboard">
+    <div className="alerts-dashboard" role="region" aria-label="Alerts Dashboard">
       {/* Left Sidebar: Alert Rules */}
-      <aside className="alerts-sidebar">
+      <aside className="alerts-sidebar" role="region" aria-label="Alert Rules">
         <div className="alerts-sidebar-header">
           <span className="alerts-sidebar-title">Alert Rules</span>
           <span className="alerts-sidebar-count">{rules.length} rules</span>

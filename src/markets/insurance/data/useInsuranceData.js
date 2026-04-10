@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   catBondSpreads as mockCatBondSpreads,
   combinedRatioData as mockCombinedRatioData,
   reserveAdequacyData as mockReserveAdequacyData,
   reinsurancePricing,
   fredHyOasHistory as mockFredHyOasHistory,
+  catLosses as mockCatLosses,
+  combinedRatioHistory as mockCombinedRatioHistory,
 } from './mockInsuranceData';
 
 const SERVER = '';
@@ -26,15 +29,15 @@ export function useInsuranceData(autoRefresh = false) {
   const [hyOAS, setHyOAS]                           = useState(null);
   const [igOAS, setIgOAS]                           = useState(null);
   const [fredHyOasHistory, setFredHyOasHistory]     = useState(mockFredHyOasHistory);
-  const [isLive, setIsLive]                         = useState(false);
-  const [lastUpdated, setLastUpdated]               = useState('Mock data — Apr 2025');
-  const [isLoading, setIsLoading]                   = useState(true);
-  const [fetchedOn, setFetchedOn]                   = useState(null);
-  const [isCurrent, setIsCurrent]                   = useState(false);
   const [sectorETF, setSectorETF]                   = useState(null);
   const [catBondProxy, setCatBondProxy]             = useState(null);
   const [industryAvgCombinedRatio, setIndustryAvgCombinedRatio] = useState(null);
   const [treasury10y, setTreasury10y]               = useState(null);
+  const [catLosses, setCatLosses]                   = useState(mockCatLosses);
+  const [combinedRatioHistory, setCombinedRatioHistory] = useState(mockCombinedRatioHistory);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/insurance`)
@@ -51,14 +54,13 @@ export function useInsuranceData(autoRefresh = false) {
         if (data.catBondProxy)                        setCatBondProxy(data.catBondProxy);
         if (data.industryAvgCombinedRatio != null)    setIndustryAvgCombinedRatio(data.industryAvgCombinedRatio);
         if (data.treasury10y != null)                 setTreasury10y(data.treasury10y);
-        setIsLive(true);
-        setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (data.catLosses?.values?.length >= 12)    setCatLosses(data.catLosses);
+        if (data.combinedRatioHistory?.values?.length >= 4) setCombinedRatioHistory(data.combinedRatioHistory);
+        handleSuccess(data);
       })
-      .catch(() => {}) // silent fallback to mock
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Insurance'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -77,9 +79,12 @@ export function useInsuranceData(autoRefresh = false) {
     catBondProxy,
     industryAvgCombinedRatio,
     treasury10y,
+    catLosses,
+    combinedRatioHistory,
     isLive,
     lastUpdated,
     isLoading,
+    error,
     fetchedOn,
     isCurrent,
   };

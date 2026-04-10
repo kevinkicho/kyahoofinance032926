@@ -13,7 +13,7 @@ import './FXMarket.css';
  * - Chart grid (Top Movers, DXY Tracker, Rate Differentials, REER)
  */
 function FXMarket({ autoRefresh } = {}) {
-  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, isLive, lastUpdated, isLoading } = useFXData(autoRefresh);
+  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, cotHistory, isLive, lastUpdated, isLoading } = useFXData(autoRefresh);
   const { cotData } = useCOTData();
 
   if (isLoading) return <MarketSkeleton />;
@@ -39,6 +39,7 @@ function FXMarket({ autoRefresh } = {}) {
         rateDifferentials={rateDifferentials}
         dxyHistory={dxyHistory}
         cotData={cotData}
+        cotHistory={cotHistory}
       />
     </div>
   );

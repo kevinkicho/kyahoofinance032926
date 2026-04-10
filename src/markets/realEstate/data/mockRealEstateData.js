@@ -109,3 +109,40 @@ export const reitEtf = {
 };
 
 export const treasury10y = 4.35;
+
+// Foreclosure & Delinquency data (weekly/monthly)
+const DISTRESS_DATES = Array.from({ length: 52 }, (_, i) => {
+  const d = new Date('2025-04-01');
+  d.setDate(d.getDate() - (52 - i) * 7);
+  return d.toISOString().slice(0, 7);
+});
+
+export const foreclosureData = {
+  foreclosures: {
+    dates: DISTRESS_DATES.slice(-26),
+    values: DISTRESS_DATES.slice(-26).map((_, i) => 0.12 + Math.sin(i / 5) * 0.02),
+  },
+  delinquencies: {
+    dates: DISTRESS_DATES.slice(-26),
+    values: DISTRESS_DATES.slice(-26).map((_, i) => 2.8 + Math.sin(i / 8) * 0.3),
+  },
+};
+
+// MBA Applications (weekly)
+export const mbaApplications = {
+  purchase: {
+    dates: DISTRESS_DATES.slice(-26),
+    values: DISTRESS_DATES.slice(-26).map((_, i) => 185 + Math.sin(i / 6) * 20 + (Math.random() - 0.5) * 10),
+  },
+  refi: {
+    dates: DISTRESS_DATES.slice(-26),
+    values: DISTRESS_DATES.slice(-26).map((_, i) => 420 + Math.sin(i / 4) * 80 + (Math.random() - 0.5) * 30),
+  },
+};
+
+// CRE Delinquencies (quarterly)
+const CRE_DATES = ['Q1 23', 'Q2 23', 'Q3 23', 'Q4 23', 'Q1 24', 'Q2 24', 'Q3 24', 'Q4 24', 'Q1 25'];
+export const creDelinquencies = {
+  dates: CRE_DATES,
+  values: [1.2, 1.4, 1.6, 1.8, 2.1, 2.4, 2.8, 3.2, 3.5],
+};

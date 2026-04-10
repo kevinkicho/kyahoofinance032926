@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   fearGreedData as mockFearGreedData,
   cftcData      as mockCftcData,
@@ -20,11 +21,9 @@ export function useSentimentData(autoRefresh = false) {
   const [consumerCredit, setConsumerCredit] = useState(null);
   const [vvixHistory,   setVvixHistory]   = useState(null);
   const [fsiHistory,    setFsiHistory]    = useState(null);
-  const [isLive,        setIsLive]        = useState(false);
-  const [lastUpdated,   setLastUpdated]   = useState('Mock data — 2026');
-  const [isLoading,     setIsLoading]     = useState(true);
-  const [fetchedOn,     setFetchedOn]     = useState(null);
-  const [isCurrent,     setIsCurrent]     = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally, setIsLive, setLastUpdated } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/sentiment`)
@@ -39,18 +38,17 @@ export function useSentimentData(autoRefresh = false) {
         if (data.consumerCredit?.dates?.length >= 1)   { setConsumerCredit(data.consumerCredit); anyReplaced = true; }
         if (data.vvixHistory?.dates?.length >= 1)      { setVvixHistory(data.vvixHistory);     anyReplaced = true; }
         if (data.fsiHistory?.dates?.length >= 1)       { setFsiHistory(data.fsiHistory);       anyReplaced = true; }
-        setIsLive(anyReplaced);
-        if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (anyReplaced) {
+          handleSuccess(data);
+        }
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Sentiment'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, fsiHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, fsiHistory, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
 }

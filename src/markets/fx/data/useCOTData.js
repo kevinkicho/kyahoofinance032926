@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 
 const CFTC_URL =
   'https://publicreporting.cftc.gov/resource/jun7-fc8e.json' +
@@ -18,8 +19,9 @@ const NAME_MAP = {
 
 export function useCOTData() {
   const [cotData,   setCotData]   = useState({});
-  const [isLive,    setIsLive]    = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Status with error handling
+  const { isLive, isLoading, error, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   useEffect(() => {
     fetchWithRetry(CFTC_URL)
@@ -36,11 +38,11 @@ export function useCOTData() {
           }
         });
         setCotData(result);
-        setIsLive(true);
+        handleSuccess({});
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'COT'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
-  return { cotData, isLive, isLoading };
+  return { cotData, isLive, isLoading, error };
 }

@@ -58,3 +58,23 @@ export const fredVixHistory = {
   dates: MOCK_VIX_DATES,
   values: MOCK_VIX_DATES.map((_, i) => 18 + Math.sin(i / 8) * 5 + Math.random() * 2),
 };
+
+// SKEW Index History (52 weeks)
+const SKEW_DATES = Array.from({ length: 52 }, (_, i) => {
+  const d = new Date('2025-04-01');
+  d.setDate(d.getDate() + i * 7);
+  return d.toISOString().split('T')[0];
+});
+
+export const skewHistory = {
+  dates: SKEW_DATES,
+  values: SKEW_DATES.map((_, i) => 128 + Math.sin(i / 10) * 12 + (Math.random() - 0.5) * 4),
+};
+
+// Gamma Exposure Estimate (in $B)
+export const gammaExposure = {
+  total: 2.4,
+  callGamma: 1.8,
+  putGamma: 0.6,
+  netGamma: 1.2,
+};

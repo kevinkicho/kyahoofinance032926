@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 
 const SERVER = '';
 
@@ -58,11 +59,9 @@ const MOCK_DATA = {
 
 export function useInstitutionalData(autoRefresh = false) {
   const [data, setData] = useState(MOCK_DATA);
-  const [isLive, setIsLive] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState('Mock data — 2024-Q4');
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchedOn, setFetchedOn] = useState(null);
-  const [isCurrent, setIsCurrent] = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/institutional`)
@@ -70,19 +69,16 @@ export function useInstitutionalData(autoRefresh = false) {
       .then(d => {
         if (d.institutions?.length >= 3) {
           setData(d);
-          setIsLive(true);
-          setLastUpdated(d.lastUpdated || new Date().toISOString().split('T')[0]);
-          if (d.fetchedOn) setFetchedOn(d.fetchedOn);
-          setIsCurrent(!!d.isCurrent);
+          handleSuccess(d);
         }
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Institutional'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { ...data, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { ...data, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
 }

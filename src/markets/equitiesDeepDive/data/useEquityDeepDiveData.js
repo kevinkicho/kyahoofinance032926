@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   sectorData    as mockSectorData,
   factorData    as mockFactorData,
@@ -19,11 +20,9 @@ export function useEquityDeepDiveData(autoRefresh = false) {
   const [spPE,               setSpPE]               = useState(null);
   const [breadthDivergence,  setBreadthDivergence]  = useState(null);
   const [buffettIndicator,   setBuffettIndicator]   = useState(null);
-  const [isLive,             setIsLive]             = useState(false);
-  const [lastUpdated,        setLastUpdated]        = useState('Mock data — 2026');
-  const [isLoading,          setIsLoading]          = useState(true);
-  const [fetchedOn,          setFetchedOn]          = useState(null);
-  const [isCurrent,          setIsCurrent]          = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/equityDeepDive`)
@@ -38,14 +37,11 @@ export function useEquityDeepDiveData(autoRefresh = false) {
         if (data.spPE != null)        setSpPE(data.spPE);
         if (data.breadthDivergence)   setBreadthDivergence(data.breadthDivergence);
         if (data.buffettIndicator)    setBuffettIndicator(data.buffettIndicator);
-        setIsLive(anyReplaced);
-        if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (anyReplaced) handleSuccess(data);
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'EquityDeepDive'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -54,6 +50,6 @@ export function useEquityDeepDiveData(autoRefresh = false) {
   return {
     sectorData, factorData, earningsData, shortData,
     equityRiskPremium, spPE, breadthDivergence, buffettIndicator,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent,
   };
 }

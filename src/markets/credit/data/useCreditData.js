@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   spreadData   as mockSpreadData,
   emBondData   as mockEmBondData,
@@ -20,11 +21,9 @@ export function useCreditData(autoRefresh = false) {
   const [lendingStandards, setLendingStandards] = useState(null);
   const [commercialPaper,  setCommercialPaper]  = useState(null);
   const [excessReserves,   setExcessReserves]   = useState(null);
-  const [isLive,           setIsLive]           = useState(false);
-  const [lastUpdated,      setLastUpdated]      = useState('Mock data — 2026');
-  const [isLoading,        setIsLoading]        = useState(true);
-  const [fetchedOn,        setFetchedOn]        = useState(null);
-  const [isCurrent,        setIsCurrent]        = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/credit`)
@@ -39,18 +38,15 @@ export function useCreditData(autoRefresh = false) {
         if (data.lendingStandards?.dates?.length >= 4)          { setLendingStandards(data.lendingStandards); anyReplaced = true; }
         if (data.commercialPaper?.financial3m != null)          { setCommercialPaper(data.commercialPaper);   anyReplaced = true; }
         if (data.excessReserves?.dates?.length >= 6)            { setExcessReserves(data.excessReserves);     anyReplaced = true; }
-        setIsLive(anyReplaced);
-        if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (anyReplaced) handleSuccess(data);
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Credit'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
 }

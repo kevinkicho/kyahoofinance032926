@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback } from 'react';
 import SafeECharts from '../SafeECharts';
 import { useTheme } from '../../hub/ThemeContext';
 
@@ -148,19 +148,16 @@ const HeatmapView = ({
     }]
   }), [chartData, levels, currentRate, currentSymbol, currency, rankMetric, colors]);
 
-  // Background click → zoom-to-fit (reset to root view)
-  // Cell click → select ticker
-  useEffect(() => {
-    const inst = chartRef.current?.getEchartsInstance?.();
-    if (!inst || !mountedRef.current) return;
-
-    // Store instance references for cleanup
-    instRef.current = inst;
-    const zr = inst.getZr();
+  // Handle chart ready - store instance and attach event handlers
+  const handleChartReady = useCallback((instance) => {
+    if (!instance || !mountedRef.current) return;
+    instRef.current = instance;
+    const zr = instance.getZr();
     zrRef.current = zr;
 
     const handleBgClick = (e) => {
       if (!mountedRef.current) return;
+      // Only restore if clicking on empty background (no target)
       if (!e.target) {
         if (instRef.current && !instRef.current.isDisposed?.()) {
           instRef.current.dispatchAction({ type: 'restore' });
@@ -170,9 +167,8 @@ const HeatmapView = ({
 
     const handleCellClick = (params) => {
       if (!mountedRef.current) return;
+      // Check if this is a leaf node (individual stock)
       if (params.data && !params.data.children && onSelect) {
-        // This is a leaf node (individual stock)
-        // Normalize the data to match expected tickerInfo structure
         const stock = params.data;
         onSelect({
           ticker: stock.name || stock.ticker,
@@ -190,23 +186,22 @@ const HeatmapView = ({
     };
 
     zr.on('click', handleBgClick);
-    inst.on('click', handleCellClick);
+    instance.on('click', handleCellClick);
+  }, [onSelect]);
 
-    // Cleanup: only remove listeners if still mounted and instance not disposed
+  // Cleanup event handlers on unmount
+  useEffect(() => {
     return () => {
-      // Skip cleanup if unmounted - ECharts will clean up when instance is disposed
-      if (!mountedRef.current) return;
-
-      try {
-        if (zr && inst && !inst.isDisposed?.()) {
-          zr.off('click', handleBgClick);
-          inst.off('click', handleCellClick);
+      if (zrRef.current && instRef.current && !instRef.current.isDisposed?.()) {
+        try {
+          zrRef.current.off('click');
+          instRef.current.off('click');
+        } catch {
+          // Instance already disposed, ignore
         }
-      } catch {
-        // Instance already disposed, ignore
       }
     };
-  }, [onSelect]);
+  }, []);
 
   return (
     <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
@@ -218,6 +213,7 @@ const HeatmapView = ({
         lazyUpdate={false}
         style={{ height: '100%', width: '100%' }}
         opts={{ renderer: 'canvas' }}
+        onChartReady={handleChartReady}
       />
     </div>
   );

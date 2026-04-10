@@ -1,5 +1,5 @@
 // src/markets/fx/components/FXDashboard.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './FXDashboard.css';
@@ -26,7 +26,7 @@ function Sparkline({ values }) {
   );
 }
 
-export default function FXDashboard({
+function FXDashboard({
   spotRates,
   prevRates,
   changes,
@@ -39,9 +39,9 @@ export default function FXDashboard({
   rateDifferentials,
   dxyHistory,
   cotData,
+  cotHistory,
 }) {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('overview');
 
   // Movers list
   const movers = useMemo(() => {
@@ -146,17 +146,133 @@ export default function FXDashboard({
     };
   }, [reer, colors]);
 
+  // COT Positioning History chart option
+  const cotOption = useMemo(() => {
+    if (!cotHistory || !Object.keys(cotHistory).length) return null;
+    const currencies = Object.keys(cotHistory).slice(0, 6); // Show top 6
+    const dates = cotHistory[currencies[0]]?.map(d => d.date.slice(5)) || [];
+    const lineColors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: currencies, top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 24, right: 16, bottom: 24, left: 44 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 5) } },
+      yAxis: { type: 'value', name: 'Net % of OI', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: currencies.map((ccy, idx) => ({
+        name: ccy,
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 1.5, color: lineColors[idx % lineColors.length] },
+        data: cotHistory[ccy].map(d => d.net),
+      })),
+    };
+  }, [cotHistory, colors]);
+
+  // Currency Correlation Matrix (calculated from 30-day rate changes)
+  const correlationMatrix = useMemo(() => {
+    if (!history || !Object.keys(history).length) return null;
+    const currencies = Object.keys(history).filter(c => c !== 'USD').slice(0, 8);
+    if (currencies.length < 2) return null;
+
+    // Get returns series for each currency
+    const returns = {};
+    currencies.forEach(ccy => {
+      const rates = history[ccy];
+      if (!rates || rates.length < 2) return;
+      // Calculate daily returns
+      returns[ccy] = [];
+      for (let i = 1; i < rates.length; i++) {
+        const prev = rates[i - 1];
+        const curr = rates[i];
+        if (prev && curr) {
+          returns[ccy].push((curr - prev) / prev);
+        }
+      }
+    });
+
+    // Calculate correlation matrix
+    const matrix = currencies.map((ccy1, i) =>
+      currencies.map((ccy2, j) => {
+        const r1 = returns[ccy1] || [];
+        const r2 = returns[ccy2] || [];
+        if (r1.length < 2 || r2.length < 2 || i === j) return i === j ? 1 : 0;
+
+        const n = Math.min(r1.length, r2.length);
+        const mean1 = r1.slice(0, n).reduce((a, b) => a + b, 0) / n;
+        const mean2 = r2.slice(0, n).reduce((a, b) => a + b, 0) / n;
+
+        let cov = 0, var1 = 0, var2 = 0;
+        for (let k = 0; k < n; k++) {
+          const d1 = r1[k] - mean1;
+          const d2 = r2[k] - mean2;
+          cov += d1 * d2;
+          var1 += d1 * d1;
+          var2 += d2 * d2;
+        }
+
+        const denom = Math.sqrt(var1 * var2);
+        return denom > 0 ? Math.round((cov / denom) * 100) / 100 : 0;
+      })
+    );
+
+    return { currencies, matrix };
+  }, [history]);
+
+  // Correlation Heatmap chart option
+  const correlationOption = useMemo(() => {
+    if (!correlationMatrix) return null;
+    const { currencies, matrix } = correlationMatrix;
+    const data = [];
+    matrix.forEach((row, i) => {
+      row.forEach((val, j) => {
+        data.push([i, j, val]);
+      });
+    });
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        position: 'top',
+        formatter: (params) => {
+          const [i, j, val] = params.data;
+          return `${currencies[i]} vs ${currencies[j]}: ${val.toFixed(2)}`;
+        },
+      },
+      grid: { top: 30, right: 20, bottom: 30, left: 50 },
+      xAxis: { type: 'category', data: currencies, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitArea: { show: true } },
+      yAxis: { type: 'category', data: currencies, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitArea: { show: true } },
+      visualMap: {
+        min: -1,
+        max: 1,
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        top: 0,
+        inRange: { color: ['#ef4444', '#fef3c7', '#22c55e'] },
+        text: ['+1', '-1'],
+        textStyle: { color: colors.textMuted, fontSize: 9 },
+      },
+      series: [{
+        type: 'heatmap',
+        data: data,
+        label: { show: true, fontSize: 8, color: colors.textSecondary, formatter: (p) => p.data[2].toFixed(1) },
+        emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } },
+      }],
+    };
+  }, [correlationMatrix, colors]);
+
   return (
-    <div className="fx-dashboard">
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* LEFT SIDEBAR - Key Metrics */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="fx-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+    <div className="fx-dashboard" role="region" aria-label="FX Dashboard">
+      {/* Left Sidebar */}
+      <div className="fx-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="FX Metrics">
         {/* Key Pairs */}
         <div className="fx-sidebar-section">
           <div className="fx-sidebar-title">Key Pairs</div>
-          {keyPairs.slice(0, 4).map((pair, i) => (
-            <div key={i} className="fx-metric-card">
+          {keyPairs.slice(0, 4).map((pair) => (
+            <div key={pair.label} className="fx-metric-card">
               <div className="fx-metric-label">{pair.label}</div>
               <div className="fx-metric-value" style={{ color: pair.change >= 0 ? '#4ade80' : '#f87171' }}>
                 {pair.value}
@@ -218,7 +334,7 @@ export default function FXDashboard({
             <div className="fx-sidebar-title">Rate Diff vs USD</div>
             <div className="fx-metric-card">
               {rateDiff.slice(0, 5).map(([ccy, diff]) => (
-                <div key={ccy} className="fx-metric-row">
+                <div key={ccy || `rate-${diff}`} className="fx-metric-row">
                   <span className="fx-metric-name">{ccy}</span>
                   <span className="fx-metric-num" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}>
                     {diff >= 0 ? '+' : ''}{diff.toFixed(2)}%
@@ -228,152 +344,109 @@ export default function FXDashboard({
             </div>
           </div>
         )}
-      </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* MAIN CONTENT */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="fx-main">
-        {/* Tab Navigation */}
-        <div className="fx-tabs">
-          <button className={`fx-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-          <button className={`fx-tab ${activeTab === 'dxy' ? 'active' : ''}`} onClick={() => setActiveTab('dxy')}>DXY</button>
-          <button className={`fx-tab ${activeTab === 'reer' ? 'active' : ''}`} onClick={() => setActiveTab('reer')}>REER</button>
-          <button className={`fx-tab ${activeTab === 'movers' ? 'active' : ''}`} onClick={() => setActiveTab('movers')}>All Movers</button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="fx-tab-content">
-          {/* OVERVIEW TAB */}
-          <div className={`fx-tab-panel ${activeTab === 'overview' ? 'active' : ''}`}>
-            <div className="fx-content-grid">
-              {/* Top Movers */}
-              <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="fx-panel-title">Top Movers vs USD</div>
-                <div className="fx-movers-list">
-                  {movers.slice(0, 8).map((m, i) => (
-                    <div key={m.code} className="fx-mover-row">
-                      <span className="fx-mover-rank">{i + 1}</span>
-                      <span className="fx-mover-code">{m.code}</span>
-                      <span className="fx-mover-pct" style={{ color: m.changePct >= 0 ? '#4ade80' : '#f87171' }}>
-                        {m.changePct >= 0 ? '+' : ''}{m.changePct.toFixed(3)}%
-                      </span>
-                      <Sparkline values={m.spark} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* DXY Chart */}
-              {dxyOption && (
-                <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="fx-panel-title">DXY Dollar Index</div>
-                  <div className="fx-chart-wrap">
-                    <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-
-              {/* Rate Differentials */}
-              {rateDiff && (
-                <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="fx-panel-title">Rate Differentials</div>
-                  <div className="fx-mini-table" style={{ paddingTop: 8 }}>
-                    {rateDiff.map(([ccy, diff]) => (
-                      <div key={ccy} className="fx-mini-row">
-                        <span className="fx-mini-name">{ccy}</span>
-                        <span className="fx-mini-value" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}>
-                          {diff >= 0 ? '+' : ''}{diff.toFixed(2)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* DXY TAB */}
-          <div className={`fx-tab-panel ${activeTab === 'dxy' ? 'active' : ''}`}>
-            <div className="fx-content-grid single">
-              {dxyOption && (
-                <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="fx-panel-header">
-                    <span className="fx-panel-title">DXY Dollar Index</span>
-                    <span className="fx-panel-subtitle">Dollar strength vs basket</span>
-                  </div>
-                  <div className="fx-chart-wrap" style={{ minHeight: 200 }}>
-                    <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* REER TAB */}
-          <div className={`fx-tab-panel ${activeTab === 'reer' ? 'active' : ''}`}>
-            <div className="fx-content-grid single">
-              {reerOption && (
-                <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="fx-panel-header">
-                    <span className="fx-panel-title">Real Effective Exchange Rates</span>
-                    <span className="fx-panel-subtitle">Inflation-adjusted</span>
-                  </div>
-                  <div className="fx-chart-wrap" style={{ minHeight: 200 }}>
-                    <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ALL MOVERS TAB */}
-          <div className={`fx-tab-panel ${activeTab === 'movers' ? 'active' : ''}`}>
-            <div className="fx-content-grid wide-2">
-              {/* All Movers */}
-              <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="fx-panel-title">All Currency Movers</div>
-                <div className="fx-movers-list">
-                  {movers.map((m, i) => (
-                    <div key={m.code} className="fx-mover-row">
-                      <span className="fx-mover-rank">{i + 1}</span>
-                      <span className="fx-mover-code">{m.code}</span>
-                      <span className="fx-mover-pct" style={{ color: m.changePct >= 0 ? '#4ade80' : '#f87171' }}>
-                        {m.changePct >= 0 ? '+' : ''}{m.changePct.toFixed(3)}%
-                      </span>
-                      <span className="fx-mover-1w" style={{ color: m.change1w == null ? colors.textMuted : m.change1w >= 0 ? '#4ade80' : '#f87171' }}>
-                        {m.change1w == null ? '—' : `${m.change1w >= 0 ? '+' : ''}${m.change1w.toFixed(2)}%`}
-                      </span>
-                      <Sparkline values={m.spark} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* G10 vs EM */}
-              <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="fx-panel-title">G10 vs EM</div>
-                <div className="fx-mini-table" style={{ paddingTop: 8 }}>
-                  <div className="fx-mini-row" style={{ fontWeight: 600 }}>
-                    <span className="fx-mini-name">G10 Average</span>
-                    <span className="fx-mini-value" style={{ color: averages.g10 >= 0 ? '#4ade80' : '#f87171' }}>
-                      {averages.g10 >= 0 ? '+' : ''}{averages.g10.toFixed(3)}%
+        {/* COT Positioning */}
+        {cotHistory && (
+          <div className="fx-sidebar-section">
+            <div className="fx-sidebar-title">COT (% OI)</div>
+            <div className="fx-metric-card">
+              {Object.entries(cotHistory).slice(0, 5).map(([ccy, data]) => {
+                const latest = data[data.length - 1];
+                if (!latest) return null;
+                return (
+                  <div key={ccy} className="fx-metric-row">
+                    <span className="fx-metric-name">{ccy}</span>
+                    <span className="fx-metric-num" style={{ color: latest.net >= 0 ? '#4ade80' : '#f87171' }}>
+                      {latest.net >= 0 ? '+' : ''}{latest.net.toFixed(1)}%
                     </span>
                   </div>
-                  {G10.filter(c => changes?.[c] != null).slice(0, 6).map(code => (
-                    <div key={code} className="fx-mini-row">
-                      <span className="fx-mini-name">{code}</span>
-                      <span className="fx-mini-value" style={{ color: changes[code] >= 0 ? '#4ade80' : '#f87171' }}>
-                        {changes[code] >= 0 ? '+' : ''}{changes[code].toFixed(3)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Main Content - ALL visible at once */}
+      <div className="fx-main" role="region" aria-label="FX Charts">
+        <div className="fx-content-grid">
+          {/* Top Movers */}
+          <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="fx-panel-title">Top Movers vs USD</div>
+            <div className="fx-movers-list">
+              {movers.slice(0, 8).map((m, i) => (
+                <div key={m.code} className="fx-mover-row">
+                  <span className="fx-mover-rank">{i + 1}</span>
+                  <span className="fx-mover-code">{m.code}</span>
+                  <span className="fx-mover-pct" style={{ color: m.changePct >= 0 ? '#4ade80' : '#f87171' }}>
+                    {m.changePct >= 0 ? '+' : ''}{m.changePct.toFixed(3)}%
+                  </span>
+                  <Sparkline values={m.spark} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* DXY Chart */}
+          {dxyOption && (
+            <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="fx-panel-title">DXY Dollar Index</div>
+              <div className="fx-chart-wrap">
+                <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* COT Positioning Chart */}
+          {cotOption && (
+            <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="fx-panel-title">CFTC COT Positioning</div>
+              <div className="fx-chart-wrap" style={{ minHeight: 140 }}>
+                <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Correlation Matrix */}
+          {correlationOption && (
+            <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="fx-panel-title">Currency Correlation (30D)</div>
+              <div className="fx-chart-wrap" style={{ minHeight: 200 }}>
+                <SafeECharts option={correlationOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* REER Chart */}
+          {reerOption && (
+            <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="fx-panel-title">Real Effective Exchange Rates</div>
+              <div className="fx-chart-wrap" style={{ minHeight: 140 }}>
+                <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Rate Differentials Table */}
+          {rateDiff && (
+            <div className="fx-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="fx-panel-title">Rate Differentials</div>
+              <div className="fx-mini-table" style={{ paddingTop: 8 }}>
+                {rateDiff.map(([ccy, diff]) => (
+                  <div key={ccy} className="fx-mini-row">
+                    <span className="fx-mini-name">{ccy}</span>
+                    <span className="fx-mini-value" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}>
+                      {diff >= 0 ? '+' : ''}{diff.toFixed(2)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default React.memo(FXDashboard);

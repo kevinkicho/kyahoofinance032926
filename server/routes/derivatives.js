@@ -209,6 +209,58 @@ router.get('/', async (req, res) => {
       }
     } catch { /* use null */ }
 
+    // SKEW history from FRED
+    let skewHistory = null;
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const skewHist = await fetchFredHistory('SKEW', FRED_API_KEY, 252);
+        if (skewHist.length >= 20) {
+          skewHistory = {
+            dates: skewHist.map(p => p.date),
+            values: skewHist.map(p => Math.round(p.value * 10) / 10),
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    // Gamma Exposure estimate from SPY options
+    let gammaExposure = null;
+    try {
+      trackApiCall('Yahoo Finance');
+      const spyOpts = await yf.options('SPY').catch(() => null);
+      if (spyOpts?.options?.[0]) {
+        const exp = spyOpts.options[0];
+        const calls = exp.calls || [];
+        const puts = exp.puts || [];
+        const spyPrice = spyQuote?.regularMarketPrice || 500;
+        let totalGamma = 0;
+        let callGamma = 0;
+        let putGamma = 0;
+
+        // Calculate gamma exposure from near-ATM options
+        [...calls, ...puts].forEach(opt => {
+          if (opt.gamma && opt.openInterest) {
+            const gammaContrib = opt.gamma * opt.openInterest * 100 * spyPrice * 0.01;
+            totalGamma += gammaContrib;
+            if (opt.strike >= spyPrice * 0.95 && opt.strike <= spyPrice * 1.05) {
+              if (calls.includes(opt)) callGamma += gammaContrib;
+              else putGamma += gammaContrib;
+            }
+          }
+        });
+
+        if (totalGamma > 0) {
+          gammaExposure = {
+            total: Math.round(totalGamma / 1e9 * 10) / 10,
+            callGamma: Math.round(callGamma / 1e9 * 10) / 10,
+            putGamma: Math.round(putGamma / 1e9 * 10) / 10,
+            netGamma: Math.round((callGamma - putGamma) / 1e9 * 10) / 10,
+          };
+        }
+      }
+    } catch { /* use null */ }
+
     const vixPercentile = vixEnrichment?.vixPercentile ?? null;
 
     let termSpread = null;
@@ -230,6 +282,8 @@ router.get('/', async (req, res) => {
       fredVixHistory,
       putCallRatio,
       skewIndex,
+      skewHistory,
+      gammaExposure,
       vixPercentile,
       termSpread,
       lastUpdated: today,

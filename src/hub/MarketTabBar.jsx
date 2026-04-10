@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { MARKETS, SEARCH_INDEX } from './markets.config';
 import { currencySymbols } from '../utils/constants';
 import { useTheme } from './ThemeContext';
@@ -83,6 +83,19 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
     setOpen(true);
   }
 
+  const handleMarketClick = useCallback((e) => {
+    const marketId = e.currentTarget.dataset.market;
+    if (marketId) setActiveMarket(marketId);
+  }, [setActiveMarket]);
+
+  const handleExportCSV = useCallback(() => {
+    onExportData('csv');
+  }, [onExportData]);
+
+  const handleExportJSON = useCallback(() => {
+    onExportData('json');
+  }, [onExportData]);
+
   return (
     <div className="market-tab-bar" role="banner">
       <a href="#main-content" className="sr-only sr-only-focusable">Skip to content</a>
@@ -94,7 +107,8 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
             aria-selected={activeMarket === m.id}
             aria-label={`${m.label} market (${i + 1})`}
             className={`market-tab${activeMarket === m.id ? ' active' : ''}`}
-            onClick={() => setActiveMarket(m.id)}
+            data-market={m.id}
+            onClick={handleMarketClick}
           >
             <span className="market-tab-label">{m.label}</span>
           </button>
@@ -118,8 +132,8 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
       </button>
       {onExportData && (
         <>
-          <button className="hub-export-btn" onClick={() => onExportData('csv')} title="Download data as CSV">CSV</button>
-          <button className="hub-export-btn" onClick={() => onExportData('json')} title="Download data as JSON">JSON</button>
+          <button className="hub-export-btn" onClick={handleExportCSV} title="Download data as CSV">CSV</button>
+          <button className="hub-export-btn" onClick={handleExportJSON} title="Download data as JSON">JSON</button>
         </>
       )}
       <button

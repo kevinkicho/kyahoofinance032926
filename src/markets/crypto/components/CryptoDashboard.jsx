@@ -1,10 +1,10 @@
 // src/markets/crypto/components/CryptoDashboard.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './CryptoDashboard.css';
 
-export default function CryptoDashboard({
+function CryptoDashboard({
   coinMarketData,
   fearGreedData,
   defiData,
@@ -16,7 +16,6 @@ export default function CryptoDashboard({
   ethGas,
 }) {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('overview');
 
   // Top coins
   const coins = useMemo(() => {
@@ -57,11 +56,11 @@ export default function CryptoDashboard({
   }, [fearGreedData, colors]);
 
   return (
-    <div className="crypto-dashboard">
+    <div className="crypto-dashboard" role="region" aria-label="Crypto Dashboard">
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* LEFT SIDEBAR - Key Metrics */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="crypto-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+      <div className="crypto-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="Crypto Metrics">
         {/* BTC */}
         {btcData && (
           <div className="crypto-sidebar-section">
@@ -138,132 +137,101 @@ export default function CryptoDashboard({
         )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* MAIN CONTENT */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="crypto-main">
-        {/* Tab Navigation */}
-        <div className="crypto-tabs">
-          <button className={`crypto-tab ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>Overview</button>
-          <button className={`crypto-tab ${activeTab === 'sentiment' ? 'active' : ''}`} onClick={() => setActiveTab('sentiment')}>Sentiment</button>
-          <button className={`crypto-tab ${activeTab === 'defi' ? 'active' : ''}`} onClick={() => setActiveTab('defi')}>DeFi</button>
-          <button className={`crypto-tab ${activeTab === 'onchain' ? 'active' : ''}`} onClick={() => setActiveTab('onchain')}>On-Chain</button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="crypto-tab-content">
-          {/* OVERVIEW TAB */}
-          <div className={`crypto-tab-panel ${activeTab === 'overview' ? 'active' : ''}`}>
-            <div className="crypto-content-grid">
-              {/* Top Cryptos */}
-              <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                <div className="crypto-panel-title">Top Cryptos</div>
-                <div className="crypto-mini-table">
-                  {coins.slice(0, 8).map((c, i) => (
-                    <div key={i} className="crypto-mini-row">
-                      <span className="crypto-mini-rank">{i + 1}</span>
-                      <span className="crypto-mini-name">{c.symbol?.toUpperCase()}</span>
-                      <span className="crypto-mini-price">${(c.price || c.current_price)?.toFixed(2)}</span>
-                      <span className="crypto-mini-change" style={{ color: (c.change24h || c.price_change_percentage_24h || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                        {(c.change24h || c.price_change_percentage_24h || 0) >= 0 ? '+' : ''}{(c.change24h || c.price_change_percentage_24h || 0).toFixed(1)}%
-                      </span>
-                    </div>
-                  ))}
+      {/* Main Content - ALL visible at once */}
+      <div className="crypto-main" role="region" aria-label="Crypto Charts">
+        <div className="crypto-content-grid">
+          {/* Top Cryptos */}
+          <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            <div className="crypto-panel-title">Top Cryptos</div>
+            <div className="crypto-mini-table">
+              {coins.slice(0, 8).map((c, i) => (
+                <div key={c.id || c.symbol} className="crypto-mini-row">
+                  <span className="crypto-mini-rank">{i + 1}</span>
+                  <span className="crypto-mini-name">{c.symbol?.toUpperCase()}</span>
+                  <span className="crypto-mini-price">${(c.price || c.current_price)?.toFixed(2)}</span>
+                  <span className="crypto-mini-change" style={{ color: (c.change24h || c.price_change_percentage_24h || 0) >= 0 ? '#4ade80' : '#f87171' }}>
+                    {(c.change24h || c.price_change_percentage_24h || 0) >= 0 ? '+' : ''}{(c.change24h || c.price_change_percentage_24h || 0).toFixed(1)}%
+                  </span>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fear & Greed Chart */}
+          {fgiOption && (
+            <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="crypto-panel-title">Fear & Greed Index</div>
+              <div className="crypto-chart-wrap" style={{ minHeight: 140 }}>
+                <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} />
               </div>
-
-              {/* Funding Rates */}
-              {fundingData?.length > 0 && (
-                <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="crypto-panel-title">Funding Rates</div>
-                  <div className="crypto-mini-table">
-                    {fundingData.slice(0, 6).map((f, i) => (
-                      <div key={i} className="crypto-mini-row">
-                        <span className="crypto-mini-name">{f.exchange}</span>
-                        <span className="crypto-mini-value" style={{ color: (f.rate || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                          {(f.rate || 0) >= 0 ? '+' : ''}{((f.rate || 0) * 100).toFixed(4)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Top Exchanges */}
-              {topExchanges?.length > 0 && (
-                <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="crypto-panel-title">Top Exchanges</div>
-                  <div className="crypto-mini-table">
-                    {topExchanges.slice(0, 6).map((e, i) => (
-                      <div key={i} className="crypto-mini-row">
-                        <span className="crypto-mini-name">{e.name}</span>
-                        <span className="crypto-mini-value">${(e.volume24h / 1e9).toFixed(1)}B</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
+          )}
 
-          {/* SENTIMENT TAB */}
-          <div className={`crypto-tab-panel ${activeTab === 'sentiment' ? 'active' : ''}`}>
-            <div className="crypto-content-grid single">
-              {fgiOption && (
-                <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="crypto-panel-header">
-                    <span className="crypto-panel-title">Fear & Greed Index</span>
-                    <span className="crypto-panel-subtitle">Historical trend</span>
+          {/* Funding Rates */}
+          {fundingData?.length > 0 && (
+            <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="crypto-panel-title">Funding Rates</div>
+              <div className="crypto-mini-table">
+                {fundingData.slice(0, 6).map((f) => (
+                  <div key={f.exchange || f.symbol} className="crypto-mini-row">
+                    <span className="crypto-mini-name">{f.exchange}</span>
+                    <span className="crypto-mini-value" style={{ color: (f.rate || 0) >= 0 ? '#4ade80' : '#f87171' }}>
+                      {(f.rate || 0) >= 0 ? '+' : ''}{((f.rate || 0) * 100).toFixed(4)}%
+                    </span>
                   </div>
-                  <div className="crypto-chart-wrap" style={{ minHeight: 200 }}>
-                    <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* DEFI TAB */}
-          <div className={`crypto-tab-panel ${activeTab === 'defi' ? 'active' : ''}`}>
-            <div className="crypto-content-grid">
-              {/* DeFi TVL */}
-              {defiData?.length > 0 && (
-                <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="crypto-panel-title">DeFi TVL by Chain</div>
-                  <div className="crypto-mini-table">
-                    {defiData.slice(0, 8).map((d, i) => (
-                      <div key={i} className="crypto-mini-row">
-                        <span className="crypto-mini-name">{d.chain || d.name}</span>
-                        <span className="crypto-mini-value">${(d.tvl / 1e9).toFixed(2)}B</span>
-                      </div>
-                    ))}
+          {/* Top Exchanges */}
+          {topExchanges?.length > 0 && (
+            <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="crypto-panel-title">Top Exchanges</div>
+              <div className="crypto-mini-table">
+                {topExchanges.slice(0, 6).map((e) => (
+                  <div key={e.name || e.id} className="crypto-mini-row">
+                    <span className="crypto-mini-name">{e.name}</span>
+                    <span className="crypto-mini-value">${(e.volume24h / 1e9).toFixed(1)}B</span>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ON-CHAIN TAB */}
-          <div className={`crypto-tab-panel ${activeTab === 'onchain' ? 'active' : ''}`}>
-            <div className="crypto-content-grid">
-              {/* On-Chain Metrics */}
-              {onChainData?.length > 0 && (
-                <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="crypto-panel-title">On-Chain Metrics</div>
-                  <div className="crypto-mini-table">
-                    {onChainData.slice(0, 8).map((o, i) => (
-                      <div key={i} className="crypto-mini-row">
-                        <span className="crypto-mini-name">{o.metric}</span>
-                        <span className="crypto-mini-value">{o.value}</span>
-                      </div>
-                    ))}
+          {/* DeFi TVL */}
+          {defiData?.length > 0 && (
+            <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="crypto-panel-title">DeFi TVL by Chain</div>
+              <div className="crypto-mini-table">
+                {defiData.slice(0, 8).map((d) => (
+                  <div key={d.chain || d.name} className="crypto-mini-row">
+                    <span className="crypto-mini-name">{d.chain || d.name}</span>
+                    <span className="crypto-mini-value">${(d.tvl / 1e9).toFixed(2)}B</span>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* On-Chain Metrics */}
+          {onChainData?.length > 0 && (
+            <div className="crypto-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="crypto-panel-title">On-Chain Metrics</div>
+              <div className="crypto-mini-table">
+                {onChainData.slice(0, 8).map((o) => (
+                  <div key={o.metric || o.name} className="crypto-mini-row">
+                    <span className="crypto-mini-name">{o.metric}</span>
+                    <span className="crypto-mini-value">{o.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default React.memo(CryptoDashboard);

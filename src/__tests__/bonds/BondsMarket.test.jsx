@@ -26,12 +26,19 @@ describe('BondsMarket', () => {
     expect(yieldsSection).toBeInTheDocument();
   });
 
-  it('shows tabs for navigation', async () => {
+  it('shows all charts visible at once (no tabs)', async () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard has tab navigation - check for Yield Curves tab button
-    const yieldsTab = screen.getByRole('button', { name: 'Yield Curves' });
-    expect(yieldsTab).toBeInTheDocument();
+    // All charts should be visible at once - check for key panel titles
+    const yieldCurveTitle = screen.getByText('Yield Curve Comparison');
+    expect(yieldCurveTitle).toBeInTheDocument();
+    // Check that there are no tab buttons
+    const tabButtons = screen.queryAllByRole('button');
+    // Should have no tab buttons for navigation (may have other buttons)
+    const tabNavButtons = tabButtons.filter(btn =>
+      btn.className && btn.className.includes('tab') && btn.className.includes('bonds')
+    );
+    expect(tabNavButtons.length).toBe(0);
   });
 
   it('shows mock data status when server unavailable', async () => {

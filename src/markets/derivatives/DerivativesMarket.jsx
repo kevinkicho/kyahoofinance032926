@@ -12,7 +12,7 @@ import './DerivativesMarket.css';
  * - Chart grid (VIX Term Structure, VIX 1Y, Vol Surface, Options Flow)
  */
 function DerivativesMarket({ autoRefresh } = {}) {
-  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData(autoRefresh);
+  const { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, skewHistory, gammaExposure, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useDerivativesData(autoRefresh);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -34,6 +34,8 @@ function DerivativesMarket({ autoRefresh } = {}) {
         fredVixHistory={fredVixHistory}
         putCallRatio={putCallRatio}
         skewIndex={skewIndex}
+        skewHistory={skewHistory}
+        gammaExposure={gammaExposure}
         vixPercentile={vixPercentile}
         termSpread={termSpread}
       />

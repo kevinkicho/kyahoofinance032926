@@ -172,6 +172,10 @@ export default function HubLayout() {
     }
   }, [activeMarket, addToast]);
 
+  const handleToggleRefresh = useCallback(() => {
+    setAutoRefresh(r => !r);
+  }, []);
+
   // Keyboard shortcuts: 1-9,0 for markets, Ctrl+E export, Ctrl+K search, Escape
   useEffect(() => {
     function handleKeyDown(e) {
@@ -224,7 +228,7 @@ export default function HubLayout() {
         onExport={handleExport}
         onExportData={handleExportData}
         autoRefresh={autoRefresh}
-        onToggleRefresh={() => setAutoRefresh(r => !r)}
+        onToggleRefresh={handleToggleRefresh}
       />
       <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>

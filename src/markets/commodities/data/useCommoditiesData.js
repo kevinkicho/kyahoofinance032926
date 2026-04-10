@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   priceDashboardData  as mockPriceDashboardData,
   futuresCurveData    as mockFuturesCurveData,
@@ -28,11 +29,9 @@ export function useCommoditiesData(autoRefresh = false) {
   const [contangoIndicator,   setContangoIndicator]   = useState(null);
   const [commodityCurrencies, setCommodityCurrencies] = useState(null);
   const [seasonalPatterns,    setSeasonalPatterns]    = useState(null);
-  const [isLive,              setIsLive]              = useState(false);
-  const [lastUpdated,         setLastUpdated]         = useState('Mock data — Dec 2025');
-  const [isLoading,           setIsLoading]           = useState(true);
-  const [fetchedOn,           setFetchedOn]           = useState(null);
-  const [isCurrent,           setIsCurrent]           = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/commodities`)
@@ -51,14 +50,11 @@ export function useCommoditiesData(autoRefresh = false) {
         if (data.contangoIndicator?.structure)                 { setContangoIndicator(data.contangoIndicator); anyReplaced = true; }
         if (data.commodityCurrencies?.CAD)                     { setCommodityCurrencies(data.commodityCurrencies); anyReplaced = true; }
         if (data.seasonalPatterns?.CL?.length >= 12)           { setSeasonalPatterns(data.seasonalPatterns); anyReplaced = true; }
-        if (anyReplaced) setIsLive(true);
-        setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (anyReplaced) handleSuccess(data);
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Commodities'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -68,6 +64,6 @@ export function useCommoditiesData(autoRefresh = false) {
     priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,
     fredCommodities, goldFuturesCurve, dbcEtf,
     goldOilRatio, contangoIndicator, commodityCurrencies, seasonalPatterns,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent,
   };
 }

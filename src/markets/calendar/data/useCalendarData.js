@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   economicEvents  as mockEconomicEvents,
   centralBanks    as mockCentralBanks,
@@ -19,11 +20,9 @@ export function useCalendarData(autoRefresh = false) {
   const [treasuryAuctions,  setTreasuryAuctions]  = useState([]);
   const [optionsExpiry,     setOptionsExpiry]     = useState([]);
   const [dividendCalendar,  setDividendCalendar]  = useState([]);
-  const [isLive,            setIsLive]            = useState(false);
-  const [lastUpdated,       setLastUpdated]       = useState('Mock data — Apr 2026');
-  const [isLoading,         setIsLoading]         = useState(true);
-  const [fetchedOn,         setFetchedOn]         = useState(null);
-  const [isCurrent,         setIsCurrent]         = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/calendar`)
@@ -37,14 +36,11 @@ export function useCalendarData(autoRefresh = false) {
         if (data.treasuryAuctions?.length >= 1) { setTreasuryAuctions(data.treasuryAuctions); anyReplaced = true; }
         if (data.optionsExpiry?.length >= 1)    { setOptionsExpiry(data.optionsExpiry);     anyReplaced = true; }
         if (data.dividendCalendar?.length >= 1) { setDividendCalendar(data.dividendCalendar); anyReplaced = true; }
-        setIsLive(anyReplaced);
-        if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (anyReplaced) handleSuccess(data);
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Calendar'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -53,6 +49,6 @@ export function useCalendarData(autoRefresh = false) {
   return {
     economicEvents, centralBanks, earningsSeason, keyReleases,
     treasuryAuctions, optionsExpiry, dividendCalendar,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent,
   };
 }

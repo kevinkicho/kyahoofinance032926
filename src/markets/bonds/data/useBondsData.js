@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   yieldCurveData as mockYieldCurveData,
   creditRatingsData,
@@ -17,6 +18,9 @@ import {
   creditIndices as mockCreditIndices,
   auctionData as mockAuctionData,
   nationalDebt as mockNationalDebt,
+  spreadHistory as mockSpreadHistory,
+  cpiComponents as mockCpiComponents,
+  debtToGdpHistory as mockDebtToGdpHistory,
 } from './mockBondsData';
 
 const SERVER = '';
@@ -79,12 +83,13 @@ export function useBondsData(autoRefresh = false) {
   const [auctionData, setAuctionData] = useState(mockAuctionData);
   const [nationalDebt, setNationalDebt] = useState(mockNationalDebt);
 
-  // Status
-  const [isLive, setIsLive] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState('Mock data — Apr 2025');
-  const [isLoading, setIsLoading] = useState(true);
-  const [fetchedOn, setFetchedOn] = useState(null);
-  const [isCurrent, setIsCurrent] = useState(false);
+  // Additional new data
+  const [spreadHistory, setSpreadHistory] = useState(mockSpreadHistory);
+  const [cpiComponents, setCpiComponents] = useState(mockCpiComponents);
+  const [debtToGdpHistory, setDebtToGdpHistory] = useState(mockDebtToGdpHistory);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(async () => {
     try {
@@ -142,16 +147,24 @@ export function useBondsData(autoRefresh = false) {
         setNationalDebt(data.nationalDebt);
       }
 
-      setIsLive(true);
-      setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-      if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-      setIsCurrent(!!data.isCurrent);
-    } catch {
-      // silent fallback to mock
+      // Additional new data
+      if (data.spreadHistory?.dates?.length >= 20) {
+        setSpreadHistory(data.spreadHistory);
+      }
+      if (data.cpiComponents?.dates?.length >= 12) {
+        setCpiComponents(data.cpiComponents);
+      }
+      if (data.debtToGdpHistory?.dates?.length >= 10) {
+        setDebtToGdpHistory(data.debtToGdpHistory);
+      }
+
+      handleSuccess(data);
+    } catch (err) {
+      handleError(err, 'Bonds');
     } finally {
-      setIsLoading(false);
+      handleFinally();
     }
-  }, []);
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -181,10 +194,16 @@ export function useBondsData(autoRefresh = false) {
     auctionData,
     nationalDebt,
 
+    // Additional new data
+    spreadHistory,
+    cpiComponents,
+    debtToGdpHistory,
+
     // Status
     isLive,
     lastUpdated,
     isLoading,
+    error,
     fetchedOn,
     isCurrent,
   };

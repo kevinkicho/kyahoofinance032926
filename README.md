@@ -24,6 +24,235 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 | 14 | **Alerts** | Active Alerts, Alert Rules | Red `#ef4444` | Aggregates 6 market endpoints, 8 anomaly rules (VIX spike, curve inversion, HY stress, F&G extremes, BTC/Gold/DXY moves) |
 | 15 | **Watchlist** | My Tickers, My Metrics | Gold `#eab308` | Yahoo Finance (live quotes per ticker), cross-market metric shortcuts |
 
+---
+
+## Data Shown Per Market Tab
+
+### 1. Equities
+**Sidebar:**
+- Key Metrics: S&P 500, Nasdaq 100, Dow Jones, Russell 2000 prices with % change
+- Market Stats: Total market cap, advancers/decliners, new highs/lows
+- VIX Level: Current value with fear/greed indicator
+- Fed Funds: Current rate, next meeting expectation
+
+**Main Panels:**
+- **Heatmap**: 350+ global stocks colored by % change, sized by market cap, grouped by sector/region
+- **Bar Race**: Animated top 30 stocks with historical playback
+- **List View**: Sortable table with ticker, name, sector, region, market cap, % change
+- **Detail Panel**: On-click expansion with chart, fundamentals, analysts, fair value
+
+### 2. Bonds
+**Sidebar:**
+- Yield Curve: US 3M, 2Y, 5Y, 10Y, 30Y with steepest/flattest indicators
+- Spread Indicators: 2s10s, 10s3s, 5s30s spread values
+- Credit Spreads: IG OAS, HY OAS, EM OAS current values
+- Breakevens: 5Y, 10Y inflation expectations
+- Fed Funds: Current rate + futures curve
+
+**Main Panels:**
+- **Yield Curve**: Multi-country comparison (US, DE, JP, GB, IT, FR, etc.)
+- **Credit Spreads**: 12-month IG/HY/EM/BBB spread history
+- **Spread History**: 2s10s, 10s3s, 5s30s time series (252 days)
+- **CPI Components**: All Items, Core, Food, Energy YoY% (60 months)
+- **Debt-to-GDP**: US federal debt trajectory (20 years quarterly)
+- **Real Yields**: TIPS 5Y/10Y history
+- **Breakevens**: 5Y, 10Y, 5Y5Y forward inflation expectations
+
+### 3. FX
+**Sidebar:**
+- Key Pairs: EUR/USD, USD/JPY, GBP/USD, USD/CHF with % change
+- Movers: Top 12 currency movers vs USD
+- Averages: G10 avg, EM avg change
+- Rate Differentials: Fed vs ECB, BOE, BOJ spreads
+- COT Positioning: Net speculative positions as % of OI
+
+**Main Panels:**
+- **Top Movers Table**: Currency, % change, 1W sparkline
+- **DXY Chart**: Dollar Index 1-year history
+- **COT Positioning Chart**: Net positioning history for major pairs (52 weeks)
+- **Currency Correlation Matrix**: 30-day rolling correlation heatmap (G10)
+- **REER Chart**: Real Effective Exchange Rates (US, EU, JP, GB, CN)
+- **Rate Differentials Table**: Central bank rate spreads
+
+### 4. Derivatives
+**Sidebar:**
+- VIX: Spot, VVIX, contango/backwardation %
+- Volatility: Put/Call ratio, ATM 1M IV, VIX percentile
+- Term Spread: 1M-3M VIX spread with state indicator
+- SKEW Index: Tail risk premium with interpretation
+- Gamma Exposure: Total GEX, call/put gamma, net gamma
+
+**Main Panels:**
+- **VIX Term Structure**: 9D, 1M, 3M, 6M futures vs previous close
+- **VIX History**: 252-day spot VIX chart
+- **SKEW Index History**: 252-day SKEW with neutral reference line
+- **Vol Surface Heatmap**: SPX implied vol by strike/expiry
+- **Options Flow**: Recent large block trades
+- **Vol Premium**: ATM IV vs realized vol spread
+- **Gamma Exposure Table**: Total, call, put, net gamma ($B)
+
+### 5. Real Estate
+**Sidebar:**
+- Key Prices: Gold, WTI Oil, Natural Gas with 1D change
+- Ratios & ETFs: Gold/Oil ratio, DBC ETF % change, contango %
+- Positioning: COT net long/short for major commodities
+
+**Main Panels:**
+- **Case-Shiller Chart**: National + major metros (SF, NYC, LA, Miami, Chicago)
+- **Home Prices Table**: Regional Case-Shiller indices with YoY change
+- **Foreclosure & Delinquency Chart**: 12-month history
+- **MBA Applications Chart**: Purchase vs refi index
+- **CRE Delinquencies Chart**: Commercial RE loan delinquencies
+- **REIT Screen Table**: Top REITs with sector, dividend yield, P/FFO, YTD return
+- **Affordability**: Median price, price-to-income, mortgage-to-income
+- **Housing Supply**: Housing starts, permits, months supply, active listings
+
+### 6. Insurance
+**Sidebar:**
+- Combined Ratio: Industry average with profitability indicator
+- Reinsurers: PGR, ALL, TRV, HIG with % change
+- HY OAS Spread: Current value
+
+**Main Panels:**
+- **HY OAS History Chart**: 252-day high-yield spread
+- **Combined Ratio by Line**: Auto, home, commercial, etc. profitability
+- **Reinsurance Rates**: By category (property, casualty, etc.)
+- **Reserve Adequacy Table**: Insurer reserves vs required
+- **Cat Bond Spreads**: ILS market spreads
+- **Natural Cat Losses Chart**: NPORCT annual losses
+- **Industry Combined Ratio History**: Quarterly trend with 100% breakeven line
+- **Sector ETFs**: KIE with 52-week range
+
+### 7. Commodities
+**Sidebar:**
+- Key Prices: Gold, WTI Oil, Natural Gas with 1D change
+- Ratios & ETFs: Gold/Oil ratio, DBC ETF % change, contango %
+- Positioning: COT net long/short for major commodities
+
+**Main Panels:**
+- **Energy Table**: Crude, natural gas, gasoline prices
+- **Metals Table**: Gold, silver, copper prices
+- **Gold Price Chart**: 252-day history
+- **WTI Oil Chart**: 252-day history
+- **Natural Gas Chart**: 252-day history
+- **Agriculture Table**: Corn, soybeans, wheat prices
+- **Sector Performance Table**: Energy, metals, agriculture % changes
+- **COT Positioning Table**: Net long/short positions by commodity
+- **Supply/Demand Table**: Surplus/deficit by commodity
+- **Commodity FX Table**: CAD, AUD, NOK, BRL rates vs USD
+- **Gold Futures Curve**: Term structure by expiry
+
+### 8. Global Macro
+**Sidebar:**
+- GDP Growth: US, EU, China, Japan real GDP YoY
+- Inflation: CPI by country with central bank target comparison
+- Central Bank Rates: Fed, ECB, BOE, BOE, SNB, RBA, BOC, BOJ
+- Debt/GDP: Government debt ratios
+
+**Main Panels:**
+- **Country Scorecards**: 12 countries with growth, inflation, rates, currency, equity
+- **GDP Growth Chart**: Multi-country comparison
+- **Inflation Chart**: CPI trends by country
+- **Policy Rate Chart**: Central bank rates history
+- **Debt Monitor**: Government debt-to-GDP trends
+- **Currency Strength Matrix**: Relative performance
+
+### 9. Equities+ (Deep Dive)
+**Sidebar:**
+- Sector Performance: 11 GICS sectors with % change
+- Factor Returns: Value, growth, momentum, quality, low vol
+- Earnings Surprise: Latest beat/miss rates
+- Short Interest: Highest short interest stocks
+
+**Main Panels:**
+- **Sector Rotation Chart**: Performance heatmap by sector/time
+- **Factor Rankings Table**: Factor exposures sorted by return
+- **Earnings Calendar**: Upcoming earnings with expected surprise
+- **Short Interest Table**: Highest short interest with days to cover
+- **Institutional Ownership**: Top holders by stock
+- **Insider Trading**: Recent insider buys/sells
+
+### 10. Crypto
+**Sidebar:**
+- BTC/ETH: Price, 24h change, market dominance
+- Market: Total cap, stablecoin cap, ETH gas
+- Fear & Greed: Current value with classification
+
+**Main Panels:**
+- **Top Cryptos Table**: Top 20 by market cap with price, change
+- **Fear & Greed Chart**: 252-day history with fear/greed thresholds
+- **Funding Rates Table**: Bybit perp funding rates
+- **Top Exchanges Table**: Volume by exchange
+- **DeFi TVL by Chain**: Total value locked breakdown
+- **On-Chain Metrics**: Network stats, hash rate, active addresses
+
+### 11. Credit
+**Sidebar:**
+- Credit Spreads: IG OAS, HY OAS, EM spread with color coding
+- Default Watch: Default rate, delinquency metrics
+- Short-Term: Commercial paper rate
+
+**Main Panels:**
+- **Credit Spreads Chart**: IG/HY 12-month history
+- **Spread Summary Table**: IG, HY, EM, BBB current spreads
+- **EM Spread History Chart**: EM sovereign spread
+- **EM Yields Table**: Country 10Y yields
+- **Commercial Paper Table**: AA 30-day rate, volume
+- **CLO Tranches Table**: AAA/AA/A tranche yields
+- **Default Rates Table**: By category
+- **Delinquency Rates Table**: Consumer credit delinquencies
+
+### 12. Sentiment
+**Sidebar:**
+- Fear & Greed: Current value with classification (Extreme Fear to Extreme Greed)
+- Risk Metrics: VIX level, put/call ratio, HY spread
+- Leverage: Margin debt, consumer credit
+
+**Main Panels:**
+- **Fear & Greed Chart**: 252-day history with fear/greed zones
+- **Financial Stress Index Chart**: St. Louis FSI history
+- **Cross-Asset Returns Table**: Equities, bonds, commodities, crypto % change
+- **Risk Signals Table**: Multiple indicators with risk-on/risk-off classification
+- **Leverage Metrics Table**: Margin debt, consumer credit values
+
+### 13. Calendar
+**Sidebar:**
+- Today's Events: Economic releases, earnings
+- This Week: Key dates summary
+
+**Main Panels:**
+- **Economic Calendar Table**: Date, time, event, consensus, previous, impact
+- **Central Bank Meetings**: Upcoming FOMC, ECB, BOJ dates
+- **Earnings Season**: High-profile earnings calendar
+- **Key Releases**: CPI, NFP, GDP, FOMC highlights
+
+### 14. Alerts
+**Sidebar:**
+- Active Alerts Count: Number of triggered alerts
+- Last Check: When alerts were last evaluated
+
+**Main Panels:**
+- **Active Alerts Table**: Alert name, condition, current value, threshold, severity
+- **Alert Rules Table**: All configured rules with enable/disable toggle
+
+**Alert Rules (Default):**
+1. VIX Spike: VIX > 30
+2. Curve Inversion: 2s10s < 0
+3. HY Stress: HY OAS > 400bps
+4. Fear Extreme: F&G < 20
+5. Greed Extreme: F&G > 80
+6. BTC Move: BTC ±5% in 24h
+7. Gold Move: Gold ±3% in 24h
+8. DXY Move: DXY ±2% in 24h
+
+### 15. Watchlist
+**Sidebar:**
+- Quick Metrics: VIX, DXY, 10Y Treasury, BTC, Gold, SPX, HY Spread, Fear & Greed shortcuts
+
+**Main Panels:**
+- **My Tickers**: Custom list of tickers with live quotes, add/remove functionality
+- **My Metrics**: Shortcuts to key metrics across markets
+
 ## Unified Dashboard Architecture
 
 All 15 markets now use a **"one-look" unified dashboard** pattern — no more tab switching to see all data. Each dashboard shows:

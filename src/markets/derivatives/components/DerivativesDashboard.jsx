@@ -1,10 +1,10 @@
 // src/markets/derivatives/components/DerivativesDashboard.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './DerivativesDashboard.css';
 
-export default function DerivativesDashboard({
+function DerivativesDashboard({
   volSurfaceData,
   vixTermStructure,
   optionsFlow,
@@ -13,11 +13,12 @@ export default function DerivativesDashboard({
   fredVixHistory,
   putCallRatio,
   skewIndex,
+  skewHistory,
+  gammaExposure,
   vixPercentile,
   termSpread,
 }) {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('vix');
 
   // VIX term structure chart
   const vixOption = useMemo(() => {
@@ -77,6 +78,33 @@ export default function DerivativesDashboard({
     };
   }, [volSurfaceData, colors]);
 
+  // SKEW history chart
+  const skewOption = useMemo(() => {
+    if (!skewHistory?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      grid: { top: 8, right: 12, bottom: 20, left: 40 },
+      xAxis: { type: 'category', data: skewHistory.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(skewHistory.dates.length / 5) } },
+      yAxis: { type: 'value', min: 110, max: 160, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{
+        type: 'line',
+        data: skewHistory.values,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 1.5, color: '#f59e0b' },
+        areaStyle: { color: 'rgba(245,158,11,0.1)' },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { type: 'dashed', color: colors.textDim },
+          data: [{ yAxis: 130, label: { position: 'end', formatter: 'Neutral', fontSize: 9, color: colors.textMuted } }],
+        },
+      }],
+    };
+  }, [skewHistory, colors]);
+
   // Options flow summary
   const flowSummary = useMemo(() => {
     if (!optionsFlow?.length) return null;
@@ -93,11 +121,9 @@ export default function DerivativesDashboard({
   }, [vixTermStructure]);
 
   return (
-    <div className="deriv-dashboard">
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* LEFT SIDEBAR - Key Metrics */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="deriv-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+    <div className="deriv-dashboard" role="region" aria-label="Derivatives Dashboard">
+      {/* Left Sidebar */}
+      <div className="deriv-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="Derivatives Metrics">
         {/* VIX */}
         <div className="deriv-sidebar-section">
           <div className="deriv-sidebar-title">VIX</div>
@@ -174,105 +200,169 @@ export default function DerivativesDashboard({
             </div>
           </div>
         )}
+
+        {/* SKEW Index */}
+        {skewIndex?.value != null && (
+          <div className="deriv-sidebar-section">
+            <div className="deriv-sidebar-title">SKEW</div>
+            <div className="deriv-metric-card">
+              <div className="deriv-metric-row">
+                <span className="deriv-metric-name">Index</span>
+                <span className="deriv-metric-num" style={{ color: skewIndex.value > 140 ? '#f87171' : skewIndex.value > 120 ? '#fbbf24' : '#4ade80' }}>
+                  {skewIndex.value.toFixed(1)}
+                </span>
+              </div>
+              {skewIndex.interpretation && (
+                <div className="deriv-metric-label" style={{ fontSize: 10, marginTop: 4 }}>
+                  {skewIndex.interpretation}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Gamma Exposure */}
+        {gammaExposure?.total != null && (
+          <div className="deriv-sidebar-section">
+            <div className="deriv-sidebar-title">Gamma (GEX)</div>
+            <div className="deriv-metric-card">
+              <div className="deriv-metric-row">
+                <span className="deriv-metric-name">Total</span>
+                <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>
+                  ${gammaExposure.total.toFixed(1)}B
+                </span>
+              </div>
+              <div className="deriv-metric-row">
+                <span className="deriv-metric-name">Net</span>
+                <span className="deriv-metric-num" style={{ color: gammaExposure.netGamma >= 0 ? '#4ade80' : '#f87171' }}>
+                  {gammaExposure.netGamma >= 0 ? '+' : ''}{gammaExposure.netGamma.toFixed(1)}B
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* MAIN CONTENT */}
-      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* Main Content - ALL visible at once */}
       <div className="deriv-main">
-        {/* Tab Navigation */}
-        <div className="deriv-tabs">
-          <button className={`deriv-tab ${activeTab === 'vix' ? 'active' : ''}`} onClick={() => setActiveTab('vix')}>VIX</button>
-          <button className={`deriv-tab ${activeTab === 'surface' ? 'active' : ''}`} onClick={() => setActiveTab('surface')}>Vol Surface</button>
-          <button className={`deriv-tab ${activeTab === 'flow' ? 'active' : ''}`} onClick={() => setActiveTab('flow')}>Flow</button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="deriv-tab-content">
-          {/* VIX TAB */}
-          <div className={`deriv-tab-panel ${activeTab === 'vix' ? 'active' : ''}`}>
-            <div className="deriv-content-grid">
-              {vixOption && (
-                <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="deriv-panel-title">VIX Term Structure</div>
-                  <div className="deriv-chart-wrap">
-                    <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-              {fredOption && (
-                <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="deriv-panel-title">VIX — 1 Year</div>
-                  <div className="deriv-chart-wrap">
-                    <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
+        <div className="deriv-content-grid">
+          {/* VIX Term Structure */}
+          {vixOption && (
+            <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="deriv-panel-title">VIX Term Structure</div>
+              <div className="deriv-chart-wrap">
+                <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* VOL SURFACE TAB */}
-          <div className={`deriv-tab-panel ${activeTab === 'surface' ? 'active' : ''}`}>
-            <div className="deriv-content-grid single">
-              {heatmapOption && (
-                <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="deriv-panel-header">
-                    <span className="deriv-panel-title">Vol Surface (SPX)</span>
-                    <span className="deriv-panel-subtitle">IV by strike/expiry</span>
-                  </div>
-                  <div className="deriv-chart-wrap" style={{ minHeight: 280 }}>
-                    <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
+          {/* VIX History */}
+          {fredOption && (
+            <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="deriv-panel-title">VIX — 1 Year</div>
+              <div className="deriv-chart-wrap">
+                <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* FLOW TAB */}
-          <div className={`deriv-tab-panel ${activeTab === 'flow' ? 'active' : ''}`}>
-            <div className="deriv-content-grid">
-              {flowSummary && (
-                <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="deriv-panel-title">Options Flow</div>
-                  <div className="deriv-mini-table" style={{ paddingTop: 8 }}>
-                    {flowSummary.map((f, i) => (
-                      <div key={i} className="deriv-mini-row">
-                        <span className="deriv-mini-name">{f.ticker || f.symbol}</span>
-                        <span className="deriv-mini-type">{f.type}</span>
-                        <span className="deriv-mini-value" style={{ color: f.side === 'BUY' ? '#4ade80' : '#f87171' }}>
-                          {f.side}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Vol Premium */}
-              {volPremium && (
-                <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="deriv-panel-title">Vol Premium</div>
-                  <div className="deriv-mini-table" style={{ paddingTop: 8 }}>
-                    {volPremium.atm1mIV != null && (
-                      <div className="deriv-mini-row">
-                        <span className="deriv-mini-name">ATM 1M IV</span>
-                        <span className="deriv-mini-value">{volPremium.atm1mIV.toFixed(1)}%</span>
-                      </div>
-                    )}
-                    {volPremium.premium != null && (
-                      <div className="deriv-mini-row">
-                        <span className="deriv-mini-name">Vol Premium</span>
-                        <span className="deriv-mini-value" style={{ color: volPremium.premium > 0 ? '#4ade80' : '#f87171' }}>
-                          {volPremium.premium >= 0 ? '+' : ''}{volPremium.premium.toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+          {/* SKEW Index */}
+          {skewOption && (
+            <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="deriv-panel-title">SKEW Index</div>
+              <div className="deriv-chart-wrap" style={{ minHeight: 140 }}>
+                <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Vol Surface */}
+          {heatmapOption && (
+            <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="deriv-panel-title">Vol Surface (SPX)</div>
+              <div className="deriv-chart-wrap" style={{ minHeight: 200 }}>
+                <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Options Flow */}
+          {flowSummary && (
+            <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="deriv-panel-title">Options Flow</div>
+              <div className="deriv-mini-table" style={{ paddingTop: 8 }}>
+                {flowSummary.map((f) => (
+                  <div key={f.ticker || f.symbol || `${f.type}-${f.side}`} className="deriv-mini-row">
+                    <span className="deriv-mini-name">{f.ticker || f.symbol}</span>
+                    <span className="deriv-mini-type">{f.type}</span>
+                    <span className="deriv-mini-value" style={{ color: f.side === 'BUY' ? '#4ade80' : '#f87171' }}>
+                      {f.side}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Vol Premium */}
+          {volPremium && (
+            <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="deriv-panel-title">Vol Premium</div>
+              <div className="deriv-mini-table" style={{ paddingTop: 8 }}>
+                {volPremium.atm1mIV != null && (
+                  <div className="deriv-mini-row">
+                    <span className="deriv-mini-name">ATM 1M IV</span>
+                    <span className="deriv-mini-value">{volPremium.atm1mIV.toFixed(1)}%</span>
+                  </div>
+                )}
+                {volPremium.premium != null && (
+                  <div className="deriv-mini-row">
+                    <span className="deriv-mini-name">Vol Premium</span>
+                    <span className="deriv-mini-value" style={{ color: volPremium.premium > 0 ? '#4ade80' : '#f87171' }}>
+                      {volPremium.premium >= 0 ? '+' : ''}{volPremium.premium.toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Gamma Exposure */}
+          {gammaExposure?.total != null && (
+            <div className="deriv-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="deriv-panel-title">Gamma Exposure</div>
+              <div className="deriv-mini-table" style={{ paddingTop: 8 }}>
+                <div className="deriv-mini-row">
+                  <span className="deriv-mini-name">Total GEX</span>
+                  <span className="deriv-mini-value" style={{ color: '#60a5fa' }}>
+                    ${gammaExposure.total.toFixed(1)}B
+                  </span>
+                </div>
+                <div className="deriv-mini-row">
+                  <span className="deriv-mini-name">Call Gamma</span>
+                  <span className="deriv-mini-value" style={{ color: '#4ade80' }}>
+                    ${gammaExposure.callGamma.toFixed(1)}B
+                  </span>
+                </div>
+                <div className="deriv-mini-row">
+                  <span className="deriv-mini-name">Put Gamma</span>
+                  <span className="deriv-mini-value" style={{ color: '#f87171' }}>
+                    ${gammaExposure.putGamma.toFixed(1)}B
+                  </span>
+                </div>
+                <div className="deriv-mini-row">
+                  <span className="deriv-mini-name">Net Gamma</span>
+                  <span className="deriv-mini-value" style={{ color: gammaExposure.netGamma >= 0 ? '#4ade80' : '#f87171' }}>
+                    {gammaExposure.netGamma >= 0 ? '+' : ''}${gammaExposure.netGamma.toFixed(1)}B
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default React.memo(DerivativesDashboard);

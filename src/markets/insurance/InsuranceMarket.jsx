@@ -12,14 +12,15 @@ function fmtChangePct(v) {
 /**
  * InsuranceMarket - Unified insurance dashboard
  * Shows all insurance data in one glanceable view:
- * - KPI strip (HY OAS, IG OAS, Combined Ratio, Reins Rate, Reinsurers)
+ * - Combined Ratio, Reinsurers, Reinsurance Rates, Reserve Adequacy
  * - Chart grid (HY OAS History, Combined Ratio, Reinsurance Rates, Reserves, Cat Bonds)
  */
 function InsuranceMarket({ autoRefresh } = {}) {
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
-    reinsurancePricing, reinsurers, hyOAS, igOAS, fredHyOasHistory,
+    reinsurancePricing, reinsurers, fredHyOasHistory,
     sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
+    catLosses, combinedRatioHistory,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
   } = useInsuranceData(autoRefresh);
 
@@ -40,13 +41,13 @@ function InsuranceMarket({ autoRefresh } = {}) {
         reserveAdequacyData={reserveAdequacyData}
         reinsurancePricing={reinsurancePricing}
         reinsurers={reinsurers}
-        hyOAS={hyOAS}
-        igOAS={igOAS}
         fredHyOasHistory={fredHyOasHistory}
         sectorETF={sectorETF}
         catBondProxy={catBondProxy}
         industryAvgCombinedRatio={industryAvgCombinedRatio}
         treasury10y={treasury10y}
+        catLosses={catLosses}
+        combinedRatioHistory={combinedRatioHistory}
       />
     </div>
   );

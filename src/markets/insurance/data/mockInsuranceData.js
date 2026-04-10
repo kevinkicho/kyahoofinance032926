@@ -50,3 +50,26 @@ export const fredHyOasHistory = {
   dates: MOCK_OAS_DATES,
   values: MOCK_OAS_DATES.map((_, i) => 350 + Math.sin(i / 10) * 50 + Math.random() * 20),
 };
+
+// Natural Catastrophe Losses (in $B)
+const CAT_LOSS_DATES = Array.from({ length: 60 }, (_, i) => {
+  const d = new Date('2025-01-01');
+  d.setMonth(d.getMonth() - (60 - i));
+  return d.toISOString().slice(0, 7);
+});
+
+export const catLosses = {
+  dates: CAT_LOSS_DATES,
+  values: CAT_LOSS_DATES.map((_, i) => Math.round((8 + Math.sin(i / 6) * 15 + (i % 12 === 8 ? 50 : 0) + Math.random() * 5) * 10) / 10),
+};
+
+// Combined Ratio History (industry average)
+export const combinedRatioHistory = {
+  quarters: combinedRatioData.quarters,
+  values: combinedRatioData.quarters.map((_, qIdx) => {
+    const ratios = Object.values(combinedRatioData.lines)
+      .map(arr => arr[qIdx])
+      .filter(v => v != null);
+    return ratios.length ? Math.round(ratios.reduce((s, v) => s + v, 0) / ratios.length * 10) / 10 : null;
+  }),
+};

@@ -1,10 +1,10 @@
 // src/markets/commodities/components/CommoditiesDashboard.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './CommoditiesDashboard.css';
 
-export default function CommoditiesDashboard({
+function CommoditiesDashboard({
   priceDashboardData,
   futuresCurveData,
   sectorHeatmapData,
@@ -19,7 +19,6 @@ export default function CommoditiesDashboard({
   seasonalPatterns,
 }) {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('prices');
 
   // Extract key commodity data
   const allCommodities = useMemo(() => {
@@ -76,9 +75,9 @@ export default function CommoditiesDashboard({
   }, [fredCommodities, colors]);
 
   return (
-    <div className="com-dashboard">
+    <div className="com-dashboard" role="region" aria-label="Commodities Dashboard">
       {/* Left Sidebar */}
-      <div className="com-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+      <div className="com-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="Commodities Metrics">
         {/* Key Prices */}
         <div className="com-sidebar-section">
           <div className="com-sidebar-title">Key Prices</div>
@@ -164,8 +163,8 @@ export default function CommoditiesDashboard({
           <div className="com-sidebar-section">
             <div className="com-sidebar-title">Positioning</div>
             <div className="com-metric-card">
-              {cotData.slice(0, 4).map((c, i) => (
-                <div key={i} className="com-metric-row">
+              {cotData.slice(0, 4).map((c) => (
+                <div key={c.commodity || c.ticker || `cot-${c}`} className="com-metric-row">
                   <span className="com-metric-name">{c.commodity}</span>
                   <span className="com-metric-num" style={{ color: (c.netLong || 0) > 0 ? '#22c55e' : '#f87171' }}>
                     {(c.netLong || 0) > 0 ? 'Long' : 'Short'}
@@ -177,189 +176,179 @@ export default function CommoditiesDashboard({
         )}
       </div>
 
-      {/* Main Content */}
+      {/* Main Content - ALL visible at once */}
       <div className="com-main">
-        {/* Tab Navigation */}
-        <div className="com-tabs" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
-          <button className={`com-tab ${activeTab === 'prices' ? 'active' : ''}`} onClick={() => setActiveTab('prices')}>Prices</button>
-          <button className={`com-tab ${activeTab === 'charts' ? 'active' : ''}`} onClick={() => setActiveTab('charts')}>Charts</button>
-          <button className={`com-tab ${activeTab === 'fundamentals' ? 'active' : ''}`} onClick={() => setActiveTab('fundamentals')}>Fundamentals</button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="com-tab-content">
-          {/* PRICES TAB */}
-          <div className={`com-tab-panel ${activeTab === 'prices' ? 'active' : ''}`}>
-            <div className="com-content-grid">
-              {/* Commodity Prices */}
-              {allCommodities.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Energy</div>
-                  <div className="com-mini-table">
-                    {allCommodities.filter(c => c.sector === 'Energy' || c.ticker?.includes('CL') || c.ticker?.includes('NG') || c.ticker?.includes('RB')).slice(0, 6).map((c, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{c.name || c.ticker}</span>
-                        <span className="com-mini-price">${c.price?.toFixed(2)}</span>
-                        <span className="com-mini-change" style={{ color: (c.change1d || 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                          {(c.change1d || 0) >= 0 ? '+' : ''}{(c.change1d || 0).toFixed(2)}%
-                        </span>
-                      </div>
-                    ))}
+        <div className="com-content-grid">
+          {/* Energy Prices */}
+          {allCommodities.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Energy</div>
+              <div className="com-mini-table">
+                {allCommodities.filter(c => c.sector === 'Energy' || c.ticker?.includes('CL') || c.ticker?.includes('NG') || c.ticker?.includes('RB')).slice(0, 6).map((c) => (
+                  <div key={c.ticker || c.name} className="com-mini-row">
+                    <span className="com-mini-name">{c.name || c.ticker}</span>
+                    <span className="com-mini-price">${c.price?.toFixed(2)}</span>
+                    <span className="com-mini-change" style={{ color: (c.change1d || 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                      {(c.change1d || 0) >= 0 ? '+' : ''}{(c.change1d || 0).toFixed(2)}%
+                    </span>
                   </div>
-                </div>
-              )}
-              {/* Metals */}
-              {allCommodities.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Metals</div>
-                  <div className="com-mini-table">
-                    {allCommodities.filter(c => c.sector === 'Metals' || c.ticker?.includes('GC') || c.ticker?.includes('SI') || c.ticker?.includes('HG')).slice(0, 6).map((c, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{c.name || c.ticker}</span>
-                        <span className="com-mini-price">${c.price?.toFixed(2)}</span>
-                        <span className="com-mini-change" style={{ color: (c.change1d || 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                          {(c.change1d || 0) >= 0 ? '+' : ''}{(c.change1d || 0).toFixed(2)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Agriculture */}
-              {allCommodities.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Agriculture</div>
-                  <div className="com-mini-table">
-                    {allCommodities.filter(c => c.sector === 'Agriculture' || c.ticker?.includes('ZC') || c.ticker?.includes('ZS') || c.ticker?.includes('ZW')).slice(0, 6).map((c, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{c.name || c.ticker}</span>
-                        <span className="com-mini-price">${c.price?.toFixed(2)}</span>
-                        <span className="com-mini-change" style={{ color: (c.change1d || 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                          {(c.change1d || 0) >= 0 ? '+' : ''}{(c.change1d || 0).toFixed(2)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Sector Performance */}
-              {sectorHeatmapData?.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Sector Performance</div>
-                  <div className="com-mini-table">
-                    {sectorHeatmapData.slice(0, 6).map((s, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{s.sector || s.name}</span>
-                        <span className="com-mini-value" style={{ color: (s.d1 || s.changePct || 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                          {(s.d1 || s.changePct || 0) >= 0 ? '+' : ''}{(s.d1 || s.changePct || 0).toFixed(2)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* CHARTS TAB */}
-          <div className={`com-tab-panel ${activeTab === 'charts' ? 'active' : ''}`}>
-            <div className="com-content-grid">
-              {goldOption && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Gold Price</div>
-                  <div className="com-chart-wrap">
-                    <SafeECharts option={goldOption} style={{ height: '100%', width: '100%' }} />
+          {/* Metals Prices */}
+          {allCommodities.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Metals</div>
+              <div className="com-mini-table">
+                {allCommodities.filter(c => c.sector === 'Metals' || c.ticker?.includes('GC') || c.ticker?.includes('SI') || c.ticker?.includes('HG')).slice(0, 6).map((c) => (
+                  <div key={c.ticker || c.name} className="com-mini-row">
+                    <span className="com-mini-name">{c.name || c.ticker}</span>
+                    <span className="com-mini-price">${c.price?.toFixed(2)}</span>
+                    <span className="com-mini-change" style={{ color: (c.change1d || 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                      {(c.change1d || 0) >= 0 ? '+' : ''}{(c.change1d || 0).toFixed(2)}%
+                    </span>
                   </div>
-                </div>
-              )}
-              {oilOption && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">WTI Oil Price</div>
-                  <div className="com-chart-wrap">
-                    <SafeECharts option={oilOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-              {natGasOption && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Natural Gas</div>
-                  <div className="com-chart-wrap">
-                    <SafeECharts option={natGasOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* FUNDAMENTALS TAB */}
-          <div className={`com-tab-panel ${activeTab === 'fundamentals' ? 'active' : ''}`}>
-            <div className="com-content-grid">
-              {/* COT Positioning */}
-              {cotData?.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">COT Positioning</div>
-                  <div className="com-mini-table" style={{ paddingTop: 8 }}>
-                    {cotData.slice(0, 8).map((c, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{c.commodity}</span>
-                        <span className="com-mini-value" style={{ color: (c.netLong || 0) > 0 ? '#22c55e' : '#f87171' }}>
-                          {(c.netLong || 0) > 0 ? 'Long' : 'Short'} {Math.abs(c.netLong || 0).toFixed(0)}K
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Supply/Demand */}
-              {supplyDemandData?.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Supply/Demand</div>
-                  <div className="com-mini-table" style={{ paddingTop: 8 }}>
-                    {supplyDemandData.slice(0, 8).map((s, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{s.commodity}</span>
-                        <span className="com-mini-value" style={{ color: s.balance > 0 ? '#22c55e' : '#f87171' }}>
-                          {s.balance > 0 ? 'Surplus' : 'Deficit'} {Math.abs(s.balance).toFixed(1)}Mbbl
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Futures Curve */}
-              {goldFuturesCurve?.expiries?.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Gold Futures Curve</div>
-                  <div className="com-mini-table" style={{ paddingTop: 8 }}>
-                    {goldFuturesCurve.expiries.slice(0, 8).map((e, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{e.month}</span>
-                        <span className="com-mini-value">${e.price?.toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Commodity Currencies */}
-              {commodityCurrencies?.length > 0 && (
-                <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="com-panel-title">Commodity FX</div>
-                  <div className="com-mini-table" style={{ paddingTop: 8 }}>
-                    {commodityCurrencies.slice(0, 6).map((c, i) => (
-                      <div key={i} className="com-mini-row">
-                        <span className="com-mini-name">{c.pair}</span>
-                        <span className="com-mini-value" style={{ color: (c.change || 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                          {c.rate?.toFixed(4)} ({(c.change || 0) >= 0 ? '+' : ''}{(c.change || 0).toFixed(2)}%)
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {/* Gold Chart */}
+          {goldOption && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Gold Price</div>
+              <div className="com-chart-wrap">
+                <SafeECharts option={goldOption} style={{ height: '100%', width: '100%' }} />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Oil Chart */}
+          {oilOption && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">WTI Oil Price</div>
+              <div className="com-chart-wrap">
+                <SafeECharts option={oilOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Natural Gas Chart */}
+          {natGasOption && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Natural Gas</div>
+              <div className="com-chart-wrap">
+                <SafeECharts option={natGasOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Agriculture */}
+          {allCommodities.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Agriculture</div>
+              <div className="com-mini-table">
+                {allCommodities.filter(c => c.sector === 'Agriculture' || c.ticker?.includes('ZC') || c.ticker?.includes('ZS') || c.ticker?.includes('ZW')).slice(0, 6).map((c) => (
+                  <div key={c.ticker || c.name} className="com-mini-row">
+                    <span className="com-mini-name">{c.name || c.ticker}</span>
+                    <span className="com-mini-price">${c.price?.toFixed(2)}</span>
+                    <span className="com-mini-change" style={{ color: (c.change1d || 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                      {(c.change1d || 0) >= 0 ? '+' : ''}{(c.change1d || 0).toFixed(2)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sector Performance */}
+          {sectorHeatmapData?.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Sector Performance</div>
+              <div className="com-mini-table">
+                {sectorHeatmapData.slice(0, 6).map((s) => (
+                  <div key={s.sector || s.name} className="com-mini-row">
+                    <span className="com-mini-name">{s.sector || s.name}</span>
+                    <span className="com-mini-value" style={{ color: (s.d1 || s.changePct || 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                      {(s.d1 || s.changePct || 0) >= 0 ? '+' : ''}{(s.d1 || s.changePct || 0).toFixed(2)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* COT Positioning */}
+          {cotData?.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">COT Positioning</div>
+              <div className="com-mini-table" style={{ paddingTop: 8 }}>
+                {cotData.slice(0, 8).map((c) => (
+                  <div key={c.commodity || c.ticker || `cot-${c}`} className="com-mini-row">
+                    <span className="com-mini-name">{c.commodity}</span>
+                    <span className="com-mini-value" style={{ color: (c.netLong || 0) > 0 ? '#22c55e' : '#f87171' }}>
+                      {(c.netLong || 0) > 0 ? 'Long' : 'Short'} {Math.abs(c.netLong || 0).toFixed(0)}K
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Supply/Demand */}
+          {supplyDemandData?.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Supply/Demand</div>
+              <div className="com-mini-table" style={{ paddingTop: 8 }}>
+                {supplyDemandData.slice(0, 8).map((s) => (
+                  <div key={s.commodity} className="com-mini-row">
+                    <span className="com-mini-name">{s.commodity}</span>
+                    <span className="com-mini-value" style={{ color: s.balance > 0 ? '#22c55e' : '#f87171' }}>
+                      {s.balance > 0 ? 'Surplus' : 'Deficit'} {Math.abs(s.balance).toFixed(1)}Mbbl
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Commodity Currencies */}
+          {commodityCurrencies?.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Commodity FX</div>
+              <div className="com-mini-table" style={{ paddingTop: 8 }}>
+                {commodityCurrencies.slice(0, 6).map((c) => (
+                  <div key={c.pair || c.code} className="com-mini-row">
+                    <span className="com-mini-name">{c.pair}</span>
+                    <span className="com-mini-value" style={{ color: (c.change || 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                      {c.rate?.toFixed(4)} ({(c.change || 0) >= 0 ? '+' : ''}{(c.change || 0).toFixed(2)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Gold Futures Curve */}
+          {goldFuturesCurve?.expiries?.length > 0 && (
+            <div className="com-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="com-panel-title">Gold Futures Curve</div>
+              <div className="com-mini-table" style={{ paddingTop: 8 }}>
+                {goldFuturesCurve.expiries.slice(0, 8).map((e) => (
+                  <div key={e.month || e.expiry} className="com-mini-row">
+                    <span className="com-mini-name">{e.month}</span>
+                    <span className="com-mini-value">${e.price?.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default React.memo(CommoditiesDashboard);

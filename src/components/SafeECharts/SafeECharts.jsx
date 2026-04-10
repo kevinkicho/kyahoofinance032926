@@ -23,7 +23,7 @@ const hasResizeObserver = typeof ResizeObserver !== 'undefined';
  *
  * Props: same as ReactECharts (option, style, className, etc.)
  */
-const SafeECharts = forwardRef(function SafeECharts({ option, style, className, opts, onEvents, ...rest }, ref) {
+const SafeECharts = forwardRef(function SafeECharts({ option, style, className, opts, onEvents, onChartReady, ...rest }, ref) {
   const instanceRef = useRef(null);
   const mountedRef = useRef(false);
   const containerRef = useRef(null);
@@ -67,12 +67,16 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     };
   }, []);
 
-  // Safe onChartReady that captures instance reference
+  // Safe onChartReady that captures instance reference and calls external handler
   const handleChartReady = useCallback((instance) => {
     if (mountedRef.current) {
       instanceRef.current = instance;
+      // Call external onChartReady if provided
+      if (onChartReady) {
+        onChartReady(instance);
+      }
     }
-  }, []);
+  }, [onChartReady]);
 
   // Wrap onEvents to check disposal before firing
   const safeOnEvents = useMemo(() => {

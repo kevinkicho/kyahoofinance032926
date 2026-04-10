@@ -2,11 +2,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   volSurfaceData  as mockVolSurfaceData,
   vixTermStructure as mockVixTermStructure,
   optionsFlow     as mockOptionsFlow,
   fredVixHistory  as mockFredVixHistory,
+  skewHistory     as mockSkewHistory,
+  gammaExposure   as mockGammaExposure,
 } from './mockDerivativesData';
 
 const SERVER = '';
@@ -20,13 +23,13 @@ export function useDerivativesData(autoRefresh = false) {
   const [fredVixHistory,   setFredVixHistory]   = useState(mockFredVixHistory);
   const [putCallRatio,     setPutCallRatio]     = useState(null);
   const [skewIndex,        setSkewIndex]        = useState(null);
+  const [skewHistory,      setSkewHistory]      = useState(mockSkewHistory);
+  const [gammaExposure,    setGammaExposure]    = useState(mockGammaExposure);
   const [vixPercentile,    setVixPercentile]    = useState(null);
   const [termSpread,       setTermSpread]       = useState(null);
-  const [isLive,           setIsLive]           = useState(false);
-  const [lastUpdated,      setLastUpdated]      = useState('Mock data — Apr 2025');
-  const [isLoading,        setIsLoading]        = useState(true);
-  const [fetchedOn,        setFetchedOn]        = useState(null);
-  const [isCurrent,        setIsCurrent]        = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/derivatives`)
@@ -42,20 +45,19 @@ export function useDerivativesData(autoRefresh = false) {
         if (data.fredVixHistory?.dates?.length >= 20) setFredVixHistory(data.fredVixHistory);
         if (data.putCallRatio != null)              setPutCallRatio(data.putCallRatio);
         if (data.skewIndex?.value != null)          setSkewIndex(data.skewIndex);
+        if (data.skewHistory?.dates?.length >= 20)  setSkewHistory(data.skewHistory);
+        if (data.gammaExposure?.total != null)      setGammaExposure(data.gammaExposure);
         if (data.vixPercentile != null)             setVixPercentile(data.vixPercentile);
         if (data.termSpread?.value != null)         setTermSpread(data.termSpread);
-        setIsLive(true);
-        setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        handleSuccess(data);
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'Derivatives'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, vixPercentile, termSpread, isLive, lastUpdated, isLoading, fetchedOn, isCurrent };
+  return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, skewHistory, gammaExposure, vixPercentile, termSpread, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
 }

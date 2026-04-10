@@ -9,15 +9,15 @@ import './BondsMarket.css';
  * Shows all bond data in one glanceable view:
  * - Yield Curve section (full-width with history charts)
  * - Macro & Real Yields section
- * - Credit & Spreads section
  * - Treasury Auctions section
  */
 function BondsMarket({ autoRefresh } = {}) {
   const {
-    yieldCurveData, creditRatingsData, spreadData, spreadIndicators, durationLadderData,
+    yieldCurveData, creditRatingsData, spreadIndicators, durationLadderData,
     breakevensData, treasuryRates, fredYieldHistory, fedFundsFutures, yieldHistory, mortgageSpread,
     tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory, m2HistoryData,
-    creditIndices, auctionData, nationalDebt,
+    auctionData, nationalDebt,
+    spreadHistory, cpiComponents, debtToGdpHistory,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent
   } = useBondsData(autoRefresh);
 
@@ -35,7 +35,6 @@ function BondsMarket({ autoRefresh } = {}) {
       <BondsDashboard
         yieldCurveData={yieldCurveData}
         creditRatingsData={creditRatingsData}
-        spreadData={spreadData}
         spreadIndicators={spreadIndicators}
         durationLadderData={durationLadderData}
         breakevensData={breakevensData}
@@ -49,9 +48,11 @@ function BondsMarket({ autoRefresh } = {}) {
         macroData={macroData}
         fedBalanceSheetHistory={fedBalanceSheetHistory}
         m2HistoryData={m2HistoryData}
-        creditIndices={creditIndices}
         auctionData={auctionData}
         nationalDebt={nationalDebt}
+        spreadHistory={spreadHistory}
+        cpiComponents={cpiComponents}
+        debtToGdpHistory={debtToGdpHistory}
       />
     </div>
   );

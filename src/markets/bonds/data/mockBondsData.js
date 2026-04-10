@@ -157,3 +157,83 @@ export const auctionData = [
 
 // National Debt (Trillions)
 export const nationalDebt = 34.5;
+
+// Spread History (for yield curve spread charts)
+export const spreadHistory = (() => {
+  const dates = [];
+  const t10y2y = [];
+  const t10y3m = [];
+  const t5y30y = [];
+  const base = new Date('2024-04-01');
+  for (let i = 0; i < 52; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i * 7);
+    dates.push(d.toISOString().split('T')[0].slice(5).replace('-', '-'));
+    // 10Y-2Y spread oscillating around 0.4%
+    t10y2y.push(+(0.42 + 0.15 * Math.sin(i / 8)).toFixed(2));
+    // 10Y-3M spread (inversion indicator)
+    t10y3m.push(+(-0.15 + 0.20 * Math.sin(i / 6)).toFixed(2));
+    // 5Y-30Y spread
+    t5y30y.push(+(0.20 + 0.10 * Math.sin(i / 10)).toFixed(2));
+  }
+  return {
+    dates,
+    t10y2y,
+    t10y3m,
+    t5y30y,
+    latest: { t10y2y: 0.42, t10y3m: -0.15, t5y30y: 0.20 },
+  };
+})();
+
+// CPI Components (for inflation breakout chart)
+export const cpiComponents = (() => {
+  const dates = [];
+  const all = [];
+  const core = [];
+  const food = [];
+  const energy = [];
+  const base = new Date('2024-01-01');
+  for (let i = 0; i < 48; i++) { // 4 years of monthly data
+    const d = new Date(base);
+    d.setMonth(d.getMonth() + i);
+    dates.push(d.toISOString().split('T')[0].slice(5).replace('-', '-'));
+    // YoY inflation rates
+    all.push(+(3.2 + 0.8 * Math.sin(i / 12) - i * 0.01).toFixed(1));
+    core.push(+(3.5 + 0.3 * Math.sin(i / 10) - i * 0.005).toFixed(1));
+    food.push(+(2.8 + 1.5 * Math.sin(i / 8) + i * 0.02).toFixed(1));
+    energy.push(+(5.0 + 3.0 * Math.sin(i / 6) - i * 0.03).toFixed(1));
+  }
+  return {
+    dates,
+    all,
+    core,
+    food,
+    energy,
+    latest: {
+      all: 315.5,
+      core: 318.2,
+      food: 310.8,
+      energy: 305.3,
+      allYoy: 3.2,
+    },
+  };
+})();
+
+// Debt-to-GDP History (quarterly)
+export const debtToGdpHistory = (() => {
+  const dates = [];
+  const values = [];
+  const base = new Date('2020-01-01');
+  for (let i = 0; i < 21; i++) { // Q1 2020 to Q1 2025
+    const d = new Date(base);
+    d.setMonth(d.getMonth() + i * 3);
+    dates.push(d.toISOString().split('T')[0].slice(0, 7)); // YYYY-MM format
+    // Rising from 106% to 122%
+    values.push(+(106 + i * 0.8).toFixed(1));
+  }
+  return {
+    dates,
+    values,
+    latest: 122.1,
+  };
+})();

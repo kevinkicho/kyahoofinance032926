@@ -1,5 +1,5 @@
 // src/components/Header/Header.jsx
-import React from 'react';
+import React, { useCallback } from 'react';
 import './Header.css';
 
 const RANK_METRICS = [
@@ -22,17 +22,22 @@ const Header = ({
   groupBy, setGroupBy,
   colorByPerf, setColorByPerf,
 }) => {
+  const handleViewMode = useCallback((mode) => () => setViewMode(mode), [setViewMode]);
+  const handleRankMetric = useCallback((id) => () => setRankMetric(id), [setRankMetric]);
+  const handleGroupBy = useCallback((id) => () => setGroupBy(id), [setGroupBy]);
+  const handleColorToggle = useCallback(() => setColorByPerf(v => !v), [setColorByPerf]);
+
   return (
     <header className="app-header">
       <div className="header-top">
         <h1>Equities</h1>
         <div className="controls">
           <div className="view-toggle">
-            <button className={viewMode === 'heatmap'   ? 'active' : ''} onClick={() => setViewMode('heatmap')}>Heatmap</button>
-            <button className={viewMode === 'list'      ? 'active' : ''} onClick={() => setViewMode('list')}>List View</button>
+            <button className={viewMode === 'heatmap'   ? 'active' : ''} onClick={handleViewMode('heatmap')}>Heatmap</button>
+            <button className={viewMode === 'list'      ? 'active' : ''} onClick={handleViewMode('list')}>List View</button>
             <button
               className={viewMode === 'race' ? 'active' : ''}
-              onClick={() => setViewMode('race')}
+              onClick={handleViewMode('race')}
               style={{ color: viewMode === 'race' ? '#fff' : '#f59e0b', borderColor: '#f59e0b' }}
             >Bar Race</button>
           </div>
@@ -45,7 +50,7 @@ const Header = ({
           <button
             key={m.id}
             className={`rank-btn ${rankMetric === m.id ? 'active' : ''}`}
-            onClick={() => setRankMetric(m.id)}
+            onClick={handleRankMetric(m.id)}
             title={m.desc}
           >{m.label}</button>
         ))}
@@ -55,7 +60,7 @@ const Header = ({
           <button
             key={g.id}
             className={`rank-btn group-btn ${groupBy === g.id ? 'active' : ''}`}
-            onClick={() => setGroupBy(g.id)}
+            onClick={handleGroupBy(g.id)}
             title={g.desc}
           >{g.label}</button>
         ))}
@@ -63,7 +68,7 @@ const Header = ({
         <button
           className={`rank-btn ${colorByPerf ? 'active' : ''}`}
           style={colorByPerf ? { borderColor: '#10b981', color: '#10b981' } : {}}
-          onClick={() => setColorByPerf(v => !v)}
+          onClick={handleColorToggle}
           title="Color cells by % price change when a historical date is selected"
         >Perf. Colors</button>
         <span className="ranking-hint">

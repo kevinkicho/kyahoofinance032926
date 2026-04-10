@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import './ListView.css';
 import { useTheme } from '../../hub/ThemeContext';
 
@@ -50,6 +50,12 @@ const ListView = ({
 }) => {
   const { colors } = useTheme();
   const metricMeta = METRIC_META[rankMetric] || METRIC_META.marketCap;
+
+  // Memoized sort handlers
+  const onSortTicker = useCallback(() => handleSort('ticker'), [handleSort]);
+  const onSortName = useCallback(() => handleSort('fullName'), [handleSort]);
+  const onSortRegion = useCallback(() => handleSort('region'), [handleSort]);
+  const onSortValue = useCallback(() => handleSort('value'), [handleSort]);
 
   // Build grouped rows: [{ type:'header', label, color, count, totalVal } | { type:'row', item }]
   const rows = useMemo(() => {
@@ -141,11 +147,11 @@ const ListView = ({
           <thead>
             <tr>
               <th className="lv-th-rank">#</th>
-              <th onClick={() => handleSort('ticker')}>Ticker{renderSortIndicator('ticker')}</th>
-              <th onClick={() => handleSort('fullName')}>Company{renderSortIndicator('fullName')}</th>
+              <th onClick={onSortTicker}>Ticker{renderSortIndicator('ticker')}</th>
+              <th onClick={onSortName}>Company{renderSortIndicator('fullName')}</th>
               <th>Sector</th>
-              <th onClick={() => handleSort('region')}>Region{renderSortIndicator('region')}</th>
-              <th className="text-right" onClick={() => handleSort('value')}>
+              <th onClick={onSortRegion}>Region{renderSortIndicator('region')}</th>
+              <th className="text-right" onClick={onSortValue}>
                 {metricMeta.col} ({currency}){renderSortIndicator('value')}
               </th>
               {showChange && <th className="text-right">vs Today</th>}

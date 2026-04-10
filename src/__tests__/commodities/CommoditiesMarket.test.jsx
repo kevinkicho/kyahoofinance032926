@@ -27,12 +27,18 @@ describe('CommoditiesMarket', () => {
     expect(goldElements.length).toBeGreaterThan(0);
   });
 
-  it('shows tabs for navigation', async () => {
+  it('shows all content visible at once (no tabs)', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard has tab navigation
-    expect(screen.getByRole('button', { name: 'Prices' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Charts' })).toBeInTheDocument();
+    // All content should be visible - check for key panel titles
+    const energyPanel = screen.getByText('Energy');
+    expect(energyPanel).toBeInTheDocument();
+    // Check that there are no tab buttons for navigation
+    const tabButtons = screen.queryAllByRole('button');
+    const tabNavButtons = tabButtons.filter(btn =>
+      btn.className && btn.className.includes('tab') && btn.className.includes('com')
+    );
+    expect(tabNavButtons.length).toBe(0);
   });
 
   it('shows mock data status when server unavailable', async () => {

@@ -1,10 +1,10 @@
 // src/markets/credit/components/CreditDashboard.jsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './CreditDashboard.css';
 
-export default function CreditDashboard({
+function CreditDashboard({
   spreadData,
   emBondData,
   loanData,
@@ -15,7 +15,6 @@ export default function CreditDashboard({
   excessReserves,
 }) {
   const { colors } = useTheme();
-  const [activeTab, setActiveTab] = useState('spreads');
 
   // Extract key values
   const igSpread = spreadData?.current?.igSpread ?? spreadData?.find?.(s => s.name?.includes('IG'))?.spread;
@@ -74,9 +73,9 @@ export default function CreditDashboard({
   }, [spreadData]);
 
   return (
-    <div className="credit-dashboard">
+    <div className="credit-dashboard" role="region" aria-label="Credit Dashboard">
       {/* Left Sidebar */}
-      <div className="credit-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+      <div className="credit-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="Credit Metrics">
         {/* Spreads */}
         <div className="credit-sidebar-section">
           <div className="credit-sidebar-title">Credit Spreads</div>
@@ -149,138 +148,130 @@ export default function CreditDashboard({
         )}
       </div>
 
-      {/* Main Content */}
-      <div className="credit-main">
-        {/* Tab Navigation */}
-        <div className="credit-tabs" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
-          <button className={`credit-tab ${activeTab === 'spreads' ? 'active' : ''}`} onClick={() => setActiveTab('spreads')}>Spreads</button>
-          <button className={`credit-tab ${activeTab === 'emerging' ? 'active' : ''}`} onClick={() => setActiveTab('emerging')}>EM Bonds</button>
-          <button className={`credit-tab ${activeTab === 'loans' ? 'active' : ''}`} onClick={() => setActiveTab('loans')}>Loans</button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="credit-tab-content">
-          {/* SPREADS TAB */}
-          <div className={`credit-tab-panel ${activeTab === 'spreads' ? 'active' : ''}`}>
-            <div className="credit-content-grid">
-              {spreadOption && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">Credit Spreads</div>
-                  <div className="credit-chart-wrap">
-                    <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} />
-                  </div>
-                </div>
-              )}
-              {spreadSummary.length > 0 && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">Spread Summary</div>
-                  <div className="credit-mini-table" style={{ paddingTop: 8 }}>
-                    {spreadSummary.map((s, i) => (
-                      <div key={i} className="credit-mini-row">
-                        <span className="credit-mini-name">{s.name}</span>
-                        <span className="credit-mini-value" style={{ color: s.spread > 150 ? '#f87171' : s.spread > 80 ? '#fbbf24' : '#22c55e' }}>
-                          {s.spread?.toFixed(0)} bps
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {commercialPaper?.history?.dates?.length > 0 && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">Commercial Paper</div>
-                  <div className="credit-mini-table" style={{ paddingTop: 8 }}>
-                    <div className="credit-mini-row">
-                      <span className="credit-mini-name">AA 30-Day</span>
-                      <span className="credit-mini-value">{commercialPaper.rate?.toFixed(2)}%</span>
-                    </div>
-                    {commercialPaper.volume != null && (
-                      <div className="credit-mini-row">
-                        <span className="credit-mini-name">Volume</span>
-                        <span className="credit-mini-value">${(commercialPaper.volume / 1e9).toFixed(0)}B</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+      {/* Main Content - ALL visible at once */}
+      <div className="credit-main" role="region" aria-label="Credit Charts">
+        <div className="credit-content-grid">
+          {/* Credit Spreads Chart */}
+          {spreadOption && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">Credit Spreads</div>
+              <div className="credit-chart-wrap">
+                <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* EMERGING TAB */}
-          <div className={`credit-tab-panel ${activeTab === 'emerging' ? 'active' : ''}`}>
-            <div className="credit-content-grid">
-              {emOption && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">EM Spread History</div>
-                  <div className="credit-chart-wrap">
-                    <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} />
+          {/* Spread Summary */}
+          {spreadSummary.length > 0 && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">Spread Summary</div>
+              <div className="credit-mini-table" style={{ paddingTop: 8 }}>
+                {spreadSummary.map((s) => (
+                  <div key={s.name} className="credit-mini-row">
+                    <span className="credit-mini-name">{s.name}</span>
+                    <span className="credit-mini-value" style={{ color: s.spread > 150 ? '#f87171' : s.spread > 80 ? '#fbbf24' : '#22c55e' }}>
+                      {s.spread?.toFixed(0)} bps
+                    </span>
                   </div>
-                </div>
-              )}
-              {(emBondData?.countries || emBondData)?.length > 0 && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">EM Yields</div>
-                  <div className="credit-mini-table" style={{ paddingTop: 8 }}>
-                    {(emBondData.countries || emBondData).slice(0, 8).map((e, i) => (
-                      <div key={i} className="credit-mini-row">
-                        <span className="credit-mini-name">{e.country || e.name}</span>
-                        <span className="credit-mini-value">{e.yld10y?.toFixed(2) || e.yield?.toFixed(2)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* LOANS TAB */}
-          <div className={`credit-tab-panel ${activeTab === 'loans' ? 'active' : ''}`}>
-            <div className="credit-content-grid">
-              {(loanData?.cloTranches || loanData)?.length > 0 && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">CLO Tranches</div>
-                  <div className="credit-mini-table" style={{ paddingTop: 8 }}>
-                    {(loanData.cloTranches || loanData).slice(0, 8).map((l, i) => (
-                      <div key={i} className="credit-mini-row">
-                        <span className="credit-mini-name">{l.tranche || l.sector}</span>
-                        <span className="credit-mini-value">{l.yield?.toFixed(2)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {defaultData?.rates?.length > 0 && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">Default Rates</div>
-                  <div className="credit-mini-table" style={{ paddingTop: 8 }}>
-                    {defaultData.rates.slice(0, 8).map((d, i) => (
-                      <div key={i} className="credit-mini-row">
-                        <span className="credit-mini-name">{d.category}</span>
-                        <span className="credit-mini-value" style={{ color: d.value > 3 ? '#f87171' : '#fbbf24' }}>
-                          {d.value?.toFixed(1)}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {delinquencyRates?.length > 0 && (
-                <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
-                  <div className="credit-panel-title">Delinquency Rates</div>
-                  <div className="credit-mini-table" style={{ paddingTop: 8 }}>
-                    {delinquencyRates.slice(0, 8).map((d, i) => (
-                      <div key={i} className="credit-mini-row">
-                        <span className="credit-mini-name">{d.type}</span>
-                        <span className="credit-mini-value">{d.rate?.toFixed(2)}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+          {/* EM Spread History */}
+          {emOption && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">EM Spread History</div>
+              <div className="credit-chart-wrap">
+                <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* EM Yields */}
+          {(emBondData?.countries || emBondData)?.length > 0 && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">EM Yields</div>
+              <div className="credit-mini-table" style={{ paddingTop: 8 }}>
+                {(emBondData.countries || emBondData).slice(0, 8).map((e) => (
+                  <div key={e.country || e.name} className="credit-mini-row">
+                    <span className="credit-mini-name">{e.country || e.name}</span>
+                    <span className="credit-mini-value">{e.yld10y?.toFixed(2) || e.yield?.toFixed(2)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Commercial Paper */}
+          {commercialPaper?.history?.dates?.length > 0 && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">Commercial Paper</div>
+              <div className="credit-mini-table" style={{ paddingTop: 8 }}>
+                <div className="credit-mini-row">
+                  <span className="credit-mini-name">AA 30-Day</span>
+                  <span className="credit-mini-value">{commercialPaper.rate?.toFixed(2)}%</span>
+                </div>
+                {commercialPaper.volume != null && (
+                  <div className="credit-mini-row">
+                    <span className="credit-mini-name">Volume</span>
+                    <span className="credit-mini-value">${(commercialPaper.volume / 1e9).toFixed(0)}B</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* CLO Tranches */}
+          {(loanData?.cloTranches || loanData)?.length > 0 && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">CLO Tranches</div>
+              <div className="credit-mini-table" style={{ paddingTop: 8 }}>
+                {(loanData.cloTranches || loanData).slice(0, 8).map((l) => (
+                  <div key={l.tranche || l.sector} className="credit-mini-row">
+                    <span className="credit-mini-name">{l.tranche || l.sector}</span>
+                    <span className="credit-mini-value">{l.yield?.toFixed(2)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Default Rates */}
+          {defaultData?.rates?.length > 0 && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">Default Rates</div>
+              <div className="credit-mini-table" style={{ paddingTop: 8 }}>
+                {defaultData.rates.slice(0, 8).map((d) => (
+                  <div key={d.category} className="credit-mini-row">
+                    <span className="credit-mini-name">{d.category}</span>
+                    <span className="credit-mini-value" style={{ color: d.value > 3 ? '#f87171' : '#fbbf24' }}>
+                      {d.value?.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Delinquency Rates */}
+          {delinquencyRates?.length > 0 && (
+            <div className="credit-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="credit-panel-title">Delinquency Rates</div>
+              <div className="credit-mini-table" style={{ paddingTop: 8 }}>
+                {delinquencyRates.slice(0, 8).map((d) => (
+                  <div key={d.type} className="credit-mini-row">
+                    <span className="credit-mini-name">{d.type}</span>
+                    <span className="credit-mini-value">{d.rate?.toFixed(2)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default React.memo(CreditDashboard);

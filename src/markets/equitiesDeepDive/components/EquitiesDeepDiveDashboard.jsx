@@ -242,7 +242,7 @@ function buildShortedOption(mostShorted, colors) {
   };
 }
 
-export default function EquitiesDeepDiveDashboard({
+function EquitiesDeepDiveDashboard({
   sectorData,
   factorData,
   earningsData,
@@ -306,9 +306,9 @@ export default function EquitiesDeepDiveDashboard({
   }, [mostShorted]);
 
   return (
-    <div className="eqd-dashboard">
+    <div className="eqd-dashboard" role="region" aria-label="Equities Deep Dive Dashboard">
       {/* Left Sidebar */}
-      <div className="eqd-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+      <div className="eqd-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="Market Metrics">
         {/* Market Valuation */}
         {(spPE != null || buffettIndicator || equityRiskPremium) && (
           <div className="eqd-sidebar-section">
@@ -568,3 +568,5 @@ export default function EquitiesDeepDiveDashboard({
     </div>
   );
 }
+
+export default React.memo(EquitiesDeepDiveDashboard);

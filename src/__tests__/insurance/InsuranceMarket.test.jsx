@@ -12,9 +12,9 @@ describe('InsuranceMarket', () => {
   it('renders unified dashboard after loading', async () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows sidebar with Credit Spreads section
-    const creditSpreadsSection = screen.getByText('Credit Spreads');
-    expect(creditSpreadsSection).toBeInTheDocument();
+    // Dashboard shows sidebar with Combined Ratio section
+    const combinedRatioSections = screen.getAllByText('Combined Ratio');
+    expect(combinedRatioSections.length).toBeGreaterThan(0);
   });
 
   it('shows sidebar with key metrics', async () => {
@@ -29,9 +29,9 @@ describe('InsuranceMarket', () => {
     render(<InsuranceMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     // All content is visible without tabs - check for various panels
-    // HY OAS should appear in sidebar
-    const creditSpreadsSection = screen.getByText('Credit Spreads');
-    expect(creditSpreadsSection).toBeInTheDocument();
+    // HY OAS Spread chart should appear in main content
+    const hyOasPanel = screen.getByText('HY OAS Spread');
+    expect(hyOasPanel).toBeInTheDocument();
   });
 
   it('shows mock data status when server unavailable', async () => {

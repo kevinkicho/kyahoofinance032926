@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
+import { useDataStatus } from '../../../hooks/useDataStatus';
 import {
   scorecardData       as mockScorecardData,
   growthInflationData as mockGrowthInflationData,
@@ -26,11 +27,9 @@ export function useGlobalMacroData(autoRefresh = false) {
   const [cfnai,               setCfnai]               = useState(mockCfnai);
   const [oecdCli,             setOecdCli]             = useState(mockOecdCli);
   const [cpiBreakdown,        setCpiBreakdown]        = useState(mockCpiBreakdown);
-  const [isLive,              setIsLive]              = useState(false);
-  const [lastUpdated,         setLastUpdated]         = useState('Mock data — 2023');
-  const [isLoading,           setIsLoading]           = useState(true);
-  const [fetchedOn,           setFetchedOn]           = useState(null);
-  const [isCurrent,           setIsCurrent]           = useState(false);
+
+  // Status with error handling
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
     fetchWithRetry(`${SERVER}/api/globalMacro`)
@@ -49,14 +48,11 @@ export function useGlobalMacroData(autoRefresh = false) {
         if (data.cfnai?.dates?.length)              { setCfnai(data.cfnai);                      anyReplaced = true; }
         if (data.oecdCli?.countries?.length >= 5)   { setOecdCli(data.oecdCli);                   anyReplaced = true; }
         if (data.cpiBreakdown?.components?.length >= 3) { setCpiBreakdown(data.cpiBreakdown);       anyReplaced = true; }
-        setIsLive(anyReplaced);
-        if (anyReplaced) setLastUpdated(data.lastUpdated || new Date().toISOString().split('T')[0]);
-        if (data.fetchedOn) setFetchedOn(data.fetchedOn);
-        setIsCurrent(!!data.isCurrent);
+        if (anyReplaced) handleSuccess(data);
       })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+      .catch((err) => handleError(err, 'GlobalMacro'))
+      .finally(() => handleFinally());
+  }, [handleSuccess, handleError, handleFinally]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -65,6 +61,6 @@ export function useGlobalMacroData(autoRefresh = false) {
   return {
     scorecardData, growthInflationData, centralBankData, debtData,
     m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent,
   };
 }

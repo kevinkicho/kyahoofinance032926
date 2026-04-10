@@ -15,6 +15,7 @@ function RealEstateMarket({ autoRefresh } = {}) {
     priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,
     caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
     housingStarts, existingHomeSales, rentalVacancy, medianHomePrice,
+    foreclosureData, mbaApplications, creDelinquencies,
     isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
   } = useRealEstateData(autoRefresh);
 
@@ -45,6 +46,9 @@ function RealEstateMarket({ autoRefresh } = {}) {
         existingHomeSales={existingHomeSales}
         rentalVacancy={rentalVacancy}
         medianHomePrice={medianHomePrice}
+        foreclosureData={foreclosureData}
+        mbaApplications={mbaApplications}
+        creDelinquencies={creDelinquencies}
       />
     </div>
   );

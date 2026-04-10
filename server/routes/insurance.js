@@ -247,6 +247,34 @@ router.get('/', async (req, res) => {
     try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch { /* use null */ }
   }
 
+  // Natural Catastrophe Losses (FRED NPORCT)
+  let catLosses = null;
+  if (FRED_API_KEY) {
+    try {
+      trackApiCall('FRED');
+      const catHist = await fetchFredHistory('NPORCT', FRED_API_KEY, 60);
+      if (catHist.length >= 12) {
+        catLosses = {
+          dates: catHist.map(p => p.date.slice(0, 7)),
+          values: catHist.map(p => Math.round(p.value * 10) / 10),
+        };
+      }
+    } catch { /* use null */ }
+  }
+
+  // Combined Ratio History (calculated from existing data)
+  const combinedRatioHistory = combinedRatioData?.quarters?.length && combinedRatioData?.lines
+    ? {
+        quarters: combinedRatioData.quarters,
+        values: combinedRatioData.quarters.map((_, qIdx) => {
+          const ratios = Object.values(combinedRatioData.lines)
+            .map(arr => arr[qIdx])
+            .filter(v => v != null);
+          return ratios.length ? Math.round(ratios.reduce((s, v) => s + v, 0) / ratios.length * 10) / 10 : null;
+        }),
+      }
+    : null;
+
   const result = {
     combinedRatioData,
     reserveAdequacyData,
@@ -258,6 +286,8 @@ router.get('/', async (req, res) => {
     catBondProxy,
     industryAvgCombinedRatio,
     treasury10y,
+    catLosses,
+    combinedRatioHistory,
     lastUpdated: today,
   };
 

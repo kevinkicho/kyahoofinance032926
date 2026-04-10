@@ -357,7 +357,70 @@ router.get('/', async (req, res) => {
         }
       : null;
 
-    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, lastUpdated: today };
+    // Foreclosure & Delinquency data
+    let foreclosureData = null;
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const [foreclosures, delinquencies] = await Promise.all([
+          fetchFredHistory('LXXACBS0FRBR', FRED_API_KEY, 52).catch(() => []),
+          fetchFredHistory('DRSFRWBS', FRED_API_KEY, 52).catch(() => []),
+        ]);
+        if (foreclosures.length >= 6 || delinquencies.length >= 6) {
+          foreclosureData = {
+            foreclosures: foreclosures.length >= 6 ? {
+              dates: foreclosures.map(p => p.date.slice(0, 7)),
+              values: foreclosures.map(p => Math.round(p.value * 100) / 100),
+            } : null,
+            delinquencies: delinquencies.length >= 6 ? {
+              dates: delinquencies.map(p => p.date.slice(0, 7)),
+              values: delinquencies.map(p => Math.round(p.value * 100) / 100),
+            } : null,
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    // MBA Applications data
+    let mbaApplications = null;
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const [purchaseApps, refiApps] = await Promise.all([
+          fetchFredHistory('MABMM301FRS', FRED_API_KEY, 52).catch(() => []),
+          fetchFredHistory('MABMM302FRS', FRED_API_KEY, 52).catch(() => []),
+        ]);
+        if (purchaseApps.length >= 6) {
+          mbaApplications = {
+            purchase: {
+              dates: purchaseApps.map(p => p.date.slice(0, 7)),
+              values: purchaseApps.map(p => Math.round(p.value)),
+            },
+            refi: refiApps.length >= 6 ? {
+              dates: refiApps.map(p => p.date.slice(0, 7)),
+              values: refiApps.map(p => Math.round(p.value)),
+            } : null,
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    // CRE Delinquencies
+    let creDelinquencies = null;
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const creHist = await fetchFredHistory('BOGZ1FL404090060Q', FRED_API_KEY, 24).catch(() => []);
+        if (creHist.length >= 4) {
+          creDelinquencies = {
+            dates: creHist.map(p => p.date.slice(0, 7)),
+            values: creHist.map(p => Math.round(p.value * 100) / 100),
+          };
+        }
+      } catch { /* use null */ }
+    }
+
+    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, lastUpdated: today };
     writeDailyCache('realEstate', result);
     cache.set(cacheKey, result, 900);
     res.json({ ...result, fetchedOn: today, isCurrent: true });

@@ -21,6 +21,63 @@ async function fetchFredLatest(seriesId, FRED_API_KEY) {
   return valid.length ? parseFloat(valid[0].value) : null;
 }
 
+// CFTC COT data mapping
+const COT_NAME_MAP = {
+  EUR: 'EURO FX',
+  JPY: 'JAPANESE YEN',
+  GBP: 'BRITISH POUND',
+  CAD: 'CANADIAN DOLLAR',
+  CHF: 'SWISS FRANC',
+  AUD: 'AUSTRALIAN DOLLAR',
+  NZD: 'NEW ZEALAND DOLLAR',
+  MXN: 'MEXICAN PESO',
+};
+
+// Fetch COT history (last 52 weeks)
+async function fetchCOTHistory() {
+  const CFTC_URL = 'https://publicreporting.cftc.gov/resource/jun7-fc8e.json' +
+    '?$select=report_date_as_yyyy_mm_dd,market_and_exchange_names,' +
+    'noncomm_positions_long_all,noncomm_positions_short_all,open_interest_all' +
+    '&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=400';
+
+  try {
+    const rows = await fetchJSON(CFTC_URL);
+    const history = {};
+
+    // Group by currency and date
+    rows.forEach(row => {
+      const date = row.report_date_as_yyyy_mm_dd;
+      if (!date) return;
+
+      Object.entries(COT_NAME_MAP).forEach(([code, needle]) => {
+        if (row.market_and_exchange_names?.includes(needle)) {
+          if (!history[code]) history[code] = [];
+          const long = parseFloat(row.noncomm_positions_long_all) || 0;
+          const short = parseFloat(row.noncomm_positions_short_all) || 0;
+          const oi = parseFloat(row.open_interest_all) || 1;
+          history[code].push({
+            date,
+            net: Math.round((long - short) / oi * 100 * 10) / 10,
+            long: Math.round(long / 1000),
+            short: Math.round(short / 1000),
+          });
+        }
+      });
+    });
+
+    // Sort and limit to last 52 weeks
+    Object.keys(history).forEach(code => {
+      history[code] = history[code]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-52);
+    });
+
+    return Object.keys(history).length >= 3 ? history : null;
+  } catch {
+    return null;
+  }
+}
+
 router.get('/', async (req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY || '';
   const cache = req.app.locals.cache;
@@ -140,11 +197,21 @@ router.get('/', async (req, res) => {
       } catch { /* use null */ }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // COT POSITIONING HISTORY
+    // ═══════════════════════════════════════════════════════════════════════
+    let cotHistory = null;
+    try {
+      trackApiCall('CFTC');
+      cotHistory = await fetchCOTHistory();
+    } catch { /* use null */ }
+
     const result = {
       fredFxRates:       fredFxRates ?? null,
       reer:              reer ?? null,
       rateDifferentials: rateDifferentials ?? null,
       dxyHistory:        dxyHistory ?? null,
+      cotHistory:        cotHistory ?? null,
       lastUpdated: today,
     };
 

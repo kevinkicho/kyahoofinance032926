@@ -9,7 +9,7 @@ import './GlobalMacroDashboard.css';
  * GlobalMacroDashboard - Unified view showing all macro data at once
  * Replaces the 5-tab structure (Scorecard, Growth, Rates, Debt, Activity)
  */
-export default function GlobalMacroDashboard({
+function GlobalMacroDashboard({
   scorecardData,
   growthInflationData,
   centralBankData,
@@ -96,7 +96,7 @@ export default function GlobalMacroDashboard({
   if (!scorecardData?.length) return null;
 
   return (
-    <div className="mac-dashboard">
+    <div className="mac-dashboard" role="region" aria-label="Global Macro Dashboard">
       {/* Global KPI Strip */}
       <GlobalKpiStrip
         scorecardData={scorecardData}
@@ -210,14 +210,6 @@ export default function GlobalMacroDashboard({
                     </span>
                   </div>
                 )}
-                {m2Growth?.yoyPct?.length > 0 && (
-                  <div className="mac-activity-metric">
-                    <span className="mac-activity-label">M2 YoY</span>
-                    <span className="mac-activity-value">
-                      {m2Growth.yoyPct[m2Growth.yoyPct.length - 1]?.toFixed(1)}%
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -259,6 +251,8 @@ export default function GlobalMacroDashboard({
     </div>
   );
 }
+
+export default React.memo(GlobalMacroDashboard);
 
 // Mini chart components (inline for now)
 function GdpBars({ data, colors }) {

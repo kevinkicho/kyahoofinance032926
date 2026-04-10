@@ -45,6 +45,24 @@ const CREDIT_INDICES = {
   baa10y: 'BAA10Y',
 };
 
+// Spread History Series (for charting)
+const SPREAD_HISTORY_SERIES = {
+  t10y2y: 'T10Y2Y',   // 10Y-2Y spread
+  t10y3m: 'T10Y3M',   // 10Y-3M spread
+  t5y30y: 'T5Y30',    // 5Y-30Y spread (5s30s)
+};
+
+// Debt-to-GDP (quarterly, for charting)
+const DEBT_GDP_SERIES = 'GFDEGDQ188S';
+
+// CPI Components (for inflation breakout)
+const CPI_SERIES = {
+  all: 'CPIAUCSL',      // CPI All Items
+  core: 'CPILFESL',     // Core CPI (ex food/energy)
+  food: 'CPIFABSL',    // Food
+  energy: 'CPIENGSL',   // Energy
+};
+
 // Macro Indicators
 const MACRO_SERIES = {
   fedBalanceSheet: 'WALCL',
@@ -234,6 +252,109 @@ router.get('/', async (req, res) => {
       : null;
 
     // ═══════════════════════════════════════════════════════════════════════
+    // YIELD CURVE SPREAD HISTORY (for charting)
+    // ═══════════════════════════════════════════════════════════════════════
+    let spreadHistory = null;
+    try {
+      trackApiCall('FRED');
+      const [t10y2yHist, t10y3mHist, t5y30yHist] = await Promise.all([
+        fetchFredHistory('T10Y2Y', FRED_API_KEY, 252).catch(() => null),
+        fetchFredHistory('T10Y3M', FRED_API_KEY, 252).catch(() => null),
+        fetchFredHistory('T5Y30', FRED_API_KEY, 252).catch(() => null),
+      ]);
+
+      if (t10y2yHist?.length >= 20) {
+        const dates = t10y2yHist.map(p => p.date);
+        const t10y3mMap = {};
+        (t10y3mHist || []).forEach(p => { t10y3mMap[p.date] = p.value; });
+        const t5y30yMap = {};
+        (t5y30yHist || []).forEach(p => { t5y30yMap[p.date] = p.value; });
+        spreadHistory = {
+          dates: dates.map(d => dateToMonthLabel(d)),
+          t10y2y: t10y2yHist.map(p => p.value),
+          t10y3m: dates.map(d => t10y3mMap[d] ?? null),
+          t5y30y: dates.map(d => t5y30yMap[d] ?? null),
+          latest: {
+            t10y2y: t10y2yHist[t10y2yHist.length - 1]?.value ?? null,
+            t10y3m: t10y3mHist?.[t10y3mHist.length - 1]?.value ?? null,
+            t5y30y: t5y30yHist?.[t5y30yHist.length - 1]?.value ?? null,
+          },
+        };
+      }
+    } catch { /* use null */ }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // DEBT-TO-GDP RATIO HISTORY
+    // ═══════════════════════════════════════════════════════════════════════
+    let debtToGdpHistory = null;
+    try {
+      trackApiCall('FRED');
+      const debtGdpHist = await fetchFredHistory('GFDEGDQ188S', FRED_API_KEY, 80).catch(() => null); // ~20 years quarterly
+      if (debtGdpHist?.length >= 10) {
+        debtToGdpHistory = {
+          dates: debtGdpHist.map(p => p.date.slice(0, 7)), // YYYY-MM format
+          values: debtGdpHist.map(p => p.value),
+          latest: debtGdpHist[debtGdpHist.length - 1]?.value ?? null,
+        };
+      }
+    } catch { /* use null */ }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CPI COMPONENTS (for inflation breakout)
+    // ═══════════════════════════════════════════════════════════════════════
+    let cpiComponents = null;
+    try {
+      trackApiCall('FRED');
+      const [cpiAllHist, cpiCoreHist, cpiFoodHist, cpiEnergyHist] = await Promise.all([
+        fetchFredHistory('CPIAUCSL', FRED_API_KEY, 60).catch(() => null),
+        fetchFredHistory('CPILFESL', FRED_API_KEY, 60).catch(() => null),
+        fetchFredHistory('CPIFABSL', FRED_API_KEY, 60).catch(() => null),
+        fetchFredHistory('CPIENGSL', FRED_API_KEY, 60).catch(() => null),
+      ]);
+
+      if (cpiAllHist?.length >= 12) {
+        const dates = cpiAllHist.map(p => p.date);
+        const cpiCoreMap = {};
+        (cpiCoreHist || []).forEach(p => { cpiCoreMap[p.date] = p.value; });
+        const cpiFoodMap = {};
+        (cpiFoodHist || []).forEach(p => { cpiFoodMap[p.date] = p.value; });
+        const cpiEnergyMap = {};
+        (cpiEnergyHist || []).forEach(p => { cpiEnergyMap[p.date] = p.value; });
+
+        // Calculate YoY changes
+        const calcYoy = (vals) => {
+          const yoy = [];
+          for (let i = 12; i < vals.length; i++) {
+            yoy.push(vals[i] != null && vals[i - 12] != null ? ((vals[i] - vals[i - 12]) / vals[i - 12]) * 100 : null);
+          }
+          return yoy;
+        };
+
+        const allVals = cpiAllHist.map(p => p.value);
+        const coreVals = dates.map(d => cpiCoreMap[d] ?? null);
+        const foodVals = dates.map(d => cpiFoodMap[d] ?? null);
+        const energyVals = dates.map(d => cpiEnergyMap[d] ?? null);
+
+        cpiComponents = {
+          dates: dates.slice(12).map(d => dateToMonthLabel(d)),
+          all: calcYoy(allVals),
+          core: calcYoy(coreVals),
+          food: calcYoy(foodVals),
+          energy: calcYoy(energyVals),
+          latest: {
+            all: allVals[allVals.length - 1],
+            core: coreVals.filter(v => v != null).pop(),
+            food: foodVals.filter(v => v != null).pop(),
+            energy: energyVals.filter(v => v != null).pop(),
+            allYoy: allVals[allVals.length - 1] != null && allVals[allVals.length - 13] != null
+              ? ((allVals[allVals.length - 1] - allVals[allVals.length - 13]) / allVals[allVals.length - 13]) * 100
+              : null,
+          },
+        };
+      }
+    } catch { /* use null */ }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // BREAKEVENS & REAL YIELDS
     // ═══════════════════════════════════════════════════════════════════════
     let breakevensData = null;
@@ -418,6 +539,7 @@ router.get('/', async (req, res) => {
       realYieldHistory,
       spreadData,
       spreadIndicators: Object.keys(spreadIndicators).length >= 3 ? spreadIndicators : null,
+      spreadHistory,
       creditIndices,
       breakevensData,
       fredYieldHistory,
@@ -425,6 +547,10 @@ router.get('/', async (req, res) => {
       fedFundsFutures,
       mortgageSpread,
       treasuryRates,
+
+      // New: CPI components
+      cpiComponents,
+      debtToGdpHistory,
 
       // Macro indicators
       macroData,

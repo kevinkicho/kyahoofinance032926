@@ -4,7 +4,7 @@ import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import './RealEstateDashboard.css';
 
-export default function RealEstateDashboard({
+function RealEstateDashboard({
   priceIndexData,
   reitData,
   affordabilityData,
@@ -20,6 +20,9 @@ export default function RealEstateDashboard({
   existingHomeSales,
   rentalVacancy,
   medianHomePrice,
+  foreclosureData,
+  mbaApplications,
+  creDelinquencies,
 }) {
   const { colors } = useTheme();
 
@@ -52,6 +55,91 @@ export default function RealEstateDashboard({
     };
   }, [reitEtf, colors]);
 
+  // Foreclosure chart
+  const foreclosureOption = useMemo(() => {
+    if (!foreclosureData?.foreclosures?.values?.length && !foreclosureData?.delinquencies?.values?.length) return null;
+    const series = [];
+    if (foreclosureData.foreclosures?.values?.length) {
+      series.push({
+        name: 'Foreclosure Rate',
+        type: 'line',
+        data: foreclosureData.foreclosures.values,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 1.5, color: '#ef4444' },
+      });
+    }
+    if (foreclosureData.delinquencies?.values?.length) {
+      series.push({
+        name: 'Delinquency Rate',
+        type: 'line',
+        data: foreclosureData.delinquencies.values,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 1.5, color: '#f59e0b' },
+      });
+    }
+    const dates = foreclosureData.foreclosures?.dates || foreclosureData.delinquencies?.dates || [];
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: series.map(s => s.name), top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 24, right: 20, bottom: 30, left: 50 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 5) } },
+      yAxis: { type: 'value', name: '%', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series,
+    };
+  }, [foreclosureData, colors]);
+
+  // MBA Applications chart
+  const mbaOption = useMemo(() => {
+    if (!mbaApplications?.purchase?.values?.length) return null;
+    const series = [{
+      name: 'Purchase',
+      type: 'line',
+      data: mbaApplications.purchase.values,
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { width: 1.5, color: '#3b82f6' },
+    }];
+    if (mbaApplications.refi?.values?.length) {
+      series.push({
+        name: 'Refi',
+        type: 'line',
+        data: mbaApplications.refi.values,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { width: 1.5, color: '#10b981' },
+      });
+    }
+    const dates = mbaApplications.purchase.dates || [];
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: series.map(s => s.name), top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 24, right: 20, bottom: 30, left: 50 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 5) } },
+      yAxis: { type: 'value', name: 'Index', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series,
+    };
+  }, [mbaApplications, colors]);
+
+  // CRE Delinquencies chart
+  const creOption = useMemo(() => {
+    if (!creDelinquencies?.values?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      grid: { top: 20, right: 20, bottom: 30, left: 50 },
+      xAxis: { type: 'category', data: creDelinquencies.dates, axisLabel: { color: colors.textMuted, fontSize: 9 } },
+      yAxis: { type: 'value', name: '%', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{ type: 'bar', data: creDelinquencies.values, itemStyle: { color: '#8b5cf6' }, barMaxWidth: 30 }],
+    };
+  }, [creDelinquencies, colors]);
+
   // Shiller latest value
   const shillerLatest = useMemo(() => {
     const shillerValues = caseShillerData?.national?.values || caseShillerData?.values;
@@ -59,9 +147,9 @@ export default function RealEstateDashboard({
   }, [caseShillerData]);
 
   return (
-    <div className="re-dashboard">
+    <div className="re-dashboard" role="region" aria-label="Real Estate Dashboard">
       {/* Left Sidebar */}
-      <div className="re-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }}>
+      <div className="re-sidebar" style={{ background: colors.bgPrimary, borderColor: colors.borderColor }} role="region" aria-label="Real Estate Metrics">
         {/* Home Prices */}
         <div className="re-sidebar-section">
           <div className="re-sidebar-title">Home Prices</div>
@@ -140,6 +228,39 @@ export default function RealEstateDashboard({
             )}
           </div>
         </div>
+
+        {/* Distress Indicators */}
+        {(foreclosureData?.foreclosures?.values?.length || foreclosureData?.delinquencies?.values?.length) && (
+          <div className="re-sidebar-section">
+            <div className="re-sidebar-title">Distress</div>
+            <div className="re-metric-card">
+              {foreclosureData?.foreclosures?.values && (
+                <div className="re-metric-row">
+                  <span className="re-metric-name">Foreclosure Rate</span>
+                  <span className="re-metric-num" style={{ color: '#f87171' }}>
+                    {foreclosureData.foreclosures.values[foreclosureData.foreclosures.values.length - 1]?.toFixed(2)}%
+                  </span>
+                </div>
+              )}
+              {foreclosureData?.delinquencies?.values && (
+                <div className="re-metric-row">
+                  <span className="re-metric-name">Delinquency</span>
+                  <span className="re-metric-num" style={{ color: '#fbbf24' }}>
+                    {foreclosureData.delinquencies.values[foreclosureData.delinquencies.values.length - 1]?.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+              {creDelinquencies?.values && (
+                <div className="re-metric-row">
+                  <span className="re-metric-name">CRE Delinq</span>
+                  <span className="re-metric-num" style={{ color: '#8b5cf6' }}>
+                    {creDelinquencies.values[creDelinquencies.values.length - 1]?.toFixed(1)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Content - ALL visible at once */}
@@ -230,8 +351,40 @@ export default function RealEstateDashboard({
               </div>
             </div>
           )}
+
+          {/* Foreclosure & Delinquency */}
+          {foreclosureOption && (
+            <div className="re-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="re-panel-title">Distress Indicators</div>
+              <div className="re-chart-wrap" style={{ minHeight: 140 }}>
+                <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* MBA Applications */}
+          {mbaOption && (
+            <div className="re-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="re-panel-title">MBA Applications</div>
+              <div className="re-chart-wrap" style={{ minHeight: 140 }}>
+                <SafeECharts option={mbaOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+
+          {/* CRE Delinquencies */}
+          {creOption && (
+            <div className="re-panel" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+              <div className="re-panel-title">CRE Delinquencies</div>
+              <div className="re-chart-wrap" style={{ minHeight: 140 }}>
+                <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
+export default React.memo(RealEstateDashboard);
