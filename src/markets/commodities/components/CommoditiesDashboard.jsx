@@ -53,7 +53,7 @@ function CommoditiesDashboard({
           <div className="com-bento-grid">
 
             {/* Row 1: Prices (8/12) + Futures (4/12) */}
-            <div className="com-grid-cell span-8" style={{ height: 'calc(55vh - 60px)' }}>
+            <div className="com-grid-cell span-8">
               <div className="com-card">
                 <div className="com-card-header">
                   <span className="com-card-title">Commodity Prices</span>
@@ -100,7 +100,7 @@ function CommoditiesDashboard({
               </div>
             </div>
 
-            <div className="com-grid-cell span-4" style={{ height: 'calc(55vh - 60px)' }}>
+            <div className="com-grid-cell span-4">
               <div className="com-card">
                 <div className="com-panel-content">
                   <FuturesCurve
@@ -114,7 +114,7 @@ function CommoditiesDashboard({
             </div>
 
             {/* Row 2: Sector (4/12) + Supply (4/12) + COT (4/12) */}
-            <div className="com-grid-cell span-4" style={{ height: 'calc(45vh - 60px)' }}>
+            <div className="com-grid-cell span-4">
               <div className="com-card">
                 <div className="com-card-header">
                   <span className="com-card-title">Sector Performance</span>
@@ -142,7 +142,7 @@ function CommoditiesDashboard({
               </div>
             </div>
 
-            <div className="com-grid-cell span-4" style={{ height: 'calc(45vh - 60px)' }}>
+            <div className="com-grid-cell span-4">
               <div className="com-card">
                 <div className="com-panel-content">
                   <SupplyDemand
@@ -153,7 +153,7 @@ function CommoditiesDashboard({
               </div>
             </div>
 
-            <div className="com-grid-cell span-4" style={{ height: 'calc(45vh - 60px)' }}>
+            <div className="com-grid-cell span-4">
               <div className="com-card">
                 <div className="com-panel-content">
                   <CotPositioning

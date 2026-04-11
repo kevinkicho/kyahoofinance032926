@@ -2,9 +2,9 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
   overflow: hidden;
   background: var(--bg-deep);
+  height: 100%;
 }
 
 .com-sidebar {
@@ -87,7 +87,7 @@
   min-width: 0;
 }
 
-/* Container fills remaining space and scrolls */
+/* Scrollable container — same pattern as Insurance */
 .com-scroll-container {
   flex: 1;
   min-height: 0;
@@ -95,7 +95,7 @@
   padding: 8px;
 }
 
-/* ── Bento Grid — responsive panels that fill width ── */
+/* ── Bento Grid — auto rows, content-sized, scrollable container ── */
 .com-bento-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -113,13 +113,10 @@
 .com-grid-cell.span-8 { grid-column: span 8; }
 .com-grid-cell.span-12 { grid-column: span 12; }
 
-/* ── Card & Panel — fill cell ── */
+/* ── Card & Panel ── */
 .com-card, .com-panel {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
   border-radius: 8px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -136,8 +133,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 2px 0 6px;
-  flex-shrink: 0;
+  padding-bottom: 6px;
 }
 
 .com-card-title {
@@ -182,12 +178,10 @@
   color: #ca8a04;
 }
 
-/* ── Panel content scrolls within cell ── */
+/* ── Panel content wrapper ── */
 .com-panel-content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .com-panel-header {
@@ -195,7 +189,7 @@
   align-items: baseline;
   gap: 8px;
   flex-shrink: 0;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .com-panel-title {
@@ -222,12 +216,11 @@
 .com-panel-footer {
   font-size: 10px;
   color: var(--text-muted);
-  padding: 4px 0 0;
-  margin-top: 2px;
+  padding: 6px 0 0;
+  margin-top: 6px;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   justify-content: space-between;
-  flex-shrink: 0;
 }
 
 /* ── Scroll areas ── */
@@ -299,19 +292,18 @@
 .com-kpi-strip {
   display: flex;
   gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
 .com-kpi-pill {
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
-  padding: 4px 10px;
+  padding: 5px 10px;
   display: flex;
   flex-direction: column;
-  min-width: 90px;
+  min-width: 100px;
 }
 
 .com-kpi-label {
@@ -322,7 +314,7 @@
 }
 
 .com-kpi-value {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   font-family: 'SF Mono', 'Cascadia Code', monospace;
   color: var(--text-primary);
@@ -341,24 +333,18 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  flex: 1;
-  min-height: 0;
 }
 
 .com-wide-narrow {
   display: grid;
   grid-template-columns: 3fr 1fr;
   gap: 8px;
-  flex: 1;
-  min-height: 0;
 }
 
 .com-three-col {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
-  flex: 1;
-  min-height: 0;
 }
 
 .com-chart-panel {
@@ -368,31 +354,29 @@
   padding: 6px 8px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
 }
 
 .com-chart-title {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 2px;
-  flex-shrink: 0;
+  margin-bottom: 4px;
 }
 
 .com-mini-chart {
   flex: 1;
-  min-height: 0;
+  min-height: 120px;
 }
+
+.com-chart-h170 { min-height: 170px; }
+.com-chart-h180 { min-height: 180px; }
+.com-chart-h210 { min-height: 210px; }
 
 /* ── COT Positioning ── */
 .cot-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
 }
 
 .cot-commodity {
@@ -427,9 +411,6 @@
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 6px;
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
 }
 
 .com-sd-panel {
@@ -440,13 +421,12 @@
   border-radius: 6px;
   padding: 6px;
   overflow: hidden;
-  min-height: 0;
 }
 
 .com-sd-panel:last-child { grid-column: 1 / -1; }
-.com-sd-title { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; flex-shrink: 0; }
-.com-sd-subtitle { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; flex-shrink: 0; }
-.com-sd-chart { flex: 1; min-height: 0; }
+.com-sd-title { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.com-sd-subtitle { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; }
+.com-sd-chart { flex: 1; min-height: 120px; }
 
 /* ── Sector bars ── */
 .com-sector-bars { display: flex; flex-direction: column; gap: 4px; }
@@ -485,11 +465,6 @@
 .com-thead-sticky .com-th {
   background: var(--bg-primary);
 }
-
-/* ── Chart height classes ── */
-.com-chart-h170 { flex: 1; min-height: 0; }
-.com-chart-h180 { flex: 1; min-height: 0; }
-.com-chart-h210 { flex: 1; min-height: 0; }
 
 /* ── Empty state ── */
 .com-empty {
@@ -531,9 +506,9 @@
 .com-th {
   background: var(--bg-card);
   color: var(--text-secondary);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 3px 6px;
+  padding: 6px 10px;
   border: 1px solid var(--bg-primary);
   text-align: right;
   white-space: nowrap;
@@ -544,7 +519,7 @@
 .com-row:hover { background: var(--bg-card); }
 
 .com-cell {
-  padding: 3px 6px;
+  padding: 5px 10px;
   border: 1px solid var(--bg-primary);
   text-align: right;
   font-size: 11px;
@@ -557,11 +532,11 @@
 .com-sector-row td {
   background: var(--bg-primary);
   color: var(--text-muted);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border: 1px solid var(--bg-primary);
 }
 
@@ -570,7 +545,7 @@
 .com-down   { color: #ef4444; }
 .com-flat   { color: var(--text-secondary); }
 
-.com-spark { width: 60px; height: 22px; display: block; }
+.com-spark { width: 80px; height: 28px; display: block; }
 
 .com-curve-pill {
   display: inline-flex;
@@ -580,7 +555,7 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 2px 8px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -597,7 +572,7 @@
 .com-curve-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .com-curve-table th {
@@ -624,7 +599,7 @@
   }
   .com-grid-cell.span-3 { grid-column: span 3; }
   .com-grid-cell.span-4 { grid-column: span 4; }
-  .com-grid-cell.span-6 { grid-column: span 8; }
+  .com-grid-cell.span-6 { grid-column: span 4; }
   .com-grid-cell.span-8 { grid-column: span 8; }
   .com-grid-cell.span-12 { grid-column: span 8; }
   .com-kpi-pill { min-width: 80px; }
@@ -639,7 +614,6 @@
   .com-grid-cell.span-6,
   .com-grid-cell.span-8,
   .com-grid-cell.span-12 { grid-column: 1; }
-  .com-grid-cell { height: auto !important; }
   .com-two-col,
   .com-wide-narrow,
   .com-three-col { grid-template-columns: 1fr; }

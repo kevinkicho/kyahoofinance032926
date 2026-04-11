@@ -202,7 +202,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       </div>
 
       {/* Bottom: crude production full-width */}
-      <div className="com-chart-panel" style={{ flexShrink: 0, minHeight: 80 }}>
+      <div className="com-chart-panel com-chart-h170">
         <div className="com-chart-title">US Crude Production (M bbl/day) — 52 Weeks</div>
         <div className="com-mini-chart">
            <SafeECharts

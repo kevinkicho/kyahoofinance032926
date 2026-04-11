@@ -182,7 +182,7 @@ export default function CotPositioning({ cotData }) {
               </div>
             </div>
             {c.history?.length > 2 && (
-              <div style={{ minHeight: 100, height: '100%' }}>
+              <div style={{ minHeight: 140, height: '100%' }}>
                 <SafeECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
               </div>
             )}
@@ -192,7 +192,7 @@ export default function CotPositioning({ cotData }) {
 
       {/* Net positioning trend overlay */}
       {cotData.commodities.length >= 2 && cotData.commodities[0].history?.length > 2 && (
-        <div className="com-chart-panel" style={{ flexShrink: 0, minHeight: 60 }}>
+        <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">Net Speculative Positioning — 12 Week Trend</div>
           <div className="com-mini-chart">
             <SafeECharts option={buildTrendOption(cotData.commodities, colors)} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />

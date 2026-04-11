@@ -226,7 +226,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
 
       {/* PPI chart */}
       {ppiOption && (
-        <div className="com-chart-panel" style={{ flexShrink: 0, minHeight: 80 }}>
+        <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">PPI Commodity Index — 3 Year (FRED monthly)</div>
           <div className="com-mini-chart">
             <SafeECharts option={ppiOption} style={{ height: '100%', width: '100%' }} />
