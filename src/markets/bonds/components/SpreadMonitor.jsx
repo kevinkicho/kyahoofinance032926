@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './BondsComponents.css';
+import './BondsDashboard.css';
 
 const SERIES_CONFIG = [
   { key: 'IG',  label: 'Investment Grade (IG)', color: '#60a5fa' },

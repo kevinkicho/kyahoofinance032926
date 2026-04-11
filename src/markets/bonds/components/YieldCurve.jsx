@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './BondsComponents.css';
+import './BondsDashboard.css';
 
 const TENORS = ['3m', '6m', '1y', '2y', '5y', '10y', '30y'];
 const COUNTRY_COLORS = {

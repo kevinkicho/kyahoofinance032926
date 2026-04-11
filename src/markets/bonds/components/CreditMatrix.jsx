@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import './BondsComponents.css';
+import './BondsDashboard.css';
 
 const RATING_TIER = {
   'AAA': 0, 'Aaa': 0,

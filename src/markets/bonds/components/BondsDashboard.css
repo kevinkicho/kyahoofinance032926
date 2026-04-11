@@ -1,30 +1,273 @@
-/* src/markets/bonds/components/BondsDashboard.css */
+/* ═════════════════════════════════════════════════════════════════
+   BONDS — Bento-box dashboard layout
 
-.bonds-dashboard {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  overflow: hidden;
-  background: var(--bg-deep);
-  height: 100%;
-  gap: 0;
-}
+   Uses react-grid-layout ResponsiveGridLayout for draggable/resizable
+   bento cards. Grid uses 12-column system with 120px row height.
+   ═════════════════════════════════════════════════════════════════ */
 
-/* ═════════════════════════════════════════════════════════════════ */
-/* LEFT SIDEBAR - Key Metrics */
-/* ═════════════════════════════════════════════════════════════════ */
-
-.bonds-sidebar {
-  width: 220px;
-  min-width: 220px;
-  flex-shrink: 0;
+/* ── 1. Market wrapper ── */
+.bonds-market {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-subtle);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-deep);
 }
 
+.bonds-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 20px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--bg-primary);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.bonds-status-live { color: #10b981; }
+
+.bonds-stale-badge {
+  background: #78350f;
+  color: #fcd34d;
+  border: 1px solid #92400e;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.bonds-sub-tabs { display: flex; align-items: center; background: var(--bg-deep); border-bottom: 1px solid var(--border-subtle); padding: 0 16px; height: 38px; flex-shrink: 0; }
+.bonds-sub-tab { padding: 0 14px; height: 100%; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-size: 12px; font-weight: 500; cursor: pointer; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+.bonds-sub-tab:hover { color: var(--text-secondary); }
+.bonds-sub-tab.active { color: #10b981; border-bottom-color: #10b981; }
+
+.bonds-loading { align-items: center; justify-content: center; gap: 12px; }
+.bonds-loading-spinner { width: 24px; height: 24px; border: 2px solid var(--border-subtle); border-top-color: #10b981; border-radius: 50%; }
+@keyframes bonds-spin { to { transform: rotate(360deg); } }
+.bonds-loading-text { font-size: 12px; color: var(--text-muted); }
+
+/* ── 2. Dashboard container ── */
+.bonds-dashboard.bonds-dashboard--bento {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 3. Bento root ── */
+.bonds-bento-root {
+  flex: 1 0 auto;
+  min-height: 400px;
+}
+
+/* ── 3b. Drag/drop placeholder ── */
+.bonds-bento-root .react-grid-item.react-grid-placeholder {
+  background: #10b981 !important;
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed #10b981 !important;
+}
+
+.bonds-bento-root .react-grid-item {
+  transition: none !important;
+}
+
+.bonds-bento-root .react-grid-item.cssTransforms {
+  transition: none !important;
+}
+
+/* ── 4. Bento Card ── */
+.bonds-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+}
+
+.bonds-bento-card:hover {
+  border-color: #10b981;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.15);
+}
+
+/* ── 4b. Resize handles ── */
+.bonds-bento-root .react-grid-item > .react-resizable-handle {
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  width: 20px !important;
+  height: 20px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  cursor: nwse-resize;
+}
+
+.bonds-bento-root .react-grid-item:hover > .react-resizable-handle {
+  opacity: 1;
+}
+
+.bonds-bento-root .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #10b981 !important;
+  border-bottom: 2px solid #10b981 !important;
+  width: 8px !important;
+  height: 8px !important;
+  right: 4px !important;
+  bottom: 4px !important;
+}
+
+.bonds-bento-root .react-grid-item.resizing { opacity: 0.85; z-index: 10; }
+.bonds-bento-root .react-grid-item.react-draggable-dragging { opacity: 0.85; z-index: 10; }
+
+/* ── 5. Panel title row — drag handle ── */
+.bonds-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.bonds-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bonds-panel-subtitle {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.bonds-panel-title-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+/* ── 6. Toggle buttons ── */
+.bonds-toggle-btn {
+  padding: 2px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.bonds-toggle-btn:hover { background: var(--bg-deep); color: var(--text-secondary); }
+.bonds-toggle-active { background: var(--bg-deep); border-color: #10b981; color: #10b981; }
+
+/* ── 7. Panel content ── */
+.bonds-panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: 10px;
+  gap: 6px;
+  container-type: inline-size;
+  container-name: panel-content;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ── 8. KPI strip ── */
+.bonds-kpi-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.bonds-kpi-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 8px;
+  min-width: 80px;
+  flex: 1 1 80px;
+  overflow: hidden;
+}
+
+.bonds-kpi-label {
+  font-size: 8px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bonds-kpi-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bonds-kpi-value.accent { color: #10b981; }
+.bonds-kpi-value.positive { color: #4ade80; }
+.bonds-kpi-value.negative { color: #f87171; }
+.bonds-kpi-sub { font-size: 8px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── 9. Layout helpers ── */
+.bonds-wide-narrow { display: flex; gap: 6px; flex: 1; min-height: 0; flex-wrap: wrap; }
+.bonds-wide-narrow > :first-child { flex: 7; min-width: 0; }
+.bonds-wide-narrow > :last-child { flex: 3; min-width: 120px; max-width: 280px; }
+
+.bonds-chart-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 6px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bonds-chart-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+
+.bonds-chart-wrap {
+  flex: 1;
+  min-height: 60px;
+}
+
+/* ── 10. Sidebar metric cards (now in bento panels) ── */
 .bonds-sidebar-section {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border-subtle);
@@ -39,7 +282,6 @@
   margin-bottom: 8px;
 }
 
-/* Metric Cards in Sidebar */
 .bonds-metric-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -48,373 +290,167 @@
   margin-bottom: 6px;
 }
 
-.bonds-metric-card:last-child {
-  margin-bottom: 0;
-}
+.bonds-metric-card:last-child { margin-bottom: 0; }
 
-.bonds-metric-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
+.bonds-metric-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
 
-.bonds-metric-value {
-  font-size: 18px;
-  font-weight: 700;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  color: var(--text-primary);
-}
-
+.bonds-metric-value { font-size: 18px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; color: var(--text-primary); }
 .bonds-metric-value.positive { color: #4ade80; }
 .bonds-metric-value.negative { color: #f87171; }
 .bonds-metric-value.accent { color: #10b981; }
 .bonds-metric-value.warning { color: #fbbf24; }
 .bonds-metric-value.info { color: #60a5fa; }
 
-.bonds-metric-change {
-  font-size: 11px;
-  font-weight: 600;
-  margin-left: 4px;
-}
+.bonds-metric-change { font-size: 11px; font-weight: 600; margin-left: 4px; }
+.bonds-metric-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.bonds-metric-row:last-child { margin-bottom: 0; }
+.bonds-metric-name { font-size: 11px; color: var(--text-secondary); }
+.bonds-metric-num { font-size: 12px; font-weight: 600; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
 
-.bonds-metric-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 4px;
-}
+/* ── 11. Bar charts ── */
+.bonds-bar-row { display: flex; align-items: center; gap: 4px; font-size: 10px; }
+.bonds-bar-label { width: 24px; text-align: right; color: var(--text-secondary); font-weight: 500; flex-shrink: 0; }
+.bonds-bar-track { flex: 1; height: 10px; background: var(--bg-deep); border-radius: 2px; overflow: hidden; position: relative; }
+.bonds-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.bonds-bar-val { min-width: 36px; text-align: right; color: var(--text-primary); font-weight: 600; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 9px; }
 
-.bonds-metric-row:last-child {
-  margin-bottom: 0;
-}
+/* ── 12. Mini tables ── */
+.bonds-mini-table { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+.bonds-mini-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; background: var(--bg-primary); border-radius: 3px; font-size: 10px; }
+.bonds-mini-name { color: var(--text-secondary); font-weight: 500; }
+.bonds-mini-value { font-family: 'SF Mono', 'Cascadia Code', monospace; font-weight: 600; }
+.bonds-mini-duration { color: var(--text-muted); font-size: 9px; margin-left: 4px; }
 
-.bonds-metric-name {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
+.bonds-auction-table { display: flex; flex-direction: column; gap: 1px; }
+.bonds-auction-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; padding: 4px 6px; font-size: 9px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-subtle); }
+.bonds-auction-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; padding: 4px 6px; font-size: 10px; color: var(--text-primary); }
+.bonds-auction-row:hover { background: var(--bg-primary); border-radius: 3px; }
+.bonds-auction-yield { font-family: 'SF Mono', 'Cascadia Code', monospace; font-weight: 600; }
+.bonds-auction-btc { color: #60a5fa; font-weight: 600; }
 
-.bonds-metric-num {
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-}
+/* ── 13. Yield Curve special ── */
+.bonds-yield-panel { grid-column: 1 / -1; display: flex; gap: 12px; min-height: 200px; }
+.bonds-yield-chart { flex: 1; min-width: 0; }
+.bonds-yield-bars { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 20px; }
 
-/* ═════════════════════════════════════════════════════════════════ */
-/* MAIN CONTENT AREA */
-/* ═════════════════════════════════════════════════════════════════ */
+/* ── 14. Yield Curve pills ── */
+.yc-indicators { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 12px 4px; }
+.yc-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
+.yc-pill-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.yc-pill-value { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.yc-pill-pos .yc-pill-value { color: #4ade80; }
+.yc-pill-neg .yc-pill-value { color: #f87171; }
 
-.bonds-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
+/* ── 15. Duration pills ── */
+.dur-rates-row { display: flex; gap: 10px; padding: 6px 12px 4px; flex-wrap: wrap; flex-shrink: 0; }
+.dur-rate-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 14px; min-width: 80px; }
+.dur-rate-bucket { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.dur-rate-value { font-size: 14px; font-weight: 600; color: #10b981; }
+.dur-rate-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
 
-/* Tab Navigation */
-.bonds-tabs {
-  display: flex;
-  gap: 0;
-  padding: 0;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-}
+/* ── 16. Breakeven pills ── */
+.be-pills { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.be-pill { background: var(--bg-card); border-radius: 6px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 100px; }
+.be-pill-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.be-pill-value { font-size: 16px; font-weight: 700; color: var(--text-primary); font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }
+.be-pill-value.green { color: #10b981; }
+.be-footer { margin-top: 8px; font-size: 10px; color: var(--text-dim); }
 
-.bonds-tab {
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s;
-}
+/* ── 17. Rating distribution ── */
+.bonds-dist-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; font-size: 11px; }
+.bonds-dist-label { width: 32px; text-align: right; font-weight: 600; flex-shrink: 0; }
+.bonds-dist-bar { flex: 1; height: 16px; border-radius: 3px; }
+.bonds-dist-count { width: 20px; text-align: right; color: var(--text-secondary); font-weight: 600; }
 
-.bonds-tab:hover {
-  color: var(--text-secondary);
-  background: var(--bg-card);
-}
+.bonds-rate-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-subtle); font-size: 12px; }
+.bonds-rate-item:last-child { border-bottom: none; }
+.bonds-rate-bucket { color: var(--text-secondary); font-weight: 500; }
+.bonds-rate-value { color: #10b981; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; }
 
-.bonds-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: #10b981;
-}
-
-/* Tab Content */
-.bonds-tab-content {
-  flex: 1;
-  overflow: hidden;
+/* ── 18. Panel header/footer for sub-components ── */
+.bonds-panel {
   display: flex;
   flex-direction: column;
-}
-
-.bonds-tab-panel {
-  display: none;
-  flex: 1;
-  overflow: hidden;
-}
-
-.bonds-tab-panel.active {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Grid Layout for Tab Content */
-.bonds-content-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 8px;
+  min-height: 0;
   flex: 1;
   overflow-y: auto;
-  align-content: start;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
-.bonds-content-grid.wide-2 {
-  grid-template-columns: 2fr 1fr;
-}
-
-.bonds-content-grid.single {
-  grid-template-columns: 1fr;
-}
-
-/* ═════════════════════════════════════════════════════════════════ */
-/* CHART PANELS */
-/* ═════════════════════════════════════════════════════════════════ */
-
-.bonds-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 8px 10px;
+.bonds-panel-scroll {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 6px;
 }
 
 .bonds-panel-header {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  flex-direction: column;
   margin-bottom: 6px;
   flex-shrink: 0;
 }
 
-.bonds-panel-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.bonds-panel-subtitle {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.bonds-chart-wrap {
-  flex: 1;
-  min-height: 100px;
-}
-
 .bonds-panel-footer {
-  font-size: 9px;
-  color: var(--text-dim);
-  margin-top: 4px;
-  padding-top: 4px;
+  font-size: 8px;
+  color: var(--text-muted);
+  padding: 3px 0 0;
+  margin-top: 3px;
   border-top: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-}
-
-/* ═════════════════════════════════════════════════════════════════ */
-/* YIELD CURVE SPECIAL PANEL */
-/* ═════════════════════════════════════════════════════════════════ */
-
-.bonds-yield-panel {
-  grid-column: 1 / -1;
   display: flex;
-  gap: 12px;
-  min-height: 200px;
-}
-
-.bonds-yield-chart {
-  flex: 1;
-  min-width: 0;
-}
-
-.bonds-yield-bars {
-  width: 180px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 20px;
-}
-
-.bonds-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-}
-
-.bonds-bar-label {
-  width: 24px;
-  text-align: right;
-  color: var(--text-secondary);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.bonds-bar-track {
-  flex: 1;
-  height: 10px;
-  background: var(--bg-deep);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.bonds-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s;
-}
-
-.bonds-bar-val {
-  min-width: 36px;
-  text-align: right;
-  color: var(--text-primary);
-  font-weight: 600;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-size: 9px;
-}
-
-/* ═════════════════════════════════════════════════════════════════ */
-/* MINI TABLES */
-/* ═════════════════════════════════════════════════════════════════ */
-
-.bonds-mini-table {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.bonds-mini-row {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 4px 6px;
-  background: var(--bg-primary);
-  border-radius: 3px;
-  font-size: 10px;
+  flex-shrink: 0;
 }
 
-.bonds-mini-name {
-  color: var(--text-secondary);
-  font-weight: 500;
+.bonds-bento-card { cursor: default; }
+.bonds-panel-title-row { cursor: grab; }
+.bonds-panel-title-row:active { cursor: grabbing; }
+
+/* ── 19. Responsive ── */
+@container bento-card (max-width: 500px) {
+  .bonds-kpi-pill { padding: 2px 6px; min-width: 60px; }
+  .bonds-kpi-label { font-size: 7px; }
+  .bonds-kpi-value { font-size: 11px; }
+  .bonds-kpi-sub { font-size: 7px; }
+  .bonds-panel-title { font-size: 10px; }
+  .bonds-panel-subtitle { font-size: 8px; }
+  .bonds-panel-content { padding: 6px; gap: 4px; }
+  .bonds-chart-title { font-size: 9px; }
+  .bonds-metric-value { font-size: 15px; }
 }
 
-.bonds-mini-value {
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-weight: 600;
+@container bento-card (max-height: 280px) {
+  .bonds-panel-content { padding: 4px 6px; gap: 3px; }
+  .bonds-kpi-pill { padding: 2px 5px; min-width: 50px; }
+  .bonds-kpi-label { font-size: 6px; }
+  .bonds-kpi-value { font-size: 10px; }
+  .bonds-panel-title { font-size: 10px; }
+  .bonds-panel-footer { display: none; }
 }
 
-.bonds-mini-duration {
-  color: var(--text-muted);
-  font-size: 9px;
-  margin-left: 4px;
+@container panel-content (max-width: 400px) {
+  .bonds-wide-narrow { flex-direction: column; }
+  .bonds-wide-narrow > :first-child { flex: 1; }
+  .bonds-wide-narrow > :last-child { flex: 0 0 auto; max-width: none; min-width: 0; }
+  .bonds-kpi-pill { min-width: 50px; padding: 2px 5px; }
+  .bonds-kpi-value { font-size: 11px; }
+  .bonds-bar-label { width: 20px; font-size: 9px; }
+  .bonds-bar-val { font-size: 8px; min-width: 28px; }
 }
 
-/* Auction Table */
-.bonds-auction-table {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.bonds-auction-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 6px;
-  padding: 4px 6px;
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.bonds-auction-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 6px;
-  padding: 4px 6px;
-  font-size: 10px;
-  color: var(--text-primary);
-}
-
-.bonds-auction-row:hover {
-  background: var(--bg-primary);
-  border-radius: 3px;
-}
-
-.bonds-auction-yield {
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-weight: 600;
-}
-
-.bonds-auction-btc {
-  color: #60a5fa;
-  font-weight: 600;
-}
-
-/* ═════════════════════════════════════════════════════════════════ */
-/* RESPONSIVE */
-/* ═════════════════════════════════════════════════════════════════ */
-
-@media (max-width: 1400px) {
-  .bonds-content-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .bonds-sidebar {
-    width: 180px;
-    min-width: 180px;
-  }
+@container panel-content (max-height: 300px) {
+  .bonds-kpi-strip { gap: 3px; }
+  .bonds-kpi-pill { padding: 2px 5px; min-width: 50px; }
+  .bonds-kpi-label { font-size: 6px; }
+  .bonds-kpi-value { font-size: 10px; }
+  .bonds-panel-footer { display: none; }
 }
 
 @media (max-width: 1000px) {
-  .bonds-dashboard {
-    flex-direction: column;
-  }
-  .bonds-sidebar {
-    width: 100%;
-    min-width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-x: auto;
-    max-height: 120px;
-  }
-  .bonds-sidebar-section {
-    min-width: 160px;
-    border-right: 1px solid var(--border-subtle);
-    border-bottom: none;
-  }
-  .bonds-content-grid {
-    grid-template-columns: 1fr;
-  }
-  .bonds-yield-panel {
-    flex-direction: column;
-  }
-  .bonds-yield-bars {
-    width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    padding-top: 8px;
-  }
+  .bonds-wide-narrow { flex-direction: column; }
+  .bonds-wide-narrow > :last-child { max-width: none; }
 }

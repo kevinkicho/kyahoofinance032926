@@ -1,7 +1,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './BondsComponents.css';
+import './BondsDashboard.css';
 
 function fmt(v) { return v != null ? `${v.toFixed(2)}%` : '—'; }
 

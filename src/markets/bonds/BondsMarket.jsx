@@ -2,7 +2,7 @@ import React from 'react';
 import { useBondsData } from './data/useBondsData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import BondsDashboard from './components/BondsDashboard';
-import './BondsMarket.css';
+import './components/BondsDashboard.css';
 
 /**
  * BondsMarket - Unified bonds dashboard

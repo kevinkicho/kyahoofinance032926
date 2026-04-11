@@ -30,8 +30,8 @@ describe('BondsMarket', () => {
     render(<BondsMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
     // All charts should be visible at once - check for key panel titles
-    const yieldCurveTitle = screen.getByText('Yield Curve Comparison');
-    expect(yieldCurveTitle).toBeInTheDocument();
+    const yieldCurveElements = screen.getAllByText('Yield Curve');
+    expect(yieldCurveElements.length).toBeGreaterThan(0);
     // Check that there are no tab buttons
     const tabButtons = screen.queryAllByRole('button');
     // Should have no tab buttons for navigation (may have other buttons)

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './BondsComponents.css';
+import './BondsDashboard.css';
 
 const MIDPOINTS = { '0\u20132y': 1, '2\u20135y': 3.5, '5\u201310y': 7.5, '10y+': 15 };
 
