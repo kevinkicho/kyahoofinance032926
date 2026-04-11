@@ -1,0 +1,172 @@
+/* ═══════════════════════════════════════════════════════════════
+   BentoWrapper — Shared bento grid styles
+   
+   These universal classes are used by react-grid-layout for
+   drag handles and drag cancellation across all market tabs.
+   Market-specific styles (.com-panel-title-row, .bonds-panel-title-row,
+   etc.) provide visual accents on top of these base styles.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Drag handle — title row of each bento card ── */
+.bento-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.bento-panel-title-row:active {
+  cursor: grabbing;
+}
+
+/* ── Content area — drag-canceled so text selection and clicks work ── */
+.bento-panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: panel-content;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ── Scroll variant ── */
+.bento-panel-content.bento-panel-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  gap: 6px;
+}
+
+/* ── Bento card base (drag target) ── */
+.bento-card,
+.bonds-bento-card,
+.eq-bento-card,
+.fx-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+  cursor: default;
+}
+
+/* ── Placeholder shown during drag ── */
+.react-grid-item.react-grid-placeholder {
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed !important;
+}
+
+/* ── Disable RGL CSS transitions on bento cards ── */
+.com-bento-root .react-grid-item,
+.fx-dashboard--bento .react-grid-item {
+  transition: none !important;
+}
+
+.com-bento-root .react-grid-item.cssTransforms,
+.fx-dashboard--bento .react-grid-item.cssTransforms {
+  transition: none !important;
+}
+
+/* ── Resize handle ── */
+.react-grid-item > .react-resizable-handle {
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  width: 20px !important;
+  height: 20px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  cursor: nwse-resize;
+}
+
+.react-grid-item:hover > .react-resizable-handle {
+  opacity: 1;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  width: 8px !important;
+  height: 8px !important;
+  right: 4px !important;
+  bottom: 4px !important;
+}
+
+/* ── Drag/resize states ── */
+.react-grid-item.resizing {
+  opacity: 0.85;
+  z-index: 10;
+}
+
+.react-grid-item.react-draggable-dragging {
+  opacity: 0.85;
+  z-index: 10;
+}
+
+/* ── Toggle buttons (shared pattern used in commodities, equities, etc.) ── */
+.bento-toggle-btn {
+  padding: 2px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.bento-toggle-btn:hover { background: var(--bg-deep); color: var(--text-secondary); }
+
+/* ── Panel title & subtitle (shared base) ── */
+.bento-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bento-panel-subtitle {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.bento-panel-title-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+/* ── Close button (used in sidebar panels) ── */
+.bento-close-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 6px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+
+.bento-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #ef4444;
+}

@@ -3,20 +3,72 @@ import Header from '../../components/Header/Header';
 import HeatmapView from '../../components/HeatmapView/HeatmapView';
 import ListView from '../../components/ListView/ListView';
 import Sidebar from '../../components/Sidebar/Sidebar';
+import DetailPanel from '../../components/DetailPanel/DetailPanel';
+import BarRaceView from '../../components/BarRaceView/BarRaceView';
+import BentoWrapper from '../../components/BentoWrapper';
 import { mockTreemapData } from '../../mockData';
 import { currencySymbols } from '../../utils/constants';
 import { useFrankfurterRates } from '../../utils/useFrankfurterRates';
 import { getExtendedDetails } from '../../utils/dataHelpers';
-import BarRaceView from '../../components/BarRaceView/BarRaceView';
+import './EquitiesDashboard.css';
 
+const stopDrag = (e) => e.stopPropagation();
+
+const RANK_PALETTE = [
+  '#f59e0b', '#22c55e', '#3b82f6', '#ef4444', '#a855f7',
+  '#f97316', '#06b6d4', '#ec4899', '#84cc16', '#8b5cf6',
+  '#14b8a6', '#f43f5e', '#0ea5e9', '#eab308', '#10b981',
+  '#fb923c', '#818cf8', '#e879f9', '#4ade80', '#38bdf8',
+];
+
+const SECTOR_COLORS = {
+  'Technology':  '#3b82f6',
+  'Financials':  '#10b981',
+  'Consumer':    '#f59e0b',
+  'Healthcare':  '#ec4899',
+  'Energy':      '#f97316',
+  'Industrials': '#8b5cf6',
+  'Crypto':      '#f7931a',
+  'Other':       '#64748b',
+};
+
+const STORAGE_KEY = 'equities-view';
+
+function usePersistedState(key, defaultValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved !== null ? saved : defaultValue;
+    } catch { return defaultValue; }
+  });
+  const persist = (v) => {
+    setValue(v);
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  return [value, persist];
+}
+
+const HEATMAP_LAYOUT = {
+  lg: [
+    { i: 'heatmap', x: 0, y: 0, w: 8, h: 5 },
+    { i: 'sidebar', x: 8, y: 0, w: 4, h: 5 },
+  ]
+};
+
+const RACE_LAYOUT = {
+  lg: [
+    { i: 'race',   x: 0, y: 0, w: 8, h: 5 },
+    { i: 'sidebar', x: 8, y: 0, w: 4, h: 5 },
+  ]
+};
 
 export default function EquitiesMarket({ currency, setCurrency }) {
-  const [viewMode, setViewMode] = useState('heatmap');
+  const [viewMode, setViewMode] = usePersistedState(`${STORAGE_KEY}-viewMode`, 'heatmap');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'value', direction: 'descending' });
   const [selectedTicker, setSelectedTicker] = useState(null);
-  const [rankMetric, setRankMetric] = useState('marketCap');
-  const [groupBy, setGroupBy] = useState('market');
+  const [rankMetric, setRankMetric] = usePersistedState(`${STORAGE_KEY}-rankMetric`, 'marketCap');
+  const [groupBy, setGroupBy] = usePersistedState(`${STORAGE_KEY}-groupBy`, 'market');
   const [colorByPerf, setColorByPerf] = useState(false);
   const [marketUniverse] = useState(mockTreemapData);
 
@@ -25,7 +77,6 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   const currentRate = rates[currency] || 1;
   const currentSymbol = currencySymbols[currency] || '$';
 
-  // Pick the treemap sizing metric
   const getMetricValue = (stock, metric) => {
     if (metric === 'revenue')    return Math.max(stock.revenue   || 0.1, 0.1);
     if (metric === 'netIncome')  return Math.max(stock.netIncome || 0.1, 0.1);
@@ -42,27 +93,8 @@ export default function EquitiesMarket({ currency, setCurrency }) {
     return stock.marketCap || stock.value || 0;
   };
 
-  const SECTOR_COLORS = {
-    'Technology':  '#3b82f6',
-    'Financials':  '#10b981',
-    'Consumer':    '#f59e0b',
-    'Healthcare':  '#ec4899',
-    'Energy':      '#f97316',
-    'Industrials': '#8b5cf6',
-    'Crypto':      '#f7931a',
-    'Other':       '#64748b',
-  };
-
-  // Rank-based palette
-  const RANK_PALETTE = [
-    '#f59e0b', '#22c55e', '#3b82f6', '#ef4444', '#a855f7',
-    '#f97316', '#06b6d4', '#ec4899', '#84cc16', '#8b5cf6',
-    '#14b8a6', '#f43f5e', '#0ea5e9', '#eab308', '#10b981',
-    '#fb923c', '#818cf8', '#e879f9', '#4ade80', '#38bdf8',
-  ];
   const rankColorFn = (rank) => RANK_PALETTE[(rank - 1) % RANK_PALETTE.length];
 
-  // Processed Treemap
   const adjustedTreemapData = useMemo(() => {
     return marketUniverse.map(region => {
       const withAdjusted = region.children.map(stock => {
@@ -71,12 +103,10 @@ export default function EquitiesMarket({ currency, setCurrency }) {
           : stock.marketCap || stock.value || 1;
         return { ...stock, adjustedValue: stock.marketCap || stock.value, metricValue };
       });
-
       const sorted = [...withAdjusted].sort((a, b) => {
         if (rankMetric === 'marketCap') return (b.adjustedValue || 0) - (a.adjustedValue || 0);
         return getRankValue(b, rankMetric) - getRankValue(a, rankMetric);
       });
-
       return {
         ...region,
         children: sorted.map((stock, idx) => {
@@ -88,7 +118,6 @@ export default function EquitiesMarket({ currency, setCurrency }) {
     });
   }, [marketUniverse, rankMetric]);
 
-  // Reorganize treemap data for sector views
   const heatmapData = useMemo(() => {
     if (groupBy === 'sectorInMarket') {
       return adjustedTreemapData.map(region => {
@@ -142,7 +171,6 @@ export default function EquitiesMarket({ currency, setCurrency }) {
     return adjustedTreemapData;
   }, [adjustedTreemapData, groupBy]);
 
-  // Flatten for list view
   const flatData = useMemo(() => {
     const arr = [];
     adjustedTreemapData.forEach(region => {
@@ -255,59 +283,135 @@ export default function EquitiesMarket({ currency, setCurrency }) {
     setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive, summaryData, historyData }));
   };
 
+  const globalValCap = flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0);
+
+  const sidebarPanel = (
+    <div key="sidebar" className="eq-bento-card">
+      <div className="eq-panel-title-row bento-panel-title-row">
+        <span className="eq-panel-title">{selectedTicker ? selectedTicker.ticker : 'Market Summary'}</span>
+        {selectedTicker && (
+          <button className="eq-close-btn" onClick={() => setSelectedTicker(null)}>✕</button>
+        )}
+      </div>
+      <div className="eq-panel-content bento-panel-content eq-panel-scroll" onMouseDown={stopDrag}>
+        {selectedTicker ? (
+          <DetailPanel
+            selectedTicker={selectedTicker}
+            setSelectedTicker={setSelectedTicker}
+            currentRate={currentRate}
+            currentSymbol={currentSymbol}
+          />
+        ) : (
+          <div className="eq-summary">
+            <div className="eq-stat-card">
+              <div className="eq-stat-label">Global Market Cap ({currency})</div>
+              <div className="eq-stat-value">{currentSymbol}{(globalValCap * currentRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} B</div>
+            </div>
+            <div className="eq-stat-card">
+              <div className="eq-stat-label">Equities Tracked</div>
+              <div className="eq-stat-value">{flatData.length}</div>
+            </div>
+            <div className="eq-stat-card">
+              <div className="eq-stat-label">Regions</div>
+              <div className="eq-stat-value">{marketUniverse.length}</div>
+            </div>
+            <div className="eq-stat-card">
+              <div className="eq-stat-label">Rank Metric</div>
+              <div className="eq-stat-value eq-stat-accent">{rankMetric === 'marketCap' ? 'Market Cap' : rankMetric === 'revenue' ? 'Revenue' : rankMetric === 'netIncome' ? 'Net Income' : rankMetric === 'pe' ? 'P/E Ratio' : 'Div Yield'}</div>
+            </div>
+            <div className="eq-stat-card">
+              <div className="eq-stat-label">Grouping</div>
+              <div className="eq-stat-value">{groupBy === 'market' ? 'By Market' : groupBy === 'sectorInMarket' ? 'Sector in Market' : 'Global Sector'}</div>
+            </div>
+            {ratesIsLive && (
+              <div className="eq-stat-card eq-stat-live">
+                <div className="eq-stat-label">FX Rates</div>
+                <div className="eq-stat-value" style={{ fontSize: 11, color: '#10b981' }}>Live {ratesDate}</div>
+              </div>
+            )}
+            <div className="eq-hint">Click any cell on the heatmap to view details</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="app-container">
+    <div className="eq-dashboard eq-dashboard--bento">
       <Header
         viewMode={viewMode} setViewMode={setViewMode}
         rankMetric={rankMetric} setRankMetric={setRankMetric}
         groupBy={groupBy} setGroupBy={setGroupBy}
         colorByPerf={colorByPerf} setColorByPerf={setColorByPerf}
       />
-      <main className="main-content">
-        <div className="view-container">
-          {viewMode === 'heatmap' && (
-            <HeatmapView
-              data={heatmapData}
-              currentRate={currentRate}
-              currentSymbol={currentSymbol}
-              currency={currency}
-              rankMetric={rankMetric}
-              groupBy={groupBy}
-              colorByPerf={colorByPerf}
-              onSelect={handleSelectTicker}
-            />
-          )}
-          {viewMode === 'race' && (
-            <BarRaceView
-              flatData={flatData}
-              currentRate={currentRate}
-              currentSymbol={currentSymbol}
-              currency={currency}
-              groupBy={groupBy}
-            />
-          )}
-          {viewMode === 'list' && (
-            <ListView
-              processedData={processedData}
-              handleSort={handleSort}
-              renderSortIndicator={renderSortIndicator}
-              handleSelectTicker={handleSelectTicker}
-              currentRate={currentRate}
-              currentSymbol={currentSymbol}
-              currency={currency}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              rankMetric={rankMetric}
-              groupBy={groupBy}
-            />
+      {viewMode === 'list' ? (
+        <div className="eq-list-wrapper">
+          <ListView
+            processedData={processedData}
+            handleSort={handleSort}
+            renderSortIndicator={renderSortIndicator}
+            handleSelectTicker={handleSelectTicker}
+            currentRate={currentRate}
+            currentSymbol={currentSymbol}
+            currency={currency}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            rankMetric={rankMetric}
+            groupBy={groupBy}
+          />
+          {selectedTicker && (
+            <div className="eq-detail-sidebar" onMouseDown={stopDrag}>
+              <DetailPanel
+                selectedTicker={selectedTicker}
+                setSelectedTicker={setSelectedTicker}
+                currentRate={currentRate}
+                currentSymbol={currentSymbol}
+              />
+            </div>
           )}
         </div>
-        <Sidebar
-          selectedTicker={selectedTicker} setSelectedTicker={setSelectedTicker} flatData={flatData}
-          currentRate={currentRate} currentSymbol={currentSymbol} currency={currency}
-          rates={rates} ratesIsLive={ratesIsLive} ratesDate={ratesDate}
-        />
-      </main>
+      ) : viewMode === 'heatmap' ? (
+        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout">
+          <div key="heatmap" className="eq-bento-card">
+            <div className="eq-panel-title-row bento-panel-title-row">
+              <span className="eq-panel-title">Equity Heatmap</span>
+              <span className="eq-panel-subtitle">{flatData.length} equities · {groupBy === 'sectorGlobal' ? 'global sectors' : groupBy === 'sectorInMarket' ? 'sectors by market' : 'by market'}</span>
+            </div>
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+              <HeatmapView
+                data={heatmapData}
+                currentRate={currentRate}
+                currentSymbol={currentSymbol}
+                currency={currency}
+                rankMetric={rankMetric}
+                groupBy={groupBy}
+                colorByPerf={colorByPerf}
+                onSelect={handleSelectTicker}
+              />
+            </div>
+          </div>
+          {sidebarPanel}
+        </BentoWrapper>
+      ) : (
+        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout">
+          <div key="race" className="eq-bento-card">
+            <div className="eq-panel-title-row bento-panel-title-row">
+              <span className="eq-panel-title">Bar Race</span>
+              <span className="eq-panel-subtitle">Top 30 · colored by {groupBy === 'market' ? 'region' : 'sector'}</span>
+            </div>
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+              <BarRaceView
+                flatData={flatData}
+                currentRate={currentRate}
+                currentSymbol={currentSymbol}
+                currency={currency}
+                groupBy={groupBy}
+              />
+            </div>
+          </div>
+          {sidebarPanel}
+        </BentoWrapper>
+      )}
     </div>
   );
 }

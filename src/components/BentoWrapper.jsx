@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useContainerWidth, ResponsiveGridLayout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import './BentoWrapper.css';
 
-function loadLayout(key, fallback) {
+function loadLayout(key) {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
@@ -17,27 +18,21 @@ function saveLayout(key, layout) {
   try { localStorage.setItem(key, JSON.stringify(layout)); } catch {}
 }
 
-export default function BentoWrapper({ children, layout, className = "", storageKey }) {
+export default function BentoWrapper({ children, layout, className = "", storageKey, draggableHandle = ".bento-panel-title-row" }) {
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: 1200 });
 
-  const initialLayout = (() => {
+  const [currentLayout, setCurrentLayout] = useState(() => {
     if (storageKey) {
-      const saved = loadLayout(storageKey, layout.lg);
+      const saved = loadLayout(storageKey);
       if (saved) return saved;
     }
     return layout.lg;
-  })();
-
-  const [currentLayout, setCurrentLayout] = useState(initialLayout);
+  });
 
   const handleLayoutChange = useCallback((newLayout) => {
     setCurrentLayout(newLayout);
     if (storageKey) saveLayout(storageKey, newLayout);
   }, [storageKey]);
-
-  useEffect(() => {
-    if (storageKey) saveLayout(storageKey, currentLayout);
-  }, [storageKey, currentLayout]);
 
   if (!mounted) {
     return <div ref={containerRef} className={`com-bento-root ${className}`} style={{ minHeight: 400 }} />;
@@ -51,8 +46,8 @@ export default function BentoWrapper({ children, layout, className = "", storage
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
         width={width}
         rowHeight={120}
-        draggableHandle=".com-panel-title-row"
-        draggableCancel=".com-panel-content,input,textarea,button,a,select"
+        draggableHandle={draggableHandle}
+        draggableCancel=".bento-panel-content,input,textarea,button,a,select"
         margin={[16, 16]}
         isResizable={true}
         useCSSTransforms={true}

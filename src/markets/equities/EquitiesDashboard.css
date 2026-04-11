@@ -1,0 +1,313 @@
+/* ═══════════════════════════════════════════════════════════════
+   EQUITIES — Bento-box dashboard layout
+   
+   Uses react-grid-layout ResponsiveGridLayout for draggable/resizable
+   bento cards. Grid uses 12-column system with 120px row height.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Market wrapper ── */
+.eq-dashboard.eq-dashboard--bento {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-deep);
+}
+
+/* ── 2. List view wrapper (no bento for list mode) ── */
+.eq-list-wrapper {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.eq-list-wrapper > .list-view {
+  flex: 1;
+  min-width: 0;
+}
+
+.eq-detail-sidebar {
+  width: 340px;
+  min-width: 300px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  background: var(--bg-card);
+}
+
+/* ── 3. Bento root — wrapper for react-grid-layout ── */
+.eq-bento-root {
+  flex: 1 0 auto;
+  min-height: 400px;
+}
+
+/* ── 3b. Drag/drop placeholder ── */
+.react-grid-item.react-grid-placeholder {
+  background: #3b82f6 !important;
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed #3b82f6 !important;
+}
+
+/* ── 3c. Disable RGL transitions ── */
+.eq-dashboard--bento .react-grid-item {
+  transition: none !important;
+}
+
+.eq-dashboard--bento .react-grid-item.cssTransforms {
+  transition: none !important;
+}
+
+/* ── 4. Bento Card — react-grid-layout grid items ── */
+.eq-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+}
+
+.eq-bento-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.15);
+}
+
+/* ── 4b. Resize handles ── */
+.eq-dashboard--bento .react-grid-item > .react-resizable-handle {
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  width: 20px !important;
+  height: 20px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  cursor: nwse-resize;
+}
+
+.eq-dashboard--bento .react-grid-item:hover > .react-resizable-handle {
+  opacity: 1;
+}
+
+.eq-dashboard--bento .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #3b82f6 !important;
+  border-bottom: 2px solid #3b82f6 !important;
+  width: 8px !important;
+  height: 8px !important;
+  right: 4px !important;
+  bottom: 4px !important;
+}
+
+/* ── 5. Panel title row — drag handle ── */
+.eq-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.eq-panel-title-row:active { cursor: grabbing; }
+
+.eq-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.eq-panel-subtitle {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.eq-close-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 6px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+
+.eq-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* ── 6. Panel content ── */
+.eq-panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  gap: 0;
+  container-type: inline-size;
+  container-name: panel-content;
+  user-select: text;
+  -webkit-user-select: text;
+  pointer-events: auto;
+}
+
+.eq-panel-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  gap: 6px;
+}
+
+/* ── 7. Summary cards (replaces sidebar when no ticker selected) ── */
+.eq-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.eq-stat-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eq-stat-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eq-stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eq-stat-accent {
+  color: #60a5fa;
+}
+
+.eq-stat-live {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.eq-hint {
+  font-size: 9px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 4px 0;
+  font-style: italic;
+}
+
+/* ── 8. Detail panel inside bento card ── */
+.eq-bento-card .detail-panel-content {
+  padding: 8px;
+}
+
+.eq-bento-card .detail-header {
+  padding: 0 0 6px;
+}
+
+.eq-bento-card .detail-price-section {
+  padding: 4px 0 8px;
+}
+
+.eq-bento-card .detail-tabs {
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.eq-bento-card .detail-tabs .tab {
+  padding: 4px 8px;
+  font-size: 9px;
+}
+
+.eq-bento-card .data-footer {
+  margin-top: 6px;
+  padding-top: 4px;
+}
+
+/* ── 9. Drag states ── */
+.react-grid-item.resizing {
+  opacity: 0.85;
+  z-index: 10;
+}
+
+.react-grid-item.react-draggable-dragging {
+  opacity: 0.85;
+  z-index: 10;
+}
+
+.eq-bento-card { cursor: default; }
+
+/* ── 10. Heatmap panel — force full height ── */
+.eq-bento-card .eq-panel-content > div {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 11. Responsive ── */
+@container bento-card (max-width: 500px) {
+  .eq-panel-title { font-size: 10px; }
+  .eq-panel-subtitle { font-size: 8px; }
+  .eq-panel-content { padding: 4px; }
+  .eq-stat-card { padding: 6px 8px; }
+  .eq-stat-value { font-size: 12px; }
+  .eq-stat-label { font-size: 8px; }
+}
+
+@container bento-card (max-height: 280px) {
+  .eq-panel-content { padding: 2px; }
+  .eq-stat-card { padding: 4px 6px; }
+  .eq-stat-value { font-size: 11px; }
+  .eq-hint { display: none; }
+}
+
+@container panel-content (max-width: 400px) {
+  .eq-stat-card { padding: 4px 6px; }
+  .eq-stat-value { font-size: 12px; }
+}
+
+@container panel-content (max-height: 300px) {
+  .eq-stat-card { padding: 4px 5px; }
+  .eq-stat-value { font-size: 11px; }
+  .eq-hint { display: none; }
+}
+
+@media (max-width: 768px) {
+  .eq-detail-sidebar {
+    display: none;
+  }
+}

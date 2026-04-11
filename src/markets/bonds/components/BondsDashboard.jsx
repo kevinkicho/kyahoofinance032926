@@ -144,24 +144,24 @@ function BondsDashboard({
 
   return (
     <div className="bonds-dashboard bonds-dashboard--bento">
-      <BentoWrapper layout={layout}>
+      <BentoWrapper layout={layout} storageKey="bonds-layout">
         {/* Yield Curve */}
         <div key="yield" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">Yield Curve</span>
             <span className="bonds-panel-subtitle">{countryCount} countries · sovereign benchmark rates</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {yieldCurveData && <YieldCurve yieldCurveData={yieldCurveData} spreadIndicators={spreadIndicators} fredYieldHistory={fredYieldHistory} yieldHistory={yieldHistory} />}
           </div>
         </div>
 
         {/* Key Metrics */}
         <div key="metrics" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">Key Metrics</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             <div className="bonds-sidebar-section">
               <div className="bonds-sidebar-title">Yields</div>
               <div className="bonds-metric-card">
@@ -225,61 +225,61 @@ function BondsDashboard({
 
         {/* Spreads */}
         <div key="spreads" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">Curve Spreads</span>
             <span className="bonds-panel-subtitle">2s10s · 10s3m · 5s30s</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {spreadHistoryOption && <SafeECharts option={spreadHistoryOption} style={{ height: '100%', width: '100%' }} />}
           </div>
         </div>
 
         {/* Real Yields */}
         <div key="realYield" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">TIPS Real Yields</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {realYieldOption && <SafeECharts option={realYieldOption} style={{ height: '100%', width: '100%' }} />}
           </div>
         </div>
 
         {/* Credit Ratings */}
         <div key="credit" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">Credit Ratings</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {creditRatingsData && <CreditMatrix creditRatingsData={creditRatingsData} />}
           </div>
         </div>
 
         {/* Fed Balance Sheet */}
         <div key="fed" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">Fed Balance Sheet</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {fedBalanceOption && <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} />}
           </div>
         </div>
 
         {/* M2 Money Supply */}
         <div key="m2" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">M2 Money Supply</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {m2Option && <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} />}
           </div>
         </div>
 
         {/* CPI Components */}
         <div key="cpi" className="bonds-bento-card">
-          <div className="bonds-panel-title-row">
+          <div className="bonds-panel-title-row bento-panel-title-row">
             <span className="bonds-panel-title">CPI Components (YoY)</span>
           </div>
-          <div className="bonds-panel-content" onMouseDown={stopDrag}>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {cpiOption && <SafeECharts option={cpiOption} style={{ height: '100%', width: '100%' }} />}
           </div>
         </div>

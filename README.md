@@ -297,6 +297,8 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 ### Frontend
 - **React 18** with Vite 5 (HMR, fast builds)
 - **ECharts** via `echarts-for-react` — all charts use `animation: false`, `backgroundColor: 'transparent'`
+- **react-grid-layout v2** — bento-box dashboards with draggable/resizable panels, layout persistence via `localStorage`
+- **BentoWrapper** — shared component (`src/components/BentoWrapper.jsx`) with `storageKey` prop, `.bento-panel-title-row` drag handle, `.bento-panel-content` drag cancel, responsive breakpoints
 - **CSS Variables** — 12 semantic variables in `:root` / `[data-theme]` for theming
 - **ThemeContext** — `useTheme()` hook provides `{ theme, colors, toggle }`
 - **ToastContext** — `useToast()` hook for notification management
@@ -442,7 +444,7 @@ src/
     calendar/                   # Unified dashboard (economic, earnings, releases)
     alerts/                     # Active alerts + alert rules
     watchlist/                  # My tickers + my metrics
-  components/                   # Shared: HeatmapView, DetailPanel, Sidebar, etc.
+  components/                   # Shared: BentoWrapper, SafeECharts, HeatmapView, DetailPanel, Sidebar, etc.
   utils/                        # FX rates, fetchWithRetry, data helpers, constants
   __tests__/                    # 297 tests across 49 files
 server/
@@ -461,11 +463,14 @@ server/
 
 ## Recent Updates
 
- - **Commodities Bento Dashboard** — Replaced static layout with draggable/resizable bento-box panels using react-grid-layout v2. Panels can be dragged by title bar and resized via corner handles.
- - **Responsive Bento Content** — Panel contents scale to fit card size using CSS container queries. KPI pills, charts, tables, and metrics shrink gracefully when panels are resized smaller, instead of overflowing/scrolling.
- - **ECharts Dimension Safety** — Added `SafeECharts` wrapper that waits for valid container dimensions before rendering, preventing "instance disposed" and zero-dimension errors during tab switching and initial load.
- - **Derivatives Key Fix** — Fixed duplicate React key warning (`SPY`, `QQQ`) in Options Flow by using `${ticker}-${strike}-${expiry}-${type}` composite keys.
- - **Unified Dashboards** — Consolidated all 15 markets from multi-tab layouts to single-page "one-look" views
- - **Bug Fixes** — Fixed data structure mismatches in Bonds, Credit, Crypto, Real Estate, Commodities, Sentiment dashboards
- - **Heatmap Selection** — Restored click-to-select functionality in equities heatmap for detail panel
- - **Test Coverage** — 297 tests passing across 49 files
+  - **Bento Grid Layout** — Converting all 15 market dashboards from static sidebar+grid layouts to draggable/resizable bento-box panels using `react-grid-layout`. Panels can be rearranged by dragging the title bar and resized via corner handles. Layout changes persist to `localStorage` per tab, so users don't lose their arrangement when switching markets.
+  - **Bento Persistence** — `BentoWrapper` component saves panel positions to `localStorage` via `storageKey` prop. Each market (equities, bonds, commodities, FX, etc.) has its own key. Drag handles use `.bento-panel-title-row`, content areas use `.bento-panel-content` for text selection while preventing accidental panel drags.
+  - **Converted Markets** — Equities, Bonds, Commodities, and FX now use the bento grid. Remaining markets (derivatives, realEstate, insurance, globalMacro, equitiesDeepDive, crypto, credit, sentiment, calendar, alerts, watchlist) still use the old layout and will be converted incrementally.
+  - **Responsive Bento Content** — Panel contents scale to fit card size using CSS container queries. KPI pills, charts, tables, and metrics shrink gracefully when panels are resized smaller, instead of overflowing/scrolling.
+  - **Consolidated CSS** — Each converted market has a single CSS file with bento grid styles, container queries, and resize handle overrides. Market-specific accent colors (gold for commodities, green for bonds, blue for equities/FX) are preserved on hover/border.
+  - **ECharts Dimension Safety** — Added `SafeECharts` wrapper that waits for valid container dimensions before rendering, preventing "instance disposed" and zero-dimension errors during tab switching and initial load.
+  - **Derivatives Key Fix** — Fixed duplicate React key warning (`SPY`, `QQQ`) in Options Flow by using `${ticker}-${strike}-${expiry}-${type}` composite keys.
+  - **Unified Dashboards** — Consolidated all 15 markets from multi-tab layouts to single-page "one-look" views
+  - **Bug Fixes** — Fixed data structure mismatches in Bonds, Credit, Crypto, Real Estate, Commodities, Sentiment dashboards
+  - **Heatmap Selection** — Restored click-to-select functionality in equities heatmap for detail panel
+  - **Test Coverage** — 297 tests passing across 49 files

@@ -4,14 +4,7 @@ import { useFXData } from './data/useFXData';
 import { useCOTData } from './data/useCOTData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import FXDashboard from './components/FXDashboard';
-import './FXMarket.css';
 
-/**
- * FXMarket - Unified FX dashboard
- * Shows all FX data in one glanceable view:
- * - KPI strip (EUR/USD, USD/JPY, GBP/USD, Strongest/Weakest, G10/EM averages)
- * - Chart grid (Top Movers, DXY Tracker, Rate Differentials, REER)
- */
 function FXMarket({ autoRefresh } = {}) {
   const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, cotHistory, isLive, lastUpdated, isLoading } = useFXData(autoRefresh);
   const { cotData } = useCOTData();
