@@ -71,7 +71,11 @@ describe('useCommoditiesData', () => {
       },
       lastUpdated: '2026-04-04',
     };
-    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    // v2 endpoint fails, legacy succeeds (matches real-world fallback behavior)
+    mockFetch.mockImplementation((url) => {
+      if (url.includes('/v2')) return Promise.reject(new Error('no v2'));
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(liveData) });
+    });
     const { result } = renderHook(() => useCommoditiesData());
     await waitFor(() => expect(result.current.isLive).toBe(true));
     expect(result.current.priceDashboardData[0].commodities[0].price).toBe(90.0);
@@ -110,7 +114,11 @@ describe('useCommoditiesData', () => {
       cotData: { commodities: [{ name: 'WTI Crude Oil', latest: { noncommNet: 100, commNet: -80, totalOI: 500, netChange: 5 }, history: [] }] },
       lastUpdated: '2026-04-05',
     };
-    mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(liveData) });
+    // v2 fails, legacy succeeds
+    mockFetch.mockImplementation((url) => {
+      if (url.includes('/v2')) return Promise.reject(new Error('no v2'));
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(liveData) });
+    });
     const { result } = renderHook(() => useCommoditiesData());
     await waitFor(() => expect(result.current.isLive).toBe(true));
     // Should keep mock cotData because live only has 1 commodity (need >= 2)

@@ -1,11 +1,56 @@
-/* ═══════════════════════════════════════════════════════════════
-   Commodities Dashboard — Bento Grid Layout
-   Uses bento-grid-builder for the grid system.
-   The library injects its own CSS for .bento-grid, .bento-cell, .bento-card.
-   We override its CSS custom properties and add our theme styles.
-   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   COMMODITIES — All styles in one file
+   
+   Sections:
+   1.  Market wrapper (.com-market)
+   2.  Dashboard root (.com-dashboard) + bento grid overrides
+   3.  Panel chrome (titles, toggle buttons, KPI strip, headers/footers)
+   4.  Inner layout helpers (two-col, wide-narrow, three-col, chart panels)
+   5.  Content: COT, Supply & Demand, Sector bars, Price charts
+   6.  Tables
+   7.  Misc (status bar, badges, misc classes)
+   8.  Responsive
+   ═══════════════════════════════════════════════════════════════════ */
 
-/* ── 1. Dashboard root: fills viewport via flex chain ── */
+/* ──────────────────────────────────────────────────────────────────
+   1. MARKET WRAPPER
+   ────────────────────────────────────────────────────────────────── */
+.com-market {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+.com-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 20px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--bg-primary);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.com-status-live { color: #ca8a04; }
+
+.com-stale-badge {
+  background: #78350f;
+  color: #fcd34d;
+  border: 1px solid #92400e;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   2. DASHBOARD ROOT + BENTO GRID
+   ────────────────────────────────────────────────────────────────── */
 .com-dashboard {
   display: flex;
   flex-direction: column;
@@ -15,26 +60,19 @@
   height: 100%;
 }
 
-.com-dashboard--no-sidebar {
-  flex-direction: column;
-}
+.com-dashboard--no-sidebar { flex-direction: column; }
 
-/* ── 2. BentoGrid root: must fill remaining height ── */
 .com-bento-root {
   flex: 1;
   min-height: 0;
   height: 100%;
-}
-
-/* ── 3. Override bento-grid-builder's CSS custom properties for dark theme ── */
-.com-bento-root {
+  /* Override bento-grid-builder theme vars */
   --bento-card-bg: var(--bg-card);
   --bento-card-radius: 8px;
   --bento-card-padding: 10px;
   --bento-card-border: 1px solid var(--border-subtle);
 }
 
-/* ── 4. Override the library's injected .bento-card defaults ── */
 .com-bento-root .bento-card {
   background-color: var(--bg-card) !important;
   border-radius: 8px !important;
@@ -47,7 +85,24 @@
   overflow: hidden;
 }
 
-/* ── 5. Panel title row (inside bento cards) ── */
+.com-bento-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.com-bento-tall { grid-row: span 2; }
+
+/* ──────────────────────────────────────────────────────────────────
+   3. PANEL CHROME
+   ────────────────────────────────────────────────────────────────── */
 .com-panel-title-row {
   display: flex;
   align-items: baseline;
@@ -72,7 +127,6 @@
   min-width: 8px;
 }
 
-/* ── 6. Toggle buttons ── */
 .com-toggle-btn {
   padding: 3px 10px;
   border: 1px solid var(--border-subtle);
@@ -87,19 +141,9 @@
   font-family: inherit;
 }
 
-.com-toggle-btn:hover {
-  background: var(--bg-deep);
-  color: var(--text-secondary);
-  border-color: var(--border-subtle);
-}
+.com-toggle-btn:hover { background: var(--bg-deep); color: var(--text-secondary); border-color: var(--border-subtle); }
+.com-toggle-active { background: var(--bg-deep); border-color: #ca8a04; color: #ca8a04; }
 
-.com-toggle-active {
-  background: var(--bg-deep);
-  border-color: #ca8a04;
-  color: #ca8a04;
-}
-
-/* ── 7. Inner panel (wraps content inside bento card) ── */
 .com-panel {
   display: flex;
   flex-direction: column;
@@ -136,7 +180,7 @@
   min-height: 0;
 }
 
-/* ── 8. KPI strip ── */
+/* KPI strip */
 .com-kpi-strip {
   display: flex;
   gap: 6px;
@@ -155,53 +199,19 @@
   min-width: 100px;
 }
 
-.com-kpi-label {
-  font-size: 9px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.com-kpi-value {
-  font-size: 15px;
-  font-weight: 700;
-  font-family: 'SF Mono', 'Cascadia Code', monospace;
-  color: var(--text-primary);
-}
-
+.com-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.com-kpi-value { font-size: 15px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text-primary); }
 .com-kpi-value.positive { color: #22c55e; }
 .com-kpi-value.negative { color: #ef4444; }
 .com-kpi-sub { font-size: 9px; color: var(--text-dim); }
 
-/* ── 9. Layout helpers ── */
-.com-two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
+/* ──────────────────────────────────────────────────────────────────
+   4. INNER LAYOUT HELPERS
+   ────────────────────────────────────────────────────────────────── */
+.com-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; min-height: 0; overflow: hidden; }
+.com-wide-narrow { display: grid; grid-template-columns: 3fr 1fr; gap: 8px; flex: 1; min-height: 0; overflow: hidden; }
+.com-three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; flex: 1; min-height: 0; overflow: hidden; }
 
-.com-wide-narrow {
-  display: grid;
-  grid-template-columns: 3fr 1fr;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.com-three-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ── 10. Chart panel ── */
 .com-chart-panel {
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
@@ -213,91 +223,19 @@
   min-height: 0;
 }
 
-.com-chart-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
-  flex-shrink: 0;
-}
+.com-chart-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; flex-shrink: 0; }
+.com-mini-chart { flex: 1; min-height: 0; }
 
-.com-mini-chart {
-  flex: 1;
-  min-height: 0;
-}
+.com-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.com-table, .com-chart-wrap { width: 100%; flex: 1; min-height: 0; overflow-y: auto; }
 
-/* ── 11. Scroll areas ── */
-.com-scroll {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
+/* ──────────────────────────────────────────────────────────────────
+   5. CONTENT: COT, SUPPLY & DEMAND, SECTOR BARS, PRICE CHARTS
+   ────────────────────────────────────────────────────────────────── */
 
-.com-table, .com-chart-wrap {
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* ── 12. Price charts (chart toggle view) ── */
-.com-price-charts {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 4px 0;
-}
-
-.com-chart-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.com-chart-group-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding-bottom: 2px;
-}
-
-.com-chart-group-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 6px;
-}
-
-.com-chart-item {
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-}
-
-.com-chart-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* ── 13. COT Positioning ── */
-.cot-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.cot-commodity {
-  background: var(--bg-primary);
-  border-radius: 6px;
-  padding: 8px;
-}
-
+/* COT */
+.cot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex: 1; overflow-y: auto; min-height: 0; }
+.cot-commodity { background: var(--bg-primary); border-radius: 6px; padding: 8px; }
 .cot-name { font-size: 12px; font-weight: 600; color: #ca8a04; margin-bottom: 4px; }
 .cot-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin-bottom: 4px; }
 .cot-metric { display: flex; flex-direction: column; gap: 1px; }
@@ -306,34 +244,15 @@
 .cot-metric-value.green { color: #10b981; }
 .cot-metric-value.red { color: #ef4444; }
 
-/* ── 14. Supply & Demand ── */
-.com-sd-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 6px;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.com-sd-panel {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 6px;
-  overflow: hidden;
-  min-height: 0;
-}
-
+/* Supply & Demand */
+.com-sd-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; flex: 1; min-height: 0; overflow: hidden; }
+.com-sd-panel { display: flex; flex-direction: column; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px; overflow: hidden; min-height: 0; }
 .com-sd-panel:last-child { grid-column: 1 / -1; }
 .com-sd-title { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; flex-shrink: 0; }
 .com-sd-subtitle { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; flex-shrink: 0; }
 .com-sd-chart { flex: 1; min-height: 0; }
 
-/* ── 15. Sector bars ── */
+/* Sector bars */
 .com-sector-bars { display: flex; flex-direction: column; gap: 4px; }
 .com-sector-bar-row { display: flex; align-items: center; gap: 6px; }
 .com-sector-bar-name { font-size: 10px; color: var(--text-secondary); width: 70px; flex-shrink: 0; text-align: right; }
@@ -344,24 +263,17 @@
 .com-sector-bar-val.positive { color: #22c55e; }
 .com-sector-bar-val.negative { color: #ef4444; }
 
-/* ── 16. Misc ── */
-.com-cat-energy { color: #ef4444; }
-.com-cat-metals { color: #f59e0b; }
-.com-cat-agriculture { color: #22c55e; }
-.com-cat-livestock { color: #8b5cf6; }
-.com-cat-fibers { color: #06b6d4; }
-.com-curve-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
-.com-contango { color: #f59e0b; }
-.com-backwardation { color: #22c55e; }
-.com-freshness-dot { font-weight: 500; }
-.com-fx-badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border-subtle); color: var(--text-primary); }
-.com-empty { display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--text-muted); font-size: 12px; font-style: italic; min-height: 40px; }
+/* Price charts (chart toggle view) */
+.com-price-charts { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.com-chart-group { display: flex; flex-direction: column; gap: 6px; }
+.com-chart-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 2px; }
+.com-chart-group-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.com-chart-item { border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px; display: flex; flex-direction: column; }
+.com-chart-item-header { display: flex; justify-content: space-between; align-items: center; }
 
-/* ── 17. Sticky table headers ── */
-.com-thead-sticky { position: sticky; top: 0; z-index: 2; background: var(--bg-primary); }
-.com-thead-sticky .com-th { background: var(--bg-primary); }
-
-/* ── 18. Tables ── */
+/* ──────────────────────────────────────────────────────────────────
+   6. TABLES
+   ────────────────────────────────────────────────────────────────── */
 .com-table { border-collapse: collapse; min-width: 100%; }
 .com-th { background: var(--bg-card); color: var(--text-secondary); font-size: 11px; font-weight: 600; padding: 6px 10px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; }
 .com-th:first-child { text-align: left; }
@@ -384,8 +296,36 @@
 .com-curve-table td { padding: 3px 6px; border-bottom: 1px solid var(--border-subtle); }
 .com-curve-table tr:last-child td { border-bottom: none; }
 .com-source-cell { font-size: 10px !important; color: var(--text-muted) !important; font-weight: 400 !important; letter-spacing: 0.01em; }
+.com-thead-sticky { position: sticky; top: 0; z-index: 2; background: var(--bg-primary); }
+.com-thead-sticky .com-th { background: var(--bg-primary); }
 
-/* ── 19. Responsive ── */
+/* ──────────────────────────────────────────────────────────────────
+   7. MISC
+   ────────────────────────────────────────────────────────────────── */
+.com-cat-energy { color: #ef4444; }
+.com-cat-metals { color: #f59e0b; }
+.com-cat-agriculture { color: #22c55e; }
+.com-cat-livestock { color: #8b5cf6; }
+.com-cat-fibers { color: #06b6d4; }
+.com-curve-pill { display: inline-flex; align-items: center; gap: 4px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+.com-contango { color: #f59e0b; }
+.com-backwardation { color: #22c55e; }
+.com-freshness-dot { font-weight: 500; }
+.com-fx-badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border-subtle); color: var(--text-primary); }
+.com-empty { display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--text-muted); font-size: 12px; font-style: italic; min-height: 40px; }
+.com-sub-tabs { display: flex; align-items: center; background: var(--bg-deep); border-bottom: 1px solid var(--border-subtle); padding: 0 16px; height: 38px; flex-shrink: 0; }
+.com-sub-tab { padding: 0 14px; height: 100%; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-dim); font-size: 12px; font-weight: 500; cursor: pointer; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+.com-sub-tab:hover { color: var(--text-secondary); }
+.com-sub-tab.active { color: #ca8a04; border-bottom-color: #ca8a04; }
+.com-content { display: flex; flex: 1; overflow: hidden; }
+.com-loading { align-items: center; justify-content: center; gap: 12px; }
+.com-loading-spinner { width: 24px; height: 24px; border: 2px solid var(--border-subtle); border-top-color: #ca8a04; border-radius: 50%; }
+@keyframes com-spin { to { transform: rotate(360deg); } }
+.com-loading-text { font-size: 12px; color: var(--text-muted); }
+
+/* ──────────────────────────────────────────────────────────────────
+   8. RESPONSIVE
+   ────────────────────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
   .com-two-col,
   .com-wide-narrow,

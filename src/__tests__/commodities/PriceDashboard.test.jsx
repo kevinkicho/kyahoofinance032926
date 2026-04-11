@@ -30,14 +30,12 @@ describe('PriceDashboard', () => {
 
   it('applies com-up class to positive change1d value', () => {
     render(<PriceDashboard priceDashboardData={priceDashboardData} />);
-    // WTI Crude has change1d: 0.82 (positive) — should have com-up class
     const cell = screen.getAllByText(/\+0\.82%/)[0];
     expect(cell.className).toContain('com-up');
   });
 
   it('applies com-down class to negative change1d value', () => {
     render(<PriceDashboard priceDashboardData={priceDashboardData} />);
-    // Natural Gas has change1d: -1.18 (negative) — should have com-down class
     const cell = screen.getAllByText(/-1\.18%/)[0];
     expect(cell.className).toContain('com-down');
   });

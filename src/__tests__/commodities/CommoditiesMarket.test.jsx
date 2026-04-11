@@ -10,19 +10,16 @@ beforeEach(() => {
 });
 
 describe('CommoditiesMarket', () => {
-  it('renders unified dashboard after loading', async () => {
+  it('renders dashboard with KPI strip after loading', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows sidebar with key prices section
-    const keyPricesSection = screen.getByText('Key Prices');
-    expect(keyPricesSection).toBeInTheDocument();
+    // Dashboard shows KPI strip with key commodities
+    expect(screen.getAllByText('WTI Crude').length).toBeGreaterThan(0);
   });
 
-  it('shows sidebar with key metrics', async () => {
+  it('shows commodity data after loading', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Sidebar shows key indicators in metric cards
-    // Gold, Oil, Nat Gas should appear in sidebar
     const goldElements = screen.getAllByText(/Gold/i);
     expect(goldElements.length).toBeGreaterThan(0);
   });
@@ -30,9 +27,8 @@ describe('CommoditiesMarket', () => {
   it('shows all content visible at once (no tabs)', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // All content should be visible - check for key panel titles
-    const energyPanel = screen.getByText('Energy');
-    expect(energyPanel).toBeInTheDocument();
+    const energyElements = screen.getAllByText('Energy');
+    expect(energyElements.length).toBeGreaterThan(0);
     // Check that there are no tab buttons for navigation
     const tabButtons = screen.queryAllByRole('button');
     const tabNavButtons = tabButtons.filter(btn =>
@@ -44,7 +40,6 @@ describe('CommoditiesMarket', () => {
   it('shows mock data status when server unavailable', async () => {
     render(<CommoditiesMarket />);
     await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Multiple components may show mock data status
     const mockDataElements = screen.getAllByText(/mock data/i);
     expect(mockDataElements.length).toBeGreaterThan(0);
   });

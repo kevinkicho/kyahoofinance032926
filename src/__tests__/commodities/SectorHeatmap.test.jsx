@@ -4,9 +4,10 @@ import SectorHeatmap from '../../markets/commodities/components/SectorHeatmap';
 import { sectorHeatmapData } from '../../markets/commodities/data/mockCommoditiesData';
 
 describe('SectorHeatmap', () => {
-  it('renders panel title', () => {
+  it('renders KPI strip with best/worst today', () => {
     render(<SectorHeatmap sectorHeatmapData={sectorHeatmapData} />);
-    expect(screen.getByText(/sector performance/i)).toBeInTheDocument();
+    expect(screen.getByText('Best Today')).toBeInTheDocument();
+    expect(screen.getByText('Worst Today')).toBeInTheDocument();
   });
 
   it('renders all 12 commodity names', () => {
@@ -27,13 +28,11 @@ describe('SectorHeatmap', () => {
 
   it('applies com-heat-dg class to strongly positive value (Gold m1: +5.21)', () => {
     const { container } = render(<SectorHeatmap sectorHeatmapData={sectorHeatmapData} />);
-    // Gold m1 = +5.21 → deep green (> +2.0)
     expect(container.querySelectorAll('.com-heat-dg').length).toBeGreaterThan(0);
   });
 
   it('applies com-heat-dr class to strongly negative value (Wheat m1: -8.42)', () => {
     const { container } = render(<SectorHeatmap sectorHeatmapData={sectorHeatmapData} />);
-    // Wheat m1 = -8.42 → deep red (< -2.0)
     expect(container.querySelectorAll('.com-heat-dr').length).toBeGreaterThan(0);
   });
 });
