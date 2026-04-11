@@ -24,6 +24,7 @@ export default function BentoWrapper({ children, layout, className = "" }) {
         width={width}
         rowHeight={120}
         draggableHandle=".com-panel-title-row"
+        draggableCancel=".com-panel-content,input,textarea,button,a,select"
         margin={[16, 16]}
         isResizable={true}
         useCSSTransforms={true}
