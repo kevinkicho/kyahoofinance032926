@@ -64,18 +64,22 @@
 
 .com-dashboard--no-sidebar { flex-direction: column; }
 
-/* ── 3. BentoGrid container — fill remaining space ── */
+/* ── 3. BentoGrid container — THE KEY: grid must fill height ── */
 .com-bento-root {
   flex: 1;
   min-height: 0;
-}
-
-/* ── 4. Override bento-grid-builder theme for dark mode ── */
-.com-bento-root {
+  height: 100%;
   --bento-card-bg: var(--bg-card);
   --bento-card-radius: 8px;
   --bento-card-padding: 10px;
   --bento-card-border: 1px solid var(--border-subtle);
+}
+
+/* CRITICAL: the library's .bento-grid only has display:grid with no height.
+   With fr rows, grid MUST have height or rows collapse to zero.
+   .com-bento-root is on the SAME element as .bento-grid */
+.com-bento-root.bento-grid {
+  height: 100%;
 }
 
 .com-bento-root .bento-card {
