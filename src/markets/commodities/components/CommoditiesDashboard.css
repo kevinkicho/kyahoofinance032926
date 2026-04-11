@@ -112,6 +112,7 @@
   height: 20px !important;
   right: 0 !important;
   bottom: 0 !important;
+  cursor: nwse-resize;
 }
 
 .react-grid-item:hover > .react-resizable-handle {
@@ -127,6 +128,13 @@
   bottom: 4px !important;
 }
 
+/* ── 4c. Block drag from panel content — only title row is drag handle ── */
+.com-panel-content { pointer-events: auto; }
+
+.bento-card { cursor: default; }
+.com-panel-title-row { cursor: grab; }
+.com-panel-title-row:active { cursor: grabbing; }
+
 .react-grid-item.resizing {
   opacity: 0.85;
   z-index: 10;
@@ -141,7 +149,6 @@
 .com-panel-title-row {
   padding: 6px 10px;
   background: rgba(0, 0, 0, 0.15);
-  cursor: grab;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -149,10 +156,6 @@
   flex-shrink: 0;
   user-select: none;
   -webkit-user-select: none;
-}
-
-.com-panel-title-row:active {
-  cursor: grabbing;
 }
 
 .com-panel-title {

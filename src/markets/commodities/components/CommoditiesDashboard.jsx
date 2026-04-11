@@ -48,6 +48,8 @@ function CommoditiesDashboard({
     return <span style={{ color }}>{sign}{num.toFixed(2)}%</span>;
   };
 
+  const stopDrag = (e) => e.stopPropagation();
+
   // RGL uses x, y, w, h. 12-column system.
   const layout = {
     lg: [
@@ -75,7 +77,7 @@ function CommoditiesDashboard({
             <button className={`com-toggle-btn ${priceView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('table')}>Table</button>
             <button className={`com-toggle-btn ${priceView === 'chart' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('chart')}>Charts</button>
           </div>
-          <div className="com-panel-content">
+          <div className="com-panel-content" onMouseDown={stopDrag}>
             {priceView === 'table' ? (
               <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} goldOilRatio={goldOilRatio} contangoIndicator={contangoIndicator} commodityCurrencies={commodityCurrencies} enhancedData={enhancedData} />
             ) : (
@@ -87,7 +89,7 @@ function CommoditiesDashboard({
           <div className="com-panel-title-row">
             <span className="com-panel-title">Futures Curve</span>
           </div>
-          <div className="com-panel-content">
+          <div className="com-panel-content" onMouseDown={stopDrag}>
             <FuturesCurve futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} seasonalPatterns={seasonalPatterns} />
           </div>
         </div>
@@ -98,7 +100,7 @@ function CommoditiesDashboard({
             <button className={`com-toggle-btn ${sectorView === 'heatmap' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('heatmap')}>Heatmap</button>
             <button className={`com-toggle-btn ${sectorView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('table')}>Table</button>
           </div>
-          <div className="com-panel-content">
+          <div className="com-panel-content" onMouseDown={stopDrag}>
             <SectorHeatmap sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} view={sectorView} />
           </div>
         </div>
@@ -106,7 +108,7 @@ function CommoditiesDashboard({
           <div className="com-panel-title-row">
             <span className="com-panel-title">Supply & Demand</span>
           </div>
-          <div className="com-panel-content">
+          <div className="com-panel-content" onMouseDown={stopDrag}>
             <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} />
           </div>
         </div>
@@ -114,7 +116,7 @@ function CommoditiesDashboard({
           <div className="com-panel-title-row">
             <span className="com-panel-title">COT Positioning</span>
           </div>
-          <div className="com-panel-content">
+          <div className="com-panel-content" onMouseDown={stopDrag}>
             <CotPositioning cotData={cotData} />
           </div>
         </div>
