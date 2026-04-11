@@ -1,4 +1,11 @@
-/* ── Dashboard root ── */
+/* ═══════════════════════════════════════════════════════════════
+   Commodities Dashboard — Bento Grid Layout
+   Uses bento-grid-builder for the grid system.
+   The library injects its own CSS for .bento-grid, .bento-cell, .bento-card.
+   We override its CSS custom properties and add our theme styles.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Dashboard root: fills viewport via flex chain ── */
 .com-dashboard {
   display: flex;
   flex-direction: column;
@@ -12,27 +19,35 @@
   flex-direction: column;
 }
 
-/* ── BentoGrid root container ── */
+/* ── 2. BentoGrid root: must fill remaining height ── */
 .com-bento-root {
   flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ── Bento panel — each cell is a card that fills its grid area ── */
-.com-bento-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
   min-height: 0;
   height: 100%;
 }
 
-/* ── Panel title row ── */
+/* ── 3. Override bento-grid-builder's CSS custom properties for dark theme ── */
+.com-bento-root {
+  --bento-card-bg: var(--bg-card);
+  --bento-card-radius: 8px;
+  --bento-card-padding: 10px;
+  --bento-card-border: 1px solid var(--border-subtle);
+}
+
+/* ── 4. Override the library's injected .bento-card defaults ── */
+.com-bento-root .bento-card {
+  background-color: var(--bg-card) !important;
+  border-radius: 8px !important;
+  padding: 10px !important;
+  border: 1px solid var(--border-subtle) !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── 5. Panel title row (inside bento cards) ── */
 .com-panel-title-row {
   display: flex;
   align-items: baseline;
@@ -57,7 +72,7 @@
   min-width: 8px;
 }
 
-/* ── Toggle buttons ── */
+/* ── 6. Toggle buttons ── */
 .com-toggle-btn {
   padding: 3px 10px;
   border: 1px solid var(--border-subtle);
@@ -84,7 +99,7 @@
   color: #ca8a04;
 }
 
-/* ── Panel & content ── */
+/* ── 7. Inner panel (wraps content inside bento card) ── */
 .com-panel {
   display: flex;
   flex-direction: column;
@@ -99,11 +114,6 @@
   gap: 8px;
   flex-shrink: 0;
   margin-bottom: 6px;
-}
-
-.com-panel-subtitle {
-  font-size: 10px;
-  color: var(--text-muted);
 }
 
 .com-panel-footer {
@@ -126,7 +136,7 @@
   min-height: 0;
 }
 
-/* ── KPI strip ── */
+/* ── 8. KPI strip ── */
 .com-kpi-strip {
   display: flex;
   gap: 6px;
@@ -161,13 +171,9 @@
 
 .com-kpi-value.positive { color: #22c55e; }
 .com-kpi-value.negative { color: #ef4444; }
+.com-kpi-sub { font-size: 9px; color: var(--text-dim); }
 
-.com-kpi-sub {
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-/* ── Layout helpers ── */
+/* ── 9. Layout helpers ── */
 .com-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -195,7 +201,7 @@
   overflow: hidden;
 }
 
-/* ── Chart panel ── */
+/* ── 10. Chart panel ── */
 .com-chart-panel {
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
@@ -220,7 +226,7 @@
   min-height: 0;
 }
 
-/* ── Scroll areas ── */
+/* ── 11. Scroll areas ── */
 .com-scroll {
   flex: 1;
   overflow-y: auto;
@@ -234,7 +240,7 @@
   overflow-y: auto;
 }
 
-/* ── Price charts ── */
+/* ── 12. Price charts (chart toggle view) ── */
 .com-price-charts {
   display: flex;
   flex-direction: column;
@@ -276,7 +282,7 @@
   align-items: center;
 }
 
-/* ── COT Positioning ── */
+/* ── 13. COT Positioning ── */
 .cot-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -300,7 +306,7 @@
 .cot-metric-value.green { color: #10b981; }
 .cot-metric-value.red { color: #ef4444; }
 
-/* ── Supply & Demand ── */
+/* ── 14. Supply & Demand ── */
 .com-sd-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -327,7 +333,7 @@
 .com-sd-subtitle { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; flex-shrink: 0; }
 .com-sd-chart { flex: 1; min-height: 0; }
 
-/* ── Sector bars ── */
+/* ── 15. Sector bars ── */
 .com-sector-bars { display: flex; flex-direction: column; gap: 4px; }
 .com-sector-bar-row { display: flex; align-items: center; gap: 6px; }
 .com-sector-bar-name { font-size: 10px; color: var(--text-secondary); width: 70px; flex-shrink: 0; text-align: right; }
@@ -338,7 +344,7 @@
 .com-sector-bar-val.positive { color: #22c55e; }
 .com-sector-bar-val.negative { color: #ef4444; }
 
-/* ── Misc ── */
+/* ── 16. Misc ── */
 .com-cat-energy { color: #ef4444; }
 .com-cat-metals { color: #f59e0b; }
 .com-cat-agriculture { color: #22c55e; }
@@ -351,11 +357,11 @@
 .com-fx-badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border-subtle); color: var(--text-primary); }
 .com-empty { display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--text-muted); font-size: 12px; font-style: italic; min-height: 40px; }
 
-/* ── Sticky table headers ── */
+/* ── 17. Sticky table headers ── */
 .com-thead-sticky { position: sticky; top: 0; z-index: 2; background: var(--bg-primary); }
 .com-thead-sticky .com-th { background: var(--bg-primary); }
 
-/* ── Tables ── */
+/* ── 18. Tables ── */
 .com-table { border-collapse: collapse; min-width: 100%; }
 .com-th { background: var(--bg-card); color: var(--text-secondary); font-size: 11px; font-weight: 600; padding: 6px 10px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; }
 .com-th:first-child { text-align: left; }
@@ -379,11 +385,8 @@
 .com-curve-table tr:last-child td { border-bottom: none; }
 .com-source-cell { font-size: 10px !important; color: var(--text-muted) !important; font-weight: 400 !important; letter-spacing: 0.01em; }
 
-/* ── Responsive ── */
+/* ── 19. Responsive ── */
 @media (max-width: 1000px) {
-  .com-bento-root {
-    overflow-y: auto;
-  }
   .com-two-col,
   .com-wide-narrow,
   .com-three-col { grid-template-columns: 1fr; }
