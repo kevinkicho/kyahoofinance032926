@@ -342,7 +342,6 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
 
         {/* Main: table (wide) + DBC chart (narrow) */}
         <div className="com-wide-narrow">
-          <div className="com-scroll">
             <table className="com-table">
               <thead className="com-thead-sticky">
                 <tr>
@@ -380,8 +379,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
                 ))}
               </tbody>
             </table>
-          </div>
-          {dbcOption && (
+            {dbcOption && (
             <div className="com-chart-panel">
               <div className="com-chart-title">DBC Commodity ETF — 1 Year</div>
               <div className="com-mini-chart">
