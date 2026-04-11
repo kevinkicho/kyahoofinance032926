@@ -2,7 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CommodComponents.css';
+import './CommoditiesDashboard.css';
 
 function buildCurveOption(labels, prices, accentColor, unit, colors) {
   return {
@@ -177,7 +177,7 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
   } : null;
 
   return (
-    <div className="com-panel">
+    <div className="com-panel" style={{ overflow: 'hidden' }}>
       <div className="com-panel-header">
         <span className="com-panel-title">Futures Curves</span>
         <span className="com-panel-subtitle">Forward contract pricing — term structure</span>
@@ -208,12 +208,12 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
       </div>
 
       {/* Two curves side by side */}
-      <div className="com-two-col" style={{ marginBottom: 12 }}>
+      <div className="com-two-col">
         {wtiOption && (
           <div className="com-chart-panel">
             <div className="com-chart-title">WTI Crude Oil — {wti.labels?.length} Months ({wti.unit})</div>
             <div className="com-mini-chart">
-              <SafeECharts option={wtiOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={wtiOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
             </div>
             {wtiSpread != null && (
               <span className={`com-curve-pill ${wtiSpread > 0 ? 'com-contango' : 'com-backwardation'}`} style={{ marginTop: 4, alignSelf: 'flex-start' }}>
@@ -226,7 +226,7 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
           <div className="com-chart-panel">
             <div className="com-chart-title">Gold — {gold.labels?.length} Months ({gold.unit})</div>
             <div className="com-mini-chart">
-              <SafeECharts option={goldOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={goldOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
             </div>
             {goldSpread != null && (
               <span className={`com-curve-pill ${goldSpread > 0 ? 'com-contango' : 'com-backwardation'}`} style={{ marginTop: 4, alignSelf: 'flex-start' }}>
@@ -239,20 +239,20 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
 
       {/* Dollar vs WTI overlay */}
       {dualOption && (
-        <div className="com-chart-panel" style={{ height: 170, flexShrink: 0 }}>
+        <div className="com-chart-panel" style={{ flexShrink: 0, minHeight: 80 }}>
           <div className="com-chart-title">Dollar Index vs WTI — 1 Year (FRED daily, inverse correlation)</div>
           <div className="com-mini-chart">
-            <SafeECharts option={dualOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={dualOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
           </div>
         </div>
       )}
 
       {/* Seasonal Patterns */}
       {seasonalOption && (
-        <div className="com-chart-panel" style={{ height: 210, flexShrink: 0, marginTop: 12 }}>
+        <div className="com-chart-panel" style={{ flexShrink: 0, minHeight: 80, marginTop: 8 }}>
           <div className="com-chart-title">Seasonal Patterns — 5-Year Avg Monthly Returns (CL, GC, ZC)</div>
           <div className="com-mini-chart">
-            <SafeECharts option={seasonalOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={seasonalOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
           </div>
         </div>
       )}

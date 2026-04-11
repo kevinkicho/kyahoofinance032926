@@ -2,7 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CommodComponents.css';
+import './CommoditiesDashboard.css';
 
 function heatClass(v) {
   if (v == null) return 'com-heat-neu';
@@ -18,10 +18,16 @@ function fmtPct(v) {
   return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 }
 
-const SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture', 'Livestock'];
-const SECTOR_ICONS  = { Energy: '', Metals: '', Agriculture: '', Livestock: '' };
+function pctClass(v) {
+  if (v == null) return 'com-flat';
+  if (v > 0) return 'com-up';
+  if (v < 0) return 'com-down';
+  return 'com-flat';
+}
 
-export default function SectorHeatmap({ sectorHeatmapData, fredCommodities }) {
+const SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture', 'Livestock'];
+
+export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view = 'heatmap' }) {
   const { colors } = useTheme();
   const { commodities = [], columns = [] } = sectorHeatmapData;
   const colKeys = ['d1', 'w1', 'm1'];
@@ -77,13 +83,84 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities }) {
     }],
   } : null;
 
-  return (
-    <div className="com-panel">
-      <div className="com-panel-header">
-        <span className="com-panel-title">Sector Performance Heatmap</span>
-        <span className="com-panel-subtitle">% change by commodity and time horizon</span>
+  // Render plain table (no heatmap coloring, sorted by 1d%)
+  const renderTable = () => {
+    const sorted = [...commodities].sort((a, b) => (b.d1 || 0) - (a.d1 || 0));
+    return (
+      <div className="com-scroll">
+        <table className="com-table">
+          <thead className="com-thead-sticky">
+            <tr>
+              <th className="com-th" style={{ textAlign: 'left' }}>Commodity</th>
+              <th className="com-th">Sector</th>
+              <th className="com-th">1d%</th>
+              <th className="com-th">1w%</th>
+              <th className="com-th">1m%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(c => (
+              <tr key={c.ticker} className="com-row">
+                <td className="com-cell">{c.name}</td>
+                <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.sector}</td>
+                <td className={`com-cell ${pctClass(c.d1)}`} style={{ fontWeight: 600 }}>{fmtPct(c.d1)}</td>
+                <td className={`com-cell ${pctClass(c.w1)}`}>{fmtPct(c.w1)}</td>
+                <td className={`com-cell ${pctClass(c.m1)}`}>{fmtPct(c.m1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+    );
+  };
 
+  // Render heatmap (color-coded cells)
+  const renderHeatmap = () => (
+    <div className="com-scroll">
+      <table className="com-table">
+        <thead className="com-thead-sticky">
+          <tr>
+            <th className="com-th" style={{ textAlign: 'left' }}>Commodity</th>
+            {columns.map(col => <th key={col} className="com-th">{col}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {SECTORS_ORDER.map(sector => {
+            const rows = commodities.filter(c => c.sector === sector);
+            if (rows.length === 0) return null;
+            return (
+              <React.Fragment key={sector}>
+                <tr className="com-sector-row">
+                  <td colSpan={columns.length + 1}>{sector}</td>
+                </tr>
+                {rows.map(c => (
+                  <tr key={c.ticker} className="com-row">
+                    <td className="com-cell">{c.name}</td>
+                    {colKeys.map(k => (
+                      <td key={k} className={`com-cell ${heatClass(c[k])}`} style={{ fontWeight: 500 }}>
+                        {fmtPct(c[k])}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (!commodities.length) {
+    return (
+      <div className="com-panel">
+        <div className="com-empty">No sector performance data available</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="com-panel" style={{ overflow: 'hidden' }}>
       {/* KPI Strip */}
       <div className="com-kpi-strip">
         {best1d && (
@@ -114,41 +191,9 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities }) {
         </div>
       </div>
 
-      {/* Main: heatmap table (wide) + sector bars (narrow) */}
-      <div className="com-wide-narrow" style={{ marginBottom: 12 }}>
-        <div className="com-scroll">
-          <table className="com-table">
-            <thead>
-              <tr>
-                <th className="com-th" style={{ textAlign: 'left' }}>Commodity</th>
-                {columns.map(col => <th key={col} className="com-th">{col}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {SECTORS_ORDER.map(sector => {
-                const rows = commodities.filter(c => c.sector === sector);
-                if (rows.length === 0) return null;
-                return (
-                  <React.Fragment key={sector}>
-                    <tr className="com-sector-row">
-                      <td colSpan={columns.length + 1}>{SECTOR_ICONS[sector] || ''} {sector}</td>
-                    </tr>
-                    {rows.map(c => (
-                      <tr key={c.ticker} className="com-row">
-                        <td className="com-cell">{c.name}</td>
-                        {colKeys.map(k => (
-                          <td key={k} className={`com-cell ${heatClass(c[k])}`} style={{ fontWeight: 500 }}>
-                            {fmtPct(c[k])}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Main: heatmap or table (wide) + sector bars (narrow) */}
+      <div className="com-wide-narrow">
+        {view === 'heatmap' ? renderHeatmap() : renderTable()}
         <div className="com-chart-panel">
           <div className="com-chart-title">Sector Avg 1d%</div>
           <div className="com-sector-bars" style={{ marginTop: 8 }}>
@@ -181,7 +226,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities }) {
 
       {/* PPI chart */}
       {ppiOption && (
-        <div className="com-chart-panel" style={{ height: 170, flexShrink: 0 }}>
+        <div className="com-chart-panel" style={{ flexShrink: 0, minHeight: 80 }}>
           <div className="com-chart-title">PPI Commodity Index — 3 Year (FRED monthly)</div>
           <div className="com-mini-chart">
             <SafeECharts option={ppiOption} style={{ height: '100%', width: '100%' }} />

@@ -2,7 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CommodComponents.css';
+import './CommoditiesDashboard.css';
 
 function buildStocksOption(title, periods, values, avg5yr, colors) {
   const avgLine = avg5yr != null ? Array(values.length).fill(avg5yr) : null;
@@ -97,7 +97,15 @@ function buildGoldOption(dates, values, colors) {
 
 export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
   const { colors } = useTheme();
-  if (!supplyDemandData) return null;
+  if (!supplyDemandData) return (
+    <div className="com-panel">
+      <div className="com-panel-header">
+        <span className="com-panel-title">Supply &amp; Demand Monitor</span>
+        <span className="com-panel-subtitle">EIA weekly data + FRED gold history</span>
+      </div>
+      <div className="com-empty">No supply/demand data available</div>
+    </div>
+  );
   const {
     crudeStocks     = { periods: [], values: [], avg5yr: null },
     natGasStorage   = { periods: [], values: [], avg5yr: null },
@@ -118,7 +126,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
   const goldOption = goldH?.dates?.length >= 10 ? buildGoldOption(goldH.dates, goldH.values, colors) : null;
 
   return (
-    <div className="com-panel">
+    <div className="com-panel" style={{ overflow: 'hidden' }}>
       <div className="com-panel-header">
         <span className="com-panel-title">Supply &amp; Demand Monitor</span>
         <span className="com-panel-subtitle">EIA weekly data + FRED gold history</span>
@@ -157,13 +165,13 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       </div>
 
       {/* Three-column top row */}
-      <div className="com-three-col" style={{ marginBottom: 12 }}>
+      <div className="com-three-col">
         <div className="com-chart-panel">
           <div className="com-chart-title">US Crude Oil Stocks (M bbl)</div>
           <div className="com-mini-chart">
             <SafeECharts
               option={buildStocksOption('Crude Stocks', crudeStocks.periods, crudeStocks.values, crudeStocks.avg5yr, colors)}
-              style={{ height: '100%', width: '100%' }}
+              style={{ height: '100%', maxHeight: '100%', width: '100%' }}
             />
           </div>
         </div>
@@ -172,7 +180,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
           <div className="com-mini-chart">
             <SafeECharts
               option={buildStocksOption('Nat Gas', natGasStorage.periods, natGasStorage.values, natGasStorage.avg5yr, colors)}
-              style={{ height: '100%', width: '100%' }}
+              style={{ height: '100%', maxHeight: '100%', width: '100%' }}
             />
           </div>
         </div>
@@ -180,7 +188,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
           <div className="com-chart-panel">
             <div className="com-chart-title">Gold Price — 1 Year (FRED)</div>
             <div className="com-mini-chart">
-              <SafeECharts option={goldOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={goldOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
             </div>
           </div>
         ) : (
@@ -194,13 +202,13 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       </div>
 
       {/* Bottom: crude production full-width */}
-      <div className="com-chart-panel" style={{ height: 170, flexShrink: 0 }}>
+      <div className="com-chart-panel" style={{ flexShrink: 0, minHeight: 80 }}>
         <div className="com-chart-title">US Crude Production (M bbl/day) — 52 Weeks</div>
         <div className="com-mini-chart">
-          <SafeECharts
-            option={buildStocksOption('Production', crudeProduction.periods, crudeProduction.values, null, colors)}
-            style={{ height: '100%', width: '100%' }}
-          />
+           <SafeECharts
+             option={buildStocksOption('Production', crudeProduction.periods, crudeProduction.values, null, colors)}
+             style={{ height: '100%', maxHeight: '100%', width: '100%' }}
+           />
         </div>
       </div>
 
