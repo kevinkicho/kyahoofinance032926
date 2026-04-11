@@ -11,7 +11,8 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--bg-deep);
 }
 
@@ -55,13 +56,12 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
 }
 
 /* ── 3. Bento root — wrapper for react-grid-layout ── */
 .com-bento-root {
-  flex: 1;
-  min-height: 0;
+  flex: 1 0 auto;
+  min-height: 400px;
 }
 
 /* ── 3b. Drag/drop placeholder ── */
