@@ -207,9 +207,17 @@
   flex-direction: column;
   min-height: 0;
   flex: 1;
+  max-width: 100%;
+}
+
+.com-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  max-width: 100%;
+  gap: 6px;
 }
 
 .com-panel-header {
@@ -229,10 +237,6 @@
   display: flex;
   justify-content: space-between;
   flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
-  background: var(--bg-card);
-  z-index: 2;
 }
 
 /* ── 8. KPI strip ── */

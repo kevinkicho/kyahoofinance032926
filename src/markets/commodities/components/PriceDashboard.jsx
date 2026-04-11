@@ -276,128 +276,131 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
 
   return (
     <div className="com-panel">
-      {/* KPI Strip */}
-      <div className="com-kpi-strip">
-        <div className="com-kpi-pill">
-          <span className="com-kpi-label">WTI Crude</span>
-          <span className="com-kpi-value">${wti?.price?.toFixed(2) ?? '—'}</span>
-          <span className={`com-kpi-sub ${pctClass(wti?.change1d)}`}>{fmtPct(wti?.change1d)} today</span>
-        </div>
-        <div className="com-kpi-pill">
-          <span className="com-kpi-label">Gold</span>
-          <span className="com-kpi-value">${gold?.price?.toLocaleString() ?? '—'}</span>
-          <span className={`com-kpi-sub ${pctClass(gold?.change1d)}`}>{fmtPct(gold?.change1d)} today</span>
-        </div>
-        <div className="com-kpi-pill">
-          <span className="com-kpi-label">DBC Index</span>
-          <span className="com-kpi-value">${dbcEtf?.price?.toFixed(2) ?? '—'}</span>
-          <span className={`com-kpi-sub ${pctClass(dbcEtf?.ytd)}`}>YTD {dbcEtf?.ytd != null ? `${dbcEtf.ytd > 0 ? '+' : ''}${dbcEtf.ytd.toFixed(1)}%` : '—'}</span>
-        </div>
-        {best1m && (
+      {/* Scrollable content: KPI strip + table + charts */}
+      <div className="com-panel-scroll">
+        {/* KPI Strip */}
+        <div className="com-kpi-strip">
           <div className="com-kpi-pill">
-            <span className="com-kpi-label">Best 1M</span>
-            <span className="com-kpi-value" style={{ color: '#ca8a04' }}>{best1m.name}</span>
-            <span className="com-kpi-sub com-up">{fmtPct(best1m.change1m)}</span>
+            <span className="com-kpi-label">WTI Crude</span>
+            <span className="com-kpi-value">${wti?.price?.toFixed(2) ?? '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(wti?.change1d)}`}>{fmtPct(wti?.change1d)} today</span>
           </div>
-        )}
-        {goldOilRatio != null && (
           <div className="com-kpi-pill">
-            <span className="com-kpi-label">Gold/Oil</span>
-            <span className="com-kpi-value">{(typeof goldOilRatio === 'object' ? goldOilRatio.ratio : goldOilRatio)?.toFixed(1) ?? '—'}</span>
-            <span className="com-kpi-sub">oz gold / bbl oil</span>
+            <span className="com-kpi-label">Gold</span>
+            <span className="com-kpi-value">${gold?.price?.toLocaleString() ?? '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(gold?.change1d)}`}>{fmtPct(gold?.change1d)} today</span>
           </div>
-        )}
-        {contangoIndicator?.structure && (
           <div className="com-kpi-pill">
-            <span className="com-kpi-label">WTI Structure</span>
-            <span className="com-kpi-value">
-              <span className={contangoIndicator.structure === 'Contango' ? 'com-up' : 'com-down'}>
-                {contangoIndicator.structure}
+            <span className="com-kpi-label">DBC Index</span>
+            <span className="com-kpi-value">${dbcEtf?.price?.toFixed(2) ?? '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(dbcEtf?.ytd)}`}>YTD {dbcEtf?.ytd != null ? `${dbcEtf.ytd > 0 ? '+' : ''}${dbcEtf.ytd.toFixed(1)}%` : '—'}</span>
+          </div>
+          {best1m && (
+            <div className="com-kpi-pill">
+              <span className="com-kpi-label">Best 1M</span>
+              <span className="com-kpi-value" style={{ color: '#ca8a04' }}>{best1m.name}</span>
+              <span className="com-kpi-sub com-up">{fmtPct(best1m.change1m)}</span>
+            </div>
+          )}
+          {goldOilRatio != null && (
+            <div className="com-kpi-pill">
+              <span className="com-kpi-label">Gold/Oil</span>
+              <span className="com-kpi-value">{(typeof goldOilRatio === 'object' ? goldOilRatio.ratio : goldOilRatio)?.toFixed(1) ?? '—'}</span>
+              <span className="com-kpi-sub">oz gold / bbl oil</span>
+            </div>
+          )}
+          {contangoIndicator?.structure && (
+            <div className="com-kpi-pill">
+              <span className="com-kpi-label">WTI Structure</span>
+              <span className="com-kpi-value">
+                <span className={contangoIndicator.structure === 'Contango' ? 'com-up' : 'com-down'}>
+                  {contangoIndicator.structure}
+                </span>
               </span>
-            </span>
-            <span className="com-kpi-sub">
-              spread {contangoIndicator.spread != null
-                ? `${contangoIndicator.spread > 0 ? '+' : ''}$${contangoIndicator.spread.toFixed(2)}`
-                : '—'}
-            </span>
-          </div>
-        )}
-        {commodityCurrencies && (
-          <div className="com-kpi-pill">
-            <span className="com-kpi-label">Commodity FX</span>
-            <span className="com-kpi-value" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-              {['CAD', 'AUD', 'NOK'].map(ccy => (
-                commodityCurrencies[ccy] != null && (
-                  <span key={ccy} className="com-fx-badge" style={{ background: colors.cardBg, borderColor: colors.cardBorder || colors.tooltipBorder }}>
-                    {ccy} {commodityCurrencies[ccy].toFixed(4)}
-                  </span>
-                )
-              ))}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Main: table (wide) + DBC chart (narrow) */}
-      <div className="com-wide-narrow">
-        <div className="com-scroll">
-          <table className="com-table">
-            <thead className="com-thead-sticky">
-              <tr>
-                <th className="com-th" style={{ textAlign: 'left' }}>Commodity</th>
-                <th className="com-th">Price</th>
-                <th className="com-th">Unit</th>
-                <th className="com-th">1d%</th>
-                <th className="com-th">1w%</th>
-                <th className="com-th">1m%</th>
-                <th className="com-th">30d Trend</th>
-                <th className="com-th">Source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayGroups.map(({ sector, commodities }) => (
-                <React.Fragment key={sector}>
-                  <tr className="com-sector-row">
-                    <td colSpan={8}>{sector}</td>
-                  </tr>
-                  {(commodities || []).map(c => (
-                    <tr key={c.ticker || c.name} className="com-row">
-                      <td className="com-cell">{c.name}</td>
-                      <td className="com-cell com-price">
-                        {c.price != null ? c.price.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}
-                      </td>
-                      <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.unit || ''}</td>
-                      <td className={`com-cell ${pctClass(c.change1d)}`}>{fmtPct(c.change1d)}</td>
-                      <td className={`com-cell ${pctClass(c.change1w)}`}>{fmtPct(c.change1w)}</td>
-                      <td className={`com-cell ${pctClass(c.change1m)}`}>{fmtPct(c.change1m)}</td>
-                      <td className="com-cell"><Sparkline values={c.sparkline} /></td>
-                      <td className="com-cell com-source-cell">{c.source || c._source || ''}</td>
-                    </tr>
-                  ))}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+              <span className="com-kpi-sub">
+                spread {contangoIndicator.spread != null
+                  ? `${contangoIndicator.spread > 0 ? '+' : ''}$${contangoIndicator.spread.toFixed(2)}`
+                  : '—'}
+              </span>
+            </div>
+          )}
+          {commodityCurrencies && (
+            <div className="com-kpi-pill">
+              <span className="com-kpi-label">Commodity FX</span>
+              <span className="com-kpi-value" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                {['CAD', 'AUD', 'NOK'].map(ccy => (
+                  commodityCurrencies[ccy] != null && (
+                    <span key={ccy} className="com-fx-badge" style={{ background: colors.cardBg, borderColor: colors.cardBorder || colors.tooltipBorder }}>
+                      {ccy} {commodityCurrencies[ccy].toFixed(4)}
+                    </span>
+                  )
+                ))}
+              </span>
+            </div>
+          )}
         </div>
-        {dbcOption && (
-          <div className="com-chart-panel">
-            <div className="com-chart-title">DBC Commodity ETF — 1 Year</div>
+
+        {/* Main: table (wide) + DBC chart (narrow) */}
+        <div className="com-wide-narrow">
+          <div className="com-scroll">
+            <table className="com-table">
+              <thead className="com-thead-sticky">
+                <tr>
+                  <th className="com-th" style={{ textAlign: 'left' }}>Commodity</th>
+                  <th className="com-th">Price</th>
+                  <th className="com-th">Unit</th>
+                  <th className="com-th">1d%</th>
+                  <th className="com-th">1w%</th>
+                  <th className="com-th">1m%</th>
+                  <th className="com-th">30d Trend</th>
+                  <th className="com-th">Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayGroups.map(({ sector, commodities }) => (
+                  <React.Fragment key={sector}>
+                    <tr className="com-sector-row">
+                      <td colSpan={8}>{sector}</td>
+                    </tr>
+                    {(commodities || []).map(c => (
+                      <tr key={c.ticker || c.name} className="com-row">
+                        <td className="com-cell">{c.name}</td>
+                        <td className="com-cell com-price">
+                          {c.price != null ? c.price.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}
+                        </td>
+                        <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.unit || ''}</td>
+                        <td className={`com-cell ${pctClass(c.change1d)}`}>{fmtPct(c.change1d)}</td>
+                        <td className={`com-cell ${pctClass(c.change1w)}`}>{fmtPct(c.change1w)}</td>
+                        <td className={`com-cell ${pctClass(c.change1m)}`}>{fmtPct(c.change1m)}</td>
+                        <td className="com-cell"><Sparkline values={c.sparkline} /></td>
+                        <td className="com-cell com-source-cell">{c.source || c._source || ''}</td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {dbcOption && (
+            <div className="com-chart-panel">
+              <div className="com-chart-title">DBC Commodity ETF — 1 Year</div>
+              <div className="com-mini-chart">
+                <SafeECharts option={dbcOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom chart: WTI vs Brent */}
+        {overlayOption && (
+          <div className="com-chart-panel" style={{ marginTop: 8 }}>
+            <div className="com-chart-title">WTI vs Brent Crude — 1 Year (FRED daily)</div>
             <div className="com-mini-chart">
-              <SafeECharts option={dbcOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+              <SafeECharts option={overlayOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
             </div>
           </div>
         )}
       </div>
-
-      {/* Bottom chart: WTI vs Brent */}
-      {overlayOption && (
-        <div className="com-chart-panel" style={{ marginTop: 8 }}>
-          <div className="com-chart-title">WTI vs Brent Crude — 1 Year (FRED daily)</div>
-          <div className="com-mini-chart">
-            <SafeECharts option={overlayOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
-          </div>
-        </div>
-      )}
 
       <div className="com-panel-footer">
         Prices: Yahoo Finance futures · EIA daily · FRED daily/monthly · DBC: Invesco DB Commodity Index
