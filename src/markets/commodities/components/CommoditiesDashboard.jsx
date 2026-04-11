@@ -1,6 +1,7 @@
-// Commodities Dashboard - Full unified dashboard, no sidebar, single-viewport bento grid
+// Commodities Dashboard - Bento grid layout using bento-grid-builder
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { BentoGrid } from 'bento-grid-builder';
 import PriceDashboard from './PriceDashboard';
 import SectorHeatmap from './SectorHeatmap';
 import FuturesCurve from './FuturesCurve';
@@ -46,12 +47,48 @@ function CommoditiesDashboard({
     return <span style={{ color }}>{sign}{num.toFixed(2)}%</span>;
   };
 
-  return (
-    <div className="com-dashboard com-dashboard--no-sidebar">
-      <div className="com-content-grid">
+  // Bento layout: 5 columns, 2 rows
+  // Prices: col 1, spans 2 cols + 2 rows (hero)
+  // Futures: col 3, spans 2 cols + 2 rows (tall)
+  // Sector: col 1, row 2 (but prices covers this)
+  // Actually: 5-col grid, prices spans col1-2/row1-2, futures spans col3-4/row1-2
+  // Then sector/supply/cot fill row 2 in cols 1,2,3 of the remaining space
+  // Better layout:
+  //   Row 1: Prices(3col) | Futures(2col)
+  //   Row 2: Prices(cont) | Futures(cont) | Sector(1col) | Supply(1col) | COT(1col)
+  // Prices occupies (col1,row1)-(col3,row2) = 3cols x 2rows
+  // Futures occupies (col4,row1)-(col5,row2) = 2cols x 2rows
+  // But we have 5 panels... Let me use a 4-column, 3-row grid:
+  //   Prices: col1-2, row1-3 (spans 2 cols, 3 rows — tall hero)
+  //   Futures: col3-4, row1-2 (spans 2 cols, 2 rows)
+  //   Sector: col3, row3
+  //   Supply: col4, row3
+  //   COT: col5? No, 4 cols...
+  // Better: 6 columns
+  //   Prices:  col1-3, row1-2 (3x2 hero)
+  //   Futures: col4-6, row1 (3x1)
+  //   Sector:  col4, row2 (1x1)
+  //   Supply:  col5, row2 (1x1)
+  //   COT:     col6, row2 (1x1)
+  const layout = {
+    columns: 6,
+    rows: 2,
+    gap: 8,
+    rowHeights: ['3fr', '2fr'],
+    placements: [
+      { cardId: 'prices',  col: 1, row: 1, colSpan: 3, rowSpan: 2 },
+      { cardId: 'futures', col: 4, row: 1, colSpan: 3, rowSpan: 1 },
+      { cardId: 'sector',  col: 4, row: 2, colSpan: 1, rowSpan: 1 },
+      { cardId: 'supply',  col: 5, row: 2, colSpan: 1, rowSpan: 1 },
+      { cardId: 'cot',     col: 6, row: 2, colSpan: 1, rowSpan: 1 },
+    ],
+  };
 
-        {/* Prices — tall (spans 2 rows) */}
-        <div className="com-bento-panel com-bento-tall">
+  const cards = [
+    {
+      id: 'prices',
+      component: () => (
+        <div className="com-bento-panel">
           <div className="com-panel-title-row">
             <span className="com-panel-title">Commodity Prices</span>
             <span className="com-panel-subtitle">
@@ -95,9 +132,12 @@ function CommoditiesDashboard({
             )}
           </div>
         </div>
-
-        {/* Futures Curve — tall (spans 2 rows) */}
-        <div className="com-bento-panel com-bento-tall">
+      ),
+    },
+    {
+      id: 'futures',
+      component: () => (
+        <div className="com-bento-panel">
           <FuturesCurve
             futuresCurveData={futuresCurveData}
             goldFuturesCurve={goldFuturesCurve}
@@ -105,8 +145,11 @@ function CommoditiesDashboard({
             seasonalPatterns={seasonalPatterns}
           />
         </div>
-
-        {/* Sector Performance */}
+      ),
+    },
+    {
+      id: 'sector',
+      component: () => (
         <div className="com-bento-panel">
           <div className="com-panel-title-row">
             <span className="com-panel-title">Sector Performance</span>
@@ -130,77 +173,73 @@ function CommoditiesDashboard({
             view={sectorView}
           />
         </div>
-
-        {/* Supply & Demand */}
+      ),
+    },
+    {
+      id: 'supply',
+      component: () => (
         <div className="com-bento-panel">
           <SupplyDemand
             supplyDemandData={supplyDemandData}
             fredCommodities={fredCommodities}
           />
         </div>
-
-        {/* COT Positioning */}
+      ),
+    },
+    {
+      id: 'cot',
+      component: () => (
         <div className="com-bento-panel">
           <CotPositioning
             cotData={cotData}
           />
         </div>
+      ),
+    },
+  ];
 
-      </div>
+  return (
+    <div className="com-dashboard com-dashboard--no-sidebar">
+      <BentoGrid
+        layout={layout}
+        cards={cards}
+        data={{}}
+        dataMapping={cards.map(c => ({ cardId: c.id, propsSelector: () => ({}) }))}
+        className="com-bento-root"
+      />
     </div>
   );
 }
 
 /**
- * PriceCharts — data-driven sector grouping (no hardcoded ticker map)
+ * PriceCharts — data-driven sector grouping
  */
 function PriceCharts({ priceDashboardData, allCommodities, colors, formatChange }) {
-  // Use sector grouping from the data itself
-  const groups = useMemo(() => {
-    if (!priceDashboardData?.length) return [];
-    return priceDashboardData
-      .filter(s => s.sector && s.commodities?.length)
-      .map(s => ({ sector: s.sector, items: s.commodities }));
-  }, [priceDashboardData]);
-
-  if (!groups.length) {
-    return <div className="com-empty">No price data available</div>;
-  }
+  const sectors = priceDashboardData || [];
+  const groupColors = {
+    Energy: '#ef4444',
+    Metals: '#f59e0b',
+    Agriculture: '#22c55e',
+    Livestock: '#8b5cf6',
+    Fibers: '#06b6d4',
+  };
 
   return (
     <div className="com-price-charts">
-      {groups.map(({ sector, items }) => (
-        <div key={sector} className="com-chart-group">
-          <div className="com-chart-group-title" style={{ color: colors.text }}>{sector}</div>
+      {sectors.map(sector => (
+        <div key={sector.sector} className="com-chart-group">
+          <div className="com-chart-group-title" style={{ color: groupColors[sector.sector] || '#94a3b8' }}>
+            {sector.sector}
+          </div>
           <div className="com-chart-group-items">
-            {items.map(c => (
-              <div key={c.ticker || c.name} className="com-chart-item" style={{ background: colors.bgCard, borderColor: colors.borderColor }}>
+            {(sector.commodities || []).map(c => (
+              <div key={c.ticker || c.name} className="com-chart-item">
                 <div className="com-chart-item-header">
-                  <span style={{ fontWeight: 600, fontSize: 12, color: colors.text }}>{c.name}</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: c.change1d >= 0 ? '#22c55e' : '#ef4444' }}>
-                    {c.price != null ? `$${Number(c.price).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '—'}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#e2e8f0' }}>{c.name}</span>
+                  <span style={{ fontSize: 11, fontFamily: 'monospace', color: (c.change1d || 0) >= 0 ? '#22c55e' : '#ef4444' }}>
+                    {formatChange(c.change1d)}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: colors.textMuted, padding: '4px 0 8px' }}>
-                  1d: {formatChange(c.change1d)} &nbsp; 1w: {formatChange(c.change1w)} &nbsp; 1m: {formatChange(c.change1m)}
-                </div>
-                {c.sparkline && (
-                  <svg viewBox="0 0 80 28" style={{ width: '100%', height: 24 }}>
-                    <polyline
-                      points={c.sparkline.map((v, i) => {
-                        const min = Math.min(...c.sparkline);
-                        const max = Math.max(...c.sparkline);
-                        const range = max - min || 1;
-                        const x = 2 + (i / (c.sparkline.length - 1)) * 76;
-                        const y = 26 - ((v - min) / range) * 24;
-                        return `${x},${y}`;
-                      }).join(' ')}
-                      fill="none"
-                      stroke={c.change1d >= 0 ? '#22c55e' : '#ef4444'}
-                      strokeWidth="1.5"
-                    />
-                  </svg>
-                )}
               </div>
             ))}
           </div>

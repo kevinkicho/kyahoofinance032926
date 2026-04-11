@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "bento-grid-builder": "^0.2.1",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
     "html2canvas": "^1.4.1",

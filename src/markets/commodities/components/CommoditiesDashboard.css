@@ -1,4 +1,4 @@
-/* ── Dashboard root — true bento: fills viewport, no page scroll ── */
+/* ── Dashboard root ── */
 .com-dashboard {
   display: flex;
   flex-direction: column;
@@ -12,32 +12,27 @@
   flex-direction: column;
 }
 
-/* ── Bento grid ── */
-.com-content-grid {
-  display: grid;
-  grid-template-columns: 4fr 2fr 1fr 1fr 1fr;
-  grid-template-rows: 3fr 2fr;
-  gap: 8px;
-  padding: 8px;
+/* ── BentoGrid root container ── */
+.com-bento-root {
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
+/* ── Bento panel — each cell is a card that fills its grid area ── */
 .com-bento-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
-  min-width: 0;
+  height: 100%;
 }
 
-.com-bento-tall { grid-row: span 2; }
-
+/* ── Panel title row ── */
 .com-panel-title-row {
   display: flex;
   align-items: baseline;
@@ -62,6 +57,7 @@
   min-width: 8px;
 }
 
+/* ── Toggle buttons ── */
 .com-toggle-btn {
   padding: 3px 10px;
   border: 1px solid var(--border-subtle);
@@ -88,6 +84,7 @@
   color: #ca8a04;
 }
 
+/* ── Panel & content ── */
 .com-panel {
   display: flex;
   flex-direction: column;
@@ -102,6 +99,11 @@
   gap: 8px;
   flex-shrink: 0;
   margin-bottom: 6px;
+}
+
+.com-panel-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 .com-panel-footer {
@@ -124,6 +126,7 @@
   min-height: 0;
 }
 
+/* ── KPI strip ── */
 .com-kpi-strip {
   display: flex;
   gap: 6px;
@@ -159,8 +162,12 @@
 .com-kpi-value.positive { color: #22c55e; }
 .com-kpi-value.negative { color: #ef4444; }
 
-.com-kpi-sub { font-size: 9px; color: var(--text-dim); }
+.com-kpi-sub {
+  font-size: 9px;
+  color: var(--text-dim);
+}
 
+/* ── Layout helpers ── */
 .com-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -188,6 +195,7 @@
   overflow: hidden;
 }
 
+/* ── Chart panel ── */
 .com-chart-panel {
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
@@ -212,6 +220,7 @@
   min-height: 0;
 }
 
+/* ── Scroll areas ── */
 .com-scroll {
   flex: 1;
   overflow-y: auto;
@@ -225,13 +234,49 @@
   overflow-y: auto;
 }
 
-.com-price-charts { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
-.com-chart-group { display: flex; flex-direction: column; gap: 6px; }
-.com-chart-group-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 2px; }
-.com-chart-group-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
-.com-chart-item { border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px; display: flex; flex-direction: column; }
-.com-chart-item-header { display: flex; justify-content: space-between; align-items: center; }
+/* ── Price charts ── */
+.com-price-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
 
+.com-chart-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.com-chart-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 2px;
+}
+
+.com-chart-group-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.com-chart-item {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.com-chart-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ── COT Positioning ── */
 .cot-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -241,7 +286,12 @@
   min-height: 0;
 }
 
-.cot-commodity { background: var(--bg-primary); border-radius: 6px; padding: 8px; }
+.cot-commodity {
+  background: var(--bg-primary);
+  border-radius: 6px;
+  padding: 8px;
+}
+
 .cot-name { font-size: 12px; font-weight: 600; color: #ca8a04; margin-bottom: 4px; }
 .cot-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin-bottom: 4px; }
 .cot-metric { display: flex; flex-direction: column; gap: 1px; }
@@ -250,6 +300,7 @@
 .cot-metric-value.green { color: #10b981; }
 .cot-metric-value.red { color: #ef4444; }
 
+/* ── Supply & Demand ── */
 .com-sd-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -260,12 +311,23 @@
   overflow: hidden;
 }
 
-.com-sd-panel { display: flex; flex-direction: column; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px; overflow: hidden; min-height: 0; }
+.com-sd-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .com-sd-panel:last-child { grid-column: 1 / -1; }
 .com-sd-title { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; flex-shrink: 0; }
 .com-sd-subtitle { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; flex-shrink: 0; }
 .com-sd-chart { flex: 1; min-height: 0; }
 
+/* ── Sector bars ── */
 .com-sector-bars { display: flex; flex-direction: column; gap: 4px; }
 .com-sector-bar-row { display: flex; align-items: center; gap: 6px; }
 .com-sector-bar-name { font-size: 10px; color: var(--text-secondary); width: 70px; flex-shrink: 0; text-align: right; }
@@ -276,6 +338,7 @@
 .com-sector-bar-val.positive { color: #22c55e; }
 .com-sector-bar-val.negative { color: #ef4444; }
 
+/* ── Misc ── */
 .com-cat-energy { color: #ef4444; }
 .com-cat-metals { color: #f59e0b; }
 .com-cat-agriculture { color: #22c55e; }
@@ -288,8 +351,11 @@
 .com-fx-badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border-subtle); color: var(--text-primary); }
 .com-empty { display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--text-muted); font-size: 12px; font-style: italic; min-height: 40px; }
 
+/* ── Sticky table headers ── */
 .com-thead-sticky { position: sticky; top: 0; z-index: 2; background: var(--bg-primary); }
 .com-thead-sticky .com-th { background: var(--bg-primary); }
+
+/* ── Tables ── */
 .com-table { border-collapse: collapse; min-width: 100%; }
 .com-th { background: var(--bg-card); color: var(--text-secondary); font-size: 11px; font-weight: 600; padding: 6px 10px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; }
 .com-th:first-child { text-align: left; }
@@ -313,22 +379,11 @@
 .com-curve-table tr:last-child td { border-bottom: none; }
 .com-source-cell { font-size: 10px !important; color: var(--text-muted) !important; font-weight: 400 !important; letter-spacing: 0.01em; }
 
-@media (max-width: 1400px) {
-  .com-content-grid {
-    grid-template-columns: 4fr 2fr 1fr 1fr 1fr;
-    grid-template-rows: auto;
-  }
-  .com-bento-tall { grid-row: span 1; }
-}
-
+/* ── Responsive ── */
 @media (max-width: 1000px) {
-  .com-content-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
+  .com-bento-root {
     overflow-y: auto;
   }
-  .com-bento-tall { grid-row: span 1; }
-  .com-bento-panel { overflow: visible; }
   .com-two-col,
   .com-wide-narrow,
   .com-three-col { grid-template-columns: 1fr; }
