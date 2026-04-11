@@ -197,6 +197,8 @@
   min-height: 0;
   padding: 10px;
   gap: 6px;
+  container-type: inline-size;
+  container-name: panel-content;
 }
 
 .com-panel {
@@ -204,7 +206,8 @@
   flex-direction: column;
   min-height: 0;
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .com-panel-header {
@@ -228,17 +231,17 @@
 
 /* ── 8. KPI strip ── */
 .com-kpi-strip { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
-.com-kpi-pill { background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 4px 8px; display: flex; flex-direction: column; min-width: 80px; }
-.com-kpi-label { font-size: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.com-kpi-value { font-size: 13px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text-primary); }
+.com-kpi-pill { background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 4px 8px; display: flex; flex-direction: column; min-width: 80px; flex: 1 1 80px; overflow: hidden; }
+.com-kpi-label { font-size: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.com-kpi-value { font-size: 13px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .com-kpi-value.positive { color: #22c55e; }
 .com-kpi-value.negative { color: #ef4444; }
-.com-kpi-sub { font-size: 8px; color: var(--text-dim); }
+.com-kpi-sub { font-size: 8px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── 9. Layout helpers ── */
 .com-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; min-height: 0; }
-.com-wide-narrow { display: flex; gap: 6px; flex: 1; min-height: 0; }
-.com-wide-narrow > .com-scroll { flex: 1; min-width: 0; }
+.com-wide-narrow { display: flex; gap: 6px; flex: 1; min-height: 0; flex-wrap: wrap; }
+.com-wide-narrow > .com-scroll { flex: 1 1 300px; min-width: 0; }
 .com-wide-narrow > .com-chart-panel { flex: 0 0 35%; min-width: 200px; max-width: 360px; }
 .com-three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; flex: 1; min-height: 0; }
 
@@ -251,6 +254,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .com-chart-title { font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; flex-shrink: 0; }
@@ -297,12 +301,12 @@
 .com-sector-bar-val.negative { color: #ef4444; }
 
 /* ── 14. Tables ── */
-.com-table { border-collapse: collapse; min-width: 100%; }
+.com-table { border-collapse: collapse; width: 100%; table-layout: auto; }
 .com-th { background: var(--bg-card); color: var(--text-secondary); font-size: 10px; font-weight: 600; padding: 3px 6px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; }
 .com-th:first-child { text-align: left; }
 .com-row:hover { background: var(--bg-card); }
-.com-cell { padding: 2px 6px; border: 1px solid var(--bg-primary); text-align: right; font-size: 10px; color: #cbd5e1; white-space: nowrap; }
-.com-cell:first-child { text-align: left; font-weight: 600; color: var(--text-primary); }
+.com-cell { padding: 2px 6px; border: 1px solid var(--bg-primary); text-align: right; font-size: 10px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.com-cell:first-child { text-align: left; font-weight: 600; color: var(--text-primary); max-width: none; }
 .com-sector-row td { background: var(--bg-primary); color: var(--text-muted); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 6px; border: 1px solid var(--bg-primary); }
 .com-price { color: #ca8a04; font-weight: 600; }
 .com-up { color: #22c55e; }
@@ -336,7 +340,7 @@
 .com-empty { display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--text-muted); font-size: 12px; font-style: italic; min-height: 40px; }
 
 /* ── 16. Responsive ── */
-/* ── 16. Container queries — scale content to fit bento cards ── */
+/* ── 16a. Container queries — shrink content to fit bento cards before scrolling ── */
 @container bento-card (max-width: 500px) {
   .com-kpi-pill { padding: 2px 6px; min-width: 60px; }
   .com-kpi-label { font-size: 7px; }
@@ -352,6 +356,10 @@
   .com-sd-title { font-size: 9px; }
   .com-sd-subtitle { font-size: 8px; }
   .cot-grid { grid-template-columns: 1fr; }
+  .com-cell { font-size: 9px; padding: 1px 4px; }
+  .com-th { font-size: 9px; padding: 2px 4px; }
+  .com-spark { width: 50px; height: 20px; }
+  .com-source-cell { display: none; }
 }
 
 @container bento-card (max-height: 280px) {
@@ -360,6 +368,30 @@
   .com-kpi-label { font-size: 6px; }
   .com-kpi-value { font-size: 10px; }
   .com-panel-title { font-size: 10px; }
+  .com-panel-footer { display: none; }
+  .com-kpi-strip { gap: 4px; }
+  .com-cell { font-size: 9px; padding: 1px 4px; }
+  .com-spark { width: 50px; height: 20px; }
+}
+
+/* ── 16b. Panel-content container queries — shrink inner elements ── */
+@container panel-content (max-width: 400px) {
+  .com-wide-narrow { flex-direction: column; }
+  .com-wide-narrow > .com-chart-panel { flex: 0 0 auto; max-width: none; min-width: 0; height: 120px; }
+  .com-kpi-pill { min-width: 50px; padding: 2px 5px; }
+  .com-kpi-value { font-size: 11px; }
+  .com-table .com-cell { font-size: 9px; padding: 1px 3px; max-width: 80px; }
+  .com-th { font-size: 9px; padding: 2px 3px; }
+  .com-spark { width: 50px; height: 20px; }
+  .com-source-cell { display: none; }
+}
+
+@container panel-content (max-height: 300px) {
+  .com-kpi-strip { gap: 3px; }
+  .com-kpi-pill { padding: 2px 5px; min-width: 50px; }
+  .com-kpi-label { font-size: 6px; }
+  .com-kpi-value { font-size: 10px; }
+  .com-kpi-sub { font-size: 6px; }
   .com-panel-footer { display: none; }
 }
 
