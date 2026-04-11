@@ -195,6 +195,7 @@
   overflow: hidden;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   padding: 10px;
   gap: 6px;
   container-type: inline-size;
@@ -208,6 +209,7 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  max-width: 100%;
 }
 
 .com-panel-header {
@@ -227,6 +229,10 @@
   display: flex;
   justify-content: space-between;
   flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-card);
+  z-index: 2;
 }
 
 /* ── 8. KPI strip ── */
@@ -259,7 +265,7 @@
 
 .com-chart-title { font-size: 10px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; flex-shrink: 0; }
 .com-mini-chart { flex: 1; min-height: 60px; }
-.com-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+.com-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; max-width: 100%; }
 .com-table, .com-chart-wrap { width: 100%; }
 
 /* ── 10. Price charts ── */
