@@ -52,34 +52,34 @@
 @keyframes com-spin { to { transform: rotate(360deg); } }
 .com-loading-text { font-size: 12px; color: var(--text-muted); }
 
-/* ── 2. Dashboard root — must fill viewport ── */
+/* ── 2. Dashboard root ── */
 .com-dashboard {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
   background: var(--bg-deep);
-  height: 100%;
 }
 
 .com-dashboard--no-sidebar { flex-direction: column; }
 
-/* ── 3. BentoGrid container — THE KEY: grid must fill height ── */
+/* ── 3. BentoGrid — MUST fill all remaining vertical space ── */
 .com-bento-root {
   flex: 1;
   min-height: 0;
-  height: 100%;
   --bento-card-bg: var(--bg-card);
   --bento-card-radius: 8px;
   --bento-card-padding: 10px;
   --bento-card-border: 1px solid var(--border-subtle);
 }
 
-/* CRITICAL: the library's .bento-grid only has display:grid with no height.
-   With fr rows, grid MUST have height or rows collapse to zero.
-   .com-bento-root is on the SAME element as .bento-grid */
+/* The library's .bento-grid only sets display:grid — no height or flex.
+   Adding flex:1 + min-height:0 on the same element makes the grid
+   fill the remaining flex space, giving fr rows a definite height. */
 .com-bento-root.bento-grid {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .com-bento-root .bento-card {
