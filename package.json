@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
-    "start": "concurrently -n vite,server -c cyan,yellow \"vite\" \"node server/index.js\"",
+    "start": "node scripts/start.js",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

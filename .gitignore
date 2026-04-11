@@ -48,6 +48,9 @@ coverage/
 .temp/
 *.tgz
 
+# Dynamic server port (auto-generated)
+.server-port
+
 # Daily API response cache (auto-generated, 1 file per market per day)
 server/datacache/
 

@@ -108,6 +108,10 @@
   opacity: 0.4;
   transition: opacity 0.15s ease;
   z-index: 5;
+  width: 20px !important;
+  height: 20px !important;
+  right: 0 !important;
+  bottom: 0 !important;
 }
 
 .react-grid-item:hover > .react-resizable-handle {
@@ -233,7 +237,9 @@
 
 /* ── 9. Layout helpers ── */
 .com-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; min-height: 0; }
-.com-wide-narrow { display: grid; grid-template-columns: 3fr 1fr; gap: 6px; flex: 1; min-height: 0; }
+.com-wide-narrow { display: flex; gap: 6px; flex: 1; min-height: 0; }
+.com-wide-narrow > .com-scroll { flex: 1; min-width: 0; }
+.com-wide-narrow > .com-chart-panel { flex: 0 0 35%; min-width: 200px; max-width: 360px; }
 .com-three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; flex: 1; min-height: 0; }
 
 .com-chart-panel {

@@ -2,6 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
 import https from 'https'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // Lightweight in-memory cache — no npm package needed
 function makeCache(ttlSeconds) {
@@ -163,6 +168,28 @@ function macroApiPlugin() {
   }
 }
 
+// Read the backend port from .server-port file (written by server/index.js on startup).
+// Falls back to 3001 if file doesn't exist yet.
+function getBackendPort() {
+  const portFile = path.join(__dirname, '.server-port');
+  try { return parseInt(fs.readFileSync(portFile, 'utf8'), 10) || 3001; } catch { return 3001; }
+}
+
+const API_ROUTES = [
+  '/api/stocks', '/api/summary', '/api/history', '/api/snapshot',
+  '/api/bonds', '/api/derivatives', '/api/realEstate', '/api/insurance',
+  '/api/commodities', '/api/globalMacro', '/api/equityDeepDive',
+  '/api/cache', '/api/crypto', '/api/credit', '/api/sentiment',
+  '/api/calendar', '/api/fx', '/api/rate-limits',
+];
+
+function buildProxyConfig() {
+  const target = `http://localhost:${getBackendPort()}`;
+  const proxy = {};
+  for (const r of API_ROUTES) proxy[r] = { target, changeOrigin: true };
+  return proxy;
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -182,26 +209,7 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
-    proxy: {
-      '/api/stocks':          { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/summary':         { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/history':         { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/snapshot':        { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/bonds':           { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/derivatives':     { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/realEstate':      { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/insurance':       { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/commodities':     { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/globalMacro':     { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/equityDeepDive':  { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/cache':        { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/crypto':       { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/credit':       { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/sentiment':    { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/calendar':     { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/fx':           { target: 'http://localhost:3001', changeOrigin: true },
-      '/api/rate-limits':  { target: 'http://localhost:3001', changeOrigin: true },
-    }
+    port: 0,
+    proxy: buildProxyConfig(),
   }
 })

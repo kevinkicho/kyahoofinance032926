@@ -25,7 +25,7 @@ COPY server/ ./
 # Copy Vite build output into a sibling dist/ so server can serve it
 COPY --from=build /app/dist /app/dist
 
-# Expose API + static serving port
+# Port is dynamically assigned (PORT env var, default 0 = auto-assign)
 EXPOSE 3001
 
 # Runtime env vars are injected at container start — never bake .env into image

@@ -57,7 +57,7 @@ process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
 cleanOldCaches();
 
 const app = express();
-const port = 3001;
+const port = parseInt(process.env.PORT, 10) || 0;
 const cache = new NodeCache({ stdTTL: 900 }); // 15 min default
 
 app.use(cors());
@@ -163,8 +163,11 @@ app.use((err, _req, res, _next) => {
 buildSnapshotIndex();
 
 server = app.listen(port, () => {
+  const actualPort = server.address().port;
+  const portFile = path.join(__dirname, '..', '.server-port');
+  fs.writeFileSync(portFile, String(actualPort));
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
-  console.log(`Global Macro Backend running at http://localhost:${port}`);
+  console.log(`Global Macro Backend running at http://localhost:${actualPort}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
   console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/fx  /api/summary/:t  /api/history/:t`);
 });
