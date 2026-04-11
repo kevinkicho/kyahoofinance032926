@@ -160,7 +160,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
   }
 
   return (
-    <div className="com-panel" style={{ overflow: 'hidden' }}>
+    <div className="com-panel">
       {/* KPI Strip */}
       <div className="com-kpi-strip">
         {best1d && (
@@ -192,7 +192,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
       </div>
 
       {/* Main: heatmap or table (wide) + sector bars (narrow) */}
-      <div className="com-wide-narrow">
+      <div className="com-wide-narrow" style={{ marginBottom: 8 }}>
         {view === 'heatmap' ? renderHeatmap() : renderTable()}
         <div className="com-chart-panel">
           <div className="com-chart-title">Sector Avg 1d%</div>

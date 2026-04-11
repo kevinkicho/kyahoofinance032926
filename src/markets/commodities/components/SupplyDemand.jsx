@@ -126,7 +126,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
   const goldOption = goldH?.dates?.length >= 10 ? buildGoldOption(goldH.dates, goldH.values, colors) : null;
 
   return (
-    <div className="com-panel" style={{ overflow: 'hidden' }}>
+    <div className="com-panel">
       <div className="com-panel-header">
         <span className="com-panel-title">Supply &amp; Demand Monitor</span>
         <span className="com-panel-subtitle">EIA weekly data + FRED gold history</span>
@@ -165,7 +165,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       </div>
 
       {/* Three-column top row */}
-      <div className="com-three-col">
+      <div className="com-three-col" style={{ marginBottom: 8 }}>
         <div className="com-chart-panel">
           <div className="com-chart-title">US Crude Oil Stocks (M bbl)</div>
           <div className="com-mini-chart">
@@ -202,7 +202,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       </div>
 
       {/* Bottom: crude production full-width */}
-      <div className="com-chart-panel com-chart-h170">
+      <div className="com-chart-panel" style={{ marginTop: 8 }}>
         <div className="com-chart-title">US Crude Production (M bbl/day) — 52 Weeks</div>
         <div className="com-mini-chart">
            <SafeECharts

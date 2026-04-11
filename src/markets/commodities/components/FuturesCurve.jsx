@@ -177,7 +177,7 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
   } : null;
 
   return (
-    <div className="com-panel" style={{ overflow: 'hidden' }}>
+    <div className="com-panel">
       <div className="com-panel-header">
         <span className="com-panel-title">Futures Curves</span>
         <span className="com-panel-subtitle">Forward contract pricing — term structure</span>
@@ -208,7 +208,7 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
       </div>
 
       {/* Two curves side by side */}
-      <div className="com-two-col">
+      <div className="com-two-col" style={{ marginBottom: 8 }}>
         {wtiOption && (
           <div className="com-chart-panel">
             <div className="com-chart-title">WTI Crude Oil — {wti.labels?.length} Months ({wti.unit})</div>
@@ -239,7 +239,7 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
 
       {/* Dollar vs WTI overlay */}
       {dualOption && (
-        <div className="com-chart-panel com-chart-h170">
+        <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">Dollar Index vs WTI — 1 Year (FRED daily, inverse correlation)</div>
           <div className="com-mini-chart">
             <SafeECharts option={dualOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />

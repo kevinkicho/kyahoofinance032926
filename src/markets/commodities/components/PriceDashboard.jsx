@@ -275,7 +275,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
   } : null;
 
   return (
-    <div className="com-panel" style={{ overflow: 'hidden' }}>
+    <div className="com-panel">
       {/* KPI Strip */}
       <div className="com-kpi-strip">
         <div className="com-kpi-pill">
@@ -391,7 +391,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
 
       {/* Bottom chart: WTI vs Brent */}
       {overlayOption && (
-        <div className="com-chart-panel com-chart-h170">
+        <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">WTI vs Brent Crude — 1 Year (FRED daily)</div>
           <div className="com-mini-chart">
             <SafeECharts option={overlayOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />

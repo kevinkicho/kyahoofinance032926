@@ -102,7 +102,7 @@ export default function CotPositioning({ cotData }) {
   const gold = cotData.commodities.find(c => c.name === 'Gold');
 
   return (
-    <div className="com-panel" style={{ overflow: 'hidden' }}>
+    <div className="com-panel">
       <div className="com-panel-header">
         <span className="com-panel-title">COT Positioning</span>
         <span className="com-panel-subtitle">CFTC Commitments of Traders · speculative vs commercial</span>
@@ -153,7 +153,7 @@ export default function CotPositioning({ cotData }) {
       </div>
 
       {/* Existing commodity panels */}
-      <div className="cot-grid">
+      <div className="cot-grid" style={{ marginBottom: 8 }}>
         {cotData.commodities.map(c => (
           <div key={c.name} className="cot-commodity">
             <div className="cot-name">{c.name}</div>

@@ -48,123 +48,104 @@ function CommoditiesDashboard({
 
   return (
     <div className="com-dashboard com-dashboard--no-sidebar">
-      <div className="com-main">
-        <div className="com-scroll-container">
-          <div className="com-bento-grid">
+      <div className="com-content-grid">
 
-            {/* Row 1: Prices (8/12) + Futures (4/12) */}
-            <div className="com-grid-cell span-8">
-              <div className="com-card">
-                <div className="com-card-header">
-                  <span className="com-card-title">Commodity Prices</span>
-                  <span className="com-card-subtitle">
-                    Live futures + EIA + FRED
-                    {freshness && (
-                      <span className="com-freshness-dot" style={{ color: freshness.color }}> · {freshness.label}</span>
-                    )}
-                  </span>
-                  <span className="com-card-spacer" />
-                  <button
-                    className={`com-toggle-btn ${priceView === 'table' ? 'com-toggle-active' : ''}`}
-                    onClick={() => setPriceView('table')}
-                  >
-                    Table
-                  </button>
-                  <button
-                    className={`com-toggle-btn ${priceView === 'chart' ? 'com-toggle-active' : ''}`}
-                    onClick={() => setPriceView('chart')}
-                  >
-                    Charts
-                  </button>
-                </div>
-                <div className="com-panel-content">
-                  {priceView === 'table' ? (
-                    <PriceDashboard
-                      priceDashboardData={priceDashboardData}
-                      dbcEtf={dbcEtf}
-                      fredCommodities={fredCommodities}
-                      goldOilRatio={goldOilRatio}
-                      contangoIndicator={contangoIndicator}
-                      commodityCurrencies={commodityCurrencies}
-                      enhancedData={enhancedData}
-                    />
-                  ) : (
-                    <PriceCharts
-                      priceDashboardData={priceDashboardData}
-                      allCommodities={allCommodities}
-                      colors={colors}
-                      formatChange={formatChange}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="com-grid-cell span-4">
-              <div className="com-card">
-                <div className="com-panel-content">
-                  <FuturesCurve
-                    futuresCurveData={futuresCurveData}
-                    goldFuturesCurve={goldFuturesCurve}
-                    fredCommodities={fredCommodities}
-                    seasonalPatterns={seasonalPatterns}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Row 2: Sector (4/12) + Supply (4/12) + COT (4/12) */}
-            <div className="com-grid-cell span-4">
-              <div className="com-card">
-                <div className="com-card-header">
-                  <span className="com-card-title">Sector Performance</span>
-                  <span className="com-card-spacer" />
-                  <button
-                    className={`com-toggle-btn ${sectorView === 'heatmap' ? 'com-toggle-active' : ''}`}
-                    onClick={() => setSectorView('heatmap')}
-                  >
-                    Heatmap
-                  </button>
-                  <button
-                    className={`com-toggle-btn ${sectorView === 'table' ? 'com-toggle-active' : ''}`}
-                    onClick={() => setSectorView('table')}
-                  >
-                    Table
-                  </button>
-                </div>
-                <div className="com-panel-content">
-                  <SectorHeatmap
-                    sectorHeatmapData={sectorHeatmapData}
-                    fredCommodities={fredCommodities}
-                    view={sectorView}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="com-grid-cell span-4">
-              <div className="com-card">
-                <div className="com-panel-content">
-                  <SupplyDemand
-                    supplyDemandData={supplyDemandData}
-                    fredCommodities={fredCommodities}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="com-grid-cell span-4">
-              <div className="com-card">
-                <div className="com-panel-content">
-                  <CotPositioning
-                    cotData={cotData}
-                  />
-                </div>
-              </div>
-            </div>
-
+        {/* Prices — tall (spans 2 rows) */}
+        <div className="com-bento-panel com-bento-tall">
+          <div className="com-panel-title-row">
+            <span className="com-panel-title">Commodity Prices</span>
+            <span className="com-panel-subtitle">
+              Live futures + EIA + FRED
+              {freshness && (
+                <span className="com-freshness-dot" style={{ color: freshness.color }}> · {freshness.label}</span>
+              )}
+            </span>
+            <span className="com-panel-title-spacer" />
+            <button
+              className={`com-toggle-btn ${priceView === 'table' ? 'com-toggle-active' : ''}`}
+              onClick={() => setPriceView('table')}
+            >
+              Table
+            </button>
+            <button
+              className={`com-toggle-btn ${priceView === 'chart' ? 'com-toggle-active' : ''}`}
+              onClick={() => setPriceView('chart')}
+            >
+              Charts
+            </button>
+          </div>
+          <div className="com-panel-content">
+            {priceView === 'table' ? (
+              <PriceDashboard
+                priceDashboardData={priceDashboardData}
+                dbcEtf={dbcEtf}
+                fredCommodities={fredCommodities}
+                goldOilRatio={goldOilRatio}
+                contangoIndicator={contangoIndicator}
+                commodityCurrencies={commodityCurrencies}
+                enhancedData={enhancedData}
+              />
+            ) : (
+              <PriceCharts
+                priceDashboardData={priceDashboardData}
+                allCommodities={allCommodities}
+                colors={colors}
+                formatChange={formatChange}
+              />
+            )}
           </div>
         </div>
+
+        {/* Futures Curve — tall (spans 2 rows) */}
+        <div className="com-bento-panel com-bento-tall">
+          <FuturesCurve
+            futuresCurveData={futuresCurveData}
+            goldFuturesCurve={goldFuturesCurve}
+            fredCommodities={fredCommodities}
+            seasonalPatterns={seasonalPatterns}
+          />
+        </div>
+
+        {/* Sector Performance */}
+        <div className="com-bento-panel">
+          <div className="com-panel-title-row">
+            <span className="com-panel-title">Sector Performance</span>
+            <span className="com-panel-title-spacer" />
+            <button
+              className={`com-toggle-btn ${sectorView === 'heatmap' ? 'com-toggle-active' : ''}`}
+              onClick={() => setSectorView('heatmap')}
+            >
+              Heatmap
+            </button>
+            <button
+              className={`com-toggle-btn ${sectorView === 'table' ? 'com-toggle-active' : ''}`}
+              onClick={() => setSectorView('table')}
+            >
+              Table
+            </button>
+          </div>
+          <SectorHeatmap
+            sectorHeatmapData={sectorHeatmapData}
+            fredCommodities={fredCommodities}
+            view={sectorView}
+          />
+        </div>
+
+        {/* Supply & Demand */}
+        <div className="com-bento-panel">
+          <SupplyDemand
+            supplyDemandData={supplyDemandData}
+            fredCommodities={fredCommodities}
+          />
+        </div>
+
+        {/* COT Positioning */}
+        <div className="com-bento-panel">
+          <CotPositioning
+            cotData={cotData}
+          />
+        </div>
+
       </div>
     </div>
   );
