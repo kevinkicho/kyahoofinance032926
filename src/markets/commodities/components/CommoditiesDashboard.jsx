@@ -1,12 +1,12 @@
-// Commodities Dashboard — Bento grid layout using bento-grid-builder
+// Commodities Dashboard — Dynamic tiling layout using React-Grid-Layout
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
-import { BentoGrid } from 'bento-grid-builder';
+import BentoWrapper from '../../../components/BentoWrapper';
 import PriceDashboard from './PriceDashboard';
-import SectorHeatmap from './SectorHeatmap';
 import FuturesCurve from './FuturesCurve';
 import SupplyDemand from './SupplyDemand';
 import CotPositioning from './CotPositioning';
+import SectorHeatmap from './SectorHeatmap';
 import './CommoditiesDashboard.css';
 
 function CommoditiesDashboard({
@@ -32,25 +32,21 @@ function CommoditiesDashboard({
     return <span style={{ color }}>{sign}{num.toFixed(2)}%</span>;
   };
 
+  // RGL uses x, y, w, h. 12-column system.
   const layout = {
-    columns: 6,
-    rows: 2,
-    gap: 8,
-    rowHeights: ['3fr', '2fr'],
-    placements: [
-      { cardId: 'prices',  col: 1, row: 1, colSpan: 3, rowSpan: 2 },
-      { cardId: 'futures', col: 4, row: 1, colSpan: 3, rowSpan: 1 },
-      { cardId: 'sector',  col: 4, row: 2, colSpan: 1, rowSpan: 1 },
-      { cardId: 'supply',  col: 5, row: 2, colSpan: 1, rowSpan: 1 },
-      { cardId: 'cot',     col: 6, row: 2, colSpan: 1, rowSpan: 1 },
-    ],
+    lg: [
+      { i: 'prices',  x: 0, y: 0, w: 8, h: 4 },
+      { i: 'futures', x: 8, y: 0, w: 4, h: 4 },
+      { i: 'sector',  x: 0, y: 4, w: 4, h: 3 },
+      { i: 'supply',  x: 4, y: 4, w: 4, h: 3 },
+      { i: 'cot',     x: 8, y: 4, w: 4, h: 3 },
+    ]
   };
 
-  const cards = [
-    {
-      id: 'prices',
-      component: () => (
-        <>
+  return (
+    <div className="com-dashboard com-dashboard--no-sidebar">
+      <BentoWrapper layout={layout}>
+        <div key="prices" className="bento-card">
           <div className="com-panel-title-row">
             <span className="com-panel-title">Commodity Prices</span>
             <span className="com-panel-subtitle">
@@ -70,21 +66,16 @@ function CommoditiesDashboard({
               <PriceCharts priceDashboardData={priceDashboardData} allCommodities={allCommodities} colors={colors} formatChange={formatChange} />
             )}
           </div>
-        </>
-      ),
-    },
-    {
-      id: 'futures',
-      component: () => (
-        <div className="com-panel-content">
-          <FuturesCurve futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} seasonalPatterns={seasonalPatterns} />
         </div>
-      ),
-    },
-    {
-      id: 'sector',
-      component: () => (
-        <>
+        <div key="futures" className="bento-card">
+          <div className="com-panel-title-row">
+            <span className="com-panel-title">Futures Curve</span>
+          </div>
+          <div className="com-panel-content">
+            <FuturesCurve futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} seasonalPatterns={seasonalPatterns} />
+          </div>
+        </div>
+        <div key="sector" className="bento-card">
           <div className="com-panel-title-row">
             <span className="com-panel-title">Sector Performance</span>
             <span className="com-panel-title-spacer" />
@@ -94,36 +85,24 @@ function CommoditiesDashboard({
           <div className="com-panel-content">
             <SectorHeatmap sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} view={sectorView} />
           </div>
-        </>
-      ),
-    },
-    {
-      id: 'supply',
-      component: () => (
-        <div className="com-panel-content">
-          <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} />
         </div>
-      ),
-    },
-    {
-      id: 'cot',
-      component: () => (
-        <div className="com-panel-content">
-          <CotPositioning cotData={cotData} />
+        <div key="supply" className="bento-card">
+          <div className="com-panel-title-row">
+            <span className="com-panel-title">Supply & Demand</span>
+          </div>
+          <div className="com-panel-content">
+            <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} />
+          </div>
         </div>
-      ),
-    },
-  ];
-
-  return (
-    <div className="com-dashboard com-dashboard--no-sidebar">
-      <BentoGrid
-        layout={layout}
-        cards={cards}
-        data={{}}
-        dataMapping={cards.map(c => ({ cardId: c.id, propsSelector: () => ({}) }))}
-        className="com-bento-root"
-      />
+        <div key="cot" className="bento-card">
+          <div className="com-panel-title-row">
+            <span className="com-panel-title">COT Positioning</span>
+          </div>
+          <div className="com-panel-content">
+            <CotPositioning cotData={cotData} />
+          </div>
+        </div>
+      </BentoWrapper>
     </div>
   );
 }

@@ -292,7 +292,7 @@ function DerivativesDashboard({
               <div className="deriv-panel-title">Options Flow</div>
               <div className="deriv-mini-table" style={{ paddingTop: 8 }}>
                 {flowSummary.map((f) => (
-                  <div key={f.ticker || f.symbol || `${f.type}-${f.side}`} className="deriv-mini-row">
+                  <div key={`${f.ticker || f.symbol}-${f.strike || ''}-${f.expiry || ''}-${f.type}`} className="deriv-mini-row">
                     <span className="deriv-mini-name">{f.ticker || f.symbol}</span>
                     <span className="deriv-mini-type">{f.type}</span>
                     <span className="deriv-mini-value" style={{ color: f.side === 'BUY' ? '#4ade80' : '#f87171' }}>

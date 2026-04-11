@@ -349,7 +349,7 @@ Each market has an async hook (`useState` + `useEffect` + `fetchWithRetry`) that
 | Backend | Express 4, `yahoo-finance2`, `node-cache` |
 | Data | Yahoo Finance, FRED API, CoinGecko, DeFiLlama, Bybit, CFTC Socrata, Econdb, EIA, mempool.space, Frankfurter, World Bank |
 | Styling | Plain CSS with CSS variables (dark/light themes), responsive breakpoints |
-| Tests | Vitest 4, @testing-library/react — 325 tests across 51 files |
+| Tests | Vitest 4, @testing-library/react — 297 tests across 49 files |
 | Deploy | Docker (multi-stage Node 20 alpine), docker-compose |
 
 ## Getting Started
@@ -444,7 +444,7 @@ src/
     watchlist/                  # My tickers + my metrics
   components/                   # Shared: HeatmapView, DetailPanel, Sidebar, etc.
   utils/                        # FX rates, fetchWithRetry, data helpers, constants
-  __tests__/                    # 325 tests across 51 files
+  __tests__/                    # 297 tests across 49 files
 server/
   index.js                      # Express orchestrator (130 lines)
   routes/                       # 15 route modules (bonds, fx, crypto, etc.)
@@ -461,7 +461,11 @@ server/
 
 ## Recent Updates
 
-- **Unified Dashboards** — Consolidated all 15 markets from multi-tab layouts to single-page "one-look" views
-- **Bug Fixes** — Fixed data structure mismatches in Bonds, Credit, Crypto, Real Estate, Commodities, Sentiment dashboards
-- **Heatmap Selection** — Restored click-to-select functionality in equities heatmap for detail panel
-- **Test Coverage** — 325 tests passing across 51 files
+ - **Commodities Bento Dashboard** — Replaced static layout with draggable/resizable bento-box panels using react-grid-layout v2. Panels can be dragged by title bar and resized via corner handles.
+ - **Responsive Bento Content** — Panel contents scale to fit card size using CSS container queries. KPI pills, charts, tables, and metrics shrink gracefully when panels are resized smaller, instead of overflowing/scrolling.
+ - **ECharts Dimension Safety** — Added `SafeECharts` wrapper that waits for valid container dimensions before rendering, preventing "instance disposed" and zero-dimension errors during tab switching and initial load.
+ - **Derivatives Key Fix** — Fixed duplicate React key warning (`SPY`, `QQQ`) in Options Flow by using `${ticker}-${strike}-${expiry}-${type}` composite keys.
+ - **Unified Dashboards** — Consolidated all 15 markets from multi-tab layouts to single-page "one-look" views
+ - **Bug Fixes** — Fixed data structure mismatches in Bonds, Credit, Crypto, Real Estate, Commodities, Sentiment dashboards
+ - **Heatmap Selection** — Restored click-to-select functionality in equities heatmap for detail panel
+ - **Test Coverage** — 297 tests passing across 49 files

@@ -182,8 +182,8 @@ export default function CotPositioning({ cotData }) {
               </div>
             </div>
             {c.history?.length > 2 && (
-              <div style={{ minHeight: 140, height: '100%' }}>
-                <SafeECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <SafeECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', width: '100%' }} />
               </div>
             )}
           </div>
