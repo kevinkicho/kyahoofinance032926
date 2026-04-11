@@ -1,15 +1,43 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useContainerWidth, ResponsiveGridLayout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
-export default function BentoWrapper({ children, layout, className = "" }) {
+function loadLayout(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed;
+  } catch { return null; }
+}
+
+function saveLayout(key, layout) {
+  try { localStorage.setItem(key, JSON.stringify(layout)); } catch {}
+}
+
+export default function BentoWrapper({ children, layout, className = "", storageKey }) {
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: 1200 });
-  const [currentLayout, setCurrentLayout] = useState(layout.lg);
+
+  const initialLayout = (() => {
+    if (storageKey) {
+      const saved = loadLayout(storageKey, layout.lg);
+      if (saved) return saved;
+    }
+    return layout.lg;
+  })();
+
+  const [currentLayout, setCurrentLayout] = useState(initialLayout);
 
   const handleLayoutChange = useCallback((newLayout) => {
     setCurrentLayout(newLayout);
-  }, []);
+    if (storageKey) saveLayout(storageKey, newLayout);
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (storageKey) saveLayout(storageKey, currentLayout);
+  }, [storageKey, currentLayout]);
 
   if (!mounted) {
     return <div ref={containerRef} className={`com-bento-root ${className}`} style={{ minHeight: 400 }} />;

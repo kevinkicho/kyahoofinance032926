@@ -9,6 +9,22 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import './CommoditiesDashboard.css';
 
+const STORAGE_KEY = 'commodities-view';
+
+function usePersistedState(key, defaultValue) {
+  const [value, setValue] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved !== null ? saved : defaultValue;
+    } catch { return defaultValue; }
+  });
+  const persist = (v) => {
+    setValue(v);
+    try { localStorage.setItem(key, v); } catch {}
+  };
+  return [value, persist];
+}
+
 function CommoditiesDashboard({
   priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,
   fredCommodities, goldFuturesCurve, dbcEtf, goldOilRatio, contangoIndicator,
@@ -16,8 +32,8 @@ function CommoditiesDashboard({
   timestamps, freshness, formatTimestamp, getFreshnessIndicator,
 }) {
   const { colors } = useTheme();
-  const [priceView, setPriceView] = useState('table');
-  const [sectorView, setSectorView] = useState('heatmap');
+  const [priceView, setPriceView] = usePersistedState(`${STORAGE_KEY}-priceView`, 'table');
+  const [sectorView, setSectorView] = usePersistedState(`${STORAGE_KEY}-sectorView`, 'heatmap');
 
   const allCommodities = useMemo(() => {
     return priceDashboardData?.flatMap(s => s.commodities || []) || [];
@@ -45,7 +61,7 @@ function CommoditiesDashboard({
 
   return (
     <div className="com-dashboard com-dashboard--no-sidebar">
-      <BentoWrapper layout={layout}>
+      <BentoWrapper layout={layout} storageKey="commodities-layout">
         <div key="prices" className="bento-card">
           <div className="com-panel-title-row">
             <span className="com-panel-title">Commodity Prices</span>
