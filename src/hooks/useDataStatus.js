@@ -51,6 +51,7 @@ export function useDataStatus(initialLastUpdated = 'Mock data — Apr 2025') {
     setIsLoading,
     setError,
     setLastUpdated,
+    setFetchedOn,
     // Action handlers
     handleSuccess,
     handleError,
