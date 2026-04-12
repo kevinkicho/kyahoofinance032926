@@ -1,5 +1,5 @@
-/* src/markets/watchlist/WatchlistMarket.css */
-.watch-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
+/* ── 1. Market wrapper ── */
+.watch-market { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; background: var(--bg-primary); }
 
 .watch-sub-tabs {
   display: flex; gap: 2px; padding: 8px 12px 0;
@@ -12,9 +12,39 @@
 .watch-sub-tab:hover { color: var(--text-primary); }
 .watch-sub-tab.active { color: #eab308; border-bottom-color: #eab308; }
 
-.watch-content { flex: 1; overflow: auto; padding: 12px 14px; }
+/* ── 2. Dashboard container (bento) ── */
+.watch-dashboard.watch-dashboard--bento { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
-/* --- Add ticker bar --- */
+/* ── 3. RGL overrides (accent: gold) ── */
+.watch-dashboard--bento .react-grid-item.react-grid-placeholder { background: #eab308 !important; opacity: 0.15 !important; border-radius: 12px !important; border: 2px dashed #eab308 !important; }
+.watch-dashboard--bento .react-grid-item > .react-resizable-handle::after { border-right-color: #eab308 !important; border-bottom-color: #eab308 !important; }
+
+/* ── 4. Bento Card ── */
+.watch-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size; container-name: bento-card;
+  cursor: default;
+}
+.watch-bento-card:hover { border-color: #eab308; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(234, 179, 8, 0.15); }
+
+/* ── 5. Panel title row ── */
+.watch-panel-title-row { padding: 6px 10px; background: rgba(0, 0, 0, 0.15); display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; user-select: none; cursor: grab; }
+.watch-panel-title-row:active { cursor: grabbing; }
+.bento-panel-title { font-size: 12px; font-weight: 700; color: #eab308; text-transform: uppercase; letter-spacing: 0.5px; }
+.bento-panel-subtitle { font-size: 11px; color: var(--text-dim); }
+.bento-panel-title-spacer { flex: 1; }
+
+/* ── 6. Panel scroll ── */
+.watch-panel-scroll { overflow-y: auto; overflow-x: hidden; padding: 10px; gap: 6px; }
+.bento-panel-content { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* ── 7. Add ticker bar ── */
 .watch-add-bar {
   display: flex; gap: 8px; align-items: center; margin-bottom: 14px;
 }
@@ -29,9 +59,8 @@
   border: none; background: #eab308; color: #1a1a1a; cursor: pointer;
 }
 .watch-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.watch-ticker-limit { font-size: 11px; color: var(--text-dim); margin-left: 8px; }
 
-/* --- Ticker table --- */
+/* ── 8. Ticker table ── */
 .watch-ticker-table {
   width: 100%; border-collapse: collapse; font-size: 12px;
 }
@@ -63,7 +92,7 @@
 .watch-ticker-error { color: var(--text-dim); font-style: italic; font-size: 11px; }
 .watch-empty { color: var(--text-muted); font-size: 13px; padding: 24px 0; text-align: center; }
 
-/* --- Metric cards --- */
+/* ── 9. Metric cards ── */
 .watch-metrics-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;

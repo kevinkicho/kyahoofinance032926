@@ -1,5 +1,10 @@
-/* src/markets/calendar/CalendarMarket.css */
-.cal-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
+/* ═════════════════════════════════════════════════════════════════
+   CALENDAR — Bento-box dashboard layout
+   Accent color: rose #f43f5e
+   ═════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Market wrapper ── */
+.cal-market { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: var(--bg-primary); }
 .cal-market.cal-loading { align-items: center; justify-content: center; gap: 12px; }
 .cal-loading-spinner {
   width: 36px; height: 36px; border: 3px solid var(--border-subtle);
@@ -25,9 +30,146 @@
   font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);
 }
 .cal-status-live { color: #f43f5e; }
-.cal-content { flex: 1; overflow: auto; }
 
 .cal-stale-badge {
   background: #4c0519; color: #fda4af; border: 1px solid #be123c;
   border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 500;
 }
+
+/* ── 2. Dashboard container (bento) ── */
+.cal-dashboard.cal-dashboard--bento { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+/* ── 3. RGL overrides (accent: rose) ── */
+.cal-dashboard--bento .react-grid-item.react-grid-placeholder { background: #f43f5e !important; }
+
+/* ── 4. Bento Card ── */
+.cal-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+  cursor: default;
+}
+
+/* ── 5. Panel title row ── */
+.cal-panel-title-row { }
+.cal-panel-title-row .bento-panel-title { font-size: 11px; font-weight: 600; color: var(--text-primary); }
+.cal-panel-title-row .bento-panel-subtitle { font-size: 9px; color: var(--text-muted); margin-left: 8px; }
+.cal-panel-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.cal-panel-subtitle { font-size: 10px; color: var(--text-dim); }
+.cal-panel-header {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border-subtle);
+}
+.cal-panel-footer { padding: 6px 14px; font-size: 9px; color: var(--border-color); border-top: 1px solid var(--border-subtle); }
+
+/* ── 6. Panel content ── */
+.cal-panel-scroll { overflow-y: auto; overflow-x: hidden; padding: 10px; gap: 6px; }
+
+/* ── 7. Shared panel ── */
+.cal-panel {
+  margin: 10px; padding: 0; background: var(--bg-primary); border: 1px solid var(--border-subtle);
+  border-radius: 10px; overflow: hidden;
+}
+
+/* ── 8. Filter pills ── */
+.cal-filter-bar { display: flex; gap: 4px; padding: 8px 14px; flex-wrap: wrap; }
+.cal-filter-pill {
+  padding: 3px 10px; font-size: 10px; border-radius: 10px; cursor: pointer;
+  background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color);
+}
+.cal-filter-pill:hover { background: var(--border-color); }
+.cal-filter-pill.active { background: #f43f5e; color: #fff; border-color: #f43f5e; }
+
+/* ── 9. Event table ── */
+.cal-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.cal-table th {
+  text-align: left; padding: 6px 10px; font-weight: 600; color: var(--text-muted);
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-subtle); background: var(--bg-primary); position: sticky; top: 0;
+}
+.cal-table td { padding: 5px 10px; color: #cbd5e1; border-bottom: 1px solid var(--bg-primary); }
+.cal-table tr:hover td { background: var(--bg-card); }
+.cal-table .cal-upcoming { opacity: 1; }
+.cal-table .cal-released td { opacity: 0.6; }
+.cal-surprise-pos { color: #34d399; font-weight: 600; }
+.cal-surprise-neg { color: #f87171; font-weight: 600; }
+.cal-surprise-na  { color: var(--text-dim); }
+
+/* ── 10. Country flag ── */
+.cal-flag { margin-right: 4px; }
+
+/* ── 11. Central bank cards ── */
+.cal-cb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; }
+.cal-cb-card {
+  background: var(--bg-card); border-radius: 10px; padding: 14px 16px;
+  border: 1px solid var(--border-color);
+}
+.cal-cb-bank { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.cal-cb-rate { font-size: 22px; font-weight: 700; font-family: monospace; color: var(--text-primary); margin-bottom: 4px; }
+.cal-cb-next { font-size: 10px; color: var(--text-secondary); }
+.cal-cb-countdown { font-size: 11px; color: #f43f5e; font-weight: 600; margin-top: 4px; }
+.cal-cb-decision {
+  display: inline-block; padding: 2px 8px; border-radius: 8px;
+  font-size: 9px; font-weight: 700; margin-top: 6px;
+}
+.cal-cb-hold { background: var(--border-color); color: var(--text-secondary); }
+.cal-cb-hike { background: #7f1d1d; color: #fca5a5; }
+.cal-cb-cut  { background: #14532d; color: #86efac; }
+
+/* ── 12. Timeline ── */
+.cal-timeline { padding: 12px 14px; }
+.cal-timeline-title { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.cal-timeline-row {
+  display: flex; align-items: center; gap: 8px; padding: 3px 0;
+  font-size: 10px; color: var(--text-secondary);
+}
+.cal-timeline-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.cal-dot-fed { background: #3b82f6; }
+.cal-dot-ecb { background: #facc15; }
+.cal-dot-boe { background: #ef4444; }
+.cal-dot-boj { background: var(--text-primary); }
+
+/* ── 13. Earnings season ── */
+.cal-week-group { margin-bottom: 2px; }
+.cal-week-header {
+  padding: 6px 14px; font-size: 11px; font-weight: 600; color: var(--text-muted);
+  background: var(--bg-primary); border-bottom: 1px solid var(--border-subtle);
+}
+.cal-week-current { color: #f43f5e; border-left: 3px solid #f43f5e; }
+
+/* ── 14. Key releases ── */
+.cal-release-list { padding: 8px 14px; }
+.cal-release-item {
+  display: flex; align-items: center; gap: 12px; padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle); font-size: 11px;
+}
+.cal-release-date { min-width: 70px; color: var(--text-muted); font-family: monospace; font-size: 10px; }
+.cal-release-name { color: var(--text-primary); font-weight: 500; flex: 1; }
+.cal-release-prev { color: var(--text-muted); font-size: 10px; }
+.cal-cat-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 8px;
+  font-size: 9px; font-weight: 600; margin-left: 6px;
+}
+.cal-cat-inflation  { background: #7f1d1d; color: #fca5a5; }
+.cal-cat-employment { background: #1e3a5f; color: #93c5fd; }
+.cal-cat-growth     { background: #14532d; color: #86efac; }
+.cal-cat-consumer   { background: #78350f; color: #fcd34d; }
+.cal-cat-housing    { background: #7c2d12; color: #fdba74; }
+.cal-cat-sentiment  { background: #3b0764; color: #c4b5fd; }
+
+/* ── 15. KPI strip ── */
+.cal-kpi-strip { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; flex-wrap: wrap; }
+.cal-kpi-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
+.cal-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.cal-kpi-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.cal-kpi-value.accent { color: #f43f5e; }

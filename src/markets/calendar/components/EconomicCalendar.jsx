@@ -1,7 +1,7 @@
 // src/markets/calendar/components/EconomicCalendar.jsx
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CalendarComponents.css';
+import '../CalendarMarket.css';
 
 function countryFlag(cc) {
   if (!cc || cc.length !== 2) return '';
@@ -15,7 +15,7 @@ const REGION_FILTERS = [
   { id: 'asia', label: 'Asia',  codes: ['CN','JP','KR','IN','AU'] },
 ];
 
-export default function EconomicCalendar({ economicEvents }) {
+export default function EconomicCalendar({ economicEvents, insideBento }) {
   const { colors } = useTheme();
   const [filter, setFilter] = useState('all');
 
@@ -45,12 +45,8 @@ export default function EconomicCalendar({ economicEvents }) {
     return economicEvents.filter(e => f.codes.includes(e.country));
   }, [economicEvents, filter]);
 
-  return (
-    <div className="cal-panel">
-      <div className="cal-panel-header">
-        <span className="cal-panel-title">Economic Calendar</span>
-        <span className="cal-panel-subtitle">High-importance macro releases · next 30 days · Econdb</span>
-      </div>
+  const inner = (
+    <>
       {kpis && (
         <div className="cal-kpi-strip">
           <div className="cal-kpi-pill">
@@ -122,6 +118,18 @@ export default function EconomicCalendar({ economicEvents }) {
       <div className="cal-panel-footer">
         Released events shown at reduced opacity · Surprise = Actual − Expected
       </div>
+    </>
+  );
+
+  if (insideBento) return inner;
+
+  return (
+    <div className="cal-panel">
+      <div className="cal-panel-header">
+        <span className="cal-panel-title">Economic Calendar</span>
+        <span className="cal-panel-subtitle">High-importance macro releases · next 30 days · Econdb</span>
+      </div>
+      {inner}
     </div>
   );
 }

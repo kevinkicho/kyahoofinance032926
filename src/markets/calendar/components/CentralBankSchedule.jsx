@@ -1,6 +1,6 @@
 // src/markets/calendar/components/CentralBankSchedule.jsx
 import React from 'react';
-import './CalendarComponents.css';
+import '../CalendarMarket.css';
 
 const BANK_FLAGS = { Fed: '\u{1F1FA}\u{1F1F8}', ECB: '\u{1F1EA}\u{1F1FA}', BOE: '\u{1F1EC}\u{1F1E7}', BOJ: '\u{1F1EF}\u{1F1F5}' };
 const BANK_DOTS  = { Fed: 'cal-dot-fed', ECB: 'cal-dot-ecb', BOE: 'cal-dot-boe', BOJ: 'cal-dot-boj' };
@@ -20,7 +20,7 @@ function decisionBadge(rate, previousRate) {
   return <span className="cal-cb-decision cal-cb-hold">HOLD</span>;
 }
 
-export default function CentralBankSchedule({ centralBanks }) {
+export default function CentralBankSchedule({ centralBanks, section }) {
   if (!centralBanks?.length) return null;
 
   const today = new Date().toISOString().split('T')[0];
@@ -32,6 +32,37 @@ export default function CentralBankSchedule({ centralBanks }) {
     });
   });
   timelineEntries.sort((a, b) => a.date.localeCompare(b.date));
+
+  if (section === 'rates') {
+    return (
+      <div className="cal-cb-grid">
+        {centralBanks.map(cb => (
+          <div key={cb.bank} className="cal-cb-card">
+            <div className="cal-cb-bank">{BANK_FLAGS[cb.bank] || ''} {cb.bank}</div>
+            <div className="cal-cb-rate">{cb.rate != null ? cb.rate.toFixed(2) : '—'}%</div>
+            <div className="cal-cb-next">Next: {cb.nextMeeting}</div>
+            <div className="cal-cb-countdown">{cb.daysUntil != null ? `${cb.daysUntil} days` : ''}</div>
+            {decisionBadge(cb.rate, cb.previousRate)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (section === 'timeline') {
+    return (
+      <div className="cal-timeline">
+        <div className="cal-timeline-title">Upcoming Meetings</div>
+        {timelineEntries.slice(0, 12).map((e, i) => (
+          <div key={i} className="cal-timeline-row">
+            <span className={`cal-timeline-dot ${BANK_DOTS[e.bank] || ''}`} />
+            <span style={{ minWidth: 80, fontFamily: 'monospace' }}>{e.date}</span>
+            <span>{e.bank}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="cal-panel">

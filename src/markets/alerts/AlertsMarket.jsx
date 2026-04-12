@@ -2,7 +2,7 @@ import React from 'react';
 import { useAlertsData } from './data/useAlertsData';
 import AlertsDashboard from './components/AlertsDashboard';
 import MarketSkeleton from '../../hub/MarketSkeleton';
-import './AlertsMarket.css';
+import './components/AlertsDashboard.css';
 
 function AlertsMarket() {
   const { alerts, rules, isLoading, isLive, fetchedOn, isCurrent } = useAlertsData();

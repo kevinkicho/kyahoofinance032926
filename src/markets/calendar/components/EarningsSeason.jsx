@@ -1,7 +1,7 @@
 // src/markets/calendar/components/EarningsSeason.jsx
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CalendarComponents.css';
+import '../CalendarMarket.css';
 
 function weekLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -20,7 +20,7 @@ function isCurrentWeek(dateStr) {
   return nowMon.toISOString().split('T')[0] === dMon.toISOString().split('T')[0];
 }
 
-export default function EarningsSeason({ earningsSeason, dividendCalendar }) {
+export default function EarningsSeason({ earningsSeason, dividendCalendar, insideBento }) {
   const { colors } = useTheme();
 
   const sortedDividends = useMemo(() => {
@@ -56,12 +56,8 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar }) {
     return Object.values(groups);
   }, [earningsSeason]);
 
-  return (
-    <div className="cal-panel">
-      <div className="cal-panel-header">
-        <span className="cal-panel-title">Earnings Season</span>
-        <span className="cal-panel-subtitle">Mega-cap earnings dates · next 60 days · Yahoo Finance calendarEvents</span>
-      </div>
+  const inner = (
+    <>
       {kpis && (
         <div className="cal-kpi-strip">
           <div className="cal-kpi-pill">
@@ -121,7 +117,6 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar }) {
         30 mega-cap stocks tracked · EPS estimates from Yahoo Finance earningsTrend
       </div>
 
-      {/* ── Dividend Calendar ─────────────────────────────────────────────── */}
       {sortedDividends.length > 0 && (
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
           <div className="cal-panel-header" style={{ padding: '8px 14px' }}>
@@ -150,6 +145,18 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar }) {
           </table>
         </div>
       )}
+    </>
+  );
+
+  if (insideBento) return inner;
+
+  return (
+    <div className="cal-panel">
+      <div className="cal-panel-header">
+        <span className="cal-panel-title">Earnings Season</span>
+        <span className="cal-panel-subtitle">Mega-cap earnings dates · next 60 days · Yahoo Finance calendarEvents</span>
+      </div>
+      {inner}
     </div>
   );
 }
