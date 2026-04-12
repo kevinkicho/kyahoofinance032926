@@ -2,14 +2,8 @@ import React from 'react';
 import { useRealEstateData } from './data/useRealEstateData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import RealEstateDashboard from './components/RealEstateDashboard';
-import './RealEstateMarket.css';
+import './components/RealEstateDashboard.css';
 
-/**
- * RealEstateMarket - Unified real estate dashboard
- * Shows all real estate data in one glanceable view:
- * - KPI strip (Case-Shiller, Mortgage, Homeownership, Median Price, Starts)
- * - Chart grid (Price Index, REIT ETF, Mortgage Rates, Activity, REIT Performance, Cap Rates)
- */
 function RealEstateMarket({ autoRefresh } = {}) {
   const {
     priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,

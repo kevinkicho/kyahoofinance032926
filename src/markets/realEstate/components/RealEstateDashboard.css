@@ -1,63 +1,174 @@
-/* src/markets/realEstate/components/RealEstateDashboard.css */
+/* ═══════════════════════════════════════════════════════════════
+   REAL ESTATE — Bento-box dashboard layout
+   
+   Uses react-grid-layout ResponsiveGridLayout for draggable/resizable
+   bento cards. Grid uses 12-column system with 120px row height.
+   Accent color: orange #f97316
+   ═══════════════════════════════════════════════════════════════ */
 
-.re-dashboard {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  overflow: hidden;
-  background: var(--bg-deep);
-  height: 100%;
-  gap: 0;
-}
-
-/* Left Sidebar */
-.re-sidebar {
-  width: 200px;
-  min-width: 200px;
-  flex-shrink: 0;
+/* ── 1. Market wrapper ── */
+.re-market {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-subtle);
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-deep);
 }
 
+.re-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 20px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--bg-primary);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.re-status-live { color: #f97316; }
+
+.re-stale-badge {
+  background: #78350f;
+  color: #fcd34d;
+  border: 1px solid #92400e;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ── 2. Dashboard container (bento) ── */
+.re-dashboard.re-dashboard--bento {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 3. RGL overrides (accent: orange) ── */
+.re-dashboard--bento .react-grid-item.react-grid-placeholder {
+  background: #f97316 !important;
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed #f97316 !important;
+}
+
+.re-dashboard--bento .react-grid-item { transition: none !important; }
+.re-dashboard--bento .react-grid-item.cssTransforms { transition: none !important; }
+
+.re-dashboard--bento .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #f97316 !important;
+  border-bottom: 2px solid #f97316 !important;
+}
+
+/* ── 4. Bento Card ── */
+.re-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+  cursor: default;
+}
+
+.re-bento-card:hover {
+  border-color: #f97316;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(249, 115, 22, 0.15);
+}
+
+/* ── 5. Panel title row (drag handle) ── */
+.re-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.re-panel-title-row:active { cursor: grabbing; }
+
+.re-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.re-panel-subtitle {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* ── 6. Panel content ── */
+.re-panel-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  gap: 6px;
+}
+
+/* ── 7. Sidebar sections (metrics card) ── */
 .re-sidebar-section {
-  padding: 10px 12px;
+  padding: 8px 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.re-sidebar-section:last-child { border-bottom: none; }
+
 .re-sidebar-title {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .re-metric-card {
-  background: var(--bg-card);
+  background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   padding: 8px 10px;
   margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .re-metric-card:last-child { margin-bottom: 0; }
 
 .re-metric-label {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .re-metric-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .re-metric-row {
@@ -69,93 +180,27 @@
 
 .re-metric-row:last-child { margin-bottom: 0; }
 
-.re-metric-name {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
+.re-metric-name { font-size: 11px; color: var(--text-secondary); }
 
 .re-metric-num {
   font-size: 12px;
   font-weight: 600;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
 }
 
-/* Main Content */
-.re-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
-/* Content Grid - 3 columns */
-.re-content-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 8px;
-  flex: 1;
-  overflow-y: auto;
-  align-content: start;
-}
-
-@media (max-width: 1400px) {
-  .re-content-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 1000px) {
-  .re-dashboard { flex-direction: column; }
-  .re-sidebar {
-    width: 100%;
-    min-width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-x: auto;
-    max-height: 100px;
-  }
-  .re-sidebar-section {
-    min-width: 140px;
-    border-right: 1px solid var(--border-subtle);
-    border-bottom: none;
-  }
-  .re-content-grid { grid-template-columns: 1fr; }
-}
-
-/* Chart Panels */
-.re-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.re-panel-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-
+/* ── 8. Chart panels ── */
 .re-chart-wrap {
   flex: 1;
   min-height: 100px;
 }
 
-/* Mini Tables */
+/* ── 9. Mini tables ── */
 .re-mini-table {
   display: flex;
   flex-direction: column;
   gap: 2px;
   flex: 1;
   overflow-y: auto;
-  padding-top: 8px;
 }
 
 .re-mini-row {
@@ -168,12 +213,120 @@
   font-size: 10px;
 }
 
-.re-mini-name {
-  color: var(--text-secondary);
-  font-weight: 500;
-}
+.re-mini-name { color: var(--text-secondary); font-weight: 500; }
 
 .re-mini-value {
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
   font-weight: 600;
+}
+
+/* ── 10. Drag states ── */
+.react-grid-item.resizing { opacity: 0.85; z-index: 10; }
+.react-grid-item.react-draggable-dragging { opacity: 0.85; z-index: 10; }
+
+/* ── 11. Sub-components ── */
+.re-panel { display: flex; flex-direction: column; flex: 1; padding: 12px; overflow: hidden; }
+.re-panel-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; flex-shrink: 0; }
+.re-panel-footer { margin-top: 12px; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+
+.reit-scroll { overflow: auto; flex: 1; }
+.reit-table  { border-collapse: collapse; min-width: 100%; }
+.reit-th { background: var(--bg-card); color: var(--text-secondary); font-size: 11px; font-weight: 600; padding: 8px 12px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; cursor: pointer; user-select: none; }
+.reit-th:first-child, .reit-th:nth-child(2), .reit-th:nth-child(3) { text-align: left; }
+.reit-th.sorted { color: #f97316; }
+.reit-row { transition: background 0.1s; }
+.reit-row:hover { background: var(--bg-card); }
+.reit-cell { padding: 8px 12px; border: 1px solid var(--bg-primary); text-align: right; font-size: 12px; color: #cbd5e1; white-space: nowrap; }
+.reit-cell:first-child { text-align: left; font-weight: 600; color: #f97316; }
+.reit-cell:nth-child(2) { text-align: left; color: var(--text-primary); }
+.reit-cell:nth-child(3) { text-align: left; font-size: 10px; color: var(--text-muted); }
+.reit-positive { color: #22c55e; }
+.reit-negative { color: #ef4444; }
+
+.afford-scroll { overflow: auto; flex: 1; }
+.afford-table  { border-collapse: collapse; min-width: 100%; }
+.afford-th { background: var(--bg-card); color: var(--text-secondary); font-size: 11px; font-weight: 600; padding: 8px 14px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; }
+.afford-th:first-child { text-align: left; }
+.afford-cell { padding: 8px 14px; border: 1px solid var(--bg-primary); text-align: right; font-size: 12px; color: #cbd5e1; white-space: nowrap; }
+.afford-cell:first-child { text-align: left; font-weight: 500; color: var(--text-primary); }
+.afford-bar-cell { padding: 8px 14px; border: 1px solid var(--bg-primary); min-width: 120px; }
+.afford-bar-wrap { height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden; }
+.afford-bar { height: 100%; border-radius: 4px; transition: width 0.3s; }
+
+.afford-mortgage-banner { display: flex; align-items: center; gap: 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 16px; margin: 0 0 8px 0; flex-wrap: wrap; }
+.afford-mortgage-item { display: flex; flex-direction: column; align-items: center; }
+.afford-mortgage-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.afford-mortgage-rate { font-size: 18px; font-weight: 700; color: #60a5fa; }
+.afford-mortgage-divider { width: 1px; height: 32px; background: var(--border-color); }
+.afford-mortgage-source { font-size: 10px; color: var(--text-dim); margin-left: auto; }
+
+.re-kpi-strip { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; flex-shrink: 0; }
+.re-kpi-pill { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px 12px; display: flex; flex-direction: column; min-width: 120px; }
+.re-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.re-kpi-value { font-size: 16px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text-primary); }
+.re-kpi-value.positive { color: #22c55e; }
+.re-kpi-value.negative { color: #ef4444; }
+.re-kpi-sub { font-size: 9px; color: var(--text-dim); }
+
+.re-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; min-height: 120px; }
+.re-wide-narrow { display: grid; grid-template-columns: 3fr 1fr; gap: 12px; flex: 1; min-height: 0; }
+.re-chart-panel { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; overflow: hidden; }
+.re-chart-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; flex-shrink: 0; }
+.re-mini-chart { flex: 1; min-height: 120px; }
+
+.re-metro-list { display: flex; flex-direction: column; gap: 6px; }
+.re-metro-row { display: flex; align-items: center; gap: 8px; }
+.re-metro-name { font-size: 11px; color: var(--text-secondary); width: 90px; flex-shrink: 0; }
+.re-metro-bar { flex: 1; height: 14px; background: var(--bg-primary); border-radius: 3px; overflow: hidden; }
+.re-metro-bar-fill { height: 100%; border-radius: 3px; background: #f97316; }
+.re-metro-val { font-size: 11px; font-weight: 600; color: var(--text-primary); width: 50px; text-align: right; }
+.re-metro-yoy { font-size: 10px; width: 50px; text-align: right; }
+.re-metro-yoy.positive { color: #22c55e; }
+.re-metro-yoy.negative { color: #ef4444; }
+
+.re-sector-bars { display: flex; flex-direction: column; gap: 4px; }
+.re-sector-row { display: flex; align-items: center; gap: 6px; }
+.re-sector-name { font-size: 10px; color: var(--text-secondary); width: 80px; flex-shrink: 0; text-align: right; }
+.re-sector-bar-wrap { flex: 1; height: 12px; background: var(--bg-primary); border-radius: 3px; overflow: hidden; position: relative; }
+.re-sector-bar-fill { height: 100%; border-radius: 3px; position: absolute; top: 0; }
+.re-sector-bar-center { position: absolute; top: 0; left: 50%; width: 1px; height: 100%; background: var(--text-dim); }
+.re-sector-val { font-size: 10px; font-weight: 600; width: 50px; text-align: right; }
+.re-sector-val.positive { color: #22c55e; }
+.re-sector-val.negative { color: #ef4444; }
+
+.re-supply-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex-shrink: 0; }
+.re-supply-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; }
+.re-supply-label { font-size: 9px; color: var(--text-muted); }
+.re-supply-value { font-size: 16px; font-weight: 700; font-family: monospace; color: var(--text-primary); }
+
+.re-sector-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; overflow-y: auto; }
+.re-sector-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 10px; }
+.re-sector-card-name { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.re-sector-card-row { display: flex; justify-content: space-between; font-size: 10px; }
+.re-sector-card-label { color: var(--text-muted); }
+.re-sector-card-val { color: var(--text-secondary); font-weight: 600; }
+
+/* ── 12. Responsive ── */
+@container bento-card (max-width: 500px) {
+  .re-metric-card { padding: 6px 8px; }
+  .re-metric-value { font-size: 14px; }
+  .re-metric-label { font-size: 8px; }
+  .re-sidebar-title { font-size: 8px; }
+}
+
+@container bento-card (max-height: 280px) {
+  .re-metric-card { padding: 4px 6px; }
+  .re-metric-value { font-size: 13px; }
+  .re-sidebar-section { padding: 4px 0; }
+}
+
+@container panel-content (max-width: 400px) {
+  .re-metric-card { padding: 4px 6px; }
+  .re-metric-value { font-size: 12px; }
+}
+
+@container panel-content (max-height: 300px) {
+  .re-metric-card { padding: 4px 5px; }
+  .re-metric-value { font-size: 11px; }
+  .re-sidebar-section { padding: 4px 0; }
 }
