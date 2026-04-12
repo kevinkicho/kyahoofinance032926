@@ -2,19 +2,13 @@ import React from 'react';
 import { useInsuranceData } from './data/useInsuranceData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import InsuranceDashboard from './components/InsuranceDashboard';
-import './InsuranceMarket.css';
+import './components/InsuranceDashboard.css';
 
 function fmtChangePct(v) {
   if (v == null) return '';
   return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 }
 
-/**
- * InsuranceMarket - Unified insurance dashboard
- * Shows all insurance data in one glanceable view:
- * - Combined Ratio, Reinsurers, Reinsurance Rates, Reserve Adequacy
- * - Chart grid (HY OAS History, Combined Ratio, Reinsurance Rates, Reserves, Cat Bonds)
- */
 function InsuranceMarket({ autoRefresh } = {}) {
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
