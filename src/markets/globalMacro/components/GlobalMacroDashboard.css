@@ -1,12 +1,52 @@
-/* src/markets/globalMacro/components/GlobalMacroDashboard.css */
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL MACRO — Bento-box dashboard layout
+   
+   Uses react-grid-layout ResponsiveGridLayout for draggable/resizable
+   bento cards. Grid uses 12-column system with 120px row height.
+   Accent color: teal #14b8a6
+   ═══════════════════════════════════════════════════════════════ */
 
-/* Main Dashboard Layout */
-.mac-dashboard {
+/* ── 1. Market wrapper ── */
+.mac-market {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--bg-deep);
+}
+
+.mac-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 20px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--bg-primary);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.mac-status-live { color: #14b8a6; }
+
+.mac-stale-badge {
+  background: #78350f;
+  color: #fcd34d;
+  border: 1px solid #92400e;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ── 2. Dashboard container (bento) ── */
+.mac-dashboard.mac-dashboard--bento {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .mac-dashboard-layout {
@@ -15,15 +55,79 @@
   overflow: hidden;
 }
 
-.mac-main-content {
-  flex: 1;
+/* ── 3. RGL overrides (accent: teal) ── */
+.mac-dashboard--bento .react-grid-item.react-grid-placeholder {
+  background: #14b8a6 !important;
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed #14b8a6 !important;
+}
+
+.mac-dashboard--bento .react-grid-item { transition: none !important; }
+.mac-dashboard--bento .react-grid-item.cssTransforms { transition: none !important; }
+
+.mac-dashboard--bento .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #14b8a6 !important;
+  border-bottom: 2px solid #14b8a6 !important;
+}
+
+/* ── 4. Bento Card ── */
+.mac-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-width: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+  cursor: default;
 }
 
-/* KPI Strip - horizontally scrollable */
+.mac-bento-card:hover {
+  border-color: #14b8a6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(20, 184, 166, 0.15);
+}
+
+/* ── 5. Panel title row ── */
+.mac-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.mac-panel-title-row:active { cursor: grabbing; }
+
+.mac-panel-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mac-panel-subtitle {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* ── 6. Panel content ── */
+.mac-panel-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  gap: 6px;
+}
+
+/* ── 7. KPI Strip ── */
 .mac-kpi-strip {
   display: flex;
   gap: 8px;
@@ -34,18 +138,9 @@
   scrollbar-color: var(--border-subtle) transparent;
 }
 
-.mac-kpi-strip::-webkit-scrollbar {
-  height: 4px;
-}
-
-.mac-kpi-strip::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.mac-kpi-strip::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
-  border-radius: 2px;
-}
+.mac-kpi-strip::-webkit-scrollbar { height: 4px; }
+.mac-kpi-strip::-webkit-scrollbar-track { background: transparent; }
+.mac-kpi-strip::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 2px; }
 
 .mac-kpi-pill {
   display: flex;
@@ -59,35 +154,15 @@
   flex-shrink: 0;
 }
 
-.mac-kpi-label {
-  font-size: 9px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.mac-kpi-value {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-}
-
+.mac-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.mac-kpi-value { font-size: 15px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text-primary); }
 .mac-kpi-value.accent { color: #14b8a6; }
 .mac-kpi-value.positive { color: #4ade80; }
 .mac-kpi-value.negative { color: #f87171; }
+.mac-kpi-sub { font-size: 10px; color: var(--text-secondary); }
 
-.mac-kpi-sub {
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-
-/* Scorecard Section */
-.mac-scorecard-section {
-  flex-shrink: 0;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-}
+/* ── 8. Scorecard ── */
+.mac-scorecard-section { flex-shrink: 0; }
 
 .mac-scorecard-header {
   display: flex;
@@ -96,18 +171,9 @@
   margin-bottom: 6px;
 }
 
-.mac-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
+.mac-section-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.mac-section-subtitle { font-size: 10px; color: var(--text-muted); }
 
-.mac-section-subtitle {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-/* Compact Scorecard Table */
 .mac-scorecard-compact {
   display: grid;
   grid-template-columns: 32px 48px repeat(5, 1fr);
@@ -117,209 +183,106 @@
   overflow: hidden;
 }
 
-.mac-scorecard-header-row {
-  display: contents;
-}
+.mac-scorecard-header-row { display: contents; }
 
-.mac-scorecell {
-  padding: 6px 8px;
-  text-align: right;
-  white-space: nowrap;
-}
+.mac-scorecell { padding: 6px 8px; text-align: right; white-space: nowrap; }
+.mac-scorecell-flag { text-align: center; padding: 6px 4px; }
+.mac-scorecell-country { text-align: left; font-weight: 600; }
 
-.mac-scorecell-flag {
-  text-align: center;
-  padding: 6px 4px;
-}
-
-.mac-scorecell-country {
-  text-align: left;
-  font-weight: 600;
-}
-
-.mac-scorecard-row {
-  display: contents;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.mac-scorecard-row:hover .mac-scorecell {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.mac-scorecard-row.selected .mac-scorecell {
-  background: rgba(20, 184, 166, 0.15);
-}
+.mac-scorecard-row { display: contents; cursor: pointer; transition: background 0.15s; }
+.mac-scorecard-row:hover .mac-scorecell { background: rgba(255, 255, 255, 0.05); }
+.mac-scorecard-row.selected .mac-scorecell { background: rgba(20, 184, 166, 0.15); }
 
 /* Heat Colors */
-.mac-heat-dg { background: #14532d; color: #86efac; }
-.mac-heat-lg { background: #1a3a28; color: #4ade80; }
+.mac-heat-dg  { background: #14532d; color: #86efac; }
+.mac-heat-lg  { background: #1a3a28; color: #4ade80; }
 .mac-heat-neu { background: var(--bg-card); color: var(--text-secondary); }
-.mac-heat-lr { background: #3b1a1a; color: #f87171; }
-.mac-heat-dr { background: #7f1d1d; color: #fca5a5; }
+.mac-heat-lr  { background: #3b1a1a; color: #f87171; }
+.mac-heat-dr  { background: #7f1d1d; color: #fca5a5; }
 
-/* Chart Grid */
-.mac-chart-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 8px 12px;
-  overflow-y: auto;
-  flex: 1;
-  align-content: start;
+/* ── 9. Mini Bars ── */
+.mac-mini-bars { display: flex; flex-direction: column; gap: 4px; }
+.mac-mini-bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.mac-mini-label { width: 20px; text-align: center; flex-shrink: 0; }
+.mac-mini-bar-track { flex: 1; height: 12px; background: var(--bg-primary); border-radius: 2px; overflow: hidden; }
+.mac-mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+.mac-mini-value { width: 45px; text-align: right; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 10px; color: var(--text-secondary); }
+
+/* ── 10. Activity Summary ── */
+.mac-activity-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 8px 0; }
+.mac-activity-metric { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.mac-activity-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.mac-activity-value { font-size: 18px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text-primary); }
+.mac-activity-status { font-size: 10px; color: var(--text-secondary); }
+
+/* ── 11. CLI Mini Grid ── */
+.mac-cli-mini-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mac-cli-mini-card { display: flex; flex-direction: column; align-items: center; padding: 8px; background: var(--bg-primary); border-radius: 4px; }
+.mac-cli-mini-flag { font-size: 18px; margin-bottom: 2px; }
+.mac-cli-mini-value { font-size: 14px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; }
+.mac-cli-mini-trend { font-size: 12px; font-weight: 600; }
+
+/* ── 12. Drag states ── */
+.react-grid-item.resizing { opacity: 0.85; z-index: 10; }
+.react-grid-item.react-draggable-dragging { opacity: 0.85; z-index: 10; }
+
+/* ── 13. Sub-components ── */
+.mac-panel { display: flex; flex-direction: column; flex: 1; padding: 12px; overflow: hidden; }
+.mac-panel-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; flex-shrink: 0; }
+.mac-panel-footer { margin-top: 12px; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+.mac-scroll { overflow: auto; flex: 1; }
+.mac-chart-wrap { flex: 1; min-height: 120px; }
+
+.mac-table { border-collapse: collapse; min-width: 100%; }
+.mac-th { background: var(--bg-card); color: var(--text-secondary); font-size: 11px; font-weight: 600; padding: 8px 12px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; }
+.mac-th:first-child { text-align: left; }
+.mac-row:hover { background: var(--bg-card); }
+.mac-cell { padding: 8px 12px; border: 1px solid var(--bg-primary); text-align: right; font-size: 12px; color: #cbd5e1; white-space: nowrap; }
+.mac-cell:first-child { text-align: left; font-weight: 600; color: var(--text-primary); }
+
+.mac-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; overflow: hidden; }
+.mac-chart-panel { display: flex; flex-direction: column; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; overflow: hidden; }
+.mac-chart-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; flex-shrink: 0; }
+.mac-chart-subtitle { font-size: 10px; color: var(--text-dim); margin-bottom: 8px; flex-shrink: 0; }
+
+.mac-cli-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.mac-cli-card { display: flex; flex-direction: column; align-items: center; padding: 10px 8px; border-radius: 6px; border: 1px solid var(--border-subtle); }
+.mac-cli-country { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.mac-cli-flag { font-size: 14px; }
+.mac-cli-name { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+.mac-cli-value { font-size: 16px; font-weight: 700; font-family: 'SF Mono', 'Cascadia Code', monospace; }
+.mac-cli-trend { font-size: 10px; font-weight: 600; }
+
+.mac-section-header { display: flex; align-items: center; gap: 8px; }
+.mac-cpi-breakdown { border: 1px solid var(--border-subtle); border-radius: 6px; overflow: hidden; }
+.mac-cpi-row { display: grid; grid-template-columns: 1fr 60px 60px; align-items: center; padding: 6px 12px; font-size: 12px; }
+.mac-cpi-name { color: var(--text-primary); font-weight: 500; }
+.mac-cpi-weight { text-align: center; font-size: 10px; }
+.mac-cpi-yoy { text-align: right; font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 12px; }
+
+/* ── 14. Responsive ── */
+@container bento-card (max-width: 500px) {
+  .mac-scorecard-compact { grid-template-columns: 32px 48px repeat(3, 1fr); font-size: 10px; }
+  .mac-activity-summary { grid-template-columns: 1fr; }
+  .mac-cli-mini-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (max-width: 1400px) {
-  .mac-chart-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+@container bento-card (max-height: 280px) {
+  .mac-activity-value { font-size: 14px; }
+}
+
+@container panel-content (max-width: 400px) {
+  .mac-scorecard-compact { grid-template-columns: 32px 60px repeat(3, 1fr); }
+}
+
+@container panel-content (max-height: 300px) {
+  .mac-activity-value { font-size: 14px; }
 }
 
 @media (max-width: 900px) {
-  .mac-chart-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .mac-scorecard-compact {
-    grid-template-columns: 32px 48px repeat(4, 1fr);
-    font-size: 10px;
-  }
+  .mac-scorecard-compact { grid-template-columns: 32px 48px repeat(4, 1fr); font-size: 10px; }
 }
 
 @media (max-width: 600px) {
-  .mac-scorecard-compact {
-    grid-template-columns: 32px 60px repeat(3, 1fr);
-  }
-}
-
-/* Panel Card */
-.mac-panel-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  min-height: 180px;
-}
-
-.mac-panel-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-  flex-shrink: 0;
-}
-
-.mac-chart-wrap {
-  flex: 1;
-  min-height: 120px;
-}
-
-/* Mini Bars (inline charts) */
-.mac-mini-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mac-mini-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-}
-
-.mac-mini-label {
-  width: 20px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.mac-mini-bar-track {
-  flex: 1;
-  height: 12px;
-  background: var(--bg-primary);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.mac-mini-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.mac-mini-value {
-  width: 45px;
-  text-align: right;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-
-/* Activity Summary */
-.mac-activity-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.mac-activity-metric {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.mac-activity-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.mac-activity-value {
-  font-size: 18px;
-  font-weight: 700;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  color: var(--text-primary);
-}
-
-.mac-activity-status {
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-
-/* CLI Mini Grid */
-.mac-cli-mini-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.mac-cli-mini-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px;
-  background: var(--bg-primary);
-  border-radius: 4px;
-}
-
-.mac-cli-mini-flag {
-  font-size: 18px;
-  margin-bottom: 2px;
-}
-
-.mac-cli-mini-value {
-  font-size: 14px;
-  font-weight: 700;
-  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-}
-
-.mac-cli-mini-trend {
-  font-size: 12px;
-  font-weight: 600;
+  .mac-scorecard-compact { grid-template-columns: 32px 60px repeat(3, 1fr); }
 }
