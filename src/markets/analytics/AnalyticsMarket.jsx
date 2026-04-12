@@ -347,9 +347,12 @@ export default function AnalyticsMarket() {
               <table className="ana-table">
                 <thead><tr><th>File</th><th>Size</th><th>Modified</th></tr></thead>
                 <tbody>
-                  {(data.cacheFiles?.files || []).map(f => (
-                    <tr key={f.name}><td className="ana-mono">{f.name}</td><td>{f.sizeKB}KB</td><td className="ana-mono">{f.modified ? f.modified.split('T')[0] : '—'}</td></tr>
-                  ))}
+                  {(data.cacheFiles?.files || []).map((f, i) => {
+                    const name = typeof f === 'string' ? f : f.name;
+                    const size = typeof f === 'string' ? null : f.sizeKB;
+                    const mod = typeof f === 'string' ? null : f.modified;
+                    return <tr key={name || i}><td className="ana-mono">{name}</td><td>{size ? `${size}KB` : '—'}</td><td className="ana-mono">{mod ? mod.split('T')[0] : '—'}</td></tr>;
+                  })}
                 </tbody>
               </table>
               {(data.cacheFiles?.files || []).length === 0 && <div className="ana-empty">No cache files</div>}
