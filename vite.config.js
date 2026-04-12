@@ -93,6 +93,24 @@ function macroApiPlugin() {
         }
       });
 
+      // Analytics dashboard data — proxy to Express backend
+      server.middlewares.use('/api/analytics', async (_req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        try {
+          const backendPort = getBackendPort();
+          const backendRes = await (async () => {
+            const url = `http://localhost:${backendPort}/api/analytics`;
+            return await globalThis.fetch(url);
+          })();
+          const text = await backendRes.text();
+          res.statusCode = backendRes.status;
+          res.end(text);
+        } catch (e) {
+          res.statusCode = 502;
+          res.end(JSON.stringify({ error: `Analytics backend unreachable: ${e.message}` }));
+        }
+      });
+
       // /api/stocks, /api/summary, /api/history are proxied to Express (see server.proxy below)
 
       // Local 🦙 Ollama AI Extraction Engine (Zero Cost, 100% Offline)
