@@ -110,7 +110,7 @@ function PopoutView({ marketId }) {
         </a>
       </div>
       {/* Market content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' }}>
         <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', fontSize: 13 }}>Loading market...</div>}>
           <MarketComponent />
         </Suspense>
