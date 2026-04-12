@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CryptoComponents.css';
+import './CryptoDashboard.css';
 
 function fearGreedColor(v, textSecondary = '#94a3b8') {
   if (v >= 75) return '#ef4444';

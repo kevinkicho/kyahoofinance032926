@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './EquityComponents.css';
+import './EquitiesDeepDiveDashboard.css';
 
 function buildRankedOption(sectors, colors) {
   const spy = sectors.find(s => s.code === 'SPY');

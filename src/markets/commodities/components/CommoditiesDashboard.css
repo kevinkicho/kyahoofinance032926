@@ -58,30 +58,12 @@
   min-height: 0;
 }
 
-/* ── 3. Bento root — wrapper for react-grid-layout ── */
-.com-bento-root {
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 400px;
-}
-
-/* ── 3b. Drag/drop placeholder ── */
+/* ── 3. RGL overrides (accent: gold) ── */
 .react-grid-item.react-grid-placeholder {
   background: #ca8a04 !important;
   opacity: 0.15 !important;
   border-radius: 12px !important;
   border: 2px dashed #ca8a04 !important;
-}
-
-/* ── 3c. Disable RGL transitions on bento cards to prevent
-      ECharts bars from "falling" during resize animations.
-      Items snap to final size instead of animating. ── */
-.com-bento-root .react-grid-item {
-  transition: none !important;
-}
-
-.com-bento-root .react-grid-item.cssTransforms {
-  transition: none !important;
 }
 
 /* ── 4. Bento Card — react-grid-layout grid items ── */

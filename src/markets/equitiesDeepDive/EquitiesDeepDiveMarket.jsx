@@ -29,27 +29,25 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
   if (isLoading) return <MarketSkeleton />;
 
   return (
-    <div className="eq-market">
-      <div className="eq-status-bar">
-        <span className={isLive ? 'eq-status-live' : ''}>
+    <div className="eqd-market">
+      <div className="eqd-status-bar">
+        <span className={isLive ? 'eqd-status-live' : ''}>
           {isLive ? '● Live · Yahoo Finance' : '○ Mock data — static'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
-        {!isCurrent && fetchedOn && <span className="eq-stale-badge">Stale · fetched {fetchedOn}</span>}
+        {!isCurrent && fetchedOn && <span className="eqd-stale-badge">Stale · fetched {fetchedOn}</span>}
       </div>
-      <div className="eq-dashboard-wrap">
-        <EquitiesDeepDiveDashboard
-          sectorData={sectorData}
-          factorData={factorData}
-          earningsData={earningsData}
-          shortData={shortData}
-          institutionalData={institutionalData}
-          equityRiskPremium={equityRiskPremium}
-          spPE={spPE}
-          buffettIndicator={buffettIndicator}
-          breadthDivergence={breadthDivergence}
-        />
-      </div>
+      <EquitiesDeepDiveDashboard
+        sectorData={sectorData}
+        factorData={factorData}
+        earningsData={earningsData}
+        shortData={shortData}
+        institutionalData={institutionalData}
+        equityRiskPremium={equityRiskPremium}
+        spPE={spPE}
+        buffettIndicator={buffettIndicator}
+        breadthDivergence={breadthDivergence}
+      />
     </div>
   );
 }

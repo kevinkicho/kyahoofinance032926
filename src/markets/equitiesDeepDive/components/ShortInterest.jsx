@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './EquityComponents.css';
+import './EquitiesDeepDiveDashboard.css';
 
 function shortBarColor(v, textDim = '#475569') {
   if (v == null || Number.isNaN(v)) return textDim;

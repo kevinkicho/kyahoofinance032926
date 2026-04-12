@@ -1,0 +1,24 @@
+/* src/markets/alerts/AlertsMarket.css */
+.alerts-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
+.alerts-market.alerts-loading { align-items: center; justify-content: center; gap: 12px; }
+.alerts-loading-spinner {
+  width: 36px; height: 36px; border: 3px solid var(--border-subtle);
+  border-top-color: #14b8a6; border-radius: 50%;
+  animation: alerts-market-spin 0.8s linear infinite;
+}
+@keyframes alerts-market-spin { to { transform: rotate(360deg); } }
+.alerts-loading-text { font-size: 12px; color: var(--text-muted); }
+
+.alerts-status-bar {
+  display: flex; align-items: center; gap: 12px; padding: 4px 14px;
+  font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);
+}
+.alerts-status-live { color: #14b8a6; }
+.alerts-alert-count {
+  background: rgba(239, 68, 68, 0.15); color: #f87171;
+  padding: 2px 8px; border-radius: 4px; font-weight: 500;
+}
+.alerts-stale-badge {
+  background: #78350f; color: #fcd34d; border: 1px solid #92400e;
+  border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 500;
+}

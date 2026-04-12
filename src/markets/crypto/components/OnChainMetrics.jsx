@@ -2,7 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CryptoComponents.css';
+import './CryptoDashboard.css';
 
 function buildExchangesOption(exchanges, colors) {
   const items = [...exchanges].reverse(); // smallest at top so largest appears at bottom → natural bar chart reading

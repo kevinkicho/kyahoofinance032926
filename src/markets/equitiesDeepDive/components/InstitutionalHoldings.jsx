@@ -2,7 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './InstitutionalHoldings.css';
+import './EquitiesDeepDiveDashboard.css';
 
 function fmtBillions(v) {
   if (v == null) return '—';

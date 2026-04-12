@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './MacroComponents.css';
+
 
 function buildGdpOption(countries, colors) {
   const sorted = [...countries].sort((a, b) => b.gdp - a.gdp);

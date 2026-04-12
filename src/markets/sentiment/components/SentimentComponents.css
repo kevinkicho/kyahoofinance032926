@@ -2,7 +2,6 @@
 
 .sent-panel { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); overflow: hidden; }
 .sent-panel-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px 8px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
-.sent-panel-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .sent-panel-subtitle { font-size: 10px; color: var(--text-muted); }
 
 .sent-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex: 1; background: var(--border-subtle); overflow: hidden; }
@@ -20,7 +19,6 @@
 .sent-neg { color: #f87171; }
 .sent-neu { color: var(--text-secondary); }
 
-/* Signal badges */
 .sent-badge {
   display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px;
   border-radius: 10px; font-family: monospace; text-transform: uppercase;
@@ -29,18 +27,15 @@
 .sent-badge-off { background: #450a0a; color: #f87171; }
 .sent-badge-neu { background: var(--bg-card); color: var(--text-secondary); }
 
-/* CFTC bars */
 .sent-cftc-section { padding: 6px 0; }
 .sent-cftc-section-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; padding: 4px 12px 2px; }
 
-/* Risk card grid */
 .sent-risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; flex: 1; overflow-y: auto; }
 .sent-risk-card { background: var(--bg-card); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
 .sent-risk-name { font-size: 11px; font-weight: 600; color: var(--text-primary); }
 .sent-risk-value { font-size: 14px; font-weight: 700; color: var(--text-primary); font-family: monospace; }
 .sent-risk-desc { font-size: 10px; color: var(--text-muted); }
 
-/* Returns heatmap */
 .sent-returns-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
 .sent-returns-th {
   padding: 5px 10px; text-align: right; font-size: 9px; color: var(--text-muted);
@@ -54,12 +49,10 @@
 .sent-returns-row:hover { background: var(--bg-card); }
 .sent-category-sep td { padding: 3px 10px; font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; background: var(--bg-primary); }
 
-/* Overall score display */
 .sent-score-display { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
 .sent-score-value { font-size: 28px; font-weight: 700; }
 .sent-score-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
-/* — KPI strip (dense enrichment) — */
 .sent-kpi-strip { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; flex-wrap: wrap; }
 .sent-kpi-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
 .sent-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }

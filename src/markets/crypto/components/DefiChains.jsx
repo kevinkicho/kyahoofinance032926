@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CryptoComponents.css';
+import './CryptoDashboard.css';
 
 function fmtChange(v) {
   if (v == null) return { text: '—', cls: 'crypto-neu' };

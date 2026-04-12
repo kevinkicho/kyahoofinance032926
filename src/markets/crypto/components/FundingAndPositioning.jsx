@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CryptoComponents.css';
+import './CryptoDashboard.css';
 
 function fundingColor(rate, textSecondary = '#94a3b8') {
   if (rate > 0.015) return '#ef4444';

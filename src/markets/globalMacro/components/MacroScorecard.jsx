@@ -1,6 +1,6 @@
 // src/markets/globalMacro/components/MacroScorecard.jsx
 import React, { useMemo } from 'react';
-import './MacroComponents.css';
+
 
 function fmtBillions(v) {
   if (v == null) return '—';

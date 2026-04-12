@@ -1,30 +1,139 @@
-/* src/markets/sentiment/components/SentimentDashboard.css */
+/* ═════════════════════════════════════════════════════════════════
+   SENTIMENT — Bento-box dashboard layout
 
-.sent-dashboard {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  overflow: hidden;
-  background: var(--bg-deep);
-  height: 100%;
-  gap: 0;
-}
+   Uses react-grid-layout ResponsiveGridLayout for draggable/resizable
+   bento cards. Grid uses 12-column system with 120px row height.
+   ═════════════════════════════════════════════════════════════════ */
 
-/* Left Sidebar */
-.sent-sidebar {
-  width: 200px;
-  min-width: 200px;
-  flex-shrink: 0;
+/* ── 1. Dashboard container ── */
+.sent-dashboard.sent-dashboard--bento {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-subtle);
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
+/* ── 2. Bento root ── */
+.sent-bento-root {
+  flex: 1 0 auto;
+  min-height: 400px;
+}
+
+/* ── 3b. RGL overrides with accent color ── */
+.sent-bento-root .react-grid-item.react-grid-placeholder {
+  background: #7c3aed !important;
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed #7c3aed !important;
+}
+
+.sent-bento-root .react-grid-item {
+  transition: none !important;
+}
+
+.sent-bento-root .react-grid-item.cssTransforms {
+  transition: none !important;
+}
+
+/* ── 4. Bento Card ── */
+.sent-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+  cursor: default;
+}
+
+.sent-bento-card:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(124, 58, 237, 0.15);
+}
+
+/* ── 4b. Resize handles ── */
+.sent-bento-root .react-grid-item > .react-resizable-handle {
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  width: 20px !important;
+  height: 20px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  cursor: nwse-resize;
+}
+
+.sent-bento-root .react-grid-item:hover > .react-resizable-handle {
+  opacity: 1;
+}
+
+.sent-bento-root .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #7c3aed !important;
+  border-bottom: 2px solid #7c3aed !important;
+  width: 8px !important;
+  height: 8px !important;
+  right: 4px !important;
+  bottom: 4px !important;
+}
+
+.sent-bento-root .react-grid-item.resizing { opacity: 0.85; z-index: 10; }
+.sent-bento-root .react-grid-item.react-draggable-dragging { opacity: 0.85; z-index: 10; }
+
+/* ── 5. Panel title row — drag handle ── */
+.sent-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.sent-panel-title-row:active {
+  cursor: grabbing;
+}
+
+/* ── 6. Panel content ── */
+.sent-panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: panel-content;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.sent-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 6px;
+}
+
+/* ── 7. Sidebar section / metric cards (now in bento panels) ── */
 .sent-sidebar-section {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.sent-sidebar-section:last-child {
+  border-bottom: none;
 }
 
 .sent-sidebar-title {
@@ -86,103 +195,53 @@
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
-/* Main Content */
-.sent-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
-/* Tab Navigation */
+/* ── 8. Tab Navigation (kept for potential future use) ── */
 .sent-tabs {
-  display: flex;
-  gap: 0;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
+  display: flex; gap: 0; background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
 }
 
 .sent-tab {
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
+  padding: 10px 16px; font-size: 12px; font-weight: 500;
+  color: var(--text-muted); background: transparent;
+  border: none; border-bottom: 2px solid transparent; cursor: pointer;
   transition: all 0.15s;
 }
 
 .sent-tab:hover { color: var(--text-secondary); background: var(--bg-card); }
 .sent-tab.active { color: var(--text-primary); border-bottom-color: #a78bfa; }
 
-/* Tab Content */
-.sent-tab-content {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+.sent-tab-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.sent-tab-panel { display: none; flex: 1; overflow: hidden; }
+.sent-tab-panel.active { display: flex; flex-direction: column; }
 
-.sent-tab-panel {
-  display: none;
-  flex: 1;
-  overflow: hidden;
-}
+/* ── 9. Panel headers (from SentimentComponents.css) ── */
+.sent-panel { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); overflow: hidden; }
+.sent-panel-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px 8px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.sent-panel-subtitle { font-size: 10px; color: var(--text-muted); }
 
-.sent-tab-panel.active {
-  display: flex;
-  flex-direction: column;
-}
+.sent-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex: 1; background: var(--border-subtle); overflow: hidden; }
+.sent-three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; flex: 1; background: var(--border-subtle); overflow: hidden; }
+.sent-two-row { display: grid; grid-template-rows: 1fr 1fr; gap: 1px; flex: 1; background: var(--border-subtle); overflow: hidden; }
 
-/* Grid Layout */
-.sent-content-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding: 8px;
-  flex: 1;
-  overflow-y: auto;
-  align-content: start;
-}
+.sent-chart-panel { display: flex; flex-direction: column; background: var(--bg-primary); padding: 8px 12px 4px; overflow: hidden; }
+.sent-chart-title { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; flex-shrink: 0; }
+.sent-chart-subtitle { font-size: 9px; color: var(--text-muted); margin-bottom: 4px; flex-shrink: 0; }
+.sent-chart-wrap { flex: 1; min-height: 120px; }
 
-.sent-content-grid.single { grid-template-columns: 1fr; }
+.sent-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 
-/* Chart Panels */
-.sent-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
+.sent-pos { color: #34d399; }
+.sent-neg { color: #f87171; }
+.sent-neu { color: var(--text-secondary); }
 
-.sent-panel-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-
-.sent-chart-wrap {
-  flex: 1;
-  min-height: 100px;
-}
-
-/* Mini Tables */
+/* ── 10. Mini Tables ── */
 .sent-mini-table {
   display: flex;
   flex-direction: column;
   gap: 2px;
   flex: 1;
   overflow-y: auto;
-  padding-top: 8px;
 }
 
 .sent-mini-row {
@@ -205,21 +264,72 @@
   font-weight: 600;
 }
 
-/* Responsive */
-@media (max-width: 1000px) {
-  .sent-dashboard { flex-direction: column; }
-  .sent-sidebar {
-    width: 100%;
-    min-width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-x: auto;
-    max-height: 100px;
-  }
-  .sent-sidebar-section {
-    min-width: 140px;
-    border-right: 1px solid var(--border-subtle);
-    border-bottom: none;
-  }
-  .sent-content-grid { grid-template-columns: 1fr; }
+/* ── 11. Signal badges ── */
+.sent-badge {
+  display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 7px;
+  border-radius: 10px; font-family: monospace; text-transform: uppercase;
+}
+.sent-badge-on  { background: #064e3b; color: #34d399; }
+.sent-badge-off { background: #450a0a; color: #f87171; }
+.sent-badge-neu { background: var(--bg-card); color: var(--text-secondary); }
+
+/* ── 12. CFTC bars ── */
+.sent-cftc-section { padding: 6px 0; }
+.sent-cftc-section-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; padding: 4px 12px 2px; }
+
+/* ── 13. Risk card grid ── */
+.sent-risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; flex: 1; overflow-y: auto; }
+.sent-risk-card { background: var(--bg-card); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.sent-risk-name { font-size: 11px; font-weight: 600; color: var(--text-primary); }
+.sent-risk-value { font-size: 14px; font-weight: 700; color: var(--text-primary); font-family: monospace; }
+.sent-risk-desc { font-size: 10px; color: var(--text-muted); }
+
+/* ── 14. Returns heatmap ── */
+.sent-returns-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+.sent-returns-th {
+  padding: 5px 10px; text-align: right; font-size: 9px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border-subtle);
+  position: sticky; top: 0; z-index: 1; background: var(--bg-primary); white-space: nowrap;
+}
+.sent-returns-th:first-child { text-align: left; }
+.sent-returns-td { padding: 5px 10px; text-align: right; font-family: monospace; font-size: 11px; }
+.sent-returns-td:first-child { text-align: left; color: var(--text-primary); }
+.sent-returns-row { border-bottom: 1px solid var(--bg-primary); }
+.sent-returns-row:hover { background: var(--bg-card); }
+.sent-category-sep td { padding: 3px 10px; font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .06em; background: var(--bg-primary); }
+
+/* ── 15. Overall score ── */
+.sent-score-display { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
+.sent-score-value { font-size: 28px; font-weight: 700; }
+.sent-score-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+/* ── 16. KPI strip ── */
+.sent-kpi-strip { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; flex-wrap: wrap; }
+.sent-kpi-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
+.sent-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.sent-kpi-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.sent-kpi-value.accent { color: #7c3aed; }
+
+/* ── 17. Responsive ── */
+@container bento-card (max-width: 500px) {
+  .sent-sidebar-section { padding: 8px 8px; }
+  .sent-sidebar-title { font-size: 9px; }
+  .sent-metric-value { font-size: 15px; }
+  .sent-mini-row { font-size: 9px; }
+}
+
+@container bento-card (max-height: 280px) {
+  .sent-sidebar-section { padding: 6px 8px; }
+  .sent-metric-value { font-size: 14px; }
+  .sent-mini-row { padding: 3px 5px; }
+}
+
+@container panel-content (max-width: 400px) {
+  .sent-metric-row { font-size: 10px; }
+  .sent-mini-row { font-size: 9px; }
+}
+
+@container panel-content (max-height: 300px) {
+  .sent-sidebar-section { padding: 6px 8px; }
+  .sent-metric-card { padding: 6px 8px; }
 }

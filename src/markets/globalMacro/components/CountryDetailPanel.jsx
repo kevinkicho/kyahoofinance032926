@@ -1,7 +1,7 @@
 // src/markets/globalMacro/components/CountryDetailPanel.jsx
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CountryDetailPanel.css';
+
 
 /**
  * CountryDetailPanel - Sidebar showing detailed country metrics
@@ -116,14 +116,14 @@ export default function CountryDetailPanel({ country, onClose, centralBankData, 
       {cliInfo && (
         <div className="mac-detail-section">
           <div className="mac-detail-section-title" style={{ color: colors.textMuted }}>OECD Leading Indicator</div>
-          <div className="mac-cli-card" style={{ background: colors.bgPrimary }}>
-            <div className="mac-cli-value" style={{ color: cliInfo.cli > 100 ? '#4ade80' : '#f87171' }}>
+          <div className="mac-detail-cli-card" style={{ background: colors.bgPrimary }}>
+            <div className="mac-detail-cli-value" style={{ color: cliInfo.cli > 100 ? '#4ade80' : '#f87171' }}>
               {cliInfo.cli?.toFixed(1)}
             </div>
-            <div className="mac-cli-label" style={{ color: colors.textSecondary }}>
+            <div className="mac-detail-cli-label" style={{ color: colors.textSecondary }}>
               {cliInfo.cli > 100 ? 'Above trend' : 'Below trend'}
             </div>
-            <div className="mac-cli-trend" style={{
+            <div className="mac-detail-cli-trend" style={{
               color: cliInfo.trend === 'improving' ? '#4ade80' : cliInfo.trend === 'slowing' ? '#f87171' : '#fbbf24'
             }}>
               {cliInfo.trend === 'improving' ? '↗' : cliInfo.trend === 'slowing' ? '↘' : '→'} {cliInfo.trend}

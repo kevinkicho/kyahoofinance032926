@@ -28,7 +28,8 @@
 .bento-panel-content {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -50,7 +51,13 @@
 .bento-card,
 .bonds-bento-card,
 .eq-bento-card,
-.fx-bento-card {
+.fx-bento-card,
+.credit-bento-card,
+.sent-bento-card,
+.alerts-bento-card,
+.mac-bento-card,
+.eqd-bento-card,
+.crypto-bento-card {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border-subtle);
@@ -72,14 +79,28 @@
   border: 2px dashed !important;
 }
 
-/* ── Disable RGL CSS transitions on bento cards ── */
+/* ── Bento root — flex layout to fill available space ── */
+.com-bento-root {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 400px;
+}
+
 .com-bento-root .react-grid-item,
-.fx-dashboard--bento .react-grid-item {
+.mac-dashboard--bento .react-grid-item,
+.fx-dashboard--bento .react-grid-item,
+.credit-dashboard--bento .react-grid-item,
+.sent-dashboard--bento .react-grid-item,
+.alerts-dashboard--bento .react-grid-item {
   transition: none !important;
 }
 
 .com-bento-root .react-grid-item.cssTransforms,
-.fx-dashboard--bento .react-grid-item.cssTransforms {
+.mac-dashboard--bento .react-grid-item.cssTransforms,
+.fx-dashboard--bento .react-grid-item.cssTransforms,
+.credit-dashboard--bento .react-grid-item.cssTransforms,
+.sent-dashboard--bento .react-grid-item.cssTransforms,
+.alerts-dashboard--bento .react-grid-item.cssTransforms {
   transition: none !important;
 }
 

@@ -1,30 +1,139 @@
-/* src/markets/credit/components/CreditDashboard.css */
+/* ═════════════════════════════════════════════════════════════════
+   CREDIT — Bento-box dashboard layout
 
-.credit-dashboard {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  overflow: hidden;
-  background: var(--bg-deep);
-  height: 100%;
-  gap: 0;
-}
+   Uses react-grid-layout ResponsiveGridLayout for draggable/resizable
+   bento cards. Grid uses 12-column system with 120px row height.
+   ═════════════════════════════════════════════════════════════════ */
 
-/* Left Sidebar */
-.credit-sidebar {
-  width: 200px;
-  min-width: 200px;
-  flex-shrink: 0;
+/* ── 1. Dashboard container ── */
+.credit-dashboard.credit-dashboard--bento {
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border-subtle);
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
+/* ── 3. Bento root ── */
+.credit-bento-root {
+  flex: 1 0 auto;
+  min-height: 400px;
+}
+
+/* ── 3b. RGL overrides with accent color ── */
+.credit-bento-root .react-grid-item.react-grid-placeholder {
+  background: #06b6d4 !important;
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed #06b6d4 !important;
+}
+
+.credit-bento-root .react-grid-item {
+  transition: none !important;
+}
+
+.credit-bento-root .react-grid-item.cssTransforms {
+  transition: none !important;
+}
+
+/* ── 4. Bento Card ── */
+.credit-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+  cursor: default;
+}
+
+.credit-bento-card:hover {
+  border-color: #06b6d4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(6, 182, 212, 0.15);
+}
+
+/* ── 4b. Resize handles ── */
+.credit-bento-root .react-grid-item > .react-resizable-handle {
+  opacity: 0.4;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+  width: 20px !important;
+  height: 20px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  cursor: nwse-resize;
+}
+
+.credit-bento-root .react-grid-item:hover > .react-resizable-handle {
+  opacity: 1;
+}
+
+.credit-bento-root .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #06b6d4 !important;
+  border-bottom: 2px solid #06b6d4 !important;
+  width: 8px !important;
+  height: 8px !important;
+  right: 4px !important;
+  bottom: 4px !important;
+}
+
+.credit-bento-root .react-grid-item.resizing { opacity: 0.85; z-index: 10; }
+.credit-bento-root .react-grid-item.react-draggable-dragging { opacity: 0.85; z-index: 10; }
+
+/* ── 5. Panel title row — drag handle ── */
+.credit-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.credit-panel-title-row:active {
+  cursor: grabbing;
+}
+
+/* ── 6. Panel content ── */
+.credit-panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: panel-content;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.credit-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 6px;
+}
+
+/* ── 7. Sidebar section / metric cards (now in bento panels) ── */
 .credit-sidebar-section {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.credit-sidebar-section:last-child {
+  border-bottom: none;
 }
 
 .credit-sidebar-title {
@@ -80,96 +189,42 @@
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 }
 
-/* Main Content */
-.credit-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
-/* Tab Navigation */
+/* ── 8. Tab Navigation (kept for potential future use) ── */
 .credit-tabs {
-  display: flex;
-  gap: 0;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
+  display: flex; gap: 0; background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle); flex-shrink: 0;
 }
 
 .credit-tab {
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
+  padding: 10px 16px; font-size: 12px; font-weight: 500;
+  color: var(--text-muted); background: transparent;
+  border: none; border-bottom: 2px solid transparent; cursor: pointer;
   transition: all 0.15s;
 }
 
 .credit-tab:hover { color: var(--text-secondary); background: var(--bg-card); }
 .credit-tab.active { color: var(--text-primary); border-bottom-color: #3b82f6; }
 
-/* Tab Content */
-.credit-tab-content {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+.credit-tab-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.credit-tab-panel { display: none; flex: 1; overflow: hidden; }
+.credit-tab-panel.active { display: flex; flex-direction: column; }
 
-.credit-tab-panel {
-  display: none;
-  flex: 1;
-  overflow: hidden;
-}
+/* ── 9. Panel headers (from CreditComponents.css) ── */
+.credit-panel { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); overflow: hidden; }
+.credit-panel-header { display: flex; align-items: center; gap: 12px; padding: 10px 14px 8px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.credit-panel-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.credit-panel-subtitle { font-size: 10px; color: var(--text-muted); }
 
-.credit-tab-panel.active {
-  display: flex;
-  flex-direction: column;
-}
+.credit-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; flex: 1; background: var(--border-subtle); overflow: hidden; }
+.credit-two-row { display: grid; grid-template-rows: 1fr 1fr; gap: 1px; flex: 1; background: var(--border-subtle); overflow: hidden; }
+.credit-three-row { display: grid; grid-template-rows: auto 1fr 1fr; gap: 1px; flex: 1; background: var(--border-subtle); overflow: hidden; }
 
-/* Grid Layout */
-.credit-content-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding: 8px;
-  flex: 1;
-  overflow-y: auto;
-  align-content: start;
-}
+.credit-chart-panel { display: flex; flex-direction: column; background: var(--bg-primary); padding: 8px 12px 4px; overflow: hidden; }
+.credit-chart-title { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; flex-shrink: 0; }
+.credit-chart-subtitle { font-size: 9px; color: var(--text-muted); margin-bottom: 4px; flex-shrink: 0; }
+.credit-chart-wrap { flex: 1; min-height: 120px; }
 
-.credit-content-grid.single { grid-template-columns: 1fr; }
-
-/* Chart Panels */
-.credit-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.credit-panel-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-}
-
-.credit-chart-wrap {
-  flex: 1;
-  min-height: 100px;
-}
-
-/* Mini Tables */
+/* ── 10. Mini Tables ── */
 .credit-mini-table {
   display: flex;
   flex-direction: column;
@@ -199,21 +254,74 @@
   font-weight: 600;
 }
 
-/* Responsive */
-@media (max-width: 1000px) {
-  .credit-dashboard { flex-direction: column; }
-  .credit-sidebar {
-    width: 100%;
-    min-width: 100%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    overflow-x: auto;
-    max-height: 100px;
-  }
-  .credit-sidebar-section {
-    min-width: 140px;
-    border-right: 1px solid var(--border-subtle);
-    border-bottom: none;
-  }
-  .credit-content-grid { grid-template-columns: 1fr; }
+/* ── 11. Scroll container ── */
+.credit-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* ── 12. Table styles (from CreditComponents.css) ── */
+.credit-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; }
+.credit-th {
+  padding: 4px 8px; text-align: right; font-size: 9px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border-subtle);
+  position: sticky; top: 0; z-index: 1; background: var(--bg-primary); white-space: nowrap;
+}
+.credit-th:first-child, .credit-th:nth-child(2) { text-align: left; }
+.credit-row { border-bottom: 1px solid var(--bg-primary); }
+.credit-row:hover { background: var(--bg-card); }
+.credit-cell { padding: 4px 8px; color: var(--text-primary); text-align: right; }
+.credit-cell:first-child, .credit-cell:nth-child(2) { text-align: left; }
+.credit-muted { color: var(--text-muted); font-size: 10px; }
+.credit-num { font-family: monospace; }
+
+.credit-pos { color: #34d399; }
+.credit-neg { color: #f87171; }
+.credit-neu { color: var(--text-secondary); }
+
+/* ── 13. Stats strip ── */
+.credit-stats-row { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; flex-wrap: wrap; }
+.credit-stat-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
+.credit-stat-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.credit-stat-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.credit-stat-value.cyan { color: #06b6d4; }
+.credit-stat-value.green { color: #34d399; }
+.credit-stat-value.red { color: #f87171; }
+
+/* ── 14. Rating badges ── */
+.credit-rating-badge {
+  display: inline-block; font-size: 9px; font-weight: 700; padding: 1px 5px;
+  border-radius: 3px; font-family: monospace;
+}
+.credit-rating-ig  { background: #164e63; color: #67e8f9; }
+.credit-rating-hy  { background: #422006; color: #fdba74; }
+.credit-rating-em  { background: #1e1b4b; color: #a5b4fc; }
+.credit-rating-nr  { background: var(--bg-card); color: var(--text-muted); }
+
+/* ── 15. KPI strip ── */
+.credit-kpi-strip { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; flex-wrap: wrap; }
+.credit-kpi-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
+.credit-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.credit-kpi-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.credit-kpi-value.accent { color: #06b6d4; }
+
+/* ── 16. Responsive ── */
+@container bento-card (max-width: 500px) {
+  .credit-sidebar-section { padding: 8px 8px; }
+  .credit-sidebar-title { font-size: 9px; }
+  .credit-metric-value { font-size: 15px; }
+  .credit-mini-row { font-size: 9px; }
+}
+
+@container bento-card (max-height: 280px) {
+  .credit-sidebar-section { padding: 6px 8px; }
+  .credit-metric-value { font-size: 14px; }
+  .credit-mini-row { padding: 3px 5px; }
+}
+
+@container panel-content (max-width: 400px) {
+  .credit-metric-row { font-size: 10px; }
+  .credit-mini-row { font-size: 9px; }
+}
+
+@container panel-content (max-height: 300px) {
+  .credit-sidebar-section { padding: 6px 8px; }
+  .credit-metric-card { padding: 6px 8px; }
 }

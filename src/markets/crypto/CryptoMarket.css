@@ -7,23 +7,11 @@
 }
 .crypto-loading-text { font-size: 12px; color: var(--text-muted); }
 
-.crypto-sub-tabs {
-  display: flex; gap: 2px; padding: 8px 12px 0;
-  border-bottom: 1px solid var(--border-subtle); background: var(--bg-primary);
-}
-.crypto-sub-tab {
-  padding: 6px 14px; font-size: 12px; color: var(--text-muted); background: none;
-  border: none; border-bottom: 2px solid transparent; cursor: pointer;
-}
-.crypto-sub-tab:hover { color: var(--text-primary); }
-.crypto-sub-tab.active { color: #f59e0b; border-bottom-color: #f59e0b; }
-
 .crypto-status-bar {
   display: flex; align-items: center; gap: 12px; padding: 4px 14px;
   font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);
 }
 .crypto-status-live { color: #f59e0b; }
-.crypto-content { flex: 1; overflow: hidden; }
 
 .crypto-stale-badge {
   background: #78350f; color: #fcd34d; border: 1px solid #92400e;

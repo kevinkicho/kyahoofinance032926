@@ -1,8 +1,8 @@
-// src/markets/alerts/AlertsMarket.jsx
 import React from 'react';
 import { useAlertsData } from './data/useAlertsData';
 import AlertsDashboard from './components/AlertsDashboard';
 import MarketSkeleton from '../../hub/MarketSkeleton';
+import './AlertsMarket.css';
 
 function AlertsMarket() {
   const { alerts, rules, isLoading, isLive, fetchedOn, isCurrent } = useAlertsData();
@@ -10,13 +10,26 @@ function AlertsMarket() {
   if (isLoading) return <MarketSkeleton />;
 
   return (
-    <AlertsDashboard
-      alerts={alerts}
-      rules={rules}
-      isLive={isLive}
-      fetchedOn={fetchedOn}
-      isCurrent={isCurrent}
-    />
+    <div className="alerts-market">
+      <div className="alerts-status-bar">
+        <span className={isLive ? 'alerts-status-live' : ''}>
+          {isLive ? `● Live — Scanning ${rules.length} rules across 6 markets` : '○ Offline — using cached data'}
+        </span>
+        {alerts.length > 0 && (
+          <span className="alerts-alert-count">
+            {alerts.length} alert{alerts.length !== 1 ? 's' : ''} triggered
+          </span>
+        )}
+        {!isCurrent && fetchedOn && <span className="alerts-stale-badge">Stale · fetched {fetchedOn}</span>}
+      </div>
+      <AlertsDashboard
+        alerts={alerts}
+        rules={rules}
+        isLive={isLive}
+        fetchedOn={fetchedOn}
+        isCurrent={isCurrent}
+      />
+    </div>
   );
 }
 

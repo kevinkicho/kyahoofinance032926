@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './MacroComponents.css';
+
 
 /**
  * Economic Activity component displaying Chicago Fed National Activity Index (CFNAI)

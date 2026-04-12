@@ -2,7 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './CryptoComponents.css';
+import './CryptoDashboard.css';
 
 function fmtPrice(p) {
   if (p == null) return '—';

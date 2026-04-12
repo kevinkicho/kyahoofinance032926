@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import './MacroComponents.css';
+
 
 const HISTORY_COLORS = {
   US: '#14b8a6', EA: '#3b82f6', GB: '#a855f7',

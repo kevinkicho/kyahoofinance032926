@@ -1,6 +1,6 @@
 /* src/markets/calendar/components/CalendarComponents.css */
 
-/* ── Shared panel ──────────────────────────────────────────────────────────── */
+/* ── Shared panel ── */
 .cal-panel {
   margin: 10px; padding: 0; background: var(--bg-primary); border: 1px solid var(--border-subtle);
   border-radius: 10px; overflow: hidden;
@@ -13,7 +13,7 @@
 .cal-panel-subtitle { font-size: 10px; color: var(--text-dim); }
 .cal-panel-footer { padding: 6px 14px; font-size: 9px; color: var(--border-color); border-top: 1px solid var(--border-subtle); }
 
-/* ── Filter pills ──────────────────────────────────────────────────────────── */
+/* ── Filter pills ── */
 .cal-filter-bar { display: flex; gap: 4px; padding: 8px 14px; flex-wrap: wrap; }
 .cal-filter-pill {
   padding: 3px 10px; font-size: 10px; border-radius: 10px; cursor: pointer;
@@ -22,7 +22,7 @@
 .cal-filter-pill:hover { background: var(--border-color); }
 .cal-filter-pill.active { background: #f43f5e; color: #fff; border-color: #f43f5e; }
 
-/* ── Event table ───────────────────────────────────────────────────────────── */
+/* ── Event table ── */
 .cal-table { width: 100%; border-collapse: collapse; font-size: 11px; }
 .cal-table th {
   text-align: left; padding: 6px 10px; font-weight: 600; color: var(--text-muted);
@@ -37,10 +37,10 @@
 .cal-surprise-neg { color: #f87171; font-weight: 600; }
 .cal-surprise-na  { color: var(--text-dim); }
 
-/* ── Country flag ──────────────────────────────────────────────────────────── */
+/* ── Country flag ── */
 .cal-flag { margin-right: 4px; }
 
-/* ── Central bank cards ────────────────────────────────────────────────────── */
+/* ── Central bank cards ── */
 .cal-cb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; }
 .cal-cb-card {
   background: var(--bg-card); border-radius: 10px; padding: 14px 16px;
@@ -58,7 +58,7 @@
 .cal-cb-hike { background: #7f1d1d; color: #fca5a5; }
 .cal-cb-cut  { background: #14532d; color: #86efac; }
 
-/* ── Timeline ──────────────────────────────────────────────────────────────── */
+/* ── Timeline ── */
 .cal-timeline { padding: 12px 14px; border-top: 1px solid var(--border-subtle); }
 .cal-timeline-title { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
 .cal-timeline-row {
@@ -73,7 +73,7 @@
 .cal-dot-boe { background: #ef4444; }
 .cal-dot-boj { background: var(--text-primary); }
 
-/* ── Earnings season ───────────────────────────────────────────────────────── */
+/* ── Earnings season ── */
 .cal-week-group { margin-bottom: 2px; }
 .cal-week-header {
   padding: 6px 14px; font-size: 11px; font-weight: 600; color: var(--text-muted);
@@ -81,7 +81,7 @@
 }
 .cal-week-current { color: #f43f5e; border-left: 3px solid #f43f5e; }
 
-/* ── Key releases ──────────────────────────────────────────────────────────── */
+/* ── Key releases ── */
 .cal-release-list { padding: 8px 14px; }
 .cal-release-item {
   display: flex; align-items: center; gap: 12px; padding: 6px 0;
@@ -101,7 +101,7 @@
 .cal-cat-housing    { background: #7c2d12; color: #fdba74; }
 .cal-cat-sentiment  { background: #3b0764; color: #c4b5fd; }
 
-/* — KPI strip (dense enrichment) — */
+/* ── KPI strip ── */
 .cal-kpi-strip { display: flex; gap: 6px; padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; flex-wrap: wrap; }
 .cal-kpi-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border-radius: 6px; padding: 4px 10px; min-width: 80px; }
 .cal-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
