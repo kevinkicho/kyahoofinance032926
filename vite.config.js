@@ -94,14 +94,12 @@ function macroApiPlugin() {
       });
 
       // Analytics dashboard data — proxy to Express backend
-      server.middlewares.use('/api/analytics', async (_req, res) => {
+      server.middlewares.use('/api/analytics', async (req, res) => {
         res.setHeader('Content-Type', 'application/json');
         try {
           const backendPort = getBackendPort();
-          const backendRes = await (async () => {
-            const url = `http://localhost:${backendPort}/api/analytics`;
-            return await globalThis.fetch(url);
-          })();
+          const url = `http://localhost:${backendPort}${req.originalUrl}`;
+          const backendRes = await globalThis.fetch(url, { method: req.method });
           const text = await backendRes.text();
           res.statusCode = backendRes.status;
           res.end(text);

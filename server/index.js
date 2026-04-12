@@ -79,13 +79,19 @@ app.use('/api', (req, res, next) => {
 
     // Track endpoint metrics (normalize path to avoid per-ticker explosion)
     let ep = req.path.replace(/\/[A-Z]{1,5}$/, '/:ticker').replace(/\/\d+$/, '/:id');
-    if (!endpointTracker[ep]) endpointTracker[ep] = { calls: 0, totalMs: 0, maxMs: 0, minMs: Infinity, errors: 0, lastCalled: null };
+    if (!endpointTracker[ep]) endpointTracker[ep] = { calls: 0, totalMs: 0, maxMs: 0, minMs: Infinity, errors: 0, lastCalled: null, recentMs: [], recentErrors: [] };
     const m = endpointTracker[ep];
     m.calls++;
     m.totalMs += ms;
     m.maxMs = Math.max(m.maxMs, ms);
     m.minMs = Math.min(m.minMs, ms);
-    if (status >= 400) m.errors++;
+    if (status >= 400) {
+      m.errors++;
+      m.recentErrors.unshift({ ts: new Date().toISOString(), status, ms });
+      if (m.recentErrors.length > 20) m.recentErrors.length = 20;
+    }
+    m.recentMs.push(ms);
+    if (m.recentMs.length > 100) m.recentMs.shift();
     m.lastCalled = new Date().toISOString();
   });
   next();
