@@ -20,6 +20,9 @@ const MARKET_COMPONENTS = {
   credit:            lazy(() => import('./markets/credit/CreditMarket')),
   sentiment:         lazy(() => import('./markets/sentiment/SentimentMarket')),
   calendar:          lazy(() => import('./markets/calendar/CalendarMarket')),
+  alerts:            lazy(() => import('./markets/alerts/AlertsMarket')),
+  watchlist:         lazy(() => import('./markets/watchlist/WatchlistMarket')),
+  analytics:         lazy(() => import('./markets/analytics/AnalyticsMarket')),
 };
 
 class ErrorBoundary extends React.Component {

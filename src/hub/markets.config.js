@@ -15,6 +15,7 @@ export const MARKETS = [
   { id: 'calendar',         label: 'Calendar' },
   { id: 'alerts',           label: 'Alerts' },
   { id: 'watchlist',        label: 'Watchlist' },
+  { id: 'analytics',        label: 'Analytics' },
 ];
 
 export const DEFAULT_MARKET = 'equities';
@@ -35,4 +36,5 @@ export const SEARCH_INDEX = [
   { marketId: 'calendar',         label: 'Calendar',    subTabs: ['Economic Calendar', 'Central Banks', 'Earnings Season', 'Key Releases'] },
   { marketId: 'alerts',           label: 'Alerts',      subTabs: ['Active Alerts', 'Alert Rules'] },
   { marketId: 'watchlist',        label: 'Watchlist',   subTabs: ['My Tickers', 'My Metrics'] },
+  { marketId: 'analytics',        label: 'Analytics',   subTabs: ['API Usage', 'Endpoints', 'Data Freshness', 'Rate Limits', 'Cache'] },
 ];

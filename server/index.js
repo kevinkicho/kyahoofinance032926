@@ -32,6 +32,7 @@ import calendarRouter from './routes/calendar.js';
 import fxRouter from './routes/fx.js';
 import tickerRouter from './routes/ticker.js';
 import institutionalRouter from './routes/institutional.js';
+import analyticsRouter from './routes/analytics.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -63,7 +64,11 @@ const cache = new NodeCache({ stdTTL: 900 }); // 15 min default
 app.use(cors());
 app.use(express.json());
 
-// Request logging — method, path, status, duration
+// Endpoint metrics tracker (shared with /api/analytics)
+const endpointTracker = {};
+app.locals.endpointTracker = endpointTracker;
+
+// Request logging + metrics tracking
 app.use('/api', (req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -71,6 +76,17 @@ app.use('/api', (req, res, next) => {
     const status = res.statusCode;
     const color = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
     console.log(`${color}[${req.method}]\x1b[0m ${req.originalUrl} ${status} ${ms}ms`);
+
+    // Track endpoint metrics (normalize path to avoid per-ticker explosion)
+    let ep = req.path.replace(/\/[A-Z]{1,5}$/, '/:ticker').replace(/\/\d+$/, '/:id');
+    if (!endpointTracker[ep]) endpointTracker[ep] = { calls: 0, totalMs: 0, maxMs: 0, minMs: Infinity, errors: 0, lastCalled: null };
+    const m = endpointTracker[ep];
+    m.calls++;
+    m.totalMs += ms;
+    m.maxMs = Math.max(m.maxMs, ms);
+    m.minMs = Math.min(m.minMs, ms);
+    if (status >= 400) m.errors++;
+    m.lastCalled = new Date().toISOString();
   });
   next();
 });
@@ -140,6 +156,7 @@ app.use('/api/sentiment', sentimentRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/fx', fxRouter);
 app.use('/api/institutional', institutionalRouter);
+app.use('/api/analytics', analyticsRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 
@@ -169,5 +186,5 @@ server = app.listen(port, () => {
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
   console.log(`Global Macro Backend running at http://localhost:${actualPort}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
-  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/fx  /api/summary/:t  /api/history/:t`);
+  console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/fx  /api/summary/:t  /api/history/:t  /api/analytics`);
 });

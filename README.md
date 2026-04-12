@@ -1,6 +1,6 @@
 # Global Market Hub
 
-A comprehensive multi-market financial dashboard built with React 18 + Vite 5. Covers 15 asset classes with unified "one-look" dashboards, live data from Yahoo Finance, FRED, CoinGecko, and more. Includes a 350+ stock global equity heatmap with historical playback.
+A comprehensive multi-market financial dashboard built with React 18 + Vite 5. Covers 16 market views (15 asset classes + analytics dashboard) with unified "one-look" dashboards, live data from Yahoo Finance, FRED, CoinGecko, and more. Includes a 350+ stock global equity heatmap with historical playback.
 
 ---
 
@@ -23,6 +23,7 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 | 13 | **Calendar** | Economic Calendar, Central Banks, Earnings Season, Key Releases | Rose `#f43f5e` | Econdb, FRED (releases/dates), Yahoo (calendarEvents, 30 tickers) |
 | 14 | **Alerts** | Active Alerts, Alert Rules | Red `#ef4444` | Aggregates 6 market endpoints, 8 anomaly rules (VIX spike, curve inversion, HY stress, F&G extremes, BTC/Gold/DXY moves) |
 | 15 | **Watchlist** | My Tickers, My Metrics | Gold `#eab308` | Yahoo Finance (live quotes per ticker), cross-market metric shortcuts |
+| 16 | **Analytics** | API Usage, Endpoint Metrics, Data Freshness, Rate Limits, Cache Files | Slate `#94a3b8` | Server-side endpoint tracker, rate limit counters, file cache metadata |
 
 ---
 
@@ -444,6 +445,7 @@ src/
     calendar/                   # Unified dashboard (economic, earnings, releases)
     alerts/                     # Active alerts + alert rules
     watchlist/                  # My tickers + my metrics
+    analytics/                  # API usage, endpoint metrics, data freshness, cache inventory
   components/                   # Shared: BentoWrapper, SafeECharts, HeatmapView, DetailPanel, Sidebar, etc.
   utils/                        # FX rates, fetchWithRetry, data helpers, constants
   __tests__/                    # 297 tests across 49 files
@@ -465,7 +467,7 @@ server/
 
   - **Bento Grid Layout** — Converting all 15 market dashboards from static sidebar+grid layouts to draggable/resizable bento-box panels using `react-grid-layout`. Panels can be rearranged by dragging the title bar and resized via corner handles. Layout changes persist to `localStorage` per tab, so users don't lose their arrangement when switching markets.
   - **Bento Persistence** — `BentoWrapper` component saves panel positions to `localStorage` via `storageKey` prop. Each market (equities, bonds, commodities, FX, etc.) has its own key. Drag handles use `.bento-panel-title-row`, content areas use `.bento-panel-content` for text selection while preventing accidental panel drags.
-  - **All 15 Markets Converted** — Every market tab now uses the bento grid layout: Equities, Bonds, Commodities, FX, Derivatives, Real Estate, Insurance, Global Macro, Equities+ (Deep Dive), Crypto, Credit, Sentiment, Calendar, Alerts, Watchlist. Each has its own `storageKey` for localStorage persistence. Calendar and Watchlist use tab-dependent layouts (different bento configs per sub-tab).
+  - **All 16 Market Views Converted** — Every tab now uses the bento grid layout: Equities, Bonds, Commodities, FX, Derivatives, Real Estate, Insurance, Global Macro, Equities+ (Deep Dive), Crypto, Credit, Sentiment, Calendar, Alerts, Watchlist, Analytics. Each has its own `storageKey` for localStorage persistence. Calendar and Watchlist use tab-dependent layouts (different bento configs per sub-tab).
   - **CSS Consolidation** — Each market has a single consolidated CSS file. Old split CSS files (MacroComponents, CountryDetailPanel, EquityComponents, InstitutionalHoldings, CryptoComponents, CreditComponents, SentimentComponents, DerivativesMarket, RealEstateMarket, InsuranceMarket, FXMarket, GlobalMacroMarket, CalendarComponents, AlertsMarket) have been deleted. Sub-component CSS imports now point to the single dashboard-level or market-level CSS.
   - **Flex Layout Fix** — All bento dashboards now fill the full viewport height. Fixed a CSS flex chain issue where `main` wasn't a flex container, causing panels to show only ~35% of available space. Added `display: flex; flex-direction: column` to `<main>` and moved `.com-bento-root` flex rules into shared `BentoWrapper.css` for consistent loading order.
   - **BentoWrapper Shared Styles** — Moved core `.com-bento-root` flex rules and card base styles into `BentoWrapper.css` so they're always available regardless of which tab loaded first. This prevents layout breaks when visiting markets in different orders.
@@ -477,3 +479,4 @@ server/
   - **Bug Fixes** — Fixed data structure mismatches in Bonds, Credit, Crypto, Real Estate, Commodities, Sentiment dashboards
   - **Heatmap Selection** — Restored click-to-select functionality in equities heatmap for detail panel
   - **Test Coverage** — 297 tests passing across 49 files
+  - **Analytics Dashboard** — New tab showing API usage stats (external calls per source, rate limit usage), endpoint metrics (calls, avg/max response times, error rates), data freshness (current/stale/no-cache status per market), and cache file inventory. Server-side endpoint tracker middleware records every `/api/*` request. Accessible as the 16th tab.

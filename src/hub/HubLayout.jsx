@@ -67,6 +67,7 @@ const MARKET_COMPONENTS = {
   calendar:          lazy(() => import('../markets/calendar/CalendarMarket')),
   alerts:            lazy(() => import('../markets/alerts/AlertsMarket')),
   watchlist:         lazy(() => import('../markets/watchlist/WatchlistMarket')),
+  analytics:         lazy(() => import('../markets/analytics/AnalyticsMarket')),
 };
 
 function MarketFallback() {

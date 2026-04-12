@@ -1,0 +1,257 @@
+/* ═════════════════════════════════════════════════════════════════
+   ANALYTICS — Bento-box dashboard layout
+   Accent color: slate #94a3b8
+   ═════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Market wrapper ── */
+.ana-market {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-deep);
+}
+
+.ana-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 20px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--bg-primary);
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ana-status-live { color: #94a3b8; }
+
+.ana-refresh-btn {
+  padding: 2px 10px;
+  font-size: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ana-refresh-btn:hover { border-color: #94a3b8; }
+.ana-refresh-btn.active { background: #94a3b8; color: #1a1a1a; border-color: #94a3b8; }
+
+.ana-loading, .ana-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ana-error { color: #f87171; }
+
+/* ── 2. Dashboard container (bento) ── */
+.ana-dashboard.ana-dashboard--bento {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── 3. RGL overrides (accent: slate) ── */
+.ana-dashboard--bento .react-grid-item.react-grid-placeholder {
+  background: #94a3b8 !important;
+  opacity: 0.15 !important;
+  border-radius: 12px !important;
+  border: 2px dashed #94a3b8 !important;
+}
+
+.ana-dashboard--bento .react-grid-item > .react-resizable-handle::after {
+  border-right: 2px solid #94a3b8 !important;
+  border-bottom: 2px solid #94a3b8 !important;
+}
+
+/* ── 4. Bento Card ── */
+.ana-bento-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  height: 100%;
+  container-type: inline-size;
+  container-name: bento-card;
+  cursor: default;
+}
+
+.ana-bento-card:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(148, 163, 184, 0.15);
+}
+
+/* ── 5. Panel title row ── */
+.ana-panel-title-row {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  user-select: none;
+  cursor: grab;
+}
+
+.ana-panel-title-row:active { cursor: grabbing; }
+
+/* ── 6. Panel scroll ── */
+.ana-panel-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  gap: 6px;
+}
+
+/* ── 7. Stat grid ── */
+.ana-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ana-stat {
+  background: var(--bg-deep);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.ana-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.ana-stat-value.ana-accent { color: #94a3b8; }
+
+.ana-stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+/* ── 8. Table ── */
+.ana-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.ana-table th {
+  text-align: left;
+  padding: 5px 8px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+}
+
+.ana-table td {
+  padding: 4px 8px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.ana-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+.ana-path {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 10px;
+  color: var(--text-primary);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ana-mono {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 10px;
+}
+
+.ana-err { color: #f87171; }
+
+/* ── 9. Rate limit rows ── */
+.ana-rate-row {
+  margin-bottom: 10px;
+}
+
+.ana-rate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ana-rate-name {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.ana-rate-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+.ana-pct-bar-track {
+  height: 4px;
+  background: var(--bg-deep);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ana-pct-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ── 10. Status dots ── */
+.ana-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.ana-dot-green { background: #22c55e; }
+.ana-dot-yellow { background: #f59e0b; }
+.ana-dot-red { background: #ef4444; }
+
+/* ── 11. Empty state ── */
+.ana-empty {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 16px;
+}
+
+/* ── 12. Responsive ── */
+@container bento-card (max-width: 400px) {
+  .ana-stat-grid { grid-template-columns: 1fr; }
+  .ana-path { max-width: 120px; }
+}

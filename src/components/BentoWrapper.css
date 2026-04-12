@@ -57,7 +57,10 @@
 .alerts-bento-card,
 .mac-bento-card,
 .eqd-bento-card,
-.crypto-bento-card {
+.crypto-bento-card,
+.ana-bento-card,
+.cal-bento-card,
+.watch-bento-card {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border-subtle);
