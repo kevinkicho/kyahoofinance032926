@@ -46,8 +46,10 @@ export default function AnalyticsMarket() {
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch('/api/analytics');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { throw new Error(`Server returned non-JSON response. The /api/analytics endpoint may not be reachable — try restarting the dev server.`); }
       setData(json);
       setError(null);
     } catch (e) {
