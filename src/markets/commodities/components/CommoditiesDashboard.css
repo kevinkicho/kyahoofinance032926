@@ -60,7 +60,8 @@
 
 /* ── 3. Bento root — wrapper for react-grid-layout ── */
 .com-bento-root {
-  flex: 1 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 400px;
 }
 

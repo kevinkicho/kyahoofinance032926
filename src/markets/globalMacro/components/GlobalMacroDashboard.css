@@ -47,12 +47,14 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .mac-dashboard-layout {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
 }
 
 /* ── 3. RGL overrides (accent: teal) ── */
