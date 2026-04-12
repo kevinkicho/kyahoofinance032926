@@ -33,8 +33,8 @@ router.get('/summary/:ticker', async (req, res) => {
     cache.set(cacheKey, data, 1800);
     res.json(data);
   } catch (error) {
-    console.error(`Summary error for ${ticker}:`, error.message);
-    res.status(500).json({ error: error.message });
+    console.warn(`Summary unavailable for ${ticker}: ${error.message}`);
+    res.status(404).json({ error: `No summary data for ${ticker}`, ticker });
   }
 });
 
@@ -90,8 +90,8 @@ router.get('/history/:ticker', async (req, res) => {
     cache.set(cacheKey, result, 3600);
     res.json(result);
   } catch (error) {
-    console.error(`History error for ${ticker}:`, error.message);
-    res.status(500).json({ error: error.message });
+    console.warn(`History unavailable for ${ticker}: ${error.message}`);
+    res.status(404).json({ error: `No history data for ${ticker}`, ticker });
   }
 });
 
