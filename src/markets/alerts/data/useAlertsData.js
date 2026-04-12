@@ -127,7 +127,7 @@ export function useAlertsData() {
   const [alerts, setAlerts]       = useState([]);
 
   // Status with error handling
-  const { isLoading, error, fetchedOn, handleFinally } = useDataStatus();
+  const { isLoading, error, fetchedOn, handleFinally, setFetchedOn } = useDataStatus();
 
   useEffect(() => {
     const promises = ENDPOINTS.map(ep =>
