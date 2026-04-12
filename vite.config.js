@@ -99,7 +99,14 @@ function macroApiPlugin() {
         try {
           const backendPort = getBackendPort();
           const url = `http://localhost:${backendPort}${req.originalUrl}`;
-          const backendRes = await globalThis.fetch(url, { method: req.method });
+          const opts = { method: req.method };
+          if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
+            let body = '';
+            for await (const chunk of req) body += chunk;
+            if (body) opts.body = body;
+            opts.headers = { 'Content-Type': 'application/json' };
+          }
+          const backendRes = await globalThis.fetch(url, opts);
           const text = await backendRes.text();
           res.statusCode = backendRes.status;
           res.end(text);

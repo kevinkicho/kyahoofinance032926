@@ -349,9 +349,9 @@ export default function AnalyticsMarket() {
                 <tbody>
                   {(data.cacheFiles?.files || []).map((f, i) => {
                     const name = typeof f === 'string' ? f : f.name;
-                    const size = typeof f === 'string' ? null : f.sizeKB;
+                    const size = typeof f === 'string' ? null : (f.sizeDisplay || `${f.sizeKB}KB`);
                     const mod = typeof f === 'string' ? null : f.modified;
-                    return <tr key={name || i}><td className="ana-mono">{name}</td><td>{size ? `${size}KB` : '—'}</td><td className="ana-mono">{mod ? mod.split('T')[0] : '—'}</td></tr>;
+                    return <tr key={name || i}><td className="ana-mono">{name}</td><td>{size || '—'}</td><td className="ana-mono">{mod ? mod.split('T')[0] : '—'}</td></tr>;
                   })}
                 </tbody>
               </table>

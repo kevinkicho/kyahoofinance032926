@@ -131,7 +131,9 @@ router.get('/', (req, res) => {
         size = stat.size;
         modified = stat.mtime.toISOString();
       } catch {}
-      return { name: f, sizeKB: Math.round(size / 1024), modified };
+      const sizeKB = size > 0 ? Math.max(1, Math.round(size / 1024)) : 0;
+      const sizeDisplay = size > 0 ? (size < 1024 ? `${size}B` : `${sizeKB}KB`) : '0';
+      return { name: f, sizeKB, sizeDisplay, modified };
     });
     const totalSize = fileDetails.reduce((s, f) => s + (f.sizeKB || 0), 0);
     result.cacheFiles = { count: allFiles.length, totalSizeKB: totalSize, files: fileDetails.slice(0, 30) };
@@ -142,17 +144,17 @@ router.get('/', (req, res) => {
   // ── 5. In-memory cache stats ──
   try {
     const memCache = req.app.locals.cache;
-    if (memCache) {
-      const keys = memCache.keys();
-      const stats = memCache.getStats();
+    if (memCache && typeof memCache.keys === 'function') {
+      let keys = [];
+      let hits = 0, misses = 0;
+      try { keys = memCache.keys() || []; } catch { keys = []; }
+      try { const stats = memCache.getStats(); if (stats) { hits = stats.hits || 0; misses = stats.misses || 0; } } catch {}
       result.memCache = {
         keyCount: keys.length,
         keys: keys.sort().slice(0, 50),
-        hits: stats.hits,
-        misses: stats.misses,
-        hitRate: stats.hits + stats.misses > 0 ? Math.round((stats.hits / (stats.hits + stats.misses)) * 100) : 0,
-        ksize: stats.ksize,
-        vsize: stats.vsize,
+        hits,
+        misses,
+        hitRate: hits + misses > 0 ? Math.round((hits / (hits + misses)) * 100) : 0,
       };
     } else {
       result.memCache = { keyCount: 0, keys: [], hits: 0, misses: 0, hitRate: 0 };
@@ -201,18 +203,29 @@ router.get('/', (req, res) => {
   // ── 10. Route registration ──
   try {
     const routes = [];
-    function extractRoutes(stack, prefix = '') {
+    function extractRoutes(stack, prefix) {
+      if (!stack || !Array.isArray(stack)) return;
       for (const layer of stack) {
-        if (layer.route) {
-          const methods = Object.keys(layer.route.methods).map(m => m.toUpperCase());
-          routes.push({ path: prefix + layer.route.path, methods });
-        } else if (layer.name === 'router' && layer.regexp) {
-          const re = layer.regexp.source.replace(/^\\\//, '').replace(/\\/g, '');
-          extractRoutes(layer.handle.stack, '/' + re.replace(/\/?\?\$/, ''));
-        }
+        try {
+          if (layer.route) {
+            const methods = Object.keys(layer.route.methods || {}).map(m => m.toUpperCase());
+            if (methods.length) routes.push({ path: prefix + (layer.route.path || ''), methods });
+          } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
+            let routerPrefix = prefix;
+            try {
+              if (layer.regexp) {
+                const re = layer.regexp.source.replace(/^\\\/\?/, '').replace(/\\/g, '');
+                routerPrefix = prefix + '/' + re.replace(/\/?\?\$/, '');
+              }
+            } catch {}
+            extractRoutes(layer.handle.stack, routerPrefix);
+          }
+        } catch {}
       }
     }
-    extractRoutes(req.app._router.stack);
+    if (req.app && req.app._router && req.app._router.stack) {
+      extractRoutes(req.app._router.stack, '');
+    }
     result.routes = routes;
   } catch {
     result.routes = [];
