@@ -180,7 +180,8 @@ const API_ROUTES = [
   '/api/bonds', '/api/derivatives', '/api/realEstate', '/api/insurance',
   '/api/commodities', '/api/globalMacro', '/api/equityDeepDive',
   '/api/cache', '/api/crypto', '/api/credit', '/api/sentiment',
-  '/api/calendar', '/api/fx', '/api/rate-limits',
+  '/api/calendar', '/api/fx', '/api/rate-limits', '/api/analytics',
+  '/api/institutional',
 ];
 
 function buildProxyConfig() {
