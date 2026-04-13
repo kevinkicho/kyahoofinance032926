@@ -73,9 +73,7 @@ async function fetchCOTHistory() {
     });
 
     return Object.keys(history).length >= 3 ? history : null;
-  } catch {
-    return null;
-  }
+  } catch (e) { console.warn('[FX]', e.message || e); return null; }
 }
 
 router.get('/', async (req, res) => {
@@ -121,7 +119,7 @@ router.get('/', async (req, res) => {
           }
         });
         if (Object.keys(rates).length >= 3) fredFxRates = rates;
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[FX]', e.message || e); }
     }
 
     let reer = null;
@@ -147,7 +145,7 @@ router.get('/', async (req, res) => {
         if (dateSet && Object.keys(reerData).length >= 3) {
           reer = { dates: dateSet, ...reerData };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[FX]', e.message || e); }
     }
 
     let rateDifferentials = null;
@@ -175,7 +173,7 @@ router.get('/', async (req, res) => {
             usFed_boj: boj !== null ? Math.round((fed - boj) * 100) / 100 : null,
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[FX]', e.message || e); }
     }
 
     let dxyHistory = null;
@@ -194,7 +192,7 @@ router.get('/', async (req, res) => {
             values: dxyHist.map(p => Math.round(p.value * 10000) / 10000),
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[FX]', e.message || e); }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -204,7 +202,15 @@ router.get('/', async (req, res) => {
     try {
       trackApiCall('CFTC');
       cotHistory = await fetchCOTHistory();
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[FX]', e.message || e); }
+
+    const _sources = {
+      fredFxRates:       !!(fredFxRates && Object.keys(fredFxRates).length),
+      reer:              !!(reer && (reer.dates || Object.keys(reer).length)),
+      rateDifferentials: !!(rateDifferentials && Object.keys(rateDifferentials).length),
+      dxyHistory:        !!(dxyHistory && dxyHistory.dates?.length),
+      cotHistory:        !!(cotHistory && Object.keys(cotHistory).length),
+    };
 
     const result = {
       fredFxRates:       fredFxRates ?? null,
@@ -212,6 +218,7 @@ router.get('/', async (req, res) => {
       rateDifferentials: rateDifferentials ?? null,
       dxyHistory:        dxyHistory ?? null,
       cotHistory:        cotHistory ?? null,
+      _sources,
       lastUpdated: today,
     };
 

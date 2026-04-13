@@ -11,15 +11,15 @@ import './components/BondsDashboard.css';
  * - Macro & Real Yields section
  * - Treasury Auctions section
  */
-function BondsMarket({ autoRefresh } = {}) {
+function BondsMarket({ autoRefresh, refreshKey } = {}) {
   const {
     yieldCurveData, creditRatingsData, spreadIndicators, durationLadderData,
     breakevensData, treasuryRates, fredYieldHistory, fedFundsFutures, yieldHistory, mortgageSpread,
     tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory, m2HistoryData,
     auctionData, nationalDebt,
     spreadHistory, cpiComponents, debtToGdpHistory,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent
-  } = useBondsData(autoRefresh);
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, refetch, fetchLog, provenance,
+  } = useBondsData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -27,10 +27,11 @@ function BondsMarket({ autoRefresh } = {}) {
     <div className="bonds-market">
       <div className="bonds-status-bar">
         <span className={isLive ? 'bonds-status-live' : ''}>
-          {isLive ? '● Live · FRED / Treasury / World Bank' : '○ Mock data — static'}
+          {isLive ? '● API connected · FRED / Treasury / World Bank' : '○ No data received'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="bonds-stale-badge">Stale · fetched {fetchedOn}</span>}
+        <button className="bonds-refresh-btn" onClick={refetch} title="Refresh data">▶</button>
       </div>
       <BondsDashboard
         yieldCurveData={yieldCurveData}
@@ -53,6 +54,10 @@ function BondsMarket({ autoRefresh } = {}) {
         spreadHistory={spreadHistory}
         cpiComponents={cpiComponents}
         debtToGdpHistory={debtToGdpHistory}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
+        fetchLog={fetchLog}
+        provenance={provenance}
       />
     </div>
   );

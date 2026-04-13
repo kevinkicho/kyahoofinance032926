@@ -7,6 +7,8 @@ import DurationLadder from './DurationLadder';
 import CreditMatrix from './CreditMatrix';
 import BreakevenMonitor from './BreakevenMonitor';
 import SafeECharts from '../../../components/SafeECharts';
+import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './BondsDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -16,6 +18,7 @@ function BondsDashboard({
   breakevensData, fredYieldHistory, treasuryRates, fedFundsFutures, yieldHistory,
   mortgageSpread, tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory,
   m2HistoryData, auctionData, nationalDebt, spreadHistory, cpiComponents, debtToGdpHistory,
+  isLive, lastUpdated, fetchLog, provenance,
 }) {
   const { colors } = useTheme();
 
@@ -152,8 +155,9 @@ function BondsDashboard({
             <span className="bonds-panel-subtitle">{countryCount} countries · sovereign benchmark rates</span>
           </div>
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {yieldCurveData && <YieldCurve yieldCurveData={yieldCurveData} spreadIndicators={spreadIndicators} fredYieldHistory={fredYieldHistory} yieldHistory={yieldHistory} />}
+            {yieldCurveData && <YieldCurve yieldCurveData={yieldCurveData} spreadIndicators={spreadIndicators} fredYieldHistory={fredYieldHistory} yieldHistory={yieldHistory} lastUpdated={lastUpdated} />}
           </div>
+          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={Object.keys(yieldCurveData).some(k => yieldCurveData[k] && Object.values(yieldCurveData[k]).some(v => v != null))} fetchLog={fetchLog} />
         </div>
 
         {/* Key Metrics */}
@@ -166,19 +170,19 @@ function BondsDashboard({
               <div className="bonds-sidebar-title">Yields</div>
               <div className="bonds-metric-card">
                 <div className="bonds-metric-label">US 10Y</div>
-                <div className="bonds-metric-value accent">{us10y != null ? `${us10y.toFixed(2)}%` : '—'}</div>
+                <div className="bonds-metric-value accent"><MetricValue value={us10y} format={v => `${v.toFixed(2)}%`} seriesKey="10y" timestamp={lastUpdated} /></div>
               </div>
               <div className="bonds-metric-card">
                 <div className="bonds-metric-row">
                   <span className="bonds-metric-name">10Y−2Y</span>
                   <span className={`bonds-metric-num ${spreadIndicators?.t10y2y >= 0 ? 'positive' : 'negative'}`}>
-                    {spreadIndicators?.t10y2y != null ? `${spreadIndicators.t10y2y >= 0 ? '+' : ''}${spreadIndicators.t10y2y.toFixed(2)}%` : '—'}
+                    <MetricValue value={spreadIndicators?.t10y2y} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y2y" timestamp={lastUpdated} />
                   </span>
                 </div>
                 <div className="bonds-metric-row">
                   <span className="bonds-metric-name">10Y−3M</span>
                   <span className={`bonds-metric-num ${spreadIndicators?.t10y3m >= 0 ? 'positive' : 'negative'}`}>
-                    {spreadIndicators?.t10y3m != null ? `${spreadIndicators.t10y3m >= 0 ? '+' : ''}${spreadIndicators.t10y3m.toFixed(2)}%` : '—'}
+                    <MetricValue value={spreadIndicators?.t10y3m} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y3m" timestamp={lastUpdated} />
                   </span>
                 </div>
               </div>
@@ -193,9 +197,9 @@ function BondsDashboard({
               <div className="bonds-sidebar-section">
                 <div className="bonds-sidebar-title">Real Yields (TIPS)</div>
                 <div className="bonds-metric-card">
-                  {tipsYields['5y'] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">5Y TIPS</span><span className="bonds-metric-num" style={{ color: '#22d3ee' }}>{tipsYields['5y'].toFixed(2)}%</span></div>}
-                  {tipsYields['10y'] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">10Y TIPS</span><span className="bonds-metric-num" style={{ color: '#a78bfa' }}>{tipsYields['10y'].toFixed(2)}%</span></div>}
-                  {tipsYields['30y'] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">30Y TIPS</span><span className="bonds-metric-num">{tipsYields['30y'].toFixed(2)}%</span></div>}
+                  {tipsYields['5y'] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">5Y TIPS</span><span className="bonds-metric-num" style={{ color: '#22d3ee' }}><MetricValue value={tipsYields['5y']} format={v => `${v.toFixed(2)}%`} seriesKey="tips5y" timestamp={lastUpdated} /></span></div>}
+                  {tipsYields['10y'] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">10Y TIPS</span><span className="bonds-metric-num" style={{ color: '#a78bfa' }}><MetricValue value={tipsYields['10y']} format={v => `${v.toFixed(2)}%`} seriesKey="tips10y" timestamp={lastUpdated} /></span></div>}
+                  {tipsYields['30y'] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">30Y TIPS</span><span className="bonds-metric-num"><MetricValue value={tipsYields['30y']} format={v => `${v.toFixed(2)}%`} seriesKey="tips30y" timestamp={lastUpdated} /></span></div>}
                 </div>
               </div>
             )}
@@ -203,11 +207,11 @@ function BondsDashboard({
               <div className="bonds-sidebar-section">
                 <div className="bonds-sidebar-title">Macro</div>
                 <div className="bonds-metric-card">
-                  {macroData.unemployment != null && <div className="bonds-metric-row"><span className="bonds-metric-name">Unemployment</span><span className="bonds-metric-num">{macroData.unemployment.toFixed(1)}%</span></div>}
-                  {macroData.gdp != null && <div className="bonds-metric-row"><span className="bonds-metric-name">GDP Growth</span><span className="bonds-metric-num" style={{ color: macroData.gdp > 0 ? '#4ade80' : '#f87171' }}>{macroData.gdp.toFixed(1)}%</span></div>}
-                  {macroData.pce != null && <div className="bonds-metric-row"><span className="bonds-metric-name">PCE Inflation</span><span className="bonds-metric-num" style={{ color: macroData.pce > 2 ? '#fbbf24' : '#4ade80' }}>{macroData.pce.toFixed(1)}%</span></div>}
-                  {nationalDebt != null && <div className="bonds-metric-row"><span className="bonds-metric-name">US Debt</span><span className="bonds-metric-num" style={{ color: '#f87171' }}>${nationalDebt.toFixed(1)}T</span></div>}
-                  {debtToGdpHistory?.latest != null && <div className="bonds-metric-row"><span className="bonds-metric-name">Debt/GDP</span><span className="bonds-metric-num" style={{ color: '#f87171' }}>{debtToGdpHistory.latest.toFixed(1)}%</span></div>}
+                  {macroData.unemployment != null && <div className="bonds-metric-row"><span className="bonds-metric-name">Unemployment</span><span className="bonds-metric-num"><MetricValue value={macroData.unemployment} format={v => `${v.toFixed(1)}%`} seriesKey="unemployment" timestamp={lastUpdated} /></span></div>}
+                  {macroData.gdp != null && <div className="bonds-metric-row"><span className="bonds-metric-name">GDP Growth</span><span className="bonds-metric-num" style={{ color: macroData.gdp > 0 ? '#4ade80' : '#f87171' }}><MetricValue value={macroData.gdp} format={v => `${v.toFixed(1)}%`} seriesKey="gdp" timestamp={lastUpdated} /></span></div>}
+                  {macroData.pce != null && <div className="bonds-metric-row"><span className="bonds-metric-name">PCE Inflation</span><span className="bonds-metric-num" style={{ color: macroData.pce > 2 ? '#fbbf24' : '#4ade80' }}><MetricValue value={macroData.pce} format={v => `${v.toFixed(1)}%`} seriesKey="pce" timestamp={lastUpdated} /></span></div>}
+                  {nationalDebt != null && <div className="bonds-metric-row"><span className="bonds-metric-name">US Debt</span><span className="bonds-metric-num" style={{ color: '#f87171' }}><MetricValue value={nationalDebt} format={v => `$${v.toFixed(1)}T`} seriesKey="federalDebt" timestamp={lastUpdated} /></span></div>}
+                  {debtToGdpHistory?.latest != null && <div className="bonds-metric-row"><span className="bonds-metric-name">Debt/GDP</span><span className="bonds-metric-num" style={{ color: '#f87171' }}><MetricValue value={debtToGdpHistory.latest} format={v => `${v.toFixed(1)}%`} seriesKey="debtToGdp" timestamp={lastUpdated} /></span></div>}
                 </div>
               </div>
             )}
@@ -215,12 +219,13 @@ function BondsDashboard({
               <div className="bonds-sidebar-section">
                 <div className="bonds-sidebar-title">CPI YoY</div>
                 <div className="bonds-metric-card">
-                  {cpiComponents.latest.allYoy != null && <div className="bonds-metric-row"><span className="bonds-metric-name">All Items</span><span className="bonds-metric-num" style={{ color: cpiComponents.latest.allYoy > 3 ? '#f87171' : cpiComponents.latest.allYoy > 2 ? '#fbbf24' : '#4ade80' }}>{cpiComponents.latest.allYoy.toFixed(1)}%</span></div>}
-                  {cpiComponents.core?.[cpiComponents.core.length - 1] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">Core</span><span className="bonds-metric-num" style={{ color: '#a78bfa' }}>{cpiComponents.core[cpiComponents.core.length - 1].toFixed(1)}%</span></div>}
+                  {cpiComponents.latest.allYoy != null && <div className="bonds-metric-row"><span className="bonds-metric-name">All Items</span><span className="bonds-metric-num" style={{ color: cpiComponents.latest.allYoy > 3 ? '#f87171' : cpiComponents.latest.allYoy > 2 ? '#fbbf24' : '#4ade80' }}><MetricValue value={cpiComponents.latest.allYoy} format={v => `${v.toFixed(1)}%`} seriesKey="cpiAll" timestamp={lastUpdated} /></span></div>}
+                  {cpiComponents.core?.[cpiComponents.core.length - 1] != null && <div className="bonds-metric-row"><span className="bonds-metric-name">Core</span><span className="bonds-metric-num" style={{ color: '#a78bfa' }}><MetricValue value={cpiComponents.core[cpiComponents.core.length - 1]} format={v => `${v.toFixed(1)}%`} seriesKey="cpiCore" timestamp={lastUpdated} /></span></div>}
                 </div>
               </div>
             )}
           </div>
+          <DataFooter source="FRED / Treasury / World Bank" timestamp={lastUpdated} isLive={macroData && Object.values(macroData).some(v => v != null)} fetchLog={fetchLog} />
         </div>
 
         {/* Spreads */}
@@ -232,6 +237,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {spreadHistoryOption && <SafeECharts option={spreadHistoryOption} style={{ height: '100%', width: '100%' }} />}
           </div>
+          <DataFooter source="FRED T10Y2Y / T10Y3M" timestamp={lastUpdated} isLive={spreadHistory?.dates?.length > 0} fetchLog={fetchLog} />
         </div>
 
         {/* Real Yields */}
@@ -242,6 +248,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {realYieldOption && <SafeECharts option={realYieldOption} style={{ height: '100%', width: '100%' }} />}
           </div>
+          <DataFooter source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={realYieldHistory?.dates?.length > 0} fetchLog={fetchLog} />
         </div>
 
         {/* Credit Ratings */}
@@ -250,8 +257,9 @@ function BondsDashboard({
             <span className="bonds-panel-title">Credit Ratings</span>
           </div>
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {creditRatingsData && <CreditMatrix creditRatingsData={creditRatingsData} />}
+            {creditRatingsData && <CreditMatrix creditRatingsData={creditRatingsData} lastUpdated={lastUpdated} />}
           </div>
+          <DataFooter source="S&P / Moody's / Fitch" timestamp={lastUpdated} isLive={false} fetchLog={fetchLog} />
         </div>
 
         {/* Fed Balance Sheet */}
@@ -262,6 +270,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {fedBalanceOption && <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} />}
           </div>
+          <DataFooter source="FRED WALCL" timestamp={lastUpdated} isLive={fedBalanceSheetHistory?.dates?.length > 0} fetchLog={fetchLog} />
         </div>
 
         {/* M2 Money Supply */}
@@ -272,6 +281,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {m2Option && <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} />}
           </div>
+          <DataFooter source="FRED M2SL" timestamp={lastUpdated} isLive={m2HistoryData?.dates?.length > 0} fetchLog={fetchLog} />
         </div>
 
         {/* CPI Components */}
@@ -282,6 +292,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {cpiOption && <SafeECharts option={cpiOption} style={{ height: '100%', width: '100%' }} />}
           </div>
+          <DataFooter source="FRED CPIAUCSL / CPILFESL" timestamp={lastUpdated} isLive={cpiComponents?.dates?.length > 0} fetchLog={fetchLog} />
         </div>
       </BentoWrapper>
     </div>

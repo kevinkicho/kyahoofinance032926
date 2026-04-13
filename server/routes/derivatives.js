@@ -73,7 +73,7 @@ router.get('/', async (req, res) => {
 
   try {
     trackApiCall('Yahoo Finance');
-    const vixQuotes = await yf.quote(VIX_TICKERS).catch(() => []);
+    const vixQuotes = await yf.quote(VIX_TICKERS).catch(e => { console.warn('[Derivatives]', e.message || e); return []; });
     const vixArr = Array.isArray(vixQuotes) ? vixQuotes : [vixQuotes];
     const vixTermStructure = VIX_LABELS.length === vixArr.length && vixArr.every(q => q?.regularMarketPrice) ? {
       dates:      VIX_LABELS,
@@ -85,12 +85,12 @@ router.get('/', async (req, res) => {
     try {
       trackApiCall('Yahoo Finance');
       const [vvixQuote, vixHistory] = await Promise.all([
-        yf.quote('^VVIX').catch(() => null),
+        yf.quote('^VVIX').catch(e => { console.warn('[Derivatives]', e.message || e); return null; }),
         yf.historical('^VIX', {
           period1: (() => { const d = new Date(); d.setDate(d.getDate() - 365); return d.toISOString().split('T')[0]; })(),
           period2: new Date().toISOString().split('T')[0],
           interval: '1d',
-        }).catch(() => []),
+        }).catch(e => { console.warn('[Derivatives]', e.message || e); return []; }),
       ]);
 
       const vvix = vvixQuote?.regularMarketPrice ?? null;
@@ -106,7 +106,7 @@ router.get('/', async (req, res) => {
       if (vvix != null || vixPercentile != null) {
         vixEnrichment = { vvix, vixPercentile };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     let optionsFlow = null;
     try {
@@ -135,7 +135,7 @@ router.get('/', async (req, res) => {
       if (rows.length >= 4) {
         optionsFlow = rows.sort((a, b) => b.volume - a.volume).slice(0, 12);
       }
-    } catch { /* use mock */ }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     let volSurfaceData = null;
     try {
@@ -143,7 +143,7 @@ router.get('/', async (req, res) => {
       const spyQuote = await yf.quote('SPY');
       if (!spyQuote?.regularMarketPrice) throw new Error('SPY price unavailable');
       volSurfaceData = await buildVolSurface(spyQuote.regularMarketPrice);
-    } catch { /* use mock */ }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     let volPremium = null;
     try {
@@ -153,7 +153,7 @@ router.get('/', async (req, res) => {
         period1: (() => { const d = new Date(); d.setDate(d.getDate() - 45); return d.toISOString().split('T')[0]; })(),
         period2: new Date().toISOString().split('T')[0],
         interval: '1d',
-      }).catch(() => []) : [];
+      }).catch(e => { console.warn('[Derivatives]', e.message || e); return []; }) : [];
       const spyClosesCache = spyHistVol.map(d => d.close).filter(Boolean);
       if (atm1mIV != null && spyClosesCache.length >= 31) {
         const recentCloses = spyClosesCache.slice(-31);
@@ -164,7 +164,7 @@ router.get('/', async (req, res) => {
         const premium = Math.round((atm1mIV - realizedVol30d) * 10) / 10;
         volPremium = { atm1mIV, realizedVol30d, premium };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     let fredVixHistory = null;
     if (FRED_API_KEY) {
@@ -177,18 +177,18 @@ router.get('/', async (req, res) => {
             values: vixHist.map(p => Math.round(p.value * 10) / 10),
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[Derivatives]', e.message || e); }
     }
 
     let putCallRatio = null;
     try {
       trackApiCall('Yahoo Finance');
-      const pcceQuote = await yf.quote('^PCCE').catch(() => null);
+      const pcceQuote = await yf.quote('^PCCE').catch(e => { console.warn('[Derivatives]', e.message || e); return null; });
       if (pcceQuote?.regularMarketPrice != null) {
         putCallRatio = Math.round(pcceQuote.regularMarketPrice * 1000) / 1000;
       } else {
         trackApiCall('Yahoo Finance');
-        const spyOptsFallback = await yf.options('SPY').catch(() => null);
+        const spyOptsFallback = await yf.options('SPY').catch(e => { console.warn('[Derivatives]', e.message || e); return null; });
         if (spyOptsFallback?.options?.[0]) {
           const exp = spyOptsFallback.options[0];
           const putVol  = (exp.puts  || []).reduce((s, o) => s + (o.volume || 0), 0);
@@ -196,18 +196,18 @@ router.get('/', async (req, res) => {
           if (callVol > 0) putCallRatio = Math.round((putVol / callVol) * 1000) / 1000;
         }
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     let skewIndex = null;
     try {
       trackApiCall('Yahoo Finance');
-      const skewQuote = await yf.quote('^SKEW').catch(() => null);
+      const skewQuote = await yf.quote('^SKEW').catch(e => { console.warn('[Derivatives]', e.message || e); return null; });
       if (skewQuote?.regularMarketPrice != null) {
         const val = Math.round(skewQuote.regularMarketPrice * 10) / 10;
         const interpretation = val < 120 ? 'Low tail risk' : val <= 140 ? 'Moderate' : 'Elevated tail risk';
         skewIndex = { value: val, interpretation };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     // SKEW history from FRED
     let skewHistory = null;
@@ -221,14 +221,14 @@ router.get('/', async (req, res) => {
             values: skewHist.map(p => Math.round(p.value * 10) / 10),
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[Derivatives]', e.message || e); }
     }
 
     // Gamma Exposure estimate from SPY options
     let gammaExposure = null;
     try {
       trackApiCall('Yahoo Finance');
-      const spyOpts = await yf.options('SPY').catch(() => null);
+      const spyOpts = await yf.options('SPY').catch(e => { console.warn('[Derivatives]', e.message || e); return null; });
       if (spyOpts?.options?.[0]) {
         const exp = spyOpts.options[0];
         const calls = exp.calls || [];
@@ -259,7 +259,7 @@ router.get('/', async (req, res) => {
           };
         }
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     const vixPercentile = vixEnrichment?.vixPercentile ?? null;
 
@@ -272,6 +272,21 @@ router.get('/', async (req, res) => {
         termSpread = { value: spreadVal, state: spreadVal >= 0 ? 'contango' : 'backwardation' };
       }
     }
+
+    const _sources = {
+      vixTermStructure: !!(vixTermStructure && vixTermStructure.values?.length),
+      vixEnrichment: !!vixEnrichment,
+      optionsFlow: !!(optionsFlow && optionsFlow.length),
+      volSurfaceData: !!(volSurfaceData && volSurfaceData.grid?.length),
+      volPremium: !!volPremium,
+      fredVixHistory: !!(fredVixHistory && fredVixHistory.values?.length),
+      putCallRatio: putCallRatio != null,
+      skewIndex: !!skewIndex,
+      skewHistory: !!(skewHistory && skewHistory.values?.length),
+      gammaExposure: !!gammaExposure,
+      vixPercentile: vixPercentile != null,
+      termSpread: !!termSpread,
+    };
 
     const result = {
       vixTermStructure,
@@ -286,6 +301,7 @@ router.get('/', async (req, res) => {
       gammaExposure,
       vixPercentile,
       termSpread,
+      _sources,
       lastUpdated: today,
     };
 

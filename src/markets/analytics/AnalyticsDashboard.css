@@ -157,7 +157,46 @@
 /* ── 18. Empty state ── */
 .ana-empty { color: var(--text-muted); font-size: 11px; text-align: center; padding: 16px; }
 
-/* ── 19. Responsive ── */
+/* ── 19. Provenance Audit ── */
+.ana-prov-audit { font-size: 10px; }
+.ana-prov-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.ana-prov-summary { color: var(--text-muted); font-size: 9px; }
+
+.ana-prov-market { margin-bottom: 8px; }
+.ana-prov-market-head { display: flex; align-items: center; gap: 8px; padding: 4px 6px; background: rgba(0,0,0,0.2); border-radius: 3px; margin-bottom: 2px; }
+.ana-prov-market-label { font-weight: 700; font-size: 10px; color: var(--text-primary); }
+.ana-prov-market-path { font-family: monospace; font-size: 8px; color: var(--text-muted); flex: 1; }
+.ana-prov-stat { font-size: 9px; font-weight: 600; }
+.ana-prov-stat.ana-ok { color: #4ade80; }
+.ana-prov-stat.ana-err { color: #f87171; }
+
+.ana-prov-source { }
+.ana-prov-source-row { display: grid; grid-template-columns: 1fr auto; padding: 3px 6px; cursor: pointer; border-radius: 2px; }
+.ana-prov-source-row:hover { background: rgba(255,255,255,0.04); }
+.ana-prov-source-name { font-size: 9px; }
+.ana-prov-source-badge { font-size: 9px; font-weight: 600; }
+.ana-prov-source.ana-ps-ok .ana-prov-source-name { color: #4ade80; }
+.ana-prov-source.ana-ps-ok .ana-prov-source-badge { color: #4ade80; }
+.ana-prov-source.ana-ps-miss .ana-prov-source-name { color: #f87171; }
+.ana-prov-source.ana-ps-miss .ana-prov-source-badge { color: #f87171; }
+
+.ana-prov-source-detail { padding: 4px 8px 6px; background: rgba(0,0,0,0.15); border-radius: 0 0 3px 3px; margin-bottom: 2px; }
+.ana-prov-detail-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+.ana-dl { color: var(--text-muted); font-weight: 600; font-size: 8px; text-transform: uppercase; letter-spacing: 0.04em; min-width: 48px; flex-shrink: 0; }
+.ana-prov-link { color: #60a5fa; text-decoration: none; font-size: 8px; font-family: monospace; }
+.ana-prov-link:hover { text-decoration: underline; }
+.ana-prov-verify-text { color: var(--text-muted); font-size: 8px; }
+
+.ana-prov-fred-list { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.ana-prov-fred-row { display: flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: 2px; }
+.ana-prov-fred-row:hover { background: rgba(255,255,255,0.03); }
+.ana-prov-fred-id { font-family: monospace; font-size: 9px; color: #fbbf24; font-weight: 600; min-width: 50px; }
+.ana-prov-verify-btn { font-size: 7px; padding: 1px 4px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-muted); border-radius: 2px; cursor: pointer; }
+.ana-prov-verify-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+.ana-prov-verify-result { font-family: monospace; font-size: 8px; }
+.ana-prov-nofred { color: var(--text-dim); font-size: 8px; font-style: italic; }
+
+/* ── 20. Responsive ── */
 @container bento-card (max-width: 400px) {
   .ana-stat-grid { grid-template-columns: 1fr; }
   .ana-path { max-width: 120px; }

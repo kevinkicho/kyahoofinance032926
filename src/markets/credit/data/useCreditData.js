@@ -3,29 +3,22 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
-import {
-  spreadData   as mockSpreadData,
-  emBondData   as mockEmBondData,
-  loanData     as mockLoanData,
-  defaultData  as mockDefaultData,
-} from './mockCreditData';
-
 const SERVER = '';
 
-export function useCreditData(autoRefresh = false) {
-  const [spreadData,       setSpreadData]       = useState(mockSpreadData);
-  const [emBondData,       setEmBondData]       = useState(mockEmBondData);
-  const [loanData,         setLoanData]         = useState(mockLoanData);
-  const [defaultData,      setDefaultData]      = useState(mockDefaultData);
+export function useCreditData(autoRefresh = false, refreshKey = 0) {
+  const [spreadData,       setSpreadData]       = useState(null);
+  const [emBondData,       setEmBondData]       = useState(null);
+  const [loanData,         setLoanData]         = useState(null);
+  const [defaultData,      setDefaultData]      = useState(null);
   const [delinquencyRates, setDelinquencyRates] = useState(null);
   const [lendingStandards, setLendingStandards] = useState(null);
   const [commercialPaper,  setCommercialPaper]  = useState(null);
   const [excessReserves,   setExcessReserves]   = useState(null);
 
-  // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, logFetch, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
+    const t0 = Date.now();
     fetchWithRetry(`${SERVER}/api/credit`)
       .then(r => r.json())
       .then(data => {
@@ -39,14 +32,19 @@ export function useCreditData(autoRefresh = false) {
         if (data.commercialPaper?.financial3m != null)          { setCommercialPaper(data.commercialPaper);   anyReplaced = true; }
         if (data.excessReserves?.dates?.length >= 6)            { setExcessReserves(data.excessReserves);     anyReplaced = true; }
         if (anyReplaced) handleSuccess(data);
+        logFetch({ url: '/api/credit', status: 200, duration: Date.now() - t0, sources: { spreadData: true, emBondData: true, loanData: true, defaultData: true, delinquencyRates: true, lendingStandards: true, commercialPaper: true, excessReserves: true }, seriesIds: ['BAMLH0A0HYM2', 'BAMLC0A0CM', 'BAMLC0A4CBB', 'BAMLEMCBPIOAS', 'CPN3M', 'DRSFRWBS'] });
       })
-      .catch((err) => handleError(err, 'Credit'))
+      .catch((err) => {
+        handleError(err, 'Credit');
+        logFetch({ url: '/api/credit', status: 0, duration: Date.now() - t0, error: err?.message || 'Fetch failed', sources: null });
+      })
       .finally(() => handleFinally());
-  }, [handleSuccess, handleError, handleFinally]);
+  }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
+  return { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }

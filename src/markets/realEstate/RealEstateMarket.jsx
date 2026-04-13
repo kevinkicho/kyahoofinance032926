@@ -4,14 +4,14 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import RealEstateDashboard from './components/RealEstateDashboard';
 import './components/RealEstateDashboard.css';
 
-function RealEstateMarket({ autoRefresh } = {}) {
+function RealEstateMarket({ autoRefresh, refreshKey } = {}) {
   const {
     priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,
     caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
     housingStarts, existingHomeSales, rentalVacancy, medianHomePrice,
     foreclosureData, mbaApplications, creDelinquencies,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useRealEstateData(autoRefresh);
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch,
+  } = useRealEstateData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -19,7 +19,7 @@ function RealEstateMarket({ autoRefresh } = {}) {
     <div className="re-market">
       <div className="re-status-bar">
         <span className={isLive ? 're-status-live' : ''}>
-          {isLive ? '● Live · Yahoo Finance / BIS / FRED' : '○ Mock data — static'}
+          {isLive ? '● FETCHED · FRED / BIS / Yahoo Finance' : '○ No data received'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="re-stale-badge">Stale · fetched {fetchedOn}</span>}
@@ -43,6 +43,9 @@ function RealEstateMarket({ autoRefresh } = {}) {
         foreclosureData={foreclosureData}
         mbaApplications={mbaApplications}
         creDelinquencies={creDelinquencies}
+        fetchLog={fetchLog}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
       />
     </div>
   );

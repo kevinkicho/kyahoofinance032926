@@ -4,8 +4,8 @@ import AlertsDashboard from './components/AlertsDashboard';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import './components/AlertsDashboard.css';
 
-function AlertsMarket() {
-  const { alerts, rules, isLoading, isLive, fetchedOn, isCurrent } = useAlertsData();
+function AlertsMarket({ autoRefresh, refreshKey } = {}) {
+  const { alerts, rules, isLoading, isLive, fetchedOn, isCurrent, fetchLog, refetch } = useAlertsData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 

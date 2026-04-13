@@ -144,7 +144,7 @@ router.get('/', async (_req, res) => {
           if (total > 0) stablecoinMcap = total;
         }
       }
-    } catch { /* leave null */ }
+    } catch (e) { console.warn('[Crypto]', e.message || e); }
 
     const btcDominance = (cgGlobal.status === 'fulfilled' && cgGlobal.value?.data)
       ? (cgGlobal.value.data.market_cap_percentage?.btc ?? null)
@@ -158,7 +158,7 @@ router.get('/', async (_req, res) => {
           volume24h: ex.trade_volume_24h_btc != null ? Math.round(ex.trade_volume_24h_btc * 10) / 10 : null,
         }));
       }
-    } catch { /* leave null */ }
+    } catch (e) { console.warn('[Crypto]', e.message || e); }
 
     let ethGas = null;
     try {
@@ -172,7 +172,7 @@ router.get('/', async (_req, res) => {
           };
         }
       }
-    } catch { /* leave null */ }
+    } catch (e) { console.warn('[Crypto]', e.message || e); }
 
     let fundingData = null;
     try {
@@ -198,7 +198,7 @@ router.get('/', async (_req, res) => {
       if (rates.length >= 3) {
         fundingData = { rates, openInterestHistory: null };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Crypto]', e.message || e); }
     if (!fundingData) {
       fundingData = {
         rates: [
@@ -248,7 +248,19 @@ router.get('/', async (_req, res) => {
           } : null,
         };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Crypto]', e.message || e); }
+
+    const _sources = {
+      coinMarketData: !!(coins.length || Object.keys(globalStats).length),
+      fearGreedData: !!(fearGreedData && (fearGreedData.history?.length || fearGreedData.value != null)),
+      defiData: !!(defiData.protocols?.length || defiData.chains?.length),
+      fundingData: !!(fundingData && fundingData.rates?.length),
+      onChainData: !!onChainData,
+      stablecoinMcap: stablecoinMcap != null,
+      btcDominance: btcDominance != null,
+      topExchanges: !!(topExchanges && topExchanges.length),
+      ethGas: !!ethGas,
+    };
 
     const result = {
       coinMarketData: { coins, globalStats },
@@ -260,6 +272,7 @@ router.get('/', async (_req, res) => {
       btcDominance,
       topExchanges,
       ethGas,
+      _sources,
       lastUpdated: today,
     };
 

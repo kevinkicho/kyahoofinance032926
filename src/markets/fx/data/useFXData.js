@@ -3,7 +3,6 @@ import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
 import { exchangeRates } from '../../../utils/constants';
-import { fredFxRates as mockFredFxRates, mockCotHistory } from './mockFxData';
 
 const DXY_SYMBOLS = 'EUR,GBP,JPY,CAD,SEK,CHF';
 const MOVER_SYMBOLS = 'EUR,GBP,JPY,CNY,CHF,AUD,CAD,SEK,NOK,NZD,HKD,SGD,INR,KRW,MXN,BRL,ZAR';
@@ -15,7 +14,7 @@ function getDateStr(daysAgo = 0) {
   return d.toISOString().split('T')[0];
 }
 
-export function useFXData(autoRefresh = false) {
+export function useFXData(autoRefresh = false, refreshKey = 0) {
   const fallback = { USD: 1, ...exchangeRates };
   const [spotRates,   setSpotRates]   = useState(fallback);
   const [prevRates,   setPrevRates]   = useState(fallback);
@@ -23,20 +22,21 @@ export function useFXData(autoRefresh = false) {
   const [changes1w,   setChanges1w]   = useState({});
   const [changes1m,   setChanges1m]   = useState({});
   const [sparklines,  setSparklines]  = useState({});
-  const [fredFxRates,      setFredFxRates]      = useState(mockFredFxRates);
+  const [fredFxRates,      setFredFxRates]      = useState(null);
   const [reer,             setReer]             = useState(null);
   const [rateDifferentials,setRateDifferentials]= useState(null);
   const [dxyHistory,       setDxyHistory]       = useState(null);
-  const [cotHistory,        setCotHistory]        = useState(mockCotHistory);
+  const [cotHistory,        setCotHistory]        = useState(null);
 
   // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, handleSuccess, handleError, handleFinally, setIsLive, setLastUpdated } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchLog, handleSuccess, handleError, handleFinally, setIsLive, setLastUpdated, logFetch } = useDataStatus();
 
   const refetch = useCallback(() => {
     const today     = getDateStr(0);
     const yesterday = getDateStr(1);
     const dxyStart  = getDateStr(HISTORY_DAYS);
     const sevenAgo  = getDateStr(7);
+    const t0 = Date.now();
 
     Promise.all([
       fetchWithRetry('https://api.frankfurter.dev/v1/latest?base=USD')
@@ -51,6 +51,7 @@ export function useFXData(autoRefresh = false) {
         .then(r => r.json()),
     ])
       .then(([latest, prev, hist, weekHist, month30]) => {
+        logFetch({ url: 'https://api.frankfurter.dev/v1/latest?base=USD', status: latest?.rates ? 200 : 'error', duration: Date.now() - t0, sources: { frankfurter: !!latest?.rates, prev: !!prev?.rates, hist: !!hist?.rates, weekHist: !!weekHist?.rates, month30: !!month30?.rates }, seriesIds: ['DEXUSEU', 'DEXJPUS', 'DEXUSUK', 'DEXSZUS', 'DEXALUS', 'DEXCAUS', 'DTWEXBGS'] });
         let spot = fallback;
         if (latest?.rates) {
           spot = { USD: 1, ...latest.rates };
@@ -102,6 +103,7 @@ export function useFXData(autoRefresh = false) {
     fetchWithRetry('/api/fx')
       .then(r => r.json())
       .then(data => {
+        logFetch({ url: '/api/fx', status: 200, duration: Date.now() - t0, sources: { fredFxRates: !!data.fredFxRates, reer: !!data.reer, rateDifferentials: !!data.rateDifferentials, dxyHistory: !!data.dxyHistory, cotHistory: !!data.cotHistory }, seriesIds: ['DEXUSEU', 'DEXJPUS', 'DEXUSUK', 'DEXSZUS', 'DEXALUS', 'DEXCAUS', 'DTWEXBGS'] });
         if (data.fredFxRates && Object.keys(data.fredFxRates).length >= 3) {
           setFredFxRates(data.fredFxRates);
         }
@@ -110,10 +112,11 @@ export function useFXData(autoRefresh = false) {
         if (data.dxyHistory)       setDxyHistory(data.dxyHistory);
         if (data.cotHistory)       setCotHistory(data.cotHistory);
       })
-      .catch((err) => handleError(err, 'FX-Server'));
+      .catch((err) => { handleError(err, 'FX-Server'); logFetch({ url: '/api/fx', status: 'error', duration: Date.now() - t0, error: err?.message }); });
   }, [handleError, handleFinally, setIsLive, setLastUpdated]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
@@ -125,5 +128,5 @@ export function useFXData(autoRefresh = false) {
     return acc;
   }, {});
 
-  return { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, cotHistory, isLive, lastUpdated, isLoading, error };
+  return { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, cotHistory, isLive, lastUpdated, isLoading, error, fetchLog, refetch };
 }

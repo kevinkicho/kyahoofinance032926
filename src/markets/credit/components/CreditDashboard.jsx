@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import SafeECharts from '../../../components/SafeECharts';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './CreditDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -29,6 +30,9 @@ function CreditDashboard({
   lendingStandards,
   commercialPaper,
   excessReserves,
+  isLive,
+  lastUpdated,
+  fetchLog,
 }) {
   const { colors } = useTheme();
 
@@ -161,6 +165,7 @@ function CreditDashboard({
               </div>
             )}
           </div>
+          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
         </div>
 
         {/* Credit Spreads Chart */}
@@ -172,6 +177,7 @@ function CreditDashboard({
             <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -191,6 +197,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -203,6 +210,7 @@ function CreditDashboard({
             <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -220,6 +228,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -241,6 +250,7 @@ function CreditDashboard({
                 </div>
               )}
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -258,6 +268,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -277,6 +288,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
+            <DataFooter source="FRED / Moody's" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -294,6 +306,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
       </BentoWrapper>

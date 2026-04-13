@@ -1,14 +1,11 @@
-// src/hooks/useDataStatus.js
-/**
- * Shared hook for managing data fetch status (loading, error, live status).
- * Reduces boilerplate across all market data hooks.
- */
 import { useState, useCallback } from 'react';
 
-/**
- * Standard status state for data fetching hooks
- * @returns {Object} Status state and control functions
- */
+function tsNow() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export function useDataStatus(initialLastUpdated = 'Mock data — Apr 2025') {
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,17 +13,29 @@ export function useDataStatus(initialLastUpdated = 'Mock data — Apr 2025') {
   const [lastUpdated, setLastUpdated] = useState(initialLastUpdated);
   const [fetchedOn, setFetchedOn] = useState(null);
   const [isCurrent, setIsCurrent] = useState(false);
+  const [fetchLog, setFetchLog] = useState([]);
+
+  const appendLog = useCallback((entry) => {
+    setFetchLog(prev => [entry, ...prev].slice(0, 20));
+  }, []);
 
   const handleSuccess = useCallback((data) => {
     setIsLive(true);
     setError(null);
-    setLastUpdated(data?.lastUpdated || new Date().toISOString().split('T')[0]);
-    if (data?.fetchedOn) setFetchedOn(data.fetchedOn);
+    let ts = data?.lastUpdated || tsNow();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ts)) {
+      ts = `${ts} ${new Date().toTimeString().slice(0, 8)}`;
+    }
+    setLastUpdated(ts);
+    let fo = data?.fetchedOn;
+    if (fo && /^\d{4}-\d{2}-\d{2}$/.test(fo)) {
+      fo = `${fo} ${new Date().toTimeString().slice(0, 8)}`;
+    }
+    if (fo) setFetchedOn(fo);
     if (data?.isCurrent !== undefined) setIsCurrent(!!data.isCurrent);
   }, []);
 
   const handleError = useCallback((err, context = 'Data fetch') => {
-    // Log error for debugging (can be filtered in production)
     if (process.env.NODE_ENV !== 'production') {
       console.warn(`[${context}]`, err?.message || err);
     }
@@ -38,34 +47,34 @@ export function useDataStatus(initialLastUpdated = 'Mock data — Apr 2025') {
     setIsLoading(false);
   }, []);
 
+  const logFetch = useCallback(({ url, status, duration, error, sources, seriesIds }) => {
+    appendLog({
+      time: tsNow(),
+      url: url || '/api/bonds',
+      status,
+      duration: duration != null ? `${duration}ms` : '\u2014',
+      error: error || null,
+      sources: sources || null,
+      seriesIds: seriesIds || null,
+    });
+  }, [appendLog]);
+
   return {
-    // State
     isLive,
     isLoading,
     error,
     lastUpdated,
     fetchedOn,
     isCurrent,
-    // Setters for edge cases
+    fetchLog,
     setIsLive,
     setIsLoading,
     setError,
     setLastUpdated,
     setFetchedOn,
-    // Action handlers
     handleSuccess,
     handleError,
     handleFinally,
+    logFetch,
   };
 }
-
-/**
- * Standard status return object shape for data hooks
- * @typedef {Object} DataStatus
- * @property {boolean} isLive - Whether live data was fetched successfully
- * @property {boolean} isLoading - Whether data is currently being fetched
- * @property {string|null} error - Error message if fetch failed, null otherwise
- * @property {string} lastUpdated - Timestamp of last successful update
- * @property {string|null} fetchedOn - Server-side fetch timestamp
- * @property {boolean} isCurrent - Whether data is from current trading session
- */

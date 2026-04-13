@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import Header from '../../components/Header/Header';
 import HeatmapView from '../../components/HeatmapView/HeatmapView';
 import ListView from '../../components/ListView/ListView';
@@ -32,8 +32,6 @@ const SECTOR_COLORS = {
   'Other':       '#64748b',
 };
 
-const STORAGE_KEY = 'equities-view';
-
 function usePersistedState(key, defaultValue) {
   const [value, setValue] = useState(() => {
     try {
@@ -47,6 +45,8 @@ function usePersistedState(key, defaultValue) {
   };
   return [value, persist];
 }
+
+const STORAGE_KEY = 'equities-view';
 
 const HEATMAP_LAYOUT = {
   lg: [
@@ -62,6 +62,14 @@ const RACE_LAYOUT = {
   ]
 };
 
+const REFRESH_BATCH = 80;
+const STATIC_DATA_TIMESTAMP = 'Apr 2, 2026 00:00:00 UTC';
+
+function formatTimestamp(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 export default function EquitiesMarket({ currency, setCurrency }) {
   const [viewMode, setViewMode] = usePersistedState(`${STORAGE_KEY}-viewMode`, 'heatmap');
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,7 +78,49 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   const [rankMetric, setRankMetric] = usePersistedState(`${STORAGE_KEY}-rankMetric`, 'marketCap');
   const [groupBy, setGroupBy] = usePersistedState(`${STORAGE_KEY}-groupBy`, 'market');
   const [colorByPerf, setColorByPerf] = useState(false);
-  const [marketUniverse] = useState(mockTreemapData);
+  const [marketUniverse, setMarketUniverse] = useState(mockTreemapData);
+  const [dataTimestamp, setDataTimestamp] = useState(STATIC_DATA_TIMESTAMP);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(() => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    const allTickers = [];
+    mockTreemapData.forEach(region => {
+      region.children.forEach(stock => {
+        if (stock.name && stock.sector !== 'Crypto') allTickers.push(stock.name);
+      });
+    });
+    const topTickers = allTickers.slice(0, REFRESH_BATCH);
+    fetch('/api/stocks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tickers: topTickers }),
+    })
+      .then(r => r.json())
+      .then(quotes => {
+        const now = formatTimestamp(new Date());
+        setMarketUniverse(prev => prev.map(region => ({
+          ...region,
+          children: region.children.map(stock => {
+            const q = quotes[stock.name];
+            if (!q) return stock;
+            const liveCap = q.marketCap ? q.marketCap / 1e9 : stock.marketCap;
+            return {
+              ...stock,
+              marketCap: liveCap || stock.marketCap,
+              value: liveCap || stock.value,
+              ...(q.changePct != null && { changePct: q.changePct }),
+              ...(q.price != null && { price: q.price }),
+              ...(q.change != null && { change: q.change }),
+            };
+          }),
+        })));
+        setDataTimestamp(`Fetched · Yahoo Finance · ${now}`);
+      })
+      .catch(() => {})
+      .finally(() => setIsRefreshing(false));
+  }, [isRefreshing]);
 
   const { rates, isLive: ratesIsLive, lastUpdated: ratesDate } = useFrankfurterRates();
 
@@ -326,12 +376,17 @@ export default function EquitiesMarket({ currency, setCurrency }) {
             {ratesIsLive && (
               <div className="eq-stat-card eq-stat-live">
                 <div className="eq-stat-label">FX Rates</div>
-                <div className="eq-stat-value" style={{ fontSize: 11, color: '#10b981' }}>Live {ratesDate}</div>
+                <div className="eq-stat-value" style={{ fontSize: 11, color: '#60a5fa' }}>Fetched {ratesDate}</div>
               </div>
             )}
             <div className="eq-hint">Click any cell on the heatmap to view details</div>
           </div>
         )}
+      </div>
+      <div className="eq-panel-footer">
+        {selectedTicker
+? (selectedTicker.isLive ? `Fetched · Yahoo Finance · ${selectedTicker.details?.price || ''}` : 'Static data · Click ticker for quote')
+        : <>{`Data as of ${dataTimestamp} · FX: ${ratesIsLive ? 'Fetched (ECB)' : 'Fallback'}`} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></>}
       </div>
     </div>
   );
@@ -346,19 +401,22 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       />
       {viewMode === 'list' ? (
         <div className="eq-list-wrapper">
-          <ListView
-            processedData={processedData}
-            handleSort={handleSort}
-            renderSortIndicator={renderSortIndicator}
-            handleSelectTicker={handleSelectTicker}
-            currentRate={currentRate}
-            currentSymbol={currentSymbol}
-            currency={currency}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            rankMetric={rankMetric}
-            groupBy={groupBy}
-          />
+          <div className="eq-list-main">
+            <ListView
+              processedData={processedData}
+              handleSort={handleSort}
+              renderSortIndicator={renderSortIndicator}
+              handleSelectTicker={handleSelectTicker}
+              currentRate={currentRate}
+              currentSymbol={currentSymbol}
+              currency={currency}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              rankMetric={rankMetric}
+              groupBy={groupBy}
+            />
+            <div className="eq-list-footer">Data as of {dataTimestamp} · FX: {ratesIsLive ? 'Fetched (ECB)' : 'Fallback'} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></div>
+          </div>
           {selectedTicker && (
             <div className="eq-detail-sidebar" onMouseDown={stopDrag}>
               <DetailPanel
@@ -389,6 +447,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
                 onSelect={handleSelectTicker}
               />
             </div>
+            <div className="eq-panel-footer">Data as of {dataTimestamp} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></div>
           </div>
           {sidebarPanel}
         </BentoWrapper>
@@ -408,6 +467,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
                 groupBy={groupBy}
               />
             </div>
+            <div className="eq-panel-footer">Data as of {dataTimestamp} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></div>
           </div>
           {sidebarPanel}
         </BentoWrapper>

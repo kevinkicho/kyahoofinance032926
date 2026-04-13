@@ -5,40 +5,21 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import CommoditiesDashboard from './components/CommoditiesDashboard';
 import './components/CommoditiesDashboard.css';
 
-/**
- * CommoditiesMarket - Unified commodities dashboard
- * Shows all commodities data in one glanceable view:
- * - KPI strip (Gold, Oil, Nat Gas, Gold/Oil Ratio, DBC ETF)
- * - Chart grid (Gold, Oil, Prices, Sector Performance, COT, Supply/Demand)
- */
-function CommoditiesMarket({ autoRefresh } = {}) {
+function CommoditiesMarket({ autoRefresh, refreshKey } = {}) {
   const {
     priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,
     fredCommodities, goldFuturesCurve, dbcEtf,
     goldOilRatio, contangoIndicator, commodityCurrencies, seasonalPatterns,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch,
     // Enhanced data
     enhancedData, dataSources, dataCoverage, fetchMetadata,
     timestamps, freshness, formatTimestamp, getFreshnessIndicator,
-  } = useCommoditiesData(autoRefresh);
+  } = useCommoditiesData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="com-market">
-      <div className="com-status-bar">
-        <span className={isLive ? 'com-status-live' : ''}>
-          {isLive ? '● Live' : '○ Mock data — static'}
-        </span>
-        {isLive && fetchMetadata?.dataSources && (
-          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-            {fetchMetadata.dataSources.join(' · ')}
-          </span>
-        )}
-        {lastUpdated && <span>Updated: {lastUpdated}</span>}
-        {fetchMetadata?.fetchDuration && <span style={{ fontSize: 9, color: 'var(--text-dim)' }}>({fetchMetadata.fetchDuration})</span>}
-        {!isCurrent && fetchedOn && <span className="com-stale-badge">Stale · fetched {fetchedOn}</span>}
-      </div>
       <CommoditiesDashboard
         priceDashboardData={priceDashboardData}
         futuresCurveData={futuresCurveData}
@@ -52,7 +33,6 @@ function CommoditiesMarket({ autoRefresh } = {}) {
         contangoIndicator={contangoIndicator}
         commodityCurrencies={commodityCurrencies}
         seasonalPatterns={seasonalPatterns}
-        // Enhanced props
         enhancedData={enhancedData}
         dataSources={dataSources}
         dataCoverage={dataCoverage}
@@ -61,6 +41,9 @@ function CommoditiesMarket({ autoRefresh } = {}) {
         freshness={freshness}
         formatTimestamp={formatTimestamp}
         getFreshnessIndicator={getFreshnessIndicator}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
+        fetchLog={fetchLog}
       />
     </div>
   );

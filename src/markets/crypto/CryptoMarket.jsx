@@ -11,20 +11,13 @@ import './CryptoMarket.css';
  * - KPI strip (BTC, ETH, BTC Dominance, Fear/Greed, Stablecoins, ETH Gas)
  * - Chart grid (Top Cryptos, Fear & Greed, DeFi TVL, Funding Rates, On-Chain, Exchanges)
  */
-function CryptoMarket({ autoRefresh } = {}) {
-  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useCryptoData(autoRefresh);
+function CryptoMarket({ autoRefresh, refreshKey } = {}) {
+  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, fetchLog, isLoading, fetchedOn, isCurrent, refetch } = useCryptoData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="crypto-market">
-      <div className="crypto-status-bar">
-        <span className={isLive ? 'crypto-status-live' : ''}>
-          {isLive ? '● Live · CoinGecko / DeFiLlama' : '○ Mock data — static'}
-        </span>
-        {lastUpdated && <span>Updated: {lastUpdated}</span>}
-        {!isCurrent && fetchedOn && <span className="crypto-stale-badge">Stale · fetched {fetchedOn}</span>}
-      </div>
       <CryptoDashboard
         coinMarketData={coinMarketData}
         fearGreedData={fearGreedData}
@@ -35,6 +28,9 @@ function CryptoMarket({ autoRefresh } = {}) {
         btcDominance={btcDominance}
         topExchanges={topExchanges}
         ethGas={ethGas}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
+        fetchLog={fetchLog}
       />
     </div>
   );

@@ -1,18 +1,7 @@
-﻿// Enhanced commodities hook with timestamp support and data freshness indicators
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
-import {
-  priceDashboardData as mockPriceDashboardData,
-  futuresCurveData as mockFuturesCurveData,
-  sectorHeatmapData as mockSectorHeatmapData,
-  supplyDemandData as mockSupplyDemandData,
-  cotData as mockCotData,
-  fredCommodities as mockFredCommodities,
-  goldFuturesCurve as mockGoldFuturesCurve,
-  dbcEtf as mockDbcEtf,
-} from './mockCommoditiesData';
 
 const SERVER = '';
 
@@ -49,16 +38,16 @@ function formatTimestamp(isoString) {
   });
 }
 
-export function useCommoditiesData(autoRefresh = false) {
+export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
   // Legacy data states (maintained for backwards compatibility)
-  const [priceDashboardData, setPriceDashboardData] = useState(mockPriceDashboardData);
-  const [futuresCurveData, setFuturesCurveData] = useState(mockFuturesCurveData);
-  const [sectorHeatmapData, setSectorHeatmapData] = useState(mockSectorHeatmapData);
-  const [supplyDemandData, setSupplyDemandData] = useState(mockSupplyDemandData);
-  const [cotData, setCotData] = useState(mockCotData);
-  const [fredCommodities, setFredCommodities] = useState(mockFredCommodities);
-  const [goldFuturesCurve, setGoldFuturesCurve] = useState(mockGoldFuturesCurve);
-  const [dbcEtf, setDbcEtf] = useState(mockDbcEtf);
+  const [priceDashboardData, setPriceDashboardData] = useState(null);
+  const [futuresCurveData, setFuturesCurveData] = useState(null);
+  const [sectorHeatmapData, setSectorHeatmapData] = useState(null);
+  const [supplyDemandData, setSupplyDemandData] = useState(null);
+  const [cotData, setCotData] = useState(null);
+  const [fredCommodities, setFredCommodities] = useState(null);
+  const [goldFuturesCurve, setGoldFuturesCurve] = useState(null);
+  const [dbcEtf, setDbcEtf] = useState(null);
   const [goldOilRatio, setGoldOilRatio] = useState(null);
   const [contangoIndicator, setContangoIndicator] = useState(null);
   const [commodityCurrencies, setCommodityCurrencies] = useState(null);
@@ -80,7 +69,7 @@ export function useCommoditiesData(autoRefresh = false) {
   });
 
   // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, handleSuccess, handleError, handleFinally, logFetch } = useDataStatus();
 
   // Calculate freshness for display
   const freshness = useMemo(() => {
@@ -90,10 +79,13 @@ export function useCommoditiesData(autoRefresh = false) {
 
   // Fetch data with enhanced endpoint
   const refetch = useCallback(async () => {
+    const t0 = Date.now();
     try {
       // Try enhanced endpoint first
       const response = await fetchWithRetry(`${SERVER}/api/commodities/v2`);
       const data = await response.json();
+
+      logFetch({ url: '/api/commodities/v2', status: 200, duration: Date.now() - t0, sources: { eia: !!data.eia, fred: !!data.fred, yahoo: !!data.yahoo, worldBank: !!data.worldBank }, seriesIds: ['POILWTIUSDM', 'GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM', 'POILBREUSDM', 'PNGASUSUSDM', 'M2SL'] });
 
       // Update timestamps
       setTimestamps({
@@ -226,6 +218,8 @@ export function useCommoditiesData(autoRefresh = false) {
         const response = await fetchWithRetry(`${SERVER}/api/commodities`);
         const data = await response.json();
 
+        logFetch({ url: '/api/commodities', status: 200, duration: Date.now() - t0, sources: { legacy: true }, seriesIds: ['POILWTIUSDM', 'GOLDAMGBD228NLBM', 'M2SL'] });
+
         // Update legacy state
         if (data.priceDashboardData) setPriceDashboardData(data.priceDashboardData);
         if (data.futuresCurveData) setFuturesCurveData(data.futuresCurveData);
@@ -247,6 +241,7 @@ export function useCommoditiesData(autoRefresh = false) {
 
         handleSuccess(data);
       } catch (fallbackErr) {
+        logFetch({ url: '/api/commodities', status: 'error', duration: Date.now() - t0, error: fallbackErr?.message });
         handleError(fallbackErr, 'Commodities');
       }
     } finally {
@@ -254,7 +249,8 @@ export function useCommoditiesData(autoRefresh = false) {
     }
   }, [handleSuccess, handleError, handleFinally]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
@@ -315,6 +311,8 @@ export function useCommoditiesData(autoRefresh = false) {
     error,
     fetchedOn,
     isCurrent,
+    fetchLog,
+    refetch,
   };
 }
 

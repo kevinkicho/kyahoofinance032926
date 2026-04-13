@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import PriceDashboard from './PriceDashboard';
 import FuturesCurve from './FuturesCurve';
 import SupplyDemand from './SupplyDemand';
@@ -30,6 +31,7 @@ function CommoditiesDashboard({
   fredCommodities, goldFuturesCurve, dbcEtf, goldOilRatio, contangoIndicator,
   commodityCurrencies, seasonalPatterns, enhancedData, dataSources, fetchMetadata,
   timestamps, freshness, formatTimestamp, getFreshnessIndicator,
+  isLive, lastUpdated, fetchLog,
 }) {
   const { colors } = useTheme();
   const [priceView, setPriceView] = usePersistedState(`${STORAGE_KEY}-priceView`, 'table');
@@ -84,6 +86,7 @@ function CommoditiesDashboard({
               <PriceCharts priceDashboardData={priceDashboardData} allCommodities={allCommodities} colors={colors} formatChange={formatChange} />
             )}
           </div>
+          <DataFooter source="EIA / FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!priceDashboardData} fetchLog={fetchLog} />
         </div>
         <div key="futures" className="bento-card">
           <div className="com-panel-title-row bento-panel-title-row">
@@ -92,6 +95,7 @@ function CommoditiesDashboard({
           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
             <FuturesCurve futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} seasonalPatterns={seasonalPatterns} />
           </div>
+          <DataFooter source="EIA / FRED" timestamp={lastUpdated} isLive={!!futuresCurveData} fetchLog={fetchLog} />
         </div>
         <div key="sector" className="bento-card">
           <div className="com-panel-title-row bento-panel-title-row">
@@ -103,6 +107,7 @@ function CommoditiesDashboard({
           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
             <SectorHeatmap sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} view={sectorView} />
           </div>
+          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!sectorHeatmapData} fetchLog={fetchLog} />
         </div>
         <div key="supply" className="bento-card">
           <div className="com-panel-title-row bento-panel-title-row">
@@ -111,6 +116,7 @@ function CommoditiesDashboard({
           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
             <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} />
           </div>
+          <DataFooter source="EIA" timestamp={lastUpdated} isLive={!!supplyDemandData} fetchLog={fetchLog} />
         </div>
         <div key="cot" className="bento-card">
           <div className="com-panel-title-row bento-panel-title-row">
@@ -119,6 +125,7 @@ function CommoditiesDashboard({
           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
             <CotPositioning cotData={cotData} />
           </div>
+          <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotData} fetchLog={fetchLog} />
         </div>
       </BentoWrapper>
     </div>

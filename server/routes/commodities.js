@@ -223,9 +223,9 @@ router.get('/', async (req, res) => {
     try {
       trackApiCall('EIA');
       const [crudeRows, natGasRows, prodRows] = await Promise.all([
-        fetchEIASeries('petroleum/stoc/wstk',  { duoarea: 'NUS', product: 'EPC0' }, 260, EIA_API_KEY).catch(() => null),
-        fetchEIASeries('natural-gas/stor/wkly', { duoarea: 'NUS' },                  260, EIA_API_KEY).catch(() => null),
-        fetchEIASeries('petroleum/sum/sndw',    { duoarea: 'NUS', product: 'EPC0' }, 52, EIA_API_KEY).catch(() => null),
+        fetchEIASeries('petroleum/stoc/wstk',  { duoarea: 'NUS', product: 'EPC0' }, 260, EIA_API_KEY).catch(e => { console.warn('[Commodities]', e.message || e); return null; }),
+        fetchEIASeries('natural-gas/stor/wkly', { duoarea: 'NUS' },                  260, EIA_API_KEY).catch(e => { console.warn('[Commodities]', e.message || e); return null; }),
+        fetchEIASeries('petroleum/sum/sndw',    { duoarea: 'NUS', product: 'EPC0' }, 52, EIA_API_KEY).catch(e => { console.warn('[Commodities]', e.message || e); return null; }),
       ]);
 
       const crude    = buildEIASeries(crudeRows,  true);
@@ -300,13 +300,13 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const [wtiHist, goldHist, brentHist, natGasHist, ppiHist, dollarHist, gasRetailVal] = await Promise.all([
-          fetchFredHistory('DCOILWTICO', FRED_API_KEY, 252).catch(() => []),
-          fetchFredHistory('GOLDAMGBD228NLBM', FRED_API_KEY, 252).catch(() => []),
-          fetchFredHistory('DCOILBRENTEU', FRED_API_KEY, 252).catch(() => []),
-          fetchFredHistory('DHHNGSP', FRED_API_KEY, 252).catch(() => []),
-          fetchFredHistory('WPUFD49207', FRED_API_KEY, 36).catch(() => []),
-          fetchFredHistory('DTWEXBGS', FRED_API_KEY, 252).catch(() => []),
-          fetchFredLatest('GASREGW', FRED_API_KEY).catch(() => null),
+          fetchFredHistory('DCOILWTICO', FRED_API_KEY, 252).catch(e => { console.warn('[Commodities]', e.message || e); return []; }),
+          fetchFredHistory('GOLDAMGBD228NLBM', FRED_API_KEY, 252).catch(e => { console.warn('[Commodities]', e.message || e); return []; }),
+          fetchFredHistory('DCOILBRENTEU', FRED_API_KEY, 252).catch(e => { console.warn('[Commodities]', e.message || e); return []; }),
+          fetchFredHistory('DHHNGSP', FRED_API_KEY, 252).catch(e => { console.warn('[Commodities]', e.message || e); return []; }),
+          fetchFredHistory('WPUFD49207', FRED_API_KEY, 36).catch(e => { console.warn('[Commodities]', e.message || e); return []; }),
+          fetchFredHistory('DTWEXBGS', FRED_API_KEY, 252).catch(e => { console.warn('[Commodities]', e.message || e); return []; }),
+          fetchFredLatest('GASREGW', FRED_API_KEY).catch(e => { console.warn('[Commodities]', e.message || e); return null; }),
         ]);
         const toSeries = (hist) => hist.length >= 10 ? {
           dates: hist.map(p => p.date),
@@ -324,7 +324,7 @@ router.get('/', async (req, res) => {
           dollarIndex:   toSeries(dollarHist),
           gasRetail:     gasRetailVal != null ? Math.round(gasRetailVal * 1000) / 1000 : null,
         };
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[Commodities]', e.message || e); }
     }
 
     let goldFuturesCurve = null;
@@ -371,7 +371,7 @@ router.get('/', async (req, res) => {
               closes: quotes.map(q => Math.round(q.close * 100) / 100),
             };
           }
-        } catch { /* no history */ }
+        } catch (e) { console.warn('[Commodities]', e.message || e); }
         dbcEtf = {
           price: Math.round(dq.regularMarketPrice * 100) / 100,
           changePct: Math.round((dq.regularMarketChangePercent ?? 0) * 100) / 100,
@@ -379,7 +379,7 @@ router.get('/', async (req, res) => {
           history: dbcHistory,
         };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Commodities]', e.message || e); }
 
     let goldOilRatio = null;
     try {
@@ -474,6 +474,17 @@ router.get('/', async (req, res) => {
       console.warn('Seasonal patterns fetch failed:', e.message);
     }
 
+    const _sources = {
+      priceDashboardData: !!(priceDashboardData && priceDashboardData.some(s => s.commodities?.length)),
+      futuresCurveData: !!(futuresCurveData && futuresCurveData.prices?.length),
+      sectorHeatmapData: !!(sectorHeatmapData && sectorHeatmapData.commodities?.length),
+      supplyDemandData: !!supplyDemandData,
+      cotData: !!(cotData && cotData.commodities?.length),
+      fredCommodities: !!fredCommodities,
+      goldFuturesCurve: !!(goldFuturesCurve && goldFuturesCurve.prices?.length),
+      dbcEtf: !!dbcEtf,
+    };
+
     const result = {
       priceDashboardData,
       sectorHeatmapData,
@@ -487,6 +498,7 @@ router.get('/', async (req, res) => {
       contangoIndicator:   contangoIndicator   ?? null,
       commodityCurrencies: commodityCurrencies ?? null,
       seasonalPatterns:    seasonalPatterns    ?? null,
+      _sources,
       lastUpdated: today,
     };
 

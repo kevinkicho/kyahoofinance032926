@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './FXDashboard.css';
 
 const G10 = ['EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'SEK', 'NOK', 'NZD'];
@@ -40,9 +42,19 @@ const LAYOUT = {
 
 const stopDrag = (e) => e.stopPropagation();
 
+const FX_SERIES = {
+  'EUR/USD': 'fxEUR',
+  'USD/JPY': 'fxJPY',
+  'GBP/USD': 'fxGBP',
+  'USD/CHF': 'fxCHF',
+  'AUD/USD': 'fxAUD',
+  'USD/CAD': 'fxCAD',
+};
+
 function FXDashboard({
   spotRates, prevRates, changes, changes1w, changes1m, sparklines,
   history, fredFxRates, reer, rateDifferentials, dxyHistory, cotData, cotHistory,
+  isLive, lastUpdated, fetchLog,
 }) {
   const { colors } = useTheme();
 
@@ -191,7 +203,7 @@ function FXDashboard({
                 <div key={pair.label} className="fx-metric-card">
                   <div className="fx-metric-label">{pair.label}</div>
                   <div className="fx-metric-value" style={{ color: pair.change >= 0 ? '#4ade80' : '#f87171' }}>
-                    {pair.value}
+                    <MetricValue value={parseFloat(pair.value)} seriesKey={FX_SERIES[pair.label]} timestamp={lastUpdated} />
                   </div>
                   {pair.change != null && (
                     <span style={{ fontSize: 10, color: pair.change >= 0 ? '#4ade80' : '#f87171' }}>
@@ -248,6 +260,7 @@ function FXDashboard({
               </div>
             )}
           </div>
+          <DataFooter source="Frankfurter API / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
         </div>
 
         {/* Top Movers */}
@@ -269,6 +282,7 @@ function FXDashboard({
               ))}
             </div>
           </div>
+          <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
         </div>
 
         {/* DXY Chart */}
@@ -279,6 +293,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No DXY data</div>}
           </div>
+          <DataFooter source="FRED DTWEXBGS" timestamp={lastUpdated} isLive={!!dxyHistory?.dates?.length} fetchLog={fetchLog} />
         </div>
 
         {/* COT Positioning */}
@@ -289,6 +304,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No COT data</div>}
           </div>
+          <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} fetchLog={fetchLog} />
         </div>
 
         {/* Correlation Matrix */}
@@ -299,6 +315,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {correlationOption ? <SafeECharts option={correlationOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No correlation data</div>}
           </div>
+          <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={!!history && Object.keys(history).length > 0} fetchLog={fetchLog} />
         </div>
 
         {/* REER */}
@@ -309,6 +326,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {reerOption ? <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No REER data</div>}
           </div>
+          <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={!!reer?.dates?.length} fetchLog={fetchLog} />
         </div>
 
         {/* Rate Differentials */}
@@ -329,6 +347,7 @@ function FXDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={!!rateDiff?.length} fetchLog={fetchLog} />
           </div>
         )}
       </BentoWrapper>

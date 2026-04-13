@@ -85,7 +85,7 @@ router.get('/', async (req, res) => {
           };
         });
       if (!reitData.length) reitData = null;
-    } catch { /* use mock */ }
+    } catch (e) { console.warn('[RealEstate]', e.message || e); }
 
     let priceIndexData = null;
     if (FRED_API_KEY) {
@@ -121,7 +121,7 @@ router.get('/', async (req, res) => {
             };
           }
         }
-      } catch { /* use mock */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     let mortgageRates = null;
@@ -141,7 +141,7 @@ router.get('/', async (req, res) => {
             asOf: latest30.date,
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     let affordabilityData = null;
@@ -184,7 +184,7 @@ router.get('/', async (req, res) => {
             history,
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     let capRateData = null;
@@ -243,7 +243,7 @@ router.get('/', async (req, res) => {
             metros,
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     let supplyData = null;
@@ -251,10 +251,10 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const [startsHist, permitsHist, monthsSupplyVal, listingsVal] = await Promise.all([
-          fetchFredHistory('HOUST', FRED_API_KEY, 36).catch(() => []),
-          fetchFredHistory('PERMIT', FRED_API_KEY, 36).catch(() => []),
-          fetchFredLatest('MSACSR', FRED_API_KEY).catch(() => null),
-          fetchFredLatest('ACTLISCOUUS', FRED_API_KEY).catch(() => null),
+          fetchFredHistory('HOUST', FRED_API_KEY, 36).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          fetchFredHistory('PERMIT', FRED_API_KEY, 36).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          fetchFredLatest('MSACSR', FRED_API_KEY).catch(e => { console.warn('[RealEstate]', e.message || e); return null; }),
+          fetchFredLatest('ACTLISCOUUS', FRED_API_KEY).catch(e => { console.warn('[RealEstate]', e.message || e); return null; }),
         ]);
         if (startsHist.length >= 6 || permitsHist.length >= 6) {
           supplyData = {
@@ -264,7 +264,7 @@ router.get('/', async (req, res) => {
             activeListings: listingsVal != null ? Math.round(listingsVal) : null,
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     let homeownershipRate = null;
@@ -273,8 +273,8 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const [hoRate, rentHist] = await Promise.all([
-          fetchFredLatest('RHORUSQ156N', FRED_API_KEY).catch(() => null),
-          fetchFredHistory('CUSR0000SEHA', FRED_API_KEY, 36).catch(() => []),
+          fetchFredLatest('RHORUSQ156N', FRED_API_KEY).catch(e => { console.warn('[RealEstate]', e.message || e); return null; }),
+          fetchFredHistory('CUSR0000SEHA', FRED_API_KEY, 36).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
         homeownershipRate = hoRate != null ? Math.round(hoRate * 10) / 10 : null;
         if (rentHist.length >= 6) {
@@ -283,7 +283,7 @@ router.get('/', async (req, res) => {
             values: rentHist.map(p => Math.round(p.value * 10) / 10),
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     let reitEtf = null;
@@ -306,7 +306,7 @@ router.get('/', async (req, res) => {
               closes: quotes.map(q => Math.round(q.close * 100) / 100),
             };
           }
-        } catch { /* no history */ }
+        } catch (e) { console.warn('[RealEstate]', e.message || e); }
         reitEtf = {
           price: Math.round(vq.regularMarketPrice * 100) / 100,
           changePct: Math.round((vq.regularMarketChangePercent ?? 0) * 100) / 100,
@@ -314,11 +314,11 @@ router.get('/', async (req, res) => {
           history: vnqHistory,
         };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[RealEstate]', e.message || e); }
 
     let treasury10y = null;
     if (FRED_API_KEY) {
-      try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch { /* null */ }
+      try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     let existingHomeSales = null;
@@ -339,7 +339,7 @@ router.get('/', async (req, res) => {
         if (rrvResult.status === 'fulfilled' && rrvResult.value != null) {
           rentalVacancy = Math.round(rrvResult.value * 100) / 100;
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     const housingStarts = supplyData
@@ -363,8 +363,8 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const [foreclosures, delinquencies] = await Promise.all([
-          fetchFredHistory('LXXACBS0FRBR', FRED_API_KEY, 52).catch(() => []),
-          fetchFredHistory('DRSFRWBS', FRED_API_KEY, 52).catch(() => []),
+          fetchFredHistory('LXXACBS0FRBR', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          fetchFredHistory('DRSFRWBS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
         if (foreclosures.length >= 6 || delinquencies.length >= 6) {
           foreclosureData = {
@@ -378,7 +378,7 @@ router.get('/', async (req, res) => {
             } : null,
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     // MBA Applications data
@@ -387,8 +387,8 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const [purchaseApps, refiApps] = await Promise.all([
-          fetchFredHistory('MABMM301FRS', FRED_API_KEY, 52).catch(() => []),
-          fetchFredHistory('MABMM302FRS', FRED_API_KEY, 52).catch(() => []),
+          fetchFredHistory('MABMM301FRS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          fetchFredHistory('MABMM302FRS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
         if (purchaseApps.length >= 6) {
           mbaApplications = {
@@ -402,7 +402,7 @@ router.get('/', async (req, res) => {
             } : null,
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
     // CRE Delinquencies
@@ -410,17 +410,38 @@ router.get('/', async (req, res) => {
     if (FRED_API_KEY) {
       try {
         trackApiCall('FRED');
-        const creHist = await fetchFredHistory('BOGZ1FL404090060Q', FRED_API_KEY, 24).catch(() => []);
+        const creHist = await fetchFredHistory('BOGZ1FL404090060Q', FRED_API_KEY, 24).catch(e => { console.warn('[RealEstate]', e.message || e); return []; });
         if (creHist.length >= 4) {
           creDelinquencies = {
             dates: creHist.map(p => p.date.slice(0, 7)),
             values: creHist.map(p => Math.round(p.value * 100) / 100),
           };
         }
-      } catch { /* use null */ }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
-    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, lastUpdated: today };
+    const _sources = {
+      reitData:           reitData != null && reitData.length > 0,
+      caseShiller:        caseShillerData != null,
+      mortgageRates:      mortgageRates != null,
+      housingAffordability: affordabilityData != null,
+      homePriceIndex:     priceIndexData != null,
+      supplyData:         supplyData != null,
+      homeownershipRate:  homeownershipRate != null,
+      rentCpi:            rentCpi != null,
+      reitEtf:            reitEtf != null,
+      treasury10y:        treasury10y != null,
+      existingHomeSales:  existingHomeSales != null,
+      rentalVacancy:      rentalVacancy != null,
+      housingStarts:      housingStarts != null,
+      medianHomePrice:    medianHomePrice != null,
+      capRateData:        capRateData != null,
+      foreclosureData:    foreclosureData != null,
+      mbaApplications:    mbaApplications != null,
+      creDelinquencies:   creDelinquencies != null,
+    };
+
+    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, _sources, lastUpdated: today };
     writeDailyCache('realEstate', result);
     cache.set(cacheKey, result, 900);
     res.json({ ...result, fetchedOn: today, isCurrent: true });

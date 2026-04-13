@@ -15,7 +15,11 @@ export function useFrankfurterRates() {
         if (data?.rates) {
           setRates({ USD: 1, ...data.rates });
           setIsLive(true);
-          setLastUpdated(data.date || new Date().toISOString().split('T')[0]);
+          setLastUpdated(data.date ? `${data.date} 00:00:00 UTC` : (() => {
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+          })());
         }
       })
       .catch(() => { /* silently keep static fallback */ });

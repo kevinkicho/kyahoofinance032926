@@ -421,6 +421,14 @@ router.get('/', async (req, res) => {
     // Calculate fetch duration
     result._fetchDuration = `${(Date.now() - fetchStartTime) / 1000}s`;
 
+    const hasData = v => v != null && !(Array.isArray(v) && v.length === 0) && !(typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+    result._sources = {
+      eia:       hasData(eiaData),
+      fred:      hasData(fredData),
+      yahoo:     hasData(yahooData),
+      worldBank: hasData(result.worldBank),
+    };
+
     // Metadata for timestamps
     result._meta = {
       fetchedAt: formatTimestamp(result._timestamp),

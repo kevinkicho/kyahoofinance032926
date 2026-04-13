@@ -2,48 +2,34 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
-import {
-  priceIndexData     as mockPriceIndexData,
-  reitData           as mockReitData,
-  affordabilityData  as mockAffordabilityData,
-  capRateData        as mockCapRateData,
-  caseShillerData    as mockCaseShillerData,
-  supplyData         as mockSupplyData,
-  homeownershipRate  as mockHomeownershipRate,
-  rentCpi            as mockRentCpi,
-  reitEtf            as mockReitEtf,
-  treasury10y        as mockTreasury10y,
-  foreclosureData    as mockForeclosureData,
-  mbaApplications    as mockMbaApplications,
-  creDelinquencies   as mockCreDelinquencies,
-} from './mockRealEstateData';
 
 const SERVER = '';
 
-export function useRealEstateData(autoRefresh = false) {
-  const [priceIndexData,    setPriceIndexData]    = useState(mockPriceIndexData);
-  const [reitData,          setReitData]          = useState(mockReitData);
-  const [affordabilityData, setAffordabilityData] = useState(mockAffordabilityData);
-  const [capRateData,       setCapRateData]       = useState(mockCapRateData);
+export function useRealEstateData(autoRefresh = false, refreshKey = 0) {
+  const [priceIndexData,    setPriceIndexData]    = useState(null);
+  const [reitData,          setReitData]          = useState(null);
+  const [affordabilityData, setAffordabilityData] = useState(null);
+  const [capRateData,       setCapRateData]       = useState(null);
   const [mortgageRates,     setMortgageRates]     = useState(null);
-  const [caseShillerData,   setCaseShillerData]   = useState(mockCaseShillerData);
-  const [supplyData,        setSupplyData]        = useState(mockSupplyData);
-  const [homeownershipRate, setHomeownershipRate] = useState(mockHomeownershipRate);
-  const [rentCpi,           setRentCpi]           = useState(mockRentCpi);
-  const [reitEtf,           setReitEtf]           = useState(mockReitEtf);
-  const [treasury10y,       setTreasury10y]       = useState(mockTreasury10y);
+  const [caseShillerData,   setCaseShillerData]   = useState(null);
+  const [supplyData,        setSupplyData]        = useState(null);
+  const [homeownershipRate, setHomeownershipRate] = useState(null);
+  const [rentCpi,           setRentCpi]           = useState(null);
+  const [reitEtf,           setReitEtf]           = useState(null);
+  const [treasury10y,       setTreasury10y]       = useState(null);
   const [housingStarts,     setHousingStarts]     = useState(null);
   const [existingHomeSales, setExistingHomeSales] = useState(null);
   const [rentalVacancy,     setRentalVacancy]     = useState(null);
   const [medianHomePrice,   setMedianHomePrice]   = useState(null);
-  const [foreclosureData,   setForeclosureData]   = useState(mockForeclosureData);
-  const [mbaApplications,   setMbaApplications]   = useState(mockMbaApplications);
-  const [creDelinquencies,  setCreDelinquencies]  = useState(mockCreDelinquencies);
+  const [foreclosureData,   setForeclosureData]   = useState(null);
+  const [mbaApplications,   setMbaApplications]   = useState(null);
+  const [creDelinquencies,  setCreDelinquencies]  = useState(null);
 
   // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, handleSuccess, handleError, handleFinally, logFetch } = useDataStatus();
 
   const refetch = useCallback(() => {
+    const t0 = Date.now();
     fetchWithRetry(`${SERVER}/api/realEstate`)
       .then(r => r.json())
       .then(data => {
@@ -70,14 +56,16 @@ export function useRealEstateData(autoRefresh = false) {
         if (data.mbaApplications?.purchase?.values?.length >= 6) setMbaApplications(data.mbaApplications);
         if (data.creDelinquencies?.values?.length >= 4) setCreDelinquencies(data.creDelinquencies);
         if (anyReplaced) handleSuccess(data);
+        logFetch({ url: '/api/realEstate', status: 200, duration: Date.now() - t0, sources: { reitData: !!data.reitData?.length, priceIndexData: !!data.priceIndexData, mortgageRates: !!data.mortgageRates, caseShillerData: !!data.caseShillerData, supplyData: !!data.supplyData }, seriesIds: ['CSUSHPISA', 'MORTGAGE30US', 'HOUST', 'PSAVERT', 'WALCL'] });
       })
-      .catch((err) => handleError(err, 'RealEstate'))
+      .catch((err) => { handleError(err, 'RealEstate'); logFetch({ url: '/api/realEstate', status: 0, duration: Date.now() - t0, error: err?.message || 'Fetch failed' }); })
       .finally(() => handleFinally());
-  }, [handleSuccess, handleError, handleFinally]);
+  }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, housingStarts, existingHomeSales, rentalVacancy, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
+  return { priceIndexData, reitData, affordabilityData, capRateData, mortgageRates, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, housingStarts, existingHomeSales, rentalVacancy, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }

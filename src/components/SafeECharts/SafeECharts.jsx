@@ -1,19 +1,12 @@
 import React, { useRef, useEffect, useCallback, useMemo, forwardRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 
-const hasResizeObserver = typeof ResizeObserver !== 'undefined';
-
-/**
- * SafeECharts — wraps echarts-for-react with:
- * 1. Disposal safety (no "instance disposed" errors)
- * 2. Dimension safety (wait for valid container size before rendering)
- * 3. Proper resize handling inside flex/grid layouts
- */
 const SafeECharts = forwardRef(function SafeECharts({ option, style, className, opts, onEvents, onChartReady, ...rest }, ref) {
   const instanceRef = useRef(null);
   const mountedRef = useRef(false);
   const containerRef = useRef(null);
-  const [hasDimensions, setHasDimensions] = useState(!hasResizeObserver);
+  const chartWrapperRef = useRef(null);
+  const [hasDimensions, setHasDimensions] = useState(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -23,21 +16,18 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     };
   }, []);
 
-  // Wait for container to have valid dimensions before rendering chart.
-  // Once dimensions are found, latch to true — never go back.
   useEffect(() => {
-    if (!hasResizeObserver) return;
     const container = containerRef.current;
     if (!container) return;
 
-    if (container.clientWidth > 0 && container.clientHeight > 0) {
+    if (container.offsetWidth > 0 && container.offsetHeight > 0) {
       setHasDimensions(true);
       return;
     }
 
     const observer = new ResizeObserver(() => {
       if (!mountedRef.current) return;
-      if (container.clientWidth > 0 && container.clientHeight > 0) {
+      if (container.offsetWidth > 0 && container.offsetHeight > 0) {
         setHasDimensions(true);
         observer.disconnect();
       }
@@ -45,6 +35,49 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     observer.observe(container);
     return () => { observer.disconnect(); };
   }, []);
+
+  useEffect(() => {
+    if (!hasDimensions) return;
+    let raf1 = requestAnimationFrame(() => {
+      if (!mountedRef.current) return;
+      let raf2 = requestAnimationFrame(() => {
+        if (!mountedRef.current) return;
+        const echartsInstance = instanceRef.current;
+        if (echartsInstance && !echartsInstance.isDisposed?.()) {
+          try {
+            echartsInstance.resize({ width: 'auto', height: 'auto' });
+          } catch {}
+        }
+      });
+      return () => cancelAnimationFrame(raf2);
+    });
+    return () => cancelAnimationFrame(raf1);
+  }, [hasDimensions]);
+
+  useEffect(() => {
+    if (!hasDimensions) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    let resizeTimeout;
+    const observer = new ResizeObserver(() => {
+      if (!mountedRef.current) return;
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const echartsInstance = instanceRef.current;
+        if (echartsInstance && !echartsInstance.isDisposed?.()) {
+          try {
+            echartsInstance.resize({ width: 'auto', height: 'auto' });
+          } catch {}
+        }
+      }, 60);
+    });
+    observer.observe(container);
+    return () => {
+      observer.disconnect();
+      clearTimeout(resizeTimeout);
+    };
+  }, [hasDimensions]);
 
   const handleChartReady = useCallback((instance) => {
     if (mountedRef.current) {
@@ -70,20 +103,20 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
 
   const containerStyle = useMemo(() => ({
     ...style,
+    width: '100%',
+    height: '100%',
     minHeight: style?.minHeight || style?.height || '200px',
+    minWidth: 0,
+    position: 'relative',
+    overflow: 'hidden',
   }), [style]);
 
-  if (!hasResizeObserver) {
+  if (!hasDimensions) {
     return (
-      <ReactECharts
-        ref={ref}
-        option={option}
-        style={containerStyle}
+      <div
+        ref={containerRef}
         className={className}
-        opts={safeOpts}
-        onChartReady={handleChartReady}
-        onEvents={safeOnEvents}
-        {...rest}
+        style={containerStyle}
       />
     );
   }
@@ -94,19 +127,15 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
       className={className}
       style={containerStyle}
     >
-      {hasDimensions ? (
-        <ReactECharts
-          ref={ref}
-          option={option}
-          style={{ width: '100%', height: '100%' }}
-          opts={safeOpts}
-          onChartReady={handleChartReady}
-          onEvents={safeOnEvents}
-          {...rest}
-        />
-      ) : (
-        <div style={{ width: '100%', height: '100%', minHeight: containerStyle.minHeight }} />
-      )}
+      <ReactECharts
+        ref={ref}
+        option={option}
+        style={{ width: '100%', height: '100%' }}
+        opts={safeOpts}
+        onChartReady={handleChartReady}
+        onEvents={safeOnEvents}
+        {...rest}
+      />
     </div>
   );
 });

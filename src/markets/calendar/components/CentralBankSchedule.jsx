@@ -21,7 +21,7 @@ function decisionBadge(rate, previousRate) {
 }
 
 export default function CentralBankSchedule({ centralBanks, section }) {
-  if (!centralBanks?.length) return null;
+  if (!centralBanks?.length) return <div className="cal-empty">No central bank data available</div>;
 
   const today = new Date().toISOString().split('T')[0];
 

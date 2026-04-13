@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import SafeECharts from '../../../components/SafeECharts';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './SentimentDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -24,6 +25,9 @@ function SentimentDashboard({
   marginDebt,
   consumerCredit,
   fsiHistory,
+  fetchLog,
+  isLive,
+  lastUpdated,
 }) {
   const { colors } = useTheme();
 
@@ -174,6 +178,7 @@ function SentimentDashboard({
                 )}
               </div>
             )}
+            <DataFooter source="Alternative.me / FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         </div>
 
@@ -186,6 +191,7 @@ function SentimentDashboard({
             <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="Alternative.me / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -198,6 +204,7 @@ function SentimentDashboard({
             <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -217,6 +224,7 @@ function SentimentDashboard({
                 </div>
               ))}
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -236,6 +244,7 @@ function SentimentDashboard({
                 </div>
               ))}
             </div>
+            <DataFooter source="FRED / CFTC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -259,6 +268,7 @@ function SentimentDashboard({
                 </div>
               )}
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
       </BentoWrapper>

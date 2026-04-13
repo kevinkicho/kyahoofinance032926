@@ -175,7 +175,7 @@ router.get('/', async (req, res) => {
           values: hyHist.map(p => Math.round(p.value * 100) / 100),
         };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Insurance]', e.message || e); }
   }
 
   let sectorETF = null;
@@ -193,7 +193,7 @@ router.get('/', async (req, res) => {
         sma50:     kq.fiftyDayAverage   != null ? Math.round(kq.fiftyDayAverage   * 100) / 100 : null,
       };
     }
-  } catch { /* use null */ }
+  } catch (e) { console.warn('[Insurance]', e.message || e); }
 
   let catBondProxy = null;
   try {
@@ -208,7 +208,7 @@ router.get('/', async (req, res) => {
         changePct: Math.round((sq.regularMarketChangePercent ?? 0) * 10000) / 100,
       };
     }
-  } catch { /* try ILS */ }
+  } catch (e) { console.warn('[Insurance]', e.message || e); }
 
   if (!catBondProxy) {
     try {
@@ -223,7 +223,7 @@ router.get('/', async (req, res) => {
           changePct: Math.round((iq.regularMarketChangePercent ?? 0) * 10000) / 100,
         };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Insurance]', e.message || e); }
   }
 
   let industryAvgCombinedRatio = null;
@@ -240,11 +240,11 @@ router.get('/', async (req, res) => {
       const avg = latestRatios.reduce((s, v) => s + v, 0) / latestRatios.length;
       industryAvgCombinedRatio = Math.round(avg * 10) / 10;
     }
-  } catch { /* use null */ }
+  } catch (e) { console.warn('[Insurance]', e.message || e); }
 
   let treasury10y = null;
   if (FRED_API_KEY) {
-    try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch { /* use null */ }
+    try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch (e) { console.warn('[Insurance]', e.message || e); }
   }
 
   // Natural Catastrophe Losses (FRED NPORCT)
@@ -259,7 +259,7 @@ router.get('/', async (req, res) => {
           values: catHist.map(p => Math.round(p.value * 10) / 10),
         };
       }
-    } catch { /* use null */ }
+    } catch (e) { console.warn('[Insurance]', e.message || e); }
   }
 
   // Combined Ratio History (calculated from existing data)
@@ -275,6 +275,23 @@ router.get('/', async (req, res) => {
       }
     : null;
 
+  const hasData = v => v != null && !(Array.isArray(v) && v.length === 0) && !(typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
+
+  const _sources = {
+    combinedRatioData: hasData(combinedRatioData),
+    reserveAdequacyData: hasData(reserveAdequacyData),
+    reinsurers: hasData(reinsurers),
+    hyOAS: hasData(hyOAS),
+    igOAS: hasData(igOAS),
+    fredHyOasHistory: hasData(fredHyOasHistory),
+    sectorETF: hasData(sectorETF),
+    catBondProxy: hasData(catBondProxy),
+    industryAvgCombinedRatio: hasData(industryAvgCombinedRatio),
+    treasury10y: hasData(treasury10y),
+    catLosses: hasData(catLosses),
+    combinedRatioHistory: hasData(combinedRatioHistory),
+  };
+
   const result = {
     combinedRatioData,
     reserveAdequacyData,
@@ -288,6 +305,7 @@ router.get('/', async (req, res) => {
     treasury10y,
     catLosses,
     combinedRatioHistory,
+    _sources,
     lastUpdated: today,
   };
 

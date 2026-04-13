@@ -29,7 +29,7 @@ const SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture', 'Livestock'];
 
 export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view = 'heatmap' }) {
   const { colors } = useTheme();
-  const { commodities = [], columns = [] } = sectorHeatmapData;
+  const { commodities = [], columns = [] } = sectorHeatmapData || {};
   const colKeys = ['d1', 'w1', 'm1'];
 
   // KPI computations

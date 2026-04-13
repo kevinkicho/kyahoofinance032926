@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './RealEstateDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -23,6 +24,7 @@ function RealEstateDashboard({
   caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
   housingStarts, existingHomeSales, rentalVacancy, medianHomePrice,
   foreclosureData, mbaApplications, creDelinquencies,
+  fetchLog, isLive, lastUpdated,
 }) {
   const { colors } = useTheme();
 
@@ -235,6 +237,7 @@ function RealEstateDashboard({
               </div>
             )}
           </div>
+          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
         </div>
 
         {/* Case-Shiller */}
@@ -246,6 +249,7 @@ function RealEstateDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={shillerOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED CSUSHPISA" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -258,6 +262,7 @@ function RealEstateDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -279,6 +284,7 @@ function RealEstateDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -291,6 +297,7 @@ function RealEstateDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -303,6 +310,7 @@ function RealEstateDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={mbaOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED MORTGAGE30US" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -315,6 +323,7 @@ function RealEstateDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -334,6 +343,7 @@ function RealEstateDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -355,6 +365,7 @@ function RealEstateDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / Census" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -376,6 +387,7 @@ function RealEstateDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / Census" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
       </BentoWrapper>

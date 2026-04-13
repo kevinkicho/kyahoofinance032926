@@ -3,28 +3,23 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
-import {
-  economicEvents  as mockEconomicEvents,
-  centralBanks    as mockCentralBanks,
-  earningsSeason  as mockEarningsSeason,
-  keyReleases     as mockKeyReleases,
-} from './mockCalendarData';
 
 const SERVER = '';
 
-export function useCalendarData(autoRefresh = false) {
-  const [economicEvents,    setEconomicEvents]    = useState(mockEconomicEvents);
-  const [centralBanks,      setCentralBanks]      = useState(mockCentralBanks);
-  const [earningsSeason,    setEarningsSeason]    = useState(mockEarningsSeason);
-  const [keyReleases,       setKeyReleases]       = useState(mockKeyReleases);
+export function useCalendarData(autoRefresh = false, refreshKey = 0) {
+  const [economicEvents,    setEconomicEvents]    = useState([]);
+  const [centralBanks,      setCentralBanks]      = useState([]);
+  const [earningsSeason,    setEarningsSeason]    = useState([]);
+  const [keyReleases,       setKeyReleases]       = useState([]);
   const [treasuryAuctions,  setTreasuryAuctions]  = useState([]);
   const [optionsExpiry,     setOptionsExpiry]     = useState([]);
   const [dividendCalendar,  setDividendCalendar]  = useState([]);
 
   // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, handleSuccess, handleError, handleFinally, logFetch } = useDataStatus();
 
   const refetch = useCallback(() => {
+    const t0 = Date.now();
     fetchWithRetry(`${SERVER}/api/calendar`)
       .then(r => r.json())
       .then(data => {
@@ -37,18 +32,20 @@ export function useCalendarData(autoRefresh = false) {
         if (data.optionsExpiry?.length >= 1)    { setOptionsExpiry(data.optionsExpiry);     anyReplaced = true; }
         if (data.dividendCalendar?.length >= 1) { setDividendCalendar(data.dividendCalendar); anyReplaced = true; }
         if (anyReplaced) handleSuccess(data);
+        logFetch({ url: '/api/calendar', status: 200, duration: Date.now() - t0, sources: { economicEvents: !!data.economicEvents?.length, centralBanks: !!data.centralBanks?.length, earningsSeason: !!data.earningsSeason?.length, keyReleases: !!data.keyReleases?.length }, seriesIds: [] });
       })
-      .catch((err) => handleError(err, 'Calendar'))
+      .catch((err) => { handleError(err, 'Calendar'); logFetch({ url: '/api/calendar', status: 0, duration: Date.now() - t0, error: err?.message || 'Fetch failed' }); })
       .finally(() => handleFinally());
-  }, [handleSuccess, handleError, handleFinally]);
+  }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
   return {
     economicEvents, centralBanks, earningsSeason, keyReleases,
     treasuryAuctions, optionsExpiry, dividendCalendar,
-    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent,
+    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch,
   };
 }

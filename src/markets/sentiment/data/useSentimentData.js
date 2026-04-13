@@ -3,29 +3,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
-import {
-  fearGreedData as mockFearGreedData,
-  cftcData      as mockCftcData,
-  riskData      as mockRiskData,
-  returnsData   as mockReturnsData,
-} from './mockSentimentData';
 
 const SERVER = '';
 
-export function useSentimentData(autoRefresh = false) {
-  const [fearGreedData, setFearGreedData] = useState(mockFearGreedData);
-  const [cftcData,      setCftcData]      = useState(mockCftcData);
-  const [riskData,      setRiskData]      = useState(mockRiskData);
-  const [returnsData,   setReturnsData]   = useState(mockReturnsData);
+export function useSentimentData(autoRefresh = false, refreshKey = 0) {
+  const [fearGreedData, setFearGreedData] = useState(null);
+  const [cftcData,      setCftcData]      = useState(null);
+  const [riskData,      setRiskData]      = useState(null);
+  const [returnsData,   setReturnsData]   = useState(null);
   const [marginDebt,    setMarginDebt]    = useState(null);
   const [consumerCredit, setConsumerCredit] = useState(null);
   const [vvixHistory,   setVvixHistory]   = useState(null);
   const [fsiHistory,    setFsiHistory]    = useState(null);
 
   // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally, setIsLive, setLastUpdated } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, handleSuccess, handleError, handleFinally, logFetch } = useDataStatus();
 
   const refetch = useCallback(() => {
+    const t0 = Date.now();
     fetchWithRetry(`${SERVER}/api/sentiment`)
       .then(r => r.json())
       .then(data => {
@@ -41,14 +36,16 @@ export function useSentimentData(autoRefresh = false) {
         if (anyReplaced) {
           handleSuccess(data);
         }
+        logFetch({ url: '/api/sentiment', status: 200, duration: Date.now() - t0, sources: { fearGreedData: !!data.fearGreedData, cftcData: !!data.cftcData, riskData: !!data.riskData, marginDebt: !!data.marginDebt, consumerCredit: !!data.consumerCredit, fsiHistory: !!data.fsiHistory }, seriesIds: ['ANEURI', 'CFTC_SHRT', 'DEFLEQ', 'BAMLH0A0HYM2'] });
       })
-      .catch((err) => handleError(err, 'Sentiment'))
+      .catch((err) => { handleError(err, 'Sentiment'); logFetch({ url: '/api/sentiment', status: 0, duration: Date.now() - t0, error: err?.message || 'Fetch failed' }); })
       .finally(() => handleFinally());
-  }, [handleSuccess, handleError, handleFinally]);
+  }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
-  return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, fsiHistory, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent };
+  return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, fsiHistory, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }

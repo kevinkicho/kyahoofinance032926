@@ -100,7 +100,8 @@ export default function HubLayout() {
   });
   const [currency, setCurrency] = useState('USD');
   const [snapshotDate, setSnapshotDate] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('hub-auto-refresh') !== 'off');
+  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('hub-auto-refresh') === 'on');
+  const [refreshKey, setRefreshKey] = useState(0);
   const contentRef = useRef(null);
   const { addToast } = useToast();
 
@@ -177,6 +178,10 @@ export default function HubLayout() {
     setAutoRefresh(r => !r);
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
+
   // Keyboard shortcuts: 1-9,0 for markets, Ctrl+E export, Ctrl+K search, Escape
   useEffect(() => {
     function handleKeyDown(e) {
@@ -230,6 +235,7 @@ export default function HubLayout() {
         onExportData={handleExportData}
         autoRefresh={autoRefresh}
         onToggleRefresh={handleToggleRefresh}
+        onRefresh={handleRefresh}
       />
       <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
         <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
@@ -240,6 +246,7 @@ export default function HubLayout() {
               snapshotDate={snapshotDate}
               setSnapshotDate={setSnapshotDate}
               autoRefresh={autoRefresh}
+              refreshKey={refreshKey}
             />
           </Suspense>
         </MarketErrorBoundary>

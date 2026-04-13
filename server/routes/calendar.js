@@ -126,9 +126,12 @@ router.get('/', async (req, res) => {
               const hist = await fetchFredHistory(cfg.fredSeries, FRED_API_KEY, 3);
               if (hist.length >= 1) rate = hist.at(-1).value;
               if (hist.length >= 2) previousRate = hist.at(-2).value;
-            } catch { /* use null */ }
+            } catch (e) { console.warn('[Calendar]', e.message || e); }
           }
-          if (bank === 'BOJ' && rate == null) { rate = 0.50; previousRate = 0.25; }
+          const FALLBACK_RATES = { Fed: 4.50, ECB: 2.65, BOE: 4.50, BOJ: 0.50 };
+          const FALLBACK_PREV  = { Fed: 4.50, ECB: 2.90, BOE: 4.50, BOJ: 0.25 };
+          if (rate == null) rate = FALLBACK_RATES[bank] ?? null;
+          if (previousRate == null) previousRate = FALLBACK_PREV[bank] ?? null;
           const nowDate = today;
           const nextMeeting = cfg.dates.find(d => d >= nowDate) || cfg.dates.at(-1);
           const daysUntil = nextMeeting ? Math.round((new Date(nextMeeting) - new Date(nowDate)) / 86400000) : null;
@@ -221,6 +224,7 @@ router.get('/', async (req, res) => {
       }),
     ]);
 
+    const hasData = v => v != null && !(Array.isArray(v) && v.length === 0);
     const result = {
       economicEvents:   econResult.status === 'fulfilled' ? econResult.value : [],
       centralBanks:     cbRatesResult.status === 'fulfilled' ? cbRatesResult.value : [],
@@ -229,6 +233,14 @@ router.get('/', async (req, res) => {
       treasuryAuctions: treasuryResult.status === 'fulfilled' ? treasuryResult.value : null,
       optionsExpiry,
       dividendCalendar: dividendResult.status === 'fulfilled' ? dividendResult.value : null,
+      _sources: {
+        econEvents:        hasData(econResult.status === 'fulfilled' ? econResult.value : null),
+        centralBankRates:  hasData(cbRatesResult.status === 'fulfilled' ? cbRatesResult.value : null),
+        earnings:          hasData(earningsResult.status === 'fulfilled' ? earningsResult.value : null),
+        fredReleases:      hasData(releasesResult.status === 'fulfilled' ? releasesResult.value : null),
+        treasuryAuctions:  hasData(treasuryResult.status === 'fulfilled' ? treasuryResult.value : null),
+        dividends:         hasData(dividendResult.status === 'fulfilled' ? dividendResult.value : null),
+      },
       lastUpdated: today,
     };
 

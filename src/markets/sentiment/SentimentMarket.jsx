@@ -11,8 +11,8 @@ import './SentimentMarket.css';
  * - Fear & Greed Index, Financial Stress Index
  * - Cross-Asset Returns, Risk Signals, Leverage Metrics
  */
-function SentimentMarket({ autoRefresh } = {}) {
-  const { fearGreedData, riskData, returnsData, marginDebt, consumerCredit, fsiHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent } = useSentimentData(autoRefresh);
+function SentimentMarket({ autoRefresh, refreshKey } = {}) {
+  const { fearGreedData, riskData, returnsData, marginDebt, consumerCredit, fsiHistory, isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch } = useSentimentData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -20,7 +20,7 @@ function SentimentMarket({ autoRefresh } = {}) {
     <div className="sent-market">
       <div className="sent-status-bar">
         <span className={isLive ? 'sent-status-live' : ''}>
-          {isLive ? '● Live · FRED / Alternative.me / Yahoo' : '○ Mock data — static'}
+          {isLive ? '● FETCHED · FRED / Alternative.me / Yahoo Finance' : '○ No data received'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="sent-stale-badge">Stale · fetched {fetchedOn}</span>}
@@ -32,6 +32,9 @@ function SentimentMarket({ autoRefresh } = {}) {
         marginDebt={marginDebt}
         consumerCredit={consumerCredit}
         fsiHistory={fsiHistory}
+        fetchLog={fetchLog}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
       />
     </div>
   );

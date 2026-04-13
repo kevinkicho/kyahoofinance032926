@@ -5,20 +5,14 @@ import { useCOTData } from './data/useCOTData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import FXDashboard from './components/FXDashboard';
 
-function FXMarket({ autoRefresh } = {}) {
-  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, cotHistory, isLive, lastUpdated, isLoading } = useFXData(autoRefresh);
+function FXMarket({ autoRefresh, refreshKey } = {}) {
+  const { spotRates, prevRates, changes, changes1w, changes1m, sparklines, history, fredFxRates, reer, rateDifferentials, dxyHistory, cotHistory, isLive, lastUpdated, isLoading, fetchLog, refetch } = useFXData(autoRefresh, refreshKey);
   const { cotData } = useCOTData();
 
   if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="fx-market">
-      <div className="fx-status-bar">
-        <span className={isLive ? 'fx-status-live' : ''}>
-          {isLive ? '● Live · Frankfurter / FRED' : '○ Mock data — static'}
-        </span>
-        {lastUpdated && <span>Updated: {lastUpdated}</span>}
-      </div>
       <FXDashboard
         spotRates={spotRates}
         prevRates={prevRates}
@@ -33,6 +27,9 @@ function FXMarket({ autoRefresh } = {}) {
         dxyHistory={dxyHistory}
         cotData={cotData}
         cotHistory={cotHistory}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
+        fetchLog={fetchLog}
       />
     </div>
   );

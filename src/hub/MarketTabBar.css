@@ -71,6 +71,22 @@
   line-height: 1;
 }
 .hub-popout-btn:hover { background: var(--bg-card); border-color: var(--text-muted); }
+.hub-refresh-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-left: 8px;
+  transition: border-color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.hub-refresh-btn:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-card);
+}
 .hub-refresh-toggle {
   background: none;
   border: 1px solid var(--border-color);

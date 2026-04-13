@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './BondsDashboard.css';
 
 const RATING_TIER = {
@@ -31,7 +32,7 @@ function ratingStyle(rating) {
 
 function getTier(rating) { return RATING_TIER[rating] ?? 99; }
 
-export default function CreditMatrix({ creditRatingsData }) {
+export default function CreditMatrix({ creditRatingsData, lastUpdated }) {
   const kpis = useMemo(() => {
     const aaaAa = creditRatingsData.filter(r =>
       getTier(r.sp) <= 1 && getTier(r.moodys) <= 1 && getTier(r.fitch) <= 1
@@ -72,12 +73,12 @@ export default function CreditMatrix({ creditRatingsData }) {
       <div className="bonds-kpi-strip">
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">AAA/AA Rated</span>
-          <span className="bonds-kpi-value accent">{kpis.aaaAa}</span>
+          <span className="bonds-kpi-value accent"><MetricValue value={kpis.aaaAa} seriesKey="creditAaaAa" timestamp={lastUpdated} /></span>
           <span className="bonds-kpi-sub">of {creditRatingsData.length}</span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">Inv Grade</span>
-          <span className="bonds-kpi-value accent">{kpis.invGrade}</span>
+          <span className="bonds-kpi-value accent"><MetricValue value={kpis.invGrade} seriesKey="creditInvGrade" timestamp={lastUpdated} /></span>
           <span className="bonds-kpi-sub">of {creditRatingsData.length}</span>
         </div>
         <div className="bonds-kpi-pill">

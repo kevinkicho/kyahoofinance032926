@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './DerivativesDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -20,7 +21,7 @@ const LAYOUT = {
 function DerivativesDashboard({
   volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment,
   volPremium, fredVixHistory, putCallRatio, skewIndex, skewHistory,
-  gammaExposure, vixPercentile, termSpread,
+  gammaExposure, vixPercentile, termSpread, fetchLog, isLive, lastUpdated,
 }) {
   const { colors } = useTheme();
 
@@ -217,6 +218,7 @@ function DerivativesDashboard({
               </div>
             )}
           </div>
+          <DataFooter source="Yahoo Finance / CBOE" timestamp={lastUpdated} isLive={!!vixTermStructure?.values?.length} fetchLog={fetchLog} />
         </div>
 
         {/* VIX Term Structure */}
@@ -228,6 +230,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!vixTermStructure?.dates?.length} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -240,6 +243,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!fredVixHistory?.dates?.length} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -252,6 +256,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!skewHistory?.dates?.length} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -264,6 +269,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!volSurfaceData?.grid?.length} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -286,6 +292,7 @@ function DerivativesDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!optionsFlow?.length} fetchLog={fetchLog} />
           </div>
         )}
       </BentoWrapper>

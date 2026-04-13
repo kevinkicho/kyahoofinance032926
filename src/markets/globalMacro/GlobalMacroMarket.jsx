@@ -4,12 +4,12 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import GlobalMacroDashboard from './components/GlobalMacroDashboard';
 import './components/GlobalMacroDashboard.css';
 
-function GlobalMacroMarket({ autoRefresh } = {}) {
+function GlobalMacroMarket({ autoRefresh, refreshKey } = {}) {
   const {
     scorecardData, growthInflationData, centralBankData, debtData,
     m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useGlobalMacroData(autoRefresh);
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch,
+  } = useGlobalMacroData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -17,7 +17,7 @@ function GlobalMacroMarket({ autoRefresh } = {}) {
     <div className="mac-market">
       <div className="mac-status-bar">
         <span className={isLive ? 'mac-status-live' : ''}>
-          {isLive ? '● Live · World Bank / FRED / BLS' : '○ Mock data — static'}
+          {isLive ? '● FETCHED · World Bank / FRED / BLS' : '○ No data received'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="mac-stale-badge">Stale · fetched {fetchedOn}</span>}
@@ -35,6 +35,9 @@ function GlobalMacroMarket({ autoRefresh } = {}) {
         cfnai={cfnai}
         oecdCli={oecdCli}
         cpiBreakdown={cpiBreakdown}
+        fetchLog={fetchLog}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
       />
     </div>
   );

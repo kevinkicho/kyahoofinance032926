@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './InsuranceDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -16,6 +17,7 @@ function InsuranceDashboard({
   reinsurancePricing, reinsurers, fredHyOasHistory,
   sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
   catLosses, combinedRatioHistory,
+  isLive, lastUpdated, fetchLog,
 }) {
   const { colors } = useTheme();
 
@@ -116,7 +118,8 @@ function InsuranceDashboard({
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
         </div>
 
         {/* HY OAS */}
@@ -128,6 +131,7 @@ function InsuranceDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -140,6 +144,7 @@ function InsuranceDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -152,6 +157,7 @@ function InsuranceDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={combinedRatioOption} style={{ height: '100%', width: '100%' }} />
             </div>
+            <DataFooter source="FRED / A.M. Best" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -173,6 +179,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -192,6 +199,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -213,6 +221,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -234,6 +243,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -255,6 +265,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
       </BentoWrapper>

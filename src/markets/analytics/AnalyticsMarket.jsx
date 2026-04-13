@@ -1,19 +1,335 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import BentoWrapper from '../../components/BentoWrapper';
+import DataFooter from '../../components/DataFooter/DataFooter';
 import './AnalyticsDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
 
+const FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY || '';
+
+const MARKET_ENDPOINTS = [
+  { path: '/api/bonds', label: 'Bonds' },
+  { path: '/api/fx', label: 'FX' },
+  { path: '/api/commodities', label: 'Commodities' },
+  { path: '/api/crypto', label: 'Crypto' },
+  { path: '/api/credit', label: 'Credit' },
+  { path: '/api/insurance', label: 'Insurance' },
+  { path: '/api/realEstate', label: 'Real Estate' },
+  { path: '/api/derivatives', label: 'Derivatives' },
+  { path: '/api/sentiment', label: 'Sentiment' },
+  { path: '/api/calendar', label: 'Calendar' },
+  { path: '/api/globalMacro', label: 'Global Macro' },
+  { path: '/api/equityDeepDive', label: 'Equity Deep Dive' },
+];
+
+function fredVerifyUrl(seriesId) {
+  const p = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '1' });
+  return `https://api.stlouisfed.org/fred/series/observations?${p.toString()}`;
+}
+
+function fredSeriesPage(seriesId) {
+  return `https://fred.stlouisfed.org/series/${seriesId}`;
+}
+
+function isFRED(id) {
+  return id && /^[A-Z0-9]{3,15}$/.test(id) && !id.startsWith('/');
+}
+
+function ProvenanceAudit() {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [verifyStates, setVerifyStates] = useState({});
+  const [expandedSource, setExpandedSource] = useState(null);
+
+  const runAudit = useCallback(async () => {
+    setLoading(true);
+    const all = [];
+    for (const ep of MARKET_ENDPOINTS) {
+      try {
+        const r = await fetch(ep.path);
+        const data = await r.json();
+        const sources = data._sources || {};
+        const sourceKeys = Object.keys(sources);
+        all.push({ ...ep, status: r.status, sources, sourceKeys, error: null });
+      } catch (e) {
+        all.push({ ...ep, status: 0, sources: {}, sourceKeys: [], error: e.message });
+      }
+    }
+    setResults(all);
+    setLoading(false);
+  }, []);
+
+  const verifyFRED = useCallback(async (seriesId, sourceKey, marketPath) => {
+    const key = `${marketPath}::${sourceKey}::${seriesId}`;
+    setVerifyStates(prev => ({ ...prev, [key]: 'checking' }));
+    try {
+      const r = await fetch(fredVerifyUrl(seriesId));
+      const data = await r.json();
+      const count = data?.observations?.length || 0;
+      const latestVal = data?.observations?.[0]?.value;
+      const latestDate = data?.observations?.[0]?.date;
+      setVerifyStates(prev => ({
+        ...prev,
+        [key]: {
+          ok: count > 0 && latestVal !== '.',
+          count,
+          latestVal,
+          latestDate,
+          url: fredVerifyUrl(seriesId).replace('limit=1', 'limit=5'),
+        },
+      }));
+    } catch {
+      setVerifyStates(prev => ({ ...prev, [key]: { ok: false, error: 'Fetch failed' } }));
+    }
+  }, []);
+
+  const totalSources = results.reduce((a, r) => a + r.sourceKeys.length, 0);
+  const receivedSources = results.reduce((a, r) => a + r.sourceKeys.filter(k => r.sources[k]).length, 0);
+  const missingSources = totalSources - receivedSources;
+
+  return (
+    <div className="ana-prov-audit">
+      <div className="ana-prov-header">
+        <span className="ana-prov-summary">{totalSources} sources · {receivedSources} received · {missingSources} missing</span>
+        <button className="ana-refresh-btn" onClick={runAudit} disabled={loading}>{loading ? 'Auditing...' : 'Run Audit'}</button>
+      </div>
+      {results.length === 0 && !loading && <div className="ana-empty">Click "Run Audit" to fetch all market endpoints and check provenance</div>}
+      {loading && <div className="ana-empty">Fetching endpoints...</div>}
+      {results.map(r => (
+        <div key={r.path} className="ana-prov-market">
+          <div className="ana-prov-market-head">
+            <span className="ana-prov-market-label">{r.label}</span>
+            <span className="ana-prov-market-path">{r.path}</span>
+            <span className={`ana-prov-stat ${r.error ? 'ana-err' : r.sourceKeys.length > 0 ? 'ana-ok' : ''}`}>
+              {r.error ? 'ERR' : `${r.sourceKeys.filter(k => r.sources[k]).length}/${r.sourceKeys.length}`}
+            </span>
+          </div>
+          {r.sourceKeys.map(k => {
+            const received = r.sources[k];
+            const isExpanded = expandedSource === `${r.path}::${k}`;
+            return (
+              <div key={k} className={`ana-prov-source ${received ? 'ana-ps-ok' : 'ana-ps-miss'}`}>
+                <div className="ana-prov-source-row" onClick={() => setExpandedSource(isExpanded ? null : `${r.path}::${k}`)}>
+                  <span className="ana-prov-source-name">{k}</span>
+                  <span className="ana-prov-source-badge">{received ? '\u2713' : '\u2717'}</span>
+                </div>
+                {isExpanded && (
+                  <div className="ana-prov-source-detail">
+                    <div className="ana-prov-detail-row">
+                      <span className="ana-dl">Status</span>
+                      <span className={received ? 'ana-ok' : 'ana-err'}>{received ? 'Data received' : 'Missing'}</span>
+                    </div>
+                    <div className="ana-prov-detail-row">
+                      <span className="ana-dl">Endpoint</span>
+                      <a href={r.path} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="ana-prov-link">{r.path}</a>
+                    </div>
+                    <div className="ana-prov-detail-row">
+                      <span className="ana-dl">Verify</span>
+                      <span className="ana-prov-verify-text">
+                        {received
+                          ? 'Click "Verify" on FRED series below to confirm data exists and matches.'
+                          : 'Data is missing from this endpoint. Verify FRED series below \u2014 if FRED returns data, the server may have a caching or parsing issue.'}
+                      </span>
+                    </div>
+                    <div className="ana-prov-fred-list">
+                      {(getSeriesForSource(r.path, k) || []).map(sid => {
+                        const vKey = `${r.path}::${k}::${sid}`;
+                        const vs = verifyStates[vKey];
+                        return (
+                          <div key={sid} className="ana-prov-fred-row">
+                            <span className="ana-prov-fred-id">{sid}</span>
+                            <a href={fredSeriesPage(sid)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="ana-prov-link">Series</a>
+                            <a href={fredVerifyUrl(sid).replace('limit=1', 'limit=5')} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="ana-prov-link">Fetch JSON</a>
+                            <button className="ana-prov-verify-btn" onClick={e => { e.stopPropagation(); verifyFRED(sid, k, r.path); }}>
+                              {vs === 'checking' ? '...' : vs?.ok ? '\u2713' : 'Verify'}
+                            </button>
+                            {vs && vs !== 'checking' && (
+                              <span className={`ana-prov-verify-result ${vs.ok ? 'ana-ok' : 'ana-err'}`}>
+                                {vs.ok ? `FRED: ${vs.latestVal} (${vs.latestDate}, ${vs.count} obs)` : vs.error || 'No data'}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {(!getSeriesForSource(r.path, k) || getSeriesForSource(r.path, k).length === 0) && (
+                        <span className="ana-prov-nofred">No FRED series mapped for this source</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const ENDPOINT_SERIES_MAP = {
+  '/api/bonds': {
+    'US Treasury Yields': ['DGS3MO', 'DGS6MO', 'DGS1', 'DGS2', 'DGS5', 'DGS7', 'DGS10', 'DGS20', 'DGS30'],
+    'Spread Indicators': ['T10Y2Y', 'T10Y3M', 'T5Y30'],
+    'TIPS Real Yields': ['DFII5', 'DFII10', 'DFII30'],
+    'Credit Spreads (IG/HY/EM/BBB)': ['BAMLH0A0HYM2', 'BAMLC0A0CM', 'BAMLEMCBPIOAS'],
+    'Breakevens': ['T5YIE', 'T10YIE', 'T5YIFR'],
+    'Macro Indicators (Fed BS, M2, Debt, Unemp, GDP)': ['UNRATE', 'GDP', 'PCEPI', 'WALCL', 'M2SL', 'GFDEBTN'],
+    'National Debt': ['GFDEBTN'],
+    'Treasury Rates': ['TB3MS', 'GS10', 'GS30'],
+    'Mortgage Spread': ['MORTGAGE30US'],
+    'Curve Spread History': ['T10Y2Y', 'T10Y3M', 'T5Y30'],
+    'CPI Components': ['CPIAUCSL', 'CPILFESL'],
+    'Debt-to-GDP History': ['GFDEBTN', 'GDP'],
+    'Credit Indices (AAA/BAA)': ['AAA', 'BAA'],
+  },
+  '/api/fx': {
+    'fredFxRates': ['DEXUSEU', 'DEXJPUS', 'DEXUSUK', 'DEXSZUS', 'DEXALUS', 'DEXCAUS', 'DTWEXBGS'],
+    'reer': [],
+    'rateDifferentials': [],
+    'dxyHistory': ['DTWEXBGS'],
+    'cotHistory': [],
+  },
+  '/api/commodities': {
+    'priceDashboardData': [],
+    'futuresCurveData': [],
+    'sectorHeatmapData': [],
+    'supplyDemandData': [],
+    'cotData': [],
+    'fredCommodities': ['GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM', 'POILWTIUSDM', 'POILBREUSDM', 'PNGASUSUSDM'],
+    'goldFuturesCurve': [],
+    'dbcEtf': [],
+  },
+  '/api/commodities/v2': {
+    'eia': [],
+    'fred': ['POILWTIUSDM', 'GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM', 'POILBREUSDM', 'PNGASUSUSDM'],
+    'yahoo': [],
+    'worldBank': [],
+  },
+  '/api/crypto': {
+    'coinMarketData': [],
+    'fearGreedData': [],
+    'defiData': [],
+    'fundingData': [],
+    'onChainData': [],
+    'stablecoinMcap': [],
+    'btcDominance': [],
+    'topExchanges': [],
+    'ethGas': [],
+  },
+  '/api/credit': {
+    'spreadData': ['BAMLH0A0HYM2', 'BAMLC0A0CM'],
+    'emBondData': ['BAMLEMCBPIOAS'],
+    'loanData': [],
+    'defaultData': [],
+    'delinquencyRates': ['DRSFRWBS'],
+    'lendingStandards': [],
+    'commercialPaper': ['CPN3M'],
+    'excessReserves': ['EXCSRESNW'],
+  },
+  '/api/insurance': {
+    'combinedRatioData': [],
+    'reserveAdequacyData': [],
+    'reinsurers': [],
+    'hyOAS': ['BAMLH0A0HYM2'],
+    'igOAS': ['BAMLC0A0CM'],
+    'catBondSpreads': [],
+    'fredHyOasHistory': ['BAMLH0A0HYM2'],
+    'sectorETF': [],
+    'catBondProxy': [],
+    'industryAvgCombinedRatio': [],
+    'treasury10y': ['DGS10'],
+    'catLosses': [],
+    'combinedRatioHistory': [],
+  },
+  '/api/realEstate': {
+    'reitData': [],
+    'caseShiller': ['CSUSHPISA'],
+    'mortgageRates': ['MORTGAGE30US'],
+    'housingAffordability': [],
+    'homePriceIndex': [],
+    'supplyData': ['HOUST'],
+    'homeownershipRate': ['RSAHORUS'],
+    'rentCpi': ['CPIAUCSL'],
+    'reitEtf': [],
+    'treasury10y': ['DGS10'],
+    'existingHomeSales': ['EXHOSLUS'],
+    'rentalVacancy': [],
+    'housingStarts': ['HOUST'],
+    'medianHomePrice': [],
+    'capRateData': [],
+    'foreclosureData': [],
+    'mbaApplications': [],
+    'creDelinquencies': [],
+  },
+  '/api/derivatives': {
+    'vixTermStructure': ['VIXCLS'],
+    'vixEnrichment': [],
+    'optionsFlow': [],
+    'volSurfaceData': [],
+    'volPremium': [],
+    'fredVixHistory': ['VIXCLS'],
+    'putCallRatio': [],
+    'skewIndex': ['SKEW'],
+    'skewHistory': ['SKEW'],
+    'gammaExposure': [],
+    'vixPercentile': [],
+    'termSpread': [],
+  },
+  '/api/sentiment': {
+    'fearGreedData': [],
+    'vixData': ['VIXCLS'],
+    'hySpreadData': ['BAMLH0A0HYM2'],
+    'igSpreadData': ['BAMLC0A0CM'],
+    'yieldCurveData': ['DGS10', 'DGS2'],
+    'cftcCot': [],
+    'marginDebt': ['ANEDBI'],
+    'mutualFundFlows': [],
+    'consumerCredit': [],
+    'vvixData': [],
+    'financialStressIndex': [],
+  },
+  '/api/calendar': {
+    'econEvents': [],
+    'centralBankRates': [],
+    'earnings': [],
+    'fredReleases': [],
+    'treasuryAuctions': [],
+    'dividends': [],
+  },
+  '/api/globalMacro': {
+    'worldBankIndicators': [],
+    'fredRates': ['FEDFUNDS', 'DGS10'],
+    'fredRateHistory': ['FEDFUNDS'],
+    'fredMacroHistory': ['UNRATE', 'GDP', 'CPIAUCSL', 'M2SL'],
+    'oecdCli': [],
+    'blsCpi': ['CPIAUCSL', 'CPILFESL'],
+  },
+  '/api/equityDeepDive': {
+    'sectorETFs': [],
+    'factorStocks': [],
+    'shortInterest': [],
+    'equityRiskPremium': [],
+    'spPE': ['SP500'],
+    'breadthDivergence': [],
+    'buffettIndicator': [],
+  },
+};
+
+function getSeriesForSource(endpointPath, sourceKey) {
+  return ENDPOINT_SERIES_MAP[endpointPath]?.[sourceKey] || [];
+}
+
 const LAYOUT = {
   lg: [
-    { i: 'server', x: 0, y: 0, w: 3, h: 3 },
-    { i: 'source-health', x: 3, y: 0, w: 3, h: 5 },
-    { i: 'endpoints', x: 6, y: 0, w: 3, h: 5 },
-    { i: 'freshness', x: 9, y: 0, w: 3, h: 5 },
-    { i: 'error-log', x: 0, y: 3, w: 3, h: 4 },
-    { i: 'mem-cache', x: 3, y: 5, w: 3, h: 3 },
-    { i: 'cache-files', x: 6, y: 5, w: 3, h: 3 },
-    { i: 'routes', x: 9, y: 5, w: 3, h: 3 },
+    { i: 'provenance', x: 0, y: 0, w: 6, h: 6 },
+    { i: 'server', x: 6, y: 0, w: 3, h: 3 },
+    { i: 'source-health', x: 9, y: 0, w: 3, h: 5 },
+    { i: 'endpoints', x: 6, y: 3, w: 3, h: 5 },
+    { i: 'freshness', x: 9, y: 5, w: 3, h: 5 },
+    { i: 'error-log', x: 0, y: 6, w: 6, h: 3 },
+    { i: 'mem-cache', x: 6, y: 8, w: 3, h: 3 },
+    { i: 'cache-files', x: 9, y: 10, w: 3, h: 3 },
+    { i: 'routes', x: 6, y: 11, w: 3, h: 3 },
   ]
 };
 
@@ -135,6 +451,17 @@ export default function AnalyticsMarket() {
       </div>
       <div className="ana-dashboard ana-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="analytics-layout">
+
+          {/* Provenance Audit */}
+          <div key="provenance" className="ana-bento-card">
+            <div className="ana-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Provenance Audit</span>
+              <span className="bento-panel-subtitle">Cross-reference _sources with FRED</span>
+            </div>
+            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+              <ProvenanceAudit />
+            </div>
+          </div>
 
           {/* Server Info */}
           <div key="server" className="ana-bento-card">

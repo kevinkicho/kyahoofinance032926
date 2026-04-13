@@ -9,26 +9,19 @@ function fmtChangePct(v) {
   return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
 }
 
-function InsuranceMarket({ autoRefresh } = {}) {
+function InsuranceMarket({ autoRefresh, refreshKey } = {}) {
   const {
     catBondSpreads, combinedRatioData, reserveAdequacyData,
     reinsurancePricing, reinsurers, fredHyOasHistory,
     sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
     catLosses, combinedRatioHistory,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useInsuranceData(autoRefresh);
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch,
+  } = useInsuranceData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
   return (
     <div className="ins-market">
-      <div className="ins-status-bar">
-        <span className={isLive ? 'ins-status-live' : ''}>
-          {isLive ? '● Live · Yahoo Finance / FRED' : '○ Mock data — static'}
-        </span>
-        {lastUpdated && <span>Updated: {lastUpdated}</span>}
-        {!isCurrent && fetchedOn && <span className="ins-stale-badge">Stale · fetched {fetchedOn}</span>}
-      </div>
       <InsuranceDashboard
         catBondSpreads={catBondSpreads}
         combinedRatioData={combinedRatioData}
@@ -42,6 +35,9 @@ function InsuranceMarket({ autoRefresh } = {}) {
         treasury10y={treasury10y}
         catLosses={catLosses}
         combinedRatioHistory={combinedRatioHistory}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
+        fetchLog={fetchLog}
       />
     </div>
   );

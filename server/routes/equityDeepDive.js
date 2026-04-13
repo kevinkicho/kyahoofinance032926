@@ -266,7 +266,7 @@ router.get('/', async (req, res) => {
       const sq = await yf.quote(EQ_SHORT_TICKERS);
       const sqArr = Array.isArray(sq) ? sq : [sq];
       sqArr.filter(q => q).forEach(q => { shortQuotes[q.symbol] = q; });
-    } catch { /* proceed with empty quotes */ }
+    } catch (e) { console.warn('[EquityDeepDive]', e.message || e); }
 
     const mostShorted = [];
     shortSummaryResults.forEach(r => {
@@ -378,6 +378,7 @@ router.get('/', async (req, res) => {
       console.warn('Buffett Indicator fetch failed:', e.message);
     }
 
+    const hasData = v => v != null && !(Array.isArray(v) && v.length === 0) && !(typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
     const result = {
       sectorData:   { sectors },
       factorData,
@@ -387,6 +388,15 @@ router.get('/', async (req, res) => {
       spPE,
       breadthDivergence,
       buffettIndicator,
+      _sources: {
+        sectorETFs:         hasData(sectors),
+        factorStocks:       hasData(factorStocks),
+        shortInterest:      hasData(mostShorted),
+        equityRiskPremium:  hasData(equityRiskPremium),
+        spPE:               spPE != null,
+        breadthDivergence:  hasData(breadthDivergence),
+        buffettIndicator:   hasData(buffettIndicator),
+      },
       lastUpdated:  today,
     };
 

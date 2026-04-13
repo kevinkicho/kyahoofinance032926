@@ -3,6 +3,7 @@ import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import GlobalKpiStrip from './GlobalKpiStrip';
 import CountryDetailPanel from './CountryDetailPanel';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './GlobalMacroDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -96,6 +97,7 @@ const LAYOUT = {
 function GlobalMacroDashboard({
   scorecardData, growthInflationData, centralBankData, debtData,
   m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
+  fetchLog, isLive, lastUpdated,
 }) {
   const { colors } = useTheme();
   const [selectedCountry, setSelectedCountry] = useState(null);
@@ -169,6 +171,7 @@ function GlobalMacroDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="World Bank / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
 
           {/* GDP Growth */}
@@ -179,6 +182,7 @@ function GlobalMacroDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <GdpBars data={sortedByGdp} />
             </div>
+            <DataFooter source="World Bank / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
 
           {/* CPI Inflation */}
@@ -189,6 +193,7 @@ function GlobalMacroDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <CpiBars data={sortedByCpi} />
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
 
           {/* Policy Rates */}
@@ -199,6 +204,7 @@ function GlobalMacroDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <RateBars data={centralBankData} />
             </div>
+            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
 
           {/* Debt / GDP */}
@@ -209,6 +215,7 @@ function GlobalMacroDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <DebtBars data={debtData} />
             </div>
+            <DataFooter source="World Bank / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
 
           {/* Economic Activity */}
@@ -233,6 +240,7 @@ function GlobalMacroDashboard({
                 )}
               </div>
             </div>
+            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
 
           {/* OECD CLI */}
@@ -253,6 +261,7 @@ function GlobalMacroDashboard({
                 ))}
               </div>
             </div>
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         </BentoWrapper>
 

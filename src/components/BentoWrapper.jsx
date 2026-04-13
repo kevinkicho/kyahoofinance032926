@@ -18,13 +18,33 @@ function saveLayout(key, layout) {
   try { localStorage.setItem(key, JSON.stringify(layout)); } catch {}
 }
 
+function mergeLayoutWithDefaults(saved, defaults) {
+  const savedMap = new Map(saved.map(item => [item.i, item]));
+  const seen = new Set();
+  const merged = [];
+  for (const def of defaults) {
+    seen.add(def.i);
+    if (savedMap.has(def.i)) {
+      merged.push(savedMap.get(def.i));
+    } else {
+      merged.push({ ...def });
+    }
+  }
+  for (const item of saved) {
+    if (!seen.has(item.i)) {
+      merged.push(item);
+    }
+  }
+  return merged;
+}
+
 export default function BentoWrapper({ children, layout, className = "", storageKey, draggableHandle = ".bento-panel-title-row" }) {
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: 1200 });
 
   const [currentLayout, setCurrentLayout] = useState(() => {
     if (storageKey) {
       const saved = loadLayout(storageKey);
-      if (saved) return saved;
+      if (saved) return mergeLayoutWithDefaults(saved, layout.lg);
     }
     return layout.lg;
   });

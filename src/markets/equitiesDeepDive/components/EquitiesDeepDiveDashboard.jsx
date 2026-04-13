@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquitiesDeepDiveDashboard.css';
 
@@ -264,6 +265,9 @@ function EquitiesDeepDiveDashboard({
   spPE,
   buffettIndicator,
   breadthDivergence,
+  fetchLog,
+  isLive,
+  lastUpdated,
 }) {
   const { colors } = useTheme();
 
@@ -439,6 +443,7 @@ function EquitiesDeepDiveDashboard({
                 )}
               </div>
             )}
+            <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         </div>
 
@@ -450,6 +455,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
         )}
@@ -462,6 +468,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
         )}
@@ -474,6 +481,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
         )}
@@ -486,6 +494,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
         )}
@@ -519,6 +528,7 @@ function EquitiesDeepDiveDashboard({
                   ))}
                 </tbody>
               </table>
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
         )}
@@ -552,6 +562,7 @@ function EquitiesDeepDiveDashboard({
                   ))}
                 </tbody>
               </table>
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
         )}
@@ -571,6 +582,7 @@ function EquitiesDeepDiveDashboard({
                   </div>
                 ))}
               </div>
+              <DataFooter source="SEC EDGAR / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
         )}

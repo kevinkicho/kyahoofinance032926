@@ -7,7 +7,7 @@ import EquitiesDeepDiveDashboard from './components/EquitiesDeepDiveDashboard';
 import './EquitiesDeepDiveMarket.css';
 
 // Unified dashboard - all content visible at once
-function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
+function EquitiesDeepDiveMarket({ autoRefresh, refreshKey } = {}) {
   const {
     sectorData,
     factorData,
@@ -22,9 +22,11 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
     isLoading,
     fetchedOn,
     isCurrent,
-  } = useEquityDeepDiveData(autoRefresh);
+    fetchLog,
+    refetch,
+  } = useEquityDeepDiveData(autoRefresh, refreshKey);
 
-  const institutionalData = useInstitutionalData(autoRefresh);
+  const institutionalData = useInstitutionalData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
@@ -32,7 +34,7 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
     <div className="eqd-market">
       <div className="eqd-status-bar">
         <span className={isLive ? 'eqd-status-live' : ''}>
-          {isLive ? '● Live · Yahoo Finance' : '○ Mock data — static'}
+          {isLive ? '● FETCHED · Yahoo Finance / FRED' : '○ No data received'}
         </span>
         {lastUpdated && <span>Updated: {lastUpdated}</span>}
         {!isCurrent && fetchedOn && <span className="eqd-stale-badge">Stale · fetched {fetchedOn}</span>}
@@ -47,6 +49,9 @@ function EquitiesDeepDiveMarket({ autoRefresh } = {}) {
         spPE={spPE}
         buffettIndicator={buffettIndicator}
         breadthDivergence={breadthDivergence}
+        fetchLog={fetchLog}
+        isLive={isLive}
+        lastUpdated={lastUpdated}
       />
     </div>
   );

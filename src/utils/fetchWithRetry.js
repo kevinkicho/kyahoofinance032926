@@ -13,7 +13,7 @@ export async function fetchWithRetry(url, { retries = 2, timeout = 10000, backof
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeout);
     try {
-      const res = await fetch(url, { signal: controller.signal });
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
       clearTimeout(timer);
       if (!res.ok) throw new Error(res.status);
       return res;

@@ -12,14 +12,28 @@ export function todayStr() { return new Date().toISOString().split('T')[0]; }
 export function readDailyCache(market) {
   try {
     const fp = path.join(CACHE_DIR, `${market}-${todayStr()}.json`);
-    if (fs.existsSync(fp)) return JSON.parse(fs.readFileSync(fp, 'utf8'));
+    if (fs.existsSync(fp)) {
+      const data = JSON.parse(fs.readFileSync(fp, 'utf8'));
+      const str = JSON.stringify(data);
+      if (str.length < 200) {
+        console.warn(`[datacache] skipping stale cache for ${market}: too small (${str.length} bytes)`);
+        return null;
+      }
+      return data;
+    }
   } catch { /* skip */ }
   return null;
 }
 
 export function writeDailyCache(market, data) {
   try {
-    fs.writeFileSync(path.join(CACHE_DIR, `${market}-${todayStr()}.json`), JSON.stringify(data), 'utf8');
+    if (!data || typeof data !== 'object') return;
+    const str = JSON.stringify(data);
+    if (str.length < 200) {
+      console.warn(`[datacache] skipping cache for ${market}: response too small (${str.length} bytes), likely empty`);
+      return;
+    }
+    fs.writeFileSync(path.join(CACHE_DIR, `${market}-${todayStr()}.json`), str, 'utf8');
   } catch (e) { console.warn(`[datacache] write failed for ${market}:`, e.message); }
 }
 

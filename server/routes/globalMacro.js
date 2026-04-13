@@ -246,7 +246,7 @@ router.get('/', async (req, res) => {
       trackApiCall('FRED');
       const fredResults = await Promise.allSettled(
         Object.entries(MACRO_FRED_RATES).map(async ([code, meta]) => ({
-          code, rate: await fetchFredLatestRate(meta.id, FRED_API_KEY).catch(() => null),
+          code, rate: await fetchFredLatestRate(meta.id, FRED_API_KEY).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
         }))
       );
       fredResults.forEach(r => {
@@ -278,12 +278,12 @@ router.get('/', async (req, res) => {
     if (FRED_API_KEY) {
       trackApiCall('FRED');
       const [m2Res, tbRes, ipRes, csRes, ysRes, cfnaiRes] = await Promise.allSettled([
-        fetchFredHistory('M2SL',    FRED_API_KEY, 36).catch(() => null),
-        fetchFredHistory('BOPGSTB', FRED_API_KEY, 24).catch(() => null),
-        fetchFredHistory('INDPRO',  FRED_API_KEY, 24).catch(() => null),
-        fetchFredHistory('UMCSENT', FRED_API_KEY, 24).catch(() => null),
-        fetchFredHistory('T10Y2Y',  FRED_API_KEY, 36).catch(() => null),
-        fetchFredHistory('CFNAIMA', FRED_API_KEY, 36).catch(() => null),
+        fetchFredHistory('M2SL',    FRED_API_KEY, 36).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
+        fetchFredHistory('BOPGSTB', FRED_API_KEY, 24).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
+        fetchFredHistory('INDPRO',  FRED_API_KEY, 24).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
+        fetchFredHistory('UMCSENT', FRED_API_KEY, 24).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
+        fetchFredHistory('T10Y2Y',  FRED_API_KEY, 36).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
+        fetchFredHistory('CFNAIMA', FRED_API_KEY, 36).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
       ]);
 
       function computeYoY(obs) {
@@ -302,7 +302,7 @@ router.get('/', async (req, res) => {
             yoyPct: computeYoY(obs),
           };
         }
-      } catch (_) { /* leave null */ }
+      } catch (e) { console.warn('[GlobalMacro]', e.message || e); }
 
       try {
         const obs = tbRes.status === 'fulfilled' && tbRes.value;
@@ -312,7 +312,7 @@ router.get('/', async (req, res) => {
             values: obs.map(o => Math.round(o.value * 10) / 10),
           };
         }
-      } catch (_) { /* leave null */ }
+      } catch (e) { console.warn('[GlobalMacro]', e.message || e); }
 
       try {
         const obs = ipRes.status === 'fulfilled' && ipRes.value;
@@ -323,7 +323,7 @@ router.get('/', async (req, res) => {
             yoyPct: computeYoY(obs),
           };
         }
-      } catch (_) { /* leave null */ }
+      } catch (e) { console.warn('[GlobalMacro]', e.message || e); }
 
       try {
         const obs = csRes.status === 'fulfilled' && csRes.value;
@@ -333,7 +333,7 @@ router.get('/', async (req, res) => {
             values: obs.map(o => Math.round(o.value * 10) / 10),
           };
         }
-      } catch (_) { /* leave null */ }
+      } catch (e) { console.warn('[GlobalMacro]', e.message || e); }
 
       try {
         const obs = ysRes.status === 'fulfilled' && ysRes.value;
@@ -343,7 +343,7 @@ router.get('/', async (req, res) => {
             values: obs.map(o => Math.round(o.value * 100) / 100),
           };
         }
-      } catch (_) { /* leave null */ }
+      } catch (e) { console.warn('[GlobalMacro]', e.message || e); }
 
       try {
         const obs = cfnaiRes.status === 'fulfilled' && cfnaiRes.value;
@@ -354,7 +354,7 @@ router.get('/', async (req, res) => {
             latest: obs.length > 0 ? Math.round(obs[obs.length - 1].value * 1000) / 1000 : null,
           };
         }
-      } catch (_) { /* leave null */ }
+      } catch (e) { console.warn('[GlobalMacro]', e.message || e); }
     }
 
     // Fetch OECD Composite Leading Indicators
@@ -446,6 +446,14 @@ router.get('/', async (req, res) => {
       cfnai,
       oecdCli,
       cpiBreakdown,
+      _sources: {
+        worldBankIndicators: Object.keys(gdpRes.values).length > 0 || Object.keys(cpiRes.values).length > 0,
+        fredRates: Object.keys(fredCurrentMap).length > 0,
+        fredRateHistory: Object.keys(fredHistoryMap).length > 0,
+        fredMacroHistory: m2Growth != null || tradeBalance != null || industrialProd != null || consumerSentiment != null || yieldSpread != null || cfnai != null,
+        oecdCli: oecdCli != null && Object.keys(oecdCli).length > 0,
+        blsCpi: cpiBreakdown != null && cpiBreakdown.components?.length > 0,
+      },
       lastUpdated: today,
     };
 

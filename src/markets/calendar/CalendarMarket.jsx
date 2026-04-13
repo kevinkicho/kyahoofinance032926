@@ -1,5 +1,5 @@
 // src/markets/calendar/CalendarMarket.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import { useCalendarData } from './data/useCalendarData';
 import BentoWrapper from '../../components/BentoWrapper';
 import MarketSkeleton from '../../hub/MarketSkeleton';
@@ -7,156 +7,141 @@ import EconomicCalendar from './components/EconomicCalendar';
 import CentralBankSchedule from './components/CentralBankSchedule';
 import EarningsSeason from './components/EarningsSeason';
 import KeyReleases from './components/KeyReleases';
+import DataFooter from '../../components/DataFooter/DataFooter';
 import './CalendarMarket.css';
 
 const stopDrag = (e) => e.stopPropagation();
 
-const SUB_TABS = [
-  { id: 'economic',      label: 'Economic Calendar'  },
-  { id: 'central-banks', label: 'Central Banks'      },
-  { id: 'earnings',      label: 'Earnings Season'    },
-  { id: 'releases',      label: 'Key Releases'       },
-];
+function PanelEmpty({ label }) {
+  return <div className="cal-empty cal-empty--loading">{label ? `Loading ${label}…` : 'Loading data…'}</div>;
+}
 
-const LAYOUTS = {
-  economic: {
-    lg: [
-      { i: 'events-table', x: 0, y: 0, w: 12, h: 5 },
-    ]
-  },
-  'central-banks': {
-    lg: [
-      { i: 'cb-rates', x: 0, y: 0, w: 6, h: 3 },
-      { i: 'cb-timeline', x: 6, y: 0, w: 6, h: 3 },
-    ]
-  },
-  earnings: {
-    lg: [
-      { i: 'earnings-calendar', x: 0, y: 0, w: 12, h: 5 },
-    ]
-  },
-  releases: {
-    lg: [
-      { i: 'key-data', x: 0, y: 0, w: 6, h: 5 },
-      { i: 'treasury', x: 6, y: 0, w: 6, h: 5 },
-    ]
-  },
+const LAYOUT = {
+  lg: [
+    { i: 'economic', x: 0, y: 0, w: 8, h: 5 },
+    { i: 'cb-rates', x: 8, y: 0, w: 4, h: 3 },
+    { i: 'cb-timeline', x: 8, y: 3, w: 4, h: 2 },
+    { i: 'earnings', x: 0, y: 5, w: 8, h: 5 },
+    { i: 'key-data', x: 8, y: 5, w: 4, h: 5 },
+    { i: 'treasury', x: 0, y: 10, w: 6, h: 4 },
+    { i: 'options', x: 6, y: 10, w: 6, h: 4 },
+  ]
 };
 
-function CalendarMarket({ autoRefresh } = {}) {
-  const [activeTab, setActiveTab] = useState('economic');
+function CalendarMarket({ autoRefresh, refreshKey } = {}) {
   const {
     economicEvents, centralBanks, earningsSeason, keyReleases,
     treasuryAuctions, optionsExpiry, dividendCalendar,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent,
-  } = useCalendarData(autoRefresh);
+    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch,
+  } = useCalendarData(autoRefresh, refreshKey);
 
   if (isLoading) return <MarketSkeleton />;
 
-  const layout = LAYOUTS[activeTab] || LAYOUTS.economic;
-
-  const renderBentoCards = () => {
-    switch (activeTab) {
-      case 'economic':
-        return (
-          <div key="events-table" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Economic Calendar</span>
-              <span className="bento-panel-subtitle">High-importance macro releases · next 30 days · Econdb</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              <EconomicCalendar economicEvents={economicEvents} insideBento />
-            </div>
-          </div>
-        );
-      case 'central-banks':
-        return (
-          <>
-            <div key="cb-rates" className="cal-bento-card">
-              <div className="cal-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">Central Bank Rates</span>
-                <span className="bento-panel-subtitle">Policy rate decisions · Fed / ECB / BOE / BOJ · FRED</span>
-              </div>
-              <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-                <CentralBankSchedule centralBanks={centralBanks} section="rates" />
-              </div>
-            </div>
-            <div key="cb-timeline" className="cal-bento-card">
-              <div className="cal-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">Upcoming Meetings</span>
-                <span className="bento-panel-subtitle">Next scheduled decisions</span>
-              </div>
-              <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-                <CentralBankSchedule centralBanks={centralBanks} section="timeline" />
-              </div>
-            </div>
-          </>
-        );
-      case 'earnings':
-        return (
-          <div key="earnings-calendar" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Earnings Season</span>
-              <span className="bento-panel-subtitle">Mega-cap earnings dates · next 60 days · Yahoo Finance</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              <EarningsSeason earningsSeason={earningsSeason} dividendCalendar={dividendCalendar} insideBento />
-            </div>
-          </div>
-        );
-      case 'releases':
-        return (
-          <>
-            <div key="key-data" className="cal-bento-card">
-              <div className="cal-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">Key US Releases</span>
-                <span className="bento-panel-subtitle">Scheduled macro data · FRED releases</span>
-              </div>
-              <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-                <KeyReleases keyReleases={keyReleases} section="data" />
-              </div>
-            </div>
-            <div key="treasury" className="cal-bento-card">
-              <div className="cal-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">Treasury Auctions & Options</span>
-                <span className="bento-panel-subtitle">US Treasury & options expiry</span>
-              </div>
-              <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-                <KeyReleases keyReleases={[]} treasuryAuctions={treasuryAuctions} optionsExpiry={optionsExpiry} section="treasury" />
-              </div>
-            </div>
-          </>
-        );
-      default:
-        return null;
-    }
-  };
+  const dataReady = isLive || economicEvents.length || centralBanks.length || earningsSeason.length || keyReleases.length;
 
   return (
     <div className="cal-market">
-      <div className="cal-sub-tabs" role="tablist" aria-label="Sub-tabs">
-        {SUB_TABS.map(t => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={activeTab === t.id}
-            className={`cal-sub-tab${activeTab === t.id ? ' active' : ''}`}
-            onClick={() => setActiveTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <div className="cal-status-bar">
-        <span className={isLive ? 'cal-status-live' : ''}>
-          {isLive ? '● Live · Econdb / FRED / Yahoo Finance' : '○ Mock data — static'}
-        </span>
-        {lastUpdated && <span>Updated: {lastUpdated}</span>}
-        {!isCurrent && fetchedOn && <span className="cal-stale-badge">Stale · fetched {fetchedOn}</span>}
-      </div>
+
       <div className="cal-dashboard cal-dashboard--bento">
-        <BentoWrapper layout={layout} storageKey={`calendar-${activeTab}-layout`}>
-          {renderBentoCards()}
+        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout">
+          <div key="economic" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Economic Calendar</span>
+              <span className="bento-panel-subtitle">High-importance macro releases · next 30 days</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              {economicEvents.length > 0
+                ? <EconomicCalendar economicEvents={economicEvents} insideBento />
+                : <PanelEmpty label="economic events" />}
+            </div>
+            <DataFooter source="Econdb / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          </div>
+
+          <div key="cb-rates" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Central Bank Rates</span>
+              <span className="bento-panel-subtitle">Fed / ECB / BOE / BOJ</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              {centralBanks.length > 0
+                ? <CentralBankSchedule centralBanks={centralBanks} section="rates" />
+                : <PanelEmpty label="central bank rates" />}
+            </div>
+            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          </div>
+
+          <div key="cb-timeline" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Upcoming Meetings</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              {centralBanks.length > 0
+                ? <CentralBankSchedule centralBanks={centralBanks} section="timeline" />
+                : <PanelEmpty label="meeting schedule" />}
+            </div>
+            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          </div>
+
+          <div key="earnings" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Earnings Season</span>
+              <span className="bento-panel-subtitle">Mega-cap earnings · next 60 days</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              {earningsSeason.length > 0
+                ? <EarningsSeason earningsSeason={earningsSeason} dividendCalendar={dividendCalendar} insideBento />
+                : <PanelEmpty label="earnings data" />}
+            </div>
+            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          </div>
+
+          <div key="key-data" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Key US Releases</span>
+              <span className="bento-panel-subtitle">Scheduled macro data</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              {keyReleases.length > 0
+                ? <KeyReleases keyReleases={keyReleases} section="data" />
+                : <PanelEmpty label="key releases" />}
+            </div>
+            <DataFooter source="FRED / BLS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          </div>
+
+          <div key="treasury" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Treasury Auctions</span>
+              <span className="bento-panel-subtitle">US Treasury schedule</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              {treasuryAuctions && treasuryAuctions.length > 0
+                ? <KeyReleases keyReleases={[]} treasuryAuctions={treasuryAuctions} optionsExpiry={[]} section="treasury" />
+                : <PanelEmpty label="treasury auctions" />}
+            </div>
+            <DataFooter source="US Treasury" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          </div>
+
+          <div key="options" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Options Expiry</span>
+              <span className="bento-panel-subtitle">Monthly expiry dates</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              {(optionsExpiry && optionsExpiry.length > 0) ? (
+                <div className="cal-options-grid">
+                  {optionsExpiry.map((e, i) => (
+                    <div key={i} className="cal-options-card">
+                      <span className="cal-options-date">{e.date}</span>
+                      <span className="cal-options-type">{e.type}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="cal-empty">No upcoming options expiry dates</div>
+              )}
+            </div>
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          </div>
         </BentoWrapper>
       </div>
     </div>

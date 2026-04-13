@@ -1,5 +1,5 @@
 // src/markets/alerts/data/useAlertsData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useDataStatus } from '../../../hooks/useDataStatus';
 
@@ -123,13 +123,13 @@ const ENDPOINTS = [
   { key: 'fx',          url: `${SERVER}/api/fx` },
 ];
 
-export function useAlertsData() {
+export function useAlertsData(autoRefresh = false, refreshKey = 0) {
   const [alerts, setAlerts]       = useState([]);
 
   // Status with error handling
-  const { isLoading, error, fetchedOn, handleFinally, setFetchedOn } = useDataStatus();
+  const { isLoading, error, fetchedOn, fetchLog, handleFinally, setFetchedOn, logFetch } = useDataStatus();
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     const promises = ENDPOINTS.map(ep =>
       fetchWithRetry(ep.url, { retries: 1, timeout: 8000 })
         .then(r => r.json())
@@ -153,7 +153,6 @@ export function useAlertsData() {
         }
       }
 
-      // Run rules
       const triggered = [];
       for (const rule of ALERT_RULES) {
         try {
@@ -169,11 +168,9 @@ export function useAlertsData() {
             });
           }
         } catch {
-          // Defensive: skip rule if check throws
         }
       }
 
-      // Sort by severity
       triggered.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
 
       setAlerts(triggered);
@@ -182,5 +179,8 @@ export function useAlertsData() {
     });
   }, [handleFinally, setFetchedOn]);
 
-  return { alerts, rules: ALERT_RULES, isLoading, error, fetchedOn };
+  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { if (refreshKey > 0) fetchData(); }, [refreshKey]);
+
+  return { alerts, rules: ALERT_RULES, isLoading, error, fetchedOn, fetchLog, refetch: fetchData };
 }

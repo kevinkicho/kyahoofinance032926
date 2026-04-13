@@ -200,7 +200,7 @@ router.get('/', async (_req, res) => {
           durationYr: meta.durationYr,
         };
       });
-    } catch { /* ETF fetch failed */ }
+    } catch (e) { console.warn('[Credit]', e.message || e); }
 
     if (spreadData) spreadData.etfs = etfs;
 
@@ -269,6 +269,17 @@ router.get('/', async (_req, res) => {
       },
     };
 
+    const _sources = {
+      spreadData:       spreadData != null,
+      emBondData:       emBondData != null,
+      loanData:         loanData != null,
+      defaultData:      defaultData != null,
+      delinquencyRates: delinquencyRates != null,
+      lendingStandards:  lendingStandards != null,
+      commercialPaper:  commercialPaper != null,
+      excessReserves:   excessReserves != null,
+    };
+
     const finalSpreadData = spreadData ?? {
       current: { igSpread: 98, hySpread: 342, emSpread: 285, bbbSpread: 138, cccSpread: 842 },
       history: {
@@ -282,6 +293,7 @@ router.get('/', async (_req, res) => {
     };
 
     const result = {
+      _sources,
       spreadData:  finalSpreadData,
       emBondData,
       loanData,

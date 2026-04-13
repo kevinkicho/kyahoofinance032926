@@ -313,11 +313,47 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 
 ### Data Hooks
 Each market has an async hook (`useState` + `useEffect` + `fetchWithRetry`) that:
-1. Initializes with mock data
+1. Initializes with `null` state (no mock data — empty states shown until real data arrives)
 2. Fetches `/api/*` with retry logic (2 retries, exponential backoff) + AbortController timeout
-3. Upgrades to live data on success (`isLive: true`)
-4. Falls back silently to mock on failure
-5. Supports auto-refresh polling via `useInterval` (5min when enabled)
+3. Sets `isLive: true` on success, logs each fetch via `logFetch()` with URL, status, duration, and per-source breakdown
+4. Falls back silently to `null` on failure (panels show "—" or "No data")
+5. Supports manual refresh via `refreshKey` (▶ button) and auto-refresh polling via `useInterval` (5 min when enabled)
+6. Exposes `fetchLog` (array of API call records) and `refetch()` for provenance tracing
+
+## Data Provenance & Transparency
+
+Every data point in the app is traceable to its source. Two provenance components are wired into every market dashboard:
+
+### DataFooter (per panel)
+- Click the FETCHED/NO DATA/PENDING badge at the bottom of any panel
+- Expands a popover showing:
+  - **API Call History** — timestamped log of every fetch (URL, HTTP status, duration)
+  - **Data Sources Received** — each source key with ✓/✗ received status
+  - **FRED Series** — for FRED-backed sources, shows Series Page and Fetch JSON links with API key
+  - **Verify** — click to confirm data exists at the original API
+
+### MetricValue (per data point)
+- Click any major metric value (e.g., EUR/USD rate, VIX level, 10Y yield)
+- Expands a popover showing:
+  - Current value, source name, series ID
+  - Local timestamp with UTC offset (down to seconds)
+  - FRED Series Page link
+  - Fetch JSON link (includes API key for direct browser verification)
+
+### Provenance Audit (Analytics tab)
+- Click "Run Audit" to fetch all 12+ market endpoints
+- Cross-references `_sources` from each endpoint response
+- Shows received/missing status per source
+- Lists FRED series IDs with Series Page and Fetch JSON links
+- "Verify" button calls FRED API directly to confirm data exists
+
+### Data Provenance Rules
+- **Never** display mock or fabricated data — show "—" or empty state if no real data
+- **Never** label REST API data as "Live" — use FETCHED for successful fetches, NO DATA or PENDING otherwise
+- All timestamps show seconds precision with UTC offset (YYYY-MM-DD HH:MM:SS UTC+XX:XX)
+- Popovers use click-to-open (not hover), auto-position to avoid viewport overflow
+- All links inside popovers are clickable
+- Data does NOT auto-fetch on tab visit — only fetches on manual ▶ refresh or when auto-refresh is toggled On
 
 ## Global Equity Dashboard
 
@@ -429,6 +465,7 @@ src/
     MarketSkeleton.jsx           # Shimmer loading placeholder
   hooks/
     useInterval.js               # Reusable polling interval hook
+    useDataStatus.js              # Shared hook: fetchLog, isLive, lastUpdated, logFetch(), error handling
   markets/
     equities/                   # Global equity heatmap + all views
     bonds/                      # Unified dashboard (yield curve, spreads, breakevens)
@@ -446,7 +483,7 @@ src/
     alerts/                     # Active alerts + alert rules
     watchlist/                  # My tickers + my metrics
     analytics/                  # API usage, endpoint metrics, data freshness, cache inventory
-  components/                   # Shared: BentoWrapper, SafeECharts, HeatmapView, DetailPanel, Sidebar, etc.
+  components/                   # Shared: BentoWrapper, SafeECharts, DataFooter, MetricValue, HeatmapView, DetailPanel, Sidebar, etc.
   utils/                        # FX rates, fetchWithRetry, data helpers, constants
   __tests__/                    # 297 tests across 49 files
 server/
@@ -460,23 +497,23 @@ server/
 
 - `yahoo-finance2` is an unofficial scraper — for personal/educational use only
 - `server/datacache/`, `data/stocks/`, and `prices/` are gitignored
-- All markets work with mock data if the server is unavailable
+- All markets show empty states ("—") when no real data is available instead of mock data
 - FRED API key is free at [fred.stlouisfed.org/docs/api](https://fred.stlouisfed.org/docs/api/api_key.html)
 
 ## Recent Updates
 
+  - **Data Provenance System** — Every panel has a DataFooter showing FETCHED/NO DATA/PENDING badge with click-to-expand popover showing full API call history, per-source receipt status, FRED series links, and Verify buttons. Every key metric value has a MetricValue popover showing source, series ID, timestamp (seconds + UTC offset), and Fetch JSON link.
+  - **Provenance Audit** — Analytics tab now includes a cross-market audit that fetches all 12+ endpoints, lists received/missing sources per endpoint, shows FRED series IDs, and lets users Verify data directly against the FRED API.
+  - **Mock Data Removed** — All 15+ data hooks now initialize state to `null` instead of importing mock data files. Panels show empty states ("—") until real API data arrives. Mock data files have been deleted.
+  - **Manual Refresh System** — Added ▶ refresh button in the tab bar that increments a `refreshKey` to trigger data fetches across all markets. Auto-refresh toggle (On/Off) controls 5-minute polling. Data does NOT auto-fetch on tab visit.
+  - **Server-Side `_sources` Tracking** — All 15+ server route files now include `_sources` in their JSON response, listing which data sources were successfully fetched. Used by DataFooter and Provenance Audit.
+  - **Server-Side Error Logging** — Replaced 50+ silent `catch { /* null */ }` patterns with `console.warn` across all routes. `fetchJSON` now includes User-Agent header and proper HTTP error handling.
+  - **FRED API Fixes** — Replaced broken Treasury Fiscal Data API URLs (404s) with FRED equivalents (GFDEBTN, TB3MS, GS10, GS30). Changed strict data thresholds (`>= 20`, `>= 12`, etc.) to `> 0` to avoid false "missing" sources.
+  - **Stale Cache Handling** — Cleared all stale `datacache/` files. Daily cache now rebuilds from fresh FRED data on server restart.
   - **Bento Grid Layout** — Converting all 15 market dashboards from static sidebar+grid layouts to draggable/resizable bento-box panels using `react-grid-layout`. Panels can be rearranged by dragging the title bar and resized via corner handles. Layout changes persist to `localStorage` per tab, so users don't lose their arrangement when switching markets.
   - **Bento Persistence** — `BentoWrapper` component saves panel positions to `localStorage` via `storageKey` prop. Each market (equities, bonds, commodities, FX, etc.) has its own key. Drag handles use `.bento-panel-title-row`, content areas use `.bento-panel-content` for text selection while preventing accidental panel drags.
   - **All 16 Market Views Converted** — Every tab now uses the bento grid layout: Equities, Bonds, Commodities, FX, Derivatives, Real Estate, Insurance, Global Macro, Equities+ (Deep Dive), Crypto, Credit, Sentiment, Calendar, Alerts, Watchlist, Analytics. Each has its own `storageKey` for localStorage persistence. Calendar and Watchlist use tab-dependent layouts (different bento configs per sub-tab).
-  - **CSS Consolidation** — Each market has a single consolidated CSS file. Old split CSS files (MacroComponents, CountryDetailPanel, EquityComponents, InstitutionalHoldings, CryptoComponents, CreditComponents, SentimentComponents, DerivativesMarket, RealEstateMarket, InsuranceMarket, FXMarket, GlobalMacroMarket, CalendarComponents, AlertsMarket) have been deleted. Sub-component CSS imports now point to the single dashboard-level or market-level CSS.
-  - **Flex Layout Fix** — All bento dashboards now fill the full viewport height. Fixed a CSS flex chain issue where `main` wasn't a flex container, causing panels to show only ~35% of available space. Added `display: flex; flex-direction: column` to `<main>` and moved `.com-bento-root` flex rules into shared `BentoWrapper.css` for consistent loading order.
-  - **BentoWrapper Shared Styles** — Moved core `.com-bento-root` flex rules and card base styles into `BentoWrapper.css` so they're always available regardless of which tab loaded first. This prevents layout breaks when visiting markets in different orders.
-  - **Responsive Bento Content** — Panel contents scale to fit card size using CSS container queries (`@container bento-card` and `@container panel-content`). KPI pills, charts, tables, and metrics shrink gracefully when panels are resized smaller, instead of overflowing/scrolling.
-  - **Consolidated CSS** — Each market has a single CSS file with bento grid styles, container queries, and resize handle overrides. Market-specific accent colors (gold for commodities, green for bonds, amber for crypto, cyan for credit, etc.) are preserved on hover/border.
-  - **ECharts Dimension Safety** — Added `SafeECharts` wrapper that waits for valid container dimensions before rendering, preventing "instance disposed" and zero-dimension errors during tab switching and initial load.
-  - **Derivatives Key Fix** — Fixed duplicate React key warning (`SPY`, `QQQ`) in Options Flow by using `${ticker}-${strike}-${expiry}-${type}` composite keys.
-  - **Unified Dashboards** — Consolidated all 15 markets from multi-tab layouts to single-page "one-look" views
-  - **Bug Fixes** — Fixed data structure mismatches in Bonds, Credit, Crypto, Real Estate, Commodities, Sentiment dashboards
-  - **Heatmap Selection** — Restored click-to-select functionality in equities heatmap for detail panel
-  - **Test Coverage** — 297 tests passing across 49 files
-  - **Analytics Dashboard** — New tab showing API usage stats (external calls per source, rate limit usage), endpoint metrics (calls, avg/max response times, error rates), data freshness (current/stale/no-cache status per market), and cache file inventory. Server-side endpoint tracker middleware records every `/api/*` request. Accessible as the 16th tab.
+  - **CSS Consolidation** — Each market has a single consolidated CSS file. Old split CSS files have been deleted. Sub-component CSS imports now point to the single dashboard-level or market-level CSS.
+  - **Responsive Bento Content** — Panel contents scale to fit card size using CSS container queries. KPI pills, charts, tables, and metrics shrink gracefully when panels are resized smaller.
+  - **ECharts Dimension Safety** — Added `SafeECharts` wrapper that waits for valid container dimensions before rendering, preventing "instance disposed" and zero-dimension errors.
+  - **Analytics Dashboard** — New tab showing API usage stats, endpoint metrics, data freshness, cache inventory, and Provenance Audit.

@@ -312,7 +312,7 @@ router.get('/', async (_req, res) => {
           dates:  rows.map(r => r.date),
           values: rows.map(r => r.value),
         };
-      } catch (_) { return null; }
+      } catch (e) { console.warn('[Sentiment]', e.message || e); return null; }
     }
 
     const marginDebt      = fredHistToSeries(marginDebtResult);
@@ -321,9 +321,24 @@ router.get('/', async (_req, res) => {
     const vvixHistory      = fredHistToSeries(vvixHistResult);
     const fsiHistory       = fredHistToSeries(fsiResult);
 
+    const _sources = {
+      fearGreedData: !!(fearGreedData && fearGreedData.indicators?.length),
+      vixData: !!(vixHist.length),
+      hySpreadData: !!(hyHist.length),
+      igSpreadData: igLatest != null,
+      yieldCurveData: ycLatest != null,
+      cftcCot: !!(cftcData && cftcData.currencies?.length),
+      marginDebt: !!marginDebt,
+      mutualFundFlows: !!mutualFundFlows,
+      consumerCredit: !!consumerCredit,
+      vvixData: !!vvixHistory,
+      financialStressIndex: !!fsiHistory,
+    };
+
     const result = {
       fearGreedData, cftcData, riskData, returnsData,
       marginDebt, mutualFundFlows, consumerCredit, vvixHistory, fsiHistory,
+      _sources,
       lastUpdated: today,
     };
 

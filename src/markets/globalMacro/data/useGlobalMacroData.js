@@ -2,36 +2,28 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
-import {
-  scorecardData       as mockScorecardData,
-  growthInflationData as mockGrowthInflationData,
-  centralBankData     as mockCentralBankData,
-  debtData            as mockDebtData,
-  cfnai               as mockCfnai,
-  oecdCli             as mockOecdCli,
-  cpiBreakdown        as mockCpiBreakdown,
-} from './mockGlobalMacroData';
 
 const SERVER = '';
 
-export function useGlobalMacroData(autoRefresh = false) {
-  const [scorecardData,       setScorecardData]       = useState(mockScorecardData);
-  const [growthInflationData, setGrowthInflationData] = useState(mockGrowthInflationData);
-  const [centralBankData,     setCentralBankData]     = useState(mockCentralBankData);
-  const [debtData,            setDebtData]            = useState(mockDebtData);
+export function useGlobalMacroData(autoRefresh = false, refreshKey = 0) {
+  const [scorecardData,       setScorecardData]       = useState(null);
+  const [growthInflationData, setGrowthInflationData] = useState(null);
+  const [centralBankData,     setCentralBankData]     = useState(null);
+  const [debtData,            setDebtData]            = useState(null);
   const [m2Growth,            setM2Growth]            = useState(null);
   const [tradeBalance,        setTradeBalance]        = useState(null);
   const [industrialProd,      setIndustrialProd]      = useState(null);
   const [consumerSentiment,   setConsumerSentiment]   = useState(null);
   const [yieldSpread,         setYieldSpread]         = useState(null);
-  const [cfnai,               setCfnai]               = useState(mockCfnai);
-  const [oecdCli,             setOecdCli]             = useState(mockOecdCli);
-  const [cpiBreakdown,        setCpiBreakdown]        = useState(mockCpiBreakdown);
+  const [cfnai,               setCfnai]               = useState(null);
+  const [oecdCli,             setOecdCli]             = useState(null);
+  const [cpiBreakdown,        setCpiBreakdown]        = useState(null);
 
   // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, handleSuccess, handleError, handleFinally, logFetch } = useDataStatus();
 
   const refetch = useCallback(() => {
+    const t0 = Date.now();
     fetchWithRetry(`${SERVER}/api/globalMacro`)
       .then(r => r.json())
       .then(data => {
@@ -49,18 +41,20 @@ export function useGlobalMacroData(autoRefresh = false) {
         if (data.oecdCli?.countries?.length >= 5)   { setOecdCli(data.oecdCli);                   anyReplaced = true; }
         if (data.cpiBreakdown?.components?.length >= 3) { setCpiBreakdown(data.cpiBreakdown);       anyReplaced = true; }
         if (anyReplaced) handleSuccess(data);
+        logFetch({ url: '/api/globalMacro', status: 200, duration: Date.now() - t0, sources: { scorecardData: !!data.scorecardData, growthInflationData: !!data.growthInflationData, centralBankData: !!data.centralBankData, debtData: !!data.debtData }, seriesIds: ['NYGMNQXDC', 'CPIAUCSL', 'FEDFUNDS', 'GDP', 'M2SL'] });
       })
-      .catch((err) => handleError(err, 'GlobalMacro'))
+      .catch((err) => { handleError(err, 'GlobalMacro'); logFetch({ url: '/api/globalMacro', status: 0, duration: Date.now() - t0, error: err?.message || 'Fetch failed' }); })
       .finally(() => handleFinally());
-  }, [handleSuccess, handleError, handleFinally]);
+  }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
   return {
     scorecardData, growthInflationData, centralBankData, debtData,
     m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
-    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent,
+    isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch,
   };
 }

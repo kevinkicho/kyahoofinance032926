@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
 import './BondsDashboard.css';
 
@@ -10,7 +11,7 @@ const COUNTRY_COLORS = {
   CN: '#f87171', AU: '#4ade80',
 };
 
-export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYieldHistory, yieldHistory }) {
+export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYieldHistory, yieldHistory, lastUpdated }) {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
@@ -167,18 +168,18 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
       <div className="bonds-kpi-strip">
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">US 10Y</span>
-          <span className="bonds-kpi-value accent">{us10y != null ? `${us10y.toFixed(2)}%` : '\u2014'}</span>
+          <span className="bonds-kpi-value accent"><MetricValue value={us10y} format={v => `${v.toFixed(2)}%`} seriesKey="10y" timestamp={lastUpdated} /></span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">10Y&minus;2Y</span>
           <span className={`bonds-kpi-value ${spread10y2y != null && spread10y2y >= 0 ? 'positive' : 'negative'}`}>
-            {spread10y2y != null ? `${spread10y2y >= 0 ? '+' : ''}${spread10y2y.toFixed(2)}%` : '\u2014'}
+            <MetricValue value={spread10y2y} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y2y" timestamp={lastUpdated} />
           </span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">10Y&minus;3M</span>
           <span className={`bonds-kpi-value ${spread10y3m != null && spread10y3m >= 0 ? 'positive' : 'negative'}`}>
-            {spread10y3m != null ? `${spread10y3m >= 0 ? '+' : ''}${spread10y3m.toFixed(2)}%` : '\u2014'}
+            <MetricValue value={spread10y3m} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y3m" timestamp={lastUpdated} />
           </span>
         </div>
         <div className="bonds-kpi-pill">
@@ -203,7 +204,7 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
                 <div className="bonds-bar-track">
                   <div className="bonds-bar-fill" style={{ width: `${pct}%`, background: '#10b981' }} />
                 </div>
-                <span className="bonds-bar-val">{val != null ? `${val.toFixed(2)}%` : '\u2014'}</span>
+                <span className="bonds-bar-val"><MetricValue value={val} format={v => `${v.toFixed(2)}%`} seriesKey={t} timestamp={lastUpdated} /></span>
               </div>
             );
           })}

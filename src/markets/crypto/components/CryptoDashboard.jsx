@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './CryptoDashboard.css';
 
 const LAYOUT = {
@@ -29,6 +30,9 @@ function CryptoDashboard({
   btcDominance,
   topExchanges,
   ethGas,
+  isLive,
+  lastUpdated,
+  fetchLog,
 }) {
   const { colors } = useTheme();
 
@@ -159,6 +163,7 @@ function CryptoDashboard({
               </div>
             )}
           </div>
+          <DataFooter source="CoinGecko / FRED" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
         </div>
 
         {/* Top Cryptos */}
@@ -180,6 +185,7 @@ function CryptoDashboard({
               ))}
             </div>
           </div>
+          <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
         </div>
 
         {/* Fear & Greed Chart */}
@@ -193,6 +199,7 @@ function CryptoDashboard({
                 <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} />
               </div>
             </div>
+            <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
           </div>
         )}
 
@@ -212,9 +219,10 @@ function CryptoDashboard({
                     </span>
                   </div>
                 ))}
-              </div>
             </div>
           </div>
+          <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+        </div>
         )}
 
         {/* DeFi TVL */}
@@ -231,9 +239,10 @@ function CryptoDashboard({
                     <span className="crypto-mini-value">${(d.tvl / 1e9).toFixed(2)}B</span>
                   </div>
                 ))}
-              </div>
             </div>
           </div>
+          <DataFooter source="DeFi Llama" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+        </div>
         )}
 
         {/* Top Exchanges */}
@@ -250,9 +259,10 @@ function CryptoDashboard({
                     <span className="crypto-mini-value">${(e.volume24h / 1e9).toFixed(1)}B</span>
                   </div>
                 ))}
-              </div>
             </div>
           </div>
+          <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+        </div>
         )}
 
         {/* On-Chain Metrics */}
@@ -269,9 +279,10 @@ function CryptoDashboard({
                     <span className="crypto-mini-value">{o.value}</span>
                   </div>
                 ))}
-              </div>
             </div>
           </div>
+          <DataFooter source="Glassnode / Server" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+        </div>
         )}
       </BentoWrapper>
     </div>

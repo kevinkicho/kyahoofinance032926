@@ -2,15 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
-import {
-  catBondSpreads as mockCatBondSpreads,
-  combinedRatioData as mockCombinedRatioData,
-  reserveAdequacyData as mockReserveAdequacyData,
-  reinsurancePricing,
-  fredHyOasHistory as mockFredHyOasHistory,
-  catLosses as mockCatLosses,
-  combinedRatioHistory as mockCombinedRatioHistory,
-} from './mockInsuranceData';
 
 const SERVER = '';
 const HY_OAS_BASELINE = 350;
@@ -21,34 +12,37 @@ function scaleCatBondSpreads(bonds, hyOAS) {
   return bonds.map(b => ({ ...b, spread: Math.round(b.spread * factor) }));
 }
 
-export function useInsuranceData(autoRefresh = false) {
-  const [catBondSpreads, setCatBondSpreads]         = useState(mockCatBondSpreads);
-  const [combinedRatioData, setCombinedRatioData]   = useState(mockCombinedRatioData);
-  const [reserveAdequacyData, setReserveAdequacyData] = useState(mockReserveAdequacyData);
+export function useInsuranceData(autoRefresh = false, refreshKey = 0) {
+  const [catBondSpreads, setCatBondSpreads]         = useState(null);
+  const [combinedRatioData, setCombinedRatioData]   = useState(null);
+  const [reserveAdequacyData, setReserveAdequacyData] = useState(null);
+  const [reinsurancePricing, setReinsurancePricing] = useState(null);
   const [reinsurers, setReinsurers]                 = useState([]);
   const [hyOAS, setHyOAS]                           = useState(null);
   const [igOAS, setIgOAS]                           = useState(null);
-  const [fredHyOasHistory, setFredHyOasHistory]     = useState(mockFredHyOasHistory);
+  const [fredHyOasHistory, setFredHyOasHistory]     = useState(null);
   const [sectorETF, setSectorETF]                   = useState(null);
   const [catBondProxy, setCatBondProxy]             = useState(null);
   const [industryAvgCombinedRatio, setIndustryAvgCombinedRatio] = useState(null);
   const [treasury10y, setTreasury10y]               = useState(null);
-  const [catLosses, setCatLosses]                   = useState(mockCatLosses);
-  const [combinedRatioHistory, setCombinedRatioHistory] = useState(mockCombinedRatioHistory);
+  const [catLosses, setCatLosses]                   = useState(null);
+  const [combinedRatioHistory, setCombinedRatioHistory] = useState(null);
 
   // Status with error handling
-  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, handleSuccess, handleError, handleFinally } = useDataStatus();
+  const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, logFetch, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   const refetch = useCallback(() => {
+    const t0 = Date.now();
     fetchWithRetry(`${SERVER}/api/insurance`)
       .then(r => r.json())
       .then(data => {
         if (data.combinedRatioData?.quarters?.length) setCombinedRatioData(data.combinedRatioData);
         if (data.reserveAdequacyData?.lines?.length)  setReserveAdequacyData(data.reserveAdequacyData);
+        if (data.reinsurancePricing?.length)            setReinsurancePricing(data.reinsurancePricing);
         if (data.reinsurers)                           setReinsurers(data.reinsurers);
         if (data.hyOAS != null)                        setHyOAS(data.hyOAS);
         if (data.igOAS != null)                        setIgOAS(data.igOAS);
-        setCatBondSpreads(scaleCatBondSpreads(mockCatBondSpreads, data.hyOAS));
+        if (data.catBondSpreads?.length)               setCatBondSpreads(scaleCatBondSpreads(data.catBondSpreads, data.hyOAS));
         if (data.fredHyOasHistory?.dates?.length >= 20) setFredHyOasHistory(data.fredHyOasHistory);
         if (data.sectorETF)                          setSectorETF(data.sectorETF);
         if (data.catBondProxy)                        setCatBondProxy(data.catBondProxy);
@@ -57,12 +51,32 @@ export function useInsuranceData(autoRefresh = false) {
         if (data.catLosses?.values?.length >= 12)    setCatLosses(data.catLosses);
         if (data.combinedRatioHistory?.values?.length >= 4) setCombinedRatioHistory(data.combinedRatioHistory);
         handleSuccess(data);
+        logFetch({ url: '/api/insurance', status: 200, duration: Date.now() - t0, sources: {
+          combinedRatioData: !!data.combinedRatioData?.quarters?.length,
+          reserveAdequacyData: !!data.reserveAdequacyData?.lines?.length,
+          reinsurancePricing: !!data.reinsurancePricing?.length,
+          reinsurers: !!data.reinsurers,
+          hyOAS: data.hyOAS != null,
+          igOAS: data.igOAS != null,
+          catBondSpreads: !!data.catBondSpreads?.length,
+          fredHyOasHistory: !!data.fredHyOasHistory?.dates?.length,
+          sectorETF: !!data.sectorETF,
+          catBondProxy: !!data.catBondProxy,
+          industryAvgCombinedRatio: data.industryAvgCombinedRatio != null,
+          treasury10y: data.treasury10y != null,
+          catLosses: !!data.catLosses?.values?.length,
+          combinedRatioHistory: !!data.combinedRatioHistory?.values?.length,
+        }, seriesIds: ['BAMLH0A0HYM2', 'BAMLC0A0CM', 'DGS10', 'WALCL', 'CPIAUCSL'] });
       })
-      .catch((err) => handleError(err, 'Insurance'))
+      .catch((err) => {
+        handleError(err, 'Insurance');
+        logFetch({ url: '/api/insurance', status: 0, duration: Date.now() - t0, error: err?.message || String(err) });
+      })
       .finally(() => handleFinally());
-  }, [handleSuccess, handleError, handleFinally]);
+  }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { refetch(); }, []);
+  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
 
   useInterval(refetch, autoRefresh ? 300000 : null);
 
@@ -87,5 +101,7 @@ export function useInsuranceData(autoRefresh = false) {
     error,
     fetchedOn,
     isCurrent,
+    fetchLog,
+    refetch,
   };
 }
