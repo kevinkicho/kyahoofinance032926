@@ -112,7 +112,7 @@ router.get('/', async (req, res) => {
           if (r.status === 'fulfilled' && r.value[1]) collected[r.value[0]] = r.value[1];
         });
 
-        if (Object.keys(collected).length >= 2) {
+        if (Object.keys(collected).length > 0) {
           priceIndexData = {};
           for (const [cc, pts] of Object.entries(collected)) {
             priceIndexData[cc] = {
@@ -153,7 +153,7 @@ router.get('/', async (req, res) => {
           fetchFredLatest('MEHOINUSA672N', FRED_API_KEY),
         ]);
         const medianIncome = incomeResult ?? 75000;
-        if (mspusHist.length >= 2) {
+        if (mspusHist.length > 0) {
           const latest = mspusHist.at(-1);
           const medianPrice = latest.value;
           const priceToIncome = Math.round(medianPrice / medianIncome * 10) / 10;
@@ -200,7 +200,7 @@ router.get('/', async (req, res) => {
         sector,
         impliedYield: Math.round(yields.reduce((a, b) => a + b, 0) / yields.length * 10) / 10,
       })).sort((a, b) => b.impliedYield - a.impliedYield);
-      if (sectors.length >= 3) capRateData = sectors;
+      if (sectors.length > 0) capRateData = sectors;
     }
 
     let caseShillerData = null;
@@ -224,7 +224,7 @@ router.get('/', async (req, res) => {
         const natHist = csResults[0]?.status === 'fulfilled' ? csResults[0].value[1] : [];
         const metros = {};
         csResults.slice(1).forEach(r => {
-          if (r.status === 'fulfilled' && r.value[1].length >= 2) {
+          if (r.status === 'fulfilled' && r.value[1].length > 0) {
             const pts = r.value[1];
             const latest = pts[pts.length - 1].value;
             const yr = pts.length >= 13 ? pts[pts.length - 13].value : pts[0].value;
@@ -256,7 +256,7 @@ router.get('/', async (req, res) => {
           fetchFredLatest('MSACSR', FRED_API_KEY).catch(e => { console.warn('[RealEstate]', e.message || e); return null; }),
           fetchFredLatest('ACTLISCOUUS', FRED_API_KEY).catch(e => { console.warn('[RealEstate]', e.message || e); return null; }),
         ]);
-        if (startsHist.length >= 6 || permitsHist.length >= 6) {
+        if (startsHist.length > 0 || permitsHist.length > 0) {
           supplyData = {
             housingStarts: { dates: startsHist.map(p => p.date.slice(0, 7)), values: startsHist.map(p => Math.round(p.value)) },
             permits:       { dates: permitsHist.map(p => p.date.slice(0, 7)), values: permitsHist.map(p => Math.round(p.value)) },
@@ -277,7 +277,7 @@ router.get('/', async (req, res) => {
           fetchFredHistory('CUSR0000SEHA', FRED_API_KEY, 36).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
         homeownershipRate = hoRate != null ? Math.round(hoRate * 10) / 10 : null;
-        if (rentHist.length >= 6) {
+        if (rentHist.length > 0) {
           rentCpi = {
             dates: rentHist.map(p => p.date.slice(0, 7)),
             values: rentHist.map(p => Math.round(p.value * 10) / 10),
@@ -300,7 +300,7 @@ router.get('/', async (req, res) => {
           trackApiCall('Yahoo Finance');
           const chart = await yf.chart('VNQ', { period1: histStart, period2: histEnd, interval: '1d' });
           const quotes = (chart.quotes || []).filter(q => q.close != null);
-          if (quotes.length >= 20) {
+          if (quotes.length > 0) {
             vnqHistory = {
               dates: quotes.map(q => q.date.toISOString().split('T')[0]),
               closes: quotes.map(q => Math.round(q.close * 100) / 100),
@@ -330,7 +330,7 @@ router.get('/', async (req, res) => {
           fetchFredHistory('EXHOSLUSM495S', FRED_API_KEY, 24),
           fetchFredLatest('RRVRUSQ156N', FRED_API_KEY),
         ]);
-        if (exhoHist.status === 'fulfilled' && exhoHist.value.length >= 2) {
+        if (exhoHist.status === 'fulfilled' && exhoHist.value.length > 0) {
           existingHomeSales = {
             dates:  exhoHist.value.map(p => p.date.slice(0, 7)),
             values: exhoHist.value.map(p => Math.round(p.value * 100) / 100),
@@ -350,7 +350,7 @@ router.get('/', async (req, res) => {
         }
       : null;
 
-    const medianHomePrice = (affordabilityData?.history?.length >= 2)
+    const medianHomePrice = (affordabilityData?.history?.length > 0)
       ? {
           dates:  affordabilityData.history.map(p => p.date.slice(0, 7)),
           values: affordabilityData.history.map(p => p.medianPrice),
@@ -366,13 +366,13 @@ router.get('/', async (req, res) => {
           fetchFredHistory('LXXACBS0FRBR', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
           fetchFredHistory('DRSFRWBS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
-        if (foreclosures.length >= 6 || delinquencies.length >= 6) {
+        if (foreclosures.length > 0 || delinquencies.length > 0) {
           foreclosureData = {
-            foreclosures: foreclosures.length >= 6 ? {
+            foreclosures: foreclosures.length > 0 ? {
               dates: foreclosures.map(p => p.date.slice(0, 7)),
               values: foreclosures.map(p => Math.round(p.value * 100) / 100),
             } : null,
-            delinquencies: delinquencies.length >= 6 ? {
+            delinquencies: delinquencies.length > 0 ? {
               dates: delinquencies.map(p => p.date.slice(0, 7)),
               values: delinquencies.map(p => Math.round(p.value * 100) / 100),
             } : null,
@@ -390,13 +390,13 @@ router.get('/', async (req, res) => {
           fetchFredHistory('MABMM301FRS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
           fetchFredHistory('MABMM302FRS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
-        if (purchaseApps.length >= 6) {
+        if (purchaseApps.length > 0) {
           mbaApplications = {
             purchase: {
               dates: purchaseApps.map(p => p.date.slice(0, 7)),
               values: purchaseApps.map(p => Math.round(p.value)),
             },
-            refi: refiApps.length >= 6 ? {
+            refi: refiApps.length > 0 ? {
               dates: refiApps.map(p => p.date.slice(0, 7)),
               values: refiApps.map(p => Math.round(p.value)),
             } : null,
@@ -411,7 +411,7 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const creHist = await fetchFredHistory('BOGZ1FL404090060Q', FRED_API_KEY, 24).catch(e => { console.warn('[RealEstate]', e.message || e); return []; });
-        if (creHist.length >= 4) {
+        if (creHist.length > 0) {
           creDelinquencies = {
             dates: creHist.map(p => p.date.slice(0, 7)),
             values: creHist.map(p => Math.round(p.value * 100) / 100),

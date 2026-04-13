@@ -151,24 +151,18 @@ function RealEstateDashboard({
               <div className="re-sidebar-section">
                 <div className="re-sidebar-title">Mortgage Rates</div>
                 <div className="re-metric-card">
-                  {typeof mortgageRates.rate30Y === 'number' && (
+                  {typeof mortgageRates.rate30y === 'number' && (
                     <div className="re-metric-row">
                       <span className="re-metric-name">30Y Fixed</span>
-                      <span className="re-metric-num" style={{ color: mortgageRates.rate30Y > 7 ? '#f87171' : mortgageRates.rate30Y > 5 ? '#fbbf24' : '#4ade80' }}>
-                        {mortgageRates.rate30Y.toFixed(2)}%
+                      <span className="re-metric-num" style={{ color: mortgageRates.rate30y > 7 ? '#f87171' : mortgageRates.rate30y > 5 ? '#fbbf24' : '#4ade80' }}>
+                        {mortgageRates.rate30y.toFixed(2)}%
                       </span>
                     </div>
                   )}
-                  {typeof mortgageRates.rate15Y === 'number' && (
+                  {typeof mortgageRates.rate15y === 'number' && (
                     <div className="re-metric-row">
                       <span className="re-metric-name">15Y Fixed</span>
-                      <span className="re-metric-num">{mortgageRates.rate15Y.toFixed(2)}%</span>
-                    </div>
-                  )}
-                  {typeof mortgageRates.rate5YArm === 'number' && (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">5/1 ARM</span>
-                      <span className="re-metric-num">{mortgageRates.rate5YArm.toFixed(2)}%</span>
+                      <span className="re-metric-num">{mortgageRates.rate15y.toFixed(2)}%</span>
                     </div>
                   )}
                 </div>
@@ -338,7 +332,7 @@ function RealEstateDashboard({
                 {capRateData.slice(0, 8).map((c, i) => (
                   <div key={i} className="re-mini-row">
                     <span className="re-mini-name">{c.sector}</span>
-                    <span className="re-mini-value">{c.capRate?.toFixed(2)}%</span>
+                    <span className="re-mini-value">{(c.impliedYield ?? c.capRate)?.toFixed(2)}%</span>
                   </div>
                 ))}
               </div>
