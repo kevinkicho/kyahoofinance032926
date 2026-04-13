@@ -24,10 +24,10 @@ export function useEquityDeepDiveData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.sectorData?.sectors?.length >= 8)       { setSectorData(data.sectorData);     anyReplaced = true; }
-        if (data.factorData?.stocks?.length >= 10)       { setFactorData(data.factorData);     anyReplaced = true; }
-        if (data.earningsData?.upcoming?.length >= 5)    { setEarningsData(data.earningsData); anyReplaced = true; }
-        if (data.shortData?.mostShorted?.length >= 10)   { setShortData(data.shortData);       anyReplaced = true; }
+        if (data.sectorData?.sectors?.length)    { setSectorData(data.sectorData);     anyReplaced = true; }
+        if (data.factorData?.stocks?.length)       { setFactorData(data.factorData);     anyReplaced = true; }
+        if (data.earningsData?.upcoming?.length) { setEarningsData(data.earningsData); anyReplaced = true; }
+        if (data.shortData?.mostShorted?.length)   { setShortData(data.shortData);       anyReplaced = true; }
         if (data.equityRiskPremium)   setEquityRiskPremium(data.equityRiskPremium);
         if (data.spPE != null)        setSpPE(data.spPE);
         if (data.breadthDivergence)   setBreadthDivergence(data.breadthDivergence);

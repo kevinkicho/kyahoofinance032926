@@ -26,10 +26,10 @@ export function useCryptoData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.coinMarketData?.coins?.length >= 10)       { setCoinMarketData(data.coinMarketData); anyReplaced = true; }
-        if (data.fearGreedData?.history?.length >= 7)       { setFearGreedData(data.fearGreedData);   anyReplaced = true; }
-        if (data.defiData?.protocols?.length >= 5)          { setDefiData(data.defiData);             anyReplaced = true; }
-        if (data.fundingData?.rates?.length >= 3)           { setFundingData(data.fundingData);       anyReplaced = true; }
+        if (data.coinMarketData?.coins?.length)       { setCoinMarketData(data.coinMarketData); anyReplaced = true; }
+        if (data.fearGreedData?.history?.length)       { setFearGreedData(data.fearGreedData);   anyReplaced = true; }
+        if (data.defiData?.protocols?.length)          { setDefiData(data.defiData);             anyReplaced = true; }
+        if (data.fundingData?.rates?.length)           { setFundingData(data.fundingData);       anyReplaced = true; }
         if (data.onChainData?.fees?.fastest != null)        { setOnChainData(data.onChainData);       anyReplaced = true; }
         if (data.stablecoinMcap != null)                     { setStablecoinMcap(data.stablecoinMcap);  anyReplaced = true; }
         if (data.btcDominance != null)                       { setBtcDominance(data.btcDominance);      anyReplaced = true; }

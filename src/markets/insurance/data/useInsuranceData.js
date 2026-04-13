@@ -43,13 +43,13 @@ export function useInsuranceData(autoRefresh = false, refreshKey = 0) {
         if (data.hyOAS != null)                        setHyOAS(data.hyOAS);
         if (data.igOAS != null)                        setIgOAS(data.igOAS);
         if (data.catBondSpreads?.length)               setCatBondSpreads(scaleCatBondSpreads(data.catBondSpreads, data.hyOAS));
-        if (data.fredHyOasHistory?.dates?.length >= 20) setFredHyOasHistory(data.fredHyOasHistory);
+        if (data.fredHyOasHistory?.dates?.length) setFredHyOasHistory(data.fredHyOasHistory);
         if (data.sectorETF)                          setSectorETF(data.sectorETF);
         if (data.catBondProxy)                        setCatBondProxy(data.catBondProxy);
         if (data.industryAvgCombinedRatio != null)    setIndustryAvgCombinedRatio(data.industryAvgCombinedRatio);
         if (data.treasury10y != null)                 setTreasury10y(data.treasury10y);
-        if (data.catLosses?.values?.length >= 12)    setCatLosses(data.catLosses);
-        if (data.combinedRatioHistory?.values?.length >= 4) setCombinedRatioHistory(data.combinedRatioHistory);
+        if (data.catLosses?.values?.length)    setCatLosses(data.catLosses);
+        if (data.combinedRatioHistory?.values?.length) setCombinedRatioHistory(data.combinedRatioHistory);
         handleSuccess(data);
         logFetch({ url: '/api/insurance', status: 200, duration: Date.now() - t0, sources: {
           combinedRatioData: !!data.combinedRatioData?.quarters?.length,

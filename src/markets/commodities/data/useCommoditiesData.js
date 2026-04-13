@@ -225,7 +225,7 @@ export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
         if (data.futuresCurveData) setFuturesCurveData(data.futuresCurveData);
         if (data.sectorHeatmapData) setSectorHeatmapData(data.sectorHeatmapData);
         if (data.supplyDemandData) setSupplyDemandData(data.supplyDemandData);
-        if (data.cotData?.commodities?.length >= 2) setCotData(data.cotData);
+        if (data.cotData?.commodities?.length) setCotData(data.cotData);
         if (data.fredCommodities) setFredCommodities(data.fredCommodities);
         if (data.goldFuturesCurve) setGoldFuturesCurve(data.goldFuturesCurve);
         if (data.dbcEtf) setDbcEtf(data.dbcEtf);

@@ -65,7 +65,7 @@ export function useFXData(autoRefresh = false, refreshKey = 0) {
         // 1W changes and sparklines from 7-day range
         if (weekHist?.rates) {
           const sortedDates = Object.keys(weekHist.rates).sort();
-          if (sortedDates.length >= 2) {
+          if (sortedDates.length > 0) {
             const firstRates = weekHist.rates[sortedDates[0]];
             const lastRates  = weekHist.rates[sortedDates[sortedDates.length - 1]];
             const w = {};
@@ -104,7 +104,7 @@ export function useFXData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         logFetch({ url: '/api/fx', status: 200, duration: Date.now() - t0, sources: { fredFxRates: !!data.fredFxRates, reer: !!data.reer, rateDifferentials: !!data.rateDifferentials, dxyHistory: !!data.dxyHistory, cotHistory: !!data.cotHistory }, seriesIds: ['DEXUSEU', 'DEXJPUS', 'DEXUSUK', 'DEXSZUS', 'DEXALUS', 'DEXCAUS', 'DTWEXBGS'] });
-        if (data.fredFxRates && Object.keys(data.fredFxRates).length >= 3) {
+        if (data.fredFxRates && Object.keys(data.fredFxRates).length) {
           setFredFxRates(data.fredFxRates);
         }
         if (data.reer)             setReer(data.reer);

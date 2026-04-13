@@ -29,16 +29,16 @@ export function useDerivativesData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         if (data.vixTermStructure?.dates?.length)           setVixTermStructure(data.vixTermStructure);
-        if (data.optionsFlow?.length >= 4)                  setOptionsFlow(data.optionsFlow);
+        if (data.optionsFlow?.length)                  setOptionsFlow(data.optionsFlow);
         if (data.volSurfaceData?.grid?.length)              setVolSurfaceData(data.volSurfaceData);
         if (data.vixEnrichment?.vvix != null || data.vixEnrichment?.vixPercentile != null) {
           setVixEnrichment(data.vixEnrichment);
         }
         if (data.volPremium?.atm1mIV != null) setVolPremium(data.volPremium);
-        if (data.fredVixHistory?.dates?.length >= 20) setFredVixHistory(data.fredVixHistory);
+        if (data.fredVixHistory?.dates?.length) setFredVixHistory(data.fredVixHistory);
         if (data.putCallRatio != null)              setPutCallRatio(data.putCallRatio);
         if (data.skewIndex?.value != null)          setSkewIndex(data.skewIndex);
-        if (data.skewHistory?.dates?.length >= 20)  setSkewHistory(data.skewHistory);
+        if (data.skewHistory?.dates?.length)  setSkewHistory(data.skewHistory);
         if (data.gammaExposure?.total != null)      setGammaExposure(data.gammaExposure);
         if (data.vixPercentile != null)             setVixPercentile(data.vixPercentile);
         if (data.termSpread?.value != null)         setTermSpread(data.termSpread);

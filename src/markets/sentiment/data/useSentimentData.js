@@ -25,10 +25,10 @@ export function useSentimentData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.fearGreedData?.history?.length >= 30) { setFearGreedData(data.fearGreedData); anyReplaced = true; }
-        if (data.cftcData?.currencies?.length >= 4)    { setCftcData(data.cftcData);           anyReplaced = true; }
-        if (data.riskData?.signals?.length >= 4)       { setRiskData(data.riskData);           anyReplaced = true; }
-        if (data.returnsData?.assets?.length >= 6)     { setReturnsData(data.returnsData);     anyReplaced = true; }
+        if (data.fearGreedData?.history?.length) { setFearGreedData(data.fearGreedData); anyReplaced = true; }
+        if (data.cftcData?.currencies?.length)    { setCftcData(data.cftcData);           anyReplaced = true; }
+        if (data.riskData?.signals?.length)       { setRiskData(data.riskData);           anyReplaced = true; }
+        if (data.returnsData?.assets?.length)     { setReturnsData(data.returnsData);     anyReplaced = true; }
         if (data.marginDebt?.dates?.length >= 1)       { setMarginDebt(data.marginDebt);       anyReplaced = true; }
         if (data.consumerCredit?.dates?.length >= 1)   { setConsumerCredit(data.consumerCredit); anyReplaced = true; }
         if (data.vvixHistory?.dates?.length >= 1)      { setVvixHistory(data.vvixHistory);     anyReplaced = true; }

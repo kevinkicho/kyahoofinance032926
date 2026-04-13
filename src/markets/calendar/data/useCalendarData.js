@@ -24,10 +24,10 @@ export function useCalendarData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.economicEvents?.length >= 5)   { setEconomicEvents(data.economicEvents);   anyReplaced = true; }
-        if (data.centralBanks?.length >= 3)     { setCentralBanks(data.centralBanks);       anyReplaced = true; }
-        if (data.earningsSeason?.length >= 5)   { setEarningsSeason(data.earningsSeason);   anyReplaced = true; }
-        if (data.keyReleases?.length >= 3)      { setKeyReleases(data.keyReleases);         anyReplaced = true; }
+        if (data.economicEvents?.length)   { setEconomicEvents(data.economicEvents);   anyReplaced = true; }
+        if (data.centralBanks?.length)     { setCentralBanks(data.centralBanks);       anyReplaced = true; }
+        if (data.earningsSeason?.length)   { setEarningsSeason(data.earningsSeason);   anyReplaced = true; }
+        if (data.keyReleases?.length)      { setKeyReleases(data.keyReleases);         anyReplaced = true; }
         if (data.treasuryAuctions?.length >= 1) { setTreasuryAuctions(data.treasuryAuctions); anyReplaced = true; }
         if (data.optionsExpiry?.length >= 1)    { setOptionsExpiry(data.optionsExpiry);     anyReplaced = true; }
         if (data.dividendCalendar?.length >= 1) { setDividendCalendar(data.dividendCalendar); anyReplaced = true; }

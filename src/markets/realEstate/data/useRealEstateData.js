@@ -35,26 +35,26 @@ export function useRealEstateData(autoRefresh = false, refreshKey = 0) {
       .then(data => {
         let anyReplaced = false;
         if (data.reitData?.length) { setReitData(data.reitData); anyReplaced = true; }
-        if (data.priceIndexData && Object.keys(data.priceIndexData).length >= 2) {
+        if (data.priceIndexData && Object.keys(data.priceIndexData).length) {
           setPriceIndexData(prev => ({ ...prev, ...data.priceIndexData }));
           anyReplaced = true;
         }
         if (data.mortgageRates?.rate30y) setMortgageRates(data.mortgageRates);
         if (data.affordabilityData?.current?.medianPrice) { setAffordabilityData(data.affordabilityData); anyReplaced = true; }
-        if (data.capRateData?.length >= 3) { setCapRateData(data.capRateData); anyReplaced = true; }
-        if (data.caseShillerData?.national?.dates?.length >= 12) setCaseShillerData(data.caseShillerData);
-        if (data.supplyData?.housingStarts?.values?.length >= 6) setSupplyData(data.supplyData);
+        if (data.capRateData?.length) { setCapRateData(data.capRateData); anyReplaced = true; }
+        if (data.caseShillerData?.national?.dates?.length) setCaseShillerData(data.caseShillerData);
+        if (data.supplyData?.housingStarts?.values?.length) setSupplyData(data.supplyData);
         if (data.homeownershipRate != null) setHomeownershipRate(data.homeownershipRate);
-        if (data.rentCpi?.dates?.length >= 6) setRentCpi(data.rentCpi);
+        if (data.rentCpi?.dates?.length) setRentCpi(data.rentCpi);
         if (data.reitEtf?.price != null) setReitEtf(data.reitEtf);
         if (data.treasury10y != null) setTreasury10y(data.treasury10y);
-        if (data.housingStarts?.dates?.length >= 4) setHousingStarts(data.housingStarts);
-        if (data.existingHomeSales?.dates?.length >= 4) setExistingHomeSales(data.existingHomeSales);
+        if (data.housingStarts?.dates?.length) setHousingStarts(data.housingStarts);
+        if (data.existingHomeSales?.dates?.length) setExistingHomeSales(data.existingHomeSales);
         if (data.rentalVacancy != null) setRentalVacancy(data.rentalVacancy);
-        if (data.medianHomePrice?.dates?.length >= 4) setMedianHomePrice(data.medianHomePrice);
-        if (data.foreclosureData?.foreclosures?.values?.length >= 6) setForeclosureData(data.foreclosureData);
-        if (data.mbaApplications?.purchase?.values?.length >= 6) setMbaApplications(data.mbaApplications);
-        if (data.creDelinquencies?.values?.length >= 4) setCreDelinquencies(data.creDelinquencies);
+        if (data.medianHomePrice?.dates?.length) setMedianHomePrice(data.medianHomePrice);
+        if (data.foreclosureData?.foreclosures?.values?.length) setForeclosureData(data.foreclosureData);
+        if (data.mbaApplications?.purchase?.values?.length) setMbaApplications(data.mbaApplications);
+        if (data.creDelinquencies?.values?.length) setCreDelinquencies(data.creDelinquencies);
         if (anyReplaced) handleSuccess(data);
         logFetch({ url: '/api/realEstate', status: 200, duration: Date.now() - t0, sources: { reitData: !!data.reitData?.length, priceIndexData: !!data.priceIndexData, mortgageRates: !!data.mortgageRates, caseShillerData: !!data.caseShillerData, supplyData: !!data.supplyData }, seriesIds: ['CSUSHPISA', 'MORTGAGE30US', 'HOUST', 'PSAVERT', 'WALCL'] });
       })

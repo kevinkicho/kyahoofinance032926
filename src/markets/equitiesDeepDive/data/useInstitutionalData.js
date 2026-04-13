@@ -23,7 +23,7 @@ export function useInstitutionalData(autoRefresh = false, refreshKey = 0) {
     fetchWithRetry(`${SERVER}/api/institutional`)
       .then(r => r.json())
       .then(d => {
-        if (d.institutions?.length >= 3) {
+        if (d.institutions?.length) {
           setData(d);
           handleSuccess(d);
         }
