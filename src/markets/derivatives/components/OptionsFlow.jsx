@@ -1,5 +1,6 @@
 // src/markets/derivatives/components/OptionsFlow.jsx
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './DerivComponents.css';
 
 function fmtVolume(v) {
@@ -75,21 +76,18 @@ export default function OptionsFlow({ optionsFlow }) {
           </thead>
           <tbody>
             {optionsFlow.map((row, i) => {
-              const volOI = row.openInterest > 0
-                ? (row.volume / row.openInterest).toFixed(2)
-                : '—';
               return (
                 <tr key={i} className="flow-row">
                   <td className="flow-cell">{row.ticker}</td>
-                  <td className="flow-cell">${row.strike}</td>
+                  <td className="flow-cell"><MetricValue value={row.strike} seriesKey="optionsStrike" format={v => v != null ? `$${v}` : '\u2014'} /></td>
                   <td className="flow-cell">{row.expiry}</td>
                   <td className={`flow-cell ${row.type === 'C' ? 'flow-call' : 'flow-put'}`}>
                     {row.type}
                   </td>
-                  <td className="flow-cell">{fmtVolume(row.volume)}</td>
-                  <td className="flow-cell">{fmtVolume(row.openInterest)}</td>
-                  <td className="flow-cell">{volOI}</td>
-                  <td className="flow-cell">${row.premium.toFixed(2)}</td>
+                  <td className="flow-cell"><MetricValue value={row.volume} seriesKey="optionsVolume" format={v => v != null ? fmtVolume(v) : '\u2014'} /></td>
+                  <td className="flow-cell"><MetricValue value={row.openInterest} seriesKey="optionsOI" format={v => v != null ? fmtVolume(v) : '\u2014'} /></td>
+                  <td className="flow-cell"><MetricValue value={row.openInterest > 0 ? row.volume / row.openInterest : null} seriesKey="optionsOI" format={v => v != null ? v.toFixed(2) : '\u2014'} /></td>
+                  <td className="flow-cell"><MetricValue value={row.premium} seriesKey="optionsPremium" format={v => v != null ? `$${v.toFixed(2)}` : '\u2014'} /></td>
                   <td className={`flow-cell flow-${row.sentiment}`}>{row.sentiment}</td>
                 </tr>
               );

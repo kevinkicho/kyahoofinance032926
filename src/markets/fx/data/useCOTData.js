@@ -17,13 +17,14 @@ const NAME_MAP = {
   AUD: 'AUSTRALIAN DOLLAR',
 };
 
-export function useCOTData() {
+export function useCOTData({ disabled = false } = {}) {
   const [cotData,   setCotData]   = useState({});
 
   // Status with error handling
   const { isLive, isLoading, error, handleSuccess, handleError, handleFinally } = useDataStatus();
 
   useEffect(() => {
+    if (disabled) return;
     fetchWithRetry(CFTC_URL)
       .then(r => r.json())
       .then(rows => {

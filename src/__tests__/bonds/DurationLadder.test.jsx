@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import DurationLadder from '../../markets/bonds/components/DurationLadder';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
+vi.mock('../../hub/ThemeContext', () => ({ useTheme: () => ({ colors: { textMuted: '#64748b', textSecondary: '#94a3b8', cardBg: '#1e293b' } }) }));
 
 const MOCK_DATA = [
   { bucket: '0\u20132y',  amount: 8420, pct: 34.2 },

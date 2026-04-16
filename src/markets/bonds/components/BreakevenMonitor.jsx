@@ -85,7 +85,7 @@ export default function BreakevenMonitor({ breakevensData }) {
       </div>
       {history?.dates?.length > 5 && (
         <div className="bonds-chart-wrap">
-          <SafeECharts option={buildBreakevenOption(history, colors)} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={buildBreakevenOption(history, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'TIPS Breakevens', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'T5YIE' }, { id: 'T10YIE' }] }} />
         </div>
       )}
       <div className="be-footer">

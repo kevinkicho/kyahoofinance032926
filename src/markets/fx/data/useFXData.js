@@ -14,7 +14,7 @@ function getDateStr(daysAgo = 0) {
   return d.toISOString().split('T')[0];
 }
 
-export function useFXData(autoRefresh = false, refreshKey = 0) {
+export function useFXData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
   const fallback = { USD: 1, ...exchangeRates };
   const [spotRates,   setSpotRates]   = useState(fallback);
   const [prevRates,   setPrevRates]   = useState(fallback);
@@ -115,10 +115,10 @@ export function useFXData(autoRefresh = false, refreshKey = 0) {
       .catch((err) => { handleError(err, 'FX-Server'); logFetch({ url: '/api/fx', status: 'error', duration: Date.now() - t0, error: err?.message }); });
   }, [handleError, handleFinally, setIsLive, setLastUpdated]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   // 24h changes: positive = currency strengthened vs USD
   const changes = Object.keys(spotRates).reduce((acc, code) => {

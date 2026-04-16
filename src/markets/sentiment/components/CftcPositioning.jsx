@@ -51,7 +51,7 @@ function Section({ title, items, height = 180, colors }) {
   return (
     <div className="sent-cftc-section">
       <div className="sent-cftc-section-label">{title}</div>
-      <SafeECharts option={buildBarOption(items, colors)} style={{ height, width: '100%' }} />
+      <SafeECharts option={buildBarOption(items, colors)} style={{ height, width: '100%' }} sourceInfo={{ title: 'CFTC Positioning', source: 'CFTC', endpoint: '/api/sentiment', series: [] }} />
     </div>
   );
 }

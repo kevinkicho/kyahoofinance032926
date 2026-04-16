@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import EarningsWatch from '../../markets/equitiesDeepDive/components/EarningsWatch';
 import { earningsData } from '../../markets/equitiesDeepDive/data/mockEquityDeepDiveData';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 describe('EarningsWatch', () => {
   it('renders panel title', () => {

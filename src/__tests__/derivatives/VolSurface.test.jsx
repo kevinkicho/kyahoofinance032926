@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import VolSurface from '../../markets/derivatives/components/VolSurface';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 const MOCK_VOL_DATA = {
   strikes:  [80, 85, 90, 95, 100, 105, 110, 115, 120],

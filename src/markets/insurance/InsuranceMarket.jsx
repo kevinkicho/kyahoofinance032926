@@ -1,43 +1,67 @@
 import React from 'react';
-import { useInsuranceData } from './data/useInsuranceData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import InsuranceDashboard from './components/InsuranceDashboard';
 import './components/InsuranceDashboard.css';
 
-function fmtChangePct(v) {
-  if (v == null) return '';
-  return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
+const HY_OAS_BASELINE = 350;
+function scaleCatBondSpreads(bonds, hyOAS) {
+  if (!hyOAS) return bonds;
+  const factor = hyOAS / HY_OAS_BASELINE;
+  return bonds.map(b => ({ ...b, spread: Math.round(b.spread * factor) }));
 }
 
-function InsuranceMarket({ autoRefresh, refreshKey } = {}) {
-  const {
-    catBondSpreads, combinedRatioData, reserveAdequacyData,
-    reinsurancePricing, reinsurers, fredHyOasHistory,
-    sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
-    catLosses, combinedRatioHistory,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch,
-  } = useInsuranceData(autoRefresh, refreshKey);
+function getInsuranceProps(centralData) {
+  const d = centralData.data || {};
+  return {
+    catBondSpreads: d.catBondSpreads ? scaleCatBondSpreads(d.catBondSpreads, d.hyOAS) : null,
+    combinedRatioData: d.combinedRatioData,
+    reserveAdequacyData: d.reserveAdequacyData,
+    reinsurancePricing: d.reinsurancePricing,
+    reinsurers: d.reinsurers || [],
+    hyOAS: d.hyOAS,
+    igOAS: d.igOAS,
+    fredHyOasHistory: d.fredHyOasHistory,
+    sectorETF: d.sectorETF,
+    catBondProxy: d.catBondProxy,
+    industryAvgCombinedRatio: d.industryAvgCombinedRatio,
+    treasury10y: d.treasury10y,
+    catLosses: d.catLosses,
+    combinedRatioHistory: d.combinedRatioHistory,
+    isLive: centralData.isLive,
+    lastUpdated: centralData.lastUpdated,
+    isLoading: centralData.isLoading,
+    fetchedOn: centralData.fetchedOn,
+    isCurrent: centralData.isCurrent,
+    fetchLog: centralData.fetchLog || [],
+    error: centralData.error,
+    refetch: centralData.refetch,
+  };
+}
 
-  if (isLoading) return <MarketSkeleton />;
+function InsuranceMarket({ centralData } = {}) {
+  if (!centralData) return <MarketSkeleton />;
+  const props = getInsuranceProps(centralData);
+
+  if (props.isLoading) return <MarketSkeleton />;
 
   return (
     <div className="ins-market">
       <InsuranceDashboard
-        catBondSpreads={catBondSpreads}
-        combinedRatioData={combinedRatioData}
-        reserveAdequacyData={reserveAdequacyData}
-        reinsurancePricing={reinsurancePricing}
-        reinsurers={reinsurers}
-        fredHyOasHistory={fredHyOasHistory}
-        sectorETF={sectorETF}
-        catBondProxy={catBondProxy}
-        industryAvgCombinedRatio={industryAvgCombinedRatio}
-        treasury10y={treasury10y}
-        catLosses={catLosses}
-        combinedRatioHistory={combinedRatioHistory}
-        isLive={isLive}
-        lastUpdated={lastUpdated}
-        fetchLog={fetchLog}
+        catBondSpreads={props.catBondSpreads}
+        combinedRatioData={props.combinedRatioData}
+        reserveAdequacyData={props.reserveAdequacyData}
+        reinsurancePricing={props.reinsurancePricing}
+        reinsurers={props.reinsurers}
+        fredHyOasHistory={props.fredHyOasHistory}
+        sectorETF={props.sectorETF}
+        catBondProxy={props.catBondProxy}
+        industryAvgCombinedRatio={props.industryAvgCombinedRatio}
+        treasury10y={props.treasury10y}
+        catLosses={props.catLosses}
+        combinedRatioHistory={props.combinedRatioHistory}
+        isLive={props.isLive}
+        lastUpdated={props.lastUpdated}
+        fetchLog={props.fetchLog}
       />
     </div>
   );

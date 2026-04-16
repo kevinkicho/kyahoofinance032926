@@ -1,6 +1,7 @@
 // src/markets/calendar/components/KeyReleases.jsx
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import '../CalendarMarket.css';
 
 const CAT_CSS = {
@@ -36,7 +37,7 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
           <div className="cal-kpi-strip">
             <div className="cal-kpi-pill">
               <span className="cal-kpi-label">Total Releases</span>
-              <span className="cal-kpi-value accent">{kpis.total}</span>
+              <span className="cal-kpi-value accent"><MetricValue value={kpis.total} seriesKey="krTotalReleases" format={v => `${v}`} /></span>
             </div>
             {kpis.nextRelease && (
               <div className="cal-kpi-pill" style={{ minWidth: 100 }}>
@@ -52,7 +53,7 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
             )}
             <div className="cal-kpi-pill">
               <span className="cal-kpi-label"># Categories</span>
-              <span className="cal-kpi-value">{kpis.numCategories}</span>
+              <span className="cal-kpi-value"><MetricValue value={kpis.numCategories} seriesKey="krCategoryCount" format={v => `${v}`} /></span>
             </div>
           </div>
         )}
@@ -64,7 +65,7 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
                 {r.name}
                 <span className={`cal-cat-badge ${CAT_CSS[r.category] || ''}`}>{r.category}</span>
               </span>
-              {r.previousValue && <span className="cal-release-prev">Prev: {r.previousValue}</span>}
+              {r.previousValue && <span className="cal-release-prev">Prev: <MetricValue value={r.previousValue} seriesKey="krPreviousValue" format={v => v != null ? `${v}` : '—'} /></span>}
             </div>
           ))}
         </div>
@@ -94,7 +95,7 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
                   <tr key={i}>
                     <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{a.date}</td>
                     <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{a.type}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}>{a.amount}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}><MetricValue value={a.amount} seriesKey="treasAuctionAmount" format={v => v != null ? `${v}` : '—'} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -137,7 +138,7 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
         <div className="cal-kpi-strip">
           <div className="cal-kpi-pill">
             <span className="cal-kpi-label">Total Releases</span>
-            <span className="cal-kpi-value accent">{kpis.total}</span>
+            <span className="cal-kpi-value accent"><MetricValue value={kpis.total} seriesKey="krTotalReleases" format={v => `${v}`} /></span>
           </div>
           {kpis.nextRelease && (
             <div className="cal-kpi-pill" style={{ minWidth: 100 }}>
@@ -153,7 +154,7 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
           )}
           <div className="cal-kpi-pill">
             <span className="cal-kpi-label"># Categories</span>
-            <span className="cal-kpi-value">{kpis.numCategories}</span>
+            <span className="cal-kpi-value"><MetricValue value={kpis.numCategories} seriesKey="krCategoryCount" format={v => `${v}`} /></span>
           </div>
         </div>
       )}
@@ -165,11 +166,11 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
               {r.name}
               <span className={`cal-cat-badge ${CAT_CSS[r.category] || ''}`}>{r.category}</span>
             </span>
-            {r.previousValue && <span className="cal-release-prev">Prev: {r.previousValue}</span>}
-          </div>
-        ))}
-      </div>
-      <div className="cal-panel-footer">
+            {r.previousValue && <span className="cal-release-prev">Prev: <MetricValue value={r.previousValue} seriesKey="krPreviousValue" format={v => v != null ? `${v}` : '—'} /></span>}
+            </div>
+          ))}
+        </div>
+        <div className="cal-panel-footer">
         Dates from FRED release schedule · Previous values shown where available · No consensus forecasts (proprietary)
       </div>
 
@@ -192,7 +193,7 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
                 <tr key={i}>
                   <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{a.date}</td>
                   <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{a.type}</td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}>{a.amount}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}><MetricValue value={a.amount} seriesKey="treasAuctionAmount" format={v => v != null ? `${v}` : '—'} /></td>
                 </tr>
               ))}
             </tbody>

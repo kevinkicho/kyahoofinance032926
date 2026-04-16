@@ -1,5 +1,6 @@
 // src/markets/crypto/components/FundingAndPositioning.jsx
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoDashboard.css';
@@ -108,9 +109,9 @@ export default function FundingAndPositioning({ fundingData }) {
                   return (
                     <tr key={r.symbol} className="crypto-row">
                       <td className="crypto-cell"><strong>{r.symbol}</strong></td>
-                      <td className="crypto-cell crypto-num" style={{ color }}>{sign}{(r.rate8h * 100).toFixed(4)}%</td>
-                      <td className="crypto-cell crypto-num" style={{ color }}>{signA}{r.rateAnnualized.toFixed(1)}%</td>
-                      <td className="crypto-cell crypto-num">${r.openInterestB.toFixed(1)}B</td>
+                      <td className="crypto-cell crypto-num" style={{ color }}><MetricValue value={r.rate8h * 100} seriesKey="fundingRate" format={v => `${sign}${v.toFixed(4)}%`} /></td>
+                      <td className="crypto-cell crypto-num" style={{ color }}><MetricValue value={r.rateAnnualized} seriesKey="fundingRate" format={v => `${signA}${v.toFixed(1)}%`} /></td>
+                      <td className="crypto-cell crypto-num"><MetricValue value={r.openInterestB} seriesKey="openInterestCrypto" format={v => `$${v.toFixed(1)}B`} /></td>
                     </tr>
                   );
                 })}
@@ -124,7 +125,7 @@ export default function FundingAndPositioning({ fundingData }) {
               <div className="crypto-chart-title">Open Interest History</div>
               <div className="crypto-chart-subtitle">BTC & ETH perpetual open interest (billions USD) · 6-week trend</div>
               <div className="crypto-chart-wrap">
-                <SafeECharts option={buildOIHistoryOption(openInterestHistory, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildOIHistoryOption(openInterestHistory, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Open Interest History', source: 'Bybit', endpoint: '/api/crypto', series: [] }} />
               </div>
             </>
           ) : (

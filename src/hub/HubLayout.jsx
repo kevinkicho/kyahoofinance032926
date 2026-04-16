@@ -3,6 +3,8 @@ import MarketTabBar from './MarketTabBar';
 import { DEFAULT_MARKET, MARKETS } from './markets.config';
 import HubFooter from './HubFooter';
 import { useToast } from './ToastContext';
+import { DataProvider } from './DataProvider';
+import { useMarketData } from './DataContext';
 import './Skeleton.css';
 import './responsive.css';
 
@@ -87,6 +89,23 @@ function MarketFallback() {
       <div className="skeleton skeleton-table" />
       <div className="skeleton skeleton-footer" />
     </div>
+  );
+}
+
+function ActiveMarketWrapper({ activeMarket, currency, setCurrency, snapshotDate, setSnapshotDate, autoRefresh, refreshKey }) {
+  const ActiveMarket = MARKET_COMPONENTS[activeMarket];
+  const marketCtx = useMarketData(activeMarket);
+  const institutionalCtx = useMarketData('institutional');
+  if (!ActiveMarket) return null;
+  return (
+    <ActiveMarket
+      currency={currency}
+      setCurrency={setCurrency}
+      snapshotDate={snapshotDate}
+      setSnapshotDate={setSnapshotDate}
+      centralData={marketCtx}
+      institutionalData={activeMarket === 'equitiesDeepDive' ? institutionalCtx : undefined}
+    />
   );
 }
 
@@ -225,33 +244,28 @@ export default function HubLayout() {
   }, [activeMarket, handleExport, setActiveMarket]);
 
   return (
-    <div className="hub-layout">
-      <MarketTabBar
-        activeMarket={activeMarket}
-        setActiveMarket={setActiveMarket}
-        currency={currency}
-        setCurrency={setCurrency}
-        onExport={handleExport}
-        onExportData={handleExportData}
-        autoRefresh={autoRefresh}
-        onToggleRefresh={handleToggleRefresh}
-        onRefresh={handleRefresh}
-      />
-      <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
-        <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
-          <Suspense fallback={<MarketFallback />}>
-            <ActiveMarket
-              currency={currency}
-              setCurrency={setCurrency}
-              snapshotDate={snapshotDate}
-              setSnapshotDate={setSnapshotDate}
-              autoRefresh={autoRefresh}
-              refreshKey={refreshKey}
-            />
-          </Suspense>
-        </MarketErrorBoundary>
-      </main>
-      <HubFooter activeMarket={activeMarket} />
-    </div>
+    <DataProvider autoRefresh={autoRefresh} refreshKey={refreshKey}>
+      <div className="hub-layout">
+        <MarketTabBar
+          activeMarket={activeMarket}
+          setActiveMarket={setActiveMarket}
+          currency={currency}
+          setCurrency={setCurrency}
+          onExport={handleExport}
+          onExportData={handleExportData}
+          autoRefresh={autoRefresh}
+          onToggleRefresh={handleToggleRefresh}
+          onRefresh={handleRefresh}
+        />
+        <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+          <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
+            <Suspense fallback={<MarketFallback />}>
+              <ActiveMarketWrapper activeMarket={activeMarket} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} />
+            </Suspense>
+          </MarketErrorBoundary>
+        </main>
+        <HubFooter activeMarket={activeMarket} />
+      </div>
+    </DataProvider>
   );
 }

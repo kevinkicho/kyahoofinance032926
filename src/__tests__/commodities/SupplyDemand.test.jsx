@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import SupplyDemand from '../../markets/commodities/components/SupplyDemand';
 import { supplyDemandData } from '../../markets/commodities/data/mockCommoditiesData';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 describe('SupplyDemand', () => {
   it('renders panel title', () => {

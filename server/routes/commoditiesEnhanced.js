@@ -270,6 +270,7 @@ router.get('/', async (req, res) => {
   if (daily) {
     return res.json({
       ...daily,
+      lastUpdated: today,
       fetchedOn: today,
       isCurrent: true,
       _meta: { source: 'daily_cache', timestamp: formatTimestamp(daily._timestamp) },
@@ -280,6 +281,7 @@ router.get('/', async (req, res) => {
   if (cached) {
     return res.json({
       ...cached,
+      lastUpdated: today,
       fetchedOn: today,
       isCurrent: true,
       _meta: { source: 'memory_cache', timestamp: formatTimestamp(cached._timestamp) },
@@ -450,6 +452,7 @@ router.get('/', async (req, res) => {
 
     res.json({
       ...result,
+      lastUpdated: today,
       fetchedOn: today,
       isCurrent: true,
     });

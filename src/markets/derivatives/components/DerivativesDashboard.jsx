@@ -3,6 +3,7 @@ import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './DerivativesDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -112,7 +113,7 @@ function DerivativesDashboard({
               <div className="deriv-metric-card">
                 <div className="deriv-metric-label">Spot</div>
                 <div className="deriv-metric-value" style={{ color: vixTermStructure?.values?.[0] > 25 ? '#f87171' : vixTermStructure?.values?.[0] > 18 ? '#fbbf24' : '#4ade80' }}>
-                  {vixTermStructure?.values?.[0]?.toFixed(1) || '—'}
+                  <MetricValue value={vixTermStructure?.values?.[0]} seriesKey="vix" timestamp={lastUpdated} format={v => v.toFixed(1)} />
                 </div>
               </div>
               {termStatus && (
@@ -120,7 +121,7 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">{termStatus.isContango ? 'Contango' : 'Backwardation'}</span>
                     <span className="deriv-metric-num" style={{ color: termStatus.isContango ? '#4ade80' : '#f87171' }}>
-                      {termStatus.pct >= 0 ? '+' : ''}{termStatus.pct.toFixed(1)}%
+                      <MetricValue value={termStatus.pct} seriesKey="contangoPct" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
                     </span>
                   </div>
                 </div>
@@ -129,7 +130,7 @@ function DerivativesDashboard({
                 <div className="deriv-metric-card">
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">VVIX</span>
-                    <span className="deriv-metric-num" style={{ color: '#a78bfa' }}>{vixEnrichment.vvix.toFixed(1)}</span>
+                    <span className="deriv-metric-num" style={{ color: '#a78bfa' }}><MetricValue value={vixEnrichment.vvix} seriesKey="vvix" timestamp={lastUpdated} format={v => v.toFixed(1)} /></span>
                   </div>
                 </div>
               )}
@@ -142,7 +143,7 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">Put/Call</span>
                     <span className="deriv-metric-num" style={{ color: putCallRatio > 1.0 ? '#f87171' : putCallRatio < 0.7 ? '#4ade80' : '#fbbf24' }}>
-                      {putCallRatio.toFixed(2)}
+                      <MetricValue value={putCallRatio} seriesKey="putCallRatio" timestamp={lastUpdated} format={v => v.toFixed(2)} />
                     </span>
                   </div>
                 </div>
@@ -151,7 +152,7 @@ function DerivativesDashboard({
                 <div className="deriv-metric-card">
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">ATM 1M IV</span>
-                    <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>{volPremium.atm1mIV.toFixed(1)}%</span>
+                    <span className="deriv-metric-num" style={{ color: '#60a5fa' }}><MetricValue value={volPremium.atm1mIV} seriesKey="atmImpliedVol" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
                   </div>
                 </div>
               )}
@@ -159,7 +160,7 @@ function DerivativesDashboard({
                 <div className="deriv-metric-card">
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">VIX %ile</span>
-                    <span className="deriv-metric-num">{vixPercentile.toFixed(0)}%</span>
+                    <span className="deriv-metric-num"><MetricValue value={vixPercentile} seriesKey="vixPercentile" timestamp={lastUpdated} format={v => `${v.toFixed(0)}%`} /></span>
                   </div>
                 </div>
               )}
@@ -172,7 +173,7 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">Term Spread</span>
                     <span className="deriv-metric-num" style={{ color: termSpread > 0 ? '#4ade80' : '#f87171' }}>
-                      {termSpread >= 0 ? '+' : ''}{termSpread.toFixed(2)}
+                      <MetricValue value={termSpread} seriesKey="vix" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`} />
                     </span>
                   </div>
                 </div>
@@ -186,7 +187,7 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">Index</span>
                     <span className="deriv-metric-num" style={{ color: skewIndex.value > 140 ? '#f87171' : skewIndex.value > 120 ? '#fbbf24' : '#4ade80' }}>
-                      {skewIndex.value.toFixed(1)}
+                      <MetricValue value={skewIndex.value} seriesKey="skew" timestamp={lastUpdated} format={v => v.toFixed(1)} />
                     </span>
                   </div>
                   {skewIndex.interpretation && (
@@ -205,13 +206,13 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">Total</span>
                     <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>
-                      ${gammaExposure.total.toFixed(1)}B
+                      <MetricValue value={gammaExposure.total} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
                     </span>
                   </div>
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">Net</span>
                     <span className="deriv-metric-num" style={{ color: gammaExposure.netGamma >= 0 ? '#4ade80' : '#f87171' }}>
-                      {gammaExposure.netGamma >= 0 ? '+' : ''}{gammaExposure.netGamma.toFixed(1)}B
+                      <MetricValue value={gammaExposure.netGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}$${Math.abs(v).toFixed(1)}B`} />
                     </span>
                   </div>
                 </div>
@@ -228,7 +229,7 @@ function DerivativesDashboard({
               <span className="bento-panel-title">VIX Term Structure</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX Term Structure', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!vixTermStructure?.dates?.length} fetchLog={fetchLog} />
           </div>
@@ -241,7 +242,7 @@ function DerivativesDashboard({
               <span className="bento-panel-title">VIX — 1 Year</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX — 1 Year History', source: 'FRED', endpoint: '/api/derivatives', series: [{ id: 'VIXCLS' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!fredVixHistory?.dates?.length} fetchLog={fetchLog} />
           </div>
@@ -254,7 +255,7 @@ function DerivativesDashboard({
               <span className="bento-panel-title">SKEW Index</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'SKEW Index', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [{ id: 'SKEW' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!skewHistory?.dates?.length} fetchLog={fetchLog} />
           </div>
@@ -267,7 +268,7 @@ function DerivativesDashboard({
               <span className="bento-panel-title">Vol Surface (SPX)</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Vol Surface (SPX)', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!volSurfaceData?.grid?.length} fetchLog={fetchLog} />
           </div>

@@ -122,7 +122,7 @@ export default function OnChainMetrics({ onChainData, topExchanges = [] }) {
       {hashrate?.history?.length > 2 && (
         <div className="onchain-chart-wrap">
           <div className="crypto-chart-title">Hashrate Trend (30d)</div>
-          <SafeECharts option={buildHashrateOption(hashrate.history, colors)} style={{ height: 160, width: '100%' }} />
+          <SafeECharts option={buildHashrateOption(hashrate.history, colors)} style={{ height: 160, width: '100%' }} sourceInfo={{ title: 'Hashrate Trend (30d)', source: 'mempool.space', endpoint: '/api/crypto', series: [] }} />
         </div>
       )}
       {topExchanges.length > 0 && (
@@ -131,6 +131,7 @@ export default function OnChainMetrics({ onChainData, topExchanges = [] }) {
           <SafeECharts
             option={buildExchangesOption(topExchanges.slice(0, 10), colors)}
             style={{ height: Math.max(160, topExchanges.slice(0, 10).length * 22 + 16), width: '100%' }}
+            sourceInfo={{ title: 'Top Exchanges by 24h Volume', source: 'CoinGecko', endpoint: '/api/crypto', series: [] }}
           />
         </div>
       )}

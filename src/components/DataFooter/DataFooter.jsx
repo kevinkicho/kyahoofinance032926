@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import './DataFooter.css';
 
-const FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY || '';
+const FRED_API_BASE = '/api/fred/observations';
 
 const SOURCE_META = {
   'US Treasury Yields': { desc: 'US Treasury yield curve across tenors (3M\u201330Y)', series: ['DGS3MO', 'DGS6MO', 'DGS1', 'DGS2', 'DGS5', 'DGS7', 'DGS10', 'DGS20', 'DGS30'] },
@@ -38,7 +38,6 @@ const SOURCE_META = {
   fred: { desc: 'FRED commodity series (gold, silver, copper, WTI, Brent, nat gas)', series: ['GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM', 'POILWTIUSDM', 'POILBREUSDM', 'PNGASUSUSDM'] },
   yahoo: { desc: 'Yahoo Finance market data (DBC ETF prices, etc.)', series: [] },
   worldBank: { desc: 'World Bank commodity price indices', series: [] },
-  legacy: { desc: 'Legacy fallback endpoint data', series: [] },
   coinMarketData: { desc: 'CoinGecko: coin prices, market cap, 24h volume', series: [] },
   fearGreedData: { desc: 'Crypto Fear & Greed index', series: [] },
   defiData: { desc: 'DeFi Llama: total value locked across protocols', series: [] },
@@ -61,7 +60,7 @@ const SOURCE_META = {
   reinsurers: { desc: 'Reinsurance pricing and capacity data', series: [] },
   hyOAS: { desc: 'High yield OAS spread (BAMLH0A0HYM2)', series: ['BAMLH0A0HYM2'] },
   igOAS: { desc: 'Investment grade OAS spread (BAMLC0A0CM)', series: ['BAMLC0A0CM'] },
-  catBondSpreads: { desc: 'Catastrophe bond spread data', series: [] },
+  catBondSpreads: { desc: 'Catastrophe bond spread data (alias for catBondProxy)', series: [] },
   fredHyOasHistory: { desc: 'HY OAS spread history from FRED', series: ['BAMLH0A0HYM2'] },
   sectorETF: { desc: 'Insurance sector ETF performance (XLF, KIE, etc.)', series: [] },
   catBondProxy: { desc: 'Cat bond proxy / ILS market data', series: [] },
@@ -69,6 +68,71 @@ const SOURCE_META = {
   treasury10y: { desc: '10Y Treasury yield for discounting models', series: ['DGS10'] },
   catLosses: { desc: 'US catastrophe loss data (annual)', series: [] },
   combinedRatioHistory: { desc: 'Historical combined ratio trend', series: [] },
+  priceDashboardData: { desc: 'Commodity price dashboard: WTI, Brent, nat gas, gold, silver, copper', series: ['POILWTIUSDM', 'POILBREUSDM', 'PNGASUSUSDM', 'GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM'] },
+  futuresCurveData: { desc: 'Commodity futures curve data from CME/Yahoo', series: [] },
+  sectorHeatmapData: { desc: 'Commodity sector heatmap (energy, metals, agriculture)', series: [] },
+  supplyDemandData: { desc: 'Commodity supply/demand fundamentals from EIA', series: [] },
+  cotData: { desc: 'CFTC Commitments of Traders for commodity futures', series: [] },
+  fredCommodities: { desc: 'FRED commodity price series (gold, silver, copper, WTI, Brent, nat gas)', series: ['GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM', 'POILWTIUSDM', 'POILBREUSDM', 'PNGASUSUSDM'] },
+  goldFuturesCurve: { desc: 'Gold futures term structure', series: [] },
+  dbcEtf: { desc: 'Invesco DB Commodity Index ETF (DBC)', series: [] },
+  vixTermStructure: { desc: 'VIX futures term structure (spot, 1M, 2M, 3M)', series: ['VIXCLS'] },
+  vixEnrichment: { desc: 'VIX-derived metrics: VVIX, spot vs 3M spread', series: ['VIXCLS'] },
+  optionsFlow: { desc: 'Unusual options activity flow data', series: [] },
+  volSurfaceData: { desc: 'Implied volatility surface for SPX', series: [] },
+  volPremium: { desc: 'Implied vs realized volatility premium', series: [] },
+  fredVixHistory: { desc: 'Historical VIX data from FRED', series: ['VIXCLS'] },
+  putCallRatio: { desc: 'CBOE total put/call ratio', series: [] },
+  skewIndex: { desc: 'CBOE SKEW index (tail risk)', series: ['SKEW'] },
+  skewHistory: { desc: 'Historical SKEW index data', series: ['SKEW'] },
+  gammaExposure: { desc: 'Dealer gamma exposure estimate', series: [] },
+  vixPercentile: { desc: 'VIX current percentile vs 1Y range', series: ['VIXCLS'] },
+  termSpread: { desc: 'VIX futures term spread (M2 - M1)', series: ['VIXCLS'] },
+  reitData: { desc: 'REIT performance and fundamentals data', series: [] },
+  caseShiller: { desc: 'Case-Shiller National Home Price Index', series: ['CSUSHPISA'] },
+  mortgageRates: { desc: '30Y and 15Y fixed mortgage rates from FRED', series: ['MORTGAGE30US', 'MORTGAGE15US'] },
+  housingAffordability: { desc: 'Housing affordability index', series: [] },
+  homePriceIndex: { desc: 'FHFA/FRED home price index', series: [] },
+  supplyData: { desc: 'Housing supply (months of supply, months supply)', series: [] },
+  homeownershipRate: { desc: 'US homeownership rate from FRED', series: ['RSAHORUSQ156S'] },
+  rentCpi: { desc: 'Rent CPI component (CPIERSL)', series: ['CPIERSL'] },
+  reitEtf: { desc: 'Vanguard Real Estate ETF (VNQ)', series: [] },
+  existingHomeSales: { desc: 'Existing home sales from FRED', series: ['EXHOSLUSM495S'] },
+  rentalVacancy: { desc: 'Rental vacancy rate from FRED', series: ['RRVRUSQ156N'] },
+  housingStarts: { desc: 'Housing starts from FRED', series: ['HOUST'] },
+  medianHomePrice: { desc: 'US median home price', series: [] },
+  capRateData: { desc: 'Implied cap rate by real estate sector', series: [] },
+  foreclosureData: { desc: 'Foreclosure activity data', series: [] },
+  mbaApplications: { desc: 'MBA mortgage applications index', series: [] },
+  creDelinquencies: { desc: 'Commercial real estate delinquency rates', series: [] },
+  vixData: { desc: 'VIX index data from FRED', series: ['VIXCLS'] },
+  hySpreadData: { desc: 'High yield OAS spread from FRED', series: ['BAMLH0A0HYM2'] },
+  igSpreadData: { desc: 'Investment grade OAS spread from FRED', series: ['BAMLC0A0CM'] },
+  yieldCurveData: { desc: 'Yield curve shape data (10Y-2Y, 10Y-3M)', series: ['T10Y2Y', 'T10Y3M'] },
+  cftcCot: { desc: 'CFTC Commitments of Traders report', series: [] },
+  marginDebt: { desc: 'Margin debt (debit balances) from FRED', series: ['ANEDBI'] },
+  mutualFundFlows: { desc: 'Mutual fund flow data', series: [] },
+  consumerCredit: { desc: 'Total consumer credit outstanding from FRED', series: ['TOTALSL'] },
+  vvixData: { desc: 'VVIX (volatility of VIX) data', series: [] },
+  financialStressIndex: { desc: 'St. Louis Financial Stress Index', series: ['STLFSI4'] },
+  econEvents: { desc: 'Economic calendar events from Econdb', series: [] },
+  centralBankRates: { desc: 'Central bank policy rates (Fed, ECB, BOE, BOJ) from FRED', series: ['FEDFUNDS'] },
+  earnings: { desc: 'Upcoming earnings dates from Yahoo Finance', series: [] },
+  fredReleases: { desc: 'FRED scheduled economic releases', series: [] },
+  dividends: { desc: 'Ex-dividend calendar from Yahoo Finance', series: [] },
+  worldBankIndicators: { desc: 'World Bank global development indicators', series: [] },
+  fredRates: { desc: 'Central bank policy rates from FRED', series: ['FEDFUNDS'] },
+  fredRateHistory: { desc: 'Historical central bank policy rate data', series: ['FEDFUNDS'] },
+  fredMacroHistory: { desc: 'Historical macro indicators (CPI, GDP, unemployment)', series: ['CPIAUCSL', 'GDP', 'UNRATE'] },
+  oecdCli: { desc: 'OECD Composite Leading Indicators', series: [] },
+  blsCpi: { desc: 'BLS CPI data by component', series: ['CPIAUCSL', 'CPILFESL'] },
+  sectorETFs: { desc: 'Equity sector ETF performance data', series: [] },
+  factorStocks: { desc: 'Factor-based equity rankings (value, momentum, quality)', series: [] },
+  shortInterest: { desc: 'Market-wide short interest data', series: [] },
+  equityRiskPremium: { desc: 'Equity risk premium estimate (Damodaran/FRED)', series: [] },
+  spPE: { desc: 'S&P 500 P/E ratio', series: [] },
+  breadthDivergence: { desc: 'Market breadth and divergence indicators', series: [] },
+  buffettIndicator: { desc: 'Buffett Indicator (total market cap / GDP)', series: ['GFDEBTN'] },
 };
 
 function resolveMeta(key) {
@@ -91,8 +155,8 @@ function formatUTC(localTs) {
 function fredSeriesUrl(sid) { return `https://fred.stlouisfed.org/series/${sid}`; }
 
 function fredApiUrl(sid) {
-  const p = new URLSearchParams({ series_id: sid, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '5' });
-  return `https://api.stlouisfed.org/fred/series/observations?${p.toString()}`;
+  const p = new URLSearchParams({ series_id: sid, file_type: 'json', sort_order: 'desc', limit: '5' });
+  return `${FRED_API_BASE}?${p.toString()}`;
 }
 
 function isFRED(id) {

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import SectorRotation from '../../markets/equitiesDeepDive/components/SectorRotation';
 import { sectorData } from '../../markets/equitiesDeepDive/data/mockEquityDeepDiveData';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 describe('SectorRotation', () => {
   it('renders panel title', () => {

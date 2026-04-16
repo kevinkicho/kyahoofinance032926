@@ -5,6 +5,63 @@ import { trackApiCall } from '../lib/rateLimits.js';
 
 const router = Router();
 
+const DXY_SYMBOLS = 'EUR,GBP,JPY,CAD,SEK,CHF';
+const MOVER_SYMBOLS = 'EUR,GBP,JPY,CNY,CHF,AUD,CAD,SEK,NOK,NZD,HKD,SGD,INR,KRW,MXN,BRL,ZAR';
+const HISTORY_DAYS = 30;
+
+function getDateStr(daysAgo = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().split('T')[0];
+}
+
+async function fetchFrankfurterData() {
+  const today = getDateStr(0);
+  const yesterday = getDateStr(1);
+  const dxyStart = getDateStr(HISTORY_DAYS);
+  const sevenAgo = getDateStr(7);
+  try {
+    const [latest, prev, dxyHist, weekHist, month30] = await Promise.all([
+      fetchJSON(`https://api.frankfurter.dev/v1/latest?base=USD`),
+      fetchJSON(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`),
+      fetchJSON(`https://api.frankfurter.dev/v1/${dxyStart}..${today}?base=USD&symbols=${DXY_SYMBOLS}`),
+      fetchJSON(`https://api.frankfurter.dev/v1/${sevenAgo}..${today}?base=USD&symbols=${MOVER_SYMBOLS}`),
+      fetchJSON(`https://api.frankfurter.dev/v1/${getDateStr(HISTORY_DAYS)}?base=USD&symbols=${MOVER_SYMBOLS}`),
+    ]);
+    const spotRates = latest?.rates ? { USD: 1, ...latest.rates } : null;
+    const prevRates = prev?.rates ? { USD: 1, ...prev.rates } : null;
+    const history = dxyHist?.rates || null;
+    const spot = spotRates || { USD: 1 };
+    const changes1w = {};
+    const sparklines = {};
+    if (weekHist?.rates) {
+      const sortedDates = Object.keys(weekHist.rates).sort();
+      if (sortedDates.length > 0) {
+        const firstRates = weekHist.rates[sortedDates[0]];
+        const lastRates = weekHist.rates[sortedDates[sortedDates.length - 1]];
+        Object.keys(lastRates).forEach(code => {
+          const base = firstRates[code];
+          if (!base) return;
+          changes1w[code] = -((lastRates[code] - base) / base * 100);
+          sparklines[code] = sortedDates.map(d => {
+            const rate = weekHist.rates[d]?.[code];
+            return rate != null ? (-((rate - base) / base * 100) || 0) : null;
+          }).filter(v => v != null);
+        });
+      }
+    }
+    const changes1m = {};
+    if (month30?.rates) {
+      Object.keys(spot).forEach(code => {
+        if (code === 'USD') return;
+        const prev30 = month30.rates[code] || spot[code];
+        if (prev30) changes1m[code] = -((spot[code] - prev30) / prev30 * 100);
+      });
+    }
+    return { spotRates, prevRates, history, changes1w, changes1m, sparklines };
+  } catch (e) { console.warn('[FX-Frankfurter]', e.message || e); return null; }
+}
+
 async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
   const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
   const data = await fetchJSON(url);
@@ -89,6 +146,12 @@ router.get('/', async (req, res) => {
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
+    let frankfurterData = null;
+    try {
+      trackApiCall('Frankfurter');
+      frankfurterData = await fetchFrankfurterData();
+    } catch (e) { console.warn('[FX-Frankfurter]', e.message || e); }
+
     let fredFxRates = null;
     if (FRED_API_KEY) {
       try {
@@ -205,6 +268,7 @@ router.get('/', async (req, res) => {
     } catch (e) { console.warn('[FX]', e.message || e); }
 
     const _sources = {
+      frankfurter:       !!(frankfurterData?.spotRates),
       fredFxRates:       !!(fredFxRates && Object.keys(fredFxRates).length),
       reer:              !!(reer && (reer.dates || Object.keys(reer).length)),
       rateDifferentials: !!(rateDifferentials && Object.keys(rateDifferentials).length),
@@ -213,11 +277,20 @@ router.get('/', async (req, res) => {
     };
 
     const result = {
+      spotRates:          frankfurterData?.spotRates || null,
+      prevRates:          frankfurterData?.prevRates || null,
+      history:            frankfurterData?.history || null,
+      changes1w:          frankfurterData?.changes1w || null,
+      changes1m:          frankfurterData?.changes1m || null,
+      sparklines:         frankfurterData?.sparklines || null,
       fredFxRates:       fredFxRates ?? null,
       reer:              reer ?? null,
       rateDifferentials: rateDifferentials ?? null,
       dxyHistory:        dxyHistory ?? null,
       cotHistory:        cotHistory ?? null,
+      cotData:           cotHistory ? Object.fromEntries(
+        Object.entries(cotHistory).map(([code, arr]) => arr.length > 0 ? [code, arr[arr.length - 1].net] : [code, null])
+      ) : {},
       _sources,
       lastUpdated: today,
     };

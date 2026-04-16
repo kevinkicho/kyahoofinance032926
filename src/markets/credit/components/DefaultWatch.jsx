@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CreditComponents.css';
 
 function buildDelinquencyOption(delinquencyRates, colors) {
@@ -127,7 +128,7 @@ function buildChargeoffOption(chargeoffs, colors) {
   };
 }
 
-export default function DefaultWatch({ defaultData, delinquencyRates, lendingStandards }) {
+export default function DefaultWatch({ defaultData, delinquencyRates, lendingStandards, lastUpdated }) {
   if (!defaultData) return null;
   const { colors } = useTheme();
   const { rates = [], chargeoffs = { dates:[], commercial:[], consumer:[] }, defaultHistory = { dates:[], hy:[], loan:[] } } = defaultData;
@@ -171,7 +172,7 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
               <div className="credit-chart-title">Delinquency Rates</div>
               <div className="credit-chart-subtitle">FRED quarterly · commercial RE (red) · all loans (amber) · % past-due</div>
               <div className="credit-chart-wrap">
-                <SafeECharts option={buildDelinquencyOption(delinquencyRates, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildDelinquencyOption(delinquencyRates, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Delinquency Rates', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'DRCREACBS' }, { id: 'DRSLOACBS' }] }} />
               </div>
             </div>
           )}
@@ -180,7 +181,7 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
               <div className="credit-chart-title">Lending Standards (C&amp;I)</div>
               <div className="credit-chart-subtitle">Net % of banks tightening C&amp;I loan standards · red = tightening · green = easing</div>
               <div className="credit-chart-wrap">
-                <SafeECharts option={buildLendingStandardsOption(lendingStandards, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildLendingStandardsOption(lendingStandards, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Lending Standards (C&I)', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'DRTSCILM' }] }} />
               </div>
             </div>
           )}
@@ -192,14 +193,14 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
             <div className="credit-chart-title">Default Rate Trend</div>
             <div className="credit-chart-subtitle">HY bond & leveraged loan TTM default rates (%) — amber = HY · cyan = loans</div>
             <div className="credit-chart-wrap">
-              <SafeECharts option={buildDefaultHistoryOption(defaultHistory, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildDefaultHistoryOption(defaultHistory, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Default Rate Trend', source: 'FRED / Moody\'s', endpoint: '/api/credit', series: [] }} />
             </div>
           </div>
           <div className="credit-chart-panel">
             <div className="credit-chart-title">Bank Charge-Off Rates</div>
             <div className="credit-chart-subtitle">FRED quarterly charge-off rates (%) — commercial & consumer loans · DRALACBN / DRSFRMACBS</div>
             <div className="credit-chart-wrap">
-              <SafeECharts option={buildChargeoffOption(chargeoffs, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildChargeoffOption(chargeoffs, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Bank Charge-Off Rates', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'DRALACBS' }, { id: 'DRSFRMACBS' }] }} />
             </div>
           </div>
         </div>
@@ -224,9 +225,9 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
                   return (
                     <tr key={r.category} className="credit-row">
                       <td className="credit-cell">{r.category}</td>
-                      <td className={`credit-cell credit-num ${cls}`}><strong>{r.value}{r.unit}</strong></td>
-                      <td className="credit-cell credit-num credit-muted">{r.prev}{r.unit}</td>
-                      <td className="credit-cell credit-num credit-muted">{r.peak}{r.unit}</td>
+                      <td className={`credit-cell credit-num ${cls}`}><strong><MetricValue value={r.value} seriesKey="defaultRateValue" timestamp={lastUpdated} format={v => v != null ? `${v}${r.unit || ''}` : '—'} /></strong></td>
+                      <td className="credit-cell credit-num credit-muted"><MetricValue value={r.prev} seriesKey="defaultRatePrev" timestamp={lastUpdated} format={v => v != null ? `${v}${r.unit || ''}` : '—'} /></td>
+                      <td className="credit-cell credit-num credit-muted"><MetricValue value={r.peak} seriesKey="defaultRatePeak" timestamp={lastUpdated} format={v => v != null ? `${v}${r.unit || ''}` : '—'} /></td>
                       <td className="credit-cell credit-num credit-muted">{vsPeak ? `${vsPeak}%` : '—'}</td>
                     </tr>
                   );

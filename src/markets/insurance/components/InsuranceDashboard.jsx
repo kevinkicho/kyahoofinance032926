@@ -3,6 +3,7 @@ import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './InsuranceDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -88,7 +89,7 @@ function InsuranceDashboard({
                     <div className="ins-metric-row">
                       <span className="ins-metric-name">Industry</span>
                       <span className="ins-metric-num" style={{ color: combinedRatioData.industry > 100 ? '#f87171' : '#4ade80' }}>
-                        {combinedRatioData.industry.toFixed(1)}%
+                        <MetricValue value={combinedRatioData.industry} seriesKey="insuranceCombinedRatio" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                       </span>
                     </div>
                   )}
@@ -96,7 +97,7 @@ function InsuranceDashboard({
                     <div className="ins-metric-row">
                       <span className="ins-metric-name">Avg</span>
                       <span className="ins-metric-num" style={{ color: industryAvgCombinedRatio > 100 ? '#f87171' : '#4ade80' }}>
-                        {industryAvgCombinedRatio.toFixed(1)}%
+                        <MetricValue value={industryAvgCombinedRatio} seriesKey="insuranceAvgCombinedRatio" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                       </span>
                     </div>
                   )}
@@ -111,7 +112,7 @@ function InsuranceDashboard({
                     <div key={r.ticker} className="ins-metric-row">
                       <span className="ins-metric-name">{r.ticker}</span>
                       <span className="ins-metric-num" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                        {fmtChangePct(r.changePct)}
+                        <MetricValue value={r.changePct} seriesKey="reinsurerChange" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                       </span>
                     </div>
                   ))}
@@ -129,7 +130,7 @@ function InsuranceDashboard({
               <span className="bento-panel-title">HY OAS Spread</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY OAS Spread', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -142,7 +143,7 @@ function InsuranceDashboard({
               <span className="bento-panel-title">Natural Catastrophe Losses</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: 'FRED / Server', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -155,7 +156,7 @@ function InsuranceDashboard({
               <span className="bento-panel-title">Industry Combined Ratio</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={combinedRatioOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={combinedRatioOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Industry Combined Ratio', source: 'FRED / A.M. Best', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED / A.M. Best" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -173,7 +174,7 @@ function InsuranceDashboard({
                   <div key={l.line} className="ins-mini-row">
                     <span className="ins-mini-name">{l.line}</span>
                     <span className="ins-mini-value" style={{ color: l.ratio > 100 ? '#f87171' : '#4ade80' }}>
-                      {l.ratio?.toFixed(1)}%
+                      <MetricValue value={l.ratio} seriesKey="insuranceCombinedRatioByLine" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
                     </span>
                   </div>
                 ))}
@@ -194,7 +195,7 @@ function InsuranceDashboard({
                 {reinsurancePricing.byCategory.slice(0, 8).map((c) => (
                   <div key={c.category} className="ins-mini-row">
                     <span className="ins-mini-name">{c.category}</span>
-                    <span className="ins-mini-value">{c.rate?.toFixed(1)}%</span>
+                    <span className="ins-mini-value"><MetricValue value={c.rate} seriesKey="reinsuranceRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
                   </div>
                 ))}
               </div>
@@ -215,7 +216,7 @@ function InsuranceDashboard({
                   <div key={r.insurer} className="ins-mini-row">
                     <span className="ins-mini-name">{r.insurer}</span>
                     <span className="ins-mini-value" style={{ color: r.ratio > 1.1 ? '#4ade80' : r.ratio < 1 ? '#f87171' : '#fbbf24' }}>
-                      {r.ratio?.toFixed(2)}x
+                      <MetricValue value={r.ratio} seriesKey="reserveAdequacy" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}x` : '—'} />
                     </span>
                   </div>
                 ))}
@@ -237,7 +238,7 @@ function InsuranceDashboard({
                   <div key={b.name} className="ins-mini-row">
                     <span className="ins-mini-name">{b.name}</span>
                     <span className="ins-mini-value" style={{ color: b.spread > 8 ? '#4ade80' : '#fbbf24' }}>
-                      {b.spread?.toFixed(1)}%
+                      <MetricValue value={b.spread} seriesKey="catBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
                     </span>
                   </div>
                 ))}
@@ -259,7 +260,7 @@ function InsuranceDashboard({
                   <div key={e.symbol} className="ins-mini-row">
                     <span className="ins-mini-name">{e.symbol}</span>
                     <span className="ins-mini-value" style={{ color: (e.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                      {(e.changePct || 0) >= 0 ? '+' : ''}{(e.changePct || 0).toFixed(2)}%
+                      <MetricValue value={e.changePct || 0} seriesKey="insuranceSectorEtf" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 ))}

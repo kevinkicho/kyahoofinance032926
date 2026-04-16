@@ -1,5 +1,6 @@
 import React from 'react';
 import BentoWrapper from '../../../components/BentoWrapper';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './AlertsDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -14,6 +15,17 @@ const LAYOUT = {
 };
 
 function AlertsDashboard({ alerts, rules }) {
+  const ALERT_SERIES = {
+    'vix-spike': 'alertVix',
+    'curve-inversion': 'alertCurve',
+    'hy-spread-wide': 'alertHY',
+    'fear-extreme': 'alertFear',
+    'greed-extreme': 'alertGreed',
+    'btc-crash': 'alertBTC',
+    'gold-rally': 'alertGold',
+    'dxy-move': 'alertDXY',
+  };
+
   const rulesByMarket = rules.reduce((acc, r) => {
     if (!acc[r.market]) acc[r.market] = [];
     acc[r.market].push(r);
@@ -90,7 +102,7 @@ function AlertsDashboard({ alerts, rules }) {
                     <div className="alerts-alert-label">{alert.label}</div>
                     <div className="alerts-alert-message">{alert.message}</div>
                     {alert.value != null && (
-                      <div className="alerts-alert-value">Value: {alert.value}</div>
+                      <div className="alerts-alert-value">Value: <MetricValue seriesKey={ALERT_SERIES[alert.id]} value={alert.value} /></div>
                     )}
                   </div>
                 ))}

@@ -3,6 +3,9 @@ import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import SafeECharts from '../../../components/SafeECharts';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
+import CftcPositioning from './CftcPositioning';
+import RiskDashboard from './RiskDashboard';
 import './SentimentDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -13,17 +16,20 @@ const LAYOUT = {
     { i: 'fear-greed', x: 3, y: 0, w: 3, h: 3 },
     { i: 'fsi', x: 6, y: 0, w: 3, h: 3 },
     { i: 'cross-asset', x: 9, y: 0, w: 3, h: 3 },
-    { i: 'risk-signals', x: 0, y: 3, w: 6, h: 2 },
-    { i: 'leverage', x: 6, y: 3, w: 6, h: 2 },
+    { i: 'cftc', x: 0, y: 3, w: 6, h: 3 },
+    { i: 'risk-dashboard', x: 6, y: 3, w: 6, h: 3 },
+    { i: 'leverage', x: 0, y: 6, w: 12, h: 2 },
   ]
 };
 
 function SentimentDashboard({
   fearGreedData,
+  cftcData,
   riskData,
   returnsData,
   marginDebt,
   consumerCredit,
+  vvixHistory,
   fsiHistory,
   fetchLog,
   isLive,
@@ -109,7 +115,7 @@ function SentimentDashboard({
                   <div className="sent-metric-value" style={{
                     color: fgiValue < 25 ? '#ef4444' : fgiValue < 50 ? '#fbbf24' : fgiValue < 75 ? '#22c55e' : '#14b8a6'
                   }}>
-                    {fgiValue}
+                    <MetricValue value={fgiValue} seriesKey="fearGreed" timestamp={lastUpdated} format={v => v} />
                   </div>
                   {fgiLabel && <div className="sent-metric-status">{fgiLabel}</div>}
                 </div>
@@ -123,7 +129,7 @@ function SentimentDashboard({
                   <div className="sent-metric-row">
                     <span className="sent-metric-name">VIX</span>
                     <span className="sent-metric-num" style={{ color: vixValue > 25 ? '#f87171' : vixValue > 18 ? '#fbbf24' : '#22c55e' }}>
-                      {vixValue.toFixed(1)}
+                      <MetricValue value={vixValue} seriesKey="vix" timestamp={lastUpdated} format={v => v.toFixed(1)} />
                     </span>
                   </div>
                 </div>
@@ -133,7 +139,7 @@ function SentimentDashboard({
                   <div className="sent-metric-row">
                     <span className="sent-metric-name">Put/Call</span>
                     <span className="sent-metric-num" style={{ color: putCallRatio > 1.2 ? '#22c55e' : putCallRatio < 0.8 ? '#f87171' : '#fbbf24' }}>
-                      {putCallRatio.toFixed(2)}
+                      <MetricValue value={putCallRatio} seriesKey="putCallRatio" timestamp={lastUpdated} format={v => v.toFixed(2)} />
                     </span>
                   </div>
                 </div>
@@ -145,13 +151,30 @@ function SentimentDashboard({
                     <div className="sent-metric-row">
                       <span className="sent-metric-name">HY Spread</span>
                       <span className="sent-metric-num" style={{ color: hySignal.value > 400 ? '#f87171' : '#fbbf24' }}>
-                        {hySignal.value.toFixed(0)} bps
+                        <MetricValue value={hySignal.value} seriesKey="hyOAS" timestamp={lastUpdated} format={v => `${v.toFixed(0)} bps`} />
                       </span>
                     </div>
                   </div>
                 ) : null;
               })()}
             </div>
+
+            {fsiHistory?.values?.length > 0 && (() => {
+              const fsiLatest = fsiHistory.values[fsiHistory.values.length - 1];
+              return typeof fsiLatest === 'number' ? (
+                <div className="sent-sidebar-section">
+                  <div className="sent-sidebar-title">Stress</div>
+                  <div className="sent-metric-card">
+                    <div className="sent-metric-row">
+                      <span className="sent-metric-name">FSI</span>
+                      <span className="sent-metric-num" style={{ color: fsiLatest > 0 ? '#f87171' : '#22c55e' }}>
+                        <MetricValue value={fsiLatest} seriesKey="financialStressIndex" timestamp={lastUpdated} format={v => v.toFixed(2)} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : null;
+            })()}
 
             {(marginDebt || consumerCredit) && (
               <div className="sent-sidebar-section">
@@ -161,7 +184,7 @@ function SentimentDashboard({
                     <div className="sent-metric-row">
                       <span className="sent-metric-name">Margin Debt</span>
                       <span className="sent-metric-num" style={{ color: '#a78bfa' }}>
-                        ${(marginDebt.value / 1e9).toFixed(0)}B
+                        <MetricValue value={marginDebt.value} seriesKey="marginDebt" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} />
                       </span>
                     </div>
                   </div>
@@ -171,7 +194,7 @@ function SentimentDashboard({
                     <div className="sent-metric-row">
                       <span className="sent-metric-name">Consumer Credit</span>
                       <span className="sent-metric-num" style={{ color: '#60a5fa' }}>
-                        ${(consumerCredit.value / 1e9).toFixed(0)}B
+                        <MetricValue value={consumerCredit.value} seriesKey="consumerCredit" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} />
                       </span>
                     </div>
                   </div>
@@ -189,7 +212,7 @@ function SentimentDashboard({
               <span className="bento-panel-title">Fear & Greed Index</span>
             </div>
             <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fear & Greed Index', source: 'Alternative.me / FRED', endpoint: '/api/sentiment', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="Alternative.me / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -202,7 +225,7 @@ function SentimentDashboard({
               <span className="bento-panel-title">Financial Stress Index</span>
             </div>
             <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Financial Stress Index', source: 'FRED', endpoint: '/api/sentiment', series: [{ id: 'STLFSI4' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -219,7 +242,7 @@ function SentimentDashboard({
                 <div key={r.asset || r.ticker || r.name} className="sent-mini-row">
                   <span className="sent-mini-name">{r.asset}</span>
                   <span className="sent-mini-value" style={{ color: (r.return || 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                    {(r.return || 0) >= 0 ? '+' : ''}{(r.return || 0).toFixed(2)}%
+                    <MetricValue value={r.return || 0} seriesKey="crossAssetReturn" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
                   </span>
                 </div>
               ))}
@@ -228,23 +251,26 @@ function SentimentDashboard({
           </div>
         )}
 
-        {/* Risk Signals */}
-        {riskData?.signals?.length > 0 && (
-          <div key="risk-signals" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Risk Signals</span>
+        {/* CFTC Positioning */}
+        {cftcData?.currencies?.length > 0 && (
+          <div key="cftc" className="sent-bento-card">
+            <div className="bento-panel-content" onMouseDown={stopDrag}>
+              <CftcPositioning cftcData={cftcData} />
             </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-              {riskData.signals.slice(0, 8).map((s) => (
-                <div key={s.name || s.signal} className="sent-mini-row">
-                  <span className="sent-mini-name">{s.name}</span>
-                  <span className="sent-mini-value" style={{ color: s.signal === 'risk-on' ? '#22c55e' : s.signal === 'risk-off' ? '#f87171' : '#fbbf24' }}>
-                    {s.fmt || s.value}
-                  </span>
-                </div>
-              ))}
+          </div>
+        )}
+
+        {/* Risk Dashboard */}
+        {(riskData || vvixHistory || fsiHistory) && (
+          <div key="risk-dashboard" className="sent-bento-card">
+            <div className="bento-panel-content" onMouseDown={stopDrag}>
+              <RiskDashboard
+                riskData={riskData}
+                marginDebt={marginDebt}
+                vvixHistory={vvixHistory}
+                fsiHistory={fsiHistory}
+              />
             </div>
-            <DataFooter source="FRED / CFTC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
         )}
 
@@ -258,13 +284,13 @@ function SentimentDashboard({
               {marginDebt?.value != null && (
                 <div className="sent-mini-row">
                   <span className="sent-mini-name">Margin Debt</span>
-                  <span className="sent-mini-value">${(marginDebt.value / 1e9).toFixed(0)}B</span>
+                  <span className="sent-mini-value"><MetricValue value={marginDebt.value} seriesKey="marginDebt" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} /></span>
                 </div>
               )}
               {consumerCredit?.value != null && (
                 <div className="sent-mini-row">
                   <span className="sent-mini-name">Consumer Credit</span>
-                  <span className="sent-mini-value">${(consumerCredit.value / 1e9).toFixed(0)}B</span>
+                  <span className="sent-mini-value"><MetricValue value={consumerCredit.value} seriesKey="consumerCredit" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} /></span>
                 </div>
               )}
             </div>

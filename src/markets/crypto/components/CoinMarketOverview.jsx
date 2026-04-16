@@ -1,5 +1,6 @@
 // src/markets/crypto/components/CoinMarketOverview.jsx
 import React from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoDashboard.css';
@@ -145,12 +146,12 @@ export default function CoinMarketOverview({ coinMarketData, btcDominance, stabl
                         <strong>{c.symbol}</strong>
                         <span className="crypto-muted"> {c.name}</span>
                       </td>
-                      <td className="crypto-cell crypto-num">{fmtPrice(c.price)}</td>
-                      <td className={`crypto-cell crypto-num ${ch24.cls}`}>{ch24.text}</td>
+                      <td className="crypto-cell crypto-num"><MetricValue value={c.price} seriesKey="cryptoPrice" format={v => v != null ? fmtPrice(v) : '\u2014'} /></td>
+                      <td className={`crypto-cell crypto-num ${ch24.cls}`}><MetricValue value={c.change24h || c.price_change_percentage_24h} seriesKey="cryptoChange" format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '\u2014'} /></td>
                       <td className={`crypto-cell crypto-num ${ch7d.cls}`}>{ch7d.text}</td>
                       <td className={`crypto-cell crypto-num ${ch30.cls}`}>{ch30.text}</td>
-                      <td className="crypto-cell crypto-num">{fmtB(c.marketCapB)}</td>
-                      <td className="crypto-cell crypto-num">{fmtB(c.volumeB)}</td>
+                      <td className="crypto-cell crypto-num"><MetricValue value={c.marketCapB} seriesKey="cryptoMktCap" format={v => v != null ? `$${v.toFixed(1)}B` : '\u2014'} /></td>
+                      <td className="crypto-cell crypto-num"><MetricValue value={c.volumeB} seriesKey="cryptoVolume" format={v => v != null ? `$${v.toFixed(1)}B` : '\u2014'} /></td>
                     </tr>
                   );
                 })}
@@ -162,7 +163,7 @@ export default function CoinMarketOverview({ coinMarketData, btcDominance, stabl
           <div className="crypto-chart-title">Market Dominance</div>
           <div className="crypto-chart-subtitle">BTC · ETH · Alts share of total market cap</div>
           <div className="crypto-chart-wrap">
-            <SafeECharts option={buildDominanceOption(globalStats, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildDominanceOption(globalStats, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Market Dominance', source: 'CoinGecko', endpoint: '/api/crypto', series: [] }} />
           </div>
         </div>
       </div>

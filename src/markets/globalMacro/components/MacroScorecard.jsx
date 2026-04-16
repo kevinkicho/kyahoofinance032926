@@ -1,5 +1,6 @@
 // src/markets/globalMacro/components/MacroScorecard.jsx
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 
 
 function fmtBillions(v) {
@@ -92,30 +93,30 @@ export default function MacroScorecard({ scorecardData = [], consumerSentiment, 
         <div className="mac-kpi-pill">
           <span className="mac-kpi-label">Avg G7 GDP</span>
           <span className={`mac-kpi-value ${kpis.avgG7Gdp >= 0 ? 'positive' : 'negative'}`}>
-            {kpis.avgG7Gdp.toFixed(1)}%
+            <MetricValue value={kpis.avgG7Gdp} seriesKey="g7Gdp" format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
           </span>
         </div>
         <div className="mac-kpi-pill">
           <span className="mac-kpi-label">Avg EM GDP</span>
           <span className={`mac-kpi-value ${kpis.avgEmGdp >= 0 ? 'positive' : 'negative'}`}>
-            {kpis.avgEmGdp.toFixed(1)}%
+            <MetricValue value={kpis.avgEmGdp} seriesKey="emGdp" format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
           </span>
         </div>
         <div className="mac-kpi-pill">
           <span className="mac-kpi-label">Lowest CPI</span>
           <span className="mac-kpi-value accent">{kpis.lowestCpi ? kpis.lowestCpi.name : '\u2014'}</span>
-          {kpis.lowestCpi && <span className="mac-kpi-sub">{kpis.lowestCpi.cpi.toFixed(1)}%</span>}
+          {kpis.lowestCpi && <span className="mac-kpi-sub"><MetricValue value={kpis.lowestCpi.cpi} seriesKey="lowestCpi" format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>}
         </div>
         <div className="mac-kpi-pill">
           <span className="mac-kpi-label">Highest Debt</span>
           <span className="mac-kpi-value" style={{ color: '#ef4444' }}>{kpis.highestDebt ? kpis.highestDebt.name : '\u2014'}</span>
-          {kpis.highestDebt && <span className="mac-kpi-sub">{kpis.highestDebt.debt.toFixed(0)}% GDP</span>}
+          {kpis.highestDebt && <span className="mac-kpi-sub"><MetricValue value={kpis.highestDebt.debt} seriesKey="highestDebt" format={v => v != null ? `${v.toFixed(0)}% GDP` : '—'} /></span>}
         </div>
         {kpis.latestSentiment != null && (
           <div className="mac-kpi-pill">
             <span className="mac-kpi-label">Consumer Sentiment</span>
             <span className="mac-kpi-value" style={{ color: kpis.latestSentiment >= 80 ? '#4ade80' : kpis.latestSentiment >= 60 ? '#f59e0b' : '#ef4444' }}>
-              {kpis.latestSentiment.toFixed(1)}
+              <MetricValue value={kpis.latestSentiment} seriesKey="consumerSentiment" format={v => v != null ? v.toFixed(1) : '—'} />
             </span>
             <span className="mac-kpi-sub">U. Michigan Index</span>
           </div>
@@ -124,7 +125,7 @@ export default function MacroScorecard({ scorecardData = [], consumerSentiment, 
           <div className="mac-kpi-pill">
             <span className="mac-kpi-label">Trade Balance</span>
             <span className="mac-kpi-value" style={{ color: kpis.latestTradeBalance >= 0 ? '#4ade80' : '#ef4444' }}>
-              {fmtBillions(kpis.latestTradeBalance)}
+              <MetricValue value={kpis.latestTradeBalance} seriesKey="tradeBalance" format={v => fmtBillions(v)} />
             </span>
             <span className="mac-kpi-sub">Latest month</span>
           </div>
@@ -133,7 +134,7 @@ export default function MacroScorecard({ scorecardData = [], consumerSentiment, 
           <div className="mac-kpi-pill">
             <span className="mac-kpi-label">M2 YoY Growth</span>
             <span className="mac-kpi-value" style={{ color: kpis.latestM2Yoy > 8 ? '#ef4444' : kpis.latestM2Yoy > 4 ? '#f59e0b' : '#4ade80' }}>
-              {kpis.latestM2Yoy >= 0 ? '+' : ''}{kpis.latestM2Yoy.toFixed(1)}%
+              <MetricValue value={kpis.latestM2Yoy} seriesKey="m2GrowthYoY" format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—'} />
             </span>
             <span className="mac-kpi-sub">Money supply</span>
           </div>
@@ -155,11 +156,11 @@ export default function MacroScorecard({ scorecardData = [], consumerSentiment, 
             {scorecardData.map(c => (
               <tr key={c.code} className="mac-row">
                 <td className="mac-cell"><span>{c.flag}</span> <span>{c.name}</span></td>
-                <td className={`mac-cell ${gdpHeat(c.gdp)}`}  style={{ fontWeight: 500 }}>{fmt1(c.gdp)}</td>
-                <td className={`mac-cell ${cpiHeat(c.cpi)}`}  style={{ fontWeight: 500 }}>{fmt1(c.cpi)}</td>
-                <td className={`mac-cell ${rateHeat(c.rate)}`} style={{ fontWeight: 500 }}>{fmtRate(c.rate)}</td>
-                <td className={`mac-cell ${unempHeat(c.unemp)}`} style={{ fontWeight: 500 }}>{fmt1(c.unemp)}</td>
-                <td className={`mac-cell ${debtHeat(c.debt)}`}  style={{ fontWeight: 500 }}>{fmt1(c.debt)}</td>
+                <td className={`mac-cell ${gdpHeat(c.gdp)}`}  style={{ fontWeight: 500 }}><MetricValue value={c.gdp} seriesKey="gdp" format={v => fmt1(v)} /></td>
+                <td className={`mac-cell ${cpiHeat(c.cpi)}`}  style={{ fontWeight: 500 }}><MetricValue value={c.cpi} seriesKey="cpiBreakdown" format={v => fmt1(v)} /></td>
+                <td className={`mac-cell ${rateHeat(c.rate)}`} style={{ fontWeight: 500 }}><MetricValue value={c.rate} seriesKey="fedRate" format={v => fmtRate(v)} /></td>
+                <td className={`mac-cell ${unempHeat(c.unemp)}`} style={{ fontWeight: 500 }}><MetricValue value={c.unemp} seriesKey="unemployment" format={v => fmt1(v)} /></td>
+                <td className={`mac-cell ${debtHeat(c.debt)}`}  style={{ fontWeight: 500 }}><MetricValue value={c.debt} seriesKey="debtToGdp" format={v => fmt1(v)} /></td>
               </tr>
             ))}
           </tbody>

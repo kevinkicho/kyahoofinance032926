@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import PriceDashboard from './PriceDashboard';
 import FuturesCurve from './FuturesCurve';
 import SupplyDemand from './SupplyDemand';
@@ -81,7 +82,7 @@ function CommoditiesDashboard({
           </div>
           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {priceView === 'table' ? (
-              <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} goldOilRatio={goldOilRatio} contangoIndicator={contangoIndicator} commodityCurrencies={commodityCurrencies} enhancedData={enhancedData} />
+              <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} goldOilRatio={goldOilRatio} contangoIndicator={contangoIndicator} commodityCurrencies={commodityCurrencies} enhancedData={enhancedData} lastUpdated={lastUpdated} />
             ) : (
               <PriceCharts priceDashboardData={priceDashboardData} allCommodities={allCommodities} colors={colors} formatChange={formatChange} />
             )}
@@ -114,7 +115,7 @@ function CommoditiesDashboard({
             <span className="com-panel-title">Supply & Demand</span>
           </div>
           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} />
+            <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} lastUpdated={lastUpdated} />
           </div>
           <DataFooter source="EIA" timestamp={lastUpdated} isLive={!!supplyDemandData} fetchLog={fetchLog} />
         </div>
@@ -123,7 +124,7 @@ function CommoditiesDashboard({
             <span className="com-panel-title">COT Positioning</span>
           </div>
           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            <CotPositioning cotData={cotData} />
+            <CotPositioning cotData={cotData} lastUpdated={lastUpdated} />
           </div>
           <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotData} fetchLog={fetchLog} />
         </div>

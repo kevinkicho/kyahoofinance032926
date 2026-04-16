@@ -2,6 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CommoditiesDashboard.css';
 
 function buildCurveOption(labels, prices, accentColor, unit, colors) {
@@ -118,7 +119,7 @@ function buildSeasonalOption(seasonalPatterns, colors) {
   };
 }
 
-export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredCommodities, seasonalPatterns }) {
+export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredCommodities, seasonalPatterns, lastUpdated }) {
   const { colors } = useTheme();
   const wti = futuresCurveData || {};
   const gold = goldFuturesCurve || {};
@@ -187,13 +188,13 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
       <div className="com-kpi-strip">
         <div className="com-kpi-pill">
           <span className="com-kpi-label">WTI Spot</span>
-          <span className="com-kpi-value">${wti.spotPrice?.toFixed(2) ?? '—'}</span>
-          <span className="com-kpi-sub">{structureLabel(wtiSpread)} {wtiSpread != null ? `(${wtiSpread > 0 ? '+' : ''}${wtiSpread.toFixed(1)}%)` : ''}</span>
+          <span className="com-kpi-value"><MetricValue value={wti.spotPrice} seriesKey="wtiSpot" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></span>
+          <span className="com-kpi-sub">{structureLabel(wtiSpread)} {wtiSpread != null ? <>(<MetricValue value={wtiSpread} seriesKey="wtiContango" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />)</> : ''}</span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Gold Spot</span>
-          <span className="com-kpi-value">${gold.spotPrice?.toLocaleString() ?? '—'}</span>
-          <span className="com-kpi-sub">{structureLabel(goldSpread)} {goldSpread != null ? `(${goldSpread > 0 ? '+' : ''}${goldSpread.toFixed(1)}%)` : ''}</span>
+          <span className="com-kpi-value"><MetricValue value={gold.spotPrice} seriesKey="goldSpot" timestamp={lastUpdated} format={v => v != null ? `$${v.toLocaleString()}` : '—'} /></span>
+          <span className="com-kpi-sub">{structureLabel(goldSpread)} {goldSpread != null ? <>(<MetricValue value={goldSpread} seriesKey="goldContango" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />)</> : ''}</span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">WTI Contracts</span>
@@ -213,11 +214,11 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
           <div className="com-chart-panel">
             <div className="com-chart-title">WTI Crude Oil — {wti.labels?.length} Months ({wti.unit})</div>
             <div className="com-mini-chart">
-              <SafeECharts option={wtiOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+              <SafeECharts option={wtiOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'WTI Crude Oil Futures Curve', source: 'CME / Yahoo Finance', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
             </div>
             {wtiSpread != null && (
               <span className={`com-curve-pill ${wtiSpread > 0 ? 'com-contango' : 'com-backwardation'}`} style={{ marginTop: 4, alignSelf: 'flex-start' }}>
-                {wtiSpread > 0 ? '▲ Contango' : '▼ Backwardation'} · {Math.abs(wtiSpread).toFixed(1)}%
+                {wtiSpread > 0 ? '▲ Contango' : '▼ Backwardation'} · <MetricValue value={Math.abs(wtiSpread)} seriesKey="wtiContango" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} />
               </span>
             )}
           </div>
@@ -226,11 +227,11 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
           <div className="com-chart-panel">
             <div className="com-chart-title">Gold — {gold.labels?.length} Months ({gold.unit})</div>
             <div className="com-mini-chart">
-              <SafeECharts option={goldOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+              <SafeECharts option={goldOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Gold Futures Curve', source: 'CME / Yahoo Finance', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
             </div>
             {goldSpread != null && (
               <span className={`com-curve-pill ${goldSpread > 0 ? 'com-contango' : 'com-backwardation'}`} style={{ marginTop: 4, alignSelf: 'flex-start' }}>
-                {goldSpread > 0 ? '▲ Contango' : '▼ Backwardation'} · {Math.abs(goldSpread).toFixed(1)}%
+                {goldSpread > 0 ? '▲ Contango' : '▼ Backwardation'} · <MetricValue value={Math.abs(goldSpread)} seriesKey="goldContango" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} />
               </span>
             )}
           </div>
@@ -242,7 +243,7 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
         <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">Dollar Index vs WTI — 1 Year (FRED daily, inverse correlation)</div>
           <div className="com-mini-chart">
-            <SafeECharts option={dualOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+            <SafeECharts option={dualOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Dollar Index vs WTI', source: 'FRED', endpoint: '/api/commodities', series: [{ id: 'DCOILWTICO' }, { id: 'DTWEXBGS' }], updatedAt: lastUpdated }} />
           </div>
         </div>
       )}
@@ -252,7 +253,7 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
         <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">Seasonal Patterns — 5-Year Avg Monthly Returns (CL, GC, ZC)</div>
           <div className="com-mini-chart">
-            <SafeECharts option={seasonalOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+            <SafeECharts option={seasonalOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Seasonal Patterns (CL, GC, ZC)', source: 'CME / Historical', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
           </div>
         </div>
       )}

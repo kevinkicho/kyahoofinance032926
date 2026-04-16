@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './EquitiesDeepDiveDashboard.css';
 
 function beatColor(rate, textDim = '#475569') {
@@ -135,8 +136,8 @@ export default function EarningsWatch({ earningsData }) {
                       <strong>{e.ticker}</strong>
                       <span className="eq-name"> {e.name}</span>
                     </td>
-                    <td className="eq-cell eq-num">${e.epsEst?.toFixed(2)}</td>
-                    <td className="eq-cell eq-num eq-muted">${e.epsPrev?.toFixed(2)}</td>
+                    <td className="eq-cell eq-num"><MetricValue value={e.epsEst} seriesKey="earningsEpsEst" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                    <td className="eq-cell eq-num eq-muted"><MetricValue value={e.epsPrev} seriesKey="earningsEpsPrev" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
                     <td className="eq-cell eq-dir">
                       {(e.epsEst ?? 0) >= (e.epsPrev ?? 0) ? '▲' : '▼'}
                     </td>
@@ -152,7 +153,7 @@ export default function EarningsWatch({ earningsData }) {
               <div className="eq-chart-title">Sector Beat Rate</div>
               <div className="eq-chart-subtitle">Last quarter EPS beat % · indigo ≥70% · amber 50–70% · red &lt;50%</div>
               <div className="eq-chart-wrap">
-                <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
               </div>
             </>
           ) : (

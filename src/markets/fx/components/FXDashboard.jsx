@@ -207,7 +207,7 @@ function FXDashboard({
                   </div>
                   {pair.change != null && (
                     <span style={{ fontSize: 10, color: pair.change >= 0 ? '#4ade80' : '#f87171' }}>
-                      {pair.change >= 0 ? '+' : ''}{pair.change.toFixed(3)}%
+                      <MetricValue value={pair.change} seriesKey={FX_SERIES[pair.label]} timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} />
                     </span>
                   )}
                 </div>
@@ -217,7 +217,7 @@ function FXDashboard({
               <div className="fx-metric-card">
                 <div className="fx-metric-label">Strongest</div>
                 <div className="fx-metric-value" style={{ color: '#4ade80' }}>
-                  {extremes.strongest.code} <span style={{ fontSize: 11 }}>+{extremes.strongest.change.toFixed(2)}%</span>
+                  {extremes.strongest.code} <span style={{ fontSize: 11 }}><MetricValue value={extremes.strongest.change} seriesKey="fxChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} /></span>
                 </div>
               </div>
             )}
@@ -225,13 +225,13 @@ function FXDashboard({
               <div className="fx-metric-card">
                 <div className="fx-metric-label">Weakest</div>
                 <div className="fx-metric-value" style={{ color: '#f87171' }}>
-                  {extremes.weakest.code} <span style={{ fontSize: 11 }}>{extremes.weakest.change.toFixed(2)}%</span>
+                  {extremes.weakest.code} <span style={{ fontSize: 11 }}><MetricValue value={extremes.weakest.change} seriesKey="fxChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} /></span>
                 </div>
               </div>
             )}
             <div className="fx-metric-card">
-              <div className="fx-metric-row"><span className="fx-metric-name">G10 Avg</span><span className="fx-metric-num" style={{ color: averages.g10 >= 0 ? '#4ade80' : '#f87171' }}>{averages.g10 >= 0 ? '+' : ''}{averages.g10.toFixed(3)}%</span></div>
-              <div className="fx-metric-row"><span className="fx-metric-name">EM Avg</span><span className="fx-metric-num" style={{ color: averages.em >= 0 ? '#4ade80' : '#f87171' }}>{averages.em >= 0 ? '+' : ''}{averages.em.toFixed(3)}%</span></div>
+              <div className="fx-metric-row"><span className="fx-metric-name">G10 Avg</span><span className="fx-metric-num" style={{ color: averages.g10 >= 0 ? '#4ade80' : '#f87171' }}><MetricValue value={averages.g10} seriesKey="dxy" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} /></span></div>
+              <div className="fx-metric-row"><span className="fx-metric-name">EM Avg</span><span className="fx-metric-num" style={{ color: averages.em >= 0 ? '#4ade80' : '#f87171' }}><MetricValue value={averages.em} seriesKey="dxy" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} /></span></div>
             </div>
             {rateDiff && rateDiff.length > 0 && (
               <div className="fx-metric-card">
@@ -239,7 +239,7 @@ function FXDashboard({
                 {rateDiff.slice(0, 5).map(([ccy, diff]) => (
                   <div key={ccy || `rate-${diff}`} className="fx-metric-row">
                     <span className="fx-metric-name">{ccy}</span>
-                    <span className="fx-metric-num" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}>{diff >= 0 ? '+' : ''}{diff.toFixed(2)}%</span>
+                    <span className="fx-metric-num" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}><MetricValue value={diff} seriesKey="rateDifferential" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} /></span>
                   </div>
                 ))}
               </div>
@@ -253,7 +253,7 @@ function FXDashboard({
                   return (
                     <div key={ccy} className="fx-metric-row">
                       <span className="fx-metric-name">{ccy}</span>
-                      <span className="fx-metric-num" style={{ color: latest.net >= 0 ? '#4ade80' : '#f87171' }}>{latest.net >= 0 ? '+' : ''}{latest.net.toFixed(1)}%</span>
+                      <span className="fx-metric-num" style={{ color: latest.net >= 0 ? '#4ade80' : '#f87171' }}><MetricValue value={latest.net} seriesKey="cotPositioning" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} /></span>
                     </div>
                   );
                 })}
@@ -273,9 +273,9 @@ function FXDashboard({
               {movers.slice(0, 8).map((m, i) => (
                 <div key={m.code} className="fx-mover-row">
                   <span className="fx-mover-rank">{i + 1}</span>
-                  <span className="fx-mover-code">{m.code}</span>
+                  <span className="fx-mover-code"><MetricValue value={m.changePct} seriesKey={`fx${m.code}`} timestamp={lastUpdated} format={() => m.code} /></span>
                   <span className="fx-mover-pct" style={{ color: m.changePct >= 0 ? '#4ade80' : '#f87171' }}>
-                    {m.changePct >= 0 ? '+' : ''}{m.changePct.toFixed(3)}%
+                    <MetricValue value={m.changePct} seriesKey={`fx${m.code}`} timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} />
                   </span>
                   <Sparkline values={m.spark} />
                 </div>
@@ -291,7 +291,7 @@ function FXDashboard({
             <span className="fx-panel-title">DXY Dollar Index</span>
           </div>
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No DXY data</div>}
+            {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'DXY Dollar Index', source: 'FRED', endpoint: '/api/fx', series: [{ id: 'DTWEXBGS' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No DXY data</div>}
           </div>
           <DataFooter source="FRED DTWEXBGS" timestamp={lastUpdated} isLive={!!dxyHistory?.dates?.length} fetchLog={fetchLog} />
         </div>
@@ -302,7 +302,7 @@ function FXDashboard({
             <span className="fx-panel-title">CFTC COT Positioning</span>
           </div>
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No COT data</div>}
+            {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFTC COT Positioning', source: 'CFTC', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No COT data</div>}
           </div>
           <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} fetchLog={fetchLog} />
         </div>
@@ -313,7 +313,7 @@ function FXDashboard({
             <span className="fx-panel-title">Currency Correlation (30D)</span>
           </div>
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {correlationOption ? <SafeECharts option={correlationOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No correlation data</div>}
+            {correlationOption ? <SafeECharts option={correlationOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Currency Correlation (30D)', source: 'Frankfurter API', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No correlation data</div>}
           </div>
           <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={!!history && Object.keys(history).length > 0} fetchLog={fetchLog} />
         </div>
@@ -324,7 +324,7 @@ function FXDashboard({
             <span className="fx-panel-title">Real Effective Exchange Rates</span>
           </div>
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {reerOption ? <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} /> : <div className="fx-empty">No REER data</div>}
+            {reerOption ? <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Real Effective Exchange Rates', source: 'BIS/FRED', endpoint: '/api/fx', series: [{ id: 'RNBQATNB' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No REER data</div>}
           </div>
           <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={!!reer?.dates?.length} fetchLog={fetchLog} />
         </div>
@@ -341,7 +341,7 @@ function FXDashboard({
                   <div key={ccy} className="fx-mini-row">
                     <span className="fx-mini-name">{ccy}</span>
                     <span className="fx-mini-value" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}>
-                      {diff >= 0 ? '+' : ''}{diff.toFixed(2)}%
+                       <MetricValue value={diff} seriesKey="rateDifferential" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 ))}

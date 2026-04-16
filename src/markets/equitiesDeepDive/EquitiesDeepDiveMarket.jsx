@@ -1,57 +1,64 @@
-// src/markets/equitiesDeepDive/EquitiesDeepDiveMarket.jsx
 import React from 'react';
-import { useEquityDeepDiveData } from './data/useEquityDeepDiveData';
-import { useInstitutionalData } from './data/useInstitutionalData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import EquitiesDeepDiveDashboard from './components/EquitiesDeepDiveDashboard';
 import './EquitiesDeepDiveMarket.css';
 
-// Unified dashboard - all content visible at once
-function EquitiesDeepDiveMarket({ autoRefresh, refreshKey } = {}) {
-  const {
-    sectorData,
-    factorData,
-    earningsData,
-    shortData,
-    equityRiskPremium,
-    spPE,
-    breadthDivergence,
-    buffettIndicator,
-    isLive,
-    lastUpdated,
-    isLoading,
-    fetchedOn,
-    isCurrent,
-    fetchLog,
-    refetch,
-  } = useEquityDeepDiveData(autoRefresh, refreshKey);
+function getEquityDeepDiveProps(centralData, institutionalCtx) {
+  const d = centralData.data || {};
+  const i = institutionalCtx?.data || {
+    lastUpdated: null,
+    institutions: [],
+    aggregateTopHoldings: [],
+    recentChanges: { lastQuarter: null, bigBuys: [], bigSells: [], newPositions: [] },
+  };
+  return {
+    sectorData: d.sectorData,
+    factorData: d.factorData,
+    earningsData: d.earningsData,
+    shortData: d.shortData,
+    equityRiskPremium: d.equityRiskPremium,
+    spPE: d.spPE,
+    breadthDivergence: d.breadthDivergence,
+    buffettIndicator: d.buffettIndicator,
+    institutionalData: { ...i, isLive: institutionalCtx?.isLive, lastUpdated: institutionalCtx?.lastUpdated, isLoading: institutionalCtx?.isLoading, error: institutionalCtx?.error, fetchedOn: institutionalCtx?.fetchedOn, isCurrent: institutionalCtx?.isCurrent, fetchLog: institutionalCtx?.fetchLog || [], refetch: institutionalCtx?.refetch },
+    isLive: centralData.isLive,
+    lastUpdated: centralData.lastUpdated,
+    isLoading: centralData.isLoading,
+    fetchedOn: centralData.fetchedOn,
+    isCurrent: centralData.isCurrent,
+    fetchLog: centralData.fetchLog || [],
+    refetch: centralData.refetch,
+  };
+}
 
-  const institutionalData = useInstitutionalData(autoRefresh, refreshKey);
+function EquitiesDeepDiveMarket({ centralData, institutionalData: institutionalCtx } = {}) {
+  if (!centralData) return <MarketSkeleton />;
+  const props = getEquityDeepDiveProps(centralData, institutionalCtx);
 
-  if (isLoading) return <MarketSkeleton />;
+  if (props.isLoading) return <MarketSkeleton />;
 
   return (
     <div className="eqd-market">
       <div className="eqd-status-bar">
-        <span className={isLive ? 'eqd-status-live' : ''}>
-          {isLive ? '● FETCHED · Yahoo Finance / FRED' : '○ No data received'}
+        <span className={props.isLive ? 'eqd-status-live' : ''}>
+          {props.isLive ? '● FETCHED · Yahoo Finance / FRED' : '○ No data received'}
         </span>
-        {lastUpdated && <span>Updated: {lastUpdated}</span>}
-        {!isCurrent && fetchedOn && <span className="eqd-stale-badge">Stale · fetched {fetchedOn}</span>}
+        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
+        {!props.isCurrent && props.fetchedOn && <span className="eqd-stale-badge">Stale · fetched {props.fetchedOn}</span>}
       </div>
       <EquitiesDeepDiveDashboard
-        sectorData={sectorData}
-        factorData={factorData}
-        earningsData={earningsData}
-        shortData={shortData}
-        institutionalData={institutionalData}
-        equityRiskPremium={equityRiskPremium}
-        spPE={spPE}
-        buffettIndicator={buffettIndicator}
-        breadthDivergence={breadthDivergence}
-        fetchLog={fetchLog}
-        isLive={isLive}
-        lastUpdated={lastUpdated}
+        sectorData={props.sectorData}
+        factorData={props.factorData}
+        earningsData={props.earningsData}
+        shortData={props.shortData}
+        institutionalData={props.institutionalData}
+        equityRiskPremium={props.equityRiskPremium}
+        spPE={props.spPE}
+        buffettIndicator={props.buffettIndicator}
+        breadthDivergence={props.breadthDivergence}
+        fetchLog={props.fetchLog}
+        isLive={props.isLive}
+        lastUpdated={props.lastUpdated}
       />
     </div>
   );

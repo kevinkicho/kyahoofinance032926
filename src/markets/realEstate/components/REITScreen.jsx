@@ -144,7 +144,7 @@ export default function REITScreen({ reitData, reitEtf }) {
           <div className="re-chart-title">VNQ 1-Year</div>
           {vnqOption ? (
             <div className="re-mini-chart">
-              <SafeECharts option={vnqOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={vnqOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VNQ 1-Year', source: 'Yahoo Finance', endpoint: '/api/real-estate', series: [] }} />
             </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textDim, fontSize: 11 }}>

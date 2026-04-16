@@ -212,14 +212,14 @@ export default function SectorRotation({ sectorData, spPE, buffettIndicator, equ
           <div className="eq-chart-title">ETF Performance</div>
           <div className="eq-chart-subtitle">1M return vs SPY benchmark · indigo = outperforming</div>
           <div className="eq-chart-wrap">
-            <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'ETF Performance', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
           </div>
         </div>
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Rotation Quadrant</div>
           <div className="eq-chart-subtitle">X = 1M · Y = 3M · top-right = Leading · top-left = Improving</div>
           <div className="eq-chart-wrap">
-            <SafeECharts option={rotationOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={rotationOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Rotation Quadrant', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
           </div>
         </div>
       </div>

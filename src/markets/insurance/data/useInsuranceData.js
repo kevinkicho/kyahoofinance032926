@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { catBondSpreads as mockCatBond, combinedRatioData as mockCombinedRatio, reserveAdequacyData as mockReserveAdequacy, reinsurancePricing as mockReinsPricing, fredHyOasHistory as mockFredHyOas, catLosses as mockCatLosses, combinedRatioHistory as mockCombinedRatioHistory } from './mockInsuranceData';
 
 const SERVER = '';
 const HY_OAS_BASELINE = 350;
@@ -12,21 +13,21 @@ function scaleCatBondSpreads(bonds, hyOAS) {
   return bonds.map(b => ({ ...b, spread: Math.round(b.spread * factor) }));
 }
 
-export function useInsuranceData(autoRefresh = false, refreshKey = 0) {
-  const [catBondSpreads, setCatBondSpreads]         = useState(null);
-  const [combinedRatioData, setCombinedRatioData]   = useState(null);
-  const [reserveAdequacyData, setReserveAdequacyData] = useState(null);
-  const [reinsurancePricing, setReinsurancePricing] = useState(null);
+export function useInsuranceData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [catBondSpreads, setCatBondSpreads]         = useState(mockCatBond);
+  const [combinedRatioData, setCombinedRatioData]   = useState(mockCombinedRatio);
+  const [reserveAdequacyData, setReserveAdequacyData] = useState(mockReserveAdequacy);
+  const [reinsurancePricing, setReinsurancePricing] = useState(mockReinsPricing);
   const [reinsurers, setReinsurers]                 = useState([]);
   const [hyOAS, setHyOAS]                           = useState(null);
   const [igOAS, setIgOAS]                           = useState(null);
-  const [fredHyOasHistory, setFredHyOasHistory]     = useState(null);
+  const [fredHyOasHistory, setFredHyOasHistory]     = useState(mockFredHyOas);
   const [sectorETF, setSectorETF]                   = useState(null);
   const [catBondProxy, setCatBondProxy]             = useState(null);
   const [industryAvgCombinedRatio, setIndustryAvgCombinedRatio] = useState(null);
   const [treasury10y, setTreasury10y]               = useState(null);
-  const [catLosses, setCatLosses]                   = useState(null);
-  const [combinedRatioHistory, setCombinedRatioHistory] = useState(null);
+  const [catLosses, setCatLosses]                   = useState(mockCatLosses);
+  const [combinedRatioHistory, setCombinedRatioHistory] = useState(mockCombinedRatioHistory);
 
   // Status with error handling
   const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, logFetch, handleSuccess, handleError, handleFinally } = useDataStatus();
@@ -43,6 +44,7 @@ export function useInsuranceData(autoRefresh = false, refreshKey = 0) {
         if (data.hyOAS != null)                        setHyOAS(data.hyOAS);
         if (data.igOAS != null)                        setIgOAS(data.igOAS);
         if (data.catBondSpreads?.length)               setCatBondSpreads(scaleCatBondSpreads(data.catBondSpreads, data.hyOAS));
+        else if (data.hyOAS != null)                    setCatBondSpreads(scaleCatBondSpreads(mockCatBond, data.hyOAS));
         if (data.fredHyOasHistory?.dates?.length) setFredHyOasHistory(data.fredHyOasHistory);
         if (data.sectorETF)                          setSectorETF(data.sectorETF);
         if (data.catBondProxy)                        setCatBondProxy(data.catBondProxy);
@@ -75,10 +77,10 @@ export function useInsuranceData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return {
     catBondSpreads,

@@ -3,14 +3,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { fearGreedData as mockFearGreed, cftcData as mockCftc, riskData as mockRisk, returnsData as mockReturns } from './mockSentimentData';
 
 const SERVER = '';
 
-export function useSentimentData(autoRefresh = false, refreshKey = 0) {
-  const [fearGreedData, setFearGreedData] = useState(null);
-  const [cftcData,      setCftcData]      = useState(null);
-  const [riskData,      setRiskData]      = useState(null);
-  const [returnsData,   setReturnsData]   = useState(null);
+export function useSentimentData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [fearGreedData, setFearGreedData] = useState(mockFearGreed);
+  const [cftcData,      setCftcData]      = useState(mockCftc);
+  const [riskData,      setRiskData]      = useState(mockRisk);
+  const [returnsData,   setReturnsData]   = useState(mockReturns);
   const [marginDebt,    setMarginDebt]    = useState(null);
   const [consumerCredit, setConsumerCredit] = useState(null);
   const [vvixHistory,   setVvixHistory]   = useState(null);
@@ -26,7 +27,7 @@ export function useSentimentData(autoRefresh = false, refreshKey = 0) {
       .then(data => {
         let anyReplaced = false;
         if (data.fearGreedData?.history?.length) { setFearGreedData(data.fearGreedData); anyReplaced = true; }
-        if (data.cftcData?.currencies?.length)    { setCftcData(data.cftcData);           anyReplaced = true; }
+        if (data.cftcData?.currencies?.length >= 4)    { setCftcData(data.cftcData);           anyReplaced = true; }
         if (data.riskData?.signals?.length)       { setRiskData(data.riskData);           anyReplaced = true; }
         if (data.returnsData?.assets?.length)     { setReturnsData(data.returnsData);     anyReplaced = true; }
         if (data.marginDebt?.dates?.length >= 1)       { setMarginDebt(data.marginDebt);       anyReplaced = true; }
@@ -42,10 +43,10 @@ export function useSentimentData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return { fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit, vvixHistory, fsiHistory, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }

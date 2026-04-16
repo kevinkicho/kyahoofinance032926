@@ -1,6 +1,7 @@
 // src/markets/commodities/components/CotPositioning.jsx
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommoditiesDashboard.css';
 
@@ -86,7 +87,7 @@ function buildTrendOption(commodities, colors) {
   };
 }
 
-export default function CotPositioning({ cotData }) {
+export default function CotPositioning({ cotData, lastUpdated }) {
   const { colors } = useTheme();
   if (!cotData?.commodities?.length) return (
     <div className="com-panel">
@@ -115,10 +116,10 @@ export default function CotPositioning({ cotData }) {
             <div className="com-kpi-pill">
               <span className="com-kpi-label">WTI Spec Net</span>
               <span className={`com-kpi-value ${wti.latest.noncommNet >= 0 ? 'positive' : 'negative'}`}>
-                {fmtK(wti.latest.noncommNet)}
+                <MetricValue value={wti.latest.noncommNet} seriesKey="cotCommodities" timestamp={lastUpdated} format={v => fmtK(v)} />
               </span>
               <span className={`com-kpi-sub ${wti.latest.netChange >= 0 ? 'com-up' : 'com-down'}`}>
-                {wti.latest.netChange >= 0 ? '+' : ''}{fmtK(wti.latest.netChange)} wk
+                {<MetricValue value={wti.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} />} wk
               </span>
             </div>
           </>
@@ -128,10 +129,10 @@ export default function CotPositioning({ cotData }) {
             <div className="com-kpi-pill">
               <span className="com-kpi-label">Gold Spec Net</span>
               <span className={`com-kpi-value ${gold.latest.noncommNet >= 0 ? 'positive' : 'negative'}`}>
-                {fmtK(gold.latest.noncommNet)}
+                <MetricValue value={gold.latest.noncommNet} seriesKey="cotCommodities" timestamp={lastUpdated} format={v => fmtK(v)} />
               </span>
               <span className={`com-kpi-sub ${gold.latest.netChange >= 0 ? 'com-up' : 'com-down'}`}>
-                {gold.latest.netChange >= 0 ? '+' : ''}{fmtK(gold.latest.netChange)} wk
+                {<MetricValue value={gold.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} />} wk
               </span>
             </div>
           </>
@@ -139,14 +140,14 @@ export default function CotPositioning({ cotData }) {
         {wti && (
           <div className="com-kpi-pill">
             <span className="com-kpi-label">WTI Open Interest</span>
-            <span className="com-kpi-value">{fmtK(wti.latest.totalOI)}</span>
+            <span className="com-kpi-value"><MetricValue value={wti.latest.totalOI} seriesKey="cotCommodities" timestamp={lastUpdated} format={v => fmtK(v)} /></span>
             <span className="com-kpi-sub">total contracts</span>
           </div>
         )}
         {gold && (
           <div className="com-kpi-pill">
             <span className="com-kpi-label">Gold Open Interest</span>
-            <span className="com-kpi-value">{fmtK(gold.latest.totalOI)}</span>
+            <span className="com-kpi-value"><MetricValue value={gold.latest.totalOI} seriesKey="cotCommodities" timestamp={lastUpdated} format={v => fmtK(v)} /></span>
             <span className="com-kpi-sub">total contracts</span>
           </div>
         )}
@@ -161,29 +162,29 @@ export default function CotPositioning({ cotData }) {
               <div className="cot-metric">
                 <span className="cot-metric-label">Spec Net</span>
                 <span className={`cot-metric-value ${c.latest.noncommNet >= 0 ? 'green' : 'red'}`}>
-                  {fmtK(c.latest.noncommNet)}
+                  <MetricValue value={c.latest.noncommNet} seriesKey="cotSpecNet" timestamp={lastUpdated} format={v => fmtK(v)} />
                 </span>
               </div>
               <div className="cot-metric">
                 <span className="cot-metric-label">Comm Net</span>
                 <span className={`cot-metric-value ${c.latest.commNet >= 0 ? 'green' : 'red'}`}>
-                  {fmtK(c.latest.commNet)}
+                  <MetricValue value={c.latest.commNet} seriesKey="cotCommNet" timestamp={lastUpdated} format={v => fmtK(v)} />
                 </span>
               </div>
               <div className="cot-metric">
                 <span className="cot-metric-label">Total OI</span>
-                <span className="cot-metric-value">{fmtK(c.latest.totalOI)}</span>
+                <span className="cot-metric-value"><MetricValue value={c.latest.totalOI} seriesKey="cotTotalOI" timestamp={lastUpdated} format={v => fmtK(v)} /></span>
               </div>
               <div className="cot-metric">
                 <span className="cot-metric-label">Wk Change</span>
                 <span className={`cot-metric-value ${c.latest.netChange >= 0 ? 'green' : 'red'}`}>
-                  {c.latest.netChange >= 0 ? '+' : ''}{fmtK(c.latest.netChange)}
+                  <MetricValue value={c.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} />
                 </span>
               </div>
             </div>
             {c.history?.length > 2 && (
               <div style={{ flex: 1, minHeight: 0 }}>
-                <SafeECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: `COT: ${c.name}`, source: 'CFTC', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
               </div>
             )}
           </div>
@@ -195,7 +196,7 @@ export default function CotPositioning({ cotData }) {
         <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">Net Speculative Positioning — 12 Week Trend</div>
           <div className="com-mini-chart">
-            <SafeECharts option={buildTrendOption(cotData.commodities, colors)} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+            <SafeECharts option={buildTrendOption(cotData.commodities, colors)} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Net Speculative Positioning Trend', source: 'CFTC', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
           </div>
         </div>
       )}

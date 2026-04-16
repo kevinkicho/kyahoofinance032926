@@ -13,8 +13,9 @@ const ALERT_RULES = [
     market: 'derivatives',
     description: 'Triggers when VIX exceeds 25, indicating elevated volatility',
     check: (data) => {
-      const vix = data.sentiment?.fearGreedData?.indicators?.vix;
-      if (vix && vix > 25) return { triggered: true, value: vix, message: `VIX at ${vix.toFixed(1)} — elevated volatility` };
+      const vixSignal = data.sentiment?.riskData?.signals?.find(s => s.name === 'VIX');
+      const vixVal = vixSignal?.value;
+      if (vixVal != null && vixVal > 25) return { triggered: true, value: vixVal, message: `VIX at ${vixVal.toFixed(1)} — elevated volatility` };
       return { triggered: false };
     },
   },
@@ -25,10 +26,12 @@ const ALERT_RULES = [
     market: 'bonds',
     description: 'Triggers when 10Y yield falls below 2Y yield (inverted curve)',
     check: (data) => {
-      const tenors = data.bonds?.yieldCurve;
-      if (!tenors) return { triggered: false };
-      const t10 = tenors.find(t => t.tenor === '10Y')?.yield;
-      const t2 = tenors.find(t => t.tenor === '2Y')?.yield;
+      const ycd = data.bonds?.yieldCurveData;
+      if (!ycd) return { triggered: false };
+      const us = ycd.US || ycd.us;
+      if (!us) return { triggered: false };
+      const t10 = us['10y'] ?? us['10Y'];
+      const t2 = us['2y'] ?? us['2Y'];
       if (t10 != null && t2 != null && t10 < t2) return { triggered: true, value: (t10 - t2).toFixed(2), message: `10Y-2Y spread at ${(t10 - t2).toFixed(2)}% — inverted` };
       return { triggered: false };
     },
@@ -40,8 +43,8 @@ const ALERT_RULES = [
     market: 'credit',
     description: 'Triggers when High Yield OAS exceeds 400bps, signaling credit stress',
     check: (data) => {
-      const hy = data.credit?.spreads?.hy;
-      if (hy && hy > 400) return { triggered: true, value: hy, message: `HY OAS at ${hy}bps — stress level` };
+      const hy = data.credit?.spreadData?.current?.hySpread;
+      if (hy != null && hy > 400) return { triggered: true, value: Math.round(hy), message: `HY OAS at ${Math.round(hy)}bps — stress level` };
       return { triggered: false };
     },
   },
@@ -52,7 +55,7 @@ const ALERT_RULES = [
     market: 'sentiment',
     description: 'Triggers when Fear & Greed composite drops below 25',
     check: (data) => {
-      const fg = data.sentiment?.fearGreedData?.composite?.value;
+      const fg = data.sentiment?.fearGreedData?.score ?? data.sentiment?.fearGreedData?.value;
       if (fg != null && fg < 25) return { triggered: true, value: fg, message: `Fear & Greed at ${fg} — extreme fear` };
       return { triggered: false };
     },
@@ -64,7 +67,7 @@ const ALERT_RULES = [
     market: 'sentiment',
     description: 'Triggers when Fear & Greed composite exceeds 75',
     check: (data) => {
-      const fg = data.sentiment?.fearGreedData?.composite?.value;
+      const fg = data.sentiment?.fearGreedData?.score ?? data.sentiment?.fearGreedData?.value;
       if (fg != null && fg > 75) return { triggered: true, value: fg, message: `Fear & Greed at ${fg} — extreme greed` };
       return { triggered: false };
     },
@@ -76,9 +79,9 @@ const ALERT_RULES = [
     market: 'crypto',
     description: 'Triggers when BTC moves more than 5% in 24 hours',
     check: (data) => {
-      const coins = data.crypto?.coins;
+      const coins = data.crypto?.coinMarketData?.coins || data.crypto?.coins;
       const btc = coins?.find(c => c.symbol === 'btc' || c.id === 'bitcoin');
-      const chg = btc?.price_change_percentage_24h;
+      const chg = btc?.change24h ?? btc?.price_change_percentage_24h;
       if (chg != null && Math.abs(chg) > 5) return { triggered: true, value: chg.toFixed(1), message: `BTC ${chg > 0 ? '+' : ''}${chg.toFixed(1)}% in 24h` };
       return { triggered: false };
     },
@@ -90,10 +93,18 @@ const ALERT_RULES = [
     market: 'commodities',
     description: 'Triggers when gold moves more than 2% in a session',
     check: (data) => {
-      const comms = data.commodities?.commodities;
-      const gold = comms?.find(c => c.ticker === 'GC=F');
-      const chg = gold?.changePercent;
-      if (chg != null && Math.abs(chg) > 2) return { triggered: true, value: chg.toFixed(1), message: `Gold ${chg > 0 ? '+' : ''}${chg.toFixed(1)}% — significant move` };
+      const v2 = data.commodities?.yahoo;
+      if (v2) {
+        const goldQuote = v2.dbc;
+        if (goldQuote?.change != null && Math.abs(goldQuote.change) > 2) return { triggered: true, value: goldQuote.change.toFixed(1), message: `Gold ${goldQuote.change > 0 ? '+' : ''}${goldQuote.change.toFixed(1)}% — significant move` };
+      }
+      const legacy = data.commodities?.priceDashboardData;
+      if (legacy) {
+        for (const sector of legacy) {
+          const gold = sector.commodities?.find(c => c.ticker === 'GC=F');
+          if (gold?.change1d != null && Math.abs(gold.change1d) > 2) return { triggered: true, value: gold.change1d.toFixed(1), message: `Gold ${gold.change1d > 0 ? '+' : ''}${gold.change1d.toFixed(1)}% — significant move` };
+        }
+      }
       return { triggered: false };
     },
   },
@@ -104,9 +115,8 @@ const ALERT_RULES = [
     market: 'fx',
     description: 'Triggers when DXY moves more than 0.5% in a session',
     check: (data) => {
-      const dxy = data.fx?.dxy;
-      const chg = dxy?.changePercent;
-      if (chg != null && Math.abs(chg) > 0.5) return { triggered: true, value: chg.toFixed(2), message: `DXY ${chg > 0 ? '+' : ''}${chg.toFixed(2)}% — dollar ${chg > 0 ? 'strengthening' : 'weakening'}` };
+      const dxyData = data.fx?.spotRates?.find(r => r.ticker === 'DX-Y.NYB' || r.symbol === 'DX-Y.NYB');
+      if (dxyData?.changePercent != null && Math.abs(dxyData.changePercent) > 0.5) return { triggered: true, value: dxyData.changePercent.toFixed(2), message: `DXY ${dxyData.changePercent > 0 ? '+' : ''}${dxyData.changePercent.toFixed(2)}% — dollar ${dxyData.changePercent > 0 ? 'strengthening' : 'weakening'}` };
       return { triggered: false };
     },
   },
@@ -123,11 +133,11 @@ const ENDPOINTS = [
   { key: 'fx',          url: `${SERVER}/api/fx` },
 ];
 
-export function useAlertsData(autoRefresh = false, refreshKey = 0) {
+export function useAlertsData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
   const [alerts, setAlerts]       = useState([]);
 
   // Status with error handling
-  const { isLoading, error, fetchedOn, fetchLog, handleFinally, setFetchedOn, logFetch } = useDataStatus();
+  const { isLoading, error, fetchedOn, fetchLog, lastUpdated, handleFinally, setFetchedOn, logFetch } = useDataStatus();
 
   const fetchData = useCallback(() => {
     const promises = ENDPOINTS.map(ep =>
@@ -179,8 +189,8 @@ export function useAlertsData(autoRefresh = false, refreshKey = 0) {
     });
   }, [handleFinally, setFetchedOn]);
 
-  useEffect(() => { fetchData(); }, []);
-  useEffect(() => { if (refreshKey > 0) fetchData(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) fetchData(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) fetchData(); }, [refreshKey, disabled]);
 
-  return { alerts, rules: ALERT_RULES, isLoading, error, fetchedOn, fetchLog, refetch: fetchData };
+  return { alerts, rules: ALERT_RULES, isLoading, error, fetchedOn, fetchLog, lastUpdated, refetch: fetchData };
 }

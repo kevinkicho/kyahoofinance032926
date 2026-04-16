@@ -23,14 +23,8 @@ export function useDataStatus(initialLastUpdated = 'Mock data — Apr 2025') {
     setIsLive(true);
     setError(null);
     let ts = data?.lastUpdated || tsNow();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(ts)) {
-      ts = `${ts} ${new Date().toTimeString().slice(0, 8)}`;
-    }
     setLastUpdated(ts);
     let fo = data?.fetchedOn;
-    if (fo && /^\d{4}-\d{2}-\d{2}$/.test(fo)) {
-      fo = `${fo} ${new Date().toTimeString().slice(0, 8)}`;
-    }
     if (fo) setFetchedOn(fo);
     if (data?.isCurrent !== undefined) setIsCurrent(!!data.isCurrent);
   }, []);

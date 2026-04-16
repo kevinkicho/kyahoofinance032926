@@ -118,7 +118,7 @@ export default function SpreadMonitor({ spreadData, mortgageSpread }) {
       {/* Wide-Narrow: Chart + Latest Bars */}
       <div className="bonds-wide-narrow">
         <div className="bonds-chart-wrap">
-          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} />
+          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Spread Monitor', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }] }} />
         </div>
         <div className="bonds-chart-panel">
           <div className="bonds-chart-title">Latest Spreads</div>

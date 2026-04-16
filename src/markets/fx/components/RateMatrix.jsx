@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './RateMatrix.css';
 import './FXComponents.css';
 
@@ -111,24 +112,24 @@ export default function RateMatrix({ spotRates, prevRates, changes = {}, reer })
       <div className="fx-kpi-strip">
         <div className="fx-kpi-pill">
           <span className="fx-kpi-label">EUR/USD</span>
-          <span className="fx-kpi-value">{eurUsd != null ? eurUsd.toFixed(4) : '—'}</span>
+           <span className="fx-kpi-value"><MetricValue value={eurUsd} seriesKey="fxEUR" format={v => v != null ? v.toFixed(4) : '—'} /></span>
         </div>
         <div className="fx-kpi-pill">
           <span className="fx-kpi-label">USD/JPY</span>
-          <span className="fx-kpi-value">{usdJpy != null ? usdJpy.toFixed(2) : '—'}</span>
+           <span className="fx-kpi-value"><MetricValue value={usdJpy} seriesKey="fxJPY" format={v => v != null ? v.toFixed(2) : '—'} /></span>
         </div>
         {strongest && (
           <div className="fx-kpi-pill">
             <span className="fx-kpi-label">Strongest 24h</span>
             <span className="fx-kpi-value" style={{ color: '#f59e0b' }}>{strongest}</span>
-            <span className="fx-kpi-sub" style={{ color: '#22c55e' }}>+{(changes[strongest] ?? 0).toFixed(3)}%</span>
+            <span className="fx-kpi-sub" style={{ color: '#22c55e' }}>+<MetricValue value={changes[strongest] ?? 0} seriesKey="fxChange" format={v => v != null ? `${v.toFixed(3)}%` : '—'} /></span>
           </div>
         )}
         {weakest && (
           <div className="fx-kpi-pill">
             <span className="fx-kpi-label">Weakest 24h</span>
             <span className="fx-kpi-value" style={{ color: '#f59e0b' }}>{weakest}</span>
-            <span className="fx-kpi-sub" style={{ color: '#ef4444' }}>{(changes[weakest] ?? 0).toFixed(3)}%</span>
+            <span className="fx-kpi-sub" style={{ color: '#ef4444' }}><MetricValue value={changes[weakest] ?? 0} seriesKey="fxChange" format={v => v != null ? `${v.toFixed(3)}%` : '—'} /></span>
           </div>
         )}
       </div>
@@ -162,9 +163,9 @@ export default function RateMatrix({ spotRates, prevRates, changes = {}, reer })
                     const isNegative = changePct != null && changePct < 0;
                     return (
                       <td key={quote} className={`rate-matrix-cell${isPositive ? ' positive' : isNegative ? ' negative' : ''}`}>
-                        <span className="rate-matrix-rate">{formatRate(rate, quote)}</span>
+                        <span className="rate-matrix-rate"><MetricValue value={rate} seriesKey="fxCrossRate" format={v => formatRate(v, quote)} /></span>
                         <span className="rate-matrix-change">
-                          {changePct == null ? '—' : `${isPositive ? '+' : ''}${changePct.toFixed(2)}%`}
+                          {changePct == null ? '—' : <MetricValue value={changePct} seriesKey="fxChangePct" format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />}
                         </span>
                       </td>
                     );
@@ -216,7 +217,7 @@ export default function RateMatrix({ spotRates, prevRates, changes = {}, reer })
         <div className="fx-chart-panel" style={{ height: 200, flexShrink: 0, marginTop: 16 }}>
           <div className="fx-chart-title">Real Effective Exchange Rates (BIS) — 24 Months</div>
           <div className="fx-mini-chart">
-            <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Real Effective Exchange Rates (BIS)', source: 'BIS/FRED', endpoint: '/api/fx', series: [{ id: 'RNBQATNB' }] }} />
           </div>
         </div>
       )}

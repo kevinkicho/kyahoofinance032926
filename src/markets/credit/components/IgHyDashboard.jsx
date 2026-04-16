@@ -2,6 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CreditComponents.css';
 
 function spreadTrend(cur, prev) {
@@ -41,7 +42,7 @@ function buildSpreadHistoryOption(history, colors) {
   };
 }
 
-export default function IgHyDashboard({ spreadData, commercialPaper }) {
+export default function IgHyDashboard({ spreadData, commercialPaper, lastUpdated }) {
   if (!spreadData) return null;
   const { colors } = useTheme();
   const { current = {}, history = {}, etfs = [] } = spreadData;
@@ -89,7 +90,7 @@ export default function IgHyDashboard({ spreadData, commercialPaper }) {
           <div className="credit-chart-title">12-Month Spread History</div>
           <div className="credit-chart-subtitle">IG · HY · BBB OAS in basis points · cyan narrows = compression</div>
           <div className="credit-chart-wrap">
-            <SafeECharts option={buildSpreadHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildSpreadHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: '12-Month Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }] }} />
           </div>
         </div>
         <div className="credit-chart-panel">
@@ -114,10 +115,10 @@ export default function IgHyDashboard({ spreadData, commercialPaper }) {
                     <tr key={e.ticker} className="credit-row">
                       <td className="credit-cell"><strong>{e.ticker}</strong></td>
                       <td className="credit-cell credit-muted">{e.name}</td>
-                      <td className="credit-cell credit-num">${e.price?.toFixed(2)}</td>
-                      <td className={`credit-cell credit-num ${chCls}`}>{e.change1d >= 0 ? '+' : ''}{e.change1d?.toFixed(2)}%</td>
-                      <td className="credit-cell credit-num">{e.yieldPct?.toFixed(2)}%</td>
-                      <td className="credit-cell credit-num">{e.durationYr?.toFixed(1)}</td>
+                      <td className="credit-cell credit-num"><MetricValue value={e.price} seriesKey="igHyEtf" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                      <td className={`credit-cell credit-num ${chCls}`}><MetricValue value={e.change1d} seriesKey="igHyEtf" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+                      <td className="credit-cell credit-num"><MetricValue value={e.yieldPct} seriesKey="igHyYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></td>
+                      <td className="credit-cell credit-num"><MetricValue value={e.durationYr} seriesKey="igHyDuration" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
                     </tr>
                   );
                 })}

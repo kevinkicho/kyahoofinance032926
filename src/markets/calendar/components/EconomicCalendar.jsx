@@ -1,6 +1,7 @@
 // src/markets/calendar/components/EconomicCalendar.jsx
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import '../CalendarMarket.css';
 
 function countryFlag(cc) {
@@ -51,21 +52,21 @@ export default function EconomicCalendar({ economicEvents, insideBento }) {
         <div className="cal-kpi-strip">
           <div className="cal-kpi-pill">
             <span className="cal-kpi-label">Total Events</span>
-            <span className="cal-kpi-value accent">{kpis.total}</span>
+            <span className="cal-kpi-value accent"><MetricValue value={kpis.total} seriesKey="ecoTotalEvents" format={v => `${v}`} /></span>
           </div>
           <div className="cal-kpi-pill">
             <span className="cal-kpi-label">Upcoming</span>
-            <span className="cal-kpi-value">{kpis.upcoming}</span>
+            <span className="cal-kpi-value"><MetricValue value={kpis.upcoming} seriesKey="ecoUpcoming" format={v => `${v}`} /></span>
           </div>
           <div className="cal-kpi-pill">
             <span className="cal-kpi-label">Released</span>
-            <span className="cal-kpi-value">{kpis.released}</span>
+            <span className="cal-kpi-value"><MetricValue value={kpis.released} seriesKey="ecoReleased" format={v => `${v}`} /></span>
           </div>
           {kpis.biggestSurprise && (
             <div className="cal-kpi-pill" style={{ minWidth: 160 }}>
               <span className="cal-kpi-label">Biggest Surprise</span>
               <span className="cal-kpi-value">
-                {kpis.biggestSurprise.event} {kpis.biggestSurprise.surprise > 0 ? '+' : ''}{kpis.biggestSurprise.surprise}
+                {kpis.biggestSurprise.event} <MetricValue value={kpis.biggestSurprise.surprise} seriesKey="ecoBiggestSurprise" format={v => `${v > 0 ? '+' : ''}${v}`} />
               </span>
             </div>
           )}
@@ -103,11 +104,11 @@ export default function EconomicCalendar({ economicEvents, insideBento }) {
                   <td style={{ fontFamily: 'monospace', fontSize: 10, color: colors.textMuted }}>{e.date}</td>
                   <td><span className="cal-flag">{countryFlag(e.country)}</span></td>
                   <td style={{ fontWeight: 500 }}>{e.event}</td>
-                  <td style={{ fontFamily: 'monospace' }}>{e.actual ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}>{e.expected ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: colors.textMuted }}>{e.previous ?? '—'}</td>
+                  <td style={{ fontFamily: 'monospace' }}><MetricValue value={e.actual} seriesKey="ecoActual" format={v => v != null ? `${v}` : '—'} /></td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}><MetricValue value={e.expected} seriesKey="ecoExpected" format={v => v != null ? `${v}` : '—'} /></td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textMuted }}><MetricValue value={e.previous} seriesKey="ecoPrevious" format={v => v != null ? `${v}` : '—'} /></td>
                   <td className={surprise > 0 ? 'cal-surprise-pos' : surprise < 0 ? 'cal-surprise-neg' : 'cal-surprise-na'}>
-                    {surprise != null ? (surprise > 0 ? '+' : '') + surprise : '—'}
+                    <MetricValue value={surprise} seriesKey="ecoSurprise" format={v => v != null ? `${v > 0 ? '+' : ''}${v}` : '—'} />
                   </td>
                 </tr>
               );

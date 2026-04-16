@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './EquitiesDeepDiveDashboard.css';
 
 function buildInFavorOption(inFavor, colors) {
@@ -179,7 +180,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-chart-title">Factor In Favor</div>
           <div className="eq-chart-subtitle">Month-to-date factor return · indigo = positive · which factor is working</div>
           <div className="eq-chart-wrap">
-            <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Factor In Favor', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
           </div>
         </div>
         <div className="eq-chart-panel">
@@ -203,11 +204,11 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
                   <tr key={s.ticker} className="eq-row">
                     <td className="eq-cell"><strong>{s.ticker}</strong></td>
                     <td className="eq-cell eq-sector">{s.sector}</td>
-                    <td className={`eq-cell eq-score ${factorHeat(s.value)}`}>{s.value}</td>
-                    <td className={`eq-cell eq-score ${factorHeat(s.momentum)}`}>{s.momentum}</td>
-                    <td className={`eq-cell eq-score ${factorHeat(s.quality)}`}>{s.quality}</td>
-                    <td className={`eq-cell eq-score ${factorHeat(s.lowVol)}`}>{s.lowVol}</td>
-                    <td className={`eq-cell eq-score ${factorHeat(s.composite)}`}><strong>{s.composite}</strong></td>
+                    <td className={`eq-cell eq-score ${factorHeat(s.value)}`}><MetricValue value={s.value} seriesKey="factorValue" format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                    <td className={`eq-cell eq-score ${factorHeat(s.momentum)}`}><MetricValue value={s.momentum} seriesKey="factorMomentum" format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                    <td className={`eq-cell eq-score ${factorHeat(s.quality)}`}><MetricValue value={s.quality} seriesKey="factorQuality" format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                    <td className={`eq-cell eq-score ${factorHeat(s.lowVol)}`}><MetricValue value={s.lowVol} seriesKey="factorLowVol" format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                    <td className={`eq-cell eq-score ${factorHeat(s.composite)}`}><strong><MetricValue value={s.composite} seriesKey="factorComposite" format={v => v != null ? v.toFixed(1) : '—'} /></strong></td>
                   </tr>
                 ))}
               </tbody>

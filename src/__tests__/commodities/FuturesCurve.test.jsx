@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import FuturesCurve from '../../markets/commodities/components/FuturesCurve';
 import { futuresCurveData } from '../../markets/commodities/data/mockCommoditiesData';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 describe('FuturesCurve', () => {
   it('renders the chart', () => {

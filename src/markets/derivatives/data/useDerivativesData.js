@@ -3,20 +3,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { volSurfaceData as mockVolSurface, vixTermStructure as mockVixTerm, optionsFlow as mockOptionsFlow, fredVixHistory as mockFredVix, skewHistory as mockSkewHistory, gammaExposure as mockGammaExposure } from './mockDerivativesData';
 
 const SERVER = '';
 
-export function useDerivativesData(autoRefresh = false, refreshKey = 0) {
-  const [volSurfaceData,   setVolSurfaceData]   = useState(null);
-  const [vixTermStructure, setVixTermStructure] = useState(null);
-  const [optionsFlow,      setOptionsFlow]      = useState(null);
+export function useDerivativesData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [volSurfaceData,   setVolSurfaceData]   = useState(mockVolSurface);
+  const [vixTermStructure, setVixTermStructure] = useState(mockVixTerm);
+  const [optionsFlow,      setOptionsFlow]      = useState(mockOptionsFlow);
   const [vixEnrichment,    setVixEnrichment]    = useState(null);
   const [volPremium,       setVolPremium]       = useState(null);
-  const [fredVixHistory,   setFredVixHistory]   = useState(null);
+  const [fredVixHistory,   setFredVixHistory]   = useState(mockFredVix);
   const [putCallRatio,     setPutCallRatio]     = useState(null);
   const [skewIndex,        setSkewIndex]        = useState(null);
-  const [skewHistory,      setSkewHistory]      = useState(null);
-  const [gammaExposure,    setGammaExposure]    = useState(null);
+  const [skewHistory,      setSkewHistory]      = useState(mockSkewHistory);
+  const [gammaExposure,    setGammaExposure]    = useState(mockGammaExposure);
   const [vixPercentile,    setVixPercentile]    = useState(null);
   const [termSpread,       setTermSpread]       = useState(null);
 
@@ -49,10 +50,10 @@ export function useDerivativesData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return { volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment, volPremium, fredVixHistory, putCallRatio, skewIndex, skewHistory, gammaExposure, vixPercentile, termSpread, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }

@@ -2,14 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { sectorData as mockSector, factorData as mockFactor, earningsData as mockEarnings, shortData as mockShort } from './mockEquityDeepDiveData';
 
 const SERVER = '';
 
-export function useEquityDeepDiveData(autoRefresh = false, refreshKey = 0) {
-  const [sectorData,         setSectorData]         = useState(null);
-  const [factorData,         setFactorData]         = useState(null);
-  const [earningsData,       setEarningsData]       = useState(null);
-  const [shortData,          setShortData]          = useState(null);
+export function useEquityDeepDiveData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [sectorData,         setSectorData]         = useState(mockSector);
+  const [factorData,         setFactorData]         = useState(mockFactor);
+  const [earningsData,       setEarningsData]       = useState(mockEarnings);
+  const [shortData,          setShortData]          = useState(mockShort);
   const [equityRiskPremium,  setEquityRiskPremium]  = useState(null);
   const [spPE,               setSpPE]               = useState(null);
   const [breadthDivergence,  setBreadthDivergence]  = useState(null);
@@ -24,7 +25,7 @@ export function useEquityDeepDiveData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.sectorData?.sectors?.length)    { setSectorData(data.sectorData);     anyReplaced = true; }
+        if (data.sectorData?.sectors?.length >= 8)    { setSectorData(data.sectorData);     anyReplaced = true; }
         if (data.factorData?.stocks?.length)       { setFactorData(data.factorData);     anyReplaced = true; }
         if (data.earningsData?.upcoming?.length) { setEarningsData(data.earningsData); anyReplaced = true; }
         if (data.shortData?.mostShorted?.length)   { setShortData(data.shortData);       anyReplaced = true; }
@@ -39,10 +40,10 @@ export function useEquityDeepDiveData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return {
     sectorData, factorData, earningsData, shortData,

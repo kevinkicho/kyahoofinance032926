@@ -2,6 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CommoditiesDashboard.css';
 
 function buildStocksOption(title, periods, values, avg5yr, colors) {
@@ -95,7 +96,7 @@ function buildGoldOption(dates, values, colors) {
   };
 }
 
-export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
+export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUpdated }) {
   const { colors } = useTheme();
   if (!supplyDemandData) return (
     <div className="com-panel">
@@ -106,11 +107,19 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       <div className="com-empty">No supply/demand data available</div>
     </div>
   );
-  const {
-    crudeStocks     = { periods: [], values: [], avg5yr: null },
-    natGasStorage   = { periods: [], values: [], avg5yr: null },
-    crudeProduction = { periods: [], values: [] },
-  } = supplyDemandData;
+
+  let crudeStocks, natGasStorage, crudeProduction;
+  if (Array.isArray(supplyDemandData)) {
+    const cs = supplyDemandData.find(s => s.name === 'Crude Oil Inventories');
+    const ns = supplyDemandData.find(s => s.name === 'Natural Gas Storage');
+    crudeStocks = cs ? { periods: [], values: [], avg5yr: null } : { periods: [], values: [], avg5yr: null };
+    natGasStorage = ns ? { periods: [], values: [], avg5yr: null } : { periods: [], values: [], avg5yr: null };
+    crudeProduction = { periods: [], values: [] };
+  } else {
+    crudeStocks     = supplyDemandData.crudeStocks     || { periods: [], values: [], avg5yr: null };
+    natGasStorage   = supplyDemandData.natGasStorage   || { periods: [], values: [], avg5yr: null };
+    crudeProduction = supplyDemandData.crudeProduction || { periods: [], values: [] };
+  }
 
   // KPI computations
   const crudeLatest = crudeStocks.values.length ? crudeStocks.values[crudeStocks.values.length - 1] : null;
@@ -136,29 +145,29 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       <div className="com-kpi-strip">
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Crude Stocks</span>
-          <span className="com-kpi-value">{crudeLatest != null ? `${crudeLatest.toFixed(1)}M` : '—'}</span>
+          <span className="com-kpi-value">{crudeLatest != null ? <MetricValue value={crudeLatest} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => `${v.toFixed(1)}M`} /> : '—'}</span>
           <span className={`com-kpi-sub ${crudeDelta != null ? (crudeDelta >= 0 ? 'com-up' : 'com-down') : ''}`}>
-            {crudeDelta != null ? `${crudeDelta >= 0 ? '+' : ''}${crudeDelta.toFixed(1)}M vs 5yr avg` : '—'}
+            {crudeDelta != null ? <><MetricValue value={crudeDelta} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}M`} /> vs 5yr avg</> : '—'}
           </span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Nat Gas Storage</span>
-          <span className="com-kpi-value">{gasLatest != null ? `${gasLatest.toLocaleString()} Bcf` : '—'}</span>
+          <span className="com-kpi-value">{gasLatest != null ? <MetricValue value={gasLatest} seriesKey="gasStorage" timestamp={lastUpdated} format={v => `${v.toLocaleString()} Bcf`} /> : '—'}</span>
           <span className={`com-kpi-sub ${gasDelta != null ? (gasDelta >= 0 ? 'com-up' : 'com-down') : ''}`}>
-            {gasDelta != null ? `${gasDelta >= 0 ? '+' : ''}${gasDelta.toLocaleString()} vs 5yr avg` : '—'}
+            {gasDelta != null ? <><MetricValue value={gasDelta} seriesKey="gasStorage" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toLocaleString()}`} /> vs 5yr avg</> : '—'}
           </span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Crude Production</span>
           <span className="com-kpi-value">
-            {crudeProduction.values.length ? `${crudeProduction.values[crudeProduction.values.length - 1].toFixed(1)}M` : '—'}
+            {crudeProduction.values.length ? <MetricValue value={crudeProduction.values[crudeProduction.values.length - 1]} seriesKey="crudeProduction" timestamp={lastUpdated} format={v => `${v.toFixed(1)}M`} /> : '—'}
           </span>
           <span className="com-kpi-sub">bbl/day</span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Gold (FRED)</span>
           <span className="com-kpi-value" style={{ color: '#f59e0b' }}>
-            {goldH?.values?.length ? `$${goldH.values[goldH.values.length - 1].toLocaleString()}` : '—'}
+            {goldH?.values?.length ? <MetricValue value={goldH.values[goldH.values.length - 1]} seriesKey="goldFRED" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /> : '—'}
           </span>
           <span className="com-kpi-sub">London Fix $/oz</span>
         </div>
@@ -172,6 +181,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
             <SafeECharts
               option={buildStocksOption('Crude Stocks', crudeStocks.periods, crudeStocks.values, crudeStocks.avg5yr, colors)}
               style={{ height: '100%', maxHeight: '100%', width: '100%' }}
+              sourceInfo={{ title: 'US Crude Oil Stocks', source: 'EIA', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }}
             />
           </div>
         </div>
@@ -181,6 +191,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
             <SafeECharts
               option={buildStocksOption('Nat Gas', natGasStorage.periods, natGasStorage.values, natGasStorage.avg5yr, colors)}
               style={{ height: '100%', maxHeight: '100%', width: '100%' }}
+              sourceInfo={{ title: 'Natural Gas Storage', source: 'EIA', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }}
             />
           </div>
         </div>
@@ -188,7 +199,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
           <div className="com-chart-panel">
             <div className="com-chart-title">Gold Price — 1 Year (FRED)</div>
             <div className="com-mini-chart">
-              <SafeECharts option={goldOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+              <SafeECharts option={goldOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Gold Price (FRED)', source: 'FRED', endpoint: '/api/commodities', series: [{ id: 'GOLDAMGBD228NLBM' }], updatedAt: lastUpdated }} />
             </div>
           </div>
         ) : (
@@ -205,10 +216,11 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities }) {
       <div className="com-chart-panel" style={{ marginTop: 8 }}>
         <div className="com-chart-title">US Crude Production (M bbl/day) — 52 Weeks</div>
         <div className="com-mini-chart">
-           <SafeECharts
-             option={buildStocksOption('Production', crudeProduction.periods, crudeProduction.values, null, colors)}
-             style={{ height: '100%', maxHeight: '100%', width: '100%' }}
-           />
+<SafeECharts
+              option={buildStocksOption('Production', crudeProduction.periods, crudeProduction.values, null, colors)}
+              style={{ height: '100%', maxHeight: '100%', width: '100%' }}
+              sourceInfo={{ title: 'US Crude Production', source: 'EIA', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }}
+            />
         </div>
       </div>
 

@@ -3,15 +3,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { coinMarketData as mockCoinMarket, fearGreedData as mockFearGreed, defiData as mockDefi, fundingData as mockFunding, onChainData as mockOnChain } from './mockCryptoData';
 
 const SERVER = '';
 
-export function useCryptoData(autoRefresh = false, refreshKey = 0) {
-  const [coinMarketData,  setCoinMarketData]  = useState(null);
-  const [fearGreedData,   setFearGreedData]   = useState(null);
-  const [defiData,        setDefiData]        = useState(null);
-  const [fundingData,     setFundingData]     = useState(null);
-  const [onChainData,     setOnChainData]     = useState(null);
+export function useCryptoData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [coinMarketData,  setCoinMarketData]  = useState(mockCoinMarket);
+  const [fearGreedData,   setFearGreedData]   = useState(mockFearGreed);
+  const [defiData,        setDefiData]        = useState(mockDefi);
+  const [fundingData,     setFundingData]     = useState(mockFunding);
+  const [onChainData,     setOnChainData]     = useState(mockOnChain);
   const [stablecoinMcap,  setStablecoinMcap]  = useState(null);
   const [btcDominance,    setBtcDominance]    = useState(null);
   const [topExchanges,    setTopExchanges]    = useState([]);
@@ -26,7 +27,7 @@ export function useCryptoData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.coinMarketData?.coins?.length)       { setCoinMarketData(data.coinMarketData); anyReplaced = true; }
+        if (data.coinMarketData?.coins?.length >= 10)   { setCoinMarketData(data.coinMarketData); anyReplaced = true; }
         if (data.fearGreedData?.history?.length)       { setFearGreedData(data.fearGreedData);   anyReplaced = true; }
         if (data.defiData?.protocols?.length)          { setDefiData(data.defiData);             anyReplaced = true; }
         if (data.fundingData?.rates?.length)           { setFundingData(data.fundingData);       anyReplaced = true; }
@@ -42,10 +43,10 @@ export function useCryptoData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import ShortInterest from '../../markets/equitiesDeepDive/components/ShortInterest';
 import { shortData } from '../../markets/equitiesDeepDive/data/mockEquityDeepDiveData';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 describe('ShortInterest', () => {
   it('renders panel title', () => {

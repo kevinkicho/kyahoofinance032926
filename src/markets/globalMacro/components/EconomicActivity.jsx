@@ -173,7 +173,7 @@ export default function EconomicActivity({ cfnai, oecdCli }) {
 
       {/* Chart */}
       <div className="mac-chart-wrap" style={{ minHeight: 200 }}>
-        {option && <SafeECharts option={option} style={{ height: '100%', width: '100%' }} />}
+        {option && <SafeECharts option={option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFNAI — Economic Activity', source: 'FRED', endpoint: '/api/global-macro', series: [{ id: 'CFNAI' }] }} />}
       </div>
 
       {/* OECD CLI Section */}

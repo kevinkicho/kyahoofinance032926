@@ -1,5 +1,6 @@
 // src/markets/crypto/components/DefiChains.jsx
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CryptoDashboard.css';
@@ -118,9 +119,9 @@ export default function DefiChains({ defiData }) {
                       <td className="crypto-cell"><strong>{p.name}</strong></td>
                       <td className="crypto-cell crypto-muted">{p.category}</td>
                       <td className="crypto-cell crypto-muted">{p.chain}</td>
-                      <td className="crypto-cell crypto-num">${p.tvlB.toFixed(1)}B</td>
-                      <td className={`crypto-cell crypto-num ${ch1d.cls}`}>{ch1d.text}</td>
-                      <td className={`crypto-cell crypto-num ${ch7d.cls}`}>{ch7d.text}</td>
+                      <td className="crypto-cell crypto-num"><MetricValue value={p.tvlB} seriesKey="defiTvl" format={v => `$${v.toFixed(1)}B`} /></td>
+                      <td className={`crypto-cell crypto-num ${ch1d.cls}`}><MetricValue value={p.change1d} seriesKey="defiTvl" format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '\u2014'} /></td>
+                      <td className={`crypto-cell crypto-num ${ch7d.cls}`}><MetricValue value={p.change7d} seriesKey="defiTvl" format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '\u2014'} /></td>
                     </tr>
                   );
                 })}
@@ -132,7 +133,7 @@ export default function DefiChains({ defiData }) {
           <div className="crypto-chart-title">Chain TVL</div>
           <div className="crypto-chart-subtitle">Top 10 chains by total value locked (billions USD)</div>
           <div className="crypto-chart-wrap">
-            <SafeECharts option={buildChainTvlOption(chains, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildChainTvlOption(chains, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Chain TVL', source: 'DeFiLlama', endpoint: '/api/crypto', series: [] }} />
           </div>
         </div>
       </div>

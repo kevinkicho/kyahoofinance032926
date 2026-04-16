@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import PriceIndex from '../../markets/realEstate/components/PriceIndex';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 const mockData = {
   US: { dates: ['Q1 22', 'Q2 22', 'Q3 22'], values: [200, 210, 205] },

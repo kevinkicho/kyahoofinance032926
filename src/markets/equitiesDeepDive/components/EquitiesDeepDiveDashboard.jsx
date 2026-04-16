@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquitiesDeepDiveDashboard.css';
 
@@ -336,14 +337,14 @@ function EquitiesDeepDiveDashboard({
                 {spPE != null && (
                   <div className="eqd-metric-row">
                     <span className="eqd-metric-name">S&P P/E</span>
-                    <span className="eqd-metric-num" style={{ color: peBadgeColor(spPE) }}>{spPE.toFixed(1)}x</span>
+                    <span className="eqd-metric-num" style={{ color: peBadgeColor(spPE) }}><MetricValue value={spPE} seriesKey="spPE" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} /></span>
                   </div>
                 )}
                 {buffettIndicator && (
                   <div className="eqd-metric-row">
                     <span className="eqd-metric-name">Buffett</span>
                     <span className="eqd-metric-num" style={{ color: buffettBadgeColor(buffettIndicator.ratio) }}>
-                      {buffettIndicator.ratio?.toFixed(0)}%
+                      <MetricValue value={buffettIndicator.ratio} seriesKey="buffettIndicator" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 )}
@@ -351,7 +352,7 @@ function EquitiesDeepDiveDashboard({
                   <div className="eqd-metric-row">
                     <span className="eqd-metric-name">ERP</span>
                     <span className="eqd-metric-num" style={{ color: erpBadgeColor(equityRiskPremium.erp) }}>
-                      {equityRiskPremium.erp?.toFixed(1)}%
+                      <MetricValue value={equityRiskPremium.erp} seriesKey="equityRiskPremium" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 )}
@@ -371,7 +372,7 @@ function EquitiesDeepDiveDashboard({
                 </div>
                 <div className="eqd-metric-row">
                   <span className="eqd-metric-name">SPY</span>
-                  <span className="eqd-metric-num">{fmtChangePct(sectorKpis.spyPerf)}</span>
+                  <span className="eqd-metric-num"><MetricValue value={sectorKpis.spyPerf} seriesKey="sp500Perf" timestamp={lastUpdated} format={v => fmtChangePct(v)} /></span>
                 </div>
               </div>
             )}
@@ -389,7 +390,7 @@ function EquitiesDeepDiveDashboard({
                 </div>
                 <div className="eqd-metric-row">
                   <span className="eqd-metric-name">Avg Composite</span>
-                  <span className="eqd-metric-num">{factorKpis.avgComposite.toFixed(0)}</span>
+                  <span className="eqd-metric-num"><MetricValue value={factorKpis.avgComposite} seriesKey="avgFactorScore" timestamp={lastUpdated} format={v => v.toFixed(0)} /></span>
                 </div>
               </div>
             )}
@@ -403,12 +404,12 @@ function EquitiesDeepDiveDashboard({
                 </div>
                 <div className="eqd-metric-row">
                   <span className="eqd-metric-name">Avg Float</span>
-                  <span className="eqd-metric-num">{shortKpis.avgShort.toFixed(1)}%</span>
+                  <span className="eqd-metric-num"><MetricValue value={shortKpis.avgShort} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
                 </div>
                 <div className="eqd-metric-row">
                   <span className="eqd-metric-name">{`Short > 20%`}</span>
                   <span className="eqd-metric-num" style={{ color: shortKpis.above20 > 3 ? '#ef4444' : '#6366f1' }}>
-                    {shortKpis.above20}/{shortKpis.total}
+                    <MetricValue value={shortKpis.above20} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v}`} />/<MetricValue value={shortKpis.total} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v}`} />
                   </span>
                 </div>
               </div>
@@ -423,7 +424,7 @@ function EquitiesDeepDiveDashboard({
                 </div>
                 <div className="eqd-metric-row">
                   <span className="eqd-metric-name">Upcoming</span>
-                  <span className="eqd-metric-num">{upcoming.length}</span>
+                  <span className="eqd-metric-num"><MetricValue value={upcoming.length} seriesKey="earningsEpsEst" timestamp={lastUpdated} /></span>
                 </div>
               </div>
             )}
@@ -433,7 +434,7 @@ function EquitiesDeepDiveDashboard({
                 <div className="eqd-sidebar-title">Institutions</div>
                 <div className="eqd-metric-row">
                   <span className="eqd-metric-name">Tracked</span>
-                  <span className="eqd-metric-num">{institutions.length}</span>
+                  <span className="eqd-metric-num"><MetricValue value={institutions.length} seriesKey="earningsEpsEst" timestamp={lastUpdated} /></span>
                 </div>
                 {aggregateTopHoldings?.[0] && (
                   <div className="eqd-metric-row">
@@ -454,7 +455,7 @@ function EquitiesDeepDiveDashboard({
               <span className="bento-panel-title">ETF Performance</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'ETF Performance', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
               <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
@@ -467,7 +468,7 @@ function EquitiesDeepDiveDashboard({
               <span className="bento-panel-title">Factor In Favor</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Factor In Favor', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
               <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
@@ -480,7 +481,7 @@ function EquitiesDeepDiveDashboard({
               <span className="bento-panel-title">Sector Beat Rate</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
               <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
@@ -493,7 +494,7 @@ function EquitiesDeepDiveDashboard({
               <span className="bento-panel-title">Most Shorted</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
               <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
             </div>
           </div>
@@ -520,10 +521,10 @@ function EquitiesDeepDiveDashboard({
                   {stocks.slice(0, 10).map(s => (
                     <tr key={s.ticker} className="eqd-row">
                       <td className="eqd-cell"><strong>{s.ticker}</strong></td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.value)}`}>{s.value}</td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.momentum)}`}>{s.momentum}</td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.quality)}`}>{s.quality}</td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.composite)}`}><strong>{s.composite}</strong></td>
+                      <td className={`eqd-cell eqd-score ${factorHeat(s.value)}`}><MetricValue value={s.value} seriesKey="factorValue" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                      <td className={`eqd-cell eqd-score ${factorHeat(s.momentum)}`}><MetricValue value={s.momentum} seriesKey="factorMomentum" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                      <td className={`eqd-cell eqd-score ${factorHeat(s.quality)}`}><MetricValue value={s.quality} seriesKey="factorQuality" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                      <td className={`eqd-cell eqd-score ${factorHeat(s.composite)}`}><strong><MetricValue value={s.composite} seriesKey="factorComposite" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></strong></td>
                     </tr>
                   ))}
                 </tbody>
@@ -554,7 +555,7 @@ function EquitiesDeepDiveDashboard({
                     <tr key={e.ticker} className="eqd-row">
                       <td className="eqd-cell eqd-date">{e.date}</td>
                       <td className="eqd-cell"><strong>{e.ticker}</strong></td>
-                      <td className="eqd-cell eqd-num">${e.epsEst?.toFixed(2)}</td>
+                      <td className="eqd-cell eqd-num"><MetricValue value={e.epsEst} seriesKey="earningsEpsEst" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
                       <td className="eqd-cell eqd-dir">
                         {(e.epsEst ?? 0) >= (e.epsPrev ?? 0) ? '▲' : '▼'}
                       </td>
@@ -578,7 +579,7 @@ function EquitiesDeepDiveDashboard({
                 {institutions.slice(0, 6).map((inst, i) => (
                   <div key={i} className="eqd-mini-row">
                     <span className="eqd-mini-name">{inst.name.length > 18 ? inst.name.slice(0, 18) + '…' : inst.name}</span>
-                    <span className="eqd-mini-value">${(inst.totalValue / 1000).toFixed(1)}T</span>
+                     <span className="eqd-mini-value"><MetricValue value={inst.totalValue} seriesKey="institutionTotalValue" timestamp={lastUpdated} format={v => `$${(v / 1000).toFixed(1)}T`} /></span>
                   </div>
                 ))}
               </div>

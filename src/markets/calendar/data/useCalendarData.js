@@ -3,14 +3,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { economicEvents as mockEconomicEvents, centralBanks as mockCentralBanks, earningsSeason as mockEarningsSeason, keyReleases as mockKeyReleases } from './mockCalendarData';
 
 const SERVER = '';
 
-export function useCalendarData(autoRefresh = false, refreshKey = 0) {
-  const [economicEvents,    setEconomicEvents]    = useState([]);
-  const [centralBanks,      setCentralBanks]      = useState([]);
-  const [earningsSeason,    setEarningsSeason]    = useState([]);
-  const [keyReleases,       setKeyReleases]       = useState([]);
+export function useCalendarData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [economicEvents,    setEconomicEvents]    = useState(mockEconomicEvents);
+  const [centralBanks,      setCentralBanks]      = useState(mockCentralBanks);
+  const [earningsSeason,    setEarningsSeason]    = useState(mockEarningsSeason);
+  const [keyReleases,       setKeyReleases]       = useState(mockKeyReleases);
   const [treasuryAuctions,  setTreasuryAuctions]  = useState([]);
   const [optionsExpiry,     setOptionsExpiry]     = useState([]);
   const [dividendCalendar,  setDividendCalendar]  = useState([]);
@@ -24,7 +25,7 @@ export function useCalendarData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.economicEvents?.length)   { setEconomicEvents(data.economicEvents);   anyReplaced = true; }
+        if (data.economicEvents?.length >= 5)   { setEconomicEvents(data.economicEvents);   anyReplaced = true; }
         if (data.centralBanks?.length)     { setCentralBanks(data.centralBanks);       anyReplaced = true; }
         if (data.earningsSeason?.length)   { setEarningsSeason(data.earningsSeason);   anyReplaced = true; }
         if (data.keyReleases?.length)      { setKeyReleases(data.keyReleases);         anyReplaced = true; }
@@ -38,10 +39,10 @@ export function useCalendarData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return {
     economicEvents, centralBanks, earningsSeason, keyReleases,

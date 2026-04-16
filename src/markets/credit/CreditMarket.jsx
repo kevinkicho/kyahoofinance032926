@@ -1,35 +1,49 @@
-// src/markets/credit/CreditMarket.jsx
 import React from 'react';
-import { useCreditData } from './data/useCreditData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import CreditDashboard from './components/CreditDashboard';
 import './CreditMarket.css';
 
-/**
- * CreditMarket - Unified credit dashboard
- * Shows all credit data in one glanceable view:
- * - KPI strip (IG OAS, HY OAS, EM Spread, Default Rate, CP Rate)
- * - Chart grid (Credit Spreads, Spread Summary, EM Bonds, Loan Market, Default Watch, Delinquencies)
- */
-function CreditMarket({ autoRefresh, refreshKey } = {}) {
-  const { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch } = useCreditData(autoRefresh, refreshKey);
+function getCreditProps(centralData) {
+  const d = centralData.data || {};
+  return {
+    spreadData: d.spreadData,
+    emBondData: d.emBondData,
+    loanData: d.loanData,
+    defaultData: d.defaultData,
+    delinquencyRates: d.delinquencyRates,
+    lendingStandards: d.lendingStandards,
+    commercialPaper: d.commercialPaper,
+    excessReserves: d.excessReserves,
+    isLive: centralData.isLive,
+    lastUpdated: centralData.lastUpdated,
+    isLoading: centralData.isLoading,
+    fetchedOn: centralData.fetchedOn,
+    isCurrent: centralData.isCurrent,
+    fetchLog: centralData.fetchLog || [],
+    refetch: centralData.refetch,
+  };
+}
 
-  if (isLoading) return <MarketSkeleton />;
+function CreditMarket({ centralData } = {}) {
+  if (!centralData) return <MarketSkeleton />;
+  const props = getCreditProps(centralData);
+
+  if (props.isLoading) return <MarketSkeleton />;
 
   return (
     <div className="credit-market">
       <CreditDashboard
-        spreadData={spreadData}
-        emBondData={emBondData}
-        loanData={loanData}
-        defaultData={defaultData}
-        delinquencyRates={delinquencyRates}
-        lendingStandards={lendingStandards}
-        commercialPaper={commercialPaper}
-        excessReserves={excessReserves}
-        isLive={isLive}
-        lastUpdated={lastUpdated}
-        fetchLog={fetchLog}
+        spreadData={props.spreadData}
+        emBondData={props.emBondData}
+        loanData={props.loanData}
+        defaultData={props.defaultData}
+        delinquencyRates={props.delinquencyRates}
+        lendingStandards={props.lendingStandards}
+        commercialPaper={props.commercialPaper}
+        excessReserves={props.excessReserves}
+        isLive={props.isLive}
+        lastUpdated={props.lastUpdated}
+        fetchLog={props.fetchLog}
       />
     </div>
   );

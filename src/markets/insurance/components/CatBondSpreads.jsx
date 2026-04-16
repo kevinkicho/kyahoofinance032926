@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './InsComponents.css';
 
 function spreadClass(spread) {
@@ -40,20 +41,20 @@ export default function CatBondSpreads({ catBondSpreads, catBondProxy }) {
       <div className="ins-kpi-strip">
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Avg Spread</span>
-          <span className="ins-kpi-value accent">{Math.round(stats.avgSpread)} bps</span>
+          <span className="ins-kpi-value accent"><MetricValue value={Math.round(stats.avgSpread)} seriesKey="catBondSpread" format={v => `${v}bps`} /></span>
         </div>
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Highest Spread</span>
-          <span className="ins-kpi-value" style={{ color: '#ef4444' }}>{stats.highest.spread} bps</span>
+          <span className="ins-kpi-value" style={{ color: '#ef4444' }}><MetricValue value={stats.highest.spread} seriesKey="catBondSpread" format={v => `${v}bps`} /></span>
           <span className="ins-kpi-sub">{stats.highest.name}</span>
         </div>
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Total Notional</span>
-          <span className="ins-kpi-value">${stats.totalNotional.toLocaleString()}M</span>
+          <span className="ins-kpi-value"><MetricValue value={stats.totalNotional} seriesKey="catBondNotional" format={v => `$${v.toLocaleString()}M`} /></span>
         </div>
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Avg Expected Loss</span>
-          <span className="ins-kpi-value">{stats.avgEL.toFixed(1)}%</span>
+          <span className="ins-kpi-value"><MetricValue value={stats.avgEL} seriesKey="catBondExpectedLoss" format={v => `${v.toFixed(1)}%`} /></span>
         </div>
         {catBondProxy && (
           <div className="ins-kpi-pill">
@@ -89,12 +90,12 @@ export default function CatBondSpreads({ catBondSpreads, catBondProxy }) {
                   <td className="ins-cell">{row.name}</td>
                   <td className="ins-cell">{row.peril}</td>
                   <td className="ins-cell">{row.sponsor}</td>
-                  <td className={`ins-cell ${spreadClass(row.spread)}`}>{row.spread}</td>
+                  <td className={`ins-cell ${spreadClass(row.spread)}`}><MetricValue value={row.spread} seriesKey="catBondSpread" format={v => `${v}`} /></td>
                   <td className="ins-cell">{row.rating}</td>
                   <td className="ins-cell">{row.trigger}</td>
                   <td className="ins-cell">{row.maturity}</td>
-                  <td className="ins-cell">{row.notional}</td>
-                  <td className="ins-cell">{row.expectedLoss.toFixed(1)}%</td>
+                  <td className="ins-cell"><MetricValue value={row.notional} seriesKey="catBondNotional" format={v => `$${v}M`} /></td>
+                  <td className="ins-cell"><MetricValue value={row.expectedLoss} seriesKey="catBondExpectedLoss" format={v => `${v.toFixed(1)}%`} /></td>
                 </tr>
               ))}
             </tbody>

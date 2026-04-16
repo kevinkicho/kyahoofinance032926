@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './InsComponents.css';
 
 function capacityClass(capacity) {
@@ -64,12 +65,12 @@ export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistor
       <div className="ins-kpi-strip">
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Avg ROL</span>
-          <span className="ins-kpi-value accent">{stats.avgROL.toFixed(1)}%</span>
+          <span className="ins-kpi-value accent"><MetricValue value={stats.avgROL} seriesKey="reinsRateOnLine" format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
         </div>
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Hardest Market</span>
           <span className="ins-kpi-value" style={{ color: '#ef4444' }}>{stats.hardest.peril}</span>
-          <span className="ins-kpi-sub">ROL {stats.hardest.rol.toFixed(1)}%</span>
+          <span className="ins-kpi-sub">ROL <MetricValue value={stats.hardest.rol} seriesKey="reinsRateOnLine" format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
         </div>
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Tight / Very Tight</span>
@@ -79,7 +80,7 @@ export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistor
         <div className="ins-kpi-pill">
           <span className="ins-kpi-label">Avg ROL Change</span>
           <span className={`ins-kpi-value ${stats.avgROLChange >= 0 ? 'negative' : 'positive'}`}>
-            {fmtChange(stats.avgROLChange)}
+            <MetricValue value={stats.avgROLChange} seriesKey="reinsRateOnLine" format={v => v != null ? fmtChange(v) : '—'} />
           </span>
           <span className="ins-kpi-sub">YoY at renewal</span>
         </div>
@@ -105,13 +106,13 @@ export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistor
               <tr key={i} className="ins-row">
                 <td className="ins-cell">{row.peril}</td>
                 <td className="ins-cell">{row.layer}</td>
-                <td className="ins-cell">{row.rol.toFixed(1)}%</td>
+                <td className="ins-cell"><MetricValue value={row.rol} seriesKey="reinsRateOnLine" format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></td>
                 <td className={`ins-cell ${row.rolChange >= 0 ? 'ins-change-up' : 'ins-change-down'}`}>
-                  {fmtChange(row.rolChange)}
+                  <MetricValue value={row.rolChange} seriesKey="reinsRateOnLine" format={v => v != null ? fmtChange(v) : '—'} />
                 </td>
-                <td className="ins-cell">{row.rpl.toFixed(1)}%</td>
+                <td className="ins-cell"><MetricValue value={row.rpl} seriesKey="reinsRateOnLine" format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></td>
                 <td className={`ins-cell ${row.rplChange >= 0 ? 'ins-change-up' : 'ins-change-down'}`}>
-                  {fmtChange(row.rplChange)}
+                  <MetricValue value={row.rplChange} seriesKey="reinsRateOnLine" format={v => v != null ? fmtChange(v) : '—'} />
                 </td>
                 <td className={`ins-cell ${capacityClass(row.capacity)}`}>{row.capacity}</td>
                 <td className="ins-cell">{row.renewalDate}</td>
@@ -184,7 +185,7 @@ export default function ReinsurancePricing({ reinsurancePricing, fredHyOasHistor
         <div className="ins-chart-panel" style={{ height: 160, flexShrink: 0, marginTop: 12 }}>
           <div className="ins-chart-title">HY Credit Spread — 1 Year (FRED OAS, bps)</div>
           <div className="ins-mini-chart">
-            <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY Credit Spread — 1 Year', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }] }} />
           </div>
         </div>
       )}

@@ -175,7 +175,7 @@ export default function CycleIndicators({ fearGreedData }) {
             <div className="crypto-chart-title">Fear & Greed Index</div>
             <div className="crypto-chart-subtitle">0 = Extreme Fear · 100 = Extreme Greed · Alternative.me</div>
             <div className="crypto-chart-wrap" style={{ position: 'relative' }}>
-              <SafeECharts option={buildGaugeOption(value, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildGaugeOption(value, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fear & Greed Index', source: 'Alternative.me', endpoint: '/api/crypto', series: [] }} />
               <div style={{ position: 'absolute', bottom: '18%', left: 0, right: 0, textAlign: 'center', fontSize: 11, color: fearGreedColor(value, colors.textSecondary), fontWeight: 600, pointerEvents: 'none' }}>{label}</div>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function CycleIndicators({ fearGreedData }) {
             <div className="crypto-chart-title">30-Day F&G History</div>
             <div className="crypto-chart-subtitle">Daily fear & greed score over the past month</div>
             <div className="crypto-chart-wrap">
-              <SafeECharts option={buildHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: '30-Day F&G History', source: 'Alternative.me', endpoint: '/api/crypto', series: [] }} />
             </div>
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function CycleIndicators({ fearGreedData }) {
           <div className="crypto-chart-title">BTC Cross-Asset Correlation</div>
           <div className="crypto-chart-subtitle">30d vs 90d rolling correlation · amber = positive · indigo = negative</div>
           <div className="crypto-chart-wrap">
-            <SafeECharts option={buildCorrelationOption(correlations, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildCorrelationOption(correlations, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'BTC Cross-Asset Correlation', source: 'CoinGecko / Yahoo Finance', endpoint: '/api/crypto', series: [] }} />
           </div>
         </div>
       </div>

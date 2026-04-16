@@ -2,6 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CreditComponents.css';
 
 function trancheColor(tranche) {
@@ -109,7 +110,7 @@ function buildBklnOption(priceHistory, colors) {
   };
 }
 
-export default function LoanMarket({ loanData, excessReserves }) {
+export default function LoanMarket({ loanData, excessReserves, lastUpdated }) {
   if (!loanData) return null;
   const { colors } = useTheme();
   const { cloTranches = [], indices = [], priceHistory = { dates: [], bkln: [] } } = loanData;
@@ -133,7 +134,7 @@ export default function LoanMarket({ loanData, excessReserves }) {
           <div className="credit-chart-title">CLO Tranche Spreads</div>
           <div className="credit-chart-subtitle">AAA → Equity waterfall · OAS spread (bps) by tranche rating</div>
           <div className="credit-chart-wrap">
-            <SafeECharts option={buildCloOption(cloTranches, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildCloOption(cloTranches, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CLO Tranche Spreads', source: 'LCD / Yahoo Finance', endpoint: '/api/credit', series: [] }} />
           </div>
         </div>
         <div className="credit-two-row">
@@ -141,7 +142,7 @@ export default function LoanMarket({ loanData, excessReserves }) {
             <div className="credit-chart-title">BKLN Price (6-Month)</div>
             <div className="credit-chart-subtitle">Invesco Senior Loan ETF — floating-rate leveraged loan proxy</div>
             <div className="credit-chart-wrap">
-              <SafeECharts option={buildBklnOption(priceHistory, colors)} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={buildBklnOption(priceHistory, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'BKLN Price (6-Month)', source: 'Yahoo Finance', endpoint: '/api/credit', series: [] }} />
             </div>
           </div>
           {excessReserves?.dates?.length >= 2 && (
@@ -149,7 +150,7 @@ export default function LoanMarket({ loanData, excessReserves }) {
               <div className="credit-chart-title">Excess Reserves (3-Year)</div>
               <div className="credit-chart-subtitle">FRED · bank excess reserves held at Fed ($B) · EXCSRESNW</div>
               <div className="credit-chart-wrap">
-                <SafeECharts option={buildExcessReservesOption(excessReserves, colors)} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={buildExcessReservesOption(excessReserves, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Excess Reserves (3-Year)', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'EXCSRESNW' }] }} />
               </div>
             </div>
           )}
@@ -174,9 +175,9 @@ export default function LoanMarket({ loanData, excessReserves }) {
                       <td className="credit-cell" style={{ textAlign:'center' }}>
                         <span className={`credit-rating-badge ${t.rating === 'NR' ? 'credit-rating-nr' : t.rating?.startsWith('A') || t.rating?.startsWith('BBB') ? 'credit-rating-ig' : 'credit-rating-hy'}`}>{t.rating}</span>
                       </td>
-                      <td className="credit-cell credit-num">{t.spread != null ? `${t.spread}bps` : '—'}</td>
-                      <td className="credit-cell credit-num">{t.yield?.toFixed(1)}%</td>
-                      <td className="credit-cell credit-num">{t.ltv}%</td>
+                      <td className="credit-cell credit-num"><MetricValue value={t.spread} seriesKey="cloSpread" timestamp={lastUpdated} format={v => v != null ? `${v}bps` : '—'} /></td>
+                      <td className="credit-cell credit-num"><MetricValue value={t.yield} seriesKey="cloYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></td>
+                      <td className="credit-cell credit-num"><MetricValue value={t.ltv} seriesKey="cloLtv" timestamp={lastUpdated} format={v => v != null ? `${v}%` : '—'} /></td>
                     </tr>
                   ))}
                 </tbody>

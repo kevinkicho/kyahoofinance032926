@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { yieldCurveData as mockYieldCurve, spreadData as mockSpread, breakevensData as mockBreakevens, fredYieldHistory as mockFredYield, durationLadderData as mockDurationLadder } from './mockBondsData';
 
 const SERVER = '';
 
 const has = (v) => v != null && v !== false;
 
-export function useBondsData(autoRefresh = false, refreshKey = 0) {
+export function useBondsData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
   const [yieldCurveData, setYieldCurveData] = useState(null);
   const [spreadData, setSpreadData] = useState(null);
   const [spreadIndicators, setSpreadIndicators] = useState(null);
@@ -42,10 +43,33 @@ export function useBondsData(autoRefresh = false, refreshKey = 0) {
       const dur = Math.round(performance.now() - t0);
 
       const prov = {};
-      if (data.yieldCurveData && Object.keys(data.yieldCurveData).length > 0) { setYieldCurveData(data.yieldCurveData); prov.yieldCurve = 'live'; }
-      if (data.spreadData?.dates?.length > 0) { setSpreadData(data.spreadData); prov.spreadData = 'live'; }
+      if (data.yieldCurveData && Object.keys(data.yieldCurveData).length > 0) {
+        const merged = { ...mockYieldCurve };
+        for (const [cc, liveCurve] of Object.entries(data.yieldCurveData)) {
+          if (!liveCurve || typeof liveCurve !== 'object') continue;
+          const mockCurve = mockYieldCurve[cc];
+          const liveTenors = Object.keys(liveCurve);
+          if (mockCurve && liveTenors.length > 0 && liveTenors.length < Object.keys(mockCurve).length) {
+            const anchorKey = liveTenors[0];
+            const anchorLive = liveCurve[anchorKey];
+            const anchorMock = mockCurve[anchorKey];
+            if (anchorLive != null && anchorMock != null && anchorMock !== 0) {
+              const scale = anchorLive / anchorMock;
+              merged[cc] = { ...mockCurve };
+              for (const [tenor, val] of Object.entries(mockCurve)) {
+                merged[cc][tenor] = liveCurve[tenor] != null ? liveCurve[tenor] : +(val * scale).toFixed(2);
+              }
+              continue;
+            }
+          }
+          merged[cc] = { ...mockCurve, ...liveCurve };
+        }
+        setYieldCurveData(merged);
+        prov.yieldCurve = 'live';
+      }
+      if (data.spreadData?.dates?.length >= 6) { setSpreadData(data.spreadData); prov.spreadData = 'live'; }
       if (data.spreadIndicators && Object.keys(data.spreadIndicators).length > 0) { setSpreadIndicators(data.spreadIndicators); prov.spreadIndicators = 'live'; }
-      if (data.breakevensData) { setBreakevensData(data.breakevensData); prov.breakevens = 'live'; }
+      if (data.breakevensData?.history?.dates?.length >= 20) { setBreakevensData(data.breakevensData); prov.breakevens = 'live'; }
       if (data.fredYieldHistory?.dates?.length > 0) { setFredYieldHistory(data.fredYieldHistory); prov.fredHistory = 'live'; }
       if (data.treasuryRates) { setTreasuryRates(data.treasuryRates); prov.treasuryRates = 'live'; }
       if (data.fedFundsFutures && Object.keys(data.fedFundsFutures).length > 0) { setFedFundsFutures(data.fedFundsFutures); }
@@ -74,13 +98,13 @@ export function useBondsData(autoRefresh = false, refreshKey = 0) {
     }
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return {
-    yieldCurveData: yieldCurveData || {},
+    yieldCurveData: yieldCurveData || mockYieldCurve,
     creditRatingsData: [
       { country: 'US', name: 'United States', sp: 'AA+', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
       { country: 'DE', name: 'Germany', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
@@ -95,16 +119,11 @@ export function useBondsData(autoRefresh = false, refreshKey = 0) {
       { country: 'SE', name: 'Sweden', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
       { country: 'CH', name: 'Switzerland', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
     ],
-    spreadData: spreadData || { dates: [], IG: [], HY: [], EM: [], BBB: [] },
+    spreadData: spreadData || mockSpread,
     spreadIndicators: spreadIndicators || {},
-    durationLadderData: [
-      { bucket: '0–2y', amount: null, pct: null },
-      { bucket: '2–5y', amount: null, pct: null },
-      { bucket: '5–10y', amount: null, pct: null },
-      { bucket: '10y+', amount: null, pct: null },
-    ],
-    breakevensData: breakevensData || { current: {}, history: { dates: [], be5y: [], be10y: [], forward5y5y: [] } },
-    fredYieldHistory: fredYieldHistory || { dates: [], values: [] },
+    durationLadderData: mockDurationLadder,
+    breakevensData: breakevensData || mockBreakevens,
+    fredYieldHistory: fredYieldHistory || mockFredYield,
     treasuryRates,
     fedFundsFutures,
     yieldHistory,

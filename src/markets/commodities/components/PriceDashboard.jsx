@@ -1,6 +1,7 @@
 // src/markets/commodities/components/PriceDashboard.jsx
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommoditiesDashboard.css';
 
@@ -156,7 +157,7 @@ function resolveRow(spec, enhancedData, legacyMap) {
   };
 }
 
-export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodities, goldOilRatio, contangoIndicator, commodityCurrencies, enhancedData }) {
+export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodities, goldOilRatio, contangoIndicator, commodityCurrencies, enhancedData, lastUpdated }) {
   const { colors } = useTheme();
 
   // Build a lookup from legacy data by ticker
@@ -202,6 +203,10 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
   const allCommodities = displayGroups.flatMap(s => s.commodities || []);
   const wti  = allCommodities.find(c => c.ticker === 'CL=F' || c.name === 'WTI Crude Oil');
   const gold = allCommodities.find(c => c.ticker === 'GC=F' || c.name === 'Gold');
+  const brent = allCommodities.find(c => c.ticker === 'BZ=F' || c.name === 'Brent Crude');
+  const natgas = allCommodities.find(c => c.ticker === 'NG=F' || c.name === 'Natural Gas');
+  const silver = allCommodities.find(c => c.ticker === 'SI=F' || c.name === 'Silver');
+  const copper = allCommodities.find(c => c.ticker === 'HG=F' || c.name === 'Copper');
   const best1m = allCommodities.reduce((best, c) => (c.change1m != null && (best == null || c.change1m > best.change1m) ? c : best), null);
 
   // DBC 1yr line chart option
@@ -282,30 +287,50 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
         <div className="com-kpi-strip">
           <div className="com-kpi-pill">
             <span className="com-kpi-label">WTI Crude</span>
-            <span className="com-kpi-value">${wti?.price?.toFixed(2) ?? '—'}</span>
-            <span className={`com-kpi-sub ${pctClass(wti?.change1d)}`}>{fmtPct(wti?.change1d)} today</span>
+            <span className="com-kpi-value">${wti?.price != null ? <MetricValue value={wti.price} seriesKey="wti" timestamp={lastUpdated} format={v => `${v.toFixed(2)}`} /> : '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(wti?.change1d)}`}>{<MetricValue value={wti?.change1d} seriesKey="wti" timestamp={lastUpdated} className={pctClass(wti?.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} />} today</span>
           </div>
           <div className="com-kpi-pill">
             <span className="com-kpi-label">Gold</span>
-            <span className="com-kpi-value">${gold?.price?.toLocaleString() ?? '—'}</span>
-            <span className={`com-kpi-sub ${pctClass(gold?.change1d)}`}>{fmtPct(gold?.change1d)} today</span>
+            <span className="com-kpi-value">${gold?.price != null ? <MetricValue value={gold.price} seriesKey="gold" timestamp={lastUpdated} format={v => `${v.toFixed(2)}`} /> : '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(gold?.change1d)}`}>{<MetricValue value={gold?.change1d} seriesKey="gold" timestamp={lastUpdated} className={pctClass(gold?.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} />} today</span>
+          </div>
+          <div className="com-kpi-pill">
+            <span className="com-kpi-label">Brent Crude</span>
+            <span className="com-kpi-value">${brent?.price != null ? <MetricValue value={brent.price} seriesKey="brent" timestamp={lastUpdated} format={v => `${v.toFixed(2)}`} /> : '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(brent?.change1d)}`}>{<MetricValue value={brent?.change1d} seriesKey="brent" timestamp={lastUpdated} className={pctClass(brent?.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} />} today</span>
+          </div>
+          <div className="com-kpi-pill">
+            <span className="com-kpi-label">Natural Gas</span>
+            <span className="com-kpi-value">${natgas?.price != null ? <MetricValue value={natgas.price} seriesKey="natgas" timestamp={lastUpdated} format={v => `${v.toFixed(2)}`} /> : '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(natgas?.change1d)}`}>{<MetricValue value={natgas?.change1d} seriesKey="natgas" timestamp={lastUpdated} className={pctClass(natgas?.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} />} today</span>
+          </div>
+          <div className="com-kpi-pill">
+            <span className="com-kpi-label">Silver</span>
+            <span className="com-kpi-value">${silver?.price != null ? <MetricValue value={silver.price} seriesKey="silver" timestamp={lastUpdated} format={v => `${v.toFixed(2)}`} /> : '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(silver?.change1d)}`}>{<MetricValue value={silver?.change1d} seriesKey="silver" timestamp={lastUpdated} className={pctClass(silver?.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} />} today</span>
+          </div>
+          <div className="com-kpi-pill">
+            <span className="com-kpi-label">Copper</span>
+            <span className="com-kpi-value">${copper?.price != null ? <MetricValue value={copper.price} seriesKey="copper" timestamp={lastUpdated} format={v => `${v.toFixed(2)}`} /> : '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(copper?.change1d)}`}>{<MetricValue value={copper?.change1d} seriesKey="copper" timestamp={lastUpdated} className={pctClass(copper?.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} />} today</span>
           </div>
           <div className="com-kpi-pill">
             <span className="com-kpi-label">DBC Index</span>
-            <span className="com-kpi-value">${dbcEtf?.price?.toFixed(2) ?? '—'}</span>
-            <span className={`com-kpi-sub ${pctClass(dbcEtf?.ytd)}`}>YTD {dbcEtf?.ytd != null ? `${dbcEtf.ytd > 0 ? '+' : ''}${dbcEtf.ytd.toFixed(1)}%` : '—'}</span>
+            <span className="com-kpi-value">${dbcEtf?.price != null ? <MetricValue value={dbcEtf.price} seriesKey="dbcEtf" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /> : '—'}</span>
+            <span className={`com-kpi-sub ${pctClass(dbcEtf?.ytd)}`}>YTD {<MetricValue value={dbcEtf?.ytd} seriesKey="dbcEtf" timestamp={lastUpdated} className={pctClass(dbcEtf?.ytd)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—'} />}</span>
           </div>
           {best1m && (
             <div className="com-kpi-pill">
               <span className="com-kpi-label">Best 1M</span>
               <span className="com-kpi-value" style={{ color: '#ca8a04' }}>{best1m.name}</span>
-              <span className="com-kpi-sub com-up">{fmtPct(best1m.change1m)}</span>
+               <span className="com-kpi-sub com-up"><MetricValue value={best1m.change1m} seriesKey="commodityBest1m" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></span>
             </div>
           )}
           {goldOilRatio != null && (
             <div className="com-kpi-pill">
               <span className="com-kpi-label">Gold/Oil</span>
-              <span className="com-kpi-value">{(typeof goldOilRatio === 'object' ? goldOilRatio.ratio : goldOilRatio)?.toFixed(1) ?? '—'}</span>
+              <span className="com-kpi-value"><MetricValue value={typeof goldOilRatio === 'object' ? goldOilRatio.ratio : goldOilRatio} seriesKey="goldOilRatio" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></span>
               <span className="com-kpi-sub">oz gold / bbl oil</span>
             </div>
           )}
@@ -318,9 +343,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
                 </span>
               </span>
               <span className="com-kpi-sub">
-                spread {contangoIndicator.spread != null
-                  ? `${contangoIndicator.spread > 0 ? '+' : ''}$${contangoIndicator.spread.toFixed(2)}`
-                  : '—'}
+                spread {<MetricValue value={contangoIndicator.spread} seriesKey="contangoIndicator" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : '-'}$${Math.abs(v).toFixed(2)}`} />}
               </span>
             </div>
           )}
@@ -331,7 +354,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
                 {['CAD', 'AUD', 'NOK'].map(ccy => (
                   commodityCurrencies[ccy] != null && (
                     <span key={ccy} className="com-fx-badge" style={{ background: colors.cardBg, borderColor: colors.cardBorder || colors.tooltipBorder }}>
-                      {ccy} {commodityCurrencies[ccy].toFixed(4)}
+                       {ccy} <MetricValue value={commodityCurrencies[ccy]} seriesKey="commodityCurrencies" timestamp={lastUpdated} format={v => v != null ? v.toFixed(4) : '—'} />
                     </span>
                   )
                 ))}
@@ -365,12 +388,12 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
                       <tr key={c.ticker || c.name} className="com-row">
                         <td className="com-cell">{c.name}</td>
                         <td className="com-cell com-price">
-                          {c.price != null ? c.price.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'}
+                          <MetricValue value={c.price} seriesKey="commodityPrice" timestamp={lastUpdated} format={v => v != null ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'} />
                         </td>
                         <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.unit || ''}</td>
-                        <td className={`com-cell ${pctClass(c.change1d)}`}>{fmtPct(c.change1d)}</td>
-                        <td className={`com-cell ${pctClass(c.change1w)}`}>{fmtPct(c.change1w)}</td>
-                        <td className={`com-cell ${pctClass(c.change1m)}`}>{fmtPct(c.change1m)}</td>
+                        <td className={`com-cell ${pctClass(c.change1d)}`}><MetricValue value={c.change1d} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+                        <td className={`com-cell ${pctClass(c.change1w)}`}><MetricValue value={c.change1w} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1w)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+                        <td className={`com-cell ${pctClass(c.change1m)}`}><MetricValue value={c.change1m} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1m)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
                         <td className="com-cell"><Sparkline values={c.sparkline} /></td>
                         <td className="com-cell com-source-cell">{c.source || c._source || ''}</td>
                       </tr>
@@ -383,7 +406,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
             <div className="com-chart-panel">
               <div className="com-chart-title">DBC Commodity ETF — 1 Year</div>
               <div className="com-mini-chart">
-                <SafeECharts option={dbcOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+                <SafeECharts option={dbcOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'DBC Commodity ETF', source: 'Yahoo Finance', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
               </div>
             </div>
           )}
@@ -394,7 +417,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
           <div className="com-chart-panel" style={{ marginTop: 8 }}>
             <div className="com-chart-title">WTI vs Brent Crude — 1 Year (FRED daily)</div>
             <div className="com-mini-chart">
-              <SafeECharts option={overlayOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} />
+              <SafeECharts option={overlayOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'WTI vs Brent Crude', source: 'FRED', endpoint: '/api/commodities', series: [{ id: 'DCOILWTICO' }, { id: 'DCOILBRENTEU' }], updatedAt: lastUpdated }} />
             </div>
           </div>
         )}

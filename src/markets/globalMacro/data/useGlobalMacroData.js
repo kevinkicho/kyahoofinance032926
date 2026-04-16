@@ -2,22 +2,23 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { scorecardData as mockScorecard, growthInflationData as mockGrowthInflation, centralBankData as mockCentralBank, debtData as mockDebt, cfnai as mockCfnai, oecdCli as mockOecdCli, cpiBreakdown as mockCpiBreakdown } from './mockGlobalMacroData';
 
 const SERVER = '';
 
-export function useGlobalMacroData(autoRefresh = false, refreshKey = 0) {
-  const [scorecardData,       setScorecardData]       = useState(null);
-  const [growthInflationData, setGrowthInflationData] = useState(null);
-  const [centralBankData,     setCentralBankData]     = useState(null);
-  const [debtData,            setDebtData]            = useState(null);
+export function useGlobalMacroData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [scorecardData,       setScorecardData]       = useState(mockScorecard);
+  const [growthInflationData, setGrowthInflationData] = useState(mockGrowthInflation);
+  const [centralBankData,     setCentralBankData]     = useState(mockCentralBank);
+  const [debtData,            setDebtData]            = useState(mockDebt);
   const [m2Growth,            setM2Growth]            = useState(null);
   const [tradeBalance,        setTradeBalance]        = useState(null);
   const [industrialProd,      setIndustrialProd]      = useState(null);
   const [consumerSentiment,   setConsumerSentiment]   = useState(null);
   const [yieldSpread,         setYieldSpread]         = useState(null);
-  const [cfnai,               setCfnai]               = useState(null);
-  const [oecdCli,             setOecdCli]             = useState(null);
-  const [cpiBreakdown,        setCpiBreakdown]        = useState(null);
+  const [cfnai,               setCfnai]               = useState(mockCfnai);
+  const [oecdCli,             setOecdCli]             = useState(mockOecdCli);
+  const [cpiBreakdown,        setCpiBreakdown]        = useState(mockCpiBreakdown);
 
   // Status with error handling
   const { isLive, isLoading, error, lastUpdated, fetchedOn, isCurrent, fetchLog, handleSuccess, handleError, handleFinally, logFetch } = useDataStatus();
@@ -28,7 +29,7 @@ export function useGlobalMacroData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.scorecardData?.length)                  { setScorecardData(data.scorecardData);             anyReplaced = true; }
+        if (data.scorecardData?.length >= 8)                  { setScorecardData(data.scorecardData);             anyReplaced = true; }
         if (data.growthInflationData?.countries?.length) { setGrowthInflationData(data.growthInflationData); anyReplaced = true; }
         if (data.centralBankData?.current?.length)       { setCentralBankData(data.centralBankData);         anyReplaced = true; }
         if (data.debtData?.countries?.length)            { setDebtData(data.debtData);                       anyReplaced = true; }
@@ -47,10 +48,10 @@ export function useGlobalMacroData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return {
     scorecardData, growthInflationData, centralBankData, debtData,

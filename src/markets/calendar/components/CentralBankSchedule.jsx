@@ -1,6 +1,7 @@
 // src/markets/calendar/components/CentralBankSchedule.jsx
 import React from 'react';
 import '../CalendarMarket.css';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 
 const BANK_FLAGS = { Fed: '\u{1F1FA}\u{1F1F8}', ECB: '\u{1F1EA}\u{1F1FA}', BOE: '\u{1F1EC}\u{1F1E7}', BOJ: '\u{1F1EF}\u{1F1F5}' };
 const BANK_DOTS  = { Fed: 'cal-dot-fed', ECB: 'cal-dot-ecb', BOE: 'cal-dot-boe', BOJ: 'cal-dot-boj' };
@@ -39,7 +40,7 @@ export default function CentralBankSchedule({ centralBanks, section }) {
         {centralBanks.map(cb => (
           <div key={cb.bank} className="cal-cb-card">
             <div className="cal-cb-bank">{BANK_FLAGS[cb.bank] || ''} {cb.bank}</div>
-            <div className="cal-cb-rate">{cb.rate != null ? cb.rate.toFixed(2) : '—'}%</div>
+            <div className="cal-cb-rate"><MetricValue seriesKey={cb.bank === 'Fed' ? 'fedRate' : cb.bank === 'ECB' ? 'ecbRate' : cb.bank === 'BOE' ? 'boeRate' : 'bojRate'} value={cb.rate} format={v => v != null ? v.toFixed(2) : '—'} />%</div>
             <div className="cal-cb-next">Next: {cb.nextMeeting}</div>
             <div className="cal-cb-countdown">{cb.daysUntil != null ? `${cb.daysUntil} days` : ''}</div>
             {decisionBadge(cb.rate, cb.previousRate)}
@@ -74,7 +75,7 @@ export default function CentralBankSchedule({ centralBanks, section }) {
         {centralBanks.map(cb => (
           <div key={cb.bank} className="cal-cb-card">
             <div className="cal-cb-bank">{BANK_FLAGS[cb.bank] || ''} {cb.bank}</div>
-            <div className="cal-cb-rate">{cb.rate != null ? cb.rate.toFixed(2) : '—'}%</div>
+            <div className="cal-cb-rate"><MetricValue seriesKey={cb.bank === 'Fed' ? 'fedRate' : cb.bank === 'ECB' ? 'ecbRate' : cb.bank === 'BOE' ? 'boeRate' : 'bojRate'} value={cb.rate} format={v => v != null ? v.toFixed(2) : '—'} />%</div>
             <div className="cal-cb-next">Next: {cb.nextMeeting}</div>
             <div className="cal-cb-countdown">{cb.daysUntil != null ? `${cb.daysUntil} days` : ''}</div>
             {decisionBadge(cb.rate, cb.previousRate)}

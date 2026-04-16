@@ -127,7 +127,7 @@ export default function InstitutionalHoldings({ institutions, aggregateTopHoldin
             <div className="inst-chart-title">Aggregate Top Holdings</div>
             <div className="inst-chart-subtitle">By total value across all tracked institutions</div>
             <div className="inst-chart-wrap">
-              <SafeECharts option={pieOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={pieOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Aggregate Top Holdings', source: 'SEC EDGAR 13F', endpoint: '/api/equities-deep-dive', series: [] }} />
             </div>
           </div>
         )}
@@ -135,7 +135,7 @@ export default function InstitutionalHoldings({ institutions, aggregateTopHoldin
           <div className="inst-chart-title">Assets Under Management</div>
           <div className="inst-chart-subtitle">Billions USD</div>
           <div className="inst-chart-wrap">
-            <SafeECharts option={barOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={barOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Assets Under Management', source: 'SEC EDGAR 13F', endpoint: '/api/equities-deep-dive', series: [] }} />
           </div>
         </div>
       </div>

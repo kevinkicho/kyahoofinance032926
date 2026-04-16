@@ -1,36 +1,51 @@
-// src/markets/crypto/CryptoMarket.jsx
 import React from 'react';
-import { useCryptoData } from './data/useCryptoData';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import CryptoDashboard from './components/CryptoDashboard';
 import './CryptoMarket.css';
 
-/**
- * CryptoMarket - Unified crypto dashboard
- * Shows all crypto data in one glanceable view:
- * - KPI strip (BTC, ETH, BTC Dominance, Fear/Greed, Stablecoins, ETH Gas)
- * - Chart grid (Top Cryptos, Fear & Greed, DeFi TVL, Funding Rates, On-Chain, Exchanges)
- */
-function CryptoMarket({ autoRefresh, refreshKey } = {}) {
-  const { coinMarketData, fearGreedData, defiData, fundingData, onChainData, stablecoinMcap, btcDominance, topExchanges, ethGas, isLive, lastUpdated, fetchLog, isLoading, fetchedOn, isCurrent, refetch } = useCryptoData(autoRefresh, refreshKey);
+function getCryptoProps(centralData) {
+  const d = centralData.data || {};
+  return {
+    coinMarketData: d.coinMarketData,
+    fearGreedData: d.fearGreedData,
+    defiData: d.defiData,
+    fundingData: d.fundingData,
+    onChainData: d.onChainData,
+    stablecoinMcap: d.stablecoinMcap,
+    btcDominance: d.btcDominance,
+    topExchanges: d.topExchanges || [],
+    ethGas: d.ethGas,
+    isLive: centralData.isLive,
+    lastUpdated: centralData.lastUpdated,
+    isLoading: centralData.isLoading,
+    fetchedOn: centralData.fetchedOn,
+    isCurrent: centralData.isCurrent,
+    fetchLog: centralData.fetchLog || [],
+    refetch: centralData.refetch,
+  };
+}
 
-  if (isLoading) return <MarketSkeleton />;
+function CryptoMarket({ centralData } = {}) {
+  if (!centralData) return <MarketSkeleton />;
+  const props = getCryptoProps(centralData);
+
+  if (props.isLoading) return <MarketSkeleton />;
 
   return (
     <div className="crypto-market">
       <CryptoDashboard
-        coinMarketData={coinMarketData}
-        fearGreedData={fearGreedData}
-        defiData={defiData}
-        fundingData={fundingData}
-        onChainData={onChainData}
-        stablecoinMcap={stablecoinMcap}
-        btcDominance={btcDominance}
-        topExchanges={topExchanges}
-        ethGas={ethGas}
-        isLive={isLive}
-        lastUpdated={lastUpdated}
-        fetchLog={fetchLog}
+        coinMarketData={props.coinMarketData}
+        fearGreedData={props.fearGreedData}
+        defiData={props.defiData}
+        fundingData={props.fundingData}
+        onChainData={props.onChainData}
+        stablecoinMcap={props.stablecoinMcap}
+        btcDominance={props.btcDominance}
+        topExchanges={props.topExchanges}
+        ethGas={props.ethGas}
+        isLive={props.isLive}
+        lastUpdated={props.lastUpdated}
+        fetchLog={props.fetchLog}
       />
     </div>
   );

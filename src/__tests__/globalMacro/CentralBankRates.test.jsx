@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import CentralBankRates from '../../markets/globalMacro/components/CentralBankRates';
 import { centralBankData } from '../../markets/globalMacro/data/mockGlobalMacroData';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
 describe('CentralBankRates', () => {
   it('renders panel title', () => {

@@ -1,6 +1,7 @@
 // src/markets/sentiment/components/CrossAssetReturns.jsx
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './SentimentComponents.css';
 
 function retColor(v, cardBg = '#1e293b') {
@@ -108,7 +109,7 @@ export default function CrossAssetReturns({ returnsData }) {
                         className="sent-returns-td"
                         style={{ background: retColor(v, colors.cardBg), color: v == null ? colors.textDim : v >= 0 ? colors.text : '#fca5a5' }}
                       >
-                        {fmtRet(v)}
+                        <MetricValue value={v} seriesKey="crossAssetReturnPct" format={v2 => v2 != null ? `${v2 >= 0 ? '+' : ''}${v2.toFixed(2)}%` : '—'} />
                       </td>
                     ))}
                   </tr>

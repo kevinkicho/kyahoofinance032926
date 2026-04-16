@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { priceDashboardData as mockPriceDashboard, futuresCurveData as mockFuturesCurve, sectorHeatmapData as mockSectorHeatmap, supplyDemandData as mockSupplyDemand, cotData as mockCot, fredCommodities as mockFredCommodities, dbcEtf as mockDbcEtf, goldFuturesCurve as mockGoldFutures } from './mockCommoditiesData';
 
 const SERVER = '';
 
@@ -38,16 +39,16 @@ function formatTimestamp(isoString) {
   });
 }
 
-export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
+export function useCommoditiesData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
   // Legacy data states (maintained for backwards compatibility)
-  const [priceDashboardData, setPriceDashboardData] = useState(null);
-  const [futuresCurveData, setFuturesCurveData] = useState(null);
-  const [sectorHeatmapData, setSectorHeatmapData] = useState(null);
-  const [supplyDemandData, setSupplyDemandData] = useState(null);
-  const [cotData, setCotData] = useState(null);
-  const [fredCommodities, setFredCommodities] = useState(null);
-  const [goldFuturesCurve, setGoldFuturesCurve] = useState(null);
-  const [dbcEtf, setDbcEtf] = useState(null);
+  const [priceDashboardData, setPriceDashboardData] = useState(mockPriceDashboard);
+  const [futuresCurveData, setFuturesCurveData] = useState(mockFuturesCurve);
+  const [sectorHeatmapData, setSectorHeatmapData] = useState(mockSectorHeatmap);
+  const [supplyDemandData, setSupplyDemandData] = useState(mockSupplyDemand);
+  const [cotData, setCotData] = useState(mockCot);
+  const [fredCommodities, setFredCommodities] = useState(mockFredCommodities);
+  const [goldFuturesCurve, setGoldFuturesCurve] = useState(mockGoldFutures);
+  const [dbcEtf, setDbcEtf] = useState(mockDbcEtf);
   const [goldOilRatio, setGoldOilRatio] = useState(null);
   const [contangoIndicator, setContangoIndicator] = useState(null);
   const [commodityCurrencies, setCommodityCurrencies] = useState(null);
@@ -86,6 +87,15 @@ export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
       const data = await response.json();
 
       logFetch({ url: '/api/commodities/v2', status: 200, duration: Date.now() - t0, sources: { eia: !!data.eia, fred: !!data.fred, yahoo: !!data.yahoo, worldBank: !!data.worldBank }, seriesIds: ['POILWTIUSDM', 'GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM', 'POILBREUSDM', 'PNGASUSUSDM', 'M2SL'] });
+
+      console.log(`[Commodities] V2 response:`, {
+        eia: !!data.eia ? Object.keys(data.eia).length + ' keys' : 'empty',
+        fred: !!data.fred ? Object.keys(data.fred).length + ' keys' : 'empty',
+        yahoo: !!data.yahoo ? Object.keys(data.yahoo).length + ' keys' : 'empty',
+        worldBank: !!data.worldBank ? 'present' : 'empty',
+        _sources: data._sources,
+        duration: data._fetchDuration,
+      });
 
       // Update timestamps
       setTimestamps({
@@ -178,25 +188,38 @@ export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
         }
       }
 
-      // Map FRED data
+      // Map FRED data (normalize V2 series format to legacy {dates, values} format)
       if (data.fred) {
-        const fredData = {
-          wtiHistory: data.fred.wti,
-          goldHistory: data.fred.gold_am,
-          silverHistory: data.fred.silver,
-          copperHistory: data.fred.copper,
-          brentHistory: data.fred.brent,
-          natGasHistory: data.fred.natgas,
+        const fc = {};
+        const norm = (key) => {
+          const s = data.fred[key];
+          if (!s) return null;
+          if (s.dates && s.values) return s;
+          if (s.history && Array.isArray(s.history)) return { dates: s.history.map(h => h.date), values: s.history.map(h => h.value) };
+          return null;
         };
-        setFredCommodities(fredData);
+        const w = norm('wti'); if (w) fc.wtiHistory = w;
+        const g = norm('gold_am'); if (g) fc.goldHistory = g;
+        const s = norm('silver'); if (s) fc.silverHistory = s;
+        const c = norm('copper'); if (c) fc.copperHistory = c;
+        const b = norm('brent'); if (b) fc.brentHistory = b;
+        const n = norm('natgas'); if (n) fc.natGasHistory = n;
+        if (data.fred.gas_retail) fc.gasRetail = typeof data.fred.gas_retail === 'object' && data.fred.gas_retail.value != null ? data.fred.gas_retail.value : data.fred.gas_retail;
+        const ppi = data.fred.ppi_commodity || data.fred.ppiCommodity;
+        const pn = norm(ppi); if (pn) fc.ppiCommodity = pn;
+        const di = norm('dollarIndex'); if (di) fc.dollarIndex = di;
+        if (Object.keys(fc).length > 0) setFredCommodities(fc);
       }
 
       // Map Yahoo data
       if (data.yahoo) {
         if (data.yahoo.dbc) {
+          const history = data.yahoo.dbc.history;
           setDbcEtf({
             price: data.yahoo.dbc.price,
             changePct: data.yahoo.dbc.change,
+            ytd: data.yahoo.dbc.ytd ?? null,
+            history: history ? { dates: history.map(h => h.date), closes: history.map(h => h.close || h.value) } : null,
             _source: data.yahoo.dbc._source,
             _lastUpdated: data.yahoo.dbc._lastUpdated,
           });
@@ -210,6 +233,38 @@ export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
       }
 
       handleSuccess(data);
+
+      // V2 doesn't provide futures, sector heatmap, COT, etc — fetch legacy for those
+      try {
+        console.log('[Commodities] Fetching legacy endpoint for supplemental data (futures, heatmap, COT, etc)...');
+        const legacyResp = await fetchWithRetry(`${SERVER}/api/commodities`);
+        const legacyData = await legacyResp.json();
+        const filled = [];
+        if (legacyData.futuresCurveData && !data.futuresCurveData) { setFuturesCurveData(legacyData.futuresCurveData); filled.push('futuresCurveData'); }
+        if (legacyData.sectorHeatmapData && !data.sectorHeatmapData) { setSectorHeatmapData(legacyData.sectorHeatmapData); filled.push('sectorHeatmapData'); }
+        if (legacyData.cotData?.commodities?.length) { setCotData(legacyData.cotData); filled.push('cotData'); }
+        if (legacyData.goldFuturesCurve) { setGoldFuturesCurve(legacyData.goldFuturesCurve); filled.push('goldFuturesCurve'); }
+        if (legacyData.contangoIndicator) { setContangoIndicator(legacyData.contangoIndicator); filled.push('contangoIndicator'); }
+        if (legacyData.commodityCurrencies) { setCommodityCurrencies(legacyData.commodityCurrencies); filled.push('commodityCurrencies'); }
+        if (legacyData.seasonalPatterns) { setSeasonalPatterns(legacyData.seasonalPatterns); filled.push('seasonalPatterns'); }
+        if (!priceDashboardData && legacyData.priceDashboardData) { setPriceDashboardData(legacyData.priceDashboardData); filled.push('priceDashboardData'); }
+        if (!supplyDemandData && legacyData.supplyDemandData) { setSupplyDemandData(legacyData.supplyDemandData); filled.push('supplyDemandData'); }
+        // Merge fredCommodities: add keys from legacy that V2 doesn't provide
+        if (legacyData.fredCommodities) {
+          setFredCommodities(prev => {
+            const merged = { ...prev };
+            for (const [k, v] of Object.entries(legacyData.fredCommodities)) {
+              if (!merged[k] && v) merged[k] = v;
+            }
+            return merged;
+          });
+        }
+        if (legacyData.dbcEtf && !dbcEtf) {
+          setDbcEtf(prev => prev || legacyData.dbcEtf);
+        }
+      } catch (legacyErr) {
+        console.warn('[Commodities] Legacy supplemental fetch failed:', legacyErr?.message);
+      }
     } catch (err) {
       console.warn('Enhanced commodities fetch failed, trying legacy endpoint:', err.message);
 
@@ -220,12 +275,26 @@ export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
 
         logFetch({ url: '/api/commodities', status: 200, duration: Date.now() - t0, sources: { legacy: true }, seriesIds: ['POILWTIUSDM', 'GOLDAMGBD228NLBM', 'M2SL'] });
 
+      console.log(`[Commodities] Legacy fallback response:`, {
+        priceDashboard: !!data.priceDashboardData,
+        futuresCurve: !!data.futuresCurveData,
+        sectorHeatmap: !!data.sectorHeatmapData,
+        supplyDemand: !!data.supplyDemandData,
+        cotData: !!data.cotData?.commodities?.length,
+        fredCommodities: !!data.fredCommodities ? Object.keys(data.fredCommodities).join(',') : 'empty',
+        dbcEtf: !!data.dbcEtf,
+        goldOilRatio: data.goldOilRatio != null,
+        contango: !!data.contangoIndicator,
+        currencies: !!data.commodityCurrencies,
+        seasonal: !!data.seasonalPatterns,
+      });
+
         // Update legacy state
         if (data.priceDashboardData) setPriceDashboardData(data.priceDashboardData);
         if (data.futuresCurveData) setFuturesCurveData(data.futuresCurveData);
         if (data.sectorHeatmapData) setSectorHeatmapData(data.sectorHeatmapData);
         if (data.supplyDemandData) setSupplyDemandData(data.supplyDemandData);
-        if (data.cotData?.commodities?.length) setCotData(data.cotData);
+        if (data.cotData?.commodities?.length >= 2) setCotData(data.cotData);
         if (data.fredCommodities) setFredCommodities(data.fredCommodities);
         if (data.goldFuturesCurve) setGoldFuturesCurve(data.goldFuturesCurve);
         if (data.dbcEtf) setDbcEtf(data.dbcEtf);
@@ -249,10 +318,10 @@ export function useCommoditiesData(autoRefresh = false, refreshKey = 0) {
     }
   }, [handleSuccess, handleError, handleFinally]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   // Get source information for a specific commodity
   const getSourceInfo = useCallback((commodityKey) => {

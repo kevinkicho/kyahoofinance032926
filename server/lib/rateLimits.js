@@ -30,7 +30,7 @@ export function getApiCounts() {
 // Known rate limits for free tiers (requests/day)
 export const KNOWN_LIMITS = {
   'Yahoo Finance': 2000,
-  'FRED': 120,
+  'FRED': 172800,
   'CoinGecko': 30,
   'Alternative.me': 100,
   'CFTC Socrata': 1000,

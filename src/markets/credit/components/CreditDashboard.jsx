@@ -3,6 +3,7 @@ import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import SafeECharts from '../../../components/SafeECharts';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CreditDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -105,7 +106,7 @@ function CreditDashboard({
                   <div className="credit-metric-value" style={{
                     color: igSpread > 150 ? '#f87171' : igSpread > 100 ? '#fbbf24' : '#22c55e'
                   }}>
-                    {igSpread.toFixed(0)} bps
+                    <MetricValue value={igSpread} seriesKey="igOAS" timestamp={lastUpdated} format={v => `${v.toFixed(0)} bps`} />
                   </div>
                 </div>
               )}
@@ -114,7 +115,7 @@ function CreditDashboard({
                   <div className="credit-metric-row">
                     <span className="credit-metric-name">HY OAS</span>
                     <span className="credit-metric-num" style={{ color: hySpread > 400 ? '#f87171' : hySpread > 250 ? '#fbbf24' : '#22c55e' }}>
-                      {hySpread.toFixed(0)} bps
+                       <MetricValue value={hySpread} seriesKey="hyOAS" timestamp={lastUpdated} format={v => `${v.toFixed(0)} bps`} />
                     </span>
                   </div>
                 </div>
@@ -123,7 +124,7 @@ function CreditDashboard({
                 <div className="credit-metric-card">
                   <div className="credit-metric-row">
                     <span className="credit-metric-name">EM Spread</span>
-                    <span className="credit-metric-num" style={{ color: '#a78bfa' }}>{emSpread.toFixed(0)} bps</span>
+                    <span className="credit-metric-num" style={{ color: '#a78bfa' }}><MetricValue value={emSpread} seriesKey="emOAS" timestamp={lastUpdated} format={v => `${v.toFixed(0)} bps`} /></span>
                   </div>
                 </div>
               )}
@@ -136,7 +137,7 @@ function CreditDashboard({
                   <div className="credit-metric-row">
                     <span className="credit-metric-name">Default Rate</span>
                     <span className="credit-metric-num" style={{ color: defaultRate > 3 ? '#f87171' : '#22c55e' }}>
-                      {defaultRate.toFixed(2)}%
+                      <MetricValue value={defaultRate} seriesKey="defaultRate" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 </div>
@@ -145,7 +146,7 @@ function CreditDashboard({
                 <div className="credit-metric-card">
                   <div className="credit-metric-row">
                     <span className="credit-metric-name">{delinquencyRates[0].type}</span>
-                    <span className="credit-metric-num">{delinquencyRates[0].rate.toFixed(2)}%</span>
+                     <span className="credit-metric-num"><MetricValue value={delinquencyRates[0].rate} seriesKey="delinquencyRate" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} /></span>
                   </div>
                 </div>
               )}
@@ -158,7 +159,7 @@ function CreditDashboard({
                   <div className="credit-metric-row">
                     <span className="credit-metric-name">CP Rate</span>
                     <span className="credit-metric-num" style={{ color: '#14b8a6' }}>
-                      {commercialPaper.rate.toFixed(2)}%
+                       <MetricValue value={commercialPaper.rate} seriesKey="commercialPaper" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 </div>
@@ -175,7 +176,7 @@ function CreditDashboard({
               <span className="bento-panel-title">Credit Spreads</span>
             </div>
             <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spreads', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -192,7 +193,7 @@ function CreditDashboard({
                 <div key={s.name} className="credit-mini-row">
                   <span className="credit-mini-name">{s.name}</span>
                   <span className="credit-mini-value" style={{ color: s.spread > 150 ? '#f87171' : s.spread > 80 ? '#fbbf24' : '#22c55e' }}>
-                    {s.spread?.toFixed(0)} bps
+                    <MetricValue value={s.spread} seriesKey={s.label === 'High Yield' ? 'hyOAS' : s.label === 'Investment Grade' ? 'igOAS' : s.label === 'EM Sovereign' ? 'emOAS' : 'spreadSummary'} timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(0)} bps` : '—'} />
                   </span>
                 </div>
               ))}
@@ -208,7 +209,7 @@ function CreditDashboard({
               <span className="bento-panel-title">EM Spread History</span>
             </div>
             <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EM Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLEMRACRPIOAS' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -224,7 +225,7 @@ function CreditDashboard({
               {(emBondData.countries || emBondData).slice(0, 8).map((e) => (
                 <div key={e.country || e.name} className="credit-mini-row">
                   <span className="credit-mini-name">{e.country || e.name}</span>
-                  <span className="credit-mini-value">{e.yld10y?.toFixed(2) || e.yield?.toFixed(2)}%</span>
+                  <span className="credit-mini-value"><MetricValue value={e.yld10y ?? e.yield} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
                 </div>
               ))}
             </div>
@@ -241,12 +242,12 @@ function CreditDashboard({
             <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
               <div className="credit-mini-row">
                 <span className="credit-mini-name">AA 30-Day</span>
-                <span className="credit-mini-value">{commercialPaper.rate?.toFixed(2)}%</span>
+                <span className="credit-mini-value"><MetricValue value={commercialPaper.rate} seriesKey="commercialPaper" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
               </div>
               {commercialPaper.volume != null && (
                 <div className="credit-mini-row">
                   <span className="credit-mini-name">Volume</span>
-                  <span className="credit-mini-value">${(commercialPaper.volume / 1e9).toFixed(0)}B</span>
+                  <span className="credit-mini-value"><MetricValue value={commercialPaper.volume} seriesKey="commercialPaperVolume" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} /></span>
                 </div>
               )}
             </div>
@@ -264,7 +265,7 @@ function CreditDashboard({
               {(loanData.cloTranches || loanData).slice(0, 8).map((l) => (
                 <div key={l.tranche || l.sector} className="credit-mini-row">
                   <span className="credit-mini-name">{l.tranche || l.sector}</span>
-                  <span className="credit-mini-value">{l.yield?.toFixed(2)}%</span>
+                  <span className="credit-mini-value"><MetricValue value={l.yield} seriesKey="cloYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
                 </div>
               ))}
             </div>
@@ -283,7 +284,7 @@ function CreditDashboard({
                 <div key={d.category} className="credit-mini-row">
                   <span className="credit-mini-name">{d.category}</span>
                   <span className="credit-mini-value" style={{ color: d.value > 3 ? '#f87171' : '#fbbf24' }}>
-                    {d.value?.toFixed(1)}%
+                    <MetricValue value={d.value} seriesKey="defaultRateByCategory" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
                   </span>
                 </div>
               ))}
@@ -302,7 +303,7 @@ function CreditDashboard({
               {delinquencyRates.slice(0, 8).map((d) => (
                 <div key={d.type} className="credit-mini-row">
                   <span className="credit-mini-name">{d.type}</span>
-                  <span className="credit-mini-value">{d.rate?.toFixed(2)}%</span>
+                  <span className="credit-mini-value"><MetricValue value={d.rate} seriesKey="delinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
                 </div>
               ))}
             </div>

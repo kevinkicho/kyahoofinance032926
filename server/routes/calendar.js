@@ -177,7 +177,7 @@ router.get('/', async (req, res) => {
                 .filter(d => majorIds.includes(d.release_id) && d.date >= today)
                 .map(d => {
                   const info = MAJOR_FRED_RELEASES[d.release_id];
-                  return { name: info.name, date: d.date, category: info.category, previousValue: null };
+                   return { name: info.name, date: d.date, category: info.category, previousValue: info.previousValue ?? null };
                 })
                 .sort((a, b) => a.date.localeCompare(b.date))
                 .slice(0, 20);
@@ -216,7 +216,7 @@ router.get('/', async (req, res) => {
           entries.push({
             ticker,
             exDate: exDateStr,
-            amount: cal?.dividendDate ? null : null,
+            amount: cal?.cashDividends?.amount ?? cal?.cashDividends?.value ?? null,
           });
         });
         entries.sort((a, b) => a.exDate.localeCompare(b.exDate));

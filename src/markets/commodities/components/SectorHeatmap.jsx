@@ -2,6 +2,7 @@
 import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CommoditiesDashboard.css';
 
 function heatClass(v) {
@@ -27,7 +28,7 @@ function pctClass(v) {
 
 const SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture', 'Livestock'];
 
-export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view = 'heatmap' }) {
+export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view = 'heatmap', lastUpdated }) {
   const { colors } = useTheme();
   const { commodities = [], columns = [] } = sectorHeatmapData || {};
   const colKeys = ['d1', 'w1', 'm1'];
@@ -102,9 +103,9 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
             <tr key={c.ticker} className="com-row">
               <td className="com-cell">{c.name}</td>
               <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.sector}</td>
-              <td className={`com-cell ${pctClass(c.d1)}`} style={{ fontWeight: 600 }}>{fmtPct(c.d1)}</td>
-              <td className={`com-cell ${pctClass(c.w1)}`}>{fmtPct(c.w1)}</td>
-              <td className={`com-cell ${pctClass(c.m1)}`}>{fmtPct(c.m1)}</td>
+              <td className={`com-cell ${pctClass(c.d1)}`} style={{ fontWeight: 600 }}><MetricValue value={c.d1} seriesKey="sectorPerformance" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+              <td className={`com-cell ${pctClass(c.w1)}`}><MetricValue value={c.w1} seriesKey="sectorPerformance" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+              <td className={`com-cell ${pctClass(c.m1)}`}><MetricValue value={c.m1} seriesKey="sectorPerformance" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
             </tr>
           ))}
         </tbody>
@@ -135,7 +136,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
                   <td className="com-cell">{c.name}</td>
                   {colKeys.map(k => (
                     <td key={k} className={`com-cell ${heatClass(c[k])}`} style={{ fontWeight: 500 }}>
-                      {fmtPct(c[k])}
+                      <MetricValue value={c[k]} seriesKey="sectorPerformance" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} />
                     </td>
                   ))}
                 </tr>
@@ -165,26 +166,26 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
             <div className="com-kpi-pill">
               <span className="com-kpi-label">Best Today</span>
               <span className="com-kpi-value" style={{ color: '#ca8a04' }}>{best1d.name}</span>
-              <span className="com-kpi-sub com-up">{fmtPct(best1d.d1)}</span>
+              <span className="com-kpi-sub com-up"><MetricValue value={best1d.d1} seriesKey="sectorHeatmap" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></span>
             </div>
           )}
           {worst1d && (
             <div className="com-kpi-pill">
               <span className="com-kpi-label">Worst Today</span>
               <span className="com-kpi-value" style={{ color: '#ca8a04' }}>{worst1d.name}</span>
-              <span className="com-kpi-sub com-down">{fmtPct(worst1d.d1)}</span>
+              <span className="com-kpi-sub com-down"><MetricValue value={worst1d.d1} seriesKey="sectorHeatmap" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></span>
             </div>
           )}
           <div className="com-kpi-pill">
             <span className="com-kpi-label">PPI Commodity YoY</span>
             <span className={`com-kpi-value ${ppiYoy != null ? (ppiYoy >= 0 ? 'positive' : 'negative') : ''}`}>
-              {ppiYoy != null ? `${ppiYoy > 0 ? '+' : ''}${ppiYoy.toFixed(1)}%` : '—'}
+              <MetricValue value={ppiYoy} seriesKey="ppiYoy" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}%` : '—'} />
             </span>
             <span className="com-kpi-sub">FRED WPUFD49207</span>
           </div>
           <div className="com-kpi-pill">
             <span className="com-kpi-label">Retail Gas</span>
-            <span className="com-kpi-value">${fredCommodities?.gasRetail?.toFixed(3) ?? '—'}</span>
+            <span className="com-kpi-value"><MetricValue value={fredCommodities?.gasRetail} seriesKey="gasRetail" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(3)}` : '—'} /></span>
             <span className="com-kpi-sub">US avg $/gal</span>
           </div>
         </div>
@@ -213,7 +214,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
                       />
                     </div>
                     <span className={`com-sector-bar-val ${isPos ? 'positive' : 'negative'}`}>
-                      {s.avg >= 0 ? '+' : ''}{s.avg.toFixed(2)}%
+                      <MetricValue value={s.avg} seriesKey="sectorHeatmap" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 );
@@ -227,7 +228,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
           <div className="com-chart-panel" style={{ marginTop: 8 }}>
             <div className="com-chart-title">PPI Commodity Index — 3 Year (FRED monthly)</div>
             <div className="com-mini-chart">
-              <SafeECharts option={ppiOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={ppiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'PPI Commodity Index', source: 'FRED', endpoint: '/api/commodities', series: [{ id: 'WPUFD49207' }], updatedAt: lastUpdated }} />
             </div>
           </div>
         )}

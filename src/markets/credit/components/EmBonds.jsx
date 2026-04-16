@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CreditComponents.css';
 
 function ratingClass(r) {
@@ -57,7 +58,7 @@ function buildRegionOption(regions, colors) {
   };
 }
 
-export default function EmBonds({ emBondData }) {
+export default function EmBonds({ emBondData, lastUpdated }) {
   if (!emBondData) return null;
   const { colors } = useTheme();
   const { countries = [], regions = [] } = emBondData;
@@ -126,10 +127,10 @@ export default function EmBonds({ emBondData }) {
                       <td className="credit-cell" style={{ textAlign: 'center' }}>
                         <span className={`credit-rating-badge ${ratingClass(c.rating)}`}>{c.rating}</span>
                       </td>
-                      <td className="credit-cell credit-num">{c.spread}bps</td>
-                      <td className={`credit-cell credit-num ${ch.cls}`}>{ch.text}</td>
-                      <td className="credit-cell credit-num">{c.yld10y?.toFixed(1)}%</td>
-                      <td className="credit-cell credit-num">{c.debtGdp}%</td>
+                      <td className="credit-cell credit-num"><MetricValue value={c.spread} seriesKey="emBondSpread" timestamp={lastUpdated} format={v => `${v}bps`} /></td>
+                      <td className={`credit-cell credit-num ${ch.cls}`}>{c.change1m != null ? <MetricValue value={c.change1m} seriesKey="emBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /> : ch.text}</td>
+                      <td className="credit-cell credit-num"><MetricValue value={c.yld10y} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></td>
+                      <td className="credit-cell credit-num"><MetricValue value={c.debtGdp} seriesKey="emDebtGdp" timestamp={lastUpdated} format={v => `${v}%`} /></td>
                     </tr>
                   );
                 })}
@@ -141,7 +142,7 @@ export default function EmBonds({ emBondData }) {
           <div className="credit-chart-title">EM Region Spread Comparison</div>
           <div className="credit-chart-subtitle">Average EMBI spread by region · red = widest · blue = tightest</div>
           <div className="credit-chart-wrap">
-            <SafeECharts option={buildRegionOption(regions, colors)} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={buildRegionOption(regions, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EM Region Spread Comparison', source: 'FRED / Bloomberg', endpoint: '/api/credit', series: [{ id: 'BAMLEMRACRPIOAS' }] }} />
           </div>
         </div>
       </div>

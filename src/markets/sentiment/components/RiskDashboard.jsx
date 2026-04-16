@@ -197,7 +197,7 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHi
               <div className="sent-chart-title">VVIX — Vol of Vol</div>
               <div className="sent-chart-subtitle">VIX of VIX · elevated = tail-risk</div>
               <div className="sent-chart-wrap">
-                <SafeECharts option={vvixOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={vvixOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VVIX — Vol of Vol', source: 'CBOE / Yahoo Finance', endpoint: '/api/sentiment', series: [] }} />
               </div>
             </div>
           ) : <div className="sent-chart-panel" />}
@@ -207,7 +207,7 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHi
               <div className="sent-chart-title">Financial Stress Index</div>
               <div className="sent-chart-subtitle">St. Louis Fed FSI · &lt;0 = calm · &gt;1 = stress</div>
               <div className="sent-chart-wrap">
-                <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Financial Stress Index', source: 'FRED', endpoint: '/api/sentiment', series: [{ id: 'STLFSI4' }] }} />
               </div>
             </div>
           ) : <div className="sent-chart-panel" />}
@@ -222,7 +222,7 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHi
               </div>
               <div className="sent-chart-subtitle">FINRA margin · quarterly · USD bn</div>
               <div className="sent-chart-wrap">
-                <SafeECharts option={marginOption.option} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={marginOption.option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Margin Debt', source: 'FINRA / FRED', endpoint: '/api/sentiment', series: [{ id: 'FINNSAMBS' }] }} />
               </div>
             </div>
           ) : <div className="sent-chart-panel" />}

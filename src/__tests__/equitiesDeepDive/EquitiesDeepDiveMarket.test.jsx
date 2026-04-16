@@ -1,44 +1,82 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import EquitiesDeepDiveMarket from '../../markets/equitiesDeepDive/EquitiesDeepDiveMarket';
 
-vi.mock('echarts-for-react', () => ({ default: () => <div data-testid="echarts-mock" /> }));
+vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
-beforeEach(() => {
-  global.fetch = vi.fn().mockRejectedValue(new Error('no server'));
-});
+const mockCentralData = {
+  isLoading: false,
+  isLive: false,
+  isCurrent: false,
+  lastUpdated: null,
+  fetchedOn: null,
+  error: null,
+  fetchLog: [],
+  provenance: {},
+  refetch: () => {},
+  data: {
+    sectorData: {
+      sectors: [
+        { code: 'SPY', name: 'S&P 500', perf1m: 3.0, perf3m: 8.0, pe: 22.0 },
+        { code: 'XLK', name: 'Technology', perf1m: 5.2, perf3m: 12.1, pe: 28.5 },
+        { code: 'XLF', name: 'Financials', perf1m: 2.1, perf3m: 6.5, pe: 14.2 },
+        { code: 'XLE', name: 'Energy', perf1m: -1.5, perf3m: 3.0, pe: 12.0 },
+      ],
+    },
+    factorData: {
+      inFavor: { momentum: 72, value: 45, quality: 68, lowVol: 55 },
+      stocks: [
+        { ticker: 'AAPL', composite: 85, momentum: 90, value: 60, quality: 88, lowVol: 70 },
+      ],
+    },
+    shortData: {
+      mostShorted: [
+        { ticker: 'TSLA', shortFloat: 25.3, composite: 80 },
+      ],
+    },
+  },
+};
+
+const mockInstitutionalData = {
+  isLoading: false,
+  isLive: false,
+  isCurrent: false,
+  lastUpdated: null,
+  fetchedOn: null,
+  error: null,
+  fetchLog: [],
+  refetch: () => {},
+  data: {
+    lastUpdated: null,
+    institutions: [],
+    aggregateTopHoldings: [],
+    recentChanges: { lastQuarter: null, bigBuys: [], bigSells: [], newPositions: [] },
+  },
+};
 
 describe('EquitiesDeepDiveMarket', () => {
-  it('renders unified dashboard after loading', async () => {
-    render(<EquitiesDeepDiveMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Dashboard shows sidebar with Sector Performance section
-    const sectorSections = screen.getAllByText('Sector Performance');
-    expect(sectorSections.length).toBeGreaterThan(0);
+  it('renders unified dashboard with status bar', () => {
+    render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
+    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
   });
 
-  it('shows sidebar with key metrics', async () => {
-    render(<EquitiesDeepDiveMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Sidebar shows Factor Scores section
-    const factorSections = screen.getAllByText('Factor Scores');
-    expect(factorSections.length).toBeGreaterThan(0);
+  it('shows sidebar with Sector Performance', () => {
+    render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
+    expect(screen.getByText('Sector Performance')).toBeInTheDocument();
   });
 
-  it('shows content grid with all sections visible', async () => {
-    render(<EquitiesDeepDiveMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // All content is visible without tabs - check for various panels
-    // ETF Performance should appear as a panel
-    const etfPanel = screen.getByText('ETF Performance');
-    expect(etfPanel).toBeInTheDocument();
+  it('shows sidebar with Factor Scores', () => {
+    render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
+    expect(screen.getByText('Factor Scores')).toBeInTheDocument();
   });
 
-  it('shows mock data status when server unavailable', async () => {
-    render(<EquitiesDeepDiveMarket />);
-    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-    // Status bar shows mock data
-    const mockDataElements = screen.getAllByText(/mock data/i);
-    expect(mockDataElements.length).toBeGreaterThan(0);
+  it('shows ETF Performance panel', () => {
+    render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
+    expect(screen.getByText('ETF Performance')).toBeInTheDocument();
+  });
+
+  it('shows no data received status when not live', () => {
+    render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
+    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
   });
 });

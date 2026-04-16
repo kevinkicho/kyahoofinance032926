@@ -162,14 +162,14 @@ export default function ShortInterest({ shortData }) {
           <div className="eq-chart-title">Most Shorted</div>
           <div className="eq-chart-subtitle">Red &gt;20% · amber 10–20% · green &lt;10%</div>
           <div className="eq-chart-wrap">
-            <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
           </div>
         </div>
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Squeeze Watch</div>
           <div className="eq-chart-subtitle">X = short float · Y = 1W return · size = market cap · short &gt;10%</div>
           <div className="eq-chart-wrap">
-            <SafeECharts option={squeezeOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={squeezeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Squeeze Watch', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
           </div>
         </div>
       </div>

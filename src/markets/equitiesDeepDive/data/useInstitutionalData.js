@@ -12,7 +12,7 @@ const EMPTY_DATA = {
   recentChanges: { lastQuarter: null, bigBuys: [], bigSells: [], newPositions: [] },
 };
 
-export function useInstitutionalData(autoRefresh = false, refreshKey = 0) {
+export function useInstitutionalData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
   const [data, setData] = useState(EMPTY_DATA);
 
   // Status with error handling
@@ -33,10 +33,10 @@ export function useInstitutionalData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return { ...data, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }

@@ -1,6 +1,7 @@
 // src/markets/calendar/components/EarningsSeason.jsx
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import '../CalendarMarket.css';
 
 function weekLabel(dateStr) {
@@ -62,22 +63,22 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar, insid
         <div className="cal-kpi-strip">
           <div className="cal-kpi-pill">
             <span className="cal-kpi-label">Total Reports</span>
-            <span className="cal-kpi-value accent">{kpis.total}</span>
+            <span className="cal-kpi-value accent"><MetricValue value={kpis.total} seriesKey="earnTotalReports" format={v => `${v}`} /></span>
           </div>
           <div className="cal-kpi-pill">
             <span className="cal-kpi-label">This Week</span>
-            <span className="cal-kpi-value">{kpis.thisWeek}</span>
+            <span className="cal-kpi-value"><MetricValue value={kpis.thisWeek} seriesKey="earnTotalReports" format={v => `${v}`} /></span>
           </div>
           {kpis.largestMktCap && (
             <div className="cal-kpi-pill" style={{ minWidth: 120 }}>
               <span className="cal-kpi-label">Largest Mkt Cap</span>
-              <span className="cal-kpi-value">{kpis.largestMktCap.ticker} ${kpis.largestMktCap.marketCapB}B</span>
+              <span className="cal-kpi-value">{kpis.largestMktCap.ticker} <MetricValue value={kpis.largestMktCap.marketCapB} seriesKey="earnMktCap" format={v => `$${v}B`} /></span>
             </div>
           )}
           {kpis.avgEps != null && (
             <div className="cal-kpi-pill">
               <span className="cal-kpi-label">Avg EPS Est</span>
-              <span className="cal-kpi-value">${kpis.avgEps.toFixed(2)}</span>
+              <span className="cal-kpi-value"><MetricValue value={kpis.avgEps} seriesKey="earnAvgEps" format={v => `$${v.toFixed(2)}`} /></span>
             </div>
           )}
         </div>
@@ -104,9 +105,9 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar, insid
                   <td style={{ fontFamily: 'monospace', fontSize: 10, color: colors.textMuted }}>{e.date}</td>
                   <td style={{ fontWeight: 700, color: '#f43f5e' }}>{e.ticker}</td>
                   <td>{e.name}</td>
-                  <td style={{ fontFamily: 'monospace' }}>{e.epsEst != null ? `$${e.epsEst.toFixed(2)}` : '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: colors.textMuted }}>{e.epsPrev != null ? `$${e.epsPrev.toFixed(2)}` : '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}>{e.marketCapB != null ? `$${e.marketCapB.toLocaleString()}` : '—'}</td>
+                  <td style={{ fontFamily: 'monospace' }}><MetricValue value={e.epsEst} seriesKey="earnEpsEst" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textMuted }}><MetricValue value={e.epsPrev} seriesKey="earnEpsPrev" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}><MetricValue value={e.marketCapB} seriesKey="earnMktCap" format={v => v != null ? `$${v.toLocaleString()}` : '—'} /></td>
                 </tr>
               ))}
             </tbody>
@@ -137,7 +138,7 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar, insid
                   <td style={{ fontWeight: 700, fontSize: 11, color: '#f43f5e' }}>{d.ticker}</td>
                   <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{d.exDate}</td>
                   <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}>
-                    {d.amount != null ? `$${Number(d.amount).toFixed(4)}` : '—'}
+                    <MetricValue value={d.amount != null ? Number(d.amount) : null} seriesKey="divAmount" format={v => v != null ? `$${v.toFixed(4)}` : '—'} />
                   </td>
                 </tr>
               ))}

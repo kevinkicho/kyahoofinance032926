@@ -1,12 +1,15 @@
 import React, { useRef, useEffect, useCallback, useMemo, forwardRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
+import ChartSourcePopover from './ChartSourcePopover';
 
-const SafeECharts = forwardRef(function SafeECharts({ option, style, className, opts, onEvents, onChartReady, ...rest }, ref) {
+const SafeECharts = forwardRef(function SafeECharts({ option, style, className, opts, onEvents, onChartReady, sourceInfo, ...rest }, ref) {
   const instanceRef = useRef(null);
   const mountedRef = useRef(false);
   const containerRef = useRef(null);
   const chartWrapperRef = useRef(null);
   const [hasDimensions, setHasDimensions] = useState(false);
+  const [popoverPos, setPopoverPos] = useState(null);
+  const [popoverInfo, setPopoverInfo] = useState(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -86,10 +89,36 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     }
   }, [onChartReady]);
 
+  const handleChartClick = useCallback((params) => {
+    if (!sourceInfo) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = (params.event?.event?.clientX || rect.left + rect.width / 2) + 4;
+    const y = (params.event?.event?.clientY || rect.top + rect.height / 2) + 4;
+    setPopoverPos({ x, y });
+    setPopoverInfo(sourceInfo);
+  }, [sourceInfo]);
+
+  const handleClosePopover = useCallback(() => {
+    setPopoverPos(null);
+    setPopoverInfo(null);
+  }, []);
+
+  const mergedOnEvents = useMemo(() => {
+    const events = { ...(onEvents || {}) };
+    if (sourceInfo) {
+      const existingClick = events.click;
+      events.click = (params) => {
+        handleChartClick(params);
+        if (existingClick) existingClick(params);
+      };
+    }
+    return events;
+  }, [onEvents, sourceInfo, handleChartClick]);
+
   const safeOnEvents = useMemo(() => {
-    if (!onEvents) return undefined;
     const wrapped = {};
-    for (const [event, handler] of Object.entries(onEvents)) {
+    for (const [event, handler] of Object.entries(mergedOnEvents)) {
       wrapped[event] = (...args) => {
         if (mountedRef.current && instanceRef.current && !instanceRef.current.isDisposed?.()) {
           handler(...args);
@@ -97,7 +126,7 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
       };
     }
     return wrapped;
-  }, [onEvents]);
+  }, [mergedOnEvents]);
 
   const safeOpts = useMemo(() => ({ ...opts }), [opts]);
 
@@ -109,7 +138,8 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     minWidth: 0,
     position: 'relative',
     overflow: 'hidden',
-  }), [style]);
+    cursor: sourceInfo ? 'pointer' : undefined,
+  }), [style, sourceInfo]);
 
   if (!hasDimensions) {
     return (
@@ -136,6 +166,13 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
         onEvents={safeOnEvents}
         {...rest}
       />
+      {popoverPos && popoverInfo && (
+        <ChartSourcePopover
+          sourceInfo={popoverInfo}
+          anchorPos={popoverPos}
+          onClose={handleClosePopover}
+        />
+      )}
     </div>
   );
 });

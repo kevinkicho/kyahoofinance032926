@@ -235,14 +235,14 @@ export default function GrowthInflation({ growthInflationData, industrialProd, c
           <div className="mac-chart-title">GDP Growth (%)</div>
           <div className="mac-chart-subtitle">Ranked highest to lowest · teal = positive · red = contraction</div>
           <div className="mac-chart-wrap">
-            <SafeECharts option={gdpOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={gdpOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'GDP Growth (%)', source: 'World Bank', endpoint: '/api/global-macro', series: [] }} />
           </div>
         </div>
         <div className="mac-chart-panel">
           <div className="mac-chart-title">CPI Inflation (%)</div>
           <div className="mac-chart-subtitle">Ranked highest to lowest · teal = on target (1–3%) · amber = elevated · red = high</div>
           <div className="mac-chart-wrap">
-            <SafeECharts option={cpiOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={cpiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CPI Inflation (%)', source: 'World Bank', endpoint: '/api/global-macro', series: [] }} />
           </div>
         </div>
       </div>
@@ -253,7 +253,7 @@ export default function GrowthInflation({ growthInflationData, industrialProd, c
               <div className="mac-chart-title">Industrial Production (YoY %)</div>
               <div className="mac-chart-subtitle">US Fed — monthly · purple line · dashed zero = contraction boundary</div>
               <div className="mac-chart-wrap">
-                <SafeECharts option={indProdOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={indProdOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Industrial Production (YoY %)', source: 'FRED', endpoint: '/api/global-macro', series: [{ id: 'INDPRO' }] }} />
               </div>
             </div>
           )}
@@ -262,7 +262,7 @@ export default function GrowthInflation({ growthInflationData, industrialProd, c
               <div className="mac-chart-title">Consumer Sentiment (U. Michigan)</div>
               <div className="mac-chart-subtitle">Index level — higher = more optimistic · amber line</div>
               <div className="mac-chart-wrap">
-                <SafeECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} />
+                <SafeECharts option={sentimentOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Consumer Sentiment (U. Michigan)', source: 'FRED', endpoint: '/api/global-macro', series: [{ id: 'UMCSENT' }] }} />
               </div>
             </div>
           )}

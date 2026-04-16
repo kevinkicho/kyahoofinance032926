@@ -3,6 +3,7 @@ import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './RealEstateDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -134,13 +135,13 @@ function RealEstateDashboard({
                 <div className="re-sidebar-title">Home Prices</div>
                 <div className="re-metric-card">
                   <div className="re-metric-label">Case-Shiller</div>
-                  <div className="re-metric-value" style={{ color: '#60a5fa' }}>{shillerLatest.toFixed(1)}</div>
+                  <div className="re-metric-value" style={{ color: '#60a5fa' }}><MetricValue value={shillerLatest} seriesKey="caseShiller" timestamp={lastUpdated} format={v => v.toFixed(1)} /></div>
                 </div>
                 {typeof medianHomePrice === 'number' && (
                   <div className="re-metric-card">
                     <div className="re-metric-row">
                       <span className="re-metric-name">Median Price</span>
-                      <span className="re-metric-num">${(medianHomePrice / 1000).toFixed(0)}K</span>
+                      <span className="re-metric-num"><MetricValue value={medianHomePrice} seriesKey="medianHomePrice" timestamp={lastUpdated} format={v => v != null ? `$${(v / 1000).toFixed(0)}K` : '—'} /></span>
                     </div>
                   </div>
                 )}
@@ -155,14 +156,14 @@ function RealEstateDashboard({
                     <div className="re-metric-row">
                       <span className="re-metric-name">30Y Fixed</span>
                       <span className="re-metric-num" style={{ color: mortgageRates.rate30y > 7 ? '#f87171' : mortgageRates.rate30y > 5 ? '#fbbf24' : '#4ade80' }}>
-                        {mortgageRates.rate30y.toFixed(2)}%
+                        <MetricValue value={mortgageRates.rate30y} seriesKey="mortgage30y" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
                       </span>
                     </div>
                   )}
                   {typeof mortgageRates.rate15y === 'number' && (
                     <div className="re-metric-row">
                       <span className="re-metric-name">15Y Fixed</span>
-                      <span className="re-metric-num">{mortgageRates.rate15y.toFixed(2)}%</span>
+                       <span className="re-metric-num"><MetricValue value={mortgageRates.rate15y} seriesKey="mortgage15y" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} /></span>
                     </div>
                   )}
                 </div>
@@ -175,25 +176,25 @@ function RealEstateDashboard({
                 {typeof housingStarts === 'number' && (
                   <div className="re-metric-row">
                     <span className="re-metric-name">Housing Starts</span>
-                    <span className="re-metric-num">{(housingStarts / 1000).toFixed(1)}M</span>
+                     <span className="re-metric-num"><MetricValue value={housingStarts} seriesKey="housingStarts" timestamp={lastUpdated} format={v => `${(v / 1000).toFixed(1)}M`} /></span>
                   </div>
                 )}
                 {typeof existingHomeSales === 'number' && (
                   <div className="re-metric-row">
                     <span className="re-metric-name">Existing Sales</span>
-                    <span className="re-metric-num">{(existingHomeSales / 1000).toFixed(1)}M</span>
+                     <span className="re-metric-num"><MetricValue value={existingHomeSales} seriesKey="existingHomeSales" timestamp={lastUpdated} format={v => `${(v / 1000).toFixed(1)}M`} /></span>
                   </div>
                 )}
                 {typeof homeownershipRate === 'number' && (
                   <div className="re-metric-row">
                     <span className="re-metric-name">Homeownership</span>
-                    <span className="re-metric-num">{homeownershipRate.toFixed(1)}%</span>
+                     <span className="re-metric-num"><MetricValue value={homeownershipRate} seriesKey="homeownershipRate" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
                   </div>
                 )}
                 {typeof rentalVacancy === 'number' && (
                   <div className="re-metric-row">
                     <span className="re-metric-name">Rental Vacancy</span>
-                    <span className="re-metric-num">{rentalVacancy.toFixed(1)}%</span>
+                     <span className="re-metric-num"><MetricValue value={rentalVacancy} seriesKey="rentalVacancy" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
                   </div>
                 )}
               </div>
@@ -207,7 +208,7 @@ function RealEstateDashboard({
                     <div className="re-metric-row">
                       <span className="re-metric-name">Foreclosure Rate</span>
                       <span className="re-metric-num" style={{ color: '#f87171' }}>
-                        {foreclosureData.foreclosures.values[foreclosureData.foreclosures.values.length - 1]?.toFixed(2)}%
+                        <MetricValue value={foreclosureData?.foreclosures?.values?.[foreclosureData.foreclosures.values.length - 1]} seriesKey="foreclosureRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
                       </span>
                     </div>
                   )}
@@ -215,7 +216,7 @@ function RealEstateDashboard({
                     <div className="re-metric-row">
                       <span className="re-metric-name">Delinquency</span>
                       <span className="re-metric-num" style={{ color: '#fbbf24' }}>
-                        {foreclosureData.delinquencies.values[foreclosureData.delinquencies.values.length - 1]?.toFixed(1)}%
+                        <MetricValue value={foreclosureData?.delinquencies?.values?.[foreclosureData.delinquencies.values.length - 1]} seriesKey="delinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
                       </span>
                     </div>
                   )}
@@ -223,7 +224,7 @@ function RealEstateDashboard({
                     <div className="re-metric-row">
                       <span className="re-metric-name">CRE Delinq</span>
                       <span className="re-metric-num" style={{ color: '#8b5cf6' }}>
-                        {creDelinquencies.values[creDelinquencies.values.length - 1]?.toFixed(1)}%
+                        <MetricValue value={creDelinquencies?.values?.[creDelinquencies.values.length - 1]} seriesKey="creDelinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
                       </span>
                     </div>
                   )}
@@ -241,7 +242,7 @@ function RealEstateDashboard({
               <span className="bento-panel-title">Case-Shiller Index</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={shillerOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={shillerOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Case-Shiller Index', source: 'FRED', endpoint: '/api/real-estate', series: [{ id: 'CSUSHPISA' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED CSUSHPISA" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -254,7 +255,7 @@ function RealEstateDashboard({
               <span className="bento-panel-title">REIT ETF (VNQ)</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'REIT ETF (VNQ)', source: 'FRED / Yahoo Finance', endpoint: '/api/real-estate', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -272,7 +273,7 @@ function RealEstateDashboard({
                   <div key={i} className="re-mini-row">
                     <span className="re-mini-name">{r.symbol}</span>
                     <span className="re-mini-value" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                      {(r.changePct || 0) >= 0 ? '+' : ''}{(r.changePct || 0).toFixed(2)}%
+                      <MetricValue value={r.changePct || 0} seriesKey="reitPerformance" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
                     </span>
                   </div>
                 ))}
@@ -289,7 +290,7 @@ function RealEstateDashboard({
               <span className="bento-panel-title">Distress Indicators</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Distress Indicators', source: 'FRED / Yahoo Finance', endpoint: '/api/real-estate', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -302,7 +303,7 @@ function RealEstateDashboard({
               <span className="bento-panel-title">MBA Applications</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={mbaOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={mbaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'MBA Applications', source: 'FRED', endpoint: '/api/real-estate', series: [{ id: 'MORTGAGE30US' }], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED MORTGAGE30US" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -315,7 +316,7 @@ function RealEstateDashboard({
               <span className="bento-panel-title">CRE Delinquencies</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} />
+              <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CRE Delinquencies', source: 'FRED / Yahoo Finance', endpoint: '/api/real-estate', series: [], updatedAt: lastUpdated }} />
             </div>
             <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -332,7 +333,7 @@ function RealEstateDashboard({
                 {capRateData.slice(0, 8).map((c, i) => (
                   <div key={i} className="re-mini-row">
                     <span className="re-mini-name">{c.sector}</span>
-                    <span className="re-mini-value">{(c.impliedYield ?? c.capRate)?.toFixed(2)}%</span>
+                    <span className="re-mini-value"><MetricValue value={c.impliedYield ?? c.capRate} seriesKey="capRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
                   </div>
                 ))}
               </div>
@@ -353,7 +354,7 @@ function RealEstateDashboard({
                   <div key={i} className="re-mini-row">
                     <span className="re-mini-name">{a.region}</span>
                     <span className="re-mini-value" style={{ color: a.index > 100 ? '#4ade80' : a.index > 80 ? '#fbbf24' : '#f87171' }}>
-                      {a.index?.toFixed(0)}
+                      <MetricValue value={a.index} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={v => v != null ? v.toFixed(0) : '—'} />
                     </span>
                   </div>
                 ))}
@@ -375,7 +376,7 @@ function RealEstateDashboard({
                   <div key={i} className="re-mini-row">
                     <span className="re-mini-name">{s.metric}</span>
                     <span className="re-mini-value" style={{ color: s.trend === 'up' ? '#4ade80' : s.trend === 'down' ? '#f87171' : '#fbbf24' }}>
-                      {s.value}
+                      <MetricValue value={s.value} seriesKey="supplyDemand" timestamp={lastUpdated} format={v => v != null ? `${v}` : '—'} />
                     </span>
                   </div>
                 ))}

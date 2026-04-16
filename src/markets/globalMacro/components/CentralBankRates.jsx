@@ -161,14 +161,14 @@ export default function CentralBankRates({ centralBankData }) {
           <div className="mac-chart-title">Current Rates — Ranked</div>
           <div className="mac-chart-subtitle">Highest to lowest · green &lt;3% · amber 3–6% · red &gt;6%</div>
           <div className="mac-chart-wrap">
-            <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Policy Rates — Ranked', source: 'FRED', endpoint: '/api/global-macro', series: [] }} />
           </div>
         </div>
         <div className="mac-chart-panel">
           <div className="mac-chart-title">5-Year Rate History</div>
           <div className="mac-chart-subtitle">G7 + Australia + Sweden · dashed line = 2% neutral rate</div>
           <div className="mac-chart-wrap">
-            <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={historyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: '5-Year Rate History', source: 'FRED', endpoint: '/api/global-macro', series: [] }} />
           </div>
         </div>
       </div>

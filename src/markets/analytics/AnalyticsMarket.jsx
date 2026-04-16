@@ -5,26 +5,11 @@ import './AnalyticsDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
 
-const FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY || '';
-
-const MARKET_ENDPOINTS = [
-  { path: '/api/bonds', label: 'Bonds' },
-  { path: '/api/fx', label: 'FX' },
-  { path: '/api/commodities', label: 'Commodities' },
-  { path: '/api/crypto', label: 'Crypto' },
-  { path: '/api/credit', label: 'Credit' },
-  { path: '/api/insurance', label: 'Insurance' },
-  { path: '/api/realEstate', label: 'Real Estate' },
-  { path: '/api/derivatives', label: 'Derivatives' },
-  { path: '/api/sentiment', label: 'Sentiment' },
-  { path: '/api/calendar', label: 'Calendar' },
-  { path: '/api/globalMacro', label: 'Global Macro' },
-  { path: '/api/equityDeepDive', label: 'Equity Deep Dive' },
-];
+const FRED_API_BASE = '/api/fred/observations';
 
 function fredVerifyUrl(seriesId) {
-  const p = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '1' });
-  return `https://api.stlouisfed.org/fred/series/observations?${p.toString()}`;
+  const p = new URLSearchParams({ series_id: seriesId, file_type: 'json', sort_order: 'desc', limit: '1' });
+  return `${FRED_API_BASE}?${p.toString()}`;
 }
 
 function fredSeriesPage(seriesId) {

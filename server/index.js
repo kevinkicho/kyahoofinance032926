@@ -33,6 +33,7 @@ import fxRouter from './routes/fx.js';
 import tickerRouter from './routes/ticker.js';
 import institutionalRouter from './routes/institutional.js';
 import analyticsRouter from './routes/analytics.js';
+import fredRouter from './routes/fred.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -163,6 +164,7 @@ app.use('/api/calendar', calendarRouter);
 app.use('/api/fx', fxRouter);
 app.use('/api/institutional', institutionalRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/fred', fredRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

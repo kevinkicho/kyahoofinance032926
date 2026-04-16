@@ -4,11 +4,12 @@ import BentoWrapper from '../../../components/BentoWrapper';
 import GlobalKpiStrip from './GlobalKpiStrip';
 import CountryDetailPanel from './CountryDetailPanel';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import './GlobalMacroDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
 
-function GdpBars({ data }) {
+function GdpBars({ data, lastUpdated }) {
   if (!data?.length) return null;
   const maxGdp = Math.max(...data.map(c => Math.abs(c.gdp ?? 0)));
   return (
@@ -19,14 +20,14 @@ function GdpBars({ data }) {
           <div className="mac-mini-bar-track">
             <div className="mac-mini-bar-fill" style={{ width: `${((c.gdp ?? 0) / maxGdp) * 100}%`, background: c.gdp >= 0 ? '#14b8a6' : '#ef4444' }} />
           </div>
-          <span className="mac-mini-value">{c.gdp?.toFixed(1)}%</span>
+          <span className="mac-mini-value"><MetricValue value={c.gdp} seriesKey="gdp" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
         </div>
       ))}
     </div>
   );
 }
 
-function CpiBars({ data }) {
+function CpiBars({ data, lastUpdated }) {
   if (!data?.length) return null;
   const maxCpi = Math.max(...data.map(c => c.cpi ?? 0));
   return (
@@ -37,14 +38,14 @@ function CpiBars({ data }) {
           <div className="mac-mini-bar-track">
             <div className="mac-mini-bar-fill" style={{ width: `${((c.cpi ?? 0) / maxCpi) * 100}%`, background: c.cpi <= 2 ? '#4ade80' : c.cpi <= 4 ? '#fbbf24' : '#f87171' }} />
           </div>
-          <span className="mac-mini-value">{c.cpi?.toFixed(1)}%</span>
+          <span className="mac-mini-value"><MetricValue value={c.cpi} seriesKey="cpiBreakdown" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
         </div>
       ))}
     </div>
   );
 }
 
-function RateBars({ data }) {
+function RateBars({ data, lastUpdated }) {
   if (!data?.current?.length) return null;
   const sorted = [...data.current].sort((a, b) => (b.rate ?? 0) - (a.rate ?? 0));
   const maxRate = Math.max(...sorted.map(c => c.rate ?? 0));
@@ -56,14 +57,14 @@ function RateBars({ data }) {
           <div className="mac-mini-bar-track">
             <div className="mac-mini-bar-fill" style={{ width: `${((c.rate ?? 0) / maxRate) * 100}%`, background: c.rate <= 3 ? '#4ade80' : c.rate <= 6 ? '#fbbf24' : '#f87171' }} />
           </div>
-          <span className="mac-mini-value">{c.rate?.toFixed(2)}%</span>
+          <span className="mac-mini-value"><MetricValue value={c.rate} seriesKey="fedRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
         </div>
       ))}
     </div>
   );
 }
 
-function DebtBars({ data }) {
+function DebtBars({ data, lastUpdated }) {
   if (!data?.countries?.length) return null;
   const sorted = [...data.countries].sort((a, b) => (b.debt ?? 0) - (a.debt ?? 0));
   const maxDebt = Math.max(...sorted.map(c => c.debt ?? 0));
@@ -75,7 +76,7 @@ function DebtBars({ data }) {
           <div className="mac-mini-bar-track">
             <div className="mac-mini-bar-fill" style={{ width: `${((c.debt ?? 0) / maxDebt) * 100}%`, background: c.debt <= 60 ? '#4ade80' : c.debt <= 90 ? '#fbbf24' : '#f87171' }} />
           </div>
-          <span className="mac-mini-value">{c.debt?.toFixed(0)}%</span>
+          <span className="mac-mini-value"><MetricValue value={c.debt} seriesKey="debtToGdp" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(0)}%` : '—'} /></span>
         </div>
       ))}
     </div>
@@ -162,11 +163,11 @@ function GlobalMacroDashboard({
                   >
                     <div className="mac-scorecell mac-scorecell-flag">{country.flag}</div>
                     <div className="mac-scorecell mac-scorecell-country">{country.code}</div>
-                    <div className={`mac-scorecell ${gdpHeat(country.gdp)}`}>{country.gdp?.toFixed(1)}%</div>
-                    <div className={`mac-scorecell ${cpiHeat(country.cpi)}`}>{country.cpi?.toFixed(1)}%</div>
-                    <div className={`mac-scorecell ${rateHeat(country.rate)}`}>{country.rate?.toFixed(2)}%</div>
-                    <div className={`mac-scorecell ${unempHeat(country.unemp)}`}>{country.unemp?.toFixed(1)}%</div>
-                    <div className={`mac-scorecell ${debtHeat(country.debt)}`}>{country.debt?.toFixed(0)}%</div>
+                    <div className={`mac-scorecell ${gdpHeat(country.gdp)}`}><MetricValue value={country.gdp} seriesKey="gdp" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></div>
+                    <div className={`mac-scorecell ${cpiHeat(country.cpi)}`}><MetricValue value={country.cpi} seriesKey="cpiBreakdown" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></div>
+                    <div className={`mac-scorecell ${rateHeat(country.rate)}`}><MetricValue value={country.rate} seriesKey="fedRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></div>
+                    <div className={`mac-scorecell ${unempHeat(country.unemp)}`}><MetricValue value={country.unemp} seriesKey="unemployment" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></div>
+                    <div className={`mac-scorecell ${debtHeat(country.debt)}`}><MetricValue value={country.debt} seriesKey="debtToGdp" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(0)}%` : '—'} /></div>
                   </div>
                 ))}
               </div>
@@ -180,7 +181,7 @@ function GlobalMacroDashboard({
               <span className="bento-panel-title">GDP Growth</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <GdpBars data={sortedByGdp} />
+              <GdpBars data={sortedByGdp} lastUpdated={lastUpdated} />
             </div>
             <DataFooter source="World Bank / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -191,7 +192,7 @@ function GlobalMacroDashboard({
               <span className="bento-panel-title">CPI Inflation</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <CpiBars data={sortedByCpi} />
+              <CpiBars data={sortedByCpi} lastUpdated={lastUpdated} />
             </div>
             <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -202,7 +203,7 @@ function GlobalMacroDashboard({
               <span className="bento-panel-title">Policy Rates</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <RateBars data={centralBankData} />
+              <RateBars data={centralBankData} lastUpdated={lastUpdated} />
             </div>
             <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -213,7 +214,7 @@ function GlobalMacroDashboard({
               <span className="bento-panel-title">Debt / GDP</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <DebtBars data={debtData} />
+              <DebtBars data={debtData} lastUpdated={lastUpdated} />
             </div>
             <DataFooter source="World Bank / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
           </div>
@@ -227,14 +228,14 @@ function GlobalMacroDashboard({
               <div className="mac-activity-summary">
                 <div className="mac-activity-metric">
                   <span className="mac-activity-label">CFNAI</span>
-                  <span className="mac-activity-value" style={{ color: cfnaiStatus.color }}>{cfnai?.latest?.toFixed(2) ?? '—'}</span>
+                  <span className="mac-activity-value" style={{ color: cfnaiStatus.color }}><MetricValue value={cfnai?.latest} seriesKey="cfnai" timestamp={lastUpdated} format={v => v != null ? v.toFixed(2) : '—'} /></span>
                   <span className="mac-activity-status">{cfnaiStatus.label}</span>
                 </div>
                 {yieldSpread?.values?.length > 0 && (
                   <div className="mac-activity-metric">
                     <span className="mac-activity-label">10Y-2Y Spread</span>
                     <span className="mac-activity-value" style={{ color: yieldSpread.values[yieldSpread.values.length - 1] < 0 ? '#ef4444' : '#4ade80' }}>
-                      {yieldSpread.values[yieldSpread.values.length - 1]?.toFixed(2)}%
+                      <MetricValue value={yieldSpread.values[yieldSpread.values.length - 1]} seriesKey="t10y2y" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
                     </span>
                   </div>
                 )}
@@ -253,7 +254,7 @@ function GlobalMacroDashboard({
                 {oecdCli?.countries?.slice(0, 6).map(c => (
                   <div key={c.code} className="mac-cli-mini-card">
                     <span className="mac-cli-mini-flag">{c.flag}</span>
-                    <span className="mac-cli-mini-value" style={{ color: c.cli > 100 ? '#4ade80' : '#f87171' }}>{c.cli?.toFixed(1)}</span>
+                    <span className="mac-cli-mini-value" style={{ color: c.cli > 100 ? '#4ade80' : '#f87171' }}><MetricValue value={c.cli} seriesKey="oecdCli" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}` : '—'} /></span>
                     <span className="mac-cli-mini-trend" style={{ color: c.trend === 'improving' ? '#4ade80' : c.trend === 'slowing' ? '#f87171' : '#fbbf24' }}>
                       {c.trend === 'improving' ? '↗' : c.trend === 'slowing' ? '↘' : '→'}
                     </span>

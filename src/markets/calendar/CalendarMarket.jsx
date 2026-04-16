@@ -1,6 +1,4 @@
-// src/markets/calendar/CalendarMarket.jsx
 import React from 'react';
-import { useCalendarData } from './data/useCalendarData';
 import BentoWrapper from '../../components/BentoWrapper';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import EconomicCalendar from './components/EconomicCalendar';
@@ -13,7 +11,7 @@ import './CalendarMarket.css';
 const stopDrag = (e) => e.stopPropagation();
 
 function PanelEmpty({ label }) {
-  return <div className="cal-empty cal-empty--loading">{label ? `Loading ${label}…` : 'Loading data…'}</div>;
+  return <div className="cal-empty cal-empty--loading">{label ? `Press ▶ to fetch ${label}` : 'Press ▶ to load data'}</div>;
 }
 
 const LAYOUT = {
@@ -28,16 +26,33 @@ const LAYOUT = {
   ]
 };
 
-function CalendarMarket({ autoRefresh, refreshKey } = {}) {
-  const {
-    economicEvents, centralBanks, earningsSeason, keyReleases,
-    treasuryAuctions, optionsExpiry, dividendCalendar,
-    isLive, lastUpdated, isLoading, fetchedOn, isCurrent, fetchLog, refetch,
-  } = useCalendarData(autoRefresh, refreshKey);
+function getCalendarProps(centralData) {
+  const d = centralData.data || {};
+  return {
+    economicEvents: d.economicEvents || [],
+    centralBanks: d.centralBanks || [],
+    earningsSeason: d.earningsSeason || [],
+    keyReleases: d.keyReleases || [],
+    treasuryAuctions: d.treasuryAuctions || [],
+    optionsExpiry: d.optionsExpiry || [],
+    dividendCalendar: d.dividendCalendar || [],
+    isLive: centralData.isLive,
+    lastUpdated: centralData.lastUpdated,
+    isLoading: centralData.isLoading,
+    fetchedOn: centralData.fetchedOn,
+    isCurrent: centralData.isCurrent,
+    fetchLog: centralData.fetchLog || [],
+    refetch: centralData.refetch,
+  };
+}
 
-  if (isLoading) return <MarketSkeleton />;
+function CalendarMarket({ centralData } = {}) {
+  if (!centralData) return <MarketSkeleton />;
+  const props = getCalendarProps(centralData);
 
-  const dataReady = isLive || economicEvents.length || centralBanks.length || earningsSeason.length || keyReleases.length;
+  if (props.isLoading) return <MarketSkeleton />;
+
+  const dataReady = props.isLive || props.economicEvents.length || props.centralBanks.length || props.earningsSeason.length || props.keyReleases.length;
 
   return (
     <div className="cal-market">
@@ -50,11 +65,11 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
               <span className="bento-panel-subtitle">High-importance macro releases · next 30 days</span>
             </div>
             <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {economicEvents.length > 0
-                ? <EconomicCalendar economicEvents={economicEvents} insideBento />
+              {props.economicEvents.length > 0
+                ? <EconomicCalendar economicEvents={props.economicEvents} insideBento />
                 : <PanelEmpty label="economic events" />}
             </div>
-            <DataFooter source="Econdb / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="Econdb / FRED" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
           </div>
 
           <div key="cb-rates" className="cal-bento-card">
@@ -63,11 +78,11 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
               <span className="bento-panel-subtitle">Fed / ECB / BOE / BOJ</span>
             </div>
             <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {centralBanks.length > 0
-                ? <CentralBankSchedule centralBanks={centralBanks} section="rates" />
+              {props.centralBanks.length > 0
+                ? <CentralBankSchedule centralBanks={props.centralBanks} section="rates" />
                 : <PanelEmpty label="central bank rates" />}
             </div>
-            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / BIS" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
           </div>
 
           <div key="cb-timeline" className="cal-bento-card">
@@ -75,11 +90,11 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
               <span className="bento-panel-title">Upcoming Meetings</span>
             </div>
             <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {centralBanks.length > 0
-                ? <CentralBankSchedule centralBanks={centralBanks} section="timeline" />
+              {props.centralBanks.length > 0
+                ? <CentralBankSchedule centralBanks={props.centralBanks} section="timeline" />
                 : <PanelEmpty label="meeting schedule" />}
             </div>
-            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / BIS" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
           </div>
 
           <div key="earnings" className="cal-bento-card">
@@ -88,11 +103,11 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
               <span className="bento-panel-subtitle">Mega-cap earnings · next 60 days</span>
             </div>
             <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {earningsSeason.length > 0
-                ? <EarningsSeason earningsSeason={earningsSeason} dividendCalendar={dividendCalendar} insideBento />
+              {props.earningsSeason.length > 0
+                ? <EarningsSeason earningsSeason={props.earningsSeason} dividendCalendar={props.dividendCalendar} insideBento />
                 : <PanelEmpty label="earnings data" />}
             </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="Yahoo Finance" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
           </div>
 
           <div key="key-data" className="cal-bento-card">
@@ -101,11 +116,11 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
               <span className="bento-panel-subtitle">Scheduled macro data</span>
             </div>
             <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {keyReleases.length > 0
-                ? <KeyReleases keyReleases={keyReleases} section="data" />
+              {props.keyReleases.length > 0
+                ? <KeyReleases keyReleases={props.keyReleases} section="data" />
                 : <PanelEmpty label="key releases" />}
             </div>
-            <DataFooter source="FRED / BLS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / BLS" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
           </div>
 
           <div key="treasury" className="cal-bento-card">
@@ -114,11 +129,11 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
               <span className="bento-panel-subtitle">US Treasury schedule</span>
             </div>
             <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {treasuryAuctions && treasuryAuctions.length > 0
-                ? <KeyReleases keyReleases={[]} treasuryAuctions={treasuryAuctions} optionsExpiry={[]} section="treasury" />
+              {props.treasuryAuctions && props.treasuryAuctions.length > 0
+                ? <KeyReleases keyReleases={[]} treasuryAuctions={props.treasuryAuctions} optionsExpiry={[]} section="treasury" />
                 : <PanelEmpty label="treasury auctions" />}
             </div>
-            <DataFooter source="US Treasury" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="US Treasury" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
           </div>
 
           <div key="options" className="cal-bento-card">
@@ -127,9 +142,9 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
               <span className="bento-panel-subtitle">Monthly expiry dates</span>
             </div>
             <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {(optionsExpiry && optionsExpiry.length > 0) ? (
+              {(props.optionsExpiry && props.optionsExpiry.length > 0) ? (
                 <div className="cal-options-grid">
-                  {optionsExpiry.map((e, i) => (
+                  {props.optionsExpiry.map((e, i) => (
                     <div key={i} className="cal-options-card">
                       <span className="cal-options-date">{e.date}</span>
                       <span className="cal-options-type">{e.type}</span>
@@ -140,7 +155,7 @@ function CalendarMarket({ autoRefresh, refreshKey } = {}) {
                 <div className="cal-empty">No upcoming options expiry dates</div>
               )}
             </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
           </div>
         </BentoWrapper>
       </div>

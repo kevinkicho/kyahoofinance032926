@@ -297,6 +297,7 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 
 ### Frontend
 - **React 18** with Vite 5 (HMR, fast builds)
+- **DataProvider** — centralized data pipeline in `src/hub/DataProvider.jsx`. Fetches all 13 market endpoints on demand (▶ button click), manages state via `DataContext`. Market components consume data via `useMarketData(marketId)` — no independent fetches.
 - **ECharts** via `echarts-for-react` — all charts use `animation: false`, `backgroundColor: 'transparent'`
 - **react-grid-layout v2** — bento-box dashboards with draggable/resizable panels, layout persistence via `localStorage`
 - **BentoWrapper** — shared component (`src/components/BentoWrapper.jsx`) with `storageKey` prop, `.bento-panel-title-row` drag handle, `.bento-panel-content` drag cancel, responsive breakpoints. Each market tab uses `BentoWrapper` with its own `storageKey` (e.g., `"commodities-layout"`, `"bonds-layout"`, `"macro-layout"`)
@@ -311,14 +312,17 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 - **Two-tier cache** — in-memory `node-cache` (15 min TTL) wraps file-based daily cache in `server/datacache/`
 - **Fallback** — on error, serves latest cached data with `isCurrent: false`
 
-### Data Hooks
-Each market has an async hook (`useState` + `useEffect` + `fetchWithRetry`) that:
-1. Initializes with `null` state (no mock data — empty states shown until real data arrives)
-2. Fetches `/api/*` with retry logic (2 retries, exponential backoff) + AbortController timeout
-3. Sets `isLive: true` on success, logs each fetch via `logFetch()` with URL, status, duration, and per-source breakdown
-4. Falls back silently to `null` on failure (panels show "—" or "No data")
-5. Supports manual refresh via `refreshKey` (▶ button) and auto-refresh polling via `useInterval` (5 min when enabled)
-6. Exposes `fetchLog` (array of API call records) and `refetch()` for provenance tracing
+### Centralized Data Pipeline
+All 13 market endpoints are fetched by a single `DataProvider` component at the app level. No market component makes its own API calls — they receive data via React context (`useMarketData(marketId)`). The centralized pipeline:
+
+1. **On demand only** — Data is NOT fetched on page load or tab switch. The user clicks the ▶ button in the tab bar to fetch all markets. Auto-refresh (5-min polling) is toggled separately.
+2. **Batched concurrency** — 13 endpoints fetched in batches of 4 with 300ms delays between batches.
+3. **Federated markets** — Alerts are computed client-side from 6 already-fetched endpoints (sentiment, bonds, credit, crypto, commodities, FX) — no extra network calls.
+4. **FX server-side** — Frankfurter API (spot rates, 1W/1M changes, sparklines) and CFTC COT data are fetched server-side in `/api/fx`, not from the browser.
+5. **State persistence** — Fetched data persists across tab switches. Switching tabs shows cached data instantly.
+
+### Data Hooks (Legacy — Per-Market)
+Each market previously had its own `useXxxData` hook that independently fetched its endpoint. These have been consolidated into the centralized `DataProvider`. The per-market hooks still exist in `src/markets/*/data/` but are no longer called from Market components — they serve as reference for data shape and server-response mapping.
 
 ## Data Provenance & Transparency
 
@@ -353,7 +357,7 @@ Every data point in the app is traceable to its source. Two provenance component
 - All timestamps show seconds precision with UTC offset (YYYY-MM-DD HH:MM:SS UTC+XX:XX)
 - Popovers use click-to-open (not hover), auto-position to avoid viewport overflow
 - All links inside popovers are clickable
-- Data does NOT auto-fetch on tab visit — only fetches on manual ▶ refresh or when auto-refresh is toggled On
+- Data does NOT auto-fetch on page load or tab visit — only fetches when the ▶ button is clicked or when auto-refresh is toggled On
 
 ## Global Equity Dashboard
 
@@ -423,6 +427,8 @@ cd server && node index.js  # Backend only
 
 Open [http://localhost:5173](http://localhost:5173)
 
+**Important:** Data does NOT load automatically. Click the **▶ button** in the top tab bar to fetch market data. Toggle auto-refresh (5-min polling) with the On/Off button.
+
 ### 4. Run tests
 
 ```bash
@@ -457,6 +463,8 @@ node scripts/fetch-universe.js
 src/
   hub/                          # Hub shell, routing, tab bar, theme, footer
     HubLayout.jsx               # Market routing + URL sync + exports + keyboard shortcuts
+    DataProvider.jsx             # Central data pipeline — fetches all 13 endpoints, manages state via React context
+    DataContext.jsx              # useMarketData(marketId) hook — market components consume data here
     MarketTabBar.jsx             # Tabs + search + theme + export + refresh + pop-out + currency
     markets.config.js            # Market definitions + search index (15 markets)
     ThemeContext.jsx            # Dark/light theme provider
@@ -502,10 +510,12 @@ server/
 
 ## Recent Updates
 
+  - **Centralized Data Pipeline** — All 13 market endpoints are now fetched by a single `DataProvider` component. Market components no longer make independent API calls — they receive data via `useMarketData(marketId)` React context. Data is only fetched when the user clicks the ▶ button (not on page load or tab switch). This eliminates duplicate network requests (previously each market fetched its own endpoint AND DataProvider fetched the same one).
+  - **FX Server-Side Proxy** — Frankfurter API (spot/prev FX rates, 1W/1M changes, sparklines) and CFTC COT data are now fetched server-side in `/api/fx`. The browser no longer makes direct calls to external APIs for FX data.
   - **Data Provenance System** — Every panel has a DataFooter showing FETCHED/NO DATA/PENDING badge with click-to-expand popover showing full API call history, per-source receipt status, FRED series links, and Verify buttons. Every key metric value has a MetricValue popover showing source, series ID, timestamp (seconds + UTC offset), and Fetch JSON link.
   - **Provenance Audit** — Analytics tab now includes a cross-market audit that fetches all 12+ endpoints, lists received/missing sources per endpoint, shows FRED series IDs, and lets users Verify data directly against the FRED API.
   - **Mock Data Removed** — All 15+ data hooks now initialize state to `null` instead of importing mock data files. Panels show empty states ("—") until real API data arrives. Mock data files have been deleted.
-  - **Manual Refresh System** — Added ▶ refresh button in the tab bar that increments a `refreshKey` to trigger data fetches across all markets. Auto-refresh toggle (On/Off) controls 5-minute polling. Data does NOT auto-fetch on tab visit.
+  - **Manual Refresh System** — ▶ refresh button in the tab bar triggers all 13 market fetches via DataProvider. Auto-refresh toggle (On/Off) controls 5-minute polling. Tab switches do NOT trigger refetches.
   - **Server-Side `_sources` Tracking** — All 15+ server route files now include `_sources` in their JSON response, listing which data sources were successfully fetched. Used by DataFooter and Provenance Audit.
   - **Server-Side Error Logging** — Replaced 50+ silent `catch { /* null */ }` patterns with `console.warn` across all routes. `fetchJSON` now includes User-Agent header and proper HTTP error handling.
   - **FRED API Fixes** — Replaced broken Treasury Fiscal Data API URLs (404s) with FRED equivalents (GFDEBTN, TB3MS, GS10, GS30). Changed strict data thresholds (`>= 20`, `>= 12`, etc.) to `> 0` to avoid false "missing" sources.

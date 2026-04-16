@@ -3,13 +3,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { fetchWithRetry } from '../../../utils/fetchWithRetry';
 import { useInterval } from '../../../hooks/useInterval';
 import { useDataStatus } from '../../../hooks/useDataStatus';
+import { spreadData as mockSpread, emBondData as mockEmBond, loanData as mockLoan, defaultData as mockDefault } from './mockCreditData';
 const SERVER = '';
 
-export function useCreditData(autoRefresh = false, refreshKey = 0) {
-  const [spreadData,       setSpreadData]       = useState(null);
-  const [emBondData,       setEmBondData]       = useState(null);
-  const [loanData,         setLoanData]         = useState(null);
-  const [defaultData,      setDefaultData]      = useState(null);
+export function useCreditData(autoRefresh = false, refreshKey = 0, { disabled = false } = {}) {
+  const [spreadData,       setSpreadData]       = useState(mockSpread);
+  const [emBondData,       setEmBondData]       = useState(mockEmBond);
+  const [loanData,         setLoanData]         = useState(mockLoan);
+  const [defaultData,      setDefaultData]      = useState(mockDefault);
   const [delinquencyRates, setDelinquencyRates] = useState(null);
   const [lendingStandards, setLendingStandards] = useState(null);
   const [commercialPaper,  setCommercialPaper]  = useState(null);
@@ -23,7 +24,7 @@ export function useCreditData(autoRefresh = false, refreshKey = 0) {
       .then(r => r.json())
       .then(data => {
         let anyReplaced = false;
-        if (data.spreadData?.history?.dates?.length)       { setSpreadData(data.spreadData);             anyReplaced = true; }
+        if (data.spreadData?.history?.dates?.length >= 6)       { setSpreadData(data.spreadData);             anyReplaced = true; }
         if (data.emBondData?.countries?.length)            { setEmBondData(data.emBondData);             anyReplaced = true; }
         if (data.loanData?.cloTranches?.length)            { setLoanData(data.loanData);                 anyReplaced = true; }
         if (data.defaultData?.rates?.length)               { setDefaultData(data.defaultData);           anyReplaced = true; }
@@ -41,10 +42,10 @@ export function useCreditData(autoRefresh = false, refreshKey = 0) {
       .finally(() => handleFinally());
   }, [handleSuccess, handleError, handleFinally, logFetch]);
 
-  useEffect(() => { refetch(); }, []);
-  useEffect(() => { if (refreshKey > 0) refetch(); }, [refreshKey]);
+  useEffect(() => { if (!disabled) refetch(); }, [disabled]);
+  useEffect(() => { if (refreshKey > 0 && !disabled) refetch(); }, [refreshKey, disabled]);
 
-  useInterval(refetch, autoRefresh ? 300000 : null);
+  useInterval(refetch, (!disabled && autoRefresh) ? 300000 : null);
 
   return { spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards, commercialPaper, excessReserves, isLive, lastUpdated, isLoading, error, fetchedOn, isCurrent, fetchLog, refetch };
 }
