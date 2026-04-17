@@ -192,12 +192,16 @@ function InsuranceDashboard({
             </div>
             <div className="bento-panel-content ins-panel-scroll" onMouseDown={stopDrag}>
               <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-                {reinsurancePricing.byCategory.slice(0, 8).map((c) => (
-                  <div key={c.category} className="ins-mini-row">
-                    <span className="ins-mini-name">{c.category}</span>
-                    <span className="ins-mini-value"><MetricValue value={c.rate} seriesKey="reinsuranceRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
-                  </div>
-                ))}
+                {reinsurancePricing.byCategory.slice(0, 8).map((c, i) => {
+                  const name = c.category ?? c.peril ?? `row-${i}`;
+                  const rate = c.rate ?? c.rol;
+                  return (
+                    <div key={name} className="ins-mini-row">
+                      <span className="ins-mini-name">{name}</span>
+                      <span className="ins-mini-value"><MetricValue value={rate} seriesKey="reinsuranceRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />

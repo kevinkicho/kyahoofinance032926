@@ -20,6 +20,7 @@ function getCreditProps(centralData) {
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
     fetchLog: centralData.fetchLog || [],
+    error: centralData.error,
     refetch: centralData.refetch,
   };
 }
@@ -32,6 +33,13 @@ function CreditMarket({ centralData } = {}) {
 
   return (
     <div className="credit-market">
+      <div className="credit-status-bar">
+        <span className={props.isLive ? 'credit-status-live' : ''}>
+          {props.isLive ? '● API connected · FRED / ICE BofA' : '○ Data source temporarily unavailable'}
+        </span>
+        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
+        {!props.isCurrent && props.fetchedOn && <span className="credit-stale-badge">Stale · fetched {props.fetchedOn}</span>}
+      </div>
       <CreditDashboard
         spreadData={props.spreadData}
         emBondData={props.emBondData}

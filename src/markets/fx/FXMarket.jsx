@@ -31,6 +31,9 @@ function getFXProps(centralData) {
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
+    fetchedOn: centralData.fetchedOn,
+    isCurrent: centralData.isCurrent,
+    error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
   };
@@ -44,6 +47,13 @@ function FXMarket({ centralData } = {}) {
 
   return (
     <div className="fx-market">
+      <div className="fx-status-bar">
+        <span className={props.isLive ? 'fx-status-live' : ''}>
+          {props.isLive ? '● FETCHED · Frankfurter / FRED / CBOE' : (props.error ? `○ ${props.error}` : '○ Data source temporarily unavailable')}
+        </span>
+        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
+        {!props.isCurrent && props.fetchedOn && <span className="fx-stale-badge">Stale · fetched {props.fetchedOn}</span>}
+      </div>
       <FXDashboard
         spotRates={props.spotRates}
         prevRates={props.prevRates}

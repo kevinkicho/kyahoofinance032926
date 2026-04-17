@@ -49,6 +49,7 @@ router.get('/history/:ticker', async (req, res) => {
   if (memCached) return res.json(memCached);
 
   const cutoffStr = periodCutoff(period);
+  const today = new Date().toISOString().split('T')[0];
 
   const resolved = readBestFile(ticker, region);
   if (resolved) {
@@ -59,6 +60,21 @@ router.get('/history/:ticker', async (req, res) => {
       rows = adaptCompact(resolved.data, cutoffStr);
     }
     if (rows?.length) {
+      const lastDate = rows[rows.length - 1].date;
+      const staleDays = Math.floor((Date.parse(today) - Date.parse(lastDate)) / 86400000);
+      if (staleDays >= 2) {
+        try {
+          const deltaStart = new Date(Date.parse(lastDate) + 86400000).toISOString().split('T')[0];
+          const delta = await yf.historical(ticker, { period1: deltaStart, period2: today, interval: '1d' });
+          const deltaRows = (delta || []).map(d => ({
+            date: d.date instanceof Date ? d.date.toISOString().split('T')[0] : String(d.date),
+            open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume,
+          })).filter(r => r.date > lastDate);
+          if (deltaRows.length) rows = [...rows, ...deltaRows];
+        } catch (e) {
+          console.warn(`History delta fetch failed for ${ticker}: ${e.message}`);
+        }
+      }
       cache.set(cacheKey, rows, 3600);
       return res.json(rows);
     }

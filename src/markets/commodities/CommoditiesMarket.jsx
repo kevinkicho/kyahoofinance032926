@@ -134,6 +134,7 @@ function getCommoditiesProps(centralData) {
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
     fetchLog: centralData.fetchLog || [],
+    error: centralData.error,
     refetch: centralData.refetch,
   };
 }
@@ -146,6 +147,13 @@ function CommoditiesMarket({ centralData } = {}) {
 
   return (
     <div className="com-market">
+      <div className="com-status-bar">
+        <span className={props.isLive ? 'com-status-live' : ''}>
+          {props.isLive ? '● API connected · EIA / FRED / Yahoo' : '○ Data source temporarily unavailable'}
+        </span>
+        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
+        {!props.isCurrent && props.fetchedOn && <span className="com-stale-badge">Stale · fetched {props.fetchedOn}</span>}
+      </div>
       <CommoditiesDashboard
         priceDashboardData={props.priceDashboardData}
         futuresCurveData={props.futuresCurveData}

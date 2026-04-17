@@ -7,6 +7,27 @@ const stopDrag = (e) => e.stopPropagation();
 
 const FRED_API_BASE = '/api/fred/observations';
 
+const MARKET_ENDPOINTS = [
+  { path: '/api/bonds', label: 'Bonds' },
+  { path: '/api/fx', label: 'FX' },
+  { path: '/api/derivatives', label: 'Derivatives' },
+  { path: '/api/realEstate', label: 'Real Estate' },
+  { path: '/api/insurance', label: 'Insurance' },
+  { path: '/api/commodities/v2', label: 'Commodities' },
+  { path: '/api/globalMacro', label: 'Global Macro' },
+  { path: '/api/equityDeepDive', label: 'Equity Deep Dive' },
+  { path: '/api/institutional', label: 'Institutional' },
+  { path: '/api/crypto', label: 'Crypto' },
+  { path: '/api/credit', label: 'Credit' },
+  { path: '/api/sentiment', label: 'Sentiment' },
+  { path: '/api/calendar', label: 'Calendar' },
+  { path: '/api/imf', label: 'IMF' },
+  { path: '/api/worldbank', label: 'World Bank' },
+  { path: '/api/bls', label: 'BLS' },
+  { path: '/api/eia', label: 'EIA' },
+  { path: '/api/census', label: 'Census' },
+];
+
 function fredVerifyUrl(seriesId) {
   const p = new URLSearchParams({ series_id: seriesId, file_type: 'json', sort_order: 'desc', limit: '1' });
   return `${FRED_API_BASE}?${p.toString()}`;

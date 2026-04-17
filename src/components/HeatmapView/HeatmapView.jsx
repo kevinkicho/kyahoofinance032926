@@ -27,6 +27,41 @@ function getSectors(children) {
   collect(children);
   return Object.entries(map).sort(([, a], [, b]) => b - a);
 }
+function stockTooltip(d, currentRate, currentSymbol, currency, metricKey, themeColors) {
+  const textSecondary = themeColors?.textSecondary || '#94a3b8';
+  const isNum = /^\d/.test(d.name || '');
+  const title = isNum ? (d.fullName || d.name) : d.name;
+  const subtitle = [d.fullName && !isNum ? d.fullName : null, d.regionName].filter(Boolean).join(' · ');
+
+  let body = `<div style="font-weight:700;font-size:1rem;margin-bottom:2px">${title}</div>`;
+  if (subtitle) body += `<div style="color:${textSecondary};font-size:0.75rem;margin-bottom:6px">${subtitle}</div>`;
+
+  const priceNum = Number(d.price);
+  if (Number.isFinite(priceNum)) {
+    const priceStr = priceNum.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    body += `<div style="font-size:0.82rem;margin-bottom:2px">Price: <strong>${d.regionSymbol || '$'}${priceStr}</strong></div>`;
+  }
+
+  const cp = Number(d.changePct);
+  if (Number.isFinite(cp)) {
+    const color = cp >= 0 ? '#22c55e' : '#ef4444';
+    const sign = cp >= 0 ? '+' : '';
+    body += `<div style="font-size:0.82rem;margin-bottom:2px">Change: <span style="color:${color};font-weight:600">${sign}${cp.toFixed(2)}%</span></div>`;
+  }
+
+  const mc = Number(d.marketCap ?? d.metricValue ?? d.value);
+  if (Number.isFinite(mc) && mc > 0) {
+    const converted = (mc * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    body += `<div style="font-size:0.82rem;margin-bottom:2px">${metricKey}: <strong>${currentSymbol}${converted} B</strong> (${currency})</div>`;
+  }
+
+  if (d.sector) {
+    body += `<div style="font-size:0.75rem;color:${textSecondary};margin-top:4px">Sector: ${d.sector}</div>`;
+  }
+
+  return body;
+}
+
 function groupTooltip(d, currentRate, currentSymbol, currency, metricKey, themeColors) {
   const total = sumLeaves(d);
   const converted = (total * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -114,8 +149,9 @@ const HeatmapView = ({
       formatter: function (info) {
         if (!info.data) return '';
         const d = info.data;
-        if (d.children?.length > 0) return groupTooltip(d, currentRate, currentSymbol, currency, METRIC_LABEL[rankMetric] || 'Mkt Cap', colors);
-        return '';
+        const label = METRIC_LABEL[rankMetric] || 'Mkt Cap';
+        if (d.children?.length > 0) return groupTooltip(d, currentRate, currentSymbol, currency, label, colors);
+        return stockTooltip(d, currentRate, currentSymbol, currency, label, colors);
       }
     },
     series: [{

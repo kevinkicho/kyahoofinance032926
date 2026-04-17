@@ -31,6 +31,16 @@
 
 .fx-status-live { color: #22c55e; }
 
+.fx-stale-badge {
+  background: #78350f;
+  color: #fcd34d;
+  border: 1px solid #92400e;
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
 .fx-sub-tabs {
   display: flex;
   align-items: center;

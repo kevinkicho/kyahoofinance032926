@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import DataContext from './DataContext';
 import { useInterval } from '../hooks/useInterval';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
+import { putSnapshot, todayStr } from '../utils/snapshotDB';
 
 const SERVER = '';
 
@@ -43,11 +44,56 @@ const FEDERATED_MARKETS = {
   alerts: { endpoints: ['sentiment', 'bonds', 'credit', 'crypto', 'commodities', 'fx'] },
 };
 
+const SNAPSHOT_KEY = 'hub-markets-snapshot-v1';
+
+function loadSnapshot() {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object') ? parsed : null;
+  } catch { return null; }
+}
+
+function saveSnapshot(markets) {
+  try {
+    const slim = {};
+    for (const [id, m] of Object.entries(markets)) {
+      if (m?.data) {
+        slim[id] = {
+          data: m.data,
+          lastUpdated: m.lastUpdated,
+          fetchedOn: m.fetchedOn,
+          isLive: m.isLive,
+          isCurrent: m.isCurrent,
+          provenance: m.provenance,
+        };
+      }
+    }
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(slim));
+  } catch (e) {
+    console.warn('[DataProvider] snapshot save failed:', e?.message);
+  }
+}
+
 function createInitialMarketState() {
   const state = {};
   const allIds = [...ALL_FETCH_IDS, ...Object.keys(FEDERATED_MARKETS), 'equities', 'watchlist', 'analytics'];
+  const snapshot = loadSnapshot() || {};
   for (const id of allIds) {
-    state[id] = { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, error: null, fetchLog: [], refetch: null, provenance: {} };
+    const snap = snapshot[id];
+    state[id] = {
+      data: snap?.data || null,
+      isLoading: false,
+      isLive: snap?.isLive || false,
+      lastUpdated: snap?.lastUpdated || null,
+      fetchedOn: snap?.fetchedOn || null,
+      isCurrent: snap?.isCurrent || false,
+      error: null,
+      fetchLog: [],
+      refetch: null,
+      provenance: snap?.provenance || {},
+    };
   }
   return state;
 }
@@ -63,6 +109,23 @@ function summarizeData(d) {
     return true;
   });
   return `${nonNull.length}/${keys.length} keys live`;
+}
+
+function persistToIDB(result) {
+  if (!result?.ok || !result.data) return;
+  const { marketId, data } = result;
+  const d = data || {};
+  putSnapshot({
+    marketId,
+    date: todayStr(),
+    stamp: tsNow(),
+    data,
+    lastUpdated: d.lastUpdated || null,
+    fetchedOn: d.fetchedOn || null,
+    isLive: !!d.isLive,
+    isCurrent: d.isCurrent != null ? !!d.isCurrent : !!d.isLive,
+    provenance: d._sources ? { sources: d._sources } : {},
+  });
 }
 
 async function fetchMarket(marketId) {
@@ -125,7 +188,12 @@ const STRUCTURAL_GUARDS = {
   credit:         d => d.spreadData?.history?.dates?.length >= 6,
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
   equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
-  calendar:       d => Array.isArray(d.economicEvents) ? d.economicEvents.length >= 5 : true,
+  calendar:       d => {
+    const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 5;
+    const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 2;
+    const banks = Array.isArray(d.centralBanks) && d.centralBanks.length >= 2;
+    return events || earnings || banks;
+  },
   derivatives:    d => d.vixTermStructure?.values?.length >= 2,
   insurance:      d => Array.isArray(d.combinedRatioData) ? d.combinedRatioData.length >= 2 : true,
   realEstate:     d => Array.isArray(d.reitData) ? d.reitData.length >= 2 : true,
@@ -284,6 +352,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       const next = applyResult(prev, result);
       return maybeComputeFederated(prev, next);
     });
+    persistToIDB(result);
   }, []);
 
   const fetchAllMarkets = useCallback(async () => {
@@ -331,6 +400,10 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       } catch (err) {
         console.error('[DataProvider] setMarkets error:', err);
       }
+
+      for (const settled of results) {
+        if (settled.status === 'fulfilled') persistToIDB(settled.value);
+      }
     }
 
     console.log(`[DataProvider] ✅ All fetches complete`);
@@ -369,8 +442,17 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     else if (MARKET_ENDPOINTS[marketId]) { fetchSingleMarket(marketId); }
   }, [fetchSingleMarket, fetchFederatedMarket]);
 
-  useEffect(() => { fetchAllMarkets(); }, [refreshKey, fetchAllMarkets]);
+  useEffect(() => {
+    if (refreshKey > 0) fetchAllMarkets();
+  }, [refreshKey, fetchAllMarkets]);
   useInterval(refetchAll, autoRefresh ? 300000 : null);
+
+  const saveTimerRef = useRef(null);
+  useEffect(() => {
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => saveSnapshot(markets), 500);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [markets]);
 
   useEffect(() => {
     mountedRef.current = true;

@@ -129,7 +129,15 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     return wrapped;
   }, [mergedOnEvents]);
 
-  const safeOpts = useMemo(() => ({ ...opts }), [opts]);
+  const safeOpts = useMemo(() => {
+    const w = containerRef.current?.offsetWidth;
+    const h = containerRef.current?.offsetHeight;
+    return {
+      ...opts,
+      ...(w > 0 ? { width: w } : {}),
+      ...(h > 0 ? { height: h } : {}),
+    };
+  }, [opts, hasDimensions]);
 
   const containerStyle = useMemo(() => ({
     ...style,

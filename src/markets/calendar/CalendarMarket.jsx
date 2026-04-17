@@ -42,6 +42,7 @@ function getCalendarProps(centralData) {
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
     fetchLog: centralData.fetchLog || [],
+    error: centralData.error,
     refetch: centralData.refetch,
   };
 }
@@ -56,7 +57,13 @@ function CalendarMarket({ centralData } = {}) {
 
   return (
     <div className="cal-market">
-
+      <div className="cal-status-bar">
+        <span className={props.isLive ? 'cal-status-live' : ''}>
+          {props.isLive ? '● API connected · Econdb / FRED / Yahoo' : '○ Data source temporarily unavailable'}
+        </span>
+        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
+        {!props.isCurrent && props.fetchedOn && <span className="cal-stale-badge">Stale · fetched {props.fetchedOn}</span>}
+      </div>
       <div className="cal-dashboard cal-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="calendar-layout">
           <div key="economic" className="cal-bento-card">

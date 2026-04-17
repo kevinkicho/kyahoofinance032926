@@ -69,8 +69,14 @@ const FairValueBar = ({ rawPrice, fairPrice, rangeLow, rangeHigh, sym }) => {
 
 // ─── Chart Tab ───────────────────────────────────────────────────────────────
 
+const PERIOD_DAYS = { '1m': 22, '3m': 66, '6m': 132, '1y': 252, '3y': 756, '5y': 1260 };
+const PERIOD_LABEL = { '1m': '1-Month', '3m': '3-Month', '6m': '6-Month', '1y': '1-Year', '3y': '3-Year', '5y': '5-Year' };
+
 const ChartTab = ({ historyData, sym }) => {
   const { colors } = useTheme();
+  const [period, setPeriod] = useState('1y');
+  const [view, setView] = useState('chart');
+
   if (!historyData || historyData.length === 0) {
     return (
       <div className="no-live-data">
@@ -80,7 +86,8 @@ const ChartTab = ({ historyData, sym }) => {
     );
   }
 
-  const closes = historyData.map(d => d.close);
+  const sliced = historyData.slice(-PERIOD_DAYS[period]);
+  const closes = sliced.map(d => d.close);
   const first = closes[0];
   const last  = closes[closes.length - 1];
   const changePct = first ? ((last - first) / first) * 100 : 0;
@@ -93,7 +100,7 @@ const ChartTab = ({ historyData, sym }) => {
     grid: { left: '2%', right: '8%', top: '10%', bottom: '3%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: historyData.map(d => d.date),
+      data: sliced.map(d => d.date),
       boundaryGap: false,
       axisLine:  { lineStyle: { color: colors.border } },
       axisTick:  { show: false },
@@ -134,15 +141,61 @@ const ChartTab = ({ historyData, sym }) => {
     },
   };
 
+  const tableRows = sliced.slice().reverse();
+
   return (
     <div className="chart-tab">
+      <div className="chart-controls">
+        <div className="chart-period-toggle">
+          {Object.keys(PERIOD_DAYS).map(p => (
+            <button
+              key={p}
+              className={period === p ? 'chart-period-btn active' : 'chart-period-btn'}
+              onClick={() => setPeriod(p)}
+            >
+              {p.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <div className="chart-view-toggle">
+          <button className={view === 'chart' ? 'chart-view-btn active' : 'chart-view-btn'} onClick={() => setView('chart')}>Chart</button>
+          <button className={view === 'table' ? 'chart-view-btn active' : 'chart-view-btn'} onClick={() => setView('table')}>Table</button>
+        </div>
+      </div>
+
       <div className="chart-header">
-        <span className="chart-period-label">1-Year Performance</span>
+        <span className="chart-period-label">{PERIOD_LABEL[period]} Performance</span>
         <span className={`chart-pct ${isUp ? 'text-green' : 'text-red'}`}>
           {isUp ? '+' : ''}{changePct.toFixed(2)}%
         </span>
       </div>
-      <SafeECharts option={option} style={{ height: '220px' }} opts={{ renderer: 'canvas' }} />
+
+      {view === 'chart' ? (
+        <SafeECharts option={option} style={{ height: '220px' }} opts={{ renderer: 'canvas' }} />
+      ) : (
+        <div className="history-table-wrap">
+          <table className="history-table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((r) => (
+                <tr key={r.date}>
+                  <td>{r.date}</td>
+                  <td>{r.open != null ? `${sym}${r.open.toFixed(2)}` : '—'}</td>
+                  <td>{r.high != null ? `${sym}${r.high.toFixed(2)}` : '—'}</td>
+                  <td>{r.low  != null ? `${sym}${r.low.toFixed(2)}`  : '—'}</td>
+                  <td><strong>{r.close != null ? `${sym}${r.close.toFixed(2)}` : '—'}</strong></td>
+                  <td>{r.volume != null ? r.volume.toLocaleString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="history-table-meta">{tableRows.length.toLocaleString()} daily bars</div>
+        </div>
+      )}
     </div>
   );
 };
@@ -343,32 +396,133 @@ const AnalystsTab = ({ summaryData, sym }) => {
   );
 };
 
-// ─── Data Source Footer ──────────────────────────────────────────────────────
+// ─── Data Source Footer + Modal ───────────────────────────────────────────────
 
-const DataFooter = ({ summaryData, historyData, isLive }) => {
-  const fmtUnix = (ts) => {
-    if (!ts) return null;
-    const d = new Date(ts * 1000);
-    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-  };
-  const fmtISO = (str) => {
-    if (!str) return null;
-    const d = new Date(str);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+const fmtFlexibleDate = (ts) => {
+  if (ts == null || ts === '') return null;
+  let d;
+  if (typeof ts === 'number') d = new Date(ts < 1e12 ? ts * 1000 : ts);
+  else if (typeof ts === 'string') d = new Date(ts);
+  else if (typeof ts === 'object' && ts.raw != null) {
+    const n = Number(ts.raw);
+    d = new Date(n < 1e12 ? n * 1000 : n);
+  } else return null;
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+};
+const fmtISODate = (str) => {
+  if (!str) return null;
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
 
-  const quarterDate = fmtUnix(summaryData?.defaultKeyStatistics?.mostRecentQuarter);
-  const firstPrice  = historyData?.length ? fmtISO(historyData[0].date) : null;
-  const lastPrice   = historyData?.length ? fmtISO(historyData[historyData.length - 1].date) : null;
+const SUMMARY_MODULES = [
+  { id: 'financialData',             desc: 'Price targets, margins, cash flow, debt ratios' },
+  { id: 'defaultKeyStatistics',      desc: 'Valuation multiples, shares, ownership, most recent quarter' },
+  { id: 'earningsTrend',             desc: 'EPS estimates (current/next Q, current/next Y)' },
+  { id: 'recommendationTrend',       desc: 'Buy/hold/sell analyst counts' },
+  { id: 'majorHoldersBreakdown',     desc: 'Insider and institutional ownership breakdown' },
+  { id: 'incomeStatementHistory',    desc: 'Revenue / income (annual, 4 periods)' },
+  { id: 'cashflowStatementHistory',  desc: 'Operating / investing / financing cash flows' },
+  { id: 'balanceSheetHistory',       desc: 'Assets, liabilities, equity (annual)' },
+];
+
+const SourceInfoModal = ({ ticker, region, summaryData, historyData, isLive, onClose }) => {
+  const quarterDate  = fmtFlexibleDate(summaryData?.defaultKeyStatistics?.mostRecentQuarter);
+  const firstPrice   = historyData?.length ? fmtISODate(historyData[0].date) : null;
+  const lastPrice    = historyData?.length ? fmtISODate(historyData[historyData.length - 1].date) : null;
+  const barsCount    = historyData?.length || 0;
+  const enc          = encodeURIComponent(ticker);
+  const regionQS     = region ? `?region=${encodeURIComponent(region)}` : '';
+  const yahooLink    = `https://finance.yahoo.com/quote/${enc}`;
 
   return (
-    <div className="data-footer">
+    <div className="source-modal-overlay" onClick={onClose}>
+      <div className="source-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="source-modal-header">
+          <h3>Data Sources · {ticker}</h3>
+          <button className="source-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="source-modal-body">
+          <div className="source-section">
+            <div className="source-section-title">Provider</div>
+            <div className="source-row">
+              <span className="source-label">Yahoo Finance</span>
+              <span className={`source-badge ${isLive ? 'live' : 'cached'}`}>{isLive ? '● LIVE' : '○ CACHED'}</span>
+            </div>
+            <a className="source-link" href={yahooLink} target="_blank" rel="noreferrer">View on finance.yahoo.com ↗</a>
+          </div>
+
+          <div className="source-section">
+            <div className="source-section-title">Endpoints Hit</div>
+            <div className="endpoint-row">
+              <code>POST /api/stocks</code>
+              <span className="endpoint-desc">Real-time quote: price, change, OHLC, bid/ask, 52w range, PE, EPS, beta</span>
+            </div>
+            <div className="endpoint-row">
+              <code>GET /api/summary/{enc}{regionQS}</code>
+              <span className="endpoint-desc">Fundamentals via <em>yf.quoteSummary</em> (8 modules below)</span>
+            </div>
+            <div className="endpoint-row">
+              <code>GET /api/history/{enc}?period=5y{region ? `&region=${encodeURIComponent(region)}` : ''}</code>
+              <span className="endpoint-desc">Daily OHLCV bars via <em>yf.historical</em></span>
+            </div>
+          </div>
+
+          <div className="source-section">
+            <div className="source-section-title">Summary Modules</div>
+            <div className="module-list">
+              {SUMMARY_MODULES.map(m => {
+                const present = summaryData && summaryData[m.id] != null;
+                return (
+                  <div key={m.id} className="module-row">
+                    <span className={`module-dot ${present ? 'ok' : 'missing'}`} />
+                    <code>{m.id}</code>
+                    <span className="module-desc">{m.desc}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="source-section">
+            <div className="source-section-title">Coverage &amp; Freshness</div>
+            <div className="coverage-grid">
+              <div><span>Fundamentals as-of</span><strong>{quarterDate || '—'}</strong></div>
+              <div><span>Price range</span><strong>{firstPrice && lastPrice ? `${firstPrice} – ${lastPrice}` : '—'}</strong></div>
+              <div><span>Daily bars</span><strong>{barsCount.toLocaleString()}</strong></div>
+              <div><span>Summary cache TTL</span><strong>30 min</strong></div>
+              <div><span>History cache TTL</span><strong>60 min</strong></div>
+              <div><span>Auto-refresh</span><strong>Manual (▶ button)</strong></div>
+            </div>
+          </div>
+
+          <div className="source-footer-note">
+            Data fetched via the Express backend. When local cache is ≥2 days stale, a delta fetch from Yahoo fills the gap on request.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DataFooter = ({ summaryData, historyData, isLive, onOpenModal }) => {
+  const quarterDate = fmtFlexibleDate(summaryData?.defaultKeyStatistics?.mostRecentQuarter);
+  const firstPrice  = historyData?.length ? fmtISODate(historyData[0].date) : null;
+  const lastPrice   = historyData?.length ? fmtISODate(historyData[historyData.length - 1].date) : null;
+
+  return (
+    <button type="button" className="data-footer data-footer-btn" onClick={onOpenModal} title="View data source details">
       <span className="data-footer-source">Yahoo Finance{isLive ? ' · LIVE' : ''}</span>
       {quarterDate && <span className="data-footer-sep">·</span>}
       {quarterDate && <span>Fundamentals: {quarterDate}</span>}
       {firstPrice && lastPrice && <span className="data-footer-sep">·</span>}
       {firstPrice && lastPrice && <span>Prices: {firstPrice}–{lastPrice}</span>}
-    </div>
+      <span className="data-footer-sep">·</span>
+      <span className="data-footer-cta">sources ↗</span>
+    </button>
   );
 };
 
@@ -386,6 +540,7 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker }) => {
   const { details, summaryData, historyData } = selectedTicker;
   const isCrypto = selectedTicker.sector === 'Crypto';
   const [activeTab, setActiveTab] = useState('summary');
+  const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const sym = selectedTicker.regionSymbol || '$';
   const fv = computeFairValue(
     selectedTicker, details,
@@ -483,7 +638,23 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker }) => {
         </div>
       )}
 
-      <DataFooter summaryData={summaryData} historyData={historyData} isLive={selectedTicker.isLive} />
+      <DataFooter
+        summaryData={summaryData}
+        historyData={historyData}
+        isLive={selectedTicker.isLive}
+        onOpenModal={() => setSourceModalOpen(true)}
+      />
+
+      {sourceModalOpen && (
+        <SourceInfoModal
+          ticker={selectedTicker.ticker}
+          region={selectedTicker.region}
+          summaryData={summaryData}
+          historyData={historyData}
+          isLive={selectedTicker.isLive}
+          onClose={() => setSourceModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

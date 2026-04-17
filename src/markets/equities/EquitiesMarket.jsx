@@ -10,6 +10,7 @@ import { mockTreemapData } from '../../mockData';
 import { currencySymbols } from '../../utils/constants';
 import { useFrankfurterRates } from '../../utils/useFrankfurterRates';
 import { getExtendedDetails } from '../../utils/dataHelpers';
+import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
 import './EquitiesDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -63,7 +64,101 @@ const RACE_LAYOUT = {
 };
 
 const REFRESH_BATCH = 80;
-const STATIC_DATA_TIMESTAMP = 'Apr 2, 2026 00:00:00 UTC';
+const STATIC_DATA_TIMESTAMP = 'No fetch yet · click ▶ to refresh';
+const QUOTES_KEY = 'equities-quotes-v2';
+const LEGACY_SNAPSHOT_KEY = 'equities-snapshot-v1';
+const MAX_SNAPSHOT_DAYS = 30;
+
+function todayStr() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function loadDailyMap() {
+  try {
+    const raw = localStorage.getItem(QUOTES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+  } catch { return {}; }
+}
+
+function saveDailyMap(map) {
+  try {
+    const dates = Object.keys(map).sort();
+    const keep = dates.slice(-MAX_SNAPSHOT_DAYS);
+    const pruned = {};
+    for (const d of keep) pruned[d] = map[d];
+    localStorage.setItem(QUOTES_KEY, JSON.stringify(pruned));
+  } catch (e) {
+    console.warn('[Equities] snapshot save failed:', e?.message);
+  }
+}
+
+function quotesFromUniverse(universe) {
+  const out = {};
+  for (const region of universe) {
+    for (const stock of region.children) {
+      if (!stock?.name) continue;
+      const q = {};
+      if (stock.price != null)     q.p = stock.price;
+      if (stock.change != null)    q.c = stock.change;
+      if (stock.changePct != null) q.cp = stock.changePct;
+      if (stock.marketCap != null) q.mc = stock.marketCap;
+      if (Object.keys(q).length) out[stock.name] = q;
+    }
+  }
+  return out;
+}
+
+function applyQuotesToUniverse(universe, quotes) {
+  if (!quotes || !Object.keys(quotes).length) return universe;
+  return universe.map(region => ({
+    ...region,
+    children: region.children.map(stock => {
+      const q = quotes[stock.name];
+      if (!q) return stock;
+      return {
+        ...stock,
+        ...(q.mc != null && { marketCap: q.mc, value: q.mc }),
+        ...(q.p  != null && { price: q.p }),
+        ...(q.c  != null && { change: q.c }),
+        ...(q.cp != null && { changePct: q.cp }),
+      };
+    }),
+  }));
+}
+
+function migrateLegacySnapshot(map) {
+  if (Object.keys(map).length) return map;
+  try {
+    const raw = localStorage.getItem(LEGACY_SNAPSHOT_KEY);
+    if (!raw) return map;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.universe)) {
+      const quotes = quotesFromUniverse(parsed.universe);
+      if (Object.keys(quotes).length) {
+        map[todayStr()] = { stamp: parsed.timestamp || `Migrated · ${todayStr()}`, quotes };
+        saveDailyMap(map);
+      }
+    }
+    localStorage.removeItem(LEGACY_SNAPSHOT_KEY);
+  } catch {}
+  return map;
+}
+
+function hydrateInitialState() {
+  const map = migrateLegacySnapshot(loadDailyMap());
+  const dates = Object.keys(map).sort();
+  if (!dates.length) return { universe: mockTreemapData, stamp: STATIC_DATA_TIMESTAMP };
+  const latest = dates[dates.length - 1];
+  const entry = map[latest];
+  return {
+    universe: applyQuotesToUniverse(mockTreemapData, entry.quotes),
+    stamp: entry.stamp || `Loaded · ${latest}`,
+  };
+}
 
 function formatTimestamp(d) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -78,8 +173,9 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   const [rankMetric, setRankMetric] = usePersistedState(`${STORAGE_KEY}-rankMetric`, 'marketCap');
   const [groupBy, setGroupBy] = usePersistedState(`${STORAGE_KEY}-groupBy`, 'market');
   const [colorByPerf, setColorByPerf] = useState(false);
-  const [marketUniverse, setMarketUniverse] = useState(mockTreemapData);
-  const [dataTimestamp, setDataTimestamp] = useState(STATIC_DATA_TIMESTAMP);
+  const [hydrated] = useState(hydrateInitialState);
+  const [marketUniverse, setMarketUniverse] = useState(hydrated.universe);
+  const [dataTimestamp, setDataTimestamp] = useState(hydrated.stamp);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = useCallback(() => {
@@ -100,23 +196,42 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       .then(r => r.json())
       .then(quotes => {
         const now = formatTimestamp(new Date());
-        setMarketUniverse(prev => prev.map(region => ({
-          ...region,
-          children: region.children.map(stock => {
-            const q = quotes[stock.name];
-            if (!q) return stock;
-            const liveCap = q.marketCap ? q.marketCap / 1e9 : stock.marketCap;
-            return {
-              ...stock,
-              marketCap: liveCap || stock.marketCap,
-              value: liveCap || stock.value,
-              ...(q.changePct != null && { changePct: q.changePct }),
-              ...(q.price != null && { price: q.price }),
-              ...(q.change != null && { change: q.change }),
-            };
-          }),
-        })));
-        setDataTimestamp(`Fetched · Yahoo Finance · ${now}`);
+        const stamp = `Fetched · Yahoo Finance · ${now}`;
+        setMarketUniverse(prev => {
+          const next = prev.map(region => ({
+            ...region,
+            children: region.children.map(stock => {
+              const q = quotes[stock.name];
+              if (!q) return stock;
+              const liveCap = q.marketCap ? q.marketCap / 1e9 : stock.marketCap;
+              return {
+                ...stock,
+                marketCap: liveCap || stock.marketCap,
+                value: liveCap || stock.value,
+                ...(q.changePct != null && { changePct: q.changePct }),
+                ...(q.price != null && { price: q.price }),
+                ...(q.change != null && { change: q.change }),
+              };
+            }),
+          }));
+          const map = loadDailyMap();
+          const today = todayStr();
+          const existing = map[today]?.quotes || {};
+          const mergedQuotes = { ...existing, ...quotesFromUniverse(next) };
+          map[today] = { stamp, quotes: mergedQuotes };
+          saveDailyMap(map);
+          putIDBSnapshot({
+            marketId: 'equities',
+            date: today,
+            stamp,
+            data: { quotes: mergedQuotes },
+            lastUpdated: stamp,
+            isLive: true,
+            isCurrent: true,
+          });
+          return next;
+        });
+        setDataTimestamp(stamp);
       })
       .catch(() => {})
       .finally(() => setIsRefreshing(false));

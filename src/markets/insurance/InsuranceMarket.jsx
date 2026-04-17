@@ -46,6 +46,13 @@ function InsuranceMarket({ centralData } = {}) {
 
   return (
     <div className="ins-market">
+      <div className="ins-status-bar">
+        <span className={props.isLive ? 'ins-status-live' : ''}>
+          {props.isLive ? '● API connected · FRED / Yahoo' : (props.error ? `○ ${props.error}` : '○ Data source temporarily unavailable')}
+        </span>
+        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
+        {!props.isCurrent && props.fetchedOn && <span className="ins-stale-badge">Stale · fetched {props.fetchedOn}</span>}
+      </div>
       <InsuranceDashboard
         catBondSpreads={props.catBondSpreads}
         combinedRatioData={props.combinedRatioData}
