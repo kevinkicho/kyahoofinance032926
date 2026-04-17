@@ -32,6 +32,7 @@ const MARKET_ENDPOINTS = {
   calendar:          '/api/calendar',
   imf:               '/api/imf',
   worldbank:         '/api/worldbank',
+  bls:               '/api/bls',
 };
 
 const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);
@@ -91,7 +92,17 @@ function hasNonNullData(d) {
     if (k.startsWith('_') || k === 'lastUpdated' || k === 'fetchedOn' || k === 'isCurrent' || k === 'isLive' || k === 'countryCount') continue;
     if (v != null && v !== false) {
       if (typeof v === 'object') {
-        if (Array.isArray(v) ? v.length > 0 : Object.values(v).some(x => x != null && x !== false)) nonNull++;
+        if (Array.isArray(v)) {
+          if (v.length > 0) nonNull++;
+        } else {
+          const childValues = Object.values(v);
+          if (childValues.length > 0 && childValues.some(x => x != null && x !== false)) {
+            for (const cv of childValues) {
+              if (cv != null && cv !== false && typeof cv === 'object' && !Array.isArray(cv) && cv._source === true) nonNull++;
+            }
+            if (nonNull === 0 && childValues.some(x => x != null && x !== false)) nonNull++;
+          }
+        }
       } else {
         nonNull++;
       }
@@ -115,6 +126,7 @@ const STRUCTURAL_GUARDS = {
   fx:             d => Array.isArray(d.fredFxRates) ? d.fredFxRates.length >= 2 : true,
   imf:            d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
   worldbank:      d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
+  bls:            d => d.series && Object.values(d.series).some(s => s._source),
 };
 
 function passesStructuralGuard(id, d) {

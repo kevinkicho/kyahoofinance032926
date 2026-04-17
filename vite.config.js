@@ -204,7 +204,7 @@ const API_ROUTES = [
   '/api/commodities', '/api/globalMacro', '/api/equityDeepDive',
   '/api/cache', '/api/crypto', '/api/credit', '/api/sentiment',
   '/api/calendar', '/api/fx', '/api/rate-limits', '/api/analytics',
-  '/api/institutional', '/api/worldbank', '/api/imf', '/api/fred', '/api/macro',
+  '/api/institutional', '/api/worldbank', '/api/imf', '/api/fred', '/api/macro', '/api/bls',
 ];
 
 function buildProxyConfig() {
