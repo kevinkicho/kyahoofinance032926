@@ -51,7 +51,7 @@ describe('ImfMarket', () => {
   it('renders no data received when not live', () => {
     const notLive = { ...mockCentralData, isLive: false };
     render(<ImfMarket centralData={notLive} />);
-    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
+    expect(screen.getByText(/Data source temporarily unavailable/i)).toBeInTheDocument();
   });
 
   it('renders all bento panel titles', () => {
