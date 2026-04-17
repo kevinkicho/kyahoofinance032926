@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback, useMemo, forwardRef, useState } from 'react';
-import ReactECharts from 'echarts-for-react';
+import ReactEChartsCore from 'echarts-for-react/lib/core';
+import echarts from '../../lib/echarts';
 import ChartSourcePopover from './ChartSourcePopover';
 
 const SafeECharts = forwardRef(function SafeECharts({ option, style, className, opts, onEvents, onChartReady, sourceInfo, ...rest }, ref) {
@@ -157,8 +158,9 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
       className={className}
       style={containerStyle}
     >
-      <ReactECharts
+      <ReactEChartsCore
         ref={ref}
+        echarts={echarts}
         option={option}
         style={{ width: '100%', height: '100%' }}
         opts={safeOpts}

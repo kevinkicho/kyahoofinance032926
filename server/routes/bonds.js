@@ -86,19 +86,61 @@ function dateToMonthLabel(dateStr) {
 }
 
 async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=5`;
+  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '5' });
+  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
   const data = await fetchJSON(url);
   const valid = (data?.observations || []).filter(o => o.value !== '.');
   return valid.length ? parseFloat(valid[0].value) : null;
 }
 
 async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
+  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: String(limit) });
+  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
   const data = await fetchJSON(url);
   return (data?.observations || [])
     .filter(o => o.value !== '.')
     .map(o => ({ date: o.date, value: parseFloat(o.value) }))
     .reverse();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ECB YIELD CURVE — Euro area sovereign yields by tenor
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchECBYieldCurve() {
+  try {
+    const url = 'https://data-api.ecb.europa.eu/service/data/IRS/YC.EU.M.EUR4F.E.SR_3M+SR_6M+SR_1Y+SR_2Y+SR_5Y+SR_10Y+SR_30Y?detail=code&format=jsondata';
+    const data = await fetchJSON(url);
+    const series = data?.dataSets?.[0]?.series;
+    if (!series) return null;
+    const result = {};
+    for (const [seriesKey, seriesData] of Object.entries(series)) {
+      const obs = seriesData?.observations;
+      if (!obs) continue;
+      const latestObs = Object.entries(obs).sort((a, b) => parseInt(b[0]) - parseInt(a[0]))[0];
+      if (!latestObs) continue;
+      const value = parseFloat(latestObs[1]?.[0] ?? latestObs[1]);
+      if (isNaN(value)) continue;
+      const indices = seriesKey.split(':').map(Number);
+      const seriesDim = data?.structure?.dimensions?.series;
+      if (!seriesDim) continue;
+      let tenorLabel = null;
+      for (let i = 0; i < seriesDim.length; i++) {
+        const dim = seriesDim[i];
+        const idx = indices[i];
+        const val = dim?.values?.[idx];
+        if (val?.id?.startsWith('SR_')) {
+          tenorLabel = val.id.replace('SR_', '').replace('Y', 'y').replace('M', 'm');
+          break;
+        }
+      }
+      if (!tenorLabel) continue;
+      result[tenorLabel] = Math.round(value * 100) / 100;
+    }
+    return Object.keys(result).length >= 3 ? result : null;
+  } catch (e) {
+    console.warn('[Bonds] ECB yield curve fetch failed:', e.message);
+    return null;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -557,6 +599,15 @@ router.get('/', async (req, res) => {
     } catch (e) { console.warn('[Bonds]', e.message || e); }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // ECB YIELD CURVE (Euro area sovereign yields)
+    // ═══════════════════════════════════════════════════════════════════════
+    let ecbYieldCurve = null;
+    try {
+      trackApiCall('ECB');
+      ecbYieldCurve = await fetchECBYieldCurve();
+    } catch (e) { console.warn('[Bonds]', e.message || e); }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // BUILD RESULT
     // ═══════════════════════════════════════════════════════════════════════
     const result = {
@@ -588,6 +639,9 @@ router.get('/', async (req, res) => {
       auctionData,
       nationalDebt,
 
+      // ECB yield curve
+      ecbYieldCurve,
+
       // Metadata
       lastUpdated: today,
       countryCount: Object.keys(yieldCurveData).length,
@@ -616,6 +670,7 @@ router.get('/', async (req, res) => {
       'Treasury Rates': treasuryRates != null,
       'Mortgage Spread': mortgageSpread != null,
       'Credit Indices (AAA/BAA)': creditIndices && Object.keys(creditIndices).length > 0,
+      'ECB Yield Curve': ecbYieldCurve != null && Object.keys(ecbYieldCurve).length > 0,
     };
 
     res.json({ ...result, fetchedOn: today, isLive: true, _sources: sources });

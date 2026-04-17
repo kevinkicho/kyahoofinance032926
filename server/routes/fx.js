@@ -63,7 +63,8 @@ async function fetchFrankfurterData() {
 }
 
 async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
+  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: String(limit) });
+  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
   const data = await fetchJSON(url);
   return (data?.observations || [])
     .filter(o => o.value !== '.')
@@ -72,10 +73,39 @@ async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
 }
 
 async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=5`;
+  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '5' });
+  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
   const data = await fetchJSON(url);
   const valid = (data?.observations || []).filter(o => o.value !== '.');
   return valid.length ? parseFloat(valid[0].value) : null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IMF COFER — Currency composition of official foreign exchange reserves
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchIMFCOFER() {
+  try {
+    const url = 'https://dataservices.imf.org/REST/SDMX_JSON.svc/GetData/COFER/Q.US+XT+EU+JP+UK+CN+CH.SDR_XDC.XDR?startPeriod=2020-Q1';
+    const data = await fetchJSON(url);
+    const series = data?.CompactData?.DataSet?.Series;
+    if (!series) return null;
+    const entries = Array.isArray(series) ? series : [series];
+    const result = {};
+    for (const s of entries) {
+      const refArea = s['@REF_AREA'];
+      const obs = Array.isArray(s.Obs) ? s.Obs : [s.Obs];
+      const latestVal = obs.filter(o => o['@OBS_VALUE'] != null).sort((a, b) => b['@TIME_PERIOD'].localeCompare(a['@TIME_PERIOD']))[0];
+      if (latestVal) {
+        const ccMap = { US: 'USD', XT: 'Total', EU: 'EUR', JP: 'JPY', UK: 'GBP', CN: 'CNY', CH: 'CHF' };
+        const label = ccMap[refArea] || refArea;
+        result[label] = Math.round(parseFloat(latestVal['@OBS_VALUE']) * 100) / 100;
+      }
+    }
+    return Object.keys(result).length >= 3 ? { asOf: entries[0]?.Obs?.['@TIME_PERIOD'] || null, reserves: result } : null;
+  } catch (e) {
+    console.warn('[FX] IMF COFER fetch failed:', e.message);
+    return null;
+  }
 }
 
 // CFTC COT data mapping
@@ -267,6 +297,15 @@ router.get('/', async (req, res) => {
       cotHistory = await fetchCOTHistory();
     } catch (e) { console.warn('[FX]', e.message || e); }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // IMF COFER — Currency composition of official FX reserves
+    // ═══════════════════════════════════════════════════════════════════════
+    let imfReserves = null;
+    try {
+      trackApiCall('IMF COFER');
+      imfReserves = await fetchIMFCOFER();
+    } catch (e) { console.warn('[FX] IMF COFER:', e.message || e); }
+
     const _sources = {
       frankfurter:       !!(frankfurterData?.spotRates),
       fredFxRates:       !!(fredFxRates && Object.keys(fredFxRates).length),
@@ -274,6 +313,7 @@ router.get('/', async (req, res) => {
       rateDifferentials: !!(rateDifferentials && Object.keys(rateDifferentials).length),
       dxyHistory:        !!(dxyHistory && dxyHistory.dates?.length),
       cotHistory:        !!(cotHistory && Object.keys(cotHistory).length),
+      imfReserves:       !!(imfReserves && Object.keys(imfReserves.reserves || {}).length),
     };
 
     const result = {
@@ -291,6 +331,7 @@ router.get('/', async (req, res) => {
       cotData:           cotHistory ? Object.fromEntries(
         Object.entries(cotHistory).map(([code, arr]) => arr.length > 0 ? [code, arr[arr.length - 1].net] : [code, null])
       ) : {},
+      imfReserves:       imfReserves ?? null,
       _sources,
       lastUpdated: today,
     };

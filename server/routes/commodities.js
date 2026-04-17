@@ -111,7 +111,8 @@ async function fetchEIASeries(route, facets, length, EIA_API_KEY) {
 }
 
 async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
+  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: String(limit) });
+  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
   const data = await fetchJSON(url);
   return (data?.observations || [])
     .filter(o => o.value !== '.')
@@ -120,7 +121,8 @@ async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
 }
 
 async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=5`;
+  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '5' });
+  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
   const data = await fetchJSON(url);
   const valid = (data?.observations || []).filter(o => o.value !== '.');
   return valid.length ? parseFloat(valid[0].value) : null;

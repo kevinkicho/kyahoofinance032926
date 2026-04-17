@@ -34,6 +34,7 @@ import tickerRouter from './routes/ticker.js';
 import institutionalRouter from './routes/institutional.js';
 import analyticsRouter from './routes/analytics.js';
 import fredRouter from './routes/fred.js';
+import imfRouter from './routes/imf.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -122,7 +123,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date(), dataDir: DATA_DIR });
 });
 
-const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','globalMacro','equityDeepDive','crypto','credit','sentiment','calendar'];
+const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','globalMacro','equityDeepDive','crypto','credit','sentiment','calendar','imf'];
 app.get('/api/cache/status', (_req, res) => {
   const today = todayStr();
   const status = {};
@@ -165,6 +166,7 @@ app.use('/api/fx', fxRouter);
 app.use('/api/institutional', institutionalRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/fred', fredRouter);
+app.use('/api/imf', imfRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

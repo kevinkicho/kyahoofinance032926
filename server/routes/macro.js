@@ -35,7 +35,8 @@ router.get('/', async (req, res) => {
     await Promise.allSettled(
       Object.entries(FRED_SERIES).map(async ([key, seriesId]) => {
         try {
-          const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=12`;
+          const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '12' });
+          const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
           const data = await fetchJSON(url);
           if (data?.observations) {
             const valid = data.observations.filter(d => d.value !== '.');
