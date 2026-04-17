@@ -2,7 +2,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import FuturesCurve from '../../markets/commodities/components/FuturesCurve';
-import { futuresCurveData } from '../../markets/commodities/data/mockCommoditiesData';
+const futuresCurveData = {
+  name: 'WTI Crude Oil',
+  labels: ['May 24', 'Jun 24', 'Jul 24', 'Aug 24', 'Sep 24', 'Oct 24', 'Nov 24', 'Dec 24'],
+  prices: [82.14, 81.82, 81.50, 81.18, 80.86, 80.54, 80.48, 80.48],
+  spotPrice: 82.14,
+  unit: '$/bbl',
+};
 
 vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 

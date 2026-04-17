@@ -2,7 +2,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import SupplyDemand from '../../markets/commodities/components/SupplyDemand';
-import { supplyDemandData } from '../../markets/commodities/data/mockCommoditiesData';
+const supplyDemandData = {
+  crudeStocks:     { periods: ['2024-01', '2024-02', '2024-03', '2024-04'], values: [440, 435, 430, 428], avg5yr: 450 },
+  natGasStorage:   { periods: ['2024-01', '2024-02', '2024-03', '2024-04'], values: [2500, 2450, 2400, 2380], avg5yr: 2600 },
+  crudeProduction: { periods: ['2024-01', '2024-02', '2024-03', '2024-04'], values: [13.1, 13.2, 13.3, 13.2] },
+};
 
 vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 

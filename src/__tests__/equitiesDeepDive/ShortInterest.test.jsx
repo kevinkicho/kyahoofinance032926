@@ -1,7 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ShortInterest from '../../markets/equitiesDeepDive/components/ShortInterest';
-import { shortData } from '../../markets/equitiesDeepDive/data/mockEquityDeepDiveData';
+const shortData = {
+  mostShorted: [
+    { ticker: 'GME', shortFloat: 22.5, daysToCover: 3.2, perf1w: 8.5, marketCapB: 6.5 },
+    { ticker: 'AMC', shortFloat: 18.1, daysToCover: 2.8, perf1w: -3.2, marketCapB: 3.2 },
+    { ticker: 'BBBY', shortFloat: 15.3, daysToCover: 1.5, perf1w: 2.1, marketCapB: 0.8 },
+    { ticker: 'SOFI', shortFloat: 12.8, daysToCover: 1.9, perf1w: -1.5, marketCapB: 8.5 },
+    { ticker: 'OPEN', shortFloat: 11.2, daysToCover: 2.1, perf1w: 0.5, marketCapB: 1.5 },
+  ],
+};
 
 vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
