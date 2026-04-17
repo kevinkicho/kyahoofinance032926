@@ -33,7 +33,7 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
         'Accept': 'application/json',
       },
     };
-    https.get(options, (res) => {
+    const req = https.get(options, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         fetchJSON(res.headers.location, userAgent).then(resolve).catch(reject);
         return;
@@ -53,6 +53,11 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
         catch (e) { reject(e); }
       });
     }).on('error', reject);
+
+    const timeoutMs = 10000;
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`fetchJSON timeout (${timeoutMs}ms) for ${urlObj.hostname}${urlObj.pathname}`));
+    });
   });
 
   if (isFRED) {

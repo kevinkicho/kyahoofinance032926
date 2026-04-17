@@ -3,36 +3,38 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import BondsDashboard from './components/BondsDashboard';
 import './components/BondsDashboard.css';
 
-const CREDIT_RATINGS = [
-  { country: 'US', name: 'United States', sp: 'AA+', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
-  { country: 'DE', name: 'Germany', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
-  { country: 'GB', name: 'United Kingdom', sp: 'AA', moodys: 'Aa3', fitch: 'AA-', region: 'Europe' },
-  { country: 'JP', name: 'Japan', sp: 'A+', moodys: 'A1', fitch: 'A', region: 'Asia-Pacific' },
-  { country: 'FR', name: 'France', sp: 'AA-', moodys: 'Aa2', fitch: 'AA-', region: 'Europe' },
-  { country: 'AU', name: 'Australia', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Asia-Pacific' },
-  { country: 'CA', name: 'Canada', sp: 'AAA', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
-  { country: 'IT', name: 'Italy', sp: 'BBB', moodys: 'Baa3', fitch: 'BBB', region: 'Europe' },
-  { country: 'CN', name: 'China', sp: 'A+', moodys: 'A1', fitch: 'A+', region: 'Asia-Pacific' },
-  { country: 'NL', name: 'Netherlands', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
-  { country: 'SE', name: 'Sweden', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
-  { country: 'CH', name: 'Switzerland', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
+const CREDIT_RATINGS_FALLBACK = [
+  { country: 'US', name: 'United States',  sp: 'AA+', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
+  { country: 'DE', name: 'Germany',        sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
+  { country: 'GB', name: 'United Kingdom', sp: 'AA',  moodys: 'Aa2', fitch: 'AA-', region: 'Europe' },
+  { country: 'JP', name: 'Japan',          sp: 'A+',  moodys: 'A1',  fitch: 'A',   region: 'Asia-Pacific' },
+  { country: 'FR', name: 'France',         sp: 'AA-', moodys: 'Aa2', fitch: 'AA-', region: 'Europe' },
+  { country: 'AU', name: 'Australia',      sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Asia-Pacific' },
+  { country: 'CA', name: 'Canada',         sp: 'AAA', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
+  { country: 'IT', name: 'Italy',          sp: 'BBB', moodys: 'Baa3', fitch: 'BBB', region: 'Europe' },
+  { country: 'CN', name: 'China',          sp: 'A+',  moodys: 'A1',  fitch: 'A+', region: 'Asia-Pacific' },
+  { country: 'NL', name: 'Netherlands',    sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
+  { country: 'SE', name: 'Sweden',         sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
+  { country: 'CH', name: 'Switzerland',    sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
 ];
 
 const DEFAULT_DURATION = [
-  { bucket: '0–2y', amount: null, pct: null },
-  { bucket: '2–5y', amount: null, pct: null },
-  { bucket: '5–10y', amount: null, pct: null },
-  { bucket: '10y+', amount: null, pct: null },
+  { bucket: '0\u20132y', amount: null, pct: null },
+  { bucket: '2\u20135y', amount: null, pct: null },
+  { bucket: '5\u201310y', amount: null, pct: null },
+  { bucket: '10y+',  amount: null, pct: null },
 ];
 
 function getBondsProps(centralData) {
   const d = centralData.data || {};
   return {
     yieldCurveData: d.yieldCurveData || {},
-    creditRatingsData: CREDIT_RATINGS,
+    creditRatingsData: d.creditRatings?.countries || CREDIT_RATINGS_FALLBACK,
+    creditRatingsAsOf: d.creditRatings?.asOf || null,
     spreadData: d.spreadData || { dates: [], IG: [], HY: [], EM: [], BBB: [] },
     spreadIndicators: d.spreadIndicators || {},
-    durationLadderData: DEFAULT_DURATION,
+    durationLadderData: d.durationLadder?.buckets || DEFAULT_DURATION,
+    durationLadderMeta: d.durationLadder ? { asOf: d.durationLadder.asOf, total: d.durationLadder.total, avgRate: d.durationLadder.avgRate } : null,
     breakevensData: d.breakevensData || { current: {}, history: { dates: [], be5y: [], be10y: [], forward5y5y: [] } },
     fredYieldHistory: d.fredYieldHistory || { dates: [], values: [] },
     treasuryRates: d.treasuryRates,
@@ -80,9 +82,11 @@ function BondsMarket({ centralData } = {}) {
       <BondsDashboard
         yieldCurveData={props.yieldCurveData}
         creditRatingsData={props.creditRatingsData}
+        creditRatingsAsOf={props.creditRatingsAsOf}
         spreadIndicators={props.spreadIndicators}
         spreadData={props.spreadData}
         durationLadderData={props.durationLadderData}
+        durationLadderMeta={props.durationLadderMeta}
         breakevensData={props.breakevensData}
         treasuryRates={props.treasuryRates}
         fredYieldHistory={props.fredYieldHistory}

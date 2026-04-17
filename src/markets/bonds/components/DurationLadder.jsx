@@ -8,12 +8,12 @@ const MIDPOINTS = { '0\u20132y': 1, '2\u20135y': 3.5, '5\u201310y': 7.5, '10y+':
 const FFF_MONTHS = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'];
 const FFF_LABELS = ['1M', '2M', '3M', '4M', '5M', '6M'];
 
-export default function DurationLadder({ durationLadderData, treasuryRates = null, fedFundsFutures = null }) {
+export default function DurationLadder({ durationLadderData, durationLadderMeta, treasuryRates = null, fedFundsFutures = null }) {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
     const buckets = durationLadderData.map(d => d.bucket);
-    const amounts = durationLadderData.map(d => d.amount);
+    const amounts = durationLadderData.map(d => d.amount != null ? +(d.amount / 1000).toFixed(1) : null);
     const pcts    = durationLadderData.map(d => d.pct);
     return {
       animation: false,
@@ -23,15 +23,15 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
         axisPointer: { type: 'shadow' },
         formatter: (params) => {
           const i = params[0].dataIndex;
-          return `<b>${durationLadderData[i].bucket}</b><br/>` +
-            `Amount: <b>$${durationLadderData[i].amount.toLocaleString()}M</b><br/>` +
-            `Weight: <b>${durationLadderData[i].pct}%</b>`;
+          const d = durationLadderData[i];
+          const amt = d.amount != null ? `$${(d.amount / 1000).toFixed(1)}B` : '\u2014';
+          return `<b>${d.bucket}</b><br/>Amount: <b>${amt}</b><br/>Weight: <b>${d.pct != null ? d.pct + '%' : '\u2014'}</b>`;
         },
       },
       grid: { top: 20, right: 80, bottom: 30, left: 80 },
       xAxis: {
         type: 'value',
-        axisLabel: { color: colors.textMuted, fontSize: 11, formatter: '${value}M' },
+        axisLabel: { color: colors.textMuted, fontSize: 11, formatter: '${value}B' },
         splitLine: { lineStyle: { color: colors.cardBg } },
       },
       yAxis: {
@@ -63,14 +63,15 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
   }, [durationLadderData, colors]);
 
   // KPIs
-  const totalAmount = durationLadderData.reduce((s, d) => s + d.amount, 0);
-  const largest = durationLadderData.reduce((a, b) => a.pct > b.pct ? a : b, durationLadderData[0]);
+  const totalAmount = durationLadderData.reduce((s, d) => s + (d.amount || 0), 0);
+  const validBuckets = durationLadderData.filter(d => d.pct != null && d.pct > 0);
+  const largest = validBuckets.length > 0 ? validBuckets.reduce((a, b) => a.pct > b.pct ? a : b) : durationLadderData[0];
   const avgMaturity = useMemo(() => {
     let wSum = 0, wTotal = 0;
     durationLadderData.forEach(d => {
       const mid = MIDPOINTS[d.bucket] || 5;
-      wSum += mid * d.pct;
-      wTotal += d.pct;
+      wSum += mid * (d.pct || 0);
+      wTotal += (d.pct || 0);
     });
     return wTotal > 0 ? (wSum / wTotal).toFixed(1) : '\u2014';
   }, [durationLadderData]);
@@ -122,21 +123,21 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
     };
   }, [fedFundsFutures, colors]);
 
-  const fmtTotal = totalAmount >= 1000
-    ? `$${(totalAmount / 1000).toFixed(1)}B`
-    : `$${totalAmount.toLocaleString()}M`;
+  const fmtTotal = totalAmount > 0
+    ? `$${(totalAmount / 1000).toFixed(1)}T`
+    : '\u2014';
 
   return (
     <div className="bonds-panel">
       <div className="bonds-panel-header">
         <span className="bonds-panel-title">Duration Ladder</span>
-        <span className="bonds-panel-subtitle">Portfolio allocation by maturity bucket</span>
+        <span className="bonds-panel-subtitle">US Treasury marketable debt by maturity{durationLadderMeta?.asOf ? ` (as of ${new Date(durationLadderMeta.asOf + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})` : ''}</span>
       </div>
 
       {/* KPI Strip */}
       <div className="bonds-kpi-strip">
         <div className="bonds-kpi-pill">
-          <span className="bonds-kpi-label">Total Portfolio</span>
+          <span className="bonds-kpi-label">Total Marketable</span>
           <span className="bonds-kpi-value accent">{fmtTotal}</span>
         </div>
         <div className="bonds-kpi-pill">
@@ -163,7 +164,7 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
           <div className="bonds-chart-panel">
             <div className="bonds-chart-title">Treasury Avg Rates</div>
             {durationLadderData.map(d => {
-              const rate = treasuryRates[d.bucket];
+              const rate = d.rate ?? treasuryRates?.[d.bucket] ?? null;
               return (
                 <div key={d.bucket} className="bonds-rate-item">
                   <span className="bonds-rate-bucket">{d.bucket}</span>
@@ -186,8 +187,9 @@ export default function DurationLadder({ durationLadderData, treasuryRates = nul
       )}
 
       <div className="bonds-panel-footer">
-        Maturity buckets: 0{'\u2013'}2y (short), 2{'\u2013'}5y (medium), 5{'\u2013'}10y (long), 10y+ (ultra-long)
-        {treasuryRates && ' \u00b7 Avg Rate: US Treasury avg coupon rate (fiscaldata.treasury.gov)'}
+        Maturity buckets: 0{'\u2013'}2y (Bills+FRNs+short Notes), 2{'\u2013'}5y (medium Notes), 5{'\u2013'}10y (long Notes), 10y+ (Bonds+long Notes)
+        {durationLadderMeta?.avgRate != null && ` \u00b7 Weighted avg rate: ${durationLadderMeta.avgRate.toFixed(2)}%`}
+        {' \u00b7 Source: Treasury Fiscal Data (fiscaldata.treasury.gov)'}
       </div>
     </div>
   );

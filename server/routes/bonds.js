@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { SOVEREIGN_RATINGS } from '../dataSources/sovereignRatings.js';
 
 const router = Router();
 
@@ -172,6 +173,9 @@ function buildSourcesFromData(d) {
     'Treasury Rates': d.treasuryRates != null,
     'Mortgage Spread': d.mortgageSpread != null,
     'Credit Indices (AAA/BAA)': d.creditIndices && Object.keys(d.creditIndices).length > 0,
+    'ECB Yield Curve': d.ecbYieldCurve != null && Object.keys(d.ecbYieldCurve).length > 0,
+    'Sovereign Credit Ratings': true,
+    'Duration Ladder': d.durationLadder != null,
   };
 }
 
@@ -568,6 +572,91 @@ router.get('/', async (req, res) => {
     } catch (e) { console.warn('[Bonds]', e.message || e); }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // DURATION LADDER — US Treasury outstanding debt by maturity bucket
+    // ═══════════════════════════════════════════════════════════════════════
+    let durationLadder = null;
+    try {
+      const mspdSummary = await fetchJSON('https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/debt/mspd/mspd_table_1?sort=-record_date&page[size]=20&fields=record_date,security_class_desc,debt_held_public_mil_amt').catch(() => null);
+      trackApiCall('Treasury Fiscal Data');
+
+      const summaryDate = mspdSummary?.data?.[0]?.record_date;
+      if (!summaryDate) throw new Error('No MSPD summary date');
+
+      const [mspdDetail, avgRates] = await Promise.all([
+        fetchJSON(`https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/debt/mspd/mspd_table_5?filter=record_date:eq:${summaryDate}&page[size]=500&fields=record_date,security_class1_desc,maturity_date,outstanding_amt`).catch(() => null),
+        fetchJSON(`https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?filter=record_date:eq:${summaryDate}&page[size]=50&fields=record_date,security_desc,avg_interest_rate_amt`).catch(() => null),
+      ]);
+
+      const now = new Date();
+      const cutoff2y = new Date(now); cutoff2y.setFullYear(cutoff2y.getFullYear() + 2);
+      const cutoff5y = new Date(now); cutoff5y.setFullYear(cutoff5y.getFullYear() + 5);
+      const cutoff10y = new Date(now); cutoff10y.setFullYear(cutoff10y.getFullYear() + 10);
+
+      let billsAmt = 0, frnAmt = 0, tipsAmt = 0, bondsAmt = 0;
+      let notes_0_2 = 0, notes_2_5 = 0, notes_5_10 = 0, notes_10plus = 0;
+
+      if (mspdSummary?.data) {
+        for (const row of mspdSummary.data) {
+          if (row.record_date !== summaryDate) continue;
+          const amt = parseFloat(row.debt_held_public_mil_amt) || 0;
+          const cls = row.security_class_desc || '';
+          if (cls === 'Bills') billsAmt = amt;
+          else if (cls === 'FRNs') frnAmt = amt;
+          else if (cls === 'TIPS') tipsAmt = amt;
+          else if (cls === 'Bonds') bondsAmt = amt;
+        }
+      }
+
+      let detailDate = summaryDate;
+      if (mspdDetail?.data) {
+        detailDate = mspdDetail.data[0]?.record_date || detailDate;
+        for (const row of mspdDetail.data) {
+          if (row.record_date !== detailDate) continue;
+          const amt = (parseFloat(row.outstanding_amt) || 0) / 1e3;
+          const matStr = row.maturity_date;
+          if (!matStr || matStr === 'null') continue;
+          const matDate = new Date(matStr + 'T00:00:00Z');
+          const cls = row.security_class1_desc || '';
+          if (cls === 'Treasury Notes') {
+            if (matDate <= cutoff2y) notes_0_2 += amt;
+            else if (matDate <= cutoff5y) notes_2_5 += amt;
+            else if (matDate <= cutoff10y) notes_5_10 += amt;
+            else notes_10plus += amt;
+          }
+        }
+      }
+
+      const b0 = Math.round(billsAmt + frnAmt + notes_0_2);
+      const b1 = Math.round(notes_2_5);
+      const b2 = Math.round(notes_5_10);
+      const b3 = Math.round(bondsAmt + notes_10plus);
+      const total = b0 + b1 + b2 + b3;
+
+      let rateMap = {};
+      if (avgRates?.data) {
+        const rateDate = avgRates.data[0]?.record_date;
+        for (const row of avgRates.data) {
+          if (row.record_date !== rateDate) continue;
+          rateMap[row.security_desc] = parseFloat(row.avg_interest_rate_amt) || 0;
+        }
+      }
+
+      if (total > 0) {
+        durationLadder = {
+          asOf: detailDate || summaryDate,
+          buckets: [
+            { bucket: '0\u20132y', amount: b0, pct: Math.round(b0 / total * 1000) / 10, rate: rateMap['Treasury Bills'] || rateMap['Treasury Floating Rate Notes (FRN)'] || null },
+            { bucket: '2\u20135y', amount: b1, pct: Math.round(b1 / total * 1000) / 10, rate: rateMap['Treasury Notes'] || null },
+            { bucket: '5\u201310y', amount: b2, pct: Math.round(b2 / total * 1000) / 10, rate: rateMap['Treasury Notes'] || null },
+            { bucket: '10y+',  amount: b3, pct: Math.round(b3 / total * 1000) / 10, rate: rateMap['Treasury Bonds'] || null },
+          ],
+          total,
+          avgRate: rateMap['Total Marketable'] || null,
+        };
+      }
+    } catch (e) { console.warn('[Bonds] Duration ladder:', e.message || e); }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // NATIONAL DEBT (from FRED GFDEBTN)
     // ═══════════════════════════════════════════════════════════════════════
     let nationalDebt = null;
@@ -642,6 +731,12 @@ router.get('/', async (req, res) => {
       // ECB yield curve
       ecbYieldCurve,
 
+      // Sovereign credit ratings
+      creditRatings: SOVEREIGN_RATINGS,
+
+      // Duration ladder
+      durationLadder,
+
       // Metadata
       lastUpdated: today,
       countryCount: Object.keys(yieldCurveData).length,
@@ -671,6 +766,8 @@ router.get('/', async (req, res) => {
       'Mortgage Spread': mortgageSpread != null,
       'Credit Indices (AAA/BAA)': creditIndices && Object.keys(creditIndices).length > 0,
       'ECB Yield Curve': ecbYieldCurve != null && Object.keys(ecbYieldCurve).length > 0,
+      'Sovereign Credit Ratings': true,
+      'Duration Ladder': durationLadder != null,
     };
 
     res.json({ ...result, fetchedOn: today, isLive: true, _sources: sources });

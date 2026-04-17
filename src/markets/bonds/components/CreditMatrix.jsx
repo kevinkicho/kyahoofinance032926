@@ -32,7 +32,7 @@ function ratingStyle(rating) {
 
 function getTier(rating) { return RATING_TIER[rating] ?? 99; }
 
-export default function CreditMatrix({ creditRatingsData, lastUpdated }) {
+export default function CreditMatrix({ creditRatingsData, creditRatingsAsOf, lastUpdated }) {
   const kpis = useMemo(() => {
     const aaaAa = creditRatingsData.filter(r =>
       getTier(r.sp) <= 1 && getTier(r.moodys) <= 1 && getTier(r.fitch) <= 1
@@ -66,7 +66,7 @@ export default function CreditMatrix({ creditRatingsData, lastUpdated }) {
     <div className="bonds-panel">
       <div className="bonds-panel-header">
         <span className="bonds-panel-title">Credit Matrix</span>
-        <span className="bonds-panel-subtitle">Sovereign ratings by S&amp;P &middot; Moody&apos;s &middot; Fitch</span>
+        <span className="bonds-panel-subtitle">Sovereign ratings by S&amp;P &middot; Moody&apos;s &middot; Fitch{creditRatingsAsOf ? ` (as of ${new Date(creditRatingsAsOf + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})` : ''}</span>
       </div>
 
       {/* KPI Strip */}

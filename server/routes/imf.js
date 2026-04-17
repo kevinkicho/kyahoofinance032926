@@ -134,34 +134,54 @@ router.get('/', async (req, res) => {
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
+    const ROUTE_TIMEOUT = 15000;
+    const routeTimer = setTimeout(() => {
+      if (!res.headersSent) {
+        console.warn('[IMF] Route timeout — responding with partial data');
+        const fallback = readLatestCache('imf');
+        if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
+        res.status(504).json({ error: 'IMF upstream timeout', isCurrent: false });
+      }
+    }, ROUTE_TIMEOUT);
+
     const weoCodes = WEO_COUNTRIES.map(c => c.weoCode);
     const weoForecasts = {};
-
-    for (const { key, subject } of WEO_SUBJECTS) {
-      try {
+    const weoResults = await Promise.allSettled(
+      WEO_SUBJECTS.map(async ({ key, subject }) => {
         trackApiCall('IMF WEO');
         const data = await fetchWEOIndicator(subject, weoCodes);
-        if (Object.keys(data).length > 0) weoForecasts[key] = data;
-      } catch (e) {
-        console.warn('[IMF] WEO fetch failed for', key, e.message);
+        return { key, data };
+      })
+    );
+    for (const r of weoResults) {
+      if (r.status === 'fulfilled' && r.value.data && Object.keys(r.value.data).length > 0) {
+        weoForecasts[r.value.key] = r.value.data;
+      } else if (r.status === 'rejected') {
+        console.warn('[IMF] WEO fetch failed:', r.reason?.message || r.reason);
       }
     }
 
-    let ifsReserves = null;
-    try {
-      trackApiCall('IMF IFS');
-      const reserveCodes = WEO_COUNTRIES.map(c => c.weoCode);
-      ifsReserves = await fetchIFSData('RAXFSFX', reserveCodes);
-    } catch (e) {
-      console.warn('[IMF] IFS reserves fetch failed:', e.message);
-    }
+    const weoHasData = Object.keys(weoForecasts).length > 0;
 
+    let ifsReserves = null;
     let cofer = null;
-    try {
-      trackApiCall('IMF COFER');
-      cofer = await fetchCOFER();
-    } catch (e) {
-      console.warn('[IMF] COFER fetch failed:', e.message);
+    if (weoHasData) {
+      try {
+        trackApiCall('IMF IFS');
+        const reserveCodes = WEO_COUNTRIES.map(c => c.weoCode);
+        ifsReserves = await fetchIFSData('RAXFSFX', reserveCodes);
+      } catch (e) {
+        console.warn('[IMF] IFS reserves fetch failed:', e.message);
+      }
+
+      try {
+        trackApiCall('IMF COFER');
+        cofer = await fetchCOFER();
+      } catch (e) {
+        console.warn('[IMF] COFER fetch failed:', e.message);
+      }
+    } else {
+      console.warn('[IMF] All WEO fetches failed — skipping IFS/COFER');
     }
 
     const countries = WEO_COUNTRIES.map(c => {
@@ -190,6 +210,7 @@ router.get('/', async (req, res) => {
     _sources.imfIFS_Reserves = ifsReserves != null && Object.keys(ifsReserves).length > 0;
     _sources.imfCOFER = cofer != null && Object.keys(cofer).length > 0;
 
+    const anySourceLive = Object.values(_sources).some(v => v === true);
     const result = {
       countries,
       weoForecasts,
@@ -199,10 +220,14 @@ router.get('/', async (req, res) => {
       lastUpdated: today,
     };
 
-    writeDailyCache('imf', result);
+    clearTimeout(routeTimer);
+    if (res.headersSent) return;
+    if (anySourceLive) writeDailyCache('imf', result);
     cache.set(cacheKey, result, 3600);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
+    res.json({ ...result, fetchedOn: today, isCurrent: anySourceLive });
   } catch (error) {
+    clearTimeout(routeTimer);
+    if (res.headersSent) return;
     console.error('IMF API error:', error);
     const fallback = readLatestCache('imf');
     if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });

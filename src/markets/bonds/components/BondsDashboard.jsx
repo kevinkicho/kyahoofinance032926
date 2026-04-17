@@ -14,7 +14,7 @@ import './BondsDashboard.css';
 const stopDrag = (e) => e.stopPropagation();
 
 function BondsDashboard({
-  yieldCurveData, creditRatingsData, spreadIndicators, spreadData, durationLadderData,
+  yieldCurveData, creditRatingsData, creditRatingsAsOf, spreadIndicators, spreadData, durationLadderData, durationLadderMeta,
   breakevensData, fredYieldHistory, treasuryRates, fedFundsFutures, yieldHistory,
   mortgageSpread, tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory,
   m2HistoryData, auctionData, nationalDebt, spreadHistory, cpiComponents, debtToGdpHistory,
@@ -35,6 +35,8 @@ function BondsDashboard({
       { i: 'cpi',     x: 0, y: 10, w: 4, h: 3 },
       { i: 'debtgdp', x: 4, y: 10, w: 4, h: 3 },
       { i: 'breakevens', x: 8, y: 10, w: 4, h: 3 },
+      { i: 'duration', x: 0, y: 13, w: 6, h: 4 },
+      { i: 'macro',   x: 6, y: 13, w: 6, h: 4 },
     ]
   };
 
@@ -260,9 +262,9 @@ function BondsDashboard({
             <span className="bonds-panel-title">Credit Ratings</span>
           </div>
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {creditRatingsData && <CreditMatrix creditRatingsData={creditRatingsData} lastUpdated={lastUpdated} />}
+            {creditRatingsData && <CreditMatrix creditRatingsData={creditRatingsData} creditRatingsAsOf={creditRatingsAsOf} lastUpdated={lastUpdated} />}
           </div>
-          <DataFooter source="S&P / Moody's / Fitch" timestamp={lastUpdated} isLive={false} fetchLog={fetchLog} />
+          <DataFooter source="S&P / Moody's / Fitch" timestamp={lastUpdated} isLive={!!creditRatingsAsOf} fetchLog={fetchLog} />
         </div>
 
         {/* Curve Spreads */}
@@ -330,6 +332,31 @@ function BondsDashboard({
             {breakevensData && <BreakevenMonitor breakevensData={breakevensData} lastUpdated={lastUpdated} />}
           </div>
           <DataFooter source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={!!breakevensData?.current?.be5y} fetchLog={fetchLog} />
+        </div>
+
+        {/* Duration Ladder — US Treasury debt by maturity */}
+        <div key="duration" className="bonds-bento-card">
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
+            <DurationLadder durationLadderData={durationLadderData} durationLadderMeta={durationLadderMeta} treasuryRates={null} fedFundsFutures={fedFundsFutures} />
+          </div>
+          <DataFooter source="Treasury Fiscal Data" timestamp={lastUpdated} isLive={!!durationLadderMeta} fetchLog={fetchLog} />
+        </div>
+
+        {/* Macro Indicators */}
+        <div key="macro" className="bonds-bento-card">
+          <div className="bonds-panel-title-row bento-panel-title-row">
+            <span className="bonds-panel-title">Macro Indicators</span>
+          </div>
+          <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
+            {macroData && Object.keys(macroData).length > 0 ? (
+              <div className="bonds-metrics-grid">
+                {Object.entries(macroData).map(([key, val]) => (
+                  val != null ? <div key={key} className="bonds-metric-row"><span className="bonds-metric-name">{key}</span><span className="bonds-metric-num"><MetricValue value={val} format={v => typeof v === 'number' ? v.toFixed(1) : v} seriesKey={key} timestamp={lastUpdated} /></span></div> : null
+                ))}
+              </div>
+            ) : <div className="bonds-empty">No macro data available</div>}
+          </div>
+          <DataFooter source="FRED" timestamp={lastUpdated} isLive={macroData && Object.keys(macroData).length > 0} fetchLog={fetchLog} />
         </div>
       </BentoWrapper>
     </div>

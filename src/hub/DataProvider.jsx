@@ -100,29 +100,59 @@ function hasNonNullData(d) {
   return nonNull >= 2;
 }
 
+const STRUCTURAL_GUARDS = {
+  bonds:          d => d.yieldCurveData?.length >= 3,
+  commodities:    d => Array.isArray(d.cotData) ? d.cotData.length >= 2 : true,
+  sentiment:      d => Array.isArray(d.currencies) ? d.currencies.length >= 4 : true,
+  globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
+  credit:         d => d.spreadData?.history?.dates?.length >= 6,
+  crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
+  equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
+  calendar:       d => Array.isArray(d.economicEvents) ? d.economicEvents.length >= 5 : true,
+  derivatives:    d => Array.isArray(d.vixTermStructure) ? d.vixTermStructure.length >= 2 : true,
+  insurance:      d => Array.isArray(d.combinedRatioData) ? d.combinedRatioData.length >= 2 : true,
+  realEstate:     d => Array.isArray(d.reitData) ? d.reitData.length >= 2 : true,
+  fx:             d => Array.isArray(d.fredFxRates) ? d.fredFxRates.length >= 2 : true,
+  imf:            d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
+  worldbank:      d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
+};
+
+function passesStructuralGuard(id, d) {
+  const guard = STRUCTURAL_GUARDS[id];
+  if (!guard) return true;
+  try {
+    return guard(d);
+  } catch {
+    return false;
+  }
+}
+
 function applyResult(prev, result) {
   const id = result.marketId;
   if (result.ok) {
     const d = result.data;
     const hasRealData = hasNonNullData(d);
+    const structuralOk = hasRealData && passesStructuralGuard(id, d);
     const ts = d?.lastUpdated || tsNow();
-    const isCurrent = hasRealData ? (d?.isCurrent != null ? !!d.isCurrent : !!d?.isLive) : false;
+    const isCurrent = structuralOk ? (d?.isCurrent != null ? !!d.isCurrent : !!d?.isLive) : false;
     if (!hasRealData) {
       console.warn(`[DataProvider] ⚠ ${id} returned data but hasNonNullData=false — treating as empty`);
+    } else if (!structuralOk) {
+      console.warn(`[DataProvider] ⚠ ${id} passed hasNonNullData but failed structural guard — treating as empty`);
     }
-    console.log(`[DataProvider] ✓ ${id} isLive=${hasRealData} isCurrent=${isCurrent} fetchedOn=${d?.fetchedOn || 'n/a'}`);
+    console.log(`[DataProvider] ✓ ${id} isLive=${structuralOk} isCurrent=${isCurrent} fetchedOn=${d?.fetchedOn || 'n/a'}`);
     return {
       ...prev,
       [id]: {
-        data: hasRealData ? d : null,
+        data: structuralOk ? d : null,
         isLoading: false,
-        isLive: hasRealData,
-        lastUpdated: hasRealData ? ts : null,
-        fetchedOn: hasRealData ? (d?.fetchedOn || null) : null,
+        isLive: structuralOk,
+        lastUpdated: structuralOk ? ts : null,
+        fetchedOn: structuralOk ? (d?.fetchedOn || null) : null,
         isCurrent,
-        error: hasRealData ? null : 'API returned empty data',
-        fetchLog: [{ time: tsNow(), url: MARKET_ENDPOINTS[id], status: result.status, duration: result.duration, ...(hasRealData ? {} : { warning: 'empty response' }) }, ...(prev[id]?.fetchLog || [])].slice(0, 20),
-        provenance: hasRealData && d?._sources ? { sources: d._sources } : prev[id]?.provenance || {},
+        error: structuralOk ? null : (hasRealData ? 'API returned insufficient data' : 'API returned empty data'),
+        fetchLog: [{ time: tsNow(), url: MARKET_ENDPOINTS[id], status: result.status, duration: result.duration, ...(structuralOk ? {} : { warning: hasRealData ? 'failed structural guard' : 'empty response' }) }, ...(prev[id]?.fetchLog || [])].slice(0, 20),
+        provenance: structuralOk && d?._sources ? { sources: d._sources } : prev[id]?.provenance || {},
       },
     };
   }

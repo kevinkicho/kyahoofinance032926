@@ -29,6 +29,11 @@ const MACRO_FRED_RATES = {
   CA: { id: 'IRSTCB01CAM156N', name: 'Canada',         flag: '🇨🇦', bank: 'BoC'      },
   AU: { id: 'IRSTCB01AUM156N', name: 'Australia',      flag: '🇦🇺', bank: 'RBA'      },
   SE: { id: 'IRSTCB01SEM156N', name: 'Sweden',         flag: '🇸🇪', bank: 'Riksbank' },
+  CN: { id: 'INTDSRCNM193N',  name: 'China',          flag: '🇨🇳', bank: 'PBoC'    },
+  IN: { id: 'IRSTCI01INM156N', name: 'India',          flag: '🇮🇳', bank: 'RBI'     },
+  BR: { id: 'INTDSRBRM193N',  name: 'Brazil',         flag: '🇧🇷', bank: 'BCB'     },
+  KR: { id: 'IRSTCI01KRM156N', name: 'South Korea',   flag: '🇰🇷', bank: 'BoK'     },
+  MX: { id: 'IRSTCI01MXM156N', name: 'Mexico',        flag: '🇲🇽', bank: 'Banxico'  },
 };
 
 const MACRO_MOCK_RATES = {
