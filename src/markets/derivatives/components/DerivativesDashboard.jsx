@@ -92,7 +92,7 @@ function DerivativesDashboard({
   }, [optionsFlow]);
 
   const termStatus = useMemo(() => {
-    if (!vixTermStructure?.values?.length >= 2) return null;
+    if (!vixTermStructure?.values?.length || vixTermStructure.values.length < 2) return null;
     const spot = vixTermStructure.values[0];
     const back = vixTermStructure.values[vixTermStructure.values.length - 1];
     const pct = Math.round(((back - spot) / spot) * 1000) / 10;

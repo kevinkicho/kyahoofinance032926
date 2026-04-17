@@ -101,7 +101,7 @@ function hasNonNullData(d) {
 }
 
 const STRUCTURAL_GUARDS = {
-  bonds:          d => d.yieldCurveData?.length >= 3,
+  bonds:          d => { const yd = d.yieldCurveData; if (!yd || typeof yd !== 'object') return false; return Object.values(yd).filter(v => v && typeof v === 'object' && Object.values(v).some(x => x != null)).length >= 3; },
   commodities:    d => Array.isArray(d.cotData) ? d.cotData.length >= 2 : true,
   sentiment:      d => Array.isArray(d.currencies) ? d.currencies.length >= 4 : true,
   globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
@@ -109,7 +109,7 @@ const STRUCTURAL_GUARDS = {
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
   equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
   calendar:       d => Array.isArray(d.economicEvents) ? d.economicEvents.length >= 5 : true,
-  derivatives:    d => Array.isArray(d.vixTermStructure) ? d.vixTermStructure.length >= 2 : true,
+  derivatives:    d => d.vixTermStructure?.values?.length >= 2,
   insurance:      d => Array.isArray(d.combinedRatioData) ? d.combinedRatioData.length >= 2 : true,
   realEstate:     d => Array.isArray(d.reitData) ? d.reitData.length >= 2 : true,
   fx:             d => Array.isArray(d.fredFxRates) ? d.fredFxRates.length >= 2 : true,
@@ -291,21 +291,32 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
       console.log(`[DataProvider] Batch ${Math.floor(i / BATCH_CONCURRENCY) + 1}: [${batch.join(', ')}]`);
       const results = await Promise.allSettled(batch.map(id => fetchMarket(id)));
+      console.log(`[DataProvider] Batch ${Math.floor(i / BATCH_CONCURRENCY) + 1} settled: ${results.filter(r => r.status === 'fulfilled').length}/${results.length} fulfilled`);
 
-      if (!mountedRef.current) { fetchingRef.current = false; return; }
+      if (!mountedRef.current) { console.warn('[DataProvider] Component unmounted during batch'); fetchingRef.current = false; return; }
 
-      setMarkets(prev => {
-        let next = { ...prev };
-        for (const settled of results) {
-          if (settled.status === 'fulfilled') {
-            next = applyResult(next, settled.value);
+      try {
+        setMarkets(prev => {
+          let next = { ...prev };
+          for (const settled of results) {
+            if (settled.status === 'fulfilled') {
+              next = applyResult(next, settled.value);
+            } else {
+              console.warn(`[DataProvider] Fetch rejected for ${settled.reason?.marketId || 'unknown'}:`, settled.reason?.message || settled.reason);
+              const mid = settled.reason?.marketId;
+              if (mid && next[mid]) next[mid] = { ...next[mid], isLoading: false, error: settled.reason?.message || 'Fetch failed' };
+            }
           }
-        }
-        next = maybeComputeFederated(prev, next);
-        return next;
-      });
+          next = maybeComputeFederated(prev, next);
+          return next;
+        });
+        console.log(`[DataProvider] Batch ${Math.floor(i / BATCH_CONCURRENCY) + 1} state applied`);
+      } catch (err) {
+        console.error('[DataProvider] setMarkets error:', err);
+      }
     }
 
+    console.log(`[DataProvider] ✅ All fetches complete`);
     fetchingRef.current = false;
     setGlobalLoading(false);
     const liveCount = Object.keys(MARKET_ENDPOINTS).length + Object.keys(FEDERATED_MARKETS).length;
@@ -341,10 +352,11 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     else if (MARKET_ENDPOINTS[marketId]) { fetchSingleMarket(marketId); }
   }, [fetchSingleMarket, fetchFederatedMarket]);
 
-  useEffect(() => { if (refreshKey > 0) fetchAllMarkets(); }, [refreshKey, fetchAllMarkets]);
+  useEffect(() => { fetchAllMarkets(); }, [refreshKey, fetchAllMarkets]);
   useInterval(refetchAll, autoRefresh ? 300000 : null);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
 

@@ -67,7 +67,6 @@ function getBondsProps(centralData) {
 function BondsMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getBondsProps(centralData);
-
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
