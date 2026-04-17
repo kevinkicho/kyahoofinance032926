@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { WEO_SNAPSHOT } from '../dataSources/weoSnapshot.js';
 
 const router = Router();
 
@@ -181,27 +182,41 @@ router.get('/', async (req, res) => {
         console.warn('[IMF] COFER fetch failed:', e.message);
       }
     } else {
-      console.warn('[IMF] All WEO fetches failed — skipping IFS/COFER');
+      console.warn('[IMF] All WEO fetches failed — using static WEO snapshot');
     }
 
-    const countries = WEO_COUNTRIES.map(c => {
-      const entry = { code: c.code, name: c.name, flag: c.flag };
-      for (const [key] of Object.entries(WEO_SUBJECTS)) {
-        const yearlyData = weoForecasts[key]?.[c.code];
-        if (yearlyData) {
-          const latestYear = Object.keys(yearlyData).sort().pop();
-          const prevYear = String(parseInt(latestYear) - 1);
-          entry[key] = yearlyData[latestYear] != null ? Math.round(yearlyData[latestYear] * 10) / 10 : null;
-          entry[key + 'Prev'] = yearlyData[prevYear] != null ? Math.round(yearlyData[prevYear] * 10) / 10 : null;
+    let isStaticFallback = false;
+    let countries;
+    if (weoHasData) {
+      countries = WEO_COUNTRIES.map(c => {
+        const entry = { code: c.code, name: c.name, flag: c.flag };
+        for (const [key] of Object.entries(WEO_SUBJECTS)) {
+          const yearlyData = weoForecasts[key]?.[c.code];
+          if (yearlyData) {
+            const latestYear = Object.keys(yearlyData).sort().pop();
+            const prevYear = String(parseInt(latestYear) - 1);
+            entry[key] = yearlyData[latestYear] != null ? Math.round(yearlyData[latestYear] * 10) / 10 : null;
+            entry[key + 'Prev'] = yearlyData[prevYear] != null ? Math.round(yearlyData[prevYear] * 10) / 10 : null;
+          }
         }
-      }
-      if (ifsReserves?.[c.code]) {
-        const yrs = Object.keys(ifsReserves[c.code]).sort();
-        entry.intlReserves = ifsReserves[c.code][yrs[yrs.length - 1]] != null
-          ? Math.round(ifsReserves[c.code][yrs[yrs.length - 1]] / 1e9 * 10) / 10 : null;
-      }
-      return entry;
-    });
+        if (ifsReserves?.[c.code]) {
+          const yrs = Object.keys(ifsReserves[c.code]).sort();
+          entry.intlReserves = ifsReserves[c.code][yrs[yrs.length - 1]] != null
+            ? Math.round(ifsReserves[c.code][yrs[yrs.length - 1]] / 1e9 * 10) / 10 : null;
+        }
+        return entry;
+      });
+    } else {
+      isStaticFallback = true;
+      countries = WEO_SNAPSHOT.countries.map(c => {
+        const entry = { code: c.code, name: c.name, flag: c.flag };
+        for (const key of WEO_SNAPSHOT.indicators) {
+          entry[key] = c[key] ?? null;
+          entry[key + 'Prev'] = c[key + 'Prev'] ?? null;
+        }
+        return entry;
+      });
+    }
 
     const _sources = {};
     for (const [key] of Object.entries(WEO_SUBJECTS)) {
@@ -209,6 +224,12 @@ router.get('/', async (req, res) => {
     }
     _sources.imfIFS_Reserves = ifsReserves != null && Object.keys(ifsReserves).length > 0;
     _sources.imfCOFER = cofer != null && Object.keys(cofer).length > 0;
+    if (isStaticFallback) {
+      for (const key of WEO_SNAPSHOT.indicators) {
+        _sources[`imfWEO_${key}`] = true;
+      }
+      _sources.imfWEO_snapshot = true;
+    }
 
     const anySourceLive = Object.values(_sources).some(v => v === true);
     const result = {
@@ -216,15 +237,16 @@ router.get('/', async (req, res) => {
       weoForecasts,
       ifsReserves,
       cofer,
+      snapshot: isStaticFallback ? { vintage: WEO_SNAPSHOT.vintage, asOf: WEO_SNAPSHOT.asOf } : null,
       _sources,
       lastUpdated: today,
     };
 
     clearTimeout(routeTimer);
     if (res.headersSent) return;
-    if (anySourceLive) writeDailyCache('imf', result);
+    if (!isStaticFallback && anySourceLive) writeDailyCache('imf', result);
     cache.set(cacheKey, result, 3600);
-    res.json({ ...result, fetchedOn: today, isCurrent: anySourceLive });
+    res.json({ ...result, fetchedOn: today, isCurrent: !isStaticFallback && anySourceLive });
   } catch (error) {
     clearTimeout(routeTimer);
     if (res.headersSent) return;

@@ -1,0 +1,19 @@
+export const WEO_SNAPSHOT = {
+  asOf: '2025-04',
+  vintage: 'IMF World Economic Outlook, April 2025',
+  indicators: ['gdpReal', 'inflation', 'unemployment', 'gdpPerCapita', 'currentAccount', 'govDebt', 'govRevenue', 'investment', 'pop'],
+  countries: [
+    { code: 'US', name: 'United States',  flag: '\u{1F1FA}\u{1F1F8}', gdpReal: 1.8, gdpRealPrev: 2.5, inflation: 2.7, inflationPrev: 3.4, unemployment: 4.2, unemploymentPrev: 3.8, gdpPerCapita: 85100, currentAccount: -3.0, govDebt: 123.3, govRevenue: 33.5, investment: 21.3, pop: 341 },
+    { code: 'EA', name: 'Euro Area',      flag: '\u{1F1EA}\u{1F1FA}', gdpReal: 0.8, gdpRealPrev: 0.9, inflation: 2.3, inflationPrev: 5.4, unemployment: 6.5, unemploymentPrev: 6.7, gdpPerCapita: 44200, currentAccount: 3.2, govDebt: 88.9, govRevenue: 45.2, investment: 22.8, pop: 346 },
+    { code: 'GB', name: 'United Kingdom', flag: '\u{1F1EC}\u{1F1E7}', gdpReal: 1.5, gdpRealPrev: 0.4, inflation: 2.5, inflationPrev: 7.3, unemployment: 4.3, unemploymentPrev: 4.1, gdpPerCapita: 52400, currentAccount: -2.8, govDebt: 98.3, govRevenue: 39.8, investment: 17.9, pop: 69 },
+    { code: 'JP', name: 'Japan',          flag: '\u{1F1EF}\u{1F1F5}', gdpReal: 1.1, gdpRealPrev: 1.9, inflation: 2.3, inflationPrev: 3.3, unemployment: 2.5, unemploymentPrev: 2.6, gdpPerCapita: 34800, currentAccount: 3.7, govDebt: 251.0, govRevenue: 34.1, investment: 25.2, pop: 124 },
+    { code: 'CA', name: 'Canada',         flag: '\u{1F1E8}\u{1F1E6}', gdpReal: 1.4, gdpRealPrev: 1.1, inflation: 2.4, inflationPrev: 3.7, unemployment: 6.3, unemploymentPrev: 5.4, gdpPerCapita: 53300, currentAccount: -0.9, govDebt: 106.5, govRevenue: 40.3, investment: 23.1, pop: 40 },
+    { code: 'CN', name: 'China',          flag: '\u{1F1E8}\u{1F1F3}', gdpReal: 4.6, gdpRealPrev: 5.2, inflation: 1.0, inflationPrev: 0.2, unemployment: 5.1, unemploymentPrev: 5.2, gdpPerCapita: 12500, currentAccount: 1.3, govDebt: 83.6, govRevenue: 29.7, investment: 42.1, pop: 1426 },
+    { code: 'IN', name: 'India',          flag: '\u{1F1EE}\u{1F1F3}', gdpReal: 6.5, gdpRealPrev: 6.8, inflation: 4.6, inflationPrev: 5.4, unemployment: 7.8, unemploymentPrev: 7.7, gdpPerCapita: 2700, currentAccount: -1.2, govDebt: 82.5, govRevenue: 20.2, investment: 33.0, pop: 1460 },
+    { code: 'BR', name: 'Brazil',         flag: '\u{1F1E7}\u{1F1F7}', gdpReal: 2.2, gdpRealPrev: 2.9, inflation: 4.5, inflationPrev: 4.6, unemployment: 7.8, unemploymentPrev: 7.9, gdpPerCapita: 10200, currentAccount: -1.5, govDebt: 87.0, govRevenue: 36.0, investment: 16.5, pop: 217 },
+    { code: 'KR', name: 'South Korea',   flag: '\u{1F1F0}\u{1F1F7}', gdpReal: 2.2, gdpRealPrev: 1.7, inflation: 1.9, inflationPrev: 3.6, unemployment: 2.7, unemploymentPrev: 2.7, gdpPerCapita: 34700, currentAccount: 4.1, govDebt: 54.3, govRevenue: 29.1, investment: 30.4, pop: 52 },
+    { code: 'AU', name: 'Australia',      flag: '\u{1F1E6}\u{1F1FA}', gdpReal: 1.9, gdpRealPrev: 2.1, inflation: 3.6, inflationPrev: 5.6, unemployment: 4.0, unemploymentPrev: 3.7, gdpPerCapita: 64700, currentAccount: -1.3, govDebt: 51.6, govRevenue: 36.2, investment: 24.0, pop: 27 },
+    { code: 'MX', name: 'Mexico',         flag: '\u{1F1F2}\u{1F1FD}', gdpReal: 1.5, gdpRealPrev: 3.2, inflation: 3.6, inflationPrev: 5.5, unemployment: 2.8, unemploymentPrev: 2.8, gdpPerCapita: 14800, currentAccount: -1.4, govDebt: 52.6, govRevenue: 24.5, investment: 24.2, pop: 131 },
+    { code: 'SE', name: 'Sweden',         flag: '\u{1F1F8}\u{1F1EA}', gdpReal: 1.4, gdpRealPrev: 0.7, inflation: 2.8, inflationPrev: 6.1, unemployment: 8.0, unemploymentPrev: 8.4, gdpPerCapita: 57800, currentAccount: 5.0, govDebt: 35.8, govRevenue: 50.0, investment: 26.0, pop: 11 },
+  ],
+};

@@ -97,10 +97,14 @@ function hasNonNullData(d) {
         } else {
           const childValues = Object.values(v);
           if (childValues.length > 0 && childValues.some(x => x != null && x !== false)) {
+            let hadSource = false;
             for (const cv of childValues) {
-              if (cv != null && cv !== false && typeof cv === 'object' && !Array.isArray(cv) && cv._source === true) nonNull++;
+              if (cv != null && cv !== false && typeof cv === 'object' && !Array.isArray(cv) && cv._source === true) {
+                nonNull++;
+                hadSource = true;
+              }
             }
-            if (nonNull === 0 && childValues.some(x => x != null && x !== false)) nonNull++;
+            if (!hadSource) nonNull++;
           }
         }
       } else {
