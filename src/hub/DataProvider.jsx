@@ -31,6 +31,7 @@ const MARKET_ENDPOINTS = {
   sentiment:         '/api/sentiment',
   calendar:          '/api/calendar',
   imf:               '/api/imf',
+  worldbank:         '/api/worldbank',
 };
 
 const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);

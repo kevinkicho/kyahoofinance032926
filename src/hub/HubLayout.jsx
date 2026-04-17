@@ -63,6 +63,7 @@ const MARKET_COMPONENTS = {
   commodities:       lazy(() => import('../markets/commodities/CommoditiesMarket')),
   globalMacro:       lazy(() => import('../markets/globalMacro/GlobalMacroMarket')),
   imf:               lazy(() => import('../markets/imf/ImfMarket')),
+  worldbank:         lazy(() => import('../markets/worldbank/WorldBankMarket')),
   equitiesDeepDive:  lazy(() => import('../markets/equitiesDeepDive/EquitiesDeepDiveMarket')),
   crypto:            lazy(() => import('../markets/crypto/CryptoMarket')),
   credit:            lazy(() => import('../markets/credit/CreditMarket')),
