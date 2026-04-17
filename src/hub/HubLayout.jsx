@@ -71,6 +71,7 @@ const MARKET_COMPONENTS = {
   calendar:       lazy(() => import('../markets/calendar/CalendarMarket')),
   bls:            lazy(() => import('../markets/bls/BlsMarket')),
   eia:            lazy(() => import('../markets/eia/EiaMarket')),
+  census:          lazy(() => import('../markets/census/CensusMarket')),
   alerts:            lazy(() => import('../markets/alerts/AlertsMarket')),
   watchlist:         lazy(() => import('../markets/watchlist/WatchlistMarket')),
   analytics:         lazy(() => import('../markets/analytics/AnalyticsMarket')),

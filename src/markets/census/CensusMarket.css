@@ -1,0 +1,112 @@
+.census-market {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  min-height: 0;
+  flex: 1;
+}
+
+.census-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.census-status-live {
+  color: var(--accent-green, #4caf50);
+  font-weight: 600;
+}
+
+.census-stale-badge {
+  background: var(--warning-bg, #553300);
+  color: var(--warning-text, #ffa726);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.census-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.census-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary, #ddd);
+  margin-bottom: 4px;
+  border-left: 3px solid var(--accent-purple, #ab47bc);
+  padding-left: 8px;
+}
+
+.census-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.census-kpi-card {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.census-kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.census-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary, #eee);
+}
+
+.census-kpi-change {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.census-kpi-change.positive { color: var(--accent-green, #4caf50); }
+.census-kpi-change.negative { color: var(--accent-red, #ef5350); }
+
+.census-kpi-unit {
+  font-size: 0.7rem;
+  color: var(--text-muted, #666);
+}
+
+.census-chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.census-mini-chart {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 180px;
+}
+
+.census-mini-chart h4 {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted, #aaa);
+  font-weight: 500;
+}
