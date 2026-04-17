@@ -30,7 +30,7 @@ function ImfMarket({ centralData } = {}) {
     <div className="imf-market">
       <div className="imf-status-bar">
         <span className={props.isLive ? 'imf-status-live' : ''}>
-          {props.isLive ? '● FETCHED · IMF WEO / IFS / COFER' : (props.error ? `○ ${props.error}` : '○ No data received — IMF API may be temporarily unavailable')}
+          {props.isLive ? '● FETCHED · IMF WEO / IFS / COFER' : (props.error ? `○ ${props.error}` : '○ Data source temporarily unavailable')}
         </span>
         {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
         {!props.isCurrent && props.fetchedOn && <span className="imf-stale-badge">Stale · fetched {props.fetchedOn}</span>}
