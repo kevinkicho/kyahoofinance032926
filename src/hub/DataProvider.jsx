@@ -291,9 +291,8 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
       console.log(`[DataProvider] Batch ${Math.floor(i / BATCH_CONCURRENCY) + 1}: [${batch.join(', ')}]`);
       const results = await Promise.allSettled(batch.map(id => fetchMarket(id)));
-      console.log(`[DataProvider] Batch ${Math.floor(i / BATCH_CONCURRENCY) + 1} settled: ${results.filter(r => r.status === 'fulfilled').length}/${results.length} fulfilled`);
 
-      if (!mountedRef.current) { console.warn('[DataProvider] Component unmounted during batch'); fetchingRef.current = false; return; }
+      if (!mountedRef.current) { fetchingRef.current = false; return; }
 
       try {
         setMarkets(prev => {
@@ -302,7 +301,6 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             if (settled.status === 'fulfilled') {
               next = applyResult(next, settled.value);
             } else {
-              console.warn(`[DataProvider] Fetch rejected for ${settled.reason?.marketId || 'unknown'}:`, settled.reason?.message || settled.reason);
               const mid = settled.reason?.marketId;
               if (mid && next[mid]) next[mid] = { ...next[mid], isLoading: false, error: settled.reason?.message || 'Fetch failed' };
             }
@@ -310,7 +308,6 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
           next = maybeComputeFederated(prev, next);
           return next;
         });
-        console.log(`[DataProvider] Batch ${Math.floor(i / BATCH_CONCURRENCY) + 1} state applied`);
       } catch (err) {
         console.error('[DataProvider] setMarkets error:', err);
       }
