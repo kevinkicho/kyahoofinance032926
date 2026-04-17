@@ -70,6 +70,7 @@ const MARKET_COMPONENTS = {
   sentiment:         lazy(() => import('../markets/sentiment/SentimentMarket')),
   calendar:       lazy(() => import('../markets/calendar/CalendarMarket')),
   bls:            lazy(() => import('../markets/bls/BlsMarket')),
+  eia:            lazy(() => import('../markets/eia/EiaMarket')),
   alerts:            lazy(() => import('../markets/alerts/AlertsMarket')),
   watchlist:         lazy(() => import('../markets/watchlist/WatchlistMarket')),
   analytics:         lazy(() => import('../markets/analytics/AnalyticsMarket')),

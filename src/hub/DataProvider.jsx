@@ -33,6 +33,7 @@ const MARKET_ENDPOINTS = {
   imf:               '/api/imf',
   worldbank:         '/api/worldbank',
   bls:               '/api/bls',
+  eia:               '/api/eia',
 };
 
 const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);
@@ -131,6 +132,7 @@ const STRUCTURAL_GUARDS = {
   imf:            d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
   worldbank:      d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
   bls:            d => d.series && Object.values(d.series).some(s => s._source),
+  eia:            d => d.electricity?.residential != null || d.co2Emissions?.total != null,
 };
 
 function passesStructuralGuard(id, d) {

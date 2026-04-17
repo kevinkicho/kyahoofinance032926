@@ -1,0 +1,133 @@
+.eia-market {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  min-height: 0;
+  flex: 1;
+}
+
+.eia-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color, #333);
+}
+
+.eia-status-live {
+  color: var(--accent-green, #4caf50);
+  font-weight: 600;
+}
+
+.eia-stale-badge {
+  background: var(--warning-bg, #553300);
+  color: var(--warning-text, #ffa726);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.eia-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.eia-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary, #ddd);
+  margin-bottom: 4px;
+  border-left: 3px solid var(--accent-orange, #ffa726);
+  padding-left: 8px;
+}
+
+.eia-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.eia-kpi-card {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eia-kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.eia-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary, #eee);
+}
+
+.eia-kpi-change {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.eia-kpi-change.positive { color: var(--accent-green, #4caf50); }
+.eia-kpi-change.negative { color: var(--accent-red, #ef5350); }
+
+.eia-kpi-unit {
+  font-size: 0.7rem;
+  color: var(--text-muted, #666);
+}
+
+.eia-chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.eia-mini-chart {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 180px;
+}
+
+.eia-mini-chart h4 {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted, #aaa);
+  font-weight: 500;
+}
+
+.eia-co2-table {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.eia-co2-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-color, #222);
+}
+
+.eia-co2-row:last-child { border-bottom: none; }
+
+.eia-co2-sector { font-size: 0.8rem; color: var(--text-secondary, #bbb); }
+.eia-co2-value { font-size: 0.85rem; font-weight: 600; color: var(--text-primary, #eee); }
+.eia-co2-unit { font-size: 0.7rem; color: var(--text-muted, #666); margin-left: 4px; }
