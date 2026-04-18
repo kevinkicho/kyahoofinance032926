@@ -18,7 +18,7 @@ function BondsDashboard({
   breakevensData, fredYieldHistory, treasuryRates, fedFundsFutures, yieldHistory,
   mortgageSpread, tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory,
   m2HistoryData, auctionData, nationalDebt, spreadHistory, cpiComponents, debtToGdpHistory,
-  isLive, lastUpdated, fetchLog, provenance,
+  isLive, lastUpdated, fetchLog, provenance, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -162,7 +162,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {yieldCurveData && <YieldCurve yieldCurveData={yieldCurveData} spreadIndicators={spreadIndicators} fredYieldHistory={fredYieldHistory} yieldHistory={yieldHistory} lastUpdated={lastUpdated} />}
           </div>
-          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={Object.keys(yieldCurveData).some(k => yieldCurveData[k] && Object.values(yieldCurveData[k]).some(v => v != null))} fetchLog={fetchLog} />
+          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={Object.keys(yieldCurveData).some(k => yieldCurveData[k] && Object.values(yieldCurveData[k]).some(v => v != null))} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Key Metrics */}
@@ -230,7 +230,7 @@ function BondsDashboard({
               </div>
             )}
           </div>
-          <DataFooter source="FRED / Treasury / World Bank" timestamp={lastUpdated} isLive={macroData && Object.values(macroData).some(v => v != null)} fetchLog={fetchLog} />
+          <DataFooter source="FRED / Treasury / World Bank" timestamp={lastUpdated} isLive={macroData && Object.values(macroData).some(v => v != null)} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Credit Spreads */}
@@ -242,7 +242,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {spreadData?.dates?.length ? <SpreadMonitor spreadData={spreadData} mortgageSpread={mortgageSpread} /> : <div className="bonds-empty">No spread data available</div>}
           </div>
-          <DataFooter source="FRED ICE BofA" timestamp={lastUpdated} isLive={spreadData?.dates?.length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED ICE BofA" timestamp={lastUpdated} isLive={spreadData?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Real Yields */}
@@ -253,7 +253,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {realYieldOption && <SafeECharts option={realYieldOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'TIPS Real Yields', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'DFII5' }, { id: 'DFII10' }, { id: 'DFII30' }], updatedAt: lastUpdated }} />}
           </div>
-          <DataFooter source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={realYieldHistory?.dates?.length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={realYieldHistory?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Credit Ratings */}
@@ -264,7 +264,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {creditRatingsData && <CreditMatrix creditRatingsData={creditRatingsData} creditRatingsAsOf={creditRatingsAsOf} lastUpdated={lastUpdated} />}
           </div>
-          <DataFooter source="S&P / Moody's / Fitch" timestamp={lastUpdated} isLive={!!creditRatingsAsOf} fetchLog={fetchLog} />
+          <DataFooter source="S&P / Moody's / Fitch" timestamp={lastUpdated} isLive={!!creditRatingsAsOf} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Curve Spreads */}
@@ -276,7 +276,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {spreadHistoryOption && <SafeECharts option={spreadHistoryOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spread History', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'T10Y2Y' }], updatedAt: lastUpdated }} />}
           </div>
-          <DataFooter source="FRED T10Y2Y / T10Y3M" timestamp={lastUpdated} isLive={spreadHistory?.dates?.length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED T10Y2Y / T10Y3M" timestamp={lastUpdated} isLive={spreadHistory?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Fed Balance Sheet */}
@@ -287,7 +287,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {fedBalanceOption && <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fed Balance Sheet', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'WALCL' }], updatedAt: lastUpdated }} />}
           </div>
-          <DataFooter source="FRED WALCL" timestamp={lastUpdated} isLive={fedBalanceSheetHistory?.dates?.length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED WALCL" timestamp={lastUpdated} isLive={fedBalanceSheetHistory?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* M2 Money Supply */}
@@ -298,7 +298,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {m2Option && <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'M2 Money Supply', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'M2SL' }], updatedAt: lastUpdated }} />}
           </div>
-          <DataFooter source="FRED M2SL" timestamp={lastUpdated} isLive={m2HistoryData?.dates?.length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED M2SL" timestamp={lastUpdated} isLive={m2HistoryData?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* CPI Components */}
@@ -309,7 +309,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {cpiOption && <SafeECharts option={cpiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CPI Components', source: 'FRED/BLS', endpoint: '/api/bonds', series: [{ id: 'CPIAUCSL' }, { id: 'CPILFESL' }], updatedAt: lastUpdated }} />}
           </div>
-          <DataFooter source="FRED CPIAUCSL / CPILFESL" timestamp={lastUpdated} isLive={cpiComponents?.dates?.length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED CPIAUCSL / CPILFESL" timestamp={lastUpdated} isLive={cpiComponents?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Debt-to-GDP */}
@@ -320,7 +320,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {debtToGdpOption && <SafeECharts option={debtToGdpOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Debt-to-GDP', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'GFDEBTN' }], updatedAt: lastUpdated }} />}
           </div>
-          <DataFooter source="FRED GFDEBTN / GDP" timestamp={lastUpdated} isLive={debtToGdpHistory?.dates?.length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED GFDEBTN / GDP" timestamp={lastUpdated} isLive={debtToGdpHistory?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Breakevens */}
@@ -331,7 +331,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {breakevensData && <BreakevenMonitor breakevensData={breakevensData} lastUpdated={lastUpdated} />}
           </div>
-          <DataFooter source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={!!breakevensData?.current?.be5y} fetchLog={fetchLog} />
+          <DataFooter source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={!!breakevensData?.current?.be5y} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Duration Ladder — US Treasury debt by maturity */}
@@ -339,7 +339,7 @@ function BondsDashboard({
           <div className="bonds-panel-content bento-panel-content" onMouseDown={stopDrag}>
             <DurationLadder durationLadderData={durationLadderData} durationLadderMeta={durationLadderMeta} treasuryRates={null} fedFundsFutures={fedFundsFutures} />
           </div>
-          <DataFooter source="Treasury Fiscal Data" timestamp={lastUpdated} isLive={!!durationLadderMeta} fetchLog={fetchLog} />
+          <DataFooter source="Treasury Fiscal Data" timestamp={lastUpdated} isLive={!!durationLadderMeta} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Macro Indicators */}
@@ -356,7 +356,7 @@ function BondsDashboard({
               </div>
             ) : <div className="bonds-empty">No macro data available</div>}
           </div>
-          <DataFooter source="FRED" timestamp={lastUpdated} isLive={macroData && Object.keys(macroData).length > 0} fetchLog={fetchLog} />
+          <DataFooter source="FRED" timestamp={lastUpdated} isLive={macroData && Object.keys(macroData).length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
       </BentoWrapper>
     </div>

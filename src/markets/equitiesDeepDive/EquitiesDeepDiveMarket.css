@@ -1,24 +1,2 @@
 .eqd-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); flex: 1; min-height: 0; overflow: hidden; }
 
-.eqd-status-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 14px;
-  font-size: 10px;
-  color: var(--text-dim);
-  border-bottom: 1px solid var(--border-subtle);
-  flex-shrink: 0;
-}
-
-.eqd-status-live { color: #6366f1; }
-
-.eqd-stale-badge {
-  background: #78350f;
-  color: #fcd34d;
-  border: 1px solid #92400e;
-  border-radius: 10px;
-  padding: 1px 8px;
-  font-size: 10px;
-  font-weight: 500;
-}

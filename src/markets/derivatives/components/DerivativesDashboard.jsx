@@ -22,7 +22,7 @@ const LAYOUT = {
 function DerivativesDashboard({
   volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment,
   volPremium, fredVixHistory, putCallRatio, skewIndex, skewHistory,
-  gammaExposure, vixPercentile, termSpread, fetchLog, isLive, lastUpdated,
+  gammaExposure, vixPercentile, termSpread, fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -219,7 +219,7 @@ function DerivativesDashboard({
               </div>
             )}
           </div>
-          <DataFooter source="Yahoo Finance / CBOE" timestamp={lastUpdated} isLive={!!vixTermStructure?.values?.length} fetchLog={fetchLog} />
+          <DataFooter source="Yahoo Finance / CBOE" timestamp={lastUpdated} isLive={!!vixTermStructure?.values?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* VIX Term Structure */}
@@ -231,7 +231,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX Term Structure', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!vixTermStructure?.dates?.length} fetchLog={fetchLog} />
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!vixTermStructure?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -244,7 +244,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX — 1 Year History', source: 'FRED', endpoint: '/api/derivatives', series: [{ id: 'VIXCLS' }], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!fredVixHistory?.dates?.length} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!fredVixHistory?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -257,7 +257,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'SKEW Index', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [{ id: 'SKEW' }], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!skewHistory?.dates?.length} fetchLog={fetchLog} />
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!skewHistory?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -270,7 +270,7 @@ function DerivativesDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Vol Surface (SPX)', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!volSurfaceData?.grid?.length} fetchLog={fetchLog} />
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!volSurfaceData?.grid?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -293,7 +293,7 @@ function DerivativesDashboard({
                 ))}
               </div>
             </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!optionsFlow?.length} fetchLog={fetchLog} />
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!optionsFlow?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
       </BentoWrapper>

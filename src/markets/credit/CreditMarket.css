@@ -18,14 +18,3 @@
 .credit-sub-tab:hover { color: var(--text-primary); }
 .credit-sub-tab.active { color: #06b6d4; border-bottom-color: #06b6d4; }
 
-.credit-status-bar {
-  display: flex; align-items: center; gap: 12px; padding: 4px 14px;
-  font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);
-}
-.credit-status-live { color: #06b6d4; }
-.credit-content { flex: 1; overflow: hidden; }
-
-.credit-stale-badge {
-  background: #164e63; color: #67e8f9; border: 1px solid #0e7490;
-  border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 500;
-}

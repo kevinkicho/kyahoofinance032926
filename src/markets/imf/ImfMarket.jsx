@@ -28,26 +28,14 @@ function ImfMarket({ centralData } = {}) {
 
   if (props.isLoading) return <MarketSkeleton />;
 
-  const statusText = props.snapshot
-    ? `○ WEO Snapshot · ${props.snapshot.vintage}`
-    : props.isLive
-      ? '● FETCHED · IMF WEO / IFS / COFER'
-      : (props.error ? `○ ${props.error}` : '○ Data source temporarily unavailable');
-
   return (
     <div className="imf-market">
-      <div className="imf-status-bar">
-        <span className={props.isLive ? 'imf-status-live' : ''}>
-          {statusText}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="imf-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
       <ImfDashboard
         countries={props.countries}
         weoForecasts={props.weoForecasts}
         ifsReserves={props.ifsReserves}
         cofer={props.cofer}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
         isLive={props.isLive || !!props.snapshot}
         lastUpdated={props.lastUpdated}

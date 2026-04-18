@@ -18,7 +18,7 @@ function InsuranceDashboard({
   reinsurancePricing, reinsurers, fredHyOasHistory,
   sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
   catLosses, combinedRatioHistory,
-  isLive, lastUpdated, fetchLog,
+  isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -120,7 +120,7 @@ function InsuranceDashboard({
               </div>
             )}
             </div>
-          <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* HY OAS */}
@@ -132,7 +132,7 @@ function InsuranceDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY OAS Spread', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -145,7 +145,7 @@ function InsuranceDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: 'FRED / Server', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -158,7 +158,7 @@ function InsuranceDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={combinedRatioOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Industry Combined Ratio', source: 'FRED / A.M. Best', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="FRED / A.M. Best" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / A.M. Best" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -180,7 +180,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
-            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -204,7 +204,7 @@ function InsuranceDashboard({
                 })}
               </div>
             </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -226,7 +226,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
-            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -248,7 +248,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -270,7 +270,7 @@ function InsuranceDashboard({
                 ))}
               </div>
             </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
       </BentoWrapper>

@@ -130,7 +130,7 @@ export default function CentralBankRates({ centralBankData }) {
     <div className="mac-panel">
       <div className="mac-panel-header">
         <span className="mac-panel-title">Policy Rates</span>
-        <span className="mac-panel-subtitle">Ranked + 5-year history · FRED + central bank sources</span>
+        <span className="mac-panel-subtitle">Ranked + 5-year history · BIS + FRED</span>
       </div>
       {/* KPI Strip */}
       {kpis && (

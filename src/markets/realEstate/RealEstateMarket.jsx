@@ -29,6 +29,7 @@ function getRealEstateProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
   };
@@ -42,13 +43,7 @@ function RealEstateMarket({ centralData } = {}) {
 
   return (
     <div className="re-market">
-      <div className="re-status-bar">
-        <span className={props.isLive ? 're-status-live' : ''}>
-          {props.isLive ? '● FETCHED · FRED / BIS / Yahoo Finance' : '○ No data received'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="re-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <RealEstateDashboard
         priceIndexData={props.priceIndexData}
         reitData={props.reitData}
@@ -68,6 +63,7 @@ function RealEstateMarket({ centralData } = {}) {
         foreclosureData={props.foreclosureData}
         mbaApplications={props.mbaApplications}
         creDelinquencies={props.creDelinquencies}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

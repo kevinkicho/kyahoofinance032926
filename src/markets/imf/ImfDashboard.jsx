@@ -21,7 +21,7 @@ const LAYOUT = {
 
 function ImfDashboard({
   countries, weoForecasts, ifsReserves, cofer,
-  fetchLog, isLive, lastUpdated,
+  fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
   const [selectedCountry, setSelectedCountry] = useState(null);
@@ -50,7 +50,7 @@ function ImfDashboard({
                 lastUpdated={lastUpdated}
               />
             </div>
-            <DataFooter source="IMF WEO" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="IMF WEO" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
           <div key="growth" className="imf-bento-card">
@@ -65,7 +65,7 @@ function ImfDashboard({
                 lastUpdated={lastUpdated}
               />
             </div>
-            <DataFooter source="IMF WEO" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="IMF WEO" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
           <div key="inflation" className="imf-bento-card">
@@ -80,7 +80,7 @@ function ImfDashboard({
                 lastUpdated={lastUpdated}
               />
             </div>
-            <DataFooter source="IMF WEO" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="IMF WEO" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
           <div key="reserves" className="imf-bento-card">
@@ -94,7 +94,7 @@ function ImfDashboard({
                 lastUpdated={lastUpdated}
               />
             </div>
-            <DataFooter source="IMF IFS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="IMF IFS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
           <div key="cofer" className="imf-bento-card">
@@ -104,7 +104,7 @@ function ImfDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <ImfCofier cofer={cofer} lastUpdated={lastUpdated} />
             </div>
-            <DataFooter source="IMF COFER" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="IMF COFER" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         </BentoWrapper>
 

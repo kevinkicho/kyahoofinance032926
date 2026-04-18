@@ -19,6 +19,7 @@ function getSentimentProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
   };
@@ -32,13 +33,7 @@ function SentimentMarket({ centralData } = {}) {
 
   return (
     <div className="sent-market">
-      <div className="sent-status-bar">
-        <span className={props.isLive ? 'sent-status-live' : ''}>
-          {props.isLive ? '● FETCHED · FRED / Alternative.me / Yahoo Finance' : '○ No data received'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="sent-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <SentimentDashboard
         fearGreedData={props.fearGreedData}
         cftcData={props.cftcData}
@@ -48,6 +43,7 @@ function SentimentMarket({ centralData } = {}) {
         consumerCredit={props.consumerCredit}
         vvixHistory={props.vvixHistory}
         fsiHistory={props.fsiHistory}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

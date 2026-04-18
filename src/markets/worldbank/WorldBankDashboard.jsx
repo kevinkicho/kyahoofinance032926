@@ -19,7 +19,7 @@ const LAYOUT = {
 };
 
 function WorldBankDashboard({
-  countries, trendData, fetchLog, isLive, lastUpdated,
+  countries, trendData, fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const [selectedCountry, setSelectedCountry] = useState(null);
 
@@ -47,7 +47,7 @@ function WorldBankDashboard({
                 lastUpdated={lastUpdated}
               />
             </div>
-            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
           <div key="trends" className="wb-bento-card">
@@ -57,7 +57,7 @@ function WorldBankDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <WbGrowthTrends trendData={trendData} lastUpdated={lastUpdated} />
             </div>
-            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
           <div key="dev" className="wb-bento-card">
@@ -67,7 +67,7 @@ function WorldBankDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <WbDevScatter countries={countries} lastUpdated={lastUpdated} />
             </div>
-            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
           <div key="trade" className="wb-bento-card">
@@ -77,7 +77,7 @@ function WorldBankDashboard({
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <WbTradeOpenness countries={countries} lastUpdated={lastUpdated} />
             </div>
-            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         </BentoWrapper>
 

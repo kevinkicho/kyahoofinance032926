@@ -34,6 +34,9 @@ function CryptoDashboard({
   isLive,
   lastUpdated,
   fetchLog,
+  error,
+  fetchedOn,
+  isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -164,7 +167,7 @@ function CryptoDashboard({
               </div>
             )}
           </div>
-          <DataFooter source="CoinGecko / FRED" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+          <DataFooter source="CoinGecko / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Top Cryptos */}
@@ -186,7 +189,7 @@ function CryptoDashboard({
               ))}
             </div>
           </div>
-          <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+          <DataFooter source="CoinGecko" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Fear & Greed Chart */}
@@ -200,7 +203,7 @@ function CryptoDashboard({
                 <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fear & Greed Index', source: 'CoinGecko', endpoint: '/api/crypto', series: [], updatedAt: lastUpdated }} />
               </div>
             </div>
-            <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+            <DataFooter source="CoinGecko" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -222,7 +225,7 @@ function CryptoDashboard({
                 ))}
             </div>
           </div>
-          <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+          <DataFooter source="CoinGecko" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
         )}
 
@@ -242,7 +245,7 @@ function CryptoDashboard({
                 ))}
             </div>
           </div>
-          <DataFooter source="DeFi Llama" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+          <DataFooter source="DeFi Llama" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
         )}
 
@@ -262,7 +265,7 @@ function CryptoDashboard({
                 ))}
             </div>
           </div>
-          <DataFooter source="CoinGecko" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+          <DataFooter source="CoinGecko" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
         )}
 
@@ -282,7 +285,7 @@ function CryptoDashboard({
                 ))}
             </div>
           </div>
-          <DataFooter source="Glassnode / Server" isLive={isLive} fetchLog={fetchLog} lastUpdated={lastUpdated} />
+          <DataFooter source="Glassnode / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
         )}
       </BentoWrapper>

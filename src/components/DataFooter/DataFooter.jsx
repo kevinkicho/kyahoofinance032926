@@ -271,7 +271,7 @@ function SourceExpand({ sourceKey, received }) {
   );
 }
 
-export default function DataFooter({ source, timestamp, isLive, fetchLog }) {
+export default function DataFooter({ source, timestamp, isLive, fetchLog, error, fetchedOn, isCurrent }) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState(null);
   const [expandedEntry, setExpandedEntry] = useState(null);
@@ -340,6 +340,8 @@ export default function DataFooter({ source, timestamp, isLive, fetchLog }) {
       <div className="df-root" ref={rootRef} onClick={handleClick}>
         {badge}
         <span className="df-label">{source}{timestamp ? ` \u00b7 ${timestamp}` : ''}</span>
+        {!isLive && error && <span className="df-error-text">\u25cb {error}</span>}
+        {isCurrent === false && fetchedOn && <span className="df-stale">Stale \u00b7 fetched {fetchedOn}</span>}
       </div>
       {show && pos && fetchLog?.length > 0 && createPortal(
         <div

@@ -29,16 +29,7 @@
 .cal-empty--loading { color: var(--text-muted); animation: cal-pulse 1.5s ease-in-out infinite; }
 @keyframes cal-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 
-.cal-status-bar {
-  display: flex; align-items: center; gap: 12px; padding: 4px 14px;
-  font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);
-}
-.cal-status-live { color: #f43f5e; }
 
-.cal-stale-badge {
-  background: #4c0519; color: #fda4af; border: 1px solid #be123c;
-  border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 500;
-}
 
 /* ── 2. Dashboard container (bento) ── */
 .cal-dashboard.cal-dashboard--bento { display: flex; flex-direction: column; flex: 1; min-height: 0; }

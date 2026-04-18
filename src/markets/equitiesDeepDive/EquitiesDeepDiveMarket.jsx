@@ -26,6 +26,7 @@ function getEquityDeepDiveProps(centralData, institutionalCtx) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
   };
@@ -39,13 +40,7 @@ function EquitiesDeepDiveMarket({ centralData, institutionalData: institutionalC
 
   return (
     <div className="eqd-market">
-      <div className="eqd-status-bar">
-        <span className={props.isLive ? 'eqd-status-live' : ''}>
-          {props.isLive ? '● FETCHED · Yahoo Finance / FRED' : '○ No data received'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="eqd-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <EquitiesDeepDiveDashboard
         sectorData={props.sectorData}
         factorData={props.factorData}
@@ -56,6 +51,7 @@ function EquitiesDeepDiveMarket({ centralData, institutionalData: institutionalC
         spPE={props.spPE}
         buffettIndicator={props.buffettIndicator}
         breadthDivergence={props.breadthDivergence}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

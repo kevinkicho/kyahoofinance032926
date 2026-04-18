@@ -1,6 +1,7 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import CensusDashboard from './components/CensusDashboard';
+import DataFooter from '../../components/DataFooter/DataFooter';
 import './CensusMarket.css';
 
 function getCensusProps(centralData) {
@@ -26,18 +27,12 @@ function CensusMarket({ centralData } = {}) {
 
   return (
     <div className="census-market">
-      <div className="census-status-bar">
-        <span className={props.isLive ? 'census-status-live' : ''}>
-          {props.isLive ? '● FETCHED · US Census Bureau (via FRED)' : (props.error ? `○ ${props.error}` : '○ Data source temporarily unavailable')}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="census-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
       <CensusDashboard
         series={props.series}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
       />
+      <DataFooter source="US Census Bureau (via FRED)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
     </div>
   );
 }

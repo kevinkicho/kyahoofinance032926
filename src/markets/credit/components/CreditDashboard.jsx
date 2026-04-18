@@ -34,6 +34,9 @@ function CreditDashboard({
   isLive,
   lastUpdated,
   fetchLog,
+  error,
+  fetchedOn,
+  isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -166,7 +169,7 @@ function CreditDashboard({
               </div>
             )}
           </div>
-          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Credit Spreads Chart */}
@@ -178,7 +181,7 @@ function CreditDashboard({
             <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spreads', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -198,7 +201,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -211,7 +214,7 @@ function CreditDashboard({
             <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EM Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLEMRACRPIOAS' }], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -229,7 +232,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -251,7 +254,7 @@ function CreditDashboard({
                 </div>
               )}
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -269,7 +272,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -289,7 +292,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
-            <DataFooter source="FRED / Moody's" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Moody's" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -307,7 +310,7 @@ function CreditDashboard({
                 </div>
               ))}
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
       </BentoWrapper>

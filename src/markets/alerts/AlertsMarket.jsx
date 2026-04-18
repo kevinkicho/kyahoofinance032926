@@ -13,6 +13,7 @@ function getAlertsProps(centralData) {
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
     fetchLog: centralData.fetchLog || [],
+    error: centralData.error,
     lastUpdated: centralData.lastUpdated,
     refetch: centralData.refetch,
     isLoading: centralData.isLoading,
@@ -27,17 +28,11 @@ function AlertsMarket({ centralData } = {}) {
 
   return (
     <div className="alerts-market">
-      <div className="alerts-status-bar">
-        <span className={props.isLive ? 'alerts-status-live' : ''}>
-          {props.isLive ? `● Live — Scanning ${props.rules.length} rules across 6 markets` : '○ Offline — using cached data'}
+      {props.alerts.length > 0 && (
+        <span className="alerts-alert-count">
+          {props.alerts.length} alert{props.alerts.length !== 1 ? 's' : ''} triggered
         </span>
-        {props.alerts.length > 0 && (
-          <span className="alerts-alert-count">
-            {props.alerts.length} alert{props.alerts.length !== 1 ? 's' : ''} triggered
-          </span>
-        )}
-        {!props.isCurrent && props.fetchedOn && <span className="alerts-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+      )}
       <AlertsDashboard
         alerts={props.alerts}
         rules={props.rules}
@@ -46,7 +41,7 @@ function AlertsMarket({ centralData } = {}) {
         isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
       />
-      <DataFooter source="Multi-market (6 endpoints)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} />
+      <DataFooter source="Multi-market (6 endpoints)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
     </div>
   );
 }

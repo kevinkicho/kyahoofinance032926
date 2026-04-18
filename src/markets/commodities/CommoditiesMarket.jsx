@@ -147,13 +147,7 @@ function CommoditiesMarket({ centralData } = {}) {
 
   return (
     <div className="com-market">
-      <div className="com-status-bar">
-        <span className={props.isLive ? 'com-status-live' : ''}>
-          {props.isLive ? '● API connected · EIA / FRED / Yahoo' : '○ Data source temporarily unavailable'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="com-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <CommoditiesDashboard
         priceDashboardData={props.priceDashboardData}
         futuresCurveData={props.futuresCurveData}
@@ -177,6 +171,7 @@ function CommoditiesMarket({ centralData } = {}) {
         getFreshnessIndicator={props.getFreshnessIndicator}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
       />
     </div>

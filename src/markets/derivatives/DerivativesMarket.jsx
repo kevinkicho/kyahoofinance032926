@@ -23,6 +23,7 @@ function getDerivativesProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
   };
@@ -36,13 +37,7 @@ function DerivativesMarket({ centralData } = {}) {
 
   return (
     <div className="deriv-market">
-      <div className="deriv-status-bar">
-        <span className={props.isLive ? 'deriv-status-live' : ''}>
-          {props.isLive ? '● FETCHED · Yahoo Finance / CBOE / FRED' : '○ No data received'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="deriv-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <DerivativesDashboard
         volSurfaceData={props.volSurfaceData}
         vixTermStructure={props.vixTermStructure}
@@ -56,6 +51,7 @@ function DerivativesMarket({ centralData } = {}) {
         gammaExposure={props.gammaExposure}
         vixPercentile={props.vixPercentile}
         termSpread={props.termSpread}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

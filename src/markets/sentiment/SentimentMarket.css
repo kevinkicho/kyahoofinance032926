@@ -20,14 +20,3 @@
 .sent-sub-tab:hover { color: var(--text-primary); }
 .sent-sub-tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
 
-.sent-status-bar {
-  display: flex; align-items: center; gap: 12px; padding: 4px 14px;
-  font-size: 10px; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);
-}
-.sent-status-live { color: #7c3aed; }
-.sent-content { flex: 1; overflow: hidden; }
-
-.sent-stale-badge {
-  background: #2e1065; color: #c4b5fd; border: 1px solid #6d28d9;
-  border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 500;
-}

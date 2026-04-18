@@ -34,6 +34,9 @@ function SentimentDashboard({
   fetchLog,
   isLive,
   lastUpdated,
+  error,
+  fetchedOn,
+  isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -201,7 +204,7 @@ function SentimentDashboard({
                 )}
               </div>
             )}
-            <DataFooter source="Alternative.me / FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="Alternative.me / FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         </div>
 
@@ -214,7 +217,7 @@ function SentimentDashboard({
             <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fear & Greed Index', source: 'Alternative.me / FRED', endpoint: '/api/sentiment', series: [], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="Alternative.me / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="Alternative.me / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -227,7 +230,7 @@ function SentimentDashboard({
             <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Financial Stress Index', source: 'FRED', endpoint: '/api/sentiment', series: [{ id: 'STLFSI4' }], updatedAt: lastUpdated }} />
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -247,7 +250,7 @@ function SentimentDashboard({
                 </div>
               ))}
             </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 
@@ -294,7 +297,7 @@ function SentimentDashboard({
                 </div>
               )}
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
       </BentoWrapper>

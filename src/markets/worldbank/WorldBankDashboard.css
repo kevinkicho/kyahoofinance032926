@@ -8,29 +8,7 @@
   background: var(--bg-deep);
 }
 
-.wb-status-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 20px;
-  background: var(--bg-deep);
-  border-bottom: 1px solid var(--bg-primary);
-  font-size: 10px;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
 
-.wb-status-live { color: #f59e0b; }
-
-.wb-stale-badge {
-  background: #78350f;
-  color: #fcd34d;
-  border: 1px solid #92400e;
-  border-radius: 10px;
-  padding: 1px 8px;
-  font-size: 10px;
-  font-weight: 500;
-}
 
 .wb-dashboard.wb-dashboard--bento {
   display: flex;

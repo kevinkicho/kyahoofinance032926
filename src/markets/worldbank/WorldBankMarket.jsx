@@ -13,6 +13,7 @@ function getWbProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
   };
@@ -26,16 +27,11 @@ function WorldBankMarket({ centralData } = {}) {
 
   return (
     <div className="wb-market">
-      <div className="wb-status-bar">
-        <span className={props.isLive ? 'wb-status-live' : ''}>
-          {props.isLive ? '● FETCHED · World Bank WDI' : '○ No data received'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="wb-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <WorldBankDashboard
         countries={props.countries}
         trendData={props.trendData}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

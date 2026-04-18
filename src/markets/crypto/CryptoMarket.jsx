@@ -20,6 +20,7 @@ function getCryptoProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
   };
@@ -46,6 +47,9 @@ function CryptoMarket({ centralData } = {}) {
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
         fetchLog={props.fetchLog}
+        error={props.error}
+        fetchedOn={props.fetchedOn}
+        isCurrent={props.isCurrent}
       />
     </div>
   );

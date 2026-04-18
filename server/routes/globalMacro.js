@@ -36,13 +36,12 @@ const MACRO_FRED_RATES = {
   MX: { id: 'IRSTCI01MXM156N', name: 'Mexico',        flag: '🇲🇽', bank: 'Banxico'  },
 };
 
-const MACRO_MOCK_RATES = {
-  CN: { rate:  3.45, name: 'China',       flag: '🇨🇳', bank: 'PBoC'    },
-  IN: { rate:  6.50, name: 'India',       flag: '🇮🇳', bank: 'RBI'     },
-  BR: { rate: 10.50, name: 'Brazil',      flag: '🇧🇷', bank: 'BCB'     },
-  KR: { rate:  3.50, name: 'South Korea', flag: '🇰🇷', bank: 'BoK'     },
-  MX: { rate: 11.00, name: 'Mexico',      flag: '🇲🇽', bank: 'Banxico' },
+const BIS_BANK_NAMES = {
+  US: 'Fed', XM: 'ECB', GB: 'BoE', JP: 'BoJ', CA: 'BoC',
+  CN: 'PBoC', IN: 'RBI', BR: 'BCB', KR: 'BoK', AU: 'RBA', MX: 'Banxico', SE: 'Riksbank',
 };
+
+const MACRO_TO_BIS = { US: 'US', EA: 'XM', GB: 'GB', JP: 'JP', CA: 'CA', CN: 'CN', IN: 'IN', BR: 'BR', KR: 'KR', AU: 'AU', MX: 'MX', SE: 'SE' };
 
 // OECD CLI country codes mapping
 const OECD_CLI_CODES = {
@@ -347,6 +346,71 @@ async function fetchBISCreditToGDP() {
   }
 }
 
+async function fetchBISPolicyRates() {
+  try {
+    const endPeriod = new Date().toISOString().slice(0, 10);
+    const startPeriod = `${new Date().getFullYear() - 5}-01-01`;
+    const url = `https://stats.bis.org/api/v1/data/WS_CBPOL?C_FREQUENCY=M&startPeriod=${startPeriod}&endPeriod=${endPeriod}&format=sdmx-json`;
+    const data = await fetchJSON(url);
+    const dataSets = data?.data?.dataSets?.[0];
+    const structure = data?.data?.structure;
+    if (!dataSets || !structure) return null;
+
+    const areaDim = structure.dimensions.series.find(d => d.id === 'REF_AREA');
+    const freqDim = structure.dimensions.series.find(d => d.id === 'FREQ');
+    const timeDim = structure.dimensions.observation?.[0]?.values;
+    if (!areaDim || !freqDim || !timeDim) return null;
+
+    const areaValues = areaDim.values;
+    const freqValues = freqDim.values;
+    const monthlyIdx = freqValues.findIndex(v => v.id === 'M');
+    if (monthlyIdx < 0) return null;
+
+    const timePeriods = timeDim.map(t => typeof t === 'object' ? (t.id || t.name) : t);
+
+    const bisToMacro = Object.fromEntries(Object.entries(MACRO_TO_BIS).map(([macro, bis]) => [bis, macro]));
+
+    const currentRates = {};
+    const historyByCountry = {};
+
+    for (const [key, seriesData] of Object.entries(dataSets.series || {})) {
+      const parts = key.split(':').map(Number);
+      const freqIndex = parts[0] ?? -1;
+      const areaIndex = parts[1] ?? -1;
+      if (freqIndex !== monthlyIdx || areaIndex < 0) continue;
+
+      const bisId = areaValues[areaIndex]?.id;
+      if (!bisId) continue;
+
+      const macroCode = bisToMacro[bisId] || bisId;
+
+      const observations = seriesData?.observations;
+      if (!observations) continue;
+
+      const entries = Object.entries(observations)
+        .map(([obsKey, obsVal]) => {
+          const timeIdx = parseInt(obsKey);
+          const val = parseFloat(Array.isArray(obsVal) ? obsVal[0] : obsVal);
+          const dateStr = String(timePeriods[timeIdx] || '');
+          if (isNaN(val) || !dateStr) return null;
+          return { date: dateStr.length > 7 ? dateStr.slice(0, 7) : dateStr, value: val };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      if (entries.length === 0) continue;
+
+      currentRates[macroCode] = entries[entries.length - 1].value;
+      historyByCountry[macroCode] = entries;
+    }
+
+    return Object.keys(currentRates).length >= 5 ? { currentRates, historyByCountry } : null;
+  } catch (e) {
+    console.warn('[GlobalMacro] BIS policy rates fetch failed:', e.message);
+    return null;
+  }
+}
+
 async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
   const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: String(limit) });
   const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
@@ -524,6 +588,15 @@ router.get('/', async (req, res) => {
       console.warn('BIS credit-to-GDP fetch failed:', e.message);
     }
 
+    // Fetch BIS policy rates for all countries
+    let bisPolicyRates = null;
+    try {
+      trackApiCall('BIS Policy Rates');
+      bisPolicyRates = await fetchBISPolicyRates();
+    } catch (e) {
+      console.warn('BIS policy rates fetch failed:', e.message);
+    }
+
     // Fetch BLS CPI breakdown
     let cpiBreakdown = null;
     if (BLS_API_KEY) {
@@ -535,6 +608,9 @@ router.get('/', async (req, res) => {
       }
     }
 
+    const bisCurrentMap = bisPolicyRates?.currentRates ?? {};
+    const bisHistoryMap = bisPolicyRates?.historyByCountry ?? {};
+
     const scorecardData = MACRO_COUNTRIES.map(c => ({
       code:   c.code,
       name:   c.name,
@@ -542,7 +618,7 @@ router.get('/', async (req, res) => {
       region: c.region,
       gdp:    gdpRes.values[c.wbCode]   ?? null,
       cpi:    cpiRes.values[c.wbCode]   ?? null,
-      rate:   fredCurrentMap[c.code] ?? MACRO_MOCK_RATES[c.code]?.rate ?? null,
+      rate:   bisCurrentMap[c.code] ?? fredCurrentMap[c.code] ?? null,
       unemp:  unempRes.values[c.wbCode] ?? null,
       debt:   debtRes.values[c.wbCode]  ?? null,
     }));
@@ -557,22 +633,31 @@ router.get('/', async (req, res) => {
     };
 
     const allCurrentRates = MACRO_COUNTRIES.map(c => {
+      const bisRate = bisCurrentMap[c.code];
       const fredMeta = MACRO_FRED_RATES[c.code];
-      const mockMeta = MACRO_MOCK_RATES[c.code];
-      const rate   = fredCurrentMap[c.code] ?? mockMeta?.rate ?? null;
-      const isLive = fredMeta ? (fredCurrentMap[c.code] != null) : false;
-      return { code: c.code, name: c.name, flag: c.flag, rate, bank: fredMeta?.bank ?? mockMeta?.bank ?? '', isLive };
+      const rate = bisRate ?? fredCurrentMap[c.code] ?? null;
+      const isLive = bisRate != null || (fredMeta ? (fredCurrentMap[c.code] != null) : false);
+      const bank = BIS_BANK_NAMES[c.code] ?? fredMeta?.bank ?? '';
+      const source = bisRate != null ? 'BIS' : (fredCurrentMap[c.code] != null ? 'FRED' : '');
+      return { code: c.code, name: c.name, flag: c.flag, rate, bank, isLive, source };
     });
 
     const allDates = new Set();
+    Object.values(bisHistoryMap).forEach(entries => entries.forEach(e => allDates.add(e.date)));
     Object.values(fredHistoryMap).forEach(({ obs }) => obs.forEach(o => allDates.add(o.date)));
     const sortedDates = [...allDates].sort();
-    const histSeries = Object.entries(fredHistoryMap).map(([code, { meta, obs }]) => {
-      const obsMap = Object.fromEntries(obs.map(o => [o.date, o.value]));
-      return {
-        code, name: meta.name, flag: meta.flag,
-        values: sortedDates.map(d => obsMap[d] ?? null),
-      };
+    const histSeries = MACRO_COUNTRIES.map(c => {
+      const fredSeries = fredHistoryMap[c.code];
+      const bisSeries = bisHistoryMap[c.code];
+      const bisMap = bisSeries ? Object.fromEntries(bisSeries.map(e => [e.date, e.value])) : {};
+      const fredMap = fredSeries ? Object.fromEntries(fredSeries.obs.map(o => [o.date, o.value])) : {};
+      const values = sortedDates.map(d => {
+        if (d in bisMap) return bisMap[d];
+        if (d in fredMap) return fredMap[d];
+        return null;
+      });
+      const bank = BIS_BANK_NAMES[c.code] ?? fredSeries?.meta?.bank ?? '';
+      return { code: c.code, name: c.name, flag: c.flag, bank, values };
     });
 
     const centralBankData = {
@@ -610,6 +695,7 @@ router.get('/', async (req, res) => {
         worldBankIndicators: Object.keys(gdpRes.values).length > 0 || Object.keys(cpiRes.values).length > 0,
         fredRates: Object.keys(fredCurrentMap).length > 0,
         fredRateHistory: Object.keys(fredHistoryMap).length > 0,
+        bisPolicyRates: bisCurrentMap != null && Object.keys(bisCurrentMap).length > 0,
         fredMacroHistory: m2Growth != null || tradeBalance != null || industrialProd != null || consumerSentiment != null || yieldSpread != null || cfnai != null,
         oecdCli: oecdCli != null && Object.keys(oecdCli).length > 0,
         blsCpi: cpiBreakdown != null && cpiBreakdown.components?.length > 0,

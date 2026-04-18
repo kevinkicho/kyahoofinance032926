@@ -24,6 +24,7 @@ function getGlobalMacroProps(centralData) {
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
     fetchLog: centralData.fetchLog || [],
+    error: centralData.error,
     refetch: centralData.refetch,
   };
 }
@@ -36,13 +37,6 @@ function GlobalMacroMarket({ centralData } = {}) {
 
   return (
     <div className="mac-market">
-      <div className="mac-status-bar">
-        <span className={props.isLive ? 'mac-status-live' : ''}>
-          {props.isLive ? '● FETCHED · World Bank / FRED / BLS' : '○ No data received'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="mac-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
       <GlobalMacroDashboard
         scorecardData={props.scorecardData}
         growthInflationData={props.growthInflationData}
@@ -59,6 +53,9 @@ function GlobalMacroMarket({ centralData } = {}) {
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
+        error={props.error}
+        fetchedOn={props.fetchedOn}
+        isCurrent={props.isCurrent}
       />
     </div>
   );

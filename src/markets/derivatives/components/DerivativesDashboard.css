@@ -16,30 +16,6 @@
   background: var(--bg-deep);
 }
 
-.deriv-status-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 20px;
-  background: var(--bg-deep);
-  border-bottom: 1px solid var(--bg-primary);
-  font-size: 10px;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.deriv-status-live { color: #a78bfa; }
-
-.deriv-stale-badge {
-  background: #78350f;
-  color: #fcd34d;
-  border: 1px solid #92400e;
-  border-radius: 10px;
-  padding: 1px 8px;
-  font-size: 10px;
-  font-weight: 500;
-}
-
 .deriv-loading { align-items: center; justify-content: center; gap: 12px; }
 .deriv-loading-spinner { width: 24px; height: 24px; border: 2px solid var(--border-subtle); border-top-color: #a78bfa; border-radius: 50%; }
 @keyframes deriv-spin { to { transform: rotate(360deg); } }

@@ -47,13 +47,7 @@ function FXMarket({ centralData } = {}) {
 
   return (
     <div className="fx-market">
-      <div className="fx-status-bar">
-        <span className={props.isLive ? 'fx-status-live' : ''}>
-          {props.isLive ? '● FETCHED · Frankfurter / FRED / CBOE' : (props.error ? `○ ${props.error}` : '○ Data source temporarily unavailable')}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="fx-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <FXDashboard
         spotRates={props.spotRates}
         prevRates={props.prevRates}
@@ -70,7 +64,7 @@ function FXMarket({ centralData } = {}) {
         cotHistory={props.cotHistory}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
-        fetchLog={props.fetchLog}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
       />
     </div>
   );

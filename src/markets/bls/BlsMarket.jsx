@@ -1,6 +1,7 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import BlsDashboard from './components/BlsDashboard';
+import DataFooter from '../../components/DataFooter/DataFooter';
 import './BlsMarket.css';
 
 function getBlsProps(centralData) {
@@ -26,18 +27,12 @@ function BlsMarket({ centralData } = {}) {
 
   return (
     <div className="bls-market">
-      <div className="bls-status-bar">
-        <span className={props.isLive ? 'bls-status-live' : ''}>
-          {props.isLive ? '● FETCHED · Bureau of Labor Statistics' : (props.error ? `○ ${props.error}` : '○ Data source temporarily unavailable')}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="bls-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
       <BlsDashboard
         series={props.series}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
       />
+      <DataFooter source="Bureau of Labor Statistics (via FRED)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
     </div>
   );
 }

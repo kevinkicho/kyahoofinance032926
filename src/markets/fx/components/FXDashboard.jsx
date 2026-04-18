@@ -54,7 +54,7 @@ const FX_SERIES = {
 function FXDashboard({
   spotRates, prevRates, changes, changes1w, changes1m, sparklines,
   history, fredFxRates, reer, rateDifferentials, dxyHistory, cotData, cotHistory,
-  isLive, lastUpdated, fetchLog,
+  isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -260,7 +260,7 @@ function FXDashboard({
               </div>
             )}
           </div>
-          <DataFooter source="Frankfurter API / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          <DataFooter source="Frankfurter API / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Top Movers */}
@@ -282,7 +282,7 @@ function FXDashboard({
               ))}
             </div>
           </div>
-          <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+          <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* DXY Chart */}
@@ -293,7 +293,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'DXY Dollar Index', source: 'FRED', endpoint: '/api/fx', series: [{ id: 'DTWEXBGS' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No DXY data</div>}
           </div>
-          <DataFooter source="FRED DTWEXBGS" timestamp={lastUpdated} isLive={!!dxyHistory?.dates?.length} fetchLog={fetchLog} />
+          <DataFooter source="FRED DTWEXBGS" timestamp={lastUpdated} isLive={!!dxyHistory?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* COT Positioning */}
@@ -304,7 +304,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFTC COT Positioning', source: 'CFTC', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No COT data</div>}
           </div>
-          <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} fetchLog={fetchLog} />
+          <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Correlation Matrix */}
@@ -315,7 +315,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {correlationOption ? <SafeECharts option={correlationOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Currency Correlation (30D)', source: 'Frankfurter API', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No correlation data</div>}
           </div>
-          <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={!!history && Object.keys(history).length > 0} fetchLog={fetchLog} />
+          <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={!!history && Object.keys(history).length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* REER */}
@@ -326,7 +326,7 @@ function FXDashboard({
           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
             {reerOption ? <SafeECharts option={reerOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Real Effective Exchange Rates', source: 'BIS/FRED', endpoint: '/api/fx', series: [{ id: 'RNBQATNB' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No REER data</div>}
           </div>
-          <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={!!reer?.dates?.length} fetchLog={fetchLog} />
+          <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={!!reer?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
         {/* Rate Differentials */}
@@ -347,7 +347,7 @@ function FXDashboard({
                 ))}
               </div>
             </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={!!rateDiff?.length} fetchLog={fetchLog} />
+            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={!!rateDiff?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
       </BentoWrapper>

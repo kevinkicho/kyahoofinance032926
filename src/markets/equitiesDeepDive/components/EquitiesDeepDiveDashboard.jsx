@@ -269,6 +269,9 @@ function EquitiesDeepDiveDashboard({
   fetchLog,
   isLive,
   lastUpdated,
+  error,
+  fetchedOn,
+  isCurrent,
 }) {
   const { colors } = useTheme();
 
@@ -444,7 +447,7 @@ function EquitiesDeepDiveDashboard({
                 )}
               </div>
             )}
-            <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+            <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         </div>
 
@@ -456,7 +459,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'ETF Performance', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
             </div>
           </div>
         )}
@@ -469,7 +472,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Factor In Favor', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
             </div>
           </div>
         )}
@@ -482,7 +485,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
             </div>
           </div>
         )}
@@ -495,7 +498,7 @@ function EquitiesDeepDiveDashboard({
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
             </div>
           </div>
         )}
@@ -529,7 +532,7 @@ function EquitiesDeepDiveDashboard({
                   ))}
                 </tbody>
               </table>
-              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
             </div>
           </div>
         )}
@@ -563,7 +566,7 @@ function EquitiesDeepDiveDashboard({
                   ))}
                 </tbody>
               </table>
-              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+              <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
             </div>
           </div>
         )}
@@ -583,7 +586,7 @@ function EquitiesDeepDiveDashboard({
                   </div>
                 ))}
               </div>
-              <DataFooter source="SEC EDGAR / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} />
+              <DataFooter source="SEC EDGAR / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
             </div>
           </div>
         )}

@@ -71,13 +71,7 @@ function BondsMarket({ centralData } = {}) {
 
   return (
     <div className="bonds-market">
-      <div className="bonds-status-bar">
-        <span className={props.isLive ? 'bonds-status-live' : ''}>
-          {props.isLive ? '● API connected · FRED / Treasury / World Bank' : '○ No data received'}
-        </span>
-        {props.lastUpdated && <span>Updated: {props.lastUpdated}</span>}
-        {!props.isCurrent && props.fetchedOn && <span className="bonds-stale-badge">Stale · fetched {props.fetchedOn}</span>}
-      </div>
+
       <BondsDashboard
         yieldCurveData={props.yieldCurveData}
         creditRatingsData={props.creditRatingsData}
@@ -105,6 +99,7 @@ function BondsMarket({ centralData } = {}) {
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
         fetchLog={props.fetchLog}
+        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
         provenance={props.provenance}
       />
     </div>
