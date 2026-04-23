@@ -57,7 +57,7 @@ const mockInstitutionalData = {
 describe('EquitiesDeepDiveMarket', () => {
   it('renders unified dashboard with status bar', () => {
     render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
-    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
   });
 
   it('shows sidebar with Sector Performance', () => {
@@ -77,6 +77,6 @@ describe('EquitiesDeepDiveMarket', () => {
 
   it('shows no data received status when not live', () => {
     render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
-    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
   });
 });

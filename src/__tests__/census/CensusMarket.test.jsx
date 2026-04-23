@@ -38,8 +38,8 @@ describe('CensusMarket', () => {
     expect(screen.getByText(/Census Bureau/)).toBeInTheDocument();
   });
 
-  it('renders unavailable message when not live', () => {
-    const notLive = { ...mockCentralData, isLive: false };
+  it('renders unavailable message when not live and no data', () => {
+    const notLive = { ...mockCentralData, isLive: false, data: { series: {}, _sources: {}, lastUpdated: null } };
     render(<CensusMarket centralData={notLive} />);
     expect(screen.getByText(/Data source temporarily unavailable/i)).toBeInTheDocument();
   });

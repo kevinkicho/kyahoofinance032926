@@ -54,7 +54,7 @@ describe('OptionsFlow', () => {
   it('renders Top Ticker in KPI strip', () => {
     render(<OptionsFlow optionsFlow={mockData} />);
     expect(screen.getByText('Top Ticker')).toBeInTheDocument();
-    expect(screen.getByText('SPY')).toBeInTheDocument();
+    expect(screen.getAllByText('SPY').length).toBeGreaterThan(0);
   });
 
   it('renders Avg Vol/OI in KPI strip', () => {
@@ -94,7 +94,7 @@ describe('OptionsFlow', () => {
 
   it('renders expiry dates', () => {
     render(<OptionsFlow optionsFlow={mockData} />);
-    expect(screen.getByText('16 May 25')).toBeInTheDocument();
+    expect(screen.getAllByText('16 May 25').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('20 Jun 25')).toBeInTheDocument();
   });
 

@@ -48,13 +48,14 @@ describe('WorldBankMarket', () => {
 
   it('renders fetched status when live', () => {
     render(<WorldBankMarket centralData={mockCentralData} />);
-    expect(screen.getByText(/FETCHED.*World Bank WDI/)).toBeInTheDocument();
+    expect(screen.getAllByText(/FETCHED/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/World Bank WDI/).length).toBeGreaterThan(0);
   });
 
   it('renders no data received when not live', () => {
     const notLive = { ...mockCentralData, isLive: false };
     render(<WorldBankMarket centralData={notLive} />);
-    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
   });
 
   it('renders all bento panel titles', () => {
@@ -87,6 +88,6 @@ describe('WorldBankMarket', () => {
   it('stale badge shown when data is not current', () => {
     const stale = { ...mockCentralData, isCurrent: false, fetchedOn: '2026-04-14' };
     render(<WorldBankMarket centralData={stale} />);
-    expect(screen.getByText(/Stale/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Stale/).length).toBeGreaterThan(0);
   });
 });

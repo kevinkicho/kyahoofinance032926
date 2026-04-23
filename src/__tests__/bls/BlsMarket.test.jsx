@@ -38,8 +38,8 @@ describe('BlsMarket', () => {
     expect(screen.getByText(/Bureau of Labor Statistics/)).toBeInTheDocument();
   });
 
-  it('renders unavailable message when not live', () => {
-    const notLive = { ...mockCentralData, isLive: false };
+  it('renders unavailable message when not live and no data', () => {
+    const notLive = { ...mockCentralData, isLive: false, data: { series: {}, _sources: {}, lastUpdated: null } };
     render(<BlsMarket centralData={notLive} />);
     expect(screen.getByText(/Data source temporarily unavailable/i)).toBeInTheDocument();
   });

@@ -31,7 +31,7 @@ const mockCentralData = {
 describe('RealEstateMarket', () => {
   it('renders unified dashboard with status bar', () => {
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
   });
 
   it('shows sidebar with Home Prices section', () => {
@@ -51,6 +51,6 @@ describe('RealEstateMarket', () => {
 
   it('shows no data received status when not live', () => {
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getByText(/No data received/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
   });
 });

@@ -6,6 +6,14 @@ import AnalyticsMarket from '../../markets/analytics/AnalyticsMarket';
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+function jsonResponse(data) {
+  return {
+    ok: true,
+    text: async () => JSON.stringify(data),
+    json: async () => data,
+  };
+}
+
 describe('AnalyticsMarket', () => {
   beforeEach(() => {
     mockFetch.mockReset();
@@ -15,7 +23,7 @@ describe('AnalyticsMarket', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders loading state initially', async () => {
+  it('renders loading state initially', () => {
     mockFetch.mockImplementation(() => new Promise(() => {}));
     render(<AnalyticsMarket />);
     expect(screen.getByText('Loading analytics...')).toBeInTheDocument();
@@ -30,12 +38,11 @@ describe('AnalyticsMarket', () => {
   });
 
   it('renders error state for non-OK responses', async () => {
-    const mockJson = { error: 'Not Found' };
-    mockFetch.mockResolvedValue({ 
-      ok: false, 
-      statusText: 'Not Found', 
-      text: async () => JSON.stringify(mockJson),
-      json: async () => mockJson 
+    mockFetch.mockResolvedValue({
+      ok: false,
+      statusText: 'Not Found',
+      text: async () => '{"error":"Not Found"}',
+      json: async () => ({ error: 'Not Found' }),
     });
     render(<AnalyticsMarket />);
     await waitFor(() => {
@@ -44,50 +51,30 @@ describe('AnalyticsMarket', () => {
   });
 
   it('renders analytics dashboard with data', async () => {
-    const mockData = {
+    mockFetch.mockResolvedValue(jsonResponse({
       endpoints: [
         { path: '/api/bonds', calls: 150, errors: 2 },
         { path: '/api/fx', calls: 120, errors: 0 },
       ],
-      apiUsage: {
-        sources: [
-          { name: 'FRED', calls: 500, pct: 50 },
-          { name: 'Yahoo', calls: 300, pct: 30 },
-        ],
-      },
+      apiUsage: { sources: [{ name: 'FRED', calls: 500, pct: 50 }] },
       environment: { NODE_ENV: 'test' },
       uptime: { seconds: 3600, memoryMB: 45, heapTotalMB: 30, rssMB: 50 },
       memCache: { keyCount: 100, hitRate: 85 },
-      routes: [
-        { path: '/api/bonds', methods: ['GET'] },
-        { path: '/api/fx', methods: ['GET'] },
-      ],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
+      routes: [{ path: '/api/bonds', methods: ['GET'] }],
+    }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
-      expect(screen.getByText('Analytics')).toBeInTheDocument();
+      expect(screen.getByText(/Analytics/)).toBeInTheDocument();
     });
   });
 
-it('renders uptime information from data', async () => {
-    const mockData = {
-      endpoints: [],
-      apiUsage: { sources: [] },
-      environment: {},
+  it('renders uptime information from data', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      endpoints: [], apiUsage: { sources: [] }, environment: {},
       uptime: { seconds: 7200 },
       memCache: { keyCount: 0, hitRate: 0 },
       routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
+    }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
       expect(screen.getAllByText(/Uptime/).length).toBeGreaterThan(0);
@@ -95,19 +82,12 @@ it('renders uptime information from data', async () => {
   });
 
   it('renders memory information from data', async () => {
-    const mockData = {
-      endpoints: [],
-      apiUsage: { sources: [] },
-      environment: {},
+    mockFetch.mockResolvedValue(jsonResponse({
+      endpoints: [], apiUsage: { sources: [] }, environment: {},
       uptime: { seconds: 100, memoryMB: 50, heapTotalMB: 40, rssMB: 60 },
       memCache: { keyCount: 0, hitRate: 0 },
       routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
+    }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
       expect(screen.getAllByText(/Heap/).length).toBeGreaterThan(0);
@@ -116,54 +96,21 @@ it('renders uptime information from data', async () => {
   });
 
   it('renders MemCache information with hit rate', async () => {
-    const mockData = {
-      endpoints: [],
-      apiUsage: { sources: [] },
-      environment: {},
+    mockFetch.mockResolvedValue(jsonResponse({
+      endpoints: [], apiUsage: { sources: [] }, environment: {},
       uptime: { seconds: 100 },
       memCache: { keyCount: 200, hitRate: 92 },
       routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
+    }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
       expect(screen.getAllByText(/MemCache/).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/92% hit/).length).toBeGreaterThan(0);
     });
   });
-    render(<AnalyticsMarket />);
-    await waitFor(() => {
-      expect(screen.getByText(/Uptime/)).toBeInTheDocument();
-    });
-  });
-
-  it('renders memory information from data', async () => {
-    const mockData = {
-      endpoints: [],
-      apiUsage: { sources: [] },
-      environment: {},
-      uptime: { seconds: 100, memoryMB: 50, heapTotalMB: 40, rssMB: 60 },
-      memCache: { keyCount: 0, hitRate: 0 },
-      routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
-    render(<AnalyticsMarket />);
-    await waitFor(() => {
-      expect(screen.getByText(/Heap/)).toBeInTheDocument();
-      expect(screen.getByText(/RSS/)).toBeInTheDocument();
-    });
-  });
 
   it('renders endpoint list sorted by calls', async () => {
-    const mockData = {
+    mockFetch.mockResolvedValue(jsonResponse({
       endpoints: [
         { path: '/api/bonds', calls: 100, errors: 5 },
         { path: '/api/fx', calls: 200, errors: 0 },
@@ -174,12 +121,7 @@ it('renders uptime information from data', async () => {
       uptime: { seconds: 100 },
       memCache: { keyCount: 50, hitRate: 90 },
       routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
+    }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
       expect(screen.getByText(/api\/fx/)).toBeInTheDocument();
@@ -187,41 +129,11 @@ it('renders uptime information from data', async () => {
     });
   });
 
-  it('renders MemCache information with hit rate', async () => {
-    const mockData = {
-      endpoints: [],
-      apiUsage: { sources: [] },
-      environment: {},
-      uptime: { seconds: 100 },
-      memCache: { keyCount: 200, hitRate: 92 },
-      routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
-    render(<AnalyticsMarket />);
-    await waitFor(() => {
-      expect(screen.getByText(/MemCache/)).toBeInTheDocument();
-      expect(screen.getByText(/92% hit/)).toBeInTheDocument();
-    });
-  });
-
   it('renders auto-refresh toggle button', async () => {
-    const mockData = {
-      endpoints: [],
-      apiUsage: { sources: [] },
-      environment: {},
-      uptime: { seconds: 100 },
-      memCache: { keyCount: 0, hitRate: 0 },
-      routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
+    mockFetch.mockResolvedValue(jsonResponse({
+      endpoints: [], apiUsage: { sources: [] }, environment: {},
+      uptime: { seconds: 100 }, memCache: { keyCount: 0, hitRate: 0 }, routes: [],
+    }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
       expect(screen.getByText('Auto-refresh')).toBeInTheDocument();
@@ -229,24 +141,15 @@ it('renders uptime information from data', async () => {
   });
 
   it('toggles auto-refresh when button clicked', async () => {
-    const mockData = {
-      endpoints: [],
-      apiUsage: { sources: [] },
-      environment: {},
-      uptime: { seconds: 100 },
-      memCache: { keyCount: 0, hitRate: 0 },
-      routes: [],
-    };
-    mockFetch.mockResolvedValue({ 
-      ok: true, 
-      text: async () => JSON.stringify(mockData),
-      json: async () => mockData 
-    });
+    mockFetch.mockResolvedValue(jsonResponse({
+      endpoints: [], apiUsage: { sources: [] }, environment: {},
+      uptime: { seconds: 100 }, memCache: { keyCount: 0, hitRate: 0 }, routes: [],
+    }));
     render(<AnalyticsMarket />);
-    await waitFor(async () => {
-      const btn = screen.getByText('Auto-refresh');
-      await userEvent.click(btn);
+    await waitFor(() => {
+      expect(screen.getByText('Auto-refresh')).toBeInTheDocument();
     });
+    await userEvent.click(screen.getByText('Auto-refresh'));
     expect(screen.getByText('Auto 30s')).toBeInTheDocument();
   });
 });

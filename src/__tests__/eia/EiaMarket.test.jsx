@@ -40,8 +40,17 @@ describe('EiaMarket', () => {
     expect(screen.getByText(/EIA.*Energy Information Administration/)).toBeInTheDocument();
   });
 
-  it('renders unavailable message when not live', () => {
-    const notLive = { ...mockCentralData, isLive: false };
+  it('renders unavailable message when not live and no data', () => {
+    const notLive = {
+      ...mockCentralData,
+      isLive: false,
+      data: {
+        electricity: { residential: null, commercial: null, industrial: null },
+        co2Emissions: { total: null, bySector: null },
+        _sources: {},
+        lastUpdated: null,
+      },
+    };
     render(<EiaMarket centralData={notLive} />);
     expect(screen.getByText(/Data source temporarily unavailable/i)).toBeInTheDocument();
   });
