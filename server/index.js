@@ -63,6 +63,24 @@ process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
 // Clean old caches at startup
 cleanOldCaches();
 
+// Warn operators about missing API keys so silent data-degradation is visible.
+// Each route degrades gracefully on its own, but without this the failure mode
+// is "the dashboard quietly shows less data" rather than an actionable signal.
+(function warnOnMissingKeys() {
+  const REQUIRED_KEYS = {
+    FRED_API_KEY: 'bonds, commodities, credit, derivatives, equityDeepDive, fx, globalMacro, insurance, macro, realEstate, sentiment — census returns 503',
+    EIA_API_KEY:  'commodities (petroleum/natgas series), eia',
+    BLS_API_KEY:  'bls (returns 503), globalMacro (employment series)',
+  };
+  const missing = Object.entries(REQUIRED_KEYS).filter(([k]) => !process.env[k]);
+  if (missing.length) {
+    console.warn('\x1b[33m[env] Missing API keys — affected routes will serve partial or cached data:\x1b[0m');
+    for (const [key, impact] of missing) {
+      console.warn(`\x1b[33m  - ${key}: ${impact}\x1b[0m`);
+    }
+  }
+})();
+
 const app = express();
 const port = parseInt(process.env.PORT, 10) || 0;
 const cache = new NodeCache({ stdTTL: 900 }); // 15 min default

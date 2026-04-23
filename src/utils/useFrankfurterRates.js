@@ -1,17 +1,25 @@
 import { useState, useEffect } from 'react';
 import { exchangeRates, currencySymbols } from './constants';
+import { fetchWithRetry } from './fetchWithRetry';
 
-// Fetches live USD-based exchange rates from Frankfurter (ECB data, updated daily)
-// Falls back to static constants if the fetch fails
+// Fetches live USD-based exchange rates from Frankfurter (ECB data, updated daily).
+// Falls back to the static table in constants.js if the fetch ultimately fails.
 export function useFrankfurterRates() {
-  const [rates, setRates]           = useState(exchangeRates);   // start with static fallback
+  const [rates, setRates]           = useState(exchangeRates);
   const [isLive, setIsLive]         = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
-    fetch('https://api.frankfurter.dev/v1/latest?base=USD')
+    let cancelled = false;
+    fetchWithRetry('https://api.frankfurter.dev/v1/latest?base=USD', {
+      retries: 2,
+      timeout: 8000,
+      backoff: 1000,
+      totalTimeout: 20000,
+    })
       .then(r => r.json())
       .then(data => {
+        if (cancelled) return;
         if (!data || typeof data !== 'object') {
           console.error('[Frankfurter] Invalid response: not an object');
           return;
@@ -28,7 +36,8 @@ export function useFrankfurterRates() {
           return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
         })());
       })
-      .catch(e => { console.error('[Frankfurter] Fetch failed:', e); });
+      .catch(e => { if (!cancelled) console.error('[Frankfurter] Fetch failed after retries:', e?.message || e); });
+    return () => { cancelled = true; };
   }, []);
 
   return { rates, symbols: currencySymbols, isLive, lastUpdated };

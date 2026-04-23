@@ -40,15 +40,17 @@ Enumerated in `server/lib/rateLimits.js` (`KNOWN_LIMITS`, requests/day):
 | Treasury Fiscal Data | 1,000 |
 | Bybit | 600 |
 
-The counter is **in-memory only** (`counters` object in `rateLimits.js`).
-Consequences:
+The counter persists to `server/datacache/rate-limits-YYYY-MM-DD.json`
+(debounced 2 s) and reloads on boot, so restarts no longer zero the
+counts within the same UTC day. Remaining caveats:
 
-- Restarting the server resets all counts to 0, so the dashboard
-  (`/api/analytics`) will under-report until the next UTC midnight.
-- Running multiple server processes double-counts inconsistently.
+- Running multiple server processes races on the shared file; last
+  write wins. Not safe for horizontally-scaled deployments.
 - The counter **does not enforce** the cap — it only tracks what was
   fired. Hitting a remote 429 is handled per-route via catch-blocks that
   return `isCurrent: false` with the most recent cached snapshot.
+- Counts between the last debounced flush and a hard kill are lost
+  (worst case ~2 s of activity).
 
 ## 3. Caching layers & staleness
 
@@ -81,11 +83,13 @@ Routes silently degrade or return 503 when these are absent:
 
 | Env var | Consumers | Missing behavior |
 |---|---|---|
-| `FRED_API_KEY` | `commodities`, `insurance`, `derivatives`, `census` | `census` returns 503; others skip FRED-backed series but still return partial data |
+| `FRED_API_KEY` | `bonds`, `commodities`, `credit`, `derivatives`, `equityDeepDive`, `fx`, `globalMacro`, `insurance`, `macro`, `realEstate`, `sentiment`, `census` | `census` returns 503; others skip FRED-backed series but still return partial data |
 | `EIA_API_KEY` | `commodities`, `eia` | Skips EIA-backed series |
-| `BLS_API_KEY` | `bls` | Returns 503 |
+| `BLS_API_KEY` | `bls`, `globalMacro` | `bls` returns 503; `globalMacro` skips employment series |
 
-There is no startup check that warns when these are unset.
+The server now logs a yellow warning at startup listing any missing
+keys and which routes will be degraded (`warnOnMissingKeys` in
+`server/index.js`).
 
 ## 5. Upstream-API fragility (swallowed errors)
 
@@ -103,12 +107,13 @@ Other routes follow the same pattern (warn + partial response); see any
 
 `src/utils/useFrankfurterRates.js`:
 
-- Primary: `api.frankfurter.dev/v1/latest?base=USD`.
-- On any fetch failure or malformed payload, silently falls back to the
-  **static `exchangeRates` table in `src/utils/constants.js`**, which is
+- Primary: `api.frankfurter.dev/v1/latest?base=USD`, routed through
+  `fetchWithRetry` (2 retries, 8 s per attempt, 20 s total budget).
+- On ultimate failure or malformed payload, falls back to the **static
+  `exchangeRates` table in `src/utils/constants.js`**, which is
   hand-maintained and drifts from the market over time.
-- There is no retry — a single failed load keeps the app on static
-  rates for the session.
+- Retries only happen on initial mount — there is no background refresh
+  if the session outlives the staleness of the ECB daily publication.
 
 ## 7. Browser baseline
 
@@ -130,9 +135,9 @@ on the first `fetchWithRetry` call.
   backoffs. Production retry math is `backoff * (attempt + 1)`.
 - `totalTimeout` (default 30 s) is a hard ceiling across **all**
   attempts, enforced via the combined abort signal. When it fires, the
-  thrown error message is literally `'Total timeout exceeded'` — not an
-  `AbortError` — so upstream error handlers matching `err.name` must be
-  updated accordingly.
+  thrown error is a `DOMException` with `name === 'AbortError'` and
+  `message === 'Total timeout exceeded'`, so upstream handlers that
+  match `err.name === 'AbortError'` will behave correctly.
 
 ## 9. CFTC COT history
 

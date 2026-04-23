@@ -8,8 +8,9 @@ const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test
 
 export async function fetchWithRetry(url, { retries = 2, timeout = 10000, backoff = 1000, totalTimeout = 30000 } = {}) {
   const maxRetries = isTest ? 0 : retries;
+  const totalReason = new DOMException('Total timeout exceeded', 'AbortError');
   const totalController = totalTimeout ? new AbortController() : null;
-  const totalTimer = totalTimeout ? setTimeout(() => totalController.abort(), totalTimeout) : null;
+  const totalTimer = totalTimeout ? setTimeout(() => totalController.abort(totalReason), totalTimeout) : null;
   let lastError;
   try {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -25,7 +26,7 @@ export async function fetchWithRetry(url, { retries = 2, timeout = 10000, backof
       } catch (err) {
         lastError = err;
         if (totalController?.signal.aborted) {
-          throw new Error('Total timeout exceeded');
+          throw totalReason;
         }
         if (attempt < maxRetries) {
           await new Promise(r => setTimeout(r, backoff * (attempt + 1)));
