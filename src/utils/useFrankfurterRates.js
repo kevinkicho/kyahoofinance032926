@@ -12,17 +12,23 @@ export function useFrankfurterRates() {
     fetch('https://api.frankfurter.dev/v1/latest?base=USD')
       .then(r => r.json())
       .then(data => {
-        if (data?.rates) {
-          setRates({ USD: 1, ...data.rates });
-          setIsLive(true);
-          setLastUpdated(data.date ? `${data.date} 00:00:00 UTC` : (() => {
-            const d = new Date();
-            const pad = (n) => String(n).padStart(2, '0');
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-          })());
+        if (!data || typeof data !== 'object') {
+          console.error('[Frankfurter] Invalid response: not an object');
+          return;
         }
+        if (!data.rates || typeof data.rates !== 'object') {
+          console.error('[Frankfurter] Invalid response: missing rates');
+          return;
+        }
+        setRates({ USD: 1, ...data.rates });
+        setIsLive(true);
+        setLastUpdated(data.date ? `${data.date} 00:00:00 UTC` : (() => {
+          const d = new Date();
+          const pad = (n) => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        })());
       })
-      .catch(() => { /* silently keep static fallback */ });
+      .catch(e => { console.error('[Frankfurter] Fetch failed:', e); });
   }, []);
 
   return { rates, symbols: currencySymbols, isLive, lastUpdated };

@@ -40,4 +40,67 @@ describe('OptionsFlow', () => {
     expect(screen.getByText('OI')).toBeInTheDocument();
     expect(screen.getByText('Premium')).toBeInTheDocument();
   });
+
+  it('renders KPI strip with total volume', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('Total Volume')).toBeInTheDocument();
+  });
+
+  it('renders Put/Call Ratio in KPI strip', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('Put/Call Ratio')).toBeInTheDocument();
+  });
+
+  it('renders Top Ticker in KPI strip', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('Top Ticker')).toBeInTheDocument();
+    expect(screen.getByText('SPY')).toBeInTheDocument();
+  });
+
+  it('renders Avg Vol/OI in KPI strip', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('Avg Vol/OI')).toBeInTheDocument();
+  });
+
+  it('renders Call vs Put summary section', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('Call vs Put Volume + Sentiment Breakdown')).toBeInTheDocument();
+    expect(screen.getByText('Call Volume')).toBeInTheDocument();
+    expect(screen.getByText('Put Volume')).toBeInTheDocument();
+  });
+
+  it('renders sentiment breakdown in summary', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('Bullish')).toBeInTheDocument();
+    expect(screen.getByText('Bearish')).toBeInTheDocument();
+  });
+
+  it('renders footer with explanation', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText(/Vol\/OI > 1 = volume exceeds open interest/)).toBeInTheDocument();
+  });
+
+  it('renders strike prices with dollar formatting', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('$520')).toBeInTheDocument();
+    expect(screen.getByText('$950')).toBeInTheDocument();
+  });
+
+  it('renders premium with dollar formatting', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('$8.20')).toBeInTheDocument();
+    expect(screen.getByText('$24.50')).toBeInTheDocument();
+  });
+
+  it('renders expiry dates', () => {
+    render(<OptionsFlow optionsFlow={mockData} />);
+    expect(screen.getByText('16 May 25')).toBeInTheDocument();
+    expect(screen.getByText('20 Jun 25')).toBeInTheDocument();
+  });
+
+  it('renders empty state when no data', () => {
+    render(<OptionsFlow optionsFlow={[]} />);
+    expect(screen.getByText('Options Flow')).toBeInTheDocument();
+    expect(screen.getByText('Top Ticker')).toBeInTheDocument();
+  });
 });

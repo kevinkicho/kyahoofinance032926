@@ -11,6 +11,7 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
   const [hasDimensions, setHasDimensions] = useState(false);
   const [popoverPos, setPopoverPos] = useState(null);
   const [popoverInfo, setPopoverInfo] = useState(null);
+  const [chartError, setChartError] = useState(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -50,7 +51,7 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
         if (echartsInstance && !echartsInstance.isDisposed?.()) {
           try {
             echartsInstance.resize({ width: 'auto', height: 'auto' });
-          } catch {}
+          } catch (e) { console.warn('[SafeECharts] resize error:', e?.message); }
         }
       });
       return () => cancelAnimationFrame(raf2);
@@ -72,7 +73,7 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
         if (echartsInstance && !echartsInstance.isDisposed?.()) {
           try {
             echartsInstance.resize({ width: 'auto', height: 'auto' });
-          } catch {}
+          } catch (e) { console.warn('[SafeECharts] resize error:', e?.message); }
         }
       }, 60);
     });
@@ -160,6 +161,20 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     );
   }
 
+  if (chartError) {
+    return (
+      <div
+        ref={containerRef}
+        className={className}
+        style={containerStyle}
+      >
+        <div style={{ color: '#9ca3af', fontSize: 12, padding: 16, textAlign: 'center' }}>
+          Chart unavailable
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -174,6 +189,7 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
         opts={safeOpts}
         onChartReady={handleChartReady}
         onEvents={safeOnEvents}
+        onError={(err) => { setChartError(err); console.warn('[SafeECharts] render error:', err?.message); }}
         {...rest}
       />
       {popoverPos && popoverInfo && (

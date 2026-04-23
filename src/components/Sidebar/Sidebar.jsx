@@ -70,7 +70,7 @@ const Sidebar = ({
             <p className="stat-value">{currentSymbol}{(flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0) * currentRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} B</p>
           </div>
 
-          <h2>Macro Indicators {macroLive ? <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span> : <span style={{fontSize:'0.6rem',color:colors.textDim}}>(Mock)</span>}</h2>
+          <h2>Macro Indicators {macroLive ? <span className="live-pill">LIVE</span> : <span className="mock-label">(Mock)</span>}</h2>
           <div className="macro-grid">
             <MacroCard label="M1 MONEY SUPPLY" latest={macroData.M1?.latest} prev={macroData.M1?.prev} prefix="$" unit="B" />
             <MacroCard label="M2 MONEY SUPPLY" latest={macroData.M2?.latest} prev={macroData.M2?.prev} prefix="$" unit="B" />
@@ -81,13 +81,13 @@ const Sidebar = ({
           </div>
           {macroLive && (macroData.IG_OAS || macroData.HY_OAS || macroData.BAA_SPREAD) && (
             <>
-              <h2 style={{marginTop:'0.25rem'}}>Credit Spreads <span className="live-pill" style={{fontSize:'0.6rem'}}>LIVE</span></h2>
+              <h2 className="margin-top">Credit Spreads <span className="live-pill">LIVE</span></h2>
               <div className="macro-grid">
                 {macroData.IG_OAS     && <MacroCard label="IG OAS (bps)"        latest={macroData.IG_OAS.latest}     prev={macroData.IG_OAS.prev} />}
                 {macroData.HY_OAS     && <MacroCard label="HY OAS (bps)"        latest={macroData.HY_OAS.latest}     prev={macroData.HY_OAS.prev} />}
                 {macroData.BAA_SPREAD && <MacroCard label="Baa–10yr Sprd (%)" latest={macroData.BAA_SPREAD.latest} prev={macroData.BAA_SPREAD.prev} />}
               </div>
-              <p style={{fontSize:'0.6rem',color:colors.border,margin:'-0.25rem 0 0'}}>
+              <p className="credit-note">
                 ICE BofA OAS · Baa–10yr Treasury spread · FRED{macroData.IG_OAS?.date ? ` · ${macroData.IG_OAS.date}` : ''}
               </p>
             </>
@@ -96,8 +96,8 @@ const Sidebar = ({
           <h2>
             FX Rates (vs USD)
             {ratesIsLive
-              ? <span style={{ fontSize: '0.7rem', color: '#10b981', marginLeft: '0.5rem' }}>● Live {ratesDate}</span>
-              : <span style={{ fontSize: '0.7rem', color: colors.textMuted, marginLeft: '0.5rem' }}>● Static fallback</span>
+              ? <span className="fx-live">● Live {ratesDate}</span>
+              : <span className="fx-static">● Static fallback</span>
             }
           </h2>
           <div className="fx-grid">

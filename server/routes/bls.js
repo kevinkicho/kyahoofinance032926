@@ -19,7 +19,7 @@ const BLS_SERIES = {
   avgWeeklyHours:   { id: 'CES0500000002', label: 'Avg Weekly Hours',            unit: 'hrs' },
 };
 
-async function fetchBLSSeries(seriesIds, apiKey) {
+export async function fetchBLSSeries(seriesIds, apiKey) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
@@ -54,7 +54,7 @@ async function fetchBLSSeries(seriesIds, apiKey) {
   }
 }
 
-function parseSeries(rawSeries) {
+export function parseSeries(rawSeries) {
   const result = {};
   for (const [key, def] of Object.entries(BLS_SERIES)) {
     const matched = rawSeries.find(s => s.seriesID === def.id);
@@ -65,23 +65,27 @@ function parseSeries(rawSeries) {
     const sorted = matched.data
       .filter(d => d.value !== '-' && d.value != null)
       .sort((a, b) => {
-        const da = parseInt(a.year) * 100 + parseInt(a.period.replace('M', ''));
-        const db = parseInt(b.year) * 100 + parseInt(b.period.replace('M', ''));
+        const aPeriod = a.period ?? '';
+        const bPeriod = b.period ?? '';
+        const da = parseInt(a.year ?? 0) * 100 + parseInt(aPeriod.replace('M', ''));
+        const db = parseInt(b.year ?? 0) * 100 + parseInt(bPeriod.replace('M', ''));
         return db - da;
       });
     const dates = [];
     const values = [];
     for (const d of sorted) {
-      const dateStr = `${d.year}-${d.period.replace('M', '').padStart(2, '0')}`;
+      const dateStr = `${d.year ?? ''}-${(d.period ?? '').replace('M', '').padStart(2, '0')}`;
       dates.push(dateStr);
       values.push(parseFloat(d.value));
     }
+    const latestVal = sorted[0];
+    const prevVal = sorted[1];
     result[key] = {
       label: def.label,
       unit: def.unit,
       seriesId: def.id,
-      latest: sorted[0] ? { period: sorted[0].periodName, year: sorted[0].year, value: parseFloat(sorted[0].value) } : null,
-      previous: sorted[1] ? { period: sorted[1].periodName, year: sorted[1].year, value: parseFloat(sorted[1].value) } : null,
+      latest: latestVal ? { period: latestVal.periodName ?? null, year: latestVal.year ?? null, value: parseFloat(latestVal.value) } : null,
+      previous: prevVal ? { period: prevVal.periodName ?? null, year: prevVal.year ?? null, value: parseFloat(prevVal.value) } : null,
       history: { dates, values },
       _source: true,
     };

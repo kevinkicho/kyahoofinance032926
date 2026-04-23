@@ -1,10 +1,16 @@
-import { exchangeRates } from './constants';
+import { exchangeRates, SECTOR } from './constants';
 
 // Deterministic Details Generator for Mock Data
 // rates: live Frankfurter rates (falls back to static exchangeRates if not provided)
+/**
+ * Generates deterministic mock data for a ticker.
+ * @param {Object} tickerInfo - Ticker details including sector, ticker, regionCurrency, etc.
+ * @param {Object} [rates] - Optional exchange rates (defaults to static constants)
+ * @returns {Object}
+ */
 export const getExtendedDetails = (tickerInfo, rates) => {
   if (!tickerInfo) return null;
-  const isCrypto = tickerInfo.sector === 'Crypto';
+  const isCrypto = tickerInfo.sector === SECTOR.CRYPTO;
   const ticker = tickerInfo.ticker || tickerInfo.name || '';
 
   let hash = 0;

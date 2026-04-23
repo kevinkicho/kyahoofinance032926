@@ -30,6 +30,10 @@ function todayStr() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * Saves a snapshot record to IndexedDB.
+ * @param {{ marketId: string, date?: string, [key: string]: any }} record
+ */
 export async function putSnapshot(record) {
   const { marketId } = record;
   const date = record.date || todayStr();
@@ -47,6 +51,11 @@ export async function putSnapshot(record) {
   }
 }
 
+/**
+ * Retrieves the most recent snapshot for a given market.
+ * @param {string} marketId
+ * @returns {Promise<?Object>}
+ */
 export async function getLatest(marketId) {
   try {
     const db = await openDB();
@@ -60,6 +69,10 @@ export async function getLatest(marketId) {
   } catch { return null; }
 }
 
+/**
+ * Retrieves the latest snapshot for each market present in the DB.
+ * @returns {Promise<Object<string, Object>>}
+ */
 export async function getAllLatest() {
   try {
     const db = await openDB();
@@ -80,9 +93,15 @@ export async function getAllLatest() {
       };
       req.onerror = () => reject(req.error);
     });
-  } catch { return {}; }
+  } catch (e) { console.error('[snapshotDB] getAllLatest failed:', e); return {}; }
 }
 
+/**
+ * Retrieves a snapshot for a specific market and date.
+ * @param {string} marketId
+ * @param {string} date - ISO date string (YYYY-MM-DD)
+ * @returns {Promise<?Object>}
+ */
 export async function getSnapshot(marketId, date) {
   try {
     const db = await openDB();
@@ -95,6 +114,11 @@ export async function getSnapshot(marketId, date) {
   } catch { return null; }
 }
 
+/**
+ * Retrieves all dates with snapshots for a given market.
+ * @param {string} marketId
+ * @returns {Promise<string[]>}
+ */
 export async function getAllDatesFor(marketId) {
   try {
     const db = await openDB();
@@ -114,7 +138,7 @@ export async function getAllDatesFor(marketId) {
       };
       req.onerror = () => reject(req.error);
     });
-  } catch { return []; }
+  } catch (e) { console.error('[snapshotDB] getAllDatesFor failed:', e); return []; }
 }
 
 export { todayStr };

@@ -48,7 +48,7 @@ async function buildVolSurface(spyPrice) {
         return c?.impliedVolatility ? Math.round(c.impliedVolatility * 1000) / 10 : null;
       });
       grid.push(row);
-    } catch {
+} catch (err) {
       grid.push(new Array(9).fill(null));
     }
   }

@@ -36,91 +36,97 @@ const WEO_SUBJECTS = [
 const IMF_API_BASE = 'https://dataservices.imf.org/REST/SDMX_JSON.svc';
 
 async function fetchWEOIndicator(subject, weoCodes) {
-  const key = weoCodes.join('+');
-  const url = `${IMF_API_BASE}/GetData/WEO/${key}.${subject}.A?startPeriod=2022&endPeriod=2030`;
-  const data = await fetchJSON(url);
-  const series = data?.CompactData?.DataSet?.Series;
-  if (!series) return {};
+  try {
+    const key = weoCodes.join('+');
+    const url = `${IMF_API_BASE}/GetData/WEO/${key}.${subject}.A?startPeriod=2022&endPeriod=2030`;
+    const data = await fetchJSON(url);
+    const series = data?.CompactData?.DataSet?.Series;
+    if (!series) return {};
 
-  const entries = Array.isArray(series) ? series : [series];
-  const result = {};
+    const entries = Array.isArray(series) ? series : [series];
+    const result = {};
 
-  for (const s of entries) {
-    const cc = s['@REF_AREA'] || s['@WEO_COUNTRY_CODE'] || s['@FREQ'];
-    const obs = Array.isArray(s.Obs) ? s.Obs : s.Obs ? [s.Obs] : [];
-    const byYear = {};
-    for (const o of obs) {
-      const yr = parseInt(o['@TIME_PERIOD']);
-      const val = parseFloat(o['@OBS_VALUE']);
-      if (!isNaN(yr) && !isNaN(val)) byYear[yr] = val;
+    for (const s of entries) {
+      const cc = s['@REF_AREA'] || s['@WEO_COUNTRY_CODE'] || s['@FREQ'];
+      const obs = Array.isArray(s.Obs) ? s.Obs : s.Obs ? [s.Obs] : [];
+      const byYear = {};
+      for (const o of obs) {
+        const yr = parseInt(o['@TIME_PERIOD']);
+        const val = parseFloat(o['@OBS_VALUE']);
+        if (!isNaN(yr) && !isNaN(val)) byYear[yr] = val;
+      }
+      const country = WEO_COUNTRIES.find(c => c.weoCode === cc || c.code === cc);
+      if (country && Object.keys(byYear).length > 0) {
+        result[country.code] = byYear;
+      }
     }
-    const country = WEO_COUNTRIES.find(c => c.weoCode === cc || c.code === cc);
-    if (country && Object.keys(byYear).length > 0) {
-      result[country.code] = byYear;
-    }
-  }
-  return result;
+    return result;
+  } catch (e) { console.warn('[IMF] fetchWEOIndicator:', e?.message); return {}; }
 }
 
 async function fetchIFSData(indicator, countries) {
-  const codes = countries.join('+');
-  const url = `${IMF_API_BASE}/GetData/IFS/${codes}.A.${indicator}?startPeriod=2020`;
-  const data = await fetchJSON(url);
-  const series = data?.CompactData?.DataSet?.Series;
-  if (!series) return {};
+  try {
+    const codes = countries.join('+');
+    const url = `${IMF_API_BASE}/GetData/IFS/${codes}.A.${indicator}?startPeriod=2020`;
+    const data = await fetchJSON(url);
+    const series = data?.CompactData?.DataSet?.Series;
+    if (!series) return {};
 
-  const entries = Array.isArray(series) ? series : [series];
-  const result = {};
+    const entries = Array.isArray(series) ? series : [series];
+    const result = {};
 
-  for (const s of entries) {
-    const cc = s['@REF_AREA'];
-    const obs = Array.isArray(s.Obs) ? s.Obs : s.Obs ? [s.Obs] : [];
-    const byYear = {};
-    for (const o of obs) {
-      const yr = parseInt(o['@TIME_PERIOD']);
-      const val = parseFloat(o['@OBS_VALUE']);
-      if (!isNaN(yr) && !isNaN(val)) byYear[yr] = val;
+    for (const s of entries) {
+      const cc = s['@REF_AREA'];
+      const obs = Array.isArray(s.Obs) ? s.Obs : s.Obs ? [s.Obs] : [];
+      const byYear = {};
+      for (const o of obs) {
+        const yr = parseInt(o['@TIME_PERIOD']);
+        const val = parseFloat(o['@OBS_VALUE']);
+        if (!isNaN(yr) && !isNaN(val)) byYear[yr] = val;
+      }
+      const country = WEO_COUNTRIES.find(c => c.weoCode === cc || c.code === cc);
+      if (country && Object.keys(byYear).length > 0) {
+        result[country.code] = byYear;
+      }
     }
-    const country = WEO_COUNTRIES.find(c => c.weoCode === cc || c.code === cc);
-    if (country && Object.keys(byYear).length > 0) {
-      result[country.code] = byYear;
-    }
-  }
-  return result;
+    return result;
+  } catch (e) { console.warn('[IMF] fetchIFSData:', e?.message); return {}; }
 }
 
 async function fetchCOFER() {
-  const url = `${IMF_API_BASE}/GetData/COFER/Q.USD+XDR+EUR+JPY+GBP+CNY+CHF+Other.XDC_USD.XDR?startPeriod=2022-Q1`;
-  const data = await fetchJSON(url);
-  const series = data?.CompactData?.DataSet?.Series;
-  if (!series) return null;
+  try {
+    const url = `${IMF_API_BASE}/GetData/COFER/Q.USD+XDR+EUR+JPY+GBP+CNY+CHF+Other.XDC_USD.XDR?startPeriod=2022-Q1`;
+    const data = await fetchJSON(url);
+    const series = data?.CompactData?.DataSet?.Series;
+    if (!series) return null;
 
-  const entries = Array.isArray(series) ? series : [series];
-  const result = {};
+    const entries = Array.isArray(series) ? series : [series];
+    const result = {};
 
-  for (const s of entries) {
-    const currency = s['@CURRENCY'];
-    const obs = Array.isArray(s.Obs) ? s.Obs : s.Obs ? [s.Obs] : [];
-    if (obs.length === 0) continue;
+    for (const s of entries) {
+      const currency = s['@CURRENCY'];
+      const obs = Array.isArray(s.Obs) ? s.Obs : s.Obs ? [s.Obs] : [];
+      if (obs.length === 0) continue;
 
-    const sorted = obs
-      .filter(o => o['@OBS_VALUE'] != null)
-      .sort((a, b) => b['@TIME_PERIOD'].localeCompare(a['@TIME_PERIOD']));
+      const sorted = obs
+        .filter(o => o['@OBS_VALUE'] != null)
+        .sort((a, b) => b['@TIME_PERIOD'].localeCompare(a['@TIME_PERIOD']));
 
-    if (sorted.length === 0) continue;
+      if (sorted.length === 0) continue;
 
-    const codeMap = {
-      USD: 'USD', XDR: 'SDR', EUR: 'EUR', JPY: 'JPY',
-      GBP: 'GBP', CNY: 'CNY', CHF: 'CHF',
-    };
-    const label = codeMap[currency] || currency;
-    result[label] = {
-      asOf: sorted[0]['@TIME_PERIOD'],
-      value: Math.round(parseFloat(sorted[0]['@OBS_VALUE']) * 100) / 100,
-    };
-  }
+      const codeMap = {
+        USD: 'USD', XDR: 'SDR', EUR: 'EUR', JPY: 'JPY',
+        GBP: 'GBP', CNY: 'CNY', CHF: 'CHF',
+      };
+      const label = codeMap[currency] || currency;
+      result[label] = {
+        asOf: sorted[0]['@TIME_PERIOD'],
+        value: Math.round(parseFloat(sorted[0]['@OBS_VALUE']) * 100) / 100,
+      };
+    }
 
-  return Object.keys(result).length >= 3 ? result : null;
+    return Object.keys(result).length >= 3 ? result : null;
+  } catch (e) { console.warn('[IMF] fetchCOFER:', e?.message); return null; }
 }
 
 router.get('/', async (req, res) => {

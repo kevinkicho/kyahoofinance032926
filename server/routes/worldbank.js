@@ -28,7 +28,7 @@ const INDICATORS = [
 
 const WB_API = 'https://api.worldbank.org/v2';
 
-function getLatest(dataPoints) {
+export function getLatest(dataPoints) {
   if (!dataPoints?.length) return null;
   const sorted = [...dataPoints].sort((a, b) => parseInt(b.date) - parseInt(a.date));
   for (const dp of sorted) {
@@ -37,7 +37,7 @@ function getLatest(dataPoints) {
   return null;
 }
 
-function getPrevLatest(dataPoints) {
+export function getPrevLatest(dataPoints) {
   if (!dataPoints?.length) return null;
   const sorted = [...dataPoints].sort((a, b) => parseInt(b.date) - parseInt(a.date));
   let foundLatest = false;

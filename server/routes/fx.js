@@ -121,14 +121,14 @@ const COT_NAME_MAP = {
 };
 
 // Fetch COT history (last 52 weeks)
-async function fetchCOTHistory() {
+export async function fetchCOTHistory() {
   const CFTC_URL = 'https://publicreporting.cftc.gov/resource/jun7-fc8e.json' +
     '?$select=report_date_as_yyyy_mm_dd,market_and_exchange_names,' +
     'noncomm_positions_long_all,noncomm_positions_short_all,open_interest_all' +
     '&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=400';
 
   try {
-    const rows = await fetchJSON(CFTC_URL);
+    const rows = (await fetchJSON(CFTC_URL)) || [];
     const history = {};
 
     // Group by currency and date

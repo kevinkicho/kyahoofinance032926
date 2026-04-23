@@ -153,3 +153,38 @@
   font-size: 0.7rem;
   margin-left: 0.5rem;
 }
+
+.live-pill {
+  font-size: 0.6rem;
+}
+
+.sidebar .mock-label {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+}
+
+.sidebar h2 + h2 {
+  margin-top: 0.25rem;
+}
+
+.sidebar .credit-note {
+  font-size: 0.6rem;
+  color: var(--border-color);
+  margin: -0.25rem 0 0;
+}
+
+.sidebar .fx-live {
+  font-size: 0.7rem;
+  color: #10b981;
+  margin-left: 0.5rem;
+}
+
+.sidebar .fx-static {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+.sidebar h2.margin-top {
+  margin-top: 0.25rem;
+}

@@ -1,3 +1,7 @@
+export const SECTOR = {
+  CRYPTO: 'Crypto',
+};
+
 export const exchangeRates = {
   USD: 1.00, EUR: 0.92, CNY: 7.23, JPY: 151.30, HKD: 7.82, INR: 83.31,
   GBP: 0.79, SAR: 3.75, CAD: 1.36, KRW: 1348.50, CHF: 0.90, SEK: 10.64,
