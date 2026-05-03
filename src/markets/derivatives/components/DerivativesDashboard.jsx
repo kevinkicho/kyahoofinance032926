@@ -3,23 +3,31 @@ import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import DerivativesSidebar from './DerivativesSidebar';
 import './DerivativesDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
 
+// KPI strip is now a real bento child at row 0 (h:2). Other panels shifted
+// down 2 rows. Storage key bumped.
 const LAYOUT = {
   lg: [
-    { i: 'metrics', x: 0, y: 0, w: 3, h: 5 },
-    { i: 'vixterm', x: 3, y: 0, w: 3, h: 3 },
-    { i: 'vix1y',   x: 6, y: 0, w: 3, h: 3 },
-    { i: 'skew',    x: 9, y: 0, w: 3, h: 3 },
-    { i: 'volsurf',  x: 3, y: 3, w: 6, h: 3 },
-    { i: 'flow',    x: 9, y: 3, w: 3, h: 3 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 2 },
+    { i: 'metrics', x: 0, y: 2, w: 3,  h: 5 },
+    { i: 'vixterm', x: 3, y: 2, w: 3,  h: 3 },
+    { i: 'vix1y',   x: 6, y: 2, w: 3,  h: 3 },
+    { i: 'skew',    x: 9, y: 2, w: 3,  h: 3 },
+    { i: 'volsurf', x: 3, y: 5, w: 6,  h: 3 },
+    { i: 'flow',    x: 9, y: 5, w: 3,  h: 3 },
+    { i: 'gamma',   x: 0, y: 7, w: 3,  h: 4 },
+    { i: 'volprem', x: 3, y: 8, w: 3,  h: 3 },
   ]
 };
 
 function DerivativesDashboard({
+  kpis,
   volSurfaceData, vixTermStructure, optionsFlow, vixEnrichment,
   volPremium, fredVixHistory, putCallRatio, skewIndex, skewHistory,
   gammaExposure, vixPercentile, termSpread, fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
@@ -101,124 +109,44 @@ function DerivativesDashboard({
 
   return (
     <div className="deriv-dashboard deriv-dashboard--bento">
-      <BentoWrapper layout={LAYOUT} storageKey="derivatives-layout">
-        {/* Metrics Sidebar */}
-        <div key="metrics" className="deriv-bento-card">
+      <BentoWrapper layout={LAYOUT} storageKey="derivatives-layout-v2">
+        {/* KPI strip — full-width row 0, real bento panel. */}
+        <div key="kpi" className="deriv-bento-card">
           <div className="deriv-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Key Metrics</span>
+            <span className="bento-panel-title">Derivatives Key Metrics</span>
           </div>
           <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
-            <div className="deriv-sidebar-section">
-              <div className="deriv-sidebar-title">VIX</div>
-              <div className="deriv-metric-card">
-                <div className="deriv-metric-label">Spot</div>
-                <div className="deriv-metric-value" style={{ color: vixTermStructure?.values?.[0] > 25 ? '#f87171' : vixTermStructure?.values?.[0] > 18 ? '#fbbf24' : '#4ade80' }}>
-                  <MetricValue value={vixTermStructure?.values?.[0]} seriesKey="vix" timestamp={lastUpdated} format={v => v.toFixed(1)} />
-                </div>
-              </div>
-              {termStatus && (
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">{termStatus.isContango ? 'Contango' : 'Backwardation'}</span>
-                    <span className="deriv-metric-num" style={{ color: termStatus.isContango ? '#4ade80' : '#f87171' }}>
-                      <MetricValue value={termStatus.pct} seriesKey="contangoPct" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
-                    </span>
-                  </div>
-                </div>
-              )}
-              {vixEnrichment?.vvix != null && (
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">VVIX</span>
-                    <span className="deriv-metric-num" style={{ color: '#a78bfa' }}><MetricValue value={vixEnrichment.vvix} seriesKey="vvix" timestamp={lastUpdated} format={v => v.toFixed(1)} /></span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="deriv-sidebar-section">
-              <div className="deriv-sidebar-title">Volatility</div>
-              {putCallRatio != null && (
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">Put/Call</span>
-                    <span className="deriv-metric-num" style={{ color: putCallRatio > 1.0 ? '#f87171' : putCallRatio < 0.7 ? '#4ade80' : '#fbbf24' }}>
-                      <MetricValue value={putCallRatio} seriesKey="putCallRatio" timestamp={lastUpdated} format={v => v.toFixed(2)} />
-                    </span>
-                  </div>
-                </div>
-              )}
-              {volPremium?.atm1mIV != null && (
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">ATM 1M IV</span>
-                    <span className="deriv-metric-num" style={{ color: '#60a5fa' }}><MetricValue value={volPremium.atm1mIV} seriesKey="atmImpliedVol" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
-                  </div>
-                </div>
-              )}
-              {vixPercentile != null && (
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">VIX %ile</span>
-                    <span className="deriv-metric-num"><MetricValue value={vixPercentile} seriesKey="vixPercentile" timestamp={lastUpdated} format={v => `${v.toFixed(0)}%`} /></span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {typeof termSpread === 'number' && (
-              <div className="deriv-sidebar-section">
-                <div className="deriv-sidebar-title">Term Structure</div>
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">Term Spread</span>
-                    <span className="deriv-metric-num" style={{ color: termSpread > 0 ? '#4ade80' : '#f87171' }}>
-                      <MetricValue value={termSpread} seriesKey="vix" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`} />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {skewIndex?.value != null && (
-              <div className="deriv-sidebar-section">
-                <div className="deriv-sidebar-title">SKEW</div>
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">Index</span>
-                    <span className="deriv-metric-num" style={{ color: skewIndex.value > 140 ? '#f87171' : skewIndex.value > 120 ? '#fbbf24' : '#4ade80' }}>
-                      <MetricValue value={skewIndex.value} seriesKey="skew" timestamp={lastUpdated} format={v => v.toFixed(1)} />
-                    </span>
-                  </div>
-                  {skewIndex.interpretation && (
-                    <div className="deriv-metric-label" style={{ fontSize: 10, marginTop: 4 }}>
-                      {skewIndex.interpretation}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {gammaExposure?.total != null && (
-              <div className="deriv-sidebar-section">
-                <div className="deriv-sidebar-title">Gamma (GEX)</div>
-                <div className="deriv-metric-card">
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">Total</span>
-                    <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>
-                      <MetricValue value={gammaExposure.total} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
-                    </span>
-                  </div>
-                  <div className="deriv-metric-row">
-                    <span className="deriv-metric-name">Net</span>
-                    <span className="deriv-metric-num" style={{ color: gammaExposure.netGamma >= 0 ? '#4ade80' : '#f87171' }}>
-                      <MetricValue value={gammaExposure.netGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}$${Math.abs(v).toFixed(1)}B`} />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+            <MarketKpiStrip kpis={kpis || []} bare />
           </div>
+          <DataFooter
+            source="Yahoo Finance / CBOE / FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            fetchLog={fetchLog}
+            error={error}
+            fetchedOn={fetchedOn}
+            isCurrent={isCurrent}
+          />
+        </div>
+        {/* Metrics Sidebar */}
+        <div key="metrics" className="deriv-bento-card">
+           <div className="deriv-panel-title-row bento-panel-title-row">
+             <span className="bento-panel-title">Key Metrics</span>
+           </div>
+             <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
+               <DerivativesSidebar 
+                 vixTermStructure={vixTermStructure}
+                 vixEnrichment={vixEnrichment}
+                 termStatus={termStatus}
+                 putCallRatio={putCallRatio}
+                 volPremium={volPremium}
+                 vixPercentile={vixPercentile}
+                 termSpread={termSpread}
+                 skewIndex={skewIndex}
+                 gammaExposure={gammaExposure}
+                 lastUpdated={lastUpdated}
+               />
+             </div>
           <DataFooter source="Yahoo Finance / CBOE" timestamp={lastUpdated} isLive={!!vixTermStructure?.values?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
 
@@ -294,6 +222,88 @@ function DerivativesDashboard({
               </div>
             </div>
             <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!optionsFlow?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+          </div>
+        )}
+      {/* Gamma Exposure */}
+        {gammaExposure?.total != null && (
+          <div key="gamma" className="deriv-bento-card">
+            <div className="deriv-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Gamma Exposure (GEX)</span>
+            </div>
+            <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
+              <div className="deriv-sidebar-section" style={{ borderBottom: 'none' }}>
+                <div className="deriv-metric-card">
+                  <div className="deriv-metric-row">
+                    <span className="deriv-metric-name">Total</span>
+                    <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>
+                      <MetricValue value={gammaExposure.total} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+                    </span>
+                  </div>
+                </div>
+                <div className="deriv-metric-card">
+                  <div className="deriv-metric-row">
+                    <span className="deriv-metric-name" style={{ color: '#4ade80' }}>Call GEX</span>
+                    <span className="deriv-metric-num" style={{ color: '#4ade80' }}>
+                      <MetricValue value={gammaExposure.callGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+                    </span>
+                  </div>
+                </div>
+                <div className="deriv-metric-card">
+                  <div className="deriv-metric-row">
+                    <span className="deriv-metric-name" style={{ color: '#f87171' }}>Put GEX</span>
+                    <span className="deriv-metric-num" style={{ color: '#f87171' }}>
+                      <MetricValue value={gammaExposure.putGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+                    </span>
+                  </div>
+                </div>
+                <div className="deriv-metric-card">
+                  <div className="deriv-metric-row">
+                    <span className="deriv-metric-name">Net GEX</span>
+                    <span className="deriv-metric-num" style={{ color: gammaExposure.netGamma >= 0 ? '#4ade80' : '#f87171' }}>
+                      <MetricValue value={gammaExposure.netGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}$${Math.abs(v).toFixed(1)}B`} />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DataFooter source="Yahoo Finance / SpotGamma" timestamp={lastUpdated} isLive={!!gammaExposure} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+          </div>
+        )}
+
+        {/* Vol Premium — only render the panel when we actually have data,
+            so the bento doesn't stay populated with an empty placeholder. */}
+        {volPremium?.atm1mIV != null && (
+          <div key="volprem" className="deriv-bento-card">
+            <div className="deriv-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Vol Premium</span>
+            </div>
+            <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
+              <div className="vol-premium-row">
+                <div className="vol-premium-pill">
+                  <span className="vol-premium-label">ATM 1M IV</span>
+                  <span className="vol-premium-value" style={{ color: '#a78bfa' }}>
+                    <MetricValue value={volPremium.atm1mIV} seriesKey="atmImpliedVol" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} />
+                  </span>
+                </div>
+                <div className="vol-premium-pill">
+                  <span className="vol-premium-label">30d Realized</span>
+                  <span className="vol-premium-value">
+                    <MetricValue value={volPremium.realizedVol30d} seriesKey="realizedVol" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} />
+                  </span>
+                </div>
+              </div>
+              {volPremium.premium != null && (
+                <div className="vol-premium-row" style={{ marginTop: 8 }}>
+                  <div className="vol-premium-pill" style={{ minWidth: '100%' }}>
+                    <span className="vol-premium-label">IV − Realized Spread</span>
+                    <span className={`vol-premium-value ${volPremium.premium >= 0 ? 'vol-premium-pos' : 'vol-premium-neg'}`}>
+                      <MetricValue value={volPremium.premium} seriesKey="volPremium" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!volPremium} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
       </BentoWrapper>

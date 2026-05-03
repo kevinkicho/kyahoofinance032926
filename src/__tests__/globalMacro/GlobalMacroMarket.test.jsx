@@ -47,8 +47,9 @@ describe('GlobalMacroMarket', () => {
 
   it('shows KPI strip with global metrics', () => {
     render(<GlobalMacroMarket centralData={mockCentralData} />);
-    expect(screen.getByText('G7 GDP')).toBeInTheDocument();
-    expect(screen.getByText('Global CPI')).toBeInTheDocument();
+    // GlobalMacroKpiStrip renders country-prefixed GDP labels and an Avg CPI tile.
+    expect(screen.getByText(/US GDP/)).toBeInTheDocument();
+    expect(screen.getByText('Avg CPI')).toBeInTheDocument();
   });
 
   it('shows compact scorecard table with countries', () => {
@@ -59,10 +60,12 @@ describe('GlobalMacroMarket', () => {
 
   it('shows chart panels with GDP, CPI, Rates, Debt', () => {
     render(<GlobalMacroMarket centralData={mockCentralData} />);
-    expect(screen.getByText('GDP Growth')).toBeInTheDocument();
-    expect(screen.getByText('CPI Inflation')).toBeInTheDocument();
-    expect(screen.getByText('Policy Rates')).toBeInTheDocument();
-    expect(screen.getByText('Debt / GDP')).toBeInTheDocument();
+    // "GDP Growth" / "CPI Inflation" / "Debt / GDP" appear as both bento panel
+    // titles AND sidebar labels — assert at-least-one match instead of unique.
+    expect(screen.getAllByText('GDP Growth').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('CPI Inflation').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Policy Rates').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Debt / GDP').length).toBeGreaterThan(0);
   });
 
   it('shows economic activity panel with CFNAI and OECD CLI', () => {

@@ -4,6 +4,20 @@
  * @param {{ retries?: number, timeout?: number, backoff?: number, totalTimeout?: number }} opts
  * @returns {Promise<Response>}
  */
+if (typeof AbortSignal !== 'undefined' && !AbortSignal.any) {
+  AbortSignal.any = function any(signals) {
+    const controller = new AbortController();
+    for (const signal of signals) {
+      if (signal.aborted) {
+        controller.abort(signal.reason);
+        return controller.signal;
+      }
+      signal.addEventListener('abort', () => controller.abort(signal.reason), { signal: controller.signal });
+    }
+    return controller.signal;
+  };
+}
+
 const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
 
 export async function fetchWithRetry(url, { retries = 2, timeout = 10000, backoff = 1000, totalTimeout = 30000 } = {}) {

@@ -479,7 +479,15 @@
 .fx-diff.negative { color: #ef4444; }
 .fx-rate-hint { font-size: 9px; color: var(--text-muted); font-weight: 400; }
 
-/* ── 23. Responsive ── */
+/* ── 23. Carry bento card — removes outer fx-panel padding since bento-card provides its own ── */
+.fx-bento-card--carry .fx-panel {
+  padding: 0;
+}
+.fx-bento-card--carry {
+  overflow: auto;
+}
+
+/* ── 24. Responsive ── */
 @container bento-card (max-width: 500px) {
   .fx-panel-title { font-size: 10px; }
   .fx-panel-subtitle { font-size: 8px; }
@@ -511,4 +519,123 @@
 
 @media (max-width: 1000px) {
   .fx-wide-narrow, .fx-two-col { grid-template-columns: 1fr; }
+}
+
+/* ── 25. Sidebar layout ── */
+.fx-market--with-sidebar {
+  display: grid !important;
+  grid-template-columns: 260px 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden !important;
+}
+
+/* `.fx-sidebar` now renders inside a `.fx-bento-card` (real bento panel),
+   so the bento card owns the background/border/shadow. The sidebar element
+   itself just lays out its sections vertically. */
+.fx-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.fx-sidebar.fx-sidebar--in-bento {
+  /* bento-panel-content already gives us scroll + padding */
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.fx-sidebar-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.fx-sidebar-section {
+  margin-bottom: 10px;
+}
+
+.fx-sidebar-section-title {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 4px 0;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fx-sidebar-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  gap: 6px;
+}
+
+.fx-sidebar-metric-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.fx-sidebar-metric-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  white-space: nowrap;
+}
+
+.fx-sidebar-metric-change {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.fx-sidebar-status {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 10px;
+}
+
+.fx-sidebar-live {
+  color: #22c55e;
+}
+
+.fx-sidebar-fallback {
+  color: var(--text-dim);
+}
+
+.fx-market-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@media (max-width: 900px) {
+  .fx-market--with-sidebar {
+    grid-template-columns: 1fr;
+  }
+  .fx-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    max-height: 200px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+  }
+  .fx-sidebar-section {
+    margin-bottom: 0;
+    flex: 1 1 140px;
+  }
 }

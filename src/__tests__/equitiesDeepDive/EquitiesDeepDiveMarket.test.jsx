@@ -62,7 +62,7 @@ describe('EquitiesDeepDiveMarket', () => {
 
   it('shows sidebar with Sector Performance', () => {
     render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
-    expect(screen.getByText('Sector Performance')).toBeInTheDocument();
+    expect(screen.getAllByText('Sector Performance').length).toBeGreaterThan(0);
   });
 
   it('shows sidebar with Factor Scores', () => {

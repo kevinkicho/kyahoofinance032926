@@ -1,27 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../hub/ThemeContext';
+import { useMarketData } from '../../hub/DataContext';
 import DetailPanel from '../DetailPanel/DetailPanel';
-import { exchangeRates } from '../../utils/constants'; // fallback only
+import { exchangeRates } from '../../utils/constants';
 import './Sidebar.css';
 
-const MOCK_MACRO = {
-  M1:    { latest: 18200, prev: 18050, seriesId: 'M1SL',     date: '2024-12' },
-  M2:    { latest: 21300, prev: 21150, seriesId: 'M2SL',     date: '2024-12' },
-  CPI:   { latest: 314.8, prev:  312.1, seriesId: 'CPIAUCSL', date: '2024-12' },
-  FFR:   { latest: 5.33,  prev:  5.33,  seriesId: 'FEDFUNDS', date: '2024-12' },
-  UNEMP: { latest: 3.7,   prev:  3.8,   seriesId: 'UNRATE',   date: '2024-12' },
-  GDP:   { latest: 28200, prev:  27900, seriesId: 'GDP',       date: '2024-Q3' },
-};
-
-const MacroCard = ({ label, latest, prev, unit = '', prefix = '' }) => {
-  const pct = prev ? ((latest - prev) / Math.abs(prev)) * 100 : 0;
-  const up = pct >= 0;
-  return (
-    <div className="macro-card">
-      <span className="label">{label}</span>
-      <span className="value">{prefix}{typeof latest === 'number' ? latest.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}{unit}</span>
-      <span className={`trend ${up ? 'text-green' : 'text-red'}`}>{up ? '↑' : '↓'} {Math.abs(pct).toFixed(2)}%</span>
+const KpiStrip = ({ metrics, accentColor }) => (
+  <div className="kpi-strip" style={{ borderTop: `3px solid ${accentColor}`, marginTop: '20px' }}>
+    <div className="kpi-grid">
+      {metrics.map((m, i) => (
+        <div key={i} className="kpi-item">
+          <span className="kpi-label">{m.label}</span>
+          <span className="kpi-value" style={{ color: accentColor }}>
+            {m.prefix}{typeof m.value === 'number' ? m.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}{m.unit}
+          </span>
+        </div>
+      ))}
     </div>
+  </div>
+);
+
+export const MarketSidebarPanel = ({ title, metrics, isLive, note }) => {
+
+
+  return (
+    <>
+      <h2>{title} {isLive ? <span className="live-pill">LIVE</span> : ''}</h2>
+      <div className="macro-grid">
+        {metrics.map((m, i) => (
+          <div key={i} className="macro-card">
+            <span className="label">{m.label}</span>
+            <span className="value">{m.prefix}{typeof m.value === 'number' ? m.value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}{m.unit}</span>
+            <span className={`trend ${m.change >= 0 ? 'text-green' : 'text-red'}`}>
+              {m.change >= 0 ? '↑' : '↓'} {Math.abs(m.change).toFixed(2)}%
+            </span>
+          </div>
+        ))}
+      </div>
+      {note && <p className="credit-note">{note}</p>}
+    </>
   );
 };
 
@@ -35,23 +52,26 @@ const Sidebar = ({
   rates,
   ratesIsLive,
   ratesDate,
+  marketStats,
 }) => {
   const { colors } = useTheme();
   const fxRates = rates || exchangeRates;
-  const [macroData, setMacroData] = useState(MOCK_MACRO);
-  const [macroLive, setMacroLive] = useState(false);
+  const bonds = useMarketData('bonds');
+  const credit = useMarketData('credit');
 
-  useEffect(() => {
-    fetch('/api/macro')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data && Object.keys(data).length > 0) {
-          setMacroData(data);
-          setMacroLive(true);
-        }
-      })
-      .catch(() => {}); // silently fallback to mock
-  }, []);
+  const bondMetrics = [
+    { label: "M1 MONEY SUPPLY", value: bonds.M1?.latest, change: bonds.M1 ? ((bonds.M1.latest - bonds.M1.prev) / Math.abs(bonds.M1.prev)) * 100 : 0, prefix: "$", unit: "B" },
+    { label: "M2 MONEY SUPPLY", value: bonds.M2?.latest, change: bonds.M2 ? ((bonds.M2.latest - bonds.M2.prev) / Math.abs(bonds.M2.prev)) * 100 : 0, prefix: "$", unit: "B" },
+    { label: "CPI (ALL URBAN)", value: bonds.CPI?.latest, change: bonds.CPI ? ((bonds.CPI.latest - bonds.CPI.prev) / Math.abs(bonds.CPI.prev)) * 100 : 0 },
+    { label: "FED FUNDS RATE", value: bonds.FFR?.latest, change: bonds.FFR ? ((bonds.FFR.latest - bonds.FFR.prev) / Math.abs(bonds.FFR.prev)) * 100 : 0, unit: "%" },
+    { label: "UNEMPLOYMENT", value: bonds.UNEMP?.latest, change: bonds.UNEMP ? ((bonds.UNEMP.latest - bonds.UNEMP.prev) / Math.abs(bonds.UNEMP.prev)) * 100 : 0, unit: "%" },
+    { label: "NOMINAL GDP", value: bonds.GDP?.latest, change: bonds.GDP ? ((bonds.GDP.latest - bonds.GDP.prev) / Math.abs(bonds.GDP.prev)) * 100 : 0, prefix: "$", unit: "B" },
+  ];
+
+  const creditMetrics = [];
+  if (credit.IG_OAS) creditMetrics.push({ label: "IG OAS (bps)", value: credit.IG_OAS.latest, change: ((credit.IG_OAS.latest - credit.IG_OAS.prev) / Math.abs(credit.IG_OAS.prev)) * 100 });
+  if (credit.HY_OAS) creditMetrics.push({ label: "HY OAS (bps)", value: credit.HY_OAS.latest, change: ((credit.HY_OAS.latest - credit.HY_OAS.prev) / Math.abs(credit.HY_OAS.prev)) * 100 });
+  if (credit.BAA_SPREAD) creditMetrics.push({ label: "Baa–10yr Sprd (%)", value: credit.BAA_SPREAD.latest, change: ((credit.BAA_SPREAD.latest - credit.BAA_SPREAD.prev) / Math.abs(credit.BAA_SPREAD.prev)) * 100 });
 
   return (
     <aside className="sidebar">
@@ -65,34 +85,47 @@ const Sidebar = ({
       ) : (
         <>
           <h2>Market Summary</h2>
-          <div className="stat-card">
-            <h3>Global Validated Cap ({currency})</h3>
-            <p className="stat-value">{currentSymbol}{(flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0) * currentRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} B</p>
-          </div>
-
-          <h2>Macro Indicators {macroLive ? <span className="live-pill">LIVE</span> : <span className="mock-label">(Mock)</span>}</h2>
-          <div className="macro-grid">
-            <MacroCard label="M1 MONEY SUPPLY" latest={macroData.M1?.latest} prev={macroData.M1?.prev} prefix="$" unit="B" />
-            <MacroCard label="M2 MONEY SUPPLY" latest={macroData.M2?.latest} prev={macroData.M2?.prev} prefix="$" unit="B" />
-            <MacroCard label="CPI (ALL URBAN)" latest={macroData.CPI?.latest} prev={macroData.CPI?.prev} />
-            <MacroCard label="FED FUNDS RATE" latest={macroData.FFR?.latest} prev={macroData.FFR?.prev} unit="%" />
-            <MacroCard label="UNEMPLOYMENT" latest={macroData.UNEMP?.latest} prev={macroData.UNEMP?.prev} unit="%" />
-            <MacroCard label="NOMINAL GDP" latest={macroData.GDP?.latest} prev={macroData.GDP?.prev} prefix="$" unit="B" />
-          </div>
-          {macroLive && (macroData.IG_OAS || macroData.HY_OAS || macroData.BAA_SPREAD) && (
-            <>
-              <h2 className="margin-top">Credit Spreads <span className="live-pill">LIVE</span></h2>
-              <div className="macro-grid">
-                {macroData.IG_OAS     && <MacroCard label="IG OAS (bps)"        latest={macroData.IG_OAS.latest}     prev={macroData.IG_OAS.prev} />}
-                {macroData.HY_OAS     && <MacroCard label="HY OAS (bps)"        latest={macroData.HY_OAS.latest}     prev={macroData.HY_OAS.prev} />}
-                {macroData.BAA_SPREAD && <MacroCard label="Baa–10yr Sprd (%)" latest={macroData.BAA_SPREAD.latest} prev={macroData.BAA_SPREAD.prev} />}
+          <KpiStrip 
+            metrics={[
+              { label: "Global Validated Cap", value: (flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0) * currentRate), prefix: currentSymbol, unit: " B" },
+              { label: "Equities Tracked", value: flatData.length, prefix: "", unit: "" }
+            ]} 
+            accentColor="var(--accent-blue)" 
+          />
+          {marketStats && (
+            <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+              <div className="stat-card">
+                <h3 style={{ fontSize: 11, color: 'var(--text-muted)' }}>Advancers / Decliners</h3>
+                <p className="stat-value">
+                  <span style={{ color: '#4ade80' }}>{marketStats.advancers}</span>
+                  {' / '}
+                  <span style={{ color: '#f87171' }}>{marketStats.decliners}</span>
+                  {marketStats.unchanged > 0 && <span style={{ color: '#94a3b8' }}> · {marketStats.unchanged}</span>}
+                </p>
               </div>
-              <p className="credit-note">
-                ICE BofA OAS · Baa–10yr Treasury spread · FRED{macroData.IG_OAS?.date ? ` · ${macroData.IG_OAS.date}` : ''}
-              </p>
-            </>
+              <div className="stat-card">
+                <h3 style={{ fontSize: 11, color: 'var(--text-muted)' }}>52-Week Highs / Lows</h3>
+                <p className="stat-value">
+                  <span style={{ color: '#4ade80' }}>{marketStats.newHighs}</span>
+                  {' / '}
+                  <span style={{ color: '#f87171' }}>{marketStats.newLows}</span>
+                </p>
+              </div>
+            </div>
           )}
-
+          <MarketSidebarPanel 
+            title="Macro Indicators" 
+            metrics={bondMetrics} 
+            isLive={bonds.isLive} 
+          />
+          {creditMetrics.length > 0 && (
+            <MarketSidebarPanel 
+              title="Credit Spreads" 
+              metrics={creditMetrics} 
+              isLive={credit.isLive} 
+              note={`ICE BofA OAS · Baa–10yr Treasury spread · FRED${credit.IG_OAS?.date ? ` · ${credit.IG_OAS.date}` : ''}`}
+            />
+          )}
           <h2>
             FX Rates (vs USD)
             {ratesIsLive
@@ -115,6 +148,7 @@ const Sidebar = ({
       )}
     </aside>
   );
+
 };
 
 export default Sidebar;

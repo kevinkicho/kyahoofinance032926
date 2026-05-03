@@ -60,7 +60,8 @@
 .crypto-bento-card,
 .ana-bento-card,
 .cal-bento-card,
-.watch-bento-card {
+.watch-bento-card,
+.eia-bento-card {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border-subtle);
@@ -82,9 +83,15 @@
   border: 2px dashed !important;
 }
 
-/* ── Bento root — flex layout to fill available space ── */
+/* ── Bento root — flex layout to fill available space ──
+   `flex: 1 0 auto` (don't shrink, basis is content height) lets the
+   react-grid-layout wrapper take its full natural pixel height, so the
+   parent market wrapper's `overflow-y: auto` shows a scrollbar when the
+   bento panels stack taller than the viewport. With `flex: 1 1 0` the
+   container collapsed under its own content and the bottom panels were
+   clipped instead of becoming scrollable. */
 .com-bento-root {
-  flex: 1 1 0;
+  flex: 1 0 auto;
   min-width: 0;
   min-height: 400px;
 }

@@ -91,6 +91,7 @@ export default function EconomicCalendar({ economicEvents, insideBento }) {
               <th></th>
               <th>Event</th>
               <th>Actual</th>
+              <th>Consensus</th>
               <th>Expected</th>
               <th>Previous</th>
               <th>Surprise</th>
@@ -104,8 +105,9 @@ export default function EconomicCalendar({ economicEvents, insideBento }) {
                   <td style={{ fontFamily: 'monospace', fontSize: 10, color: colors.textMuted }}>{e.date}</td>
                   <td><span className="cal-flag">{countryFlag(e.country)}</span></td>
                   <td style={{ fontWeight: 500 }}>{e.event}</td>
-                  <td style={{ fontFamily: 'monospace' }}><MetricValue value={e.actual} seriesKey="ecoActual" format={v => v != null ? `${v}` : '—'} /></td>
-                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}><MetricValue value={e.expected} seriesKey="ecoExpected" format={v => v != null ? `${v}` : '—'} /></td>
+                   <td style={{ fontFamily: 'monospace' }}><MetricValue value={e.actual} seriesKey="ecoActual" format={v => v != null ? `${v}` : '—'} /></td>
+                   <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}><MetricValue value={e.consensus} seriesKey="ecoConsensus" format={v => v != null ? `${v}` : '—'} /></td>
+                   <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}><MetricValue value={e.expected} seriesKey="ecoExpected" format={v => v != null ? `${v}` : '—'} /></td>
                   <td style={{ fontFamily: 'monospace', color: colors.textMuted }}><MetricValue value={e.previous} seriesKey="ecoPrevious" format={v => v != null ? `${v}` : '—'} /></td>
                   <td className={surprise > 0 ? 'cal-surprise-pos' : surprise < 0 ? 'cal-surprise-neg' : 'cal-surprise-na'}>
                     <MetricValue value={surprise} seriesKey="ecoSurprise" format={v => v != null ? `${v > 0 ? '+' : ''}${v}` : '—'} />
@@ -128,7 +130,7 @@ export default function EconomicCalendar({ economicEvents, insideBento }) {
     <div className="cal-panel">
       <div className="cal-panel-header">
         <span className="cal-panel-title">Economic Calendar</span>
-        <span className="cal-panel-subtitle">High-importance macro releases · next 30 days · Econdb</span>
+        <span className="cal-panel-subtitle">High-importance macro releases · next 30 days · FRED + Econdb</span>
       </div>
       {inner}
     </div>

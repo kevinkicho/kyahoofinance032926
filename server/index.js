@@ -8,6 +8,7 @@ import express from 'express';
 import cors from 'cors';
 import NodeCache from 'node-cache';
 import fs from 'fs';
+import crypto from 'crypto';
 
 import { cleanOldCaches, CACHE_DIR, todayStr, readLatestCache } from './lib/cache.js';
 import { buildSnapshotIndex } from './lib/stocks.js';
@@ -33,6 +34,7 @@ import fxRouter from './routes/fx.js';
 import tickerRouter from './routes/ticker.js';
 import institutionalRouter from './routes/institutional.js';
 import analyticsRouter from './routes/analytics.js';
+import watchlistRouter from './routes/watchlist.js';
 import fredRouter from './routes/fred.js';
 import imfRouter from './routes/imf.js';
 import worldbankRouter from './routes/worldbank.js';
@@ -83,10 +85,17 @@ cleanOldCaches();
 
 const app = express();
 const port = parseInt(process.env.PORT, 10) || 0;
-const cache = new NodeCache({ stdTTL: 900 }); // 15 min default
 
-app.use(cors());
-app.use(express.json());
+const localCache = new NodeCache({ stdTTL: 900 });
+
+const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+app.use(cors({ origin: allowedOrigin }));
+app.use(express.json({ limit: '256kb' }));
+
+app.use((req, res, next) => {
+  req.id = crypto.randomUUID();
+  next();
+});
 
 // Endpoint metrics tracker (shared with /api/analytics)
 const endpointTracker = {};
@@ -99,7 +108,7 @@ app.use('/api', (req, res, next) => {
     const ms = Date.now() - start;
     const status = res.statusCode;
     const color = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
-    console.log(`${color}[${req.method}]\x1b[0m ${req.originalUrl} ${status} ${ms}ms`);
+    console.log(`${color}[${req.method}]\x1b[0m ${req.originalUrl} ${status} ${ms}ms ${req.id}`);
 
     // Track endpoint metrics (normalize path to avoid per-ticker explosion)
     let ep = req.path.replace(/\/[A-Z]{1,5}$/, '/:ticker').replace(/\/\d+$/, '/:id');
@@ -132,7 +141,12 @@ app.use('/api', (req, res, next) => {
 });
 
 // Share cache with all routes via app.locals
-app.locals.cache = cache;
+app.locals.cache = {
+  get: (key) => localCache.get(key),
+  set: (key, val, ttl) => localCache.set(key, val, ttl),
+  del: (key) => localCache.del(key),
+  flushAll: () => localCache.flushAll(),
+};
 
 // ── Serve Vite-built frontend in production ───────────────────────────────────
 const distPath = path.join(__dirname, '..', 'dist');
@@ -187,6 +201,7 @@ app.use('/api/calendar', calendarRouter);
 app.use('/api/fx', fxRouter);
 app.use('/api/institutional', institutionalRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/watchlist', watchlistRouter);
 app.use('/api/fred', fredRouter);
 app.use('/api/imf', imfRouter);
 app.use('/api/worldbank', worldbankRouter);
@@ -205,8 +220,8 @@ if (fs.existsSync(distPath)) {
 
 // ── Express error-handling middleware ──────────────────────────────────────────
 // eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
-  console.error('[Express] Unhandled route error:', err.message);
+app.use((err, req, res, _next) => {
+  console.error(`[Express] Unhandled route error [${req.id}]:`, err.message);
   if (!res.headersSent) {
     res.status(500).json({ error: 'Internal server error' });
   }

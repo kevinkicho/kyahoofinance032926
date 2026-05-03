@@ -8,13 +8,21 @@ const MIDPOINTS = { '0\u20132y': 1, '2\u20135y': 3.5, '5\u201310y': 7.5, '10y+':
 const FFF_MONTHS = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'];
 const FFF_LABELS = ['1M', '2M', '3M', '4M', '5M', '6M'];
 
-export default function DurationLadder({ durationLadderData, durationLadderMeta, treasuryRates = null, fedFundsFutures = null }) {
+export default function DurationLadder({ durationLadderData, durationLadderMeta, treasuryRates = null, fedFundsFutures = null, bare = false }) {
   const { colors } = useTheme();
+  const safeData = Array.isArray(durationLadderData) && durationLadderData.length
+    ? durationLadderData
+    : [
+        { bucket: '0–2y', amount: null, pct: null },
+        { bucket: '2–5y', amount: null, pct: null },
+        { bucket: '5–10y', amount: null, pct: null },
+        { bucket: '10y+', amount: null, pct: null },
+      ];
 
   const option = useMemo(() => {
-    const buckets = durationLadderData.map(d => d.bucket);
-    const amounts = durationLadderData.map(d => d.amount != null ? +(d.amount / 1000).toFixed(1) : null);
-    const pcts    = durationLadderData.map(d => d.pct);
+    const buckets = safeData.map(d => d.bucket);
+    const amounts = safeData.map(d => d.amount != null ? +(d.amount / 1000).toFixed(1) : null);
+    const pcts    = safeData.map(d => d.pct);
     return {
       animation: false,
       backgroundColor: 'transparent',
@@ -63,20 +71,20 @@ export default function DurationLadder({ durationLadderData, durationLadderMeta,
   }, [durationLadderData, colors]);
 
   // KPIs
-  const totalAmount = durationLadderData.reduce((s, d) => s + (d.amount || 0), 0);
-  const validBuckets = durationLadderData.filter(d => d.pct != null && d.pct > 0);
-  const largest = validBuckets.length > 0 ? validBuckets.reduce((a, b) => a.pct > b.pct ? a : b) : durationLadderData[0];
+  const totalAmount = safeData.reduce((s, d) => s + (d.amount || 0), 0);
+  const validBuckets = safeData.filter(d => d.pct != null && d.pct > 0);
+  const largest = validBuckets.length > 0 ? validBuckets.reduce((a, b) => a.pct > b.pct ? a : b) : safeData[0];
   const avgMaturity = useMemo(() => {
     let wSum = 0, wTotal = 0;
-    durationLadderData.forEach(d => {
+    safeData.forEach(d => {
       const mid = MIDPOINTS[d.bucket] || 5;
       wSum += mid * (d.pct || 0);
       wTotal += (d.pct || 0);
     });
     return wTotal > 0 ? (wSum / wTotal).toFixed(1) : '\u2014';
   }, [durationLadderData]);
-  const shortBucket = durationLadderData.find(d => d.bucket.startsWith('0'));
-  const longBucket  = durationLadderData.find(d => d.bucket.startsWith('10'));
+  const shortBucket = safeData.find(d => d.bucket.startsWith('0'));
+  const longBucket  = safeData.find(d => d.bucket.startsWith('10'));
   const shortLong = (shortBucket && longBucket && longBucket.pct > 0)
     ? (shortBucket.pct / longBucket.pct).toFixed(1) + 'x'
     : '\u2014';
@@ -127,70 +135,99 @@ export default function DurationLadder({ durationLadderData, durationLadderMeta,
     ? `$${(totalAmount / 1000).toFixed(1)}T`
     : '\u2014';
 
-  return (
-    <div className="bonds-panel">
-      <div className="bonds-panel-header">
-        <span className="bonds-panel-title">Duration Ladder</span>
-        <span className="bonds-panel-subtitle">US Treasury marketable debt by maturity{durationLadderMeta?.asOf ? ` (as of ${new Date(durationLadderMeta.asOf + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})` : ''}</span>
-      </div>
+  const hasData = safeData.some(d => d.amount != null);
 
-      {/* KPI Strip */}
-      <div className="bonds-kpi-strip">
+  const body = (
+    <div className="dl-body">
+      {/* KPI Strip \u2014 4 compact pills (uses inherited bonds-kpi-* styles). */}
+      <div className="bonds-kpi-strip dl-kpi">
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">Total Marketable</span>
           <span className="bonds-kpi-value accent">{fmtTotal}</span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">Largest Bucket</span>
-          <span className="bonds-kpi-value accent">{largest.bucket}</span>
-          <span className="bonds-kpi-sub">{largest.pct}%</span>
+          <span className="bonds-kpi-value accent">{largest?.bucket ?? '\u2014'}</span>
+          <span className="bonds-kpi-sub">{largest?.pct != null ? `${largest.pct}%` : ''}</span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">Avg Maturity</span>
-          <span className="bonds-kpi-value accent">{avgMaturity}y</span>
+          <span className="bonds-kpi-value accent">{avgMaturity}{avgMaturity !== '\u2014' ? 'y' : ''}</span>
         </div>
         <div className="bonds-kpi-pill">
-          <span className="bonds-kpi-label">Short/Long</span>
+          <span className="bonds-kpi-label">Short / Long</span>
           <span className="bonds-kpi-value accent">{shortLong}</span>
         </div>
       </div>
 
-      {/* Wide-Narrow: Chart + Rate Panel */}
-      <div className={treasuryRates ? 'bonds-wide-narrow' : ''}>
-        <div className="bonds-chart-wrap">
-          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Duration Ladder', source: 'Yahoo Finance', endpoint: '/api/bonds', series: [] }} />
+      {/* Two-column grid: ranked bar chart + bucket detail table. */}
+      <div className="dl-grid">
+        <div className="dl-chart">
+          {hasData ? (
+            <SafeECharts
+              option={option}
+              style={{ height: '100%', width: '100%', minHeight: 180 }}
+              sourceInfo={{ title: 'Duration Ladder', source: 'Treasury Fiscal Data', endpoint: '/api/bonds', series: [] }}
+            />
+          ) : (
+            <div className="dl-empty">Treasury Fiscal Data unavailable \u2014 buckets shown without amounts</div>
+          )}
         </div>
-        {treasuryRates && (
-          <div className="bonds-chart-panel">
-            <div className="bonds-chart-title">Treasury Avg Rates</div>
-            {durationLadderData.map(d => {
-              const rate = d.rate ?? treasuryRates?.[d.bucket] ?? null;
-              return (
-                <div key={d.bucket} className="bonds-rate-item">
-                  <span className="bonds-rate-bucket">{d.bucket}</span>
-                  <span className="bonds-rate-value">
-                    {rate != null ? `${rate.toFixed(2)}%` : '\u2014'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="dl-table-wrap">
+          <table className="dl-table">
+            <thead>
+              <tr>
+                <th>Bucket</th>
+                <th>Outstanding</th>
+                <th>%</th>
+                <th>Avg Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {safeData.map(d => {
+                // Prefer per-bucket rate from server payload, fall back to
+                // a separate treasuryRates map keyed by bucket label (used
+                // by older tests / external rate sources).
+                const rate = d.rate ?? treasuryRates?.[d.bucket] ?? null;
+                return (
+                  <tr key={d.bucket} className="bonds-rate-item">
+                    <td className="dl-bucket">{d.bucket}</td>
+                    <td className="dl-num">{d.amount != null ? `$${(d.amount / 1000).toFixed(1)}B` : '\u2014'}</td>
+                    <td className="dl-num">{d.pct != null ? `${d.pct}%` : '\u2014'}</td>
+                    <td className="dl-num">{rate != null ? `${rate.toFixed(2)}%` : '\u2014'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Fed Funds Futures */}
+      {/* Fed Funds Futures \u2014 implied path next 6 months. */}
       {fffOption && (
-        <div className="bonds-chart-panel" style={{ marginTop: 12 }}>
-          <div className="bonds-chart-title">Fed Funds Futures &mdash; Implied Rate 1&ndash;6 Months Out</div>
-          <SafeECharts option={fffOption} style={{ height: 130, width: '100%' }} sourceInfo={{ title: 'Fed Funds Futures', source: 'CME', endpoint: '/api/bonds', series: [] }} />
+        <div className="dl-fff">
+          <div className="dl-section-title">Fed Funds Futures \u00b7 Implied Rate 1\u20136 Months Out</div>
+          <SafeECharts option={fffOption} style={{ height: 110, width: '100%' }} sourceInfo={{ title: 'Fed Funds Futures', source: 'CME', endpoint: '/api/bonds', series: [] }} />
         </div>
       )}
 
-      <div className="bonds-panel-footer">
+      <div className="bonds-panel-footer dl-footer">
         Maturity buckets: 0{'\u2013'}2y (Bills+FRNs+short Notes), 2{'\u2013'}5y (medium Notes), 5{'\u2013'}10y (long Notes), 10y+ (Bonds+long Notes)
         {durationLadderMeta?.avgRate != null && ` \u00b7 Weighted avg rate: ${durationLadderMeta.avgRate.toFixed(2)}%`}
-        {' \u00b7 Source: Treasury Fiscal Data (fiscaldata.treasury.gov)'}
+        {' \u00b7 Source: fiscaldata.treasury.gov'}
       </div>
+    </div>
+  );
+
+  if (bare) return body;
+
+  return (
+    <div className="bonds-panel">
+      <div className="bonds-panel-header">
+        <span className="bonds-panel-title">Duration Ladder</span>
+        <span className="bonds-panel-subtitle">US Treasury marketable debt by maturity{durationLadderMeta?.asOf ? ` (as of ${new Date(durationLadderMeta.asOf + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})` : ''}</span>
+      </div>
+      {body}
     </div>
   );
 }

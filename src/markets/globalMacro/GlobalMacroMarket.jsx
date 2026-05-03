@@ -1,7 +1,12 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import GlobalMacroDashboard from './components/GlobalMacroDashboard';
+import GlobalMacroKpiStrip from './components/GlobalMacroKpiStrip';
+import { useCurrency } from '../../hub/CurrencyContext';
+import { useMarketData } from '../../hub/DataContext';
 import './components/GlobalMacroDashboard.css';
+import '../imf/ImfDashboard.css';
+import '../worldbank/WorldBankDashboard.css';
 
 function getGlobalMacroProps(centralData) {
   const d = centralData.data || {};
@@ -30,14 +35,35 @@ function getGlobalMacroProps(centralData) {
 }
 
 function GlobalMacroMarket({ centralData } = {}) {
+  const { convert, currentSymbol } = useCurrency();
+  const imfCtx = useMarketData('imf');
+  const wbCtx = useMarketData('worldbank');
   if (!centralData) return <MarketSkeleton />;
   const props = getGlobalMacroProps(centralData);
 
   if (props.isLoading) return <MarketSkeleton />;
 
+  // KPI strip becomes a real bento child rendered inside the dashboard's
+  // BentoWrapper (passed as `kpiSidebar`).
+  const kpiSidebar = (
+    <GlobalMacroKpiStrip
+      scorecardData={props.scorecardData}
+      centralBankData={props.centralBankData}
+      lastUpdated={props.lastUpdated}
+      isLive={props.isLive}
+      fetchLog={props.fetchLog}
+      error={props.error}
+      fetchedOn={props.fetchedOn}
+      isCurrent={props.isCurrent}
+    />
+  );
+
   return (
     <div className="mac-market">
       <GlobalMacroDashboard
+        kpiSidebar={kpiSidebar}
+        convert={convert}
+        currentSymbol={currentSymbol}
         scorecardData={props.scorecardData}
         growthInflationData={props.growthInflationData}
         centralBankData={props.centralBankData}
@@ -50,6 +76,8 @@ function GlobalMacroMarket({ centralData } = {}) {
         cfnai={props.cfnai}
         oecdCli={props.oecdCli}
         cpiBreakdown={props.cpiBreakdown}
+        imfData={imfCtx?.data}
+        wbData={wbCtx?.data}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

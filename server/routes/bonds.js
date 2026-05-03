@@ -3,6 +3,7 @@ import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { SOVEREIGN_RATINGS } from '../dataSources/sovereignRatings.js';
+import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
 
 const router = Router();
 
@@ -84,24 +85,6 @@ const MACRO_SERIES = {
 function dateToMonthLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
   return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }).replace(' ', '-');
-}
-
-async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '5' });
-  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
-  const data = await fetchJSON(url);
-  const valid = (data?.observations || []).filter(o => o.value !== '.');
-  return valid.length ? parseFloat(valid[0].value) : null;
-}
-
-async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: String(limit) });
-  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
-  const data = await fetchJSON(url);
-  return (data?.observations || [])
-    .filter(o => o.value !== '.')
-    .map(o => ({ date: o.date, value: parseFloat(o.value) }))
-    .reverse();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -341,11 +324,27 @@ router.get('/', async (req, res) => {
     let spreadHistory = null;
     try {
       trackApiCall('FRED');
-      const [t10y2yHist, t10y3mHist, t5y30yHist] = await Promise.all([
+      // FRED has no `T5Y30` series for the 5y-30y spread — compute it
+      // from DGS5 and DGS30 instead. The old code 400'd ("series does
+      // not exist") on every request.
+      const [t10y2yHist, t10y3mHist, dgs5Hist, dgs30Hist] = await Promise.all([
         fetchFredHistory('T10Y2Y', FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
         fetchFredHistory('T10Y3M', FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
-        fetchFredHistory('T5Y30', FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
+        fetchFredHistory('DGS5',   FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
+        fetchFredHistory('DGS30',  FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
       ]);
+
+      const t5y30yHist = (dgs5Hist && dgs30Hist) ? (() => {
+        const map5 = new Map(dgs5Hist.map(p => [p.date, p.value]));
+        const out = [];
+        for (const p of dgs30Hist) {
+          const v5 = map5.get(p.date);
+          if (typeof v5 === 'number' && typeof p.value === 'number') {
+            out.push({ date: p.date, value: Math.round((p.value - v5) * 100) / 100 });
+          }
+        }
+        return out;
+      })() : null;
 
       if (t10y2yHist?.length > 0) {
         const dates = t10y2yHist.map(p => p.date);
@@ -553,9 +552,14 @@ router.get('/', async (req, res) => {
     // ═══════════════════════════════════════════════════════════════════════
     let auctionData = null;
     try {
-      const auctionUrl = 'https://api.fiscaldata.treasury.gov/services/api/v1/accounting/od/auctions' +
+      // Treasury Fiscal Data renamed `accounting/od/auctions` →
+      // `auctions_query` and moved everything under `/fiscal_service/v1/`
+      // — the old path now 404s. Use the new endpoint.
+      // Treasury Fiscal Data renamed `high_discount_rate` → `high_discnt_rate`
+      // (without the 'ou'). Sending the old name now triggers a 400.
+      const auctionUrl = 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query' +
         '?filter=security_type:eq:Bill' +
-        '&fields=record_date,security_term,security_type,high_investment_rate,high_discount_rate,bid_to_cover_ratio' +
+        '&fields=record_date,security_term,security_type,high_investment_rate,high_discnt_rate,bid_to_cover_ratio' +
         '&sort=-record_date&page%5Bsize%5D=10';
       trackApiCall('Treasury Fiscal Data');
       const auctionResp = await fetchJSON(auctionUrl);
@@ -565,7 +569,7 @@ router.get('/', async (req, res) => {
           date: r.record_date,
           term: r.security_term,
           type: r.security_type,
-          yield: r.high_investment_rate ? parseFloat(r.high_investment_rate) : (r.high_discount_rate ? parseFloat(r.high_discount_rate) : null),
+          yield: r.high_investment_rate ? parseFloat(r.high_investment_rate) : (r.high_discnt_rate ? parseFloat(r.high_discnt_rate) : null),
           bidToCover: r.bid_to_cover_ratio ? parseFloat(r.bid_to_cover_ratio) : null,
         }));
       }
@@ -674,12 +678,32 @@ router.get('/', async (req, res) => {
     let treasuryRates = null;
     try {
       trackApiCall('FRED');
+      // Spot Treasury yields keyed by tenor — the Bonds dashboard's KPI
+      // strip reads `treasuryRates.US3M / US2Y / US10Y / US30Y`. Pull from
+      // usYields (already fetched from FRED's daily series DGS3MO/DGS2/
+      // DGS10/DGS30) instead of the monthly TB3MS/GS10/GS30 average series
+      // which were a different semantic and stored under bills/notes/bonds.
       const tbills = await fetchFredLatest('TB3MS', FRED_API_KEY);
       const tnotes = await fetchFredLatest('GS10', FRED_API_KEY);
       const tbonds = await fetchFredLatest('GS30', FRED_API_KEY);
-      if (tbills != null || tnotes != null || tbonds != null) {
+      const us = usYields || {};
+      if (us['3m'] != null || us['2y'] != null || us['10y'] != null || us['30y'] != null
+          || tbills != null || tnotes != null || tbonds != null) {
         treasuryRates = {
-          fedFunds: usYields && usYields['3m'] ? usYields['3m'] : null,
+          // Spot yields (what the KPI strip + Duration Ladder rate column read).
+          US3M:  us['3m']  ?? null,
+          US2Y:  us['2y']  ?? null,
+          US5Y:  us['5y']  ?? null,
+          US10Y: us['10y'] ?? null,
+          US30Y: us['30y'] ?? null,
+          // Per-bucket avg rates for the Duration Ladder fallback path.
+          '0–2y':  us['2y']  ?? tbills ?? null,
+          '2–5y':  us['5y']  ?? null,
+          '5–10y': us['10y'] ?? tnotes ?? null,
+          '10y+':       us['30y'] ?? tbonds ?? null,
+          // Legacy fields kept for backward compat with anything still
+          // reading `bills/notes/bonds`.
+          fedFunds: us['3m'] ?? null,
           bills: tbills,
           notes: tnotes,
           bonds: tbonds,

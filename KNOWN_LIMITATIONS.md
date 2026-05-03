@@ -8,17 +8,24 @@ remove one of the items below, please update this file in the same PR.
 
 ## 1. Mock / synthetic data
 
-Some UI still displays deterministic mock data rather than live market data.
-Look for these as LIVE vs. (Mock) pills render differently.
+The app follows a strict "no mock data" policy. When live data is unavailable,
+panels display "—" or empty states rather than fabricated numbers.
 
 - **`src/utils/dataHelpers.js` — `getExtendedDetails(tickerInfo, rates)`**
-  Generates deterministic mock details for equities (P/E, volume,
-  change %, etc.) seeded off the ticker symbol. Used by
-  `src/markets/equities/EquitiesMarket.jsx` to fill out the detail panel.
+  Returns `null`. Previously generated deterministic fake prices/P/E/volume
+  for the equities detail panel; now returns `null` so the UI shows "—"
+  until live Yahoo Finance data arrives. The `EquitiesMarket` detail panel
+  only populates after a successful `/api/stocks` or `/api/summary/:ticker` call.
 - **Sidebar macro indicators** (`src/components/Sidebar/Sidebar.jsx`) show
   a `(Mock)` label whenever `macroLive` is false — i.e. the `/api/macro`
-  call failed or is unresolved. Values are not served from a defined mock
-  set; they will simply be blank until the macro route responds.
+  call failed or is unresolved. Values default to `null` (rendering "—")
+  until the macro route responds.
+- **Institutional holdings** (`server/routes/institutional.js`) returns
+  curated 13F snapshot data, not live SEC EDGAR data. The `_sources`
+  field reports `{ secEdgar: false, curated: true }`.
+- **Insurance cat bonds & reinsurance** and **credit CLO/EM/default data**
+  include algorithmically generated or hardcoded values where no free API
+  source exists. These are flagged in `_sources` accordingly.
 
 ## 2. External-API rate limits (free tiers)
 
@@ -36,9 +43,18 @@ Enumerated in `server/lib/rateLimits.js` (`KNOWN_LIMITS`, requests/day):
 | Etherscan | 100 |
 | EIA | 1,000 |
 | World Bank | 500 |
-| EconDB | 500 |
+| FRED Economic Events | 500 |
 | Treasury Fiscal Data | 1,000 |
 | Bybit | 600 |
+| BLS | 500 |
+| ECB (Frankfurter) | 86,400 |
+| BIS | 1,000 |
+| IMF WEO | 50 |
+| IMF IFS | 50 |
+| IMF COFER | 50 |
+| SEC EDGAR | 1,000 |
+| OECD | 500 |
+| Econdb | 1,000 |
 
 The counter persists to `server/datacache/rate-limits-YYYY-MM-DD.json`
 (debounced 2 s) and reloads on boot, so restarts no longer zero the
@@ -97,35 +113,43 @@ The IMF (`server/routes/imf.js`) sub-fetchers `fetchWEOIndicator`,
 `fetchIFSData`, and `fetchCOFER` each wrap their network/parse logic in
 `try/catch` and return `{}` / `null` on failure with only a
 `console.warn`. The route still responds, but silently with fewer
-indicators. The WEO path has a static snapshot fallback (added in
-`92cc84b`); IFS and COFER do not.
+indicators. The WEO path has a static snapshot fallback; **IFS and COFER
+now also have static snapshot fallbacks** (`server/dataSources/ifsCofeSnapshot.js`).
+When live IMF API calls fail, the route serves recent-quarter estimates
+from the snapshot, with `_sources.imfIFS_snapshot` and
+`_sources.imfCOFER_snapshot` set to `true`.
 
 Other routes follow the same pattern (warn + partial response); see any
 `.catch(e => { console.warn(...); return null; })` block in `server/routes/`.
 
 ## 6. FX rates
 
-`src/utils/useFrankfurterRates.js`:
+`src/hub/CurrencyContext.jsx` provides FX rates globally via React context:
 
 - Primary: `api.frankfurter.dev/v1/latest?base=USD`, routed through
   `fetchWithRetry` (2 retries, 8 s per attempt, 20 s total budget).
 - On ultimate failure or malformed payload, falls back to the **static
   `exchangeRates` table in `src/utils/constants.js`**, which is
   hand-maintained and drifts from the market over time.
-- Retries only happen on initial mount — there is no background refresh
-  if the session outlives the staleness of the ECB daily publication.
+- Rates are fetched once on mount and shared via `CurrencyProvider` context.
+  No background refresh if the session outlives the ECB daily publication.
+- `useCurrency()` hook provides `{ currency, setCurrency, rates, currentRate,
+  currentSymbol, convert }` to all markets. Only Equities currently converts
+  displayed values; other markets receive the context but do not yet apply
+  conversions.
 
 ## 7. Browser baseline
 
-`src/utils/fetchWithRetry.js` uses **`AbortSignal.any()`**, which requires:
+`src/utils/fetchWithRetry.js` uses `AbortSignal.any()` with a **runtime
+polyfill** that adds `AbortSignal.any` if missing. This extends support to:
 
-- Chrome / Edge ≥ 116 (Aug 2023)
-- Firefox ≥ 124 (Mar 2024)
-- Safari ≥ 17.4 (Mar 2024)
-- Node ≥ 20.3 (server-side consumers are Node 24)
+- Chrome / Edge ≥ 93 (Jul 2021)
+- Firefox ≥ 100 (May 2022)
+- Safari ≥ 15.4 (Mar 2022)
+- Node ≥ 16.14 (server-side consumers are Node 24)
 
-Older browsers will throw `TypeError: AbortSignal.any is not a function`
-on the first `fetchWithRetry` call.
+Browsers older than these cutoffs will still fail with
+`TypeError: AbortSignal.any is not a function`.
 
 ## 8. Retry / timeout semantics
 
@@ -151,6 +175,18 @@ widens the window it silently truncates.
 - No structured monitoring / alerting on cache fallback frequency. The
   only signal that the app is serving stale data is `isCurrent: false`
   in the JSON payload.
+- **Radar view** (new) is in early implementation; may have layout or data
+  binding inconsistencies across different screen sizes. Its scatter plot
+  uses raw `flatData` fields which may be null for some tickers—these are
+  rendered at the origin (0,0).
+- **Calendar Econdb gap**: The Calendar view is not currently wired to
+  Econdb; only a subset of manually curated or FRED-based events are displayed.
+  Economic events from FRED have no consensus/expected values (expected is
+  always null) because the FRED releases API provides dates but not survey
+  estimates.
+- **Watchlist My Metrics**: Live values depend on the `DataProvider` context.
+  If a particular market hasn't been fetched yet (i.e. the user has not visited
+  the market or clicked the play button), corresponding metrics display "—".
 - No end-to-end tests; coverage is unit/component (Vitest + RTL) only.
 - No CSP, rate limiting, or auth on the server — intended for local /
   trusted-network use.

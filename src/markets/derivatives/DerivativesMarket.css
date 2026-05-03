@@ -1,0 +1,17 @@
+.deriv-market--with-sidebar {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 16px;
+  height: 100%;
+}
+
+.deriv-market-sidebar {
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+  .deriv-market--with-sidebar {
+    grid-template-columns: 1fr;
+  }
+}

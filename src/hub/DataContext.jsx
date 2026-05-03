@@ -14,4 +14,10 @@ export function useMarketData(marketId) {
   return ctx.getMarket(marketId);
 }
 
+export function useRefetchSingle() {
+  const ctx = useContext(DataContext);
+  if (!ctx) throw new Error('useRefetchSingle must be used within DataProvider');
+  return ctx.refetchSingle;
+}
+
 export default DataContext;

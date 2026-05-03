@@ -1,4 +1,8 @@
-// Enhanced commodities route with EIA, World Bank, and timestamp support
+// Enhanced commodities route mounted at /api/commodities/v2. This is the
+// canonical endpoint the frontend DataProvider uses for the Commodities
+// dashboard (EIA/World Bank/timestamp-aware). The legacy /api/commodities
+// route (commodities.js) is kept only because MetricValue/sourceInfo links
+// reference it for provenance "verify" buttons.
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
@@ -316,6 +320,69 @@ router.get('/', async (req, res) => {
     await Promise.allSettled(eiaPromises);
     result.eia = eiaData;
 
+    // Compute Supply/Demand indicators (surplus/deficit)
+    const supplyDemand = {
+      crudeStocks: null,
+      natGasStorage: null,
+      crudeProduction: null,
+      gasolineStocks: null,
+      distillateStocks: null,
+    };
+
+    const computeAvg = (history) => {
+      if (!history || history.length === 0) return null;
+      const sum = history.reduce((a, b) => a + b.value, 0);
+      return sum / history.length;
+    };
+
+    if (eiaData.crude_stocks) {
+      const val = eiaData.crude_stocks.value;
+      const avg = computeAvg(eiaData.crude_stocks.history);
+      supplyDemand.crudeStocks = {
+        periods: eiaData.crude_stocks.history.map(h => h.date),
+        values: eiaData.crude_stocks.history.map(h => h.value),
+        avg5yr: avg,
+        latest: val,
+      };
+    }
+    if (eiaData.natgas_storage) {
+      const val = eiaData.natgas_storage.value;
+      const avg = computeAvg(eiaData.natgas_storage.history);
+      supplyDemand.natGasStorage = {
+        periods: eiaData.natgas_storage.history.map(h => h.date),
+        values: eiaData.natgas_storage.history.map(h => h.value),
+        avg5yr: avg,
+        latest: val,
+      };
+    }
+    if (eiaData.crude_production) {
+      supplyDemand.crudeProduction = {
+        periods: eiaData.crude_production.history.map(h => h.date),
+        values: eiaData.crude_production.history.map(h => h.value),
+      };
+    }
+    if (eiaData.gasoline_stocks) {
+      const val = eiaData.gasoline_stocks.value;
+      const avg = computeAvg(eiaData.gasoline_stocks.history);
+      supplyDemand.gasolineStocks = {
+        periods: eiaData.gasoline_stocks.history.map(h => h.date),
+        values: eiaData.gasoline_stocks.history.map(h => h.value),
+        avg5yr: avg,
+        latest: val,
+      };
+    }
+    if (eiaData.distillate_stocks) {
+      const val = eiaData.distillate_stocks.value;
+      const avg = computeAvg(eiaData.distillate_stocks.history);
+      supplyDemand.distillateStocks = {
+        periods: eiaData.distillate_stocks.history.map(h => h.date),
+        values: eiaData.distillate_stocks.history.map(h => h.value),
+        avg5yr: avg,
+        latest: val,
+      };
+    }
+    result.supplyDemand = supplyDemand;
+
     // 2. FRED Commodity Data (expanded)
     const fredData = {};
     const fredPromises = Object.entries(FRED_COMMODITIES).map(async ([key, config]) => {
@@ -403,6 +470,38 @@ router.get('/', async (req, res) => {
     }
     result.yahoo = yahooData;
 
+    // 4b. Futures-curve fetch — Yahoo lists each CME contract under its
+    // own ticker (e.g. CLN26.NYM = WTI July 2026). Pull the next 6 months
+    // of WTI and Gold so the Futures Curve panel has actual term-structure
+    // data. Best-effort: any individual missing ticker just gets dropped.
+    try {
+      const monthCode = ['F','G','H','J','K','M','N','Q','U','V','X','Z']; // J F M A M J J A S O N D
+      const buildContracts = (root, exch) => {
+        const out = [];
+        const now = new Date();
+        for (let i = 0; i < 6; i++) {
+          const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+          out.push({ symbol: `${root}${monthCode[d.getMonth()]}${String(d.getFullYear()).slice(-2)}.${exch}`, label: d.toLocaleString('en-US',{month:'short'}) + " '" + String(d.getFullYear()).slice(-2) });
+        }
+        return out;
+      };
+      const wtiContracts = buildContracts('CL', 'NYM');
+      const gcContracts  = buildContracts('GC', 'CMX');
+      trackApiCall('Yahoo Finance');
+      const allSymbols = [...wtiContracts, ...gcContracts].map(c => c.symbol);
+      const curveQuotes = await yf.quote(allSymbols).catch(() => null);
+      const curveArr = Array.isArray(curveQuotes) ? curveQuotes : (curveQuotes ? [curveQuotes] : []);
+      const findPrice = (sym) => curveArr.find(q => q?.symbol === sym)?.regularMarketPrice ?? null;
+      const wtiPrices = wtiContracts.map(c => findPrice(c.symbol));
+      const gcPrices  = gcContracts.map(c => findPrice(c.symbol));
+      if (wtiPrices.some(p => typeof p === 'number')) {
+        result.futuresCurveData = { labels: wtiContracts.map(c => c.label), prices: wtiPrices, unit: '$/bbl' };
+      }
+      if (gcPrices.some(p => typeof p === 'number')) {
+        result.goldFuturesCurve = { labels: gcContracts.map(c => c.label), prices: gcPrices, unit: '$/oz' };
+      }
+    } catch (e) { console.warn('[Commodities] futures curve fetch failed:', e.message); }
+
     // 5. Data Source Registry
     result.dataSourceRegistry = {
       totalCommodities: Object.keys(commodityDataSources).length,
@@ -466,14 +565,13 @@ router.get('/', async (req, res) => {
         ...fallback.data,
         fetchedOn: fallback.fetchedOn,
         isCurrent: false,
-        _error: error.message,
+        _error: 'fetch_failed',
         _meta: { source: 'fallback_cache', note: 'Using cached data due to error' },
       });
     }
 
     res.status(500).json({
       error: 'Internal server error',
-      message: error.message,
       _timestamp: new Date().toISOString(),
     });
   }

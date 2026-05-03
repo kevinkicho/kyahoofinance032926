@@ -1,6 +1,8 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import EquitiesDeepDiveDashboard from './components/EquitiesDeepDiveDashboard';
+import EquitiesDeepDiveKpiStrip from './components/EquitiesDeepDiveKpiStrip';
+import EquitiesDeepDiveSidebar from './components/EquitiesDeepDiveSidebar';
 import './EquitiesDeepDiveMarket.css';
 
 function getEquityDeepDiveProps(centralData, institutionalCtx) {
@@ -16,6 +18,7 @@ function getEquityDeepDiveProps(centralData, institutionalCtx) {
     factorData: d.factorData,
     earningsData: d.earningsData,
     shortData: d.shortData,
+    insiderData: d.insiderData,
     equityRiskPremium: d.equityRiskPremium,
     spPE: d.spPE,
     breadthDivergence: d.breadthDivergence,
@@ -38,26 +41,52 @@ function EquitiesDeepDiveMarket({ centralData, institutionalData: institutionalC
 
   if (props.isLoading) return <MarketSkeleton />;
 
-  return (
-    <div className="eqd-market">
-
-      <EquitiesDeepDiveDashboard
+    // KPI strip + sidebar are passed into the Dashboard so they live as
+    // real bento grid children alongside every other panel.
+    const kpiPanel = (
+      <EquitiesDeepDiveKpiStrip
         sectorData={props.sectorData}
         factorData={props.factorData}
+      />
+    );
+
+    const sidebarPanel = (
+      <EquitiesDeepDiveSidebar
+        sectorData={props.sectorData?.sectors || []}
+        factorData={props.factorData?.stocks || []}
         earningsData={props.earningsData}
         shortData={props.shortData}
-        institutionalData={props.institutionalData}
-        equityRiskPremium={props.equityRiskPremium}
-        spPE={props.spPE}
-        buffettIndicator={props.buffettIndicator}
-        breadthDivergence={props.breadthDivergence}
-        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
-        fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
+        fetchLog={props.fetchLog}
+        error={props.error}
+        fetchedOn={props.fetchedOn}
+        isCurrent={props.isCurrent}
       />
-    </div>
-  );
+    );
+
+    return (
+      <div className="eqd-market">
+        <EquitiesDeepDiveDashboard
+          kpiPanel={kpiPanel}
+          sidebarPanel={sidebarPanel}
+          sectorData={props.sectorData}
+          factorData={props.factorData}
+          earningsData={props.earningsData}
+          shortData={props.shortData}
+          insiderData={props.insiderData}
+          institutionalData={props.institutionalData}
+          equityRiskPremium={props.equityRiskPremium}
+          spPE={props.spPE}
+          buffettIndicator={props.buffettIndicator}
+          breadthDivergence={props.breadthDivergence}
+          error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+          fetchLog={props.fetchLog}
+          isLive={props.isLive}
+          lastUpdated={props.lastUpdated}
+        />
+      </div>
+    );
 }
 
 export default React.memo(EquitiesDeepDiveMarket);

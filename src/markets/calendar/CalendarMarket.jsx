@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import BentoWrapper from '../../components/BentoWrapper';
 import MarketSkeleton from '../../hub/MarketSkeleton';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import MarketKpiStrip from '../../components/MarketKpiStrip';
 import EconomicCalendar from './components/EconomicCalendar';
 import CentralBankSchedule from './components/CentralBankSchedule';
 import EarningsSeason from './components/EarningsSeason';
@@ -14,30 +16,34 @@ function PanelEmpty({ label }) {
   return <div className="cal-empty cal-empty--loading">{label ? `Press ▶ to fetch ${label}` : 'Press ▶ to load data'}</div>;
 }
 
+// Top-of-grid KPI strip is now a real bento panel (`kpi`); other panels
+// shifted down by 2 rows. Storage key bumped accordingly.
 const LAYOUT = {
   lg: [
-    { i: 'economic', x: 0, y: 0, w: 8, h: 5 },
-    { i: 'cb-rates', x: 8, y: 0, w: 4, h: 3 },
-    { i: 'cb-timeline', x: 8, y: 3, w: 4, h: 2 },
-    { i: 'earnings', x: 0, y: 5, w: 8, h: 5 },
-    { i: 'key-data', x: 8, y: 5, w: 4, h: 5 },
-    { i: 'treasury', x: 0, y: 10, w: 6, h: 4 },
-    { i: 'options', x: 6, y: 10, w: 6, h: 4 },
+    { i: 'kpi', x: 0, y: 0, w: 12, h: 2 },
+    { i: 'economic', x: 0, y: 2, w: 8, h: 5 },
+    { i: 'sidebar', x: 8, y: 2, w: 4, h: 5 },
+    { i: 'cb-rates', x: 0, y: 7, w: 4, h: 3 },
+    { i: 'cb-timeline', x: 4, y: 7, w: 4, h: 3 },
+    { i: 'earnings', x: 0, y: 10, w: 5, h: 5 },
+    { i: 'key-data', x: 5, y: 10, w: 4, h: 5 },
+    { i: 'treasury', x: 9, y: 7, w: 3, h: 4 },
+    { i: 'options', x: 9, y: 11, w: 3, h: 4 },
   ]
 };
 
 function getCalendarProps(centralData) {
-  const d = centralData.data || {};
-  return {
-    economicEvents: d.economicEvents || [],
-    centralBanks: d.centralBanks || [],
-    earningsSeason: d.earningsSeason || [],
-    keyReleases: d.keyReleases || [],
-    treasuryAuctions: d.treasuryAuctions || [],
-    optionsExpiry: d.optionsExpiry || [],
-    dividendCalendar: d.dividendCalendar || [],
-    isLive: centralData.isLive,
-    lastUpdated: centralData.lastUpdated,
+    const d = centralData.data || {};
+    return {
+      economicEvents: d.economicEvents || [],
+      centralBanks: d.centralBanks || [],
+      earningsSeason: d.earningsSeason || [],
+      keyReleases: d.keyReleases || [],
+      treasuryAuctions: d.treasuryAuctions || [],
+      optionsExpiry: d.optionsExpiry || [],
+      dividendCalendar: d.dividendCalendar || [],
+      isLive: centralData.isLive,
+      lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
@@ -55,11 +61,164 @@ function CalendarMarket({ centralData } = {}) {
 
   const dataReady = props.isLive || props.economicEvents.length || props.centralBanks.length || props.earningsSeason.length || props.keyReleases.length;
 
+  const sidebarStats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+    const todayEvents = (props.economicEvents || []).filter(e => e.date === today);
+    const todayHighImpact = todayEvents.filter(e => (e.importance || 0) >= 2);
+    const weekEvents = (props.economicEvents || []).filter(e => e.date >= weekStartStr && e.date <= weekEndStr);
+    const weekHighImpact = weekEvents.filter(e => (e.importance || 0) >= 2);
+    const weekEarnings = (props.earningsSeason || []).filter(e => e.date >= weekStartStr && e.date <= weekEndStr);
+    const nextCB = (props.centralBanks || [])
+      .filter(cb => cb.daysUntil != null && cb.daysUntil >= 0)
+      .sort((a, b) => a.daysUntil - b.daysUntil)[0] || null;
+
+    return {
+      todayCount: todayEvents.length,
+      todayHighImpact: todayHighImpact.length,
+      weekEventCount: weekEvents.length,
+      weekHighImpact: weekHighImpact.length,
+      weekEarnings: weekEarnings.length,
+      nextCB,
+    };
+  }, [props.economicEvents, props.centralBanks, props.earningsSeason]);
+
+  const kpis = useMemo(() => {
+    return [
+      { label: 'Today High Impact', value: sidebarStats.todayHighImpact, color: sidebarStats.todayHighImpact > 0 ? '#f87171' : 'var(--text-primary)', trend: null, sublabel: 'Events' },
+      { label: 'Next CB Meeting', value: sidebarStats.nextCB?.daysUntil != null ? `${sidebarStats.nextCB.daysUntil}d` : '—', color: 'var(--text-primary)', trend: null, sublabel: sidebarStats.nextCB?.bank || 'No Data' },
+      { label: 'Earnings This Week', value: sidebarStats.weekEarnings, color: 'var(--text-primary)', trend: null, sublabel: 'Companies' },
+    ];
+  }, [sidebarStats]);
+
   return (
     <div className="cal-market">
-
       <div className="cal-dashboard cal-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout">
+        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v2">
+          {/* KPI strip — first bento child, full-width row 0. */}
+          <div key="kpi" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Calendar Key Metrics</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              <MarketKpiStrip kpis={kpis} bare />
+            </div>
+            <DataFooter
+              source="FRED / Yahoo Finance"
+              timestamp={props.lastUpdated}
+              isLive={props.isLive}
+              fetchLog={props.fetchLog}
+              error={props.error}
+              fetchedOn={props.fetchedOn}
+              isCurrent={props.isCurrent}
+            />
+          </div>
+          <div key="sidebar" className="cal-bento-card">
+            <div className="cal-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Calendar Summary</span>
+            </div>
+            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+              <div className="cal-sidebar-section">
+                <div className="cal-sidebar-title">Today</div>
+                <div className="cal-sidebar-metric">
+                  <span className="cal-sidebar-metric-label">Events</span>
+                  <span className="cal-sidebar-metric-value" style={{ color: sidebarStats.todayCount > 0 ? '#f43f5e' : 'var(--text-secondary)' }}>
+                    {(sidebarStats.todayCount > 0 || dataReady) ? sidebarStats.todayCount : '—'}
+                  </span>
+                </div>
+                <div className="cal-sidebar-metric">
+                  <span className="cal-sidebar-metric-label">Key Releases</span>
+                  <span className="cal-sidebar-metric-value">
+                    {(props.keyReleases || []).filter(r => r.date === new Date().toISOString().split('T')[0]).length || (dataReady ? '0' : '—')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="cal-sidebar-section">
+                <div className="cal-sidebar-title">This Week</div>
+                <div className="cal-sidebar-metric">
+                  <span className="cal-sidebar-metric-label">Events</span>
+                  <span className="cal-sidebar-metric-value">
+                    {(sidebarStats.weekEventCount > 0 || dataReady) ? sidebarStats.weekEventCount : '—'}
+                  </span>
+                </div>
+                <div className="cal-sidebar-metric">
+                  <span className="cal-sidebar-metric-label">High Impact</span>
+                  <span className="cal-sidebar-metric-value" style={{ color: sidebarStats.weekHighImpact > 0 ? '#f87171' : 'var(--text-secondary)' }}>
+                    {(sidebarStats.weekHighImpact > 0 || dataReady) ? sidebarStats.weekHighImpact : '—'}
+                  </span>
+                </div>
+                <div className="cal-sidebar-metric">
+                  <span className="cal-sidebar-metric-label">Earnings</span>
+                  <span className="cal-sidebar-metric-value">
+                    {(sidebarStats.weekEarnings > 0 || dataReady) ? sidebarStats.weekEarnings : '—'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="cal-sidebar-section">
+                <div className="cal-sidebar-title">Next Central Bank</div>
+                {sidebarStats.nextCB ? (
+                  <>
+                    <div className="cal-sidebar-metric">
+                      <span className="cal-sidebar-metric-label">{sidebarStats.nextCB.bank}</span>
+                      <span className="cal-sidebar-metric-value accent">
+                        <MetricValue
+                          value={sidebarStats.nextCB.daysUntil}
+                          seriesKey="calNextCB"
+                          timestamp={props.lastUpdated}
+                          format={v => `${Math.round(v)}d`}
+                        />
+                      </span>
+                    </div>
+                    <div className="cal-sidebar-metric">
+                      <span className="cal-sidebar-metric-label">Rate</span>
+                      <span className="cal-sidebar-metric-num">
+                        {sidebarStats.nextCB.rate != null ? `${sidebarStats.nextCB.rate}%` : '—'}
+                      </span>
+                    </div>
+                    {sidebarStats.nextCB.previousRate != null && (
+                      <div className="cal-sidebar-metric">
+                        <span className="cal-sidebar-metric-label">Previous</span>
+                        <span className="cal-sidebar-metric-num" style={{ color: 'var(--text-muted)' }}>
+                          {sidebarStats.nextCB.previousRate}%
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="cal-sidebar-metric">
+                    <span className="cal-sidebar-metric-label">—</span>
+                    <span className="cal-sidebar-metric-value">No data</span>
+                  </div>
+                )}
+              </div>
+
+              {(props.centralBanks || []).length > 0 && (
+                <div className="cal-sidebar-section" style={{ borderBottom: 'none' }}>
+                  <div className="cal-sidebar-title">Policy Rates</div>
+                  {props.centralBanks.map(cb => (
+                    <div key={cb.bank} className="cal-sidebar-metric">
+                      <span className="cal-sidebar-metric-label">{cb.bank}</span>
+                      <span className="cal-sidebar-metric-num" style={{ color: cb.rate != null ? '#f43f5e' : 'var(--text-muted)' }}>
+                        {cb.rate != null ? `${cb.rate}%` : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DataFooter source="FRED / Econdb / Yahoo Finance" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
+          </div>
+
           <div key="economic" className="cal-bento-card">
             <div className="cal-panel-title-row bento-panel-title-row">
               <span className="bento-panel-title">Economic Calendar</span>
@@ -70,7 +229,7 @@ function CalendarMarket({ centralData } = {}) {
                 ? <EconomicCalendar economicEvents={props.economicEvents} insideBento />
                 : <PanelEmpty label="economic events" />}
             </div>
-            <DataFooter source="Econdb / FRED" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
+            <DataFooter source="FRED / Econdb" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
           </div>
 
           <div key="cb-rates" className="cal-bento-card">

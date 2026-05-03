@@ -71,7 +71,7 @@ function buildLineOption({ dates, values, color, minBuffer = 0, yLabel = '', col
   };
 }
 
-export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHistory }) {
+export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHistory, bare = false }) {
   const { colors } = useTheme();
   if (!riskData) return null;
   const { signals = [], overallScore = 50, overallLabel = 'Neutral' } = riskData;
@@ -162,13 +162,8 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHi
     }), rising, last };
   }, [marginDebt, colors]);
 
-  return (
-    <div className="sent-panel">
-      <div className="sent-panel-header">
-        <span className="sent-panel-title">Risk Dashboard</span>
-        <span className="sent-panel-subtitle">Cross-asset risk-on / risk-off signals · FRED + Yahoo Finance</span>
-      </div>
-
+  const body = (
+    <>
       {/* Signal cards grid */}
       <div className="sent-risk-grid">
         {signals.map(sig => (
@@ -228,6 +223,18 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHi
           ) : <div className="sent-chart-panel" />}
         </div>
       )}
+    </>
+  );
+
+  if (bare) return body;
+
+  return (
+    <div className="sent-panel">
+      <div className="sent-panel-header">
+        <span className="sent-panel-title">Risk Dashboard</span>
+        <span className="sent-panel-subtitle">Cross-asset risk-on / risk-off signals · FRED + Yahoo Finance</span>
+      </div>
+      {body}
     </div>
   );
 }

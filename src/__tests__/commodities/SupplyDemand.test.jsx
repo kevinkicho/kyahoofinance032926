@@ -18,7 +18,7 @@ describe('SupplyDemand', () => {
 
   it('renders crude oil stocks panel', () => {
     render(<SupplyDemand supplyDemandData={supplyDemandData} />);
-    expect(screen.getByText(/crude oil/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/crude oil/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders natural gas storage panel', () => {

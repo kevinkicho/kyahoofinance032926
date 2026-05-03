@@ -108,17 +108,21 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
     </div>
   );
 
-  let crudeStocks, natGasStorage, crudeProduction;
+  let crudeStocks, natGasStorage, crudeProduction, gasolineStocks, distillateStocks;
   if (Array.isArray(supplyDemandData)) {
     const cs = supplyDemandData.find(s => s.name === 'Crude Oil Inventories');
     const ns = supplyDemandData.find(s => s.name === 'Natural Gas Storage');
     crudeStocks = cs ? { periods: [], values: [], avg5yr: null } : { periods: [], values: [], avg5yr: null };
     natGasStorage = ns ? { periods: [], values: [], avg5yr: null } : { periods: [], values: [], avg5yr: null };
     crudeProduction = { periods: [], values: [] };
+    gasolineStocks = { periods: [], values: [], avg5yr: null };
+    distillateStocks = { periods: [], values: [], avg5yr: null };
   } else {
     crudeStocks     = supplyDemandData.crudeStocks     || { periods: [], values: [], avg5yr: null };
     natGasStorage   = supplyDemandData.natGasStorage   || { periods: [], values: [], avg5yr: null };
     crudeProduction = supplyDemandData.crudeProduction || { periods: [], values: [] };
+    gasolineStocks  = supplyDemandData.gasolineStocks  || { periods: [], values: [], avg5yr: null };
+    distillateStocks = supplyDemandData.distillateStocks || { periods: [], values: [], avg5yr: null };
   }
 
   // KPI computations
@@ -130,6 +134,19 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
   const gasDelta    = natGasStorage.avg5yr != null && gasLatest != null
     ? Math.round(gasLatest - natGasStorage.avg5yr)
     : null;
+
+  const surplusRows = [
+    { label: 'Crude Oil', latest: crudeLatest, avg5yr: crudeStocks.avg5yr, unit: 'M bbl', delta: crudeDelta },
+    { label: 'Gasoline', latest: gasolineStocks.values.length ? gasolineStocks.values[gasolineStocks.values.length - 1] : null, avg5yr: gasolineStocks.avg5yr, unit: 'M bbl', delta: null },
+    { label: 'Distillate', latest: distillateStocks.values.length ? distillateStocks.values[distillateStocks.values.length - 1] : null, avg5yr: distillateStocks.avg5yr, unit: 'M bbl', delta: null },
+    { label: 'Nat Gas', latest: gasLatest, avg5yr: natGasStorage.avg5yr, unit: 'Bcf', delta: gasDelta },
+  ].map(r => {
+    if (r.delta == null && r.latest != null && r.avg5yr != null) {
+      r.delta = Math.round((r.latest - r.avg5yr) * 10) / 10;
+    }
+    r.status = r.delta == null ? null : r.delta >= 0 ? 'SURPLUS' : 'DEFICIT';
+    return r;
+  });
 
   const goldH = fredCommodities?.goldHistory;
   const goldOption = goldH?.dates?.length >= 10 ? buildGoldOption(goldH.dates, goldH.values, colors) : null;
@@ -172,6 +189,34 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
           <span className="com-kpi-sub">London Fix $/oz</span>
         </div>
       </div>
+
+      {/* Surplus/Deficit Table */}
+      {surplusRows.some(r => r.status != null) && (
+        <div className="com-surplus-table" style={{ marginTop: 6, marginBottom: 6, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                <th style={{ textAlign: 'left', padding: '4px 8px', color: colors.textMuted, fontWeight: 600 }}>Commodity</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: colors.textMuted, fontWeight: 600 }}>Latest</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: colors.textMuted, fontWeight: 600 }}>5yr Avg</th>
+                <th style={{ textAlign: 'right', padding: '4px 8px', color: colors.textMuted, fontWeight: 600 }}>vs Avg</th>
+                <th style={{ textAlign: 'center', padding: '4px 8px', color: colors.textMuted, fontWeight: 600 }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {surplusRows.filter(r => r.latest != null).map(r => (
+                <tr key={r.label} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                  <td style={{ padding: '4px 8px', color: colors.text }}>{r.label}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', color: colors.text, fontFamily: 'monospace' }}>{r.latest != null ? `${r.latest.toFixed(1)} ${r.unit}` : '—'}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', color: colors.textDim, fontFamily: 'monospace' }}>{r.avg5yr != null ? `${r.avg5yr.toFixed(1)} ${r.unit}` : '—'}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace', color: r.delta != null ? (r.delta >= 0 ? '#22c55e' : '#ef4444') : colors.textDim }}>{r.delta != null ? `${r.delta >= 0 ? '+' : ''}${r.delta.toFixed(1)}` : '—'}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'center', fontWeight: 700, fontSize: 10, letterSpacing: 0.5, color: r.status === 'SURPLUS' ? '#22c55e' : r.status === 'DEFICIT' ? '#ef4444' : colors.textDim }}>{r.status || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Three-column top row */}
       <div className="com-three-col" style={{ marginBottom: 8 }}>

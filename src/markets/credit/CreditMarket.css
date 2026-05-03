@@ -1,5 +1,9 @@
 /* src/markets/credit/CreditMarket.css */
-.credit-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
+/* Use the same flex+overflow recipe as the other working markets so the
+   bento grid can scroll when its content (panels) exceeds the viewport.
+   `height: 100%` here pinned the wrapper to viewport height and clipped
+   the lower panels in the bento layout. */
+.credit-market { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; background: var(--bg-primary); }
 .credit-market.credit-loading { align-items: center; justify-content: center; gap: 12px; }
 .credit-loading-spinner {
   width: 36px; height: 36px; border: 3px solid var(--border-subtle);

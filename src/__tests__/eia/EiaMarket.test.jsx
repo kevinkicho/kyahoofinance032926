@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import EiaMarket from '../../markets/eia/EiaMarket';
 
+vi.mock('../../components/BentoWrapper', () => ({ default: ({ children }) => <div data-testid="bento-wrapper">{children}</div> }));
+
 const mockCentralData = {
   isLoading: false,
   isLive: true,
@@ -58,5 +60,32 @@ describe('EiaMarket', () => {
   it('renders electricity price', () => {
     render(<EiaMarket centralData={mockCentralData} />);
     expect(screen.getByText('17.45')).toBeInTheDocument();
+  });
+
+  it('renders consumption sales in B kWh and revenue in $B', () => {
+    render(<EiaMarket centralData={mockCentralData} />);
+    expect(screen.getByText('145.1')).toBeInTheDocument();
+    expect(screen.getByText(/\$25\.3B/)).toBeInTheDocument();
+  });
+
+  it('filters Total sector from CO2 emissions table', () => {
+    const dataWithTotal = {
+      ...mockCentralData,
+      data: {
+        ...mockCentralData.data,
+        co2Emissions: {
+          total: [{ name: 'Total', latest: 4800, unit: 'MMT CO2', period: '2022', history: [] }],
+          bySector: [
+            { name: 'Electric Power', latest: 1532, unit: 'MMT CO2', period: '2022', history: [] },
+            { name: 'Total', latest: 4800, unit: 'MMT CO2', period: '2022', history: [] },
+            { name: 'Transportation', latest: 1810, unit: 'MMT CO2', period: '2022', history: [] },
+          ],
+        },
+      },
+    };
+    render(<EiaMarket centralData={dataWithTotal} />);
+    expect(screen.getByText('Electric Power')).toBeInTheDocument();
+    expect(screen.getByText('Transportation')).toBeInTheDocument();
+    expect(screen.queryByText('Total')).not.toBeInTheDocument();
   });
 });

@@ -1,29 +1,87 @@
 # Global Market Hub
 
-A comprehensive multi-market financial dashboard built with React 18 + Vite 5. Covers 16 market views (15 asset classes + analytics dashboard) with unified "one-look" dashboards, live data from Yahoo Finance, FRED, CoinGecko, and more. Includes a 350+ stock global equity heatmap with historical playback.
+A comprehensive multi-market financial dashboard built with React 18 + Vite 5. Covers 21 market views (17 financial dashboards + IMF + World Bank + BLS + EIA + Census) with unified "one-look" dashboards, live data from Yahoo Finance, FRED, CoinGecko, and more. Includes a 350+ stock global equity heatmap with historical playback.
+
+## 🚀 Quick Start
+
+1. **Install dependencies**: `npm install && cd server && npm install`
+2. **Configure environment**: `npm run setup` (interactive — creates `.env` from `.env.example` and walks you through each API key) — or copy `.env.example` to `.env` manually.
+3. **Launch**: `npm start` then open [http://localhost:5173](http://localhost:5173)
+4. **Verify**: dashboards auto-fetch on first load. Run `npm run test:regress` (or `node validate.mjs`) to get a screenshot + binding report for every tab.
+
+**API keys:** all free, instant signup. Without them the matching panels show "Data source temporarily unavailable" but the app still runs.
+
+| Key | Free signup | Powers |
+|---|---|---|
+| `FRED_API_KEY` | https://fred.stlouisfed.org/docs/api/api_key.html | bonds, macro, credit, fx (DXY/REER), sentiment, real estate, insurance, calendar |
+| `EIA_API_KEY` | https://www.eia.gov/opendata/register.php | commodities supply/demand, eia tab |
+| `BLS_API_KEY` | https://data.bls.gov/registrationEngine/ | bls tab (optional — falls back to FRED if blank) |
 
 ---
 
+## Table of Contents
+
+- [Markets](#markets)
+- [Data Shown Per Market Tab](#data-shown-per-market-tab)
+- [Unified Dashboard Architecture](#unified-dashboard-architecture)
+- [App-Level Features](#app-level-features)
+- [Infrastructure](#infrastructure)
+- [Architecture](#architecture)
+- [Data Provenance & Transparency](#data-provenance--transparency)
+- [Global Equity Dashboard](#global-equity-dashboard)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [Known Limitations](#known-limitations)
+- [Notes](#notes)
+- [Recent Updates](#recent-updates)
+
+---
+
+
+
+
+
 ## Markets
+
+### Market Tabs
 
 | # | Market | Dashboard View | Accent | Live Data Sources |
 |---|--------|----------------|--------|-------------------|
-| 1 | **Equities** | Heatmap + Bar Race + List + Portfolio + Radar + ML Explorer + Data Hub | Blue | Yahoo Finance (350+ stocks), Frankfurter FX |
+| 1 | **Equities** | Heatmap + Bar Race + List + Portfolio + Radar (early) + ML Explorer + Data Hub | Blue | Yahoo Finance (350+ stocks), Frankfurter FX |
 | 2 | **Bonds** | Yield Curve (8 countries), Credit Spreads, Duration Ladder, Breakevens, History Charts | Green `#10b981` | FRED (9 US tenors, intl 10yr, IG/HY/EM spreads, TIPS breakevens, DGS10 252d) |
 | 3 | **FX** | Rate Matrix, Carry Map, DXY Tracker, Top Movers | Amber `#f59e0b` | FRED (7 bilateral rates, DXY), Frankfurter API |
 | 4 | **Derivatives** | Vol Surface (SPX), VIX Term Structure, Options Flow | Purple `#a78bfa` | Yahoo (VIX term, SPY/QQQ options), FRED (VIXCLS 252d) |
 | 5 | **Real Estate** | Price Index, REIT Screen, Affordability, Cap Rates, Mortgage Rates | Orange `#f97316` | Yahoo (REITs, VNQ), FRED (Case-Shiller, HOUST, MSPUS, BIS prices) |
-| 6 | **Insurance** | Cat Bond Spreads, Combined Ratio, Reserve Adequacy, Reinsurance | Sky Blue `#0ea5e9` | Yahoo (PGR/ALL/TRV/HIG quarterlies), FRED (HY OAS 252d) |
+| 6 | **Insurance** | Cat Bond Spreads, Combined Ratio, Reserve Adequacy, Reinsurance | Sky Blue `#0ea5e9` | Yahoo (PGR/ALL/TRV/HIG quarterlies), FRED (HY OAS 252d) † |
 | 7 | **Commodities** | Price Dashboard, Futures Curve, Sector Heatmap, Supply/Demand, COT Positioning | Gold `#ca8a04` | Yahoo (18 tickers, WTI/Gold futures), FRED (WTI, Gold, Brent, PPI), EIA, CFTC Socrata |
 | 8 | **Global Macro** | Unified Scorecard (12 countries), Growth/Inflation, Central Bank Rates, Debt Monitor | Teal `#14b8a6` | World Bank, FRED (policy rates) |
 | 9 | **Equity+** | Sector Rotation, Factor Rankings, Earnings Watch, Short Interest | Indigo `#6366f1` | Yahoo Finance (12 sector ETFs, quoteSummary, chart) |
 | 10 | **Crypto** | Market Overview, Fear & Greed, DeFi TVL, Funding Rates, On-Chain Metrics | Amber `#f59e0b` | CoinGecko (top 20 + global), DeFiLlama (TVL), Alternative.me (F&G), Bybit (funding), mempool.space (on-chain) |
-| 11 | **Credit** | IG/HY Spreads, EM Bonds, Loan Market, Default Watch | Cyan `#06b6d4` | FRED (5 spread series), Yahoo (LQD, HYG, EMB, JNK, BKLN, MUB) |
+| 11 | **Credit** | IG/HY Spreads, EM Bonds, Loan Market, Default Watch | Cyan `#06b6d4` | FRED (5 spread series), Yahoo (LQD, HYG, EMB, JNK, BKLN, MUB) † |
 | 12 | **Sentiment** | Fear & Greed, CFTC Positioning, Risk Dashboard, Cross-Asset Returns | Violet `#7c3aed` | Alternative.me (252d), FRED (VIX, HY, YC), CFTC Socrata, Yahoo (8 ETFs) |
-| 13 | **Calendar** | Economic Calendar, Central Banks, Earnings Season, Key Releases | Rose `#f43f5e` | Econdb, FRED (releases/dates), Yahoo (calendarEvents, 30 tickers) |
+| 13 | **Calendar** | Economic Calendar, Central Banks, Earnings Season, Key Releases | Rose `#f43f5e` | FRED (releases/dates), Yahoo (calendarEvents, 30 tickers) |
 | 14 | **Alerts** | Active Alerts, Alert Rules | Red `#ef4444` | Aggregates 6 market endpoints, 8 anomaly rules (VIX spike, curve inversion, HY stress, F&G extremes, BTC/Gold/DXY moves) |
 | 15 | **Watchlist** | My Tickers, My Metrics | Gold `#eab308` | Yahoo Finance (live quotes per ticker), cross-market metric shortcuts |
+
+### Infrastructure Tabs
+
+| # | Tab | View | Accent | Data Sources |
+|---|-----|------|--------|--------------|
 | 16 | **Analytics** | API Usage, Endpoint Metrics, Data Freshness, Rate Limits, Cache Files | Slate `#94a3b8` | Server-side endpoint tracker, rate limit counters, file cache metadata |
+
+### Institutional Data Tabs
+
+| # | Market | Dashboard View | Accent | Live Data Sources |
+|---|--------|----------------|--------|-------------------|
+| 17 | **IMF** | Scorecard, GDP Growth, Inflation, International Reserves, COFER Currency Shares | Blue `#42a5f5` | IMF WEO (12 countries, GDP/inflation/debt/unemployment/current account), IMF IFS (reserves), IMF COFER (currency share of FX reserves) |
+| 18 | **World Bank** | World Development Indicators, GDP Growth Trends, GDP per Capita vs Growth Scatter, Trade Openness | Green `#4ade80` | World Bank WDI API (10 countries, GDP growth, GDP/capita, inflation, trade, population) |
+| 19 | **BLS** | Labor Market KPIs (unemployment, participation, payrolls, earnings, hours), Prices (CPI, PPI), 3-Year Trend Sparklines | Blue `#42a5f5` | BLS Public API (10 series: unemployment, labor participation, employment-pop ratio, nonfarm payrolls, avg hourly earnings, avg weekly hours, CPI, PPI, job openings, unemployed persons) |
+| 20 | **EIA** | US Electricity Prices by Sector (residential/commercial/industrial), Consumption (sales & revenue), CO₂ Emissions by Sector, 3-Year Price Trends | Orange `#ffa726` | EIA API (electricity retail sales/prices by sector, CO₂ emissions by sector) |
+| 21 | **Census** | Housing & Construction (housing starts, building permits, new home sales, construction spending), Trade & Consumption (retail sales, durable goods, trade balance), 3-Year Monthly Sparklines | Purple `#ab47bc` | US Census Bureau via FRED (7 series: HOUST, PERMIT, HSN1F, TTLCONS, RSAFS, DGORDER, BOPGSTB) |
+
+> † Partial synthetic data — some panels use algorithmically generated or hardcoded values where no free API source exists. See KNOWN_LIMITATIONS.md for details.
 
 ---
 
@@ -94,9 +152,9 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 
 ### 5. Real Estate
 **Sidebar:**
-- Key Prices: Gold, WTI Oil, Natural Gas with 1D change
-- Ratios & ETFs: Gold/Oil ratio, DBC ETF % change, contango %
-- Positioning: COT net long/short for major commodities
+- Price Index: Case-Shiller National with YoY change
+- Mortgage Rates: 30Y fixed, 15Y fixed with weekly change
+- REIT Performance: VNQ price and dividend yield with % change
 
 **Main Panels:**
 - **Case-Shiller Chart**: National + major metros (SF, NYC, LA, Miami, Chicago)
@@ -116,12 +174,12 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 
 **Main Panels:**
 - **HY OAS History Chart**: 252-day high-yield spread
-- **Combined Ratio by Line**: Auto, home, commercial, etc. profitability
-- **Reinsurance Rates**: By category (property, casualty, etc.)
-- **Reserve Adequacy Table**: Insurer reserves vs required
-- **Cat Bond Spreads**: ILS market spreads
+- **Combined Ratio by Line**: Auto, home, commercial, etc. profitability *(no free API; algorithmically generated)*
+- **Reinsurance Rates**: By category (property, casualty, etc.) *(no free API; hardcoded reference values)*
+- **Reserve Adequacy Table**: Insurer reserves vs required *(no free API; algorithmically generated)*
+- **Cat Bond Spreads**: ILS market spreads *(no free API; algorithmically generated)*
 - **Natural Cat Losses Chart**: NPORCT annual losses
-- **Industry Combined Ratio History**: Quarterly trend with 100% breakeven line
+- **Industry Combined Ratio History**: Quarterly trend with 100% breakeven line *(no free API; algorithmically generated)*
 - **Sector ETFs**: KIE with 52-week range
 
 ### 7. Commodities
@@ -147,7 +205,7 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 **Sidebar:**
 - GDP Growth: US, EU, China, Japan real GDP YoY
 - Inflation: CPI by country with central bank target comparison
-- Central Bank Rates: Fed, ECB, BOE, BOE, SNB, RBA, BOC, BOJ
+- Central Bank Rates: Fed, ECB, BOE, BOK, SNB, RBA, BOC, BOJ
 - Debt/GDP: Government debt ratios
 
 **Main Panels:**
@@ -197,10 +255,10 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 - **Credit Spreads Chart**: IG/HY 12-month history
 - **Spread Summary Table**: IG, HY, EM, BBB current spreads
 - **EM Spread History Chart**: EM sovereign spread
-- **EM Yields Table**: Country 10Y yields
+- **EM Yields Table**: Country 10Y yields *(no free API; hardcoded reference values)*
 - **Commercial Paper Table**: AA 30-day rate, volume
-- **CLO Tranches Table**: AAA/AA/A tranche yields
-- **Default Rates Table**: By category
+- **CLO Tranches Table**: AAA/AA/A tranche yields *(no free API; algorithmically generated)*
+- **Default Rates Table**: By category *(no free API; algorithmically generated)*
 - **Delinquency Rates Table**: Consumer credit delinquencies
 
 ### 12. Sentiment
@@ -254,12 +312,56 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 - **My Tickers**: Custom list of tickers with live quotes, add/remove functionality
 - **My Metrics**: Shortcuts to key metrics across markets
 
+### 16. Analytics
+**Sidebar:**
+- Cache Status: Cache file count, total size, oldest/newest entries
+
+**Main Panels:**
+- **API Usage**: Request counts per endpoint with success/failure ratios
+- **Endpoint Metrics**: Response times, payload sizes, error rates per route
+- **Data Freshness**: Last-fetch timestamps for all 20 market endpoints
+- **Rate Limits**: Daily request counts vs caps for 13 free API sources
+- **Cache Inventory**: List of cached files in `server/datacache/` with dates and sizes
+
+### 17. IMF
+**Main Panels:**
+- **IMF Scorecard**: 12-country table (US, Euro Area, UK, Japan, Canada, China, India, Brazil, South Korea, Australia, Mexico, Sweden) with GDP growth, inflation, unemployment, GDP/capita, current account, gov debt, gov revenue, investment, population, intl reserves. Click row for detail panel.
+- **GDP Growth**: Multi-country bar chart of real GDP growth (WEO forecasts)
+- **Inflation**: Multi-country CPI inflation comparison chart
+- **International Reserves**: Total reserves including gold by country (IMF IFS)
+- **COFER Currency Shares**: USD, EUR, JPY, GBP, CNY, other shares of global FX reserves (IMF COFER)
+
+### 18. World Bank
+**Main Panels:**
+- **World Development Indicators**: 10-country scorecard (US, UK, DE, FR, JP, IT, CA, CN, IN, BR) with GDP growth, GDP/capita, inflation, trade % of GDP, population. Click row for detail panel.
+- **GDP Growth Trends**: Time-series chart of GDP growth by country
+- **GDP per Capita vs Growth**: Scatter plot of development level vs growth rate
+- **Trade Openness**: Trade as % of GDP by country (imports + exports / GDP)
+
+### 19. BLS
+**Main Panels:**
+- **Key Labor Market Indicators**: KPI grid — Unemployment Rate, Labor Force Participation, Employment-Population Ratio, Nonfarm Payrolls, Avg Hourly Earnings, Avg Weekly Hours, CPI (All Urban), PPI (Final Demand), Job Openings, Unemployed Persons. Each with latest value, MoM % change, and period label.
+- **Trends (3-Year)**: Sparkline charts for each series showing 36 months of history
+
+### 20. EIA
+**Main Panels:**
+- **US Electricity Retail Prices**: KPI cards for Residential, Commercial, Industrial electricity prices (¢/kWh) with % change
+- **Electricity Consumption**: KPI cards for each sector showing sales (B kWh) and revenue ($M)
+- **Price Trends (3-Year Monthly)**: Sparkline charts for each sector's price history
+- **CO₂ Emissions by Sector**: Table with sector-level emissions data (residential, commercial, industrial, transportation, electric power)
+
+### 21. Census
+**Main Panels:**
+- **Housing & Construction**: KPI cards — Housing Starts, Building Permits, New Home Sales, Construction Spending — with MoM % change
+- **Trade & Consumption**: KPI cards — Retail Sales, Durable Goods Orders, Trade Balance — with MoM % change
+- **Trends (3-Year Monthly)**: Sparkline charts for all 7 series (housing starts, permits, new home sales, construction spending, retail sales, durable goods, trade balance)
+
 ## Unified Dashboard Architecture
 
-All 15 markets now use a **"one-look" unified dashboard** pattern — no more tab switching to see all data. Each dashboard shows:
+All 21 markets use a **"one-look" unified dashboard** pattern — no more tab switching to see all data. Each dashboard shows:
 
 - **KPI Strip** — 4-6 key metrics at the top (accent-colored values)
-- **2-Column Grid** — Charts and tables in responsive 2-column layout
+- **Bento Grid** — Charts and tables in draggable/resizable `react-grid-layout` panels with `BentoWrapper`, layout persisted via `localStorage`
 - **Compact Tables** — Mini-tables for rates, spreads, metrics
 - **Historical Charts** — FRED/Yahoo time series where available
 
@@ -270,9 +372,9 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 - **Dark / Light Theme** — toggle in the tab bar, persisted to localStorage
 - **PNG Export** — capture any market view as a high-res PNG screenshot
 - **CSV / JSON Export** — download raw market data in either format
-- **Global Search** — search across all 15 markets with keyboard navigation
+- **Global Search** — search across all 21 markets with keyboard navigation
 - **Multi-Monitor Mode** — pop out any market into its own browser window
-- **Currency Picker** — display values in USD, EUR, GBP, JPY, CNY, and 5 more
+- **Currency Picker** — display values in USD, EUR, GBP, JPY, CNY, and 5 more (currency conversion currently applied in Equities only; other markets coming)
 - **URL Routing** — `?market=bonds` in the URL, shareable links, browser back/forward
 - **Tab Persistence** — last-viewed market restored on page refresh
 - **Auto-Refresh** — toggle 5-minute polling for all market data
@@ -284,7 +386,7 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 
 ## Infrastructure
 
-- **Backend Modularization** — `server/index.js` is a thin orchestrator (130 lines), 15 route files in `server/routes/`, 5 lib modules
+- **Backend Modularization** — `server/index.js` is a thin orchestrator (130 lines), 25 route files in `server/routes/`, 5 lib modules
 - **HTTP Cache Headers** — `Cache-Control` on all API routes (15min market data, 5min health/status)
 - **Fetch Retry** — `fetchWithRetry` with exponential backoff + AbortController timeout in all data hooks
 - **Rate Limit Monitoring** — `/api/rate-limits` endpoint tracking 13 free API sources
@@ -297,7 +399,7 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 
 ### Frontend
 - **React 18** with Vite 5 (HMR, fast builds)
-- **DataProvider** — centralized data pipeline in `src/hub/DataProvider.jsx`. Fetches all 13 market endpoints on demand (▶ button click), manages state via `DataContext`. Market components consume data via `useMarketData(marketId)` — no independent fetches.
+- **DataProvider** — centralized data pipeline in `src/hub/DataProvider.jsx`. Fetches all 20 market endpoints on demand (▶ button click), manages state via `DataContext`. Market components consume data via `useMarketData(marketId)` — no independent fetches.
 - **ECharts** via `echarts-for-react` — all charts use `animation: false`, `backgroundColor: 'transparent'`
 - **react-grid-layout v2** — bento-box dashboards with draggable/resizable panels, layout persistence via `localStorage`
 - **BentoWrapper** — shared component (`src/components/BentoWrapper.jsx`) with `storageKey` prop, `.bento-panel-title-row` drag handle, `.bento-panel-content` drag cancel, responsive breakpoints. Each market tab uses `BentoWrapper` with its own `storageKey` (e.g., `"commodities-layout"`, `"bonds-layout"`, `"macro-layout"`)
@@ -306,18 +408,20 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 - **ToastContext** — `useToast()` hook for notification management
 
 ### Backend
-- **Express 4** on port 3001, modularized into 15 route files + 5 lib modules
+- **Express 4** on port 3001, modularized into 25 route files + 5 lib modules
 - **yahoo-finance2** — quotes, options chains, historical prices, calendar events
 - **FRED API** — 40+ economic series
 - **Two-tier cache** — in-memory `node-cache` (15 min TTL) wraps file-based daily cache in `server/datacache/`
 - **Fallback** — on error, serves latest cached data with `isCurrent: false`
 
 ### Centralized Data Pipeline
-All 13 market endpoints are fetched by a single `DataProvider` component at the app level. No market component makes its own API calls — they receive data via React context (`useMarketData(marketId)`). The centralized pipeline:
+All 20 market endpoints are fetched by a single `DataProvider` component at the app level. Alerts are computed client-side from 6 already-fetched endpoints (sentiment, bonds, credit, crypto, commodities, FX) — no extra network calls. The centralized pipeline:
+
+> **Why 21 tabs but 20 fetches?** Alerts (tab 14) is federated — computed client-side from 6 other endpoints rather than fetched independently. The Analytics tab (tab 16) reads server-side metrics rather than calling a dedicated data endpoint.
 
 1. **On demand only** — Data is NOT fetched on page load or tab switch. The user clicks the ▶ button in the tab bar to fetch all markets. Auto-refresh (5-min polling) is toggled separately.
-2. **Batched concurrency** — 13 endpoints fetched in batches of 4 with 300ms delays between batches.
-3. **Federated markets** — Alerts are computed client-side from 6 already-fetched endpoints (sentiment, bonds, credit, crypto, commodities, FX) — no extra network calls.
+2. **Batched concurrency** — 20 endpoints fetched in batches of 4 with 300ms delays between batches.
+3. **Federated markets** — Alerts are computed client-side from 6 already-fetched endpoints — no extra network calls.
 4. **FX server-side** — Frankfurter API (spot rates, 1W/1M changes, sparklines) and CFTC COT data are fetched server-side in `/api/fx`, not from the browser.
 5. **State persistence** — Fetched data persists across tab switches. Switching tabs shows cached data instantly.
 
@@ -363,7 +467,8 @@ Every data point in the app is traceable to its source. Two provenance component
 
 ### Visualization Modes
 - **Heatmap** — ECharts treemap across 350+ real global stocks with zoom, pan, drill-down
-- **Bar Race** — animated top-30 horizontal bar chart, colored by region or sector
+- **Bar Race** — Animated top-30 horizontal bar chart with real-time sort, colored by region or sector
+- **Time Travel** — Drag timeline scrubber from 2020 to today with IndexedDB snapshot playback at 1x/2x/4x speed
 - **List View** — sortable table with sector chips, region indicators, snapshot % change
 
 ### Ranking & Grouping
@@ -373,10 +478,11 @@ Every data point in the app is traceable to its source. Two provenance component
 
 ### Time Travel
 - Drag timeline scrubber from 2020 to today
-- Playback at 1x/2x/4x speed
-- Market caps rescale to historical closing prices
-- 40+ annotated macro events (Fed hikes, earnings, crises)
-- Hover comparison modal: D-1, 1W, 1M, 1Y, YTD returns + sparkline
+- Play/pause button toggles animated playback at 1x/2x/4x speed
+- Reset button returns to live data
+- Market caps rescale to historical closing prices (via IndexedDB snapshots)
+- 40+ annotated macro events (Fed hikes, earnings, crises) shown as colored dots
+- Bar Race view updates dynamically as dates change
 
 ### Detail Panel
 - Click any stock in heatmap for live Yahoo Finance data
@@ -390,9 +496,9 @@ Every data point in the app is traceable to its source. Two provenance component
 |---|---|
 | Frontend | React 18, Vite 5, ECharts (`echarts-for-react`), `html2canvas`, PapaParse |
 | Backend | Express 4, `yahoo-finance2`, `node-cache` |
-| Data | Yahoo Finance, FRED API, CoinGecko, DeFiLlama, Bybit, CFTC Socrata, Econdb, EIA, mempool.space, Frankfurter, World Bank |
+| Data | Yahoo Finance, FRED API, CoinGecko, DeFiLlama, Bybit, CFTC Socrata, EIA, IMF WEO/IFS/COFER, World Bank WDI, BLS, US Census Bureau, mempool.space, Frankfurter |
 | Styling | Plain CSS with CSS variables (dark/light themes), responsive breakpoints |
-| Tests | Vitest 4, @testing-library/react — 297 tests across 49 files |
+| Tests | Vitest 4, @testing-library/react — ~350 tests across 60+ files |
 | Deploy | Docker (multi-stage Node 20 alpine), docker-compose |
 
 ## Getting Started
@@ -400,34 +506,28 @@ Every data point in the app is traceable to its source. Two provenance component
 ### 1. Install dependencies
 
 ```bash
-# Frontend
 npm install
-
-# Backend
 cd server && npm install
 ```
 
 ### 2. Configure environment
 
-```bash
-# Add FRED API key (required for most markets)
-echo "FRED_API_KEY=your_key_here" > server/.env
-```
+Create a `server/.env` file with the following keys (all free):
+
+- `FRED_API_KEY=your_key_here` — required for most markets. Get one at [fred.stlouisfed.org/docs/api/api_key.html](https://fred.stlouisfed.org/docs/api/api_key.html).
+- `EIA_API_KEY=your_key_here` — required for the EIA (electricity, CO₂ emissions) and Commodities dashboards. Get one at [eia.gov/opendata](https://www.eia.gov/opendata/). Without it, the EIA route returns 503 and Commodities skips EIA-backed series.
+- `BLS_API_KEY=your_key_here` — required for the BLS (labor market, prices) and Global Macro employment dashboards. Get one at [bls.gov/api_home.htm](https://www.bls.gov/api_home.htm). Without it, the BLS route returns 503 and Global Macro skips employment series.
 
 ### 3. Start the app
 
 ```bash
-# Both frontend (port 5173) and backend (port 3001)
-npm start
-
+npm start           # Both frontend (5173) and backend (3001)
 # Or separately:
 npm run dev          # Frontend only
 cd server && node index.js  # Backend only
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
-
-**Important:** Data does NOT load automatically. Click the **▶ button** in the top tab bar to fetch market data. Toggle auto-refresh (5-min polling) with the On/Off button.
+Data does **not** load automatically. Click the **▶ button** in the top tab bar to fetch market data. Toggle auto-refresh (5-min polling) with the On/Off button.
 
 ### 4. Run tests
 
@@ -439,19 +539,18 @@ npx vitest run
 
 ```bash
 npm run build
-# Bundle analysis available at dist/bundle-stats.html
+# Bundle analysis at dist/bundle-stats.html
 ```
 
 ### 6. Docker deployment
 
 ```bash
-docker-compose up --build
-# Serves at http://localhost:3001
+docker-compose up --build   # http://localhost:3001
 ```
 
 ### 7. (Optional) Pre-fetch equity data
 
-Downloads 5 years of history + fundamentals for 350+ tickers (~52 MB, ~21 minutes):
+Downloads 5 years of history + fundamentals for 350+ tickers (~52 MB, ~21 min):
 
 ```bash
 node scripts/fetch-universe.js
@@ -463,10 +562,10 @@ node scripts/fetch-universe.js
 src/
   hub/                          # Hub shell, routing, tab bar, theme, footer
     HubLayout.jsx               # Market routing + URL sync + exports + keyboard shortcuts
-    DataProvider.jsx             # Central data pipeline — fetches all 13 endpoints, manages state via React context
+    DataProvider.jsx             # Central data pipeline — fetches all 20 endpoints, manages state via React context
     DataContext.jsx              # useMarketData(marketId) hook — market components consume data here
     MarketTabBar.jsx             # Tabs + search + theme + export + refresh + pop-out + currency
-    markets.config.js            # Market definitions + search index (15 markets)
+    markets.config.js            # Market definitions + search index (21 markets)
     ThemeContext.jsx            # Dark/light theme provider
     ToastContext.jsx            # Toast notification provider
     HubFooter.jsx               # Clock + cache status + data source attribution
@@ -483,23 +582,41 @@ src/
     insurance/                  # Unified dashboard (cat bonds, combined ratio)
     commodities/                # Unified dashboard (prices, futures, COT)
     globalMacro/                # Unified dashboard (scorecard, growth, rates, debt)
+    imf/                       # IMF dashboard (scorecard, growth/inflation, reserves, COFER)
+    worldbank/                 # World Bank dashboard (scorecard, growth trends, development, trade)
     equitiesDeepDive/           # Unified dashboard (sectors, factors, earnings, shorts)
     crypto/                     # Unified dashboard (market, F&G, DeFi, funding)
     credit/                     # Unified dashboard (IG/HY spreads, EM, loans)
     sentiment/                  # Unified dashboard (F&G, CFTC, risk, returns)
     calendar/                   # Unified dashboard (economic, earnings, releases)
+    bls/                        # BLS dashboard (labor market, prices, trends)
+    eia/                        # EIA dashboard (electricity, emissions, energy)
+    census/                     # Census dashboard (housing, trade, retail, durable goods)
     alerts/                     # Active alerts + alert rules
     watchlist/                  # My tickers + my metrics
     analytics/                  # API usage, endpoint metrics, data freshness, cache inventory
   components/                   # Shared: BentoWrapper, SafeECharts, DataFooter, MetricValue, HeatmapView, DetailPanel, Sidebar, etc.
   utils/                        # FX rates, fetchWithRetry, data helpers, constants
-  __tests__/                    # 297 tests across 49 files
+  __tests__/                    # ~350 tests across 60+ files
 server/
   index.js                      # Express orchestrator (130 lines)
-  routes/                       # 15 route modules (bonds, fx, crypto, etc.)
+  routes/                       # 25 route modules (bonds, fx, crypto, etc.)
+  dataSources/                    # Static fallback snapshots (WEO, IFS/COFER, sovereign ratings, commodity sources)
   lib/                          # 5 shared modules (cache, fetch, yahoo, stocks, rateLimits)
   datacache/                    # gitignored — daily JSON file cache
 ```
+
+## Contributing
+
+To add a new market view:
+1. **Backend**: Create a new route in `server/routes/` to fetch and normalize data.
+2. **Configuration**: Add the market definition and search metadata to `src/hub/markets.config.js`.
+3. **Frontend**: Create a new market directory in `src/markets/` using the `BentoWrapper` component for the layout.
+4. **Data Pipeline**: Ensure the new endpoint is included in the `DataProvider.jsx` fetch sequence.
+
+## Known Limitations
+
+See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for a full list of intentional constraints (mock/synthetic data policy, rate limits, caching caveats, required env vars, browser baseline, etc.).
 
 ## Notes
 
@@ -507,23 +624,8 @@ server/
 - `server/datacache/`, `data/stocks/`, and `prices/` are gitignored
 - All markets show empty states ("—") when no real data is available instead of mock data
 - FRED API key is free at [fred.stlouisfed.org/docs/api](https://fred.stlouisfed.org/docs/api/api_key.html)
+- See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for detailed constraints and edge cases
 
 ## Recent Updates
 
-  - **Centralized Data Pipeline** — All 13 market endpoints are now fetched by a single `DataProvider` component. Market components no longer make independent API calls — they receive data via `useMarketData(marketId)` React context. Data is only fetched when the user clicks the ▶ button (not on page load or tab switch). This eliminates duplicate network requests (previously each market fetched its own endpoint AND DataProvider fetched the same one).
-  - **FX Server-Side Proxy** — Frankfurter API (spot/prev FX rates, 1W/1M changes, sparklines) and CFTC COT data are now fetched server-side in `/api/fx`. The browser no longer makes direct calls to external APIs for FX data.
-  - **Data Provenance System** — Every panel has a DataFooter showing FETCHED/NO DATA/PENDING badge with click-to-expand popover showing full API call history, per-source receipt status, FRED series links, and Verify buttons. Every key metric value has a MetricValue popover showing source, series ID, timestamp (seconds + UTC offset), and Fetch JSON link.
-  - **Provenance Audit** — Analytics tab now includes a cross-market audit that fetches all 12+ endpoints, lists received/missing sources per endpoint, shows FRED series IDs, and lets users Verify data directly against the FRED API.
-  - **Mock Data Removed** — All 15+ data hooks now initialize state to `null` instead of importing mock data files. Panels show empty states ("—") until real API data arrives. Mock data files have been deleted.
-  - **Manual Refresh System** — ▶ refresh button in the tab bar triggers all 13 market fetches via DataProvider. Auto-refresh toggle (On/Off) controls 5-minute polling. Tab switches do NOT trigger refetches.
-  - **Server-Side `_sources` Tracking** — All 15+ server route files now include `_sources` in their JSON response, listing which data sources were successfully fetched. Used by DataFooter and Provenance Audit.
-  - **Server-Side Error Logging** — Replaced 50+ silent `catch { /* null */ }` patterns with `console.warn` across all routes. `fetchJSON` now includes User-Agent header and proper HTTP error handling.
-  - **FRED API Fixes** — Replaced broken Treasury Fiscal Data API URLs (404s) with FRED equivalents (GFDEBTN, TB3MS, GS10, GS30). Changed strict data thresholds (`>= 20`, `>= 12`, etc.) to `> 0` to avoid false "missing" sources.
-  - **Stale Cache Handling** — Cleared all stale `datacache/` files. Daily cache now rebuilds from fresh FRED data on server restart.
-  - **Bento Grid Layout** — Converting all 15 market dashboards from static sidebar+grid layouts to draggable/resizable bento-box panels using `react-grid-layout`. Panels can be rearranged by dragging the title bar and resized via corner handles. Layout changes persist to `localStorage` per tab, so users don't lose their arrangement when switching markets.
-  - **Bento Persistence** — `BentoWrapper` component saves panel positions to `localStorage` via `storageKey` prop. Each market (equities, bonds, commodities, FX, etc.) has its own key. Drag handles use `.bento-panel-title-row`, content areas use `.bento-panel-content` for text selection while preventing accidental panel drags.
-  - **All 16 Market Views Converted** — Every tab now uses the bento grid layout: Equities, Bonds, Commodities, FX, Derivatives, Real Estate, Insurance, Global Macro, Equities+ (Deep Dive), Crypto, Credit, Sentiment, Calendar, Alerts, Watchlist, Analytics. Each has its own `storageKey` for localStorage persistence. Calendar and Watchlist use tab-dependent layouts (different bento configs per sub-tab).
-  - **CSS Consolidation** — Each market has a single consolidated CSS file. Old split CSS files have been deleted. Sub-component CSS imports now point to the single dashboard-level or market-level CSS.
-  - **Responsive Bento Content** — Panel contents scale to fit card size using CSS container queries. KPI pills, charts, tables, and metrics shrink gracefully when panels are resized smaller.
-  - **ECharts Dimension Safety** — Added `SafeECharts` wrapper that waits for valid container dimensions before rendering, preventing "instance disposed" and zero-dimension errors.
-  - **Analytics Dashboard** — New tab showing API usage stats, endpoint metrics, data freshness, cache inventory, and Provenance Audit.
+See `git log` for recent updates.

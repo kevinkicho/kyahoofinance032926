@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SafeECharts from '../SafeECharts';
 import './DetailPanel.css';
 import { useTheme } from '../../hub/ThemeContext';
+import { fetchWithRetry } from '../../utils/fetchWithRetry';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -528,6 +529,66 @@ const DataFooter = ({ summaryData, historyData, isLive, onOpenModal }) => {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
+const MACRO_LABELS = {
+  M1:    { label: 'M1 Money Supply',  unit: 'B',   fmt: v => v != null ? `$${(v/1000).toFixed(1)}T` : '—' },
+  M2:    { label: 'M2 Money Supply',  unit: 'B',   fmt: v => v != null ? `$${(v/1000).toFixed(1)}T` : '—' },
+  CPI:   { label: 'CPI (All Items)',  unit: 'Idx', fmt: v => v != null ? v.toFixed(1) : '—' },
+  FFR:   { label: 'Fed Funds Rate',   unit: '%',   fmt: v => v != null ? `${v.toFixed(2)}%` : '—' },
+  UNEMP: { label: 'Unemployment',     unit: '%',   fmt: v => v != null ? `${v.toFixed(1)}%` : '—' },
+  GDP:   { label: 'GDP',              unit: 'B',   fmt: v => v != null ? `$${(v/1000).toFixed(1)}T` : '—' },
+};
+
+const MacroIndicators = ({ macroData }) => {
+  if (!macroData) return null;
+  const keys = Object.keys(MACRO_LABELS).filter(k => macroData[k]?.latest != null);
+  if (!keys.length) return null;
+  return (
+    <div className="macro-section">
+      <div className="fg-section-hdr">Macro Indicators (FRED)</div>
+      <div className="macro-grid">
+        {keys.map(k => {
+          const m = macroData[k];
+          const meta = MACRO_LABELS[k];
+          const prev = m.prev != null ? meta.fmt(m.prev) : null;
+          const diff = m.latest != null && m.prev != null ? m.latest - m.prev : null;
+          const diffPct = diff != null && m.prev !== 0 ? ((diff / Math.abs(m.prev)) * 100) : null;
+          return (
+            <div key={k} className="macro-cell">
+              <span className="macro-label">{meta.label}</span>
+              <strong className="macro-value">{meta.fmt(m.latest)}</strong>
+              {diffPct != null && (
+                <span className={`macro-delta ${diffPct > 0 ? 'text-red' : diffPct < 0 ? 'text-green' : ''}`}>
+                  {diffPct > 0 ? '+' : ''}{diffPct.toFixed(2)}%
+                </span>
+              )}
+              <span className="macro-date">{m.date}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const FxRates = ({ rates, currency }) => {
+  if (!rates || !Object.keys(rates).length) return null;
+  const shown = Object.entries(rates).filter(([c]) => c !== currency).slice(0, 6);
+  if (!shown.length) return null;
+  return (
+    <div className="fx-section">
+      <div className="fg-section-hdr">FX Rates (Frankfurter)</div>
+      <div className="fx-grid">
+        {shown.map(([ccy, rate]) => (
+          <div key={ccy} className="fx-cell">
+            <span className="fx-label">{currency}/{ccy}</span>
+            <strong className="fx-value">{rate.toFixed(4)}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const TABS = [
   { id: 'summary',      label: 'Summary' },
   { id: 'chart',        label: 'Chart' },
@@ -536,16 +597,26 @@ const TABS = [
   { id: 'fairvalue',    label: 'Fair Value' },
 ];
 
-const DetailPanel = ({ selectedTicker, setSelectedTicker }) => {
+const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => {
   const { details, summaryData, historyData } = selectedTicker;
   const isCrypto = selectedTicker.sector === 'Crypto';
   const [activeTab, setActiveTab] = useState('summary');
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
+  const [macroData, setMacroData] = useState(null);
   const sym = selectedTicker.regionSymbol || '$';
   const fv = computeFairValue(
     selectedTicker, details,
     { riskAppetite: 50, interestRate: 0, inflation: 2 }
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchWithRetry('/api/macro', { retries: 1, timeout: 10000 })
+      .then(r => r.json())
+      .then(data => { if (!cancelled && data && Object.keys(data).length) setMacroData(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="detail-panel-content">

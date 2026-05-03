@@ -351,13 +351,20 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
             <div className="com-kpi-pill">
               <span className="com-kpi-label">Commodity FX</span>
               <span className="com-kpi-value" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
-                {['CAD', 'AUD', 'NOK'].map(ccy => (
-                  commodityCurrencies[ccy] != null && (
+                {['CAD', 'AUD', 'NOK'].map(ccy => {
+                  // Cross-market enrichment in CommoditiesMarket reshapes
+                  // each entry into { rate, change1d }; legacy data feeds
+                  // can still pass a bare number, so accept both.
+                  const entry = commodityCurrencies[ccy];
+                  if (entry == null) return null;
+                  const rate = typeof entry === 'number' ? entry : entry.rate;
+                  if (typeof rate !== 'number') return null;
+                  return (
                     <span key={ccy} className="com-fx-badge" style={{ background: colors.cardBg, borderColor: colors.cardBorder || colors.tooltipBorder }}>
-                       {ccy} <MetricValue value={commodityCurrencies[ccy]} seriesKey="commodityCurrencies" timestamp={lastUpdated} format={v => v != null ? v.toFixed(4) : '—'} />
+                       {ccy} <MetricValue value={rate} seriesKey="commodityCurrencies" timestamp={lastUpdated} format={v => typeof v === 'number' ? v.toFixed(4) : '—'} />
                     </span>
-                  )
-                ))}
+                  );
+                })}
               </span>
             </div>
           )}

@@ -5,12 +5,17 @@ import ListView from '../../components/ListView/ListView';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import DetailPanel from '../../components/DetailPanel/DetailPanel';
 import BarRaceView from '../../components/BarRaceView/BarRaceView';
+import TimeTravel from '../../components/TimeTravel/TimeTravel';
+import DataHubView from '../../components/DataHubView/DataHubView';
 import BentoWrapper from '../../components/BentoWrapper';
-import { mockTreemapData } from '../../mockData';
+import DataFooter from '../../components/DataFooter/DataFooter';
+import { stockUniverseData } from '../../data/stockUniverse';
 import { currencySymbols } from '../../utils/constants';
-import { useFrankfurterRates } from '../../utils/useFrankfurterRates';
-import { getExtendedDetails } from '../../utils/dataHelpers';
+import { useCurrency } from '../../hub/CurrencyContext';
 import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
+import MarketKpiStrip from '../../components/MarketKpiStrip';
+import MetricValue from '../../components/MetricValue/MetricValue';
+
 import './EquitiesDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -42,24 +47,71 @@ function usePersistedState(key, defaultValue) {
   });
   const persist = (v) => {
     setValue(v);
-    try { localStorage.setItem(key, v); } catch {}
+    try { localStorage.setItem(key, v); }
+    catch (e) { console.warn(`[EquitiesMarket] persist failed for "${key}":`, e?.message); }
   };
   return [value, persist];
 }
 
 const STORAGE_KEY = 'equities-view';
 
+const INDEX_TICKERS = ['^GSPC', '^IXIC', '^DJI', '^RUT'];
+const INDEX_LABELS = { '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', '^DJI': 'Dow Jones', '^RUT': 'Russell 2K' };
+
+// rowHeight is 120px in BentoWrapper, so h:5 = 600px and h:6 = 720px.
+// h:5 was leaving ~80px of empty vertical space below the heatmap panel
+// on a typical 900px viewport once the tab bar / KPI strip / filter row /
+// panel header were accounted for. Bumping to h:6 fills that gap without
+// forcing the page to scroll.
+// KPI strip (S&P 500 / NASDAQ / Dow / Russell 2K) is now a real bento
+// child at row 0 (h:2). All view-mode layouts include it as the first
+// entry; the rest shift down 2 rows. Storage keys bumped.
 const HEATMAP_LAYOUT = {
   lg: [
-    { i: 'heatmap', x: 0, y: 0, w: 8, h: 5 },
-    { i: 'sidebar', x: 8, y: 0, w: 4, h: 5 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 2 },
+    { i: 'heatmap', x: 0, y: 2, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 2, w: 4,  h: 6 },
+  ]
+};
+
+const RADAR_LAYOUT = {
+  lg: [
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 2 },
+    { i: 'radar',   x: 0, y: 2, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 2, w: 4,  h: 6 },
   ]
 };
 
 const RACE_LAYOUT = {
   lg: [
-    { i: 'race',   x: 0, y: 0, w: 8, h: 5 },
-    { i: 'sidebar', x: 8, y: 0, w: 4, h: 5 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 2 },
+    { i: 'race',   x: 0,  y: 2, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 2, w: 4,  h: 6 },
+  ]
+};
+
+const LIST_LAYOUT = {
+  lg: [
+    { i: 'kpi',            x: 0, y: 0, w: 12, h: 2 },
+    { i: 'list-main',      x: 0, y: 2, w: 8,  h: 6 },
+    { i: 'detail-sidebar', x: 8, y: 2, w: 4,  h: 6 },
+  ]
+};
+
+const ML_LAYOUT = {
+  lg: [
+    { i: 'kpi',         x: 0, y: 0, w: 12, h: 2 },
+    { i: 'ml-explorer', x: 0, y: 2, w: 8,  h: 6 },
+    { i: 'sidebar',     x: 8, y: 2, w: 4,  h: 6 },
+  ]
+};
+
+// PORTFOLIO_LAYOUT was previously referenced but undefined — pre-existing
+// ReferenceError in the Portfolio sub-tab. Now defined alongside the KPI.
+const PORTFOLIO_LAYOUT = {
+  lg: [
+    { i: 'kpi',       x: 0, y: 0, w: 12, h: 2 },
+    { i: 'portfolio', x: 0, y: 2, w: 12, h: 6 },
   ]
 };
 
@@ -106,6 +158,8 @@ function quotesFromUniverse(universe) {
       if (stock.change != null)    q.c = stock.change;
       if (stock.changePct != null) q.cp = stock.changePct;
       if (stock.marketCap != null) q.mc = stock.marketCap;
+      if (stock.weekHigh52 != null) q.wh = stock.weekHigh52;
+      if (stock.weekLow52 != null) q.wl = stock.weekLow52;
       if (Object.keys(q).length) out[stock.name] = q;
     }
   }
@@ -125,6 +179,8 @@ function applyQuotesToUniverse(universe, quotes) {
         ...(q.p  != null && { price: q.p }),
         ...(q.c  != null && { change: q.c }),
         ...(q.cp != null && { changePct: q.cp }),
+        ...(q.wh != null && { weekHigh52: q.wh }),
+        ...(q.wl != null && { weekLow52: q.wl }),
       };
     }),
   }));
@@ -151,11 +207,11 @@ function migrateLegacySnapshot(map) {
 function hydrateInitialState() {
   const map = migrateLegacySnapshot(loadDailyMap());
   const dates = Object.keys(map).sort();
-  if (!dates.length) return { universe: mockTreemapData, stamp: STATIC_DATA_TIMESTAMP };
+  if (!dates.length) return { universe: stockUniverseData, stamp: STATIC_DATA_TIMESTAMP };
   const latest = dates[dates.length - 1];
   const entry = map[latest];
   return {
-    universe: applyQuotesToUniverse(mockTreemapData, entry.quotes),
+    universe: applyQuotesToUniverse(stockUniverseData, entry.quotes),
     stamp: entry.stamp || `Loaded · ${latest}`,
   };
 }
@@ -177,12 +233,43 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   const [marketUniverse, setMarketUniverse] = useState(hydrated.universe);
   const [dataTimestamp, setDataTimestamp] = useState(hydrated.stamp);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [indexQuotes, setIndexQuotes] = useState(null);
+  const [snapshotQuotes, setSnapshotQuotes] = useState(null);
+  const [snapshotDate, setSnapshotDate] = useState(null);
+  const [timeTravelActive, setTimeTravelActive] = useState(false);
+
+  const handleSnapshotSelect = useCallback((quotes, date, stamp) => {
+    if (!quotes) {
+      setSnapshotQuotes(null);
+      setSnapshotDate(null);
+      setTimeTravelActive(false);
+      return;
+    }
+    setSnapshotQuotes(quotes);
+    setSnapshotDate(date);
+    setDataTimestamp(stamp || date);
+    setTimeTravelActive(true);
+  }, []);
+
+  const fetchIndexQuotes = useCallback(() => {
+    fetch('/api/stocks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tickers: INDEX_TICKERS }),
+    })
+      .then(r => r.json())
+      .then(data => setIndexQuotes(data))
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => { fetchIndexQuotes(); }, [fetchIndexQuotes]);
 
   const handleRefresh = useCallback(() => {
     if (isRefreshing) return;
     setIsRefreshing(true);
+    fetchIndexQuotes();
     const allTickers = [];
-    mockTreemapData.forEach(region => {
+    stockUniverseData.forEach(region => {
       region.children.forEach(stock => {
         if (stock.name && stock.sector !== 'Crypto') allTickers.push(stock.name);
       });
@@ -211,6 +298,8 @@ export default function EquitiesMarket({ currency, setCurrency }) {
                 ...(q.changePct != null && { changePct: q.changePct }),
                 ...(q.price != null && { price: q.price }),
                 ...(q.change != null && { change: q.change }),
+                ...(q.weekHigh52 != null && { weekHigh52: q.weekHigh52 }),
+                ...(q.weekLow52 != null && { weekLow52: q.weekLow52 }),
               };
             }),
           }));
@@ -237,10 +326,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       .finally(() => setIsRefreshing(false));
   }, [isRefreshing]);
 
-  const { rates, isLive: ratesIsLive, lastUpdated: ratesDate } = useFrankfurterRates();
-
-  const currentRate = rates[currency] || 1;
-  const currentSymbol = currencySymbols[currency] || '$';
+  const { rates: fxRates, currentRate, currentSymbol, ratesLive } = useCurrency();
 
   const getMetricValue = (stock, metric) => {
     if (metric === 'revenue')    return Math.max(stock.revenue   || 0.1, 0.1);
@@ -338,31 +424,56 @@ export default function EquitiesMarket({ currency, setCurrency }) {
 
   const flatData = useMemo(() => {
     const arr = [];
+    const source = snapshotQuotes ? (() => {
+      const map = {};
+      adjustedTreemapData.forEach(region => {
+        region.children.forEach(stock => {
+          const q = snapshotQuotes[stock.name];
+          if (q) {
+            const liveCap = q.mc != null ? q.mc : stock.marketCap;
+            map[stock.name] = {
+              ...stock,
+              marketCap: liveCap || stock.marketCap,
+              value: liveCap || stock.value,
+              adjustedValue: liveCap || stock.adjustedValue,
+              changePct: q.cp != null ? q.cp : stock.changePct,
+              price: q.p != null ? q.p : stock.price,
+              change: q.c != null ? q.c : stock.change,
+            };
+          } else {
+            map[stock.name] = stock;
+          }
+        });
+      });
+      return map;
+    })() : null;
+
     adjustedTreemapData.forEach(region => {
       region.children.forEach(stock => {
+        const s = source ? source[stock.name] : stock;
         arr.push({
           region: region.name,
           regionCurrency: region.currency,
           regionSymbol: region.symbol,
           regionColor: region.itemStyle.borderColor,
-          ticker: stock.name,
-          fullName: stock.fullName || stock.name,
-          value: stock.value,
-          adjustedValue: stock.adjustedValue,
-          metricValue: stock.metricValue,
-          marketCap: stock.marketCap,
-          revenue: stock.revenue,
-          netIncome: stock.netIncome,
-          pe: stock.pe,
-          divYield: stock.divYield,
-          rank: stock.rank,
-          sector: stock.sector,
-          color: stock.itemStyle.color,
+          ticker: s.name || stock.name,
+          fullName: s.fullName || stock.fullName || stock.name,
+          value: s.value,
+          adjustedValue: s.adjustedValue,
+          metricValue: s.metricValue,
+          marketCap: s.marketCap,
+          revenue: s.revenue,
+          netIncome: s.netIncome,
+          pe: s.pe,
+          divYield: s.divYield,
+          rank: s.rank,
+          sector: s.sector,
+          color: s.itemStyle?.color,
         });
       });
     });
     return arr;
-  }, [adjustedTreemapData]);
+  }, [adjustedTreemapData, snapshotQuotes]);
 
   const processedData = useMemo(() => {
     let filtered = flatData.filter(item =>
@@ -390,8 +501,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   const selectionRef = useRef(0);
   const handleSelectTicker = async (tickerInfo) => {
     const selectionId = ++selectionRef.current;
-    const details = getExtendedDetails(tickerInfo, rates);
-    setSelectedTicker({ ...tickerInfo, details, isLive: false, summaryData: null, historyData: null });
+    setSelectedTicker({ ...tickerInfo, details: null, isLive: false, summaryData: null, historyData: null, isLoading: true });
 
     const isCrypto = tickerInfo.sector === 'Crypto';
     const sym = isCrypto ? '$' : (tickerInfo.regionSymbol || '$');
@@ -407,7 +517,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       fetch(`/api/history/${enc}?period=5y&region=${encodeURIComponent(tickerInfo.region || '')}`),
     ]);
 
-    let mergedDetails = { ...details };
+    let mergedDetails = {};
     let isLive = false;
 
     if (quoteRes.status === 'fulfilled' && quoteRes.value.ok) {
@@ -416,27 +526,30 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       if (live) {
         isLive = true;
         mergedDetails = {
-          ...mergedDetails,
-          price:     live.price     != null ? `${sym}${live.price.toLocaleString()}` : mergedDetails.price,
-          changeAmt: live.change    != null ? `${live.change >= 0 ? '+' : ''}${sym}${live.change.toFixed(2)}` : mergedDetails.changeAmt,
-          changePct: live.changePct != null ? `${live.changePct >= 0 ? '+' : ''}${live.changePct.toFixed(2)}%` : mergedDetails.changePct,
-          open:      live.open      != null ? `${sym}${live.open.toLocaleString()}` : mergedDetails.open,
-          prevClose: live.prevClose != null ? `${sym}${live.prevClose.toLocaleString()}` : mergedDetails.prevClose,
-          dayRange:  (live.dayLow && live.dayHigh) ? `${sym}${live.dayLow.toFixed(2)} – ${sym}${live.dayHigh.toFixed(2)}` : mergedDetails.dayRange,
-          wk52Range: (live.weekLow52 && live.weekHigh52) ? `${sym}${live.weekLow52.toFixed(2)} – ${sym}${live.weekHigh52.toFixed(2)}` : mergedDetails.wk52Range,
-          volume:    live.volume    != null ? live.volume.toLocaleString() : mergedDetails.volume,
-          avgVol:    live.avgVolume != null ? live.avgVolume.toLocaleString() : mergedDetails.avgVol,
-          marketCapNative: live.marketCap ? `${sym}${(live.marketCap / 1e12).toFixed(2)} T` : mergedDetails.marketCapNative,
-          marketCapGlobal: live.marketCap ? `$${(live.marketCap / 1e9 / currentRate).toFixed(0)} B (Glob.)` : mergedDetails.marketCapGlobal,
+          price:     live.price     != null ? `${sym}${live.price.toLocaleString()}` : '—',
+          changeAmt: live.change    != null ? `${live.change >= 0 ? '+' : ''}${sym}${live.change.toFixed(2)}` : '—',
+          changePct: live.changePct != null ? `${live.changePct >= 0 ? '+' : ''}${live.changePct.toFixed(2)}%` : '—',
+          open:      live.open      != null ? `${sym}${live.open.toLocaleString()}` : '—',
+          prevClose: live.prevClose != null ? `${sym}${live.prevClose.toLocaleString()}` : '—',
+          dayRange:  (live.dayLow && live.dayHigh) ? `${sym}${live.dayLow.toFixed(2)} – ${sym}${live.dayHigh.toFixed(2)}` : '—',
+          wk52Range: (live.weekLow52 && live.weekHigh52) ? `${sym}${live.weekLow52.toFixed(2)} – ${sym}${live.weekHigh52.toFixed(2)}` : '—',
+          volume:    live.volume    != null ? live.volume.toLocaleString() : '—',
+          avgVol:    live.avgVolume != null ? live.avgVolume.toLocaleString() : '—',
+          marketCapGlobal: live.marketCap ? `$${(live.marketCap / 1e9 / currentRate).toFixed(0)} B (Glob.)` : '—',
+          marketCapNative: live.marketCap ? `${sym}${(live.marketCap / 1e12).toFixed(2)} T` : '—',
           ...(!isCrypto && {
-            bid:  live.bid  != null ? `${sym}${live.bid.toFixed(2)} × ${live.bidSize || ''}` : mergedDetails.bid,
-            ask:  live.ask  != null ? `${sym}${live.ask.toFixed(2)} × ${live.askSize || ''}` : mergedDetails.ask,
-            pe:   live.pe   != null ? live.pe.toFixed(2) : mergedDetails.pe,
-            eps:  live.eps  != null ? `${sym}${live.eps.toFixed(2)}` : mergedDetails.eps,
-            beta: live.beta != null ? live.beta.toFixed(2) : mergedDetails.beta,
+            bid:  live.bid  != null ? `${sym}${live.bid.toFixed(2)} × ${live.bidSize || ''}` : null,
+            ask:  live.ask  != null ? `${sym}${live.ask.toFixed(2)} × ${live.askSize || ''}` : null,
+            pe:   live.pe   != null ? live.pe.toFixed(2) : null,
+            eps:  live.eps  != null ? `${sym}${live.eps.toFixed(2)}` : null,
+            beta: live.beta != null ? live.beta.toFixed(2) : null,
           }),
         };
       }
+    }
+
+    if (!isLive) {
+      mergedDetails = {};
     }
 
     const summaryData = (summaryRes.status === 'fulfilled' && summaryRes.value.ok)
@@ -445,106 +558,240 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       ? await historyRes.value.json() : null;
 
     if (selectionRef.current !== selectionId) return;
-    setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive, summaryData, historyData }));
+    setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive, summaryData, historyData, isLoading: false }));
   };
+
+  const marketStats = useMemo(() => {
+    let advancers = 0, decliners = 0, unchanged = 0, newHighs = 0, newLows = 0;
+    for (const region of marketUniverse) {
+      for (const stock of region.children) {
+        if (stock.changePct != null) {
+          if (stock.changePct > 0) advancers++;
+          else if (stock.changePct < 0) decliners++;
+          else unchanged++;
+        }
+        if (stock.price != null && stock.weekHigh52 != null && Math.abs(stock.price - stock.weekHigh52) / stock.weekHigh52 < 0.02) newHighs++;
+        if (stock.price != null && stock.weekLow52 != null && Math.abs(stock.price - stock.weekLow52) / stock.weekLow52 < 0.02) newLows++;
+      }
+    }
+    return { advancers, decliners, unchanged, newHighs, newLows };
+  }, [marketUniverse]);
 
   const globalValCap = flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0);
 
-  const sidebarPanel = (
-    <div key="sidebar" className="eq-bento-card">
+    const commonFooter = (
+      <DataFooter 
+        source="Yahoo Finance" 
+        timestamp={dataTimestamp} 
+        isLive={true} 
+        isCurrent={true}
+        fetchedOn={dataTimestamp}
+      />
+    );
+
+    const sidebarPanel = (
+      <div key="sidebar" className="eq-bento-card">
+        <div className="eq-panel-title-row bento-panel-title-row">
+          <span className="eq-panel-title">Market Summary</span>
+        </div>
+        <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+          {selectedTicker ? (
+            <DetailPanel
+              selectedTicker={selectedTicker}
+              setSelectedTicker={setSelectedTicker}
+              currentRate={currentRate}
+              currentSymbol={currentSymbol}
+            />
+          ) : (
+            <div className="eq-summary">
+               <div className="eq-stat-card">
+                 <div className="eq-stat-label">Global Market Cap ({currency})</div>
+                 <div className="eq-stat-value">
+                   <MetricValue value={globalValCap * currentRate} seriesKey="globalEqCap" timestamp={dataTimestamp} format={v => `${currentSymbol}${(v || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} B`} />
+                 </div>
+               </div>
+               <div className="eq-stat-card">
+                 <div className="eq-stat-label">Equities Tracked</div>
+                 <div className="eq-stat-value">
+                   <MetricValue value={flatData.length} seriesKey="eqTrackedCount" timestamp={dataTimestamp} format={v => v} />
+                 </div>
+               </div>
+               <div className="eq-stat-card">
+                 <div className="eq-stat-label">Regions</div>
+                 <div className="eq-stat-value">
+                   <MetricValue value={marketUniverse.length} seriesKey="eqRegionCount" timestamp={dataTimestamp} format={v => v} />
+                 </div>
+               </div>
+                <div className="eq-stat-card">
+                  <div className="eq-stat-label">Advancers / Decliners</div>
+                  <div className="eq-stat-value">
+                    <span style={{ color: '#4ade80' }}>
+                      <MetricValue value={marketStats.advancers} seriesKey="eqAdvancers" timestamp={dataTimestamp} format={v => v != null ? String(v) : '—'} />
+                    </span>
+                    {' / '}
+                    <span style={{ color: '#f87171' }}>
+                      <MetricValue value={marketStats.decliners} seriesKey="eqDecliners" timestamp={dataTimestamp} format={v => v != null ? String(v) : '—'} />
+                    </span>
+                    {marketStats.unchanged > 0 && <span style={{ color: '#94a3b8' }}> · {marketStats.unchanged} unchanged</span>}
+                  </div>
+                </div>
+                <div className="eq-stat-card">
+                  <div className="eq-stat-label">52-Week Highs / Lows</div>
+                  <div className="eq-stat-value">
+                    <span style={{ color: '#4ade80' }}>
+                      <MetricValue value={marketStats.newHighs} seriesKey="eqNewHighs" timestamp={dataTimestamp} format={v => v != null ? String(v) : '—'} />
+                    </span>
+                    {' / '}
+                    <span style={{ color: '#f87171' }}>
+                      <MetricValue value={marketStats.newLows} seriesKey="eqNewLows" timestamp={dataTimestamp} format={v => v != null ? String(v) : '—'} />
+                    </span>
+                  </div>
+                </div>
+
+               <div className="eq-stat-card">
+                 <div className="eq-stat-label">Rank Metric</div>
+                 <div className="eq-stat-value eq-stat-accent">{rankMetric === 'marketCap' ? 'Market Cap' : rankMetric === 'revenue' ? 'Revenue' : rankMetric === 'netIncome' ? 'Net Income' : rankMetric === 'pe' ? 'P/E Ratio' : 'Div Yield'}</div>
+               </div>
+               <div className="eq-stat-card">
+                 <div className="eq-stat-label">Grouping</div>
+                 <div className="eq-stat-value">{groupBy === 'market' ? 'By Market' : groupBy === 'sectorInMarket' ? 'Sector in Market' : 'Global Sector'}</div>
+               </div>
+
+              {ratesLive && (
+                <div className="eq-stat-card eq-stat-live">
+                  <div className="eq-stat-label">FX Rates</div>
+                  <div className="eq-stat-value" style={{ fontSize: 11, color: '#60a5fa' }}>Live (ECB)</div>
+                </div>
+              )}
+              <div className="eq-hint">Click any cell on the heatmap to view details</div>
+            </div>
+          )}
+        </div>
+        <div className="eq-panel-footer">
+          {selectedTicker
+            ? (selectedTicker.isLoading ? 'Loading live data…' : (selectedTicker.isLive ? `Fetched · Yahoo Finance` : 'Static data · Click ticker for quote'))
+            : <>{`Data as of ${dataTimestamp} · FX: ${ratesLive ? 'Fetched (ECB)' : 'Fallback'}`} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></>}
+          {commonFooter}
+        </div>
+      </div>
+    );
+
+  // KPI strip becomes a real bento child rendered as the first item of
+  // each view-mode's BentoWrapper. Same content regardless of view mode,
+  // so render it once into a variable and reuse.
+  const kpiBentoCard = (
+    <div key="kpi" className="eq-bento-card">
       <div className="eq-panel-title-row bento-panel-title-row">
-        <span className="eq-panel-title">{selectedTicker ? selectedTicker.ticker : 'Market Summary'}</span>
-        {selectedTicker && (
-          <button className="eq-close-btn" onClick={() => setSelectedTicker(null)}>✕</button>
-        )}
+        <span className="eq-panel-title">Key Indices</span>
+        <span className="eq-panel-subtitle">S&P 500 · NASDAQ · Dow · Russell 2000 — live Yahoo Finance quotes</span>
       </div>
-      <div className="eq-panel-content bento-panel-content eq-panel-scroll" onMouseDown={stopDrag}>
-        {selectedTicker ? (
-          <DetailPanel
-            selectedTicker={selectedTicker}
-            setSelectedTicker={setSelectedTicker}
-            currentRate={currentRate}
-            currentSymbol={currentSymbol}
-          />
-        ) : (
-          <div className="eq-summary">
-            <div className="eq-stat-card">
-              <div className="eq-stat-label">Global Market Cap ({currency})</div>
-              <div className="eq-stat-value">{currentSymbol}{(globalValCap * currentRate).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} B</div>
-            </div>
-            <div className="eq-stat-card">
-              <div className="eq-stat-label">Equities Tracked</div>
-              <div className="eq-stat-value">{flatData.length}</div>
-            </div>
-            <div className="eq-stat-card">
-              <div className="eq-stat-label">Regions</div>
-              <div className="eq-stat-value">{marketUniverse.length}</div>
-            </div>
-            <div className="eq-stat-card">
-              <div className="eq-stat-label">Rank Metric</div>
-              <div className="eq-stat-value eq-stat-accent">{rankMetric === 'marketCap' ? 'Market Cap' : rankMetric === 'revenue' ? 'Revenue' : rankMetric === 'netIncome' ? 'Net Income' : rankMetric === 'pe' ? 'P/E Ratio' : 'Div Yield'}</div>
-            </div>
-            <div className="eq-stat-card">
-              <div className="eq-stat-label">Grouping</div>
-              <div className="eq-stat-value">{groupBy === 'market' ? 'By Market' : groupBy === 'sectorInMarket' ? 'Sector in Market' : 'Global Sector'}</div>
-            </div>
-            {ratesIsLive && (
-              <div className="eq-stat-card eq-stat-live">
-                <div className="eq-stat-label">FX Rates</div>
-                <div className="eq-stat-value" style={{ fontSize: 11, color: '#60a5fa' }}>Fetched {ratesDate}</div>
-              </div>
-            )}
-            <div className="eq-hint">Click any cell on the heatmap to view details</div>
-          </div>
-        )}
-      </div>
-      <div className="eq-panel-footer">
-        {selectedTicker
-? (selectedTicker.isLive ? `Fetched · Yahoo Finance · ${selectedTicker.details?.price || ''}` : 'Static data · Click ticker for quote')
-        : <>{`Data as of ${dataTimestamp} · FX: ${ratesIsLive ? 'Fetched (ECB)' : 'Fallback'}`} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></>}
+      <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+        <MarketKpiStrip
+          kpis={INDEX_TICKERS.map(tk => {
+            const q = indexQuotes?.[tk];
+            const label = INDEX_LABELS[tk];
+            const price = q?.price;
+            const changePct = q?.changePct;
+            const change = q?.change;
+            const hasData = price != null;
+            const seriesKey = { '^GSPC': 'sp500', '^IXIC': 'nasdaq', '^DJI': 'dowJones', '^RUT': 'russell2k' }[tk];
+            return {
+              label,
+              rawValue: price,
+              value: hasData ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—',
+              format: v => typeof v === 'number' ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—',
+              seriesKey,
+              color: hasData ? (changePct >= 0 ? '#4ade80' : '#f87171') : 'var(--text-primary)',
+              trend: hasData ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : null,
+              sublabel: hasData ? `(${change >= 0 ? '+' : ''}${change.toFixed(2)})` : 'no data',
+            };
+          })}
+          bare
+        />
       </div>
     </div>
   );
 
   return (
-    <div className="eq-dashboard eq-dashboard--bento">
+    <div className="eq-dashboard eq-dashboard--bento" role="region" aria-label="Equities">
       <Header
         viewMode={viewMode} setViewMode={setViewMode}
         rankMetric={rankMetric} setRankMetric={setRankMetric}
         groupBy={groupBy} setGroupBy={setGroupBy}
         colorByPerf={colorByPerf} setColorByPerf={setColorByPerf}
       />
-      {viewMode === 'list' ? (
-        <div className="eq-list-wrapper">
-          <div className="eq-list-main">
-            <ListView
-              processedData={processedData}
-              handleSort={handleSort}
-              renderSortIndicator={renderSortIndicator}
-              handleSelectTicker={handleSelectTicker}
-              currentRate={currentRate}
-              currentSymbol={currentSymbol}
-              currency={currency}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              rankMetric={rankMetric}
-              groupBy={groupBy}
-            />
-            <div className="eq-list-footer">Data as of {dataTimestamp} · FX: {ratesIsLive ? 'Fetched (ECB)' : 'Fallback'} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></div>
-          </div>
-          {selectedTicker && (
-            <div className="eq-detail-sidebar" onMouseDown={stopDrag}>
-              <DetailPanel
-                selectedTicker={selectedTicker}
-                setSelectedTicker={setSelectedTicker}
-                currentRate={currentRate}
-                currentSymbol={currentSymbol}
+      {viewMode === 'datahub' ? (
+        <DataHubView
+          flatData={flatData}
+          currentRate={currentRate}
+          currentSymbol={currentSymbol}
+          currency={currency}
+          onRowClick={handleSelectTicker}
+        />
+      ) : viewMode === 'ml-explorer' ? (
+        <BentoWrapper layout={ML_LAYOUT} storageKey="equities-ml-layout-v2">
+          {kpiBentoCard}
+          <div key="ml-explorer" className="eq-bento-card">
+            <div className="eq-panel-title-row bento-panel-title-row">
+              <span className="eq-panel-title">ML Explorer</span>
+              <span className="eq-panel-subtitle">AI-driven factor analysis</span>
+            </div>
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+              <MLExplorer
+                flatData={flatData}
+                onTickerSelect={handleSelectTicker}
               />
             </div>
+          </div>
+          {sidebarPanel}
+        </BentoWrapper>
+      ) : viewMode === 'list' ? (
+        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v2">
+          {kpiBentoCard}
+          <div key="list-main" className="eq-bento-card">
+            <div className="eq-panel-title-row bento-panel-title-row">
+              <span className="eq-panel-title">Equity List</span>
+              <span className="eq-panel-subtitle">Detailed market table</span>
+            </div>
+            <div className="eq-panel-content bento-panel-content eq-panel-scroll" onMouseDown={stopDrag}>
+              <ListView
+                processedData={processedData}
+                handleSort={handleSort}
+                renderSortIndicator={renderSortIndicator}
+                handleSelectTicker={handleSelectTicker}
+                currentRate={currentRate}
+                currentSymbol={currentSymbol}
+                currency={currency}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                rankMetric={rankMetric}
+                groupBy={groupBy}
+              />
+            </div>
+            <div className="eq-panel-footer">
+              {commonFooter}
+              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
+            </div>
+          </div>
+          {selectedTicker && (
+            <div key="detail-sidebar" className="eq-bento-card eq-detail-sidebar">
+              <div className="eq-panel-title-row bento-panel-title-row">
+                <span className="eq-panel-title">Detail · {selectedTicker}</span>
+              </div>
+              <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+                <DetailPanel
+                  selectedTicker={selectedTicker}
+                  setSelectedTicker={setSelectedTicker}
+                  currentRate={currentRate}
+                  currentSymbol={currentSymbol}
+                />
+              </div>
+            </div>
           )}
-        </div>
+        </BentoWrapper>
       ) : viewMode === 'heatmap' ? (
-        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout">
+        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v2">
+          {kpiBentoCard}
           <div key="heatmap" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
               <span className="eq-panel-title">Equity Heatmap</span>
@@ -562,17 +809,57 @@ export default function EquitiesMarket({ currency, setCurrency }) {
                 onSelect={handleSelectTicker}
               />
             </div>
-            <div className="eq-panel-footer">Data as of {dataTimestamp} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></div>
+            <div className="eq-panel-footer">
+              {commonFooter}
+              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
+            </div>
+          </div>
+          {sidebarPanel}
+        </BentoWrapper>
+      ) : viewMode === 'portfolio' ? (
+        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v2">
+          {kpiBentoCard}
+          <div key="portfolio" className="eq-bento-card">
+            <div className="eq-panel-title-row bento-panel-title-row">
+              <span className="eq-panel-title">Portfolio Tracker</span>
+              <span className="eq-panel-subtitle">Add holdings · allocation pie · weighted return</span>
+            </div>
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+              <PortfolioTracker indexQuotes={indexQuotes} onTickerSelect={handleSelectTicker} />
+            </div>
+          </div>
+          {sidebarPanel}
+        </BentoWrapper>
+      ) : viewMode === 'radar' ? (
+        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v2">
+          {kpiBentoCard}
+          <div key="radar" className="eq-bento-card">
+            <div className="eq-panel-title-row bento-panel-title-row">
+              <span className="eq-panel-title">Equities Radar</span>
+              <span className="eq-panel-subtitle">Plot stocks by dimensions · color-by-sector</span>
+            </div>
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+              <RadarView
+                flatData={flatData}
+                onTickerSelect={handleSelectTicker}
+              />
+            </div>
+            <div className="eq-panel-footer">
+              {commonFooter}
+              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
+            </div>
           </div>
           {sidebarPanel}
         </BentoWrapper>
       ) : (
-        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout">
-          <div key="race" className="eq-bento-card">
+        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v2">
+          {kpiBentoCard}
+          <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="eq-panel-title-row bento-panel-title-row">
               <span className="eq-panel-title">Bar Race</span>
-              <span className="eq-panel-subtitle">Top 30 · colored by {groupBy === 'market' ? 'region' : 'sector'}</span>
+              <span className="eq-panel-subtitle">Top 30 · colored by {groupBy === 'market' ? 'region' : 'sector'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
             </div>
+            <TimeTravel onSnapshotSelect={handleSnapshotSelect} isActive={viewMode === 'race'} />
             <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <BarRaceView
                 flatData={flatData}
@@ -580,9 +867,13 @@ export default function EquitiesMarket({ currency, setCurrency }) {
                 currentSymbol={currentSymbol}
                 currency={currency}
                 groupBy={groupBy}
+                snapshotDate={snapshotDate}
               />
             </div>
-            <div className="eq-panel-footer">Data as of {dataTimestamp} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></div>
+            <div className="eq-panel-footer">
+              {commonFooter}
+              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
+            </div>
           </div>
           {sidebarPanel}
         </BentoWrapper>

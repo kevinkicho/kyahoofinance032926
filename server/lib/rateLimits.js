@@ -58,9 +58,9 @@ function ensureToday() {
   }
 }
 
-export function trackApiCall(source) {
+export function trackApiCall(source, count = 1) {
   ensureToday();
-  counters[source] = (counters[source] || 0) + 1;
+  counters[source] = (counters[source] || 0) + count;
   scheduleWrite();
 }
 
@@ -81,7 +81,16 @@ export const KNOWN_LIMITS = {
   'Etherscan': 100,
   'EIA': 1000,
   'World Bank': 500,
-  'EconDB': 500,
+  'FRED Economic Events': 500,
   'Treasury Fiscal Data': 1000,
   'Bybit': 600,
+  'BLS': 500,
+  'ECB (Frankfurter)': 86400,
+  'BIS': 1000,
+  'IMF WEO': 50,
+  'IMF IFS': 50,
+  'IMF COFER': 50,
+  'SEC EDGAR': 1000,
+  'OECD': 500,
+  'Econdb': 1000,
 };

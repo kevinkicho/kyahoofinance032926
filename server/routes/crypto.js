@@ -1,19 +1,9 @@
 import { Router } from 'express';
-import https from 'https';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchJSON } from '../lib/fetch.js';
 
 const router = Router();
-
-function fetchJson(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 kyahoofinance' } }, (r) => {
-      let d = '';
-      r.on('data', c => d += c);
-      r.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
-    }).on('error', reject);
-  });
-}
 
 router.get('/', async (_req, res) => {
   const today = todayStr();
@@ -44,18 +34,18 @@ router.get('/', async (_req, res) => {
     trackApiCall('Mempool.space');
     trackApiCall('Etherscan');
     const [cgCoins, cgGlobal, cgExchanges, fng, defiProtocols, defiChains, defiStablecoins, mempoolFees, mempoolDiff, mempoolStats, mempoolHashrate, ethGasRaw] = await Promise.allSettled([
-      fetchJson(cgCoinsUrl),
-      fetchJson(cgGlobalUrl),
-      fetchJson(cgExchangesUrl),
-      fetchJson(fngUrl),
-      fetchJson(defiProtocolsUrl),
-      fetchJson(defiChainsUrl),
-      fetchJson(defiStablecoinsUrl),
-      fetchJson(mempoolFeesUrl),
-      fetchJson(mempoolDiffUrl),
-      fetchJson(mempoolStatsUrl),
-      fetchJson(mempoolHashrateUrl),
-      fetchJson(ethGasUrl),
+      fetchJSON(cgCoinsUrl),
+      fetchJSON(cgGlobalUrl),
+      fetchJSON(cgExchangesUrl),
+      fetchJSON(fngUrl),
+      fetchJSON(defiProtocolsUrl),
+      fetchJSON(defiChainsUrl),
+      fetchJSON(defiStablecoinsUrl),
+      fetchJSON(mempoolFeesUrl),
+      fetchJSON(mempoolDiffUrl),
+      fetchJSON(mempoolStatsUrl),
+      fetchJSON(mempoolHashrateUrl),
+      fetchJSON(ethGasUrl),
     ]);
 
     let coins = [];
@@ -179,7 +169,7 @@ router.get('/', async (_req, res) => {
       const FUNDING_SYMBOLS = ['BTCUSDT','ETHUSDT','SOLUSDT','DOGEUSDT','AVAXUSDT','LINKUSDT','BNBUSDT','ADAUSDT','DOTUSDT','NEARUSDT'];
       const FUNDING_LABELS  = ['BTC','ETH','SOL','DOGE','AVAX','LINK','BNB','ADA','DOT','NEAR'];
       trackApiCall('Bybit');
-      const bybitData = await fetchJson('https://api.bybit.com/v5/market/tickers?category=linear');
+      const bybitData = await fetchJSON('https://api.bybit.com/v5/market/tickers?category=linear');
       const tickers = bybitData?.result?.list || [];
       const rates = FUNDING_SYMBOLS.map((sym, idx) => {
         const t = tickers.find(x => x.symbol === sym);

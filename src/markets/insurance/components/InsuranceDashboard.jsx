@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { useCurrency } from '../../../hub/CurrencyContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import DataFooter from '../../../components/DataFooter/DataFooter';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './InsuranceDashboard.css';
@@ -19,6 +21,7 @@ function InsuranceDashboard({
   sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
   catLosses, combinedRatioHistory,
   isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
+  currency, currentSymbol, convert,
 }) {
   const { colors } = useTheme();
 
@@ -47,7 +50,12 @@ function InsuranceDashboard({
   }, [catLosses, colors]);
 
   const combinedRatioOption = useMemo(() => {
+    // Yahoo Finance's quoteSummary often returns empty quarterly statements
+    // for insurers (rate-limit / paywall). Server pads quarters to length-8
+    // with all-null values when that happens, so length>0 isn't enough —
+    // require at least one numeric value before rendering the chart.
     if (!combinedRatioHistory?.values?.length) return null;
+    if (!combinedRatioHistory.values.some(v => typeof v === 'number')) return null;
     return {
       animation: false, backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
@@ -58,69 +66,78 @@ function InsuranceDashboard({
     };
   }, [combinedRatioHistory, colors]);
 
-  const layoutItems = [{ i: 'metrics', x: 0, y: 0, w: 3, h: 4 }];
-  let x = 3;
-  if (hyOasOption) { layoutItems.push({ i: 'hyoas', x, y: 0, w: 3, h: 3 }); x += 3; }
-  if (catLossesOption) { layoutItems.push({ i: 'catloss', x, y: 0, w: 3, h: 3 }); x += 3; }
-  if (combinedRatioOption) { layoutItems.push({ i: 'crhist', x, y: 0, w: 3, h: 3 }); }
-  let x2 = 3;
-  if (combinedRatioData?.byLine?.length > 0) { layoutItems.push({ i: 'crline', x: x2, y: 3, w: 3, h: 3 }); x2 += 3; }
-  if (reinsurancePricing?.byCategory?.length > 0) { layoutItems.push({ i: 'reinsrates', x: x2, y: 3, w: 3, h: 3 }); x2 += 3; }
-  if (reserveAdequacyData?.length > 0) { layoutItems.push({ i: 'reserves', x: x2, y: 3, w: 3, h: 3 }); x2 += 3; }
-  if (catBondSpreads?.length > 0) { layoutItems.push({ i: 'catbonds', x: x2, y: 3, w: 3, h: 3 }); x2 += 3; }
-  if (sectorETF?.length > 0) { layoutItems.push({ i: 'etfs', x: x2, y: 3, w: 3, h: 3 }); x2 += 3; }
+  const kpis = useMemo(() => {
+    const items = [];
+    if (typeof industryAvgCombinedRatio === 'number') {
+      items.push({
+        label: 'Combined Ratio',
+        value: `${industryAvgCombinedRatio}%`,
+        color: industryAvgCombinedRatio > 100 ? '#f87171' : industryAvgCombinedRatio > 95 ? '#fbbf24' : '#4ade80',
+        sublabel: industryAvgCombinedRatio > 100 ? 'Underwriting loss' : industryAvgCombinedRatio > 95 ? 'Marginal' : 'Profitable',
+      });
+    }
+    if (reinsurers) {
+      const targetTickers = ['PGR', 'ALL', 'TRV', 'HIG'];
+      reinsurers.forEach(r => {
+        if (targetTickers.includes(r.ticker)) {
+          const change = r.changePct;
+          items.push({
+            label: r.ticker,
+            value: `${currentSymbol}${convert(r.price).toFixed(2)}`,
+            color: change >= 0 ? '#4ade80' : '#f87171',
+            trend: change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : null,
+            sublabel: 'Reinsurer',
+          });
+        }
+      });
+    }
+    const hyOas = fredHyOasHistory?.values?.[fredHyOasHistory.values.length - 1];
+    if (hyOas != null) {
+      items.push({
+        label: 'HY OAS',
+        value: `${Math.round(hyOas)} bps`,
+        color: hyOas > 400 ? '#f87171' : hyOas > 300 ? '#fbbf24' : '#22c55e',
+        sublabel: 'High Yield Spread',
+      });
+    }
+    if (sectorETF?.price != null) {
+      const etfChange = sectorETF.change;
+      items.push({
+        label: 'KIE ETF',
+        value: `$${Number(sectorETF.price).toFixed(2)}`,
+        color: etfChange >= 0 ? '#4ade80' : '#f87171',
+        trend: etfChange != null ? `${etfChange >= 0 ? '+' : ''}${Number(etfChange).toFixed(2)}%` : null,
+        sublabel: 'Insurance Sector',
+      });
+    }
+    return items;
+  }, [industryAvgCombinedRatio, reinsurers, fredHyOasHistory, sectorETF, convert, currentSymbol]);
+
+  const layoutItems = [{ i: 'kpi', x: 0, y: 0, w: 12, h: 2 }];
+  let x = 0;
+  if (hyOasOption) { layoutItems.push({ i: 'hyoas', x, y: 2, w: 4, h: 3 }); x += 4; }
+  if (catLossesOption) { layoutItems.push({ i: 'catloss', x, y: 2, w: 4, h: 3 }); x += 4; }
+  if (combinedRatioOption) { layoutItems.push({ i: 'crhist', x, y: 2, w: 4, h: 3 }); }
+  let x2 = 0;
+  if (combinedRatioData?.byLine?.length > 0) { layoutItems.push({ i: 'crline', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (reinsurancePricing?.byCategory?.length > 0) { layoutItems.push({ i: 'reinsrates', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (reserveAdequacyData?.length > 0) { layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (catBondSpreads?.length > 0) { layoutItems.push({ i: 'catbonds', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (sectorETF?.length > 0) { layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
 
   const dynamicLayout = { lg: layoutItems };
 
   return (
     <div className="ins-dashboard ins-dashboard--bento">
       <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout">
-        {/* Key Metrics */}
-        <div key="metrics" className="ins-bento-card">
+        {/* KPI Strip — bento card with title row drag handle. */}
+        <div key="kpi" className="ins-bento-card ins-bento-kpi">
           <div className="ins-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Key Metrics</span>
+            <span className="bento-panel-title">Insurance Key Metrics</span>
           </div>
-          <div className="bento-panel-content ins-panel-scroll" onMouseDown={stopDrag}>
-            {combinedRatioData && (
-              <div className="ins-sidebar-section">
-                <div className="ins-sidebar-title">Combined Ratio</div>
-                <div className="ins-metric-card">
-                  {typeof combinedRatioData.industry === 'number' && (
-                    <div className="ins-metric-row">
-                      <span className="ins-metric-name">Industry</span>
-                      <span className="ins-metric-num" style={{ color: combinedRatioData.industry > 100 ? '#f87171' : '#4ade80' }}>
-                        <MetricValue value={combinedRatioData.industry} seriesKey="insuranceCombinedRatio" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
-                      </span>
-                    </div>
-                  )}
-                  {typeof industryAvgCombinedRatio === 'number' && (
-                    <div className="ins-metric-row">
-                      <span className="ins-metric-name">Avg</span>
-                      <span className="ins-metric-num" style={{ color: industryAvgCombinedRatio > 100 ? '#f87171' : '#4ade80' }}>
-                        <MetricValue value={industryAvgCombinedRatio} seriesKey="insuranceAvgCombinedRatio" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            {reinsurers?.length > 0 && (
-              <div className="ins-sidebar-section">
-                <div className="ins-sidebar-title">Reinsurers</div>
-                <div className="ins-metric-card">
-                  {reinsurers.slice(0, 4).map((r) => (
-                    <div key={r.ticker} className="ins-metric-row">
-                      <span className="ins-metric-name">{r.ticker}</span>
-                      <span className="ins-metric-num" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                        <MetricValue value={r.changePct} seriesKey="reinsurerChange" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            </div>
-          <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+          <div className="bento-panel-content" onMouseDown={stopDrag}>
+            <MarketKpiStrip kpis={kpis} bare />
+          </div>
         </div>
 
         {/* HY OAS */}

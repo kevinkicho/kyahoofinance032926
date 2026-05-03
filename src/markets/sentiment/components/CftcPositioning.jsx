@@ -56,7 +56,7 @@ function Section({ title, items, height = 180, colors }) {
   );
 }
 
-export default function CftcPositioning({ cftcData }) {
+export default function CftcPositioning({ cftcData, bare = false }) {
   if (!cftcData) return null;
   const { colors } = useTheme();
   const { currencies = [], equities = [], rates = [], commodities = [], asOf } = cftcData;
@@ -71,15 +71,8 @@ export default function CftcPositioning({ cftcData }) {
     return { mostLong, mostShort, avg, netLongCount };
   }, [currencies, equities, rates, commodities]);
 
-  return (
-    <div className="sent-panel">
-      <div className="sent-panel-header">
-        <span className="sent-panel-title">CFTC Positioning</span>
-        <span className="sent-panel-subtitle">
-          Net speculative position as % of open interest · green = net long · red = net short
-          {asOf && <> · as of {asOf}</>}
-        </span>
-      </div>
+  const body = (
+    <>
       {kpi && (
         <div className="sent-kpi-strip">
           <div className="sent-kpi-pill">
@@ -110,6 +103,21 @@ export default function CftcPositioning({ cftcData }) {
           <Section title="Commodities" items={commodities} height={100} colors={colors} />
         </div>
       </div>
+    </>
+  );
+
+  if (bare) return body;
+
+  return (
+    <div className="sent-panel">
+      <div className="sent-panel-header">
+        <span className="sent-panel-title">CFTC Positioning</span>
+        <span className="sent-panel-subtitle">
+          Net speculative position as % of open interest · green = net long · red = net short
+          {asOf && <> · as of {asOf}</>}
+        </span>
+      </div>
+      {body}
     </div>
   );
 }

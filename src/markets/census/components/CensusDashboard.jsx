@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
+import SafeECharts from '../../../components/SafeECharts';
 
 const SERIES_ORDER = ['housingStarts', 'buildingPermits', 'newHomeSales', 'constructionSpending', 'retailSales', 'durableGoods', 'tradeBalance'];
 
@@ -29,19 +31,35 @@ const CHANGE_DIRECTION = {
   tradeBalance: v => v > 0 ? 'positive' : 'negative',
 };
 
-function MiniSparkline({ values, width = 200, height = 60, color = '#ab47bc' }) {
-  if (!values?.length || values.length < 2) return null;
-  const vals = values.filter(v => v != null);
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const range = max - min || 1;
-  const step = width / (vals.length - 1);
-  const points = vals.map((v, i) => `${i * step},${height - ((v - min) / range) * (height - 4) - 2}`).join(' ');
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
-      <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
-    </svg>
-  );
+function buildSparklineOption(data, { color = '#ab47bc', unit = '', label = '' } = {}) {
+  if (!data?.values?.length) return null;
+  const vals = data.values.filter(v => v != null);
+  if (vals.length < 2) return null;
+  const dates = data.dates || [];
+  return {
+    grid: { left: 2, right: 2, top: 4, bottom: 2, containLabel: false },
+    xAxis: { type: 'category', show: false, data: dates.length === vals.length ? dates : vals.map((_, i) => i), boundaryGap: false },
+    yAxis: { type: 'value', show: false, min: 'dataMin', max: 'dataMax' },
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      formatter: (params) => {
+        const p = Array.isArray(params) ? params[0] : params;
+        const dateStr = dates.length === vals.length ? p.axisValue : '';
+        return `<div style="font-size:11px"><b>${label || p.seriesName || ''}</b>${dateStr ? '<br/>' + dateStr : ''}<br/>${p.marker} ${p.value?.toFixed != null ? p.value.toFixed(2) : p.value}${unit ? ' ' + unit : ''}</div>`;
+      },
+    },
+    dataZoom: [{ type: 'inside', zoomLock: false }],
+    series: [{
+      type: 'line',
+      data: vals,
+      smooth: 0.3,
+      symbol: 'none',
+      lineStyle: { color, width: 1.5 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + '40' }, { offset: 1, color: color + '05' }] } },
+    }],
+    animation: false,
+  };
 }
 
 function formatDate(dateStr) {
@@ -50,7 +68,96 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-export default function CensusDashboard({ series, isLive }) {
+const HOUSING_KEYS = ['housingStarts', 'buildingPermits', 'newHomeSales', 'constructionSpending'];
+const ECO_KEYS = ['retailSales', 'durableGoods', 'tradeBalance'];
+
+const stopDrag = (e) => e.stopPropagation();
+
+export function HousingPanel({ kpiData, housingKeys }) {
+  return (
+    <div className="census-bento-panel">
+      <div className="census-section-title bento-panel-title-row">Housing & Construction</div>
+      <div className="census-kpi-grid bento-panel-content" onMouseDown={stopDrag}>
+        {kpiData.filter(k => housingKeys.includes(k.key)).map(k => (
+          <div key={k.key} className="census-kpi-card">
+            <span className="census-kpi-label">{k.label}</span>
+            <span className="census-kpi-value">
+              <MetricValue value={k.latest?.value} seriesKey={`census${k.key[0].toUpperCase()}${k.key.slice(1)}`} timestamp={k.latest?.date} format={FORMAT[k.key]} />
+              {k.unit && <span className="census-kpi-unit"> {k.unit}</span>}
+            </span>
+            {k.change && (
+              <span className={`census-kpi-change ${k.changeClass}`}>
+                {k.change.direction}{k.change.pct}% MoM
+              </span>
+            )}
+            <span className="census-kpi-unit">{formatDate(k.latest?.date)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function TradePanel({ kpiData, ecoKeys }) {
+  return (
+    <div className="census-bento-panel">
+      <div className="census-section-title bento-panel-title-row">Trade & Consumption</div>
+      <div className="census-kpi-grid bento-panel-content" onMouseDown={stopDrag}>
+        {kpiData.filter(k => ecoKeys.includes(k.key)).map(k => (
+          <div key={k.key} className="census-kpi-card">
+            <span className="census-kpi-label">{k.label}</span>
+            <span className="census-kpi-value">
+              <MetricValue value={k.latest?.value} seriesKey={`census${k.key[0].toUpperCase()}${k.key.slice(1)}`} timestamp={k.latest?.date} format={FORMAT[k.key]} />
+              {k.unit && <span className="census-kpi-unit"> {k.unit}</span>}
+            </span>
+            {k.change && (
+              <span className={`census-kpi-change ${k.changeClass}`}>
+                {k.change.direction}{k.change.pct}% MoM
+              </span>
+            )}
+            <span className="census-kpi-unit">{formatDate(k.latest?.date)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function TrendsHousingPanel({ housingSeries, fetchedOn, lastUpdated }) {
+  return (
+    <div className="census-bento-panel">
+      <div className="census-section-title bento-panel-title-row">Trends — Housing & Construction</div>
+      <div className="census-chart-row bento-panel-content" onMouseDown={stopDrag}>
+        {housingSeries.map(cs => (
+          <div key={cs.key} className="census-mini-chart">
+            <h4>{cs.label} ({cs.unit})</h4>
+            <SafeECharts option={buildSparklineOption(cs.history, { color: '#ab47bc', unit: cs.unit, label: cs.label })} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: cs.label, source: 'US Census Bureau', endpoint: '/api/census', series: [], updatedAt: fetchedOn || lastUpdated }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function TrendsTradePanel({ ecoSeries, fetchedOn, lastUpdated }) {
+  return (
+    <div className="census-bento-panel">
+      <div className="census-section-title bento-panel-title-row">Trends — Trade & Consumption</div>
+      <div className="census-chart-row bento-panel-content" onMouseDown={stopDrag}>
+        {ecoSeries.map(cs => (
+          <div key={cs.key} className="census-mini-chart">
+            <h4>{cs.label} ({cs.unit})</h4>
+            <SafeECharts option={buildSparklineOption(cs.history, { color: '#26c6da', unit: cs.unit, label: cs.label })} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: cs.label, source: 'US Census Bureau', endpoint: '/api/census', series: [], updatedAt: fetchedOn || lastUpdated }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export { HOUSING_KEYS, ECO_KEYS };
+
+export function useCensusData(series) {
   const kpiData = useMemo(() => {
     return SERIES_ORDER
       .map(key => {
@@ -63,82 +170,13 @@ export default function CensusDashboard({ series, isLive }) {
       .filter(Boolean);
   }, [series]);
 
-  const housingKeys = ['housingStarts', 'buildingPermits', 'newHomeSales', 'constructionSpending'];
-  const ecoKeys = ['retailSales', 'durableGoods', 'tradeBalance'];
-
   const housingSeries = useMemo(() => {
-    return housingKeys.filter(key => series[key]?._source && series[key]?.history?.values?.length >= 3).map(key => ({ key, ...series[key] }));
+    return HOUSING_KEYS.filter(key => series[key]?._source && series[key]?.history?.values?.length >= 3).map(key => ({ key, ...series[key] }));
   }, [series]);
 
   const ecoSeries = useMemo(() => {
-    return ecoKeys.filter(key => series[key]?._source && series[key]?.history?.values?.length >= 3).map(key => ({ key, ...series[key] }));
+    return ECO_KEYS.filter(key => series[key]?._source && series[key]?.history?.values?.length >= 3).map(key => ({ key, ...series[key] }));
   }, [series]);
 
-  if (!isLive && kpiData.length === 0) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #888)' }}>
-        Data source temporarily unavailable
-      </div>
-    );
-  }
-
-  return (
-    <div className="census-dashboard">
-      <div className="census-section-title">Housing & Construction</div>
-      <div className="census-kpi-grid">
-        {kpiData.filter(k => housingKeys.includes(k.key)).map(k => (
-          <div key={k.key} className="census-kpi-card">
-            <span className="census-kpi-label">{k.label}</span>
-            <span className="census-kpi-value">
-              {FORMAT[k.key]?.(k.latest?.value) ?? '—'}
-              {k.unit && <span className="census-kpi-unit"> {k.unit}</span>}
-            </span>
-            {k.change && (
-              <span className={`census-kpi-change ${k.changeClass}`}>
-                {k.change.direction}{k.change.pct}% MoM
-              </span>
-            )}
-            <span className="census-kpi-unit">{formatDate(k.latest?.date)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="census-section-title">Trade & Consumption</div>
-      <div className="census-kpi-grid">
-        {kpiData.filter(k => ecoKeys.includes(k.key)).map(k => (
-          <div key={k.key} className="census-kpi-card">
-            <span className="census-kpi-label">{k.label}</span>
-            <span className="census-kpi-value">
-              {FORMAT[k.key]?.(k.latest?.value) ?? '—'}
-              {k.unit && <span className="census-kpi-unit"> {k.unit}</span>}
-            </span>
-            {k.change && (
-              <span className={`census-kpi-change ${k.changeClass}`}>
-                {k.change.direction}{k.change.pct}% MoM
-              </span>
-            )}
-            <span className="census-kpi-unit">{formatDate(k.latest?.date)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="census-section-title">Trends (3-Year Monthly)</div>
-      <div className="census-chart-row">
-        {housingSeries.map(cs => (
-          <div key={cs.key} className="census-mini-chart">
-            <h4>{cs.label} ({cs.unit})</h4>
-            <MiniSparkline values={cs.history.values} color="#ab47bc" />
-          </div>
-        ))}
-      </div>
-      <div className="census-chart-row">
-        {ecoSeries.map(cs => (
-          <div key={cs.key} className="census-mini-chart">
-            <h4>{cs.label} ({cs.unit})</h4>
-            <MiniSparkline values={cs.history.values} color="#26c6da" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return { kpiData, housingSeries, ecoSeries };
 }

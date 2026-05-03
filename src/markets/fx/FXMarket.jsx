@@ -46,26 +46,31 @@ function FXMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    <div className="fx-market">
-
-      <FXDashboard
-        spotRates={props.spotRates}
-        prevRates={props.prevRates}
-        changes={props.changes}
-        changes1w={props.changes1w}
-        changes1m={props.changes1m}
-        sparklines={props.sparklines}
-        history={props.history}
-        fredFxRates={props.fredFxRates}
-        reer={props.reer}
-        rateDifferentials={props.rateDifferentials}
-        dxyHistory={props.dxyHistory}
-        cotData={props.cotData}
-        cotHistory={props.cotHistory}
-        isLive={props.isLive}
-        lastUpdated={props.lastUpdated}
-        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
-      />
+    // FXSidebar AND the top KPI strip now both live as real bento panels
+    // inside FXDashboard's BentoWrapper; the outer `--with-sidebar` grid
+    // and the standalone `.fx-kpi-panel` are gone.
+    <div className="fx-market" role="region" aria-label="FX">
+      <div className="fx-market-main">
+        <FXDashboard
+          spotRates={props.spotRates}
+          prevRates={props.prevRates}
+          changes={props.changes}
+          changes1w={props.changes1w}
+          changes1m={props.changes1m}
+          sparklines={props.sparklines}
+          history={props.history}
+          fredFxRates={props.fredFxRates}
+          reer={props.reer}
+          rateDifferentials={props.rateDifferentials}
+          dxyHistory={props.dxyHistory}
+          cotData={props.cotData}
+          cotHistory={props.cotHistory}
+          isLive={props.isLive}
+          lastUpdated={props.lastUpdated}
+          fetchLog={props.fetchLog}
+          error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+        />
+      </div>
     </div>
   );
 }

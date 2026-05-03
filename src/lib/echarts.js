@@ -23,6 +23,11 @@ import { VisualMapComponent } from 'echarts/components';
 import { VisualMapContinuousComponent } from 'echarts/components';
 import { MarkLineComponent } from 'echarts/components';
 import { MarkPointComponent } from 'echarts/components';
+// BLS sparklines (and a few other panels) enable inside-pan zoom via
+// `dataZoom: [{ type: 'inside' }]` in their option object. Without this
+// component echarts logs "Component dataZoom is used but not imported"
+// at runtime and the BLS dashboard stops rendering its bento children.
+import { DataZoomComponent, DataZoomInsideComponent } from 'echarts/components';
 
 // Renderer
 import { CanvasRenderer } from 'echarts/renderers';
@@ -42,6 +47,8 @@ echarts.use([
   VisualMapContinuousComponent,
   MarkLineComponent,
   MarkPointComponent,
+  DataZoomComponent,
+  DataZoomInsideComponent,
   CanvasRenderer,
 ]);
 

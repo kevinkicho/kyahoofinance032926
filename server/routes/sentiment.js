@@ -1,39 +1,11 @@
 import { Router } from 'express';
-import https from 'https';
 import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
 
 const router = Router();
-
-function fetchJson(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 kyahoofinance' } }, (r) => {
-      let d = '';
-      r.on('data', c => d += c);
-      r.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { reject(e); } });
-    }).on('error', reject);
-  });
-}
-
-async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: String(limit) });
-  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
-  const data = await fetchJSON(url);
-  return (data?.observations || [])
-    .filter(o => o.value !== '.')
-    .map(o => ({ date: o.date, value: parseFloat(o.value) }))
-    .reverse();
-}
-
-async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '5' });
-  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
-  const data = await fetchJSON(url);
-  const valid = (data?.observations || []).filter(o => o.value !== '.');
-  return valid.length ? parseFloat(valid[0].value) : null;
-}
 
 router.get('/', async (_req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY || '';
@@ -74,12 +46,21 @@ router.get('/', async (_req, res) => {
       ],
     };
 
+    const G10_TICKERS = ['EURUSD=X', 'USDJPY=X', 'GBPUSD=X', 'USDCHF=X', 'AUDUSD=X', 'USDCAD=X', 'NZDUSD=X', 'USDSEK=X', 'USDNOK=X', 'USDDKK=X'];
+    const G10_LABELS  = ['EUR', 'JPY', 'GBP', 'CHF', 'AUD', 'CAD', 'NZD', 'SEK', 'NOK', 'DKK'];
+
+    // CFTC Socrata query. Limit=50 only returned the first 50 rows of the
+    // most-recent report (alphabetically), missing Gold/Crude/etc. Bump
+    // to 800 so the full slice for the latest week is captured (~600
+    // markets per report).
     const cftcUrl = 'https://publicreporting.cftc.gov/resource/jun7-fc8e.json' +
       '?$select=report_date_as_yyyy_mm_dd,market_and_exchange_names,' +
       'noncomm_positions_long_all,noncomm_positions_short_all,open_interest_all' +
-      '&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=50';
+      '&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=800';
 
     const period1 = daysAgo(95);
+    const g10Period1 = daysAgo(60); // Fetch slightly more for a clean 30-day window
+
 
     trackApiCall('Alternative.me');
     if (FRED_API_KEY) trackApiCall('FRED');
@@ -99,17 +80,17 @@ router.get('/', async (_req, res) => {
       fsiResult,
       ...yahooResults
     ] = await Promise.allSettled([
-      fetchJson('https://api.alternative.me/fng/?limit=252'),
+      fetchJSON('https://api.alternative.me/fng/?limit=252'),
       FRED_API_KEY ? fetchFredHistory('VIXCLS', FRED_API_KEY, 270)        : Promise.resolve([]),
       FRED_API_KEY ? fetchFredHistory('BAMLH0A0HYM2', FRED_API_KEY, 270)  : Promise.resolve([]),
       FRED_API_KEY ? fetchFredLatest('BAMLC0A0CM', FRED_API_KEY)          : Promise.resolve(null),
       FRED_API_KEY ? fetchFredLatest('T10Y2Y', FRED_API_KEY)              : Promise.resolve(null),
-      fetchJson(cftcUrl),
+      fetchJSON(cftcUrl),
       FRED_API_KEY ? fetchFredHistory('BOGZ1FL663067003Q', FRED_API_KEY, 24) : Promise.resolve([]),
       FRED_API_KEY ? fetchFredHistory('WDDNS', FRED_API_KEY, 12)             : Promise.resolve([]),
       FRED_API_KEY ? fetchFredHistory('TOTALSL', FRED_API_KEY, 24)           : Promise.resolve([]),
       FRED_API_KEY ? fetchFredHistory('VXVCLS', FRED_API_KEY, 6)             : Promise.resolve([]),
-      FRED_API_KEY ? fetchFredHistory('STLFSI4', FRED_API_KEY, 36)          : Promise.resolve([]),
+      FRED_API_KEY ? fetchFredHistory('STLFSI4', FRED_API_KEY, 270)         : Promise.resolve([]),
       ...RETURN_TICKERS.map(t => yf.historical(t, { period1, period2: today, interval: '1d' })),
     ]);
 

@@ -19,6 +19,16 @@
   padding: 2px 8px; border-radius: 4px; font-weight: 500;
 }
 
+.alerts-alert-sources {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
+}
+.alerts-source-badge {
+  font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 1px 6px; border-radius: 3px;
+  background: rgba(20, 184, 166, 0.15); color: #14b8a6;
+  line-height: 1.4;
+}
+
 
 /* ── 2. Dashboard container ── */
 .alerts-dashboard.alerts-dashboard--bento {
@@ -132,7 +142,107 @@
   -webkit-user-select: text;
 }
 
-/* ── 8. Alert Rules Sidebar (now in bento panel) ── */
+.bento-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  gap: 4px;
+}
+
+.alerts-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ── 8. Sidebar sections (inside bento panel) ── */
+.alerts-sidebar-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.alerts-sidebar-section:last-child {
+  border-bottom: none;
+}
+
+.alerts-sidebar-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.alerts-sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alerts-sidebar-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 11px;
+}
+
+.alerts-sidebar-label {
+  color: var(--text-secondary);
+}
+
+.alerts-sidebar-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
+}
+
+.alerts-sidebar-value.high { color: #f87171; }
+.alerts-sidebar-value.medium { color: #fbbf24; }
+.alerts-sidebar-value.low { color: #4ade80; }
+
+.alerts-sidebar-rule-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.alerts-rule-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.alerts-rule-status-dot.active {
+  background: #22c55e;
+}
+
+.alerts-rule-status-dot.disabled {
+  background: var(--text-dim);
+  opacity: 0.4;
+}
+
+.alerts-rule-status-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 9. Alert Rules groups ── */
 .alerts-market-group {
   margin-bottom: 8px;
 }
@@ -209,6 +319,56 @@
   border-radius: 50%;
   background: #ef4444;
   animation: alerts-pulse 1.5s ease-in-out infinite;
+}
+
+.alerts-rule-item.disabled {
+  opacity: 0.45;
+}
+
+.alerts-rule-item.disabled .alerts-rule-label {
+  text-decoration: line-through;
+  color: var(--text-dim);
+}
+
+.alerts-rule-toggle {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-deep);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  outline: none;
+  transition: background 0.2s, border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.alerts-rule-toggle.on {
+  background: rgba(20, 184, 166, 0.25);
+  border-color: #14b8a6;
+}
+
+.alerts-rule-toggle:hover {
+  border-color: #14b8a6;
+}
+
+.alerts-rule-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.alerts-rule-toggle.on .alerts-rule-toggle-knob {
+  transform: translateX(12px);
+  background: #14b8a6;
 }
 
 @keyframes alerts-pulse {

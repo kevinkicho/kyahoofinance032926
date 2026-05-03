@@ -1,10 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { useCurrency } from '../../../hub/CurrencyContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import GlobalKpiStrip from './GlobalKpiStrip';
 import CountryDetailPanel from './CountryDetailPanel';
 import DataFooter from '../../../components/DataFooter/DataFooter';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+// Merged-in panels from former IMF + World Bank tabs.
+import ImfReserves from '../../imf/ImfReserves';
+import ImfCofier from '../../imf/ImfCofier';
+import WbDevScatter from '../../worldbank/WbDevScatter';
+import WbTradeOpenness from '../../worldbank/WbTradeOpenness';
 import './GlobalMacroDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -64,7 +70,7 @@ function RateBars({ data, lastUpdated }) {
   );
 }
 
-function DebtBars({ data, lastUpdated }) {
+function DebtBars({ data, lastUpdated, convertAndFormat }) {
   if (!data?.countries?.length) return null;
   const sorted = [...data.countries].sort((a, b) => (b.debt ?? 0) - (a.debt ?? 0));
   const maxDebt = Math.max(...sorted.map(c => c.debt ?? 0));
@@ -83,24 +89,38 @@ function DebtBars({ data, lastUpdated }) {
   );
 }
 
+// KPI strip is now a real bento child at row 0 (h:2). Other panels shifted
+// down by 2 rows. IMF + World Bank panels are merged in below at y=14+.
 const LAYOUT = {
   lg: [
-    { i: 'scorecard', x: 0, y: 0, w: 12, h: 3 },
-    { i: 'gdp',    x: 0, y: 3, w: 4, h: 3 },
-    { i: 'cpi',    x: 4, y: 3, w: 4, h: 3 },
-    { i: 'rates',  x: 8, y: 3, w: 4, h: 3 },
-    { i: 'debt',   x: 0, y: 6, w: 4, h: 3 },
-    { i: 'activity', x: 4, y: 6, w: 4, h: 3 },
-    { i: 'cli',    x: 8, y: 6, w: 4, h: 3 },
+    { i: 'kpi',       x: 0, y: 0,  w: 12, h: 2 },
+    { i: 'sidebar',   x: 8, y: 2,  w: 4,  h: 5 },
+    { i: 'scorecard', x: 0, y: 2,  w: 8,  h: 3 },
+    { i: 'gdp',       x: 0, y: 5,  w: 4,  h: 3 },
+    { i: 'cpi',       x: 4, y: 5,  w: 4,  h: 3 },
+    { i: 'rates',     x: 0, y: 8,  w: 4,  h: 3 },
+    { i: 'debt',      x: 4, y: 8,  w: 4,  h: 3 },
+    { i: 'cxstrength',x: 8, y: 7,  w: 4,  h: 3 },
+    { i: 'activity',  x: 0, y: 11, w: 6,  h: 3 },
+    { i: 'cli',       x: 6, y: 11, w: 6,  h: 3 },
+    // IMF + WB merged panels — conditionally rendered when those endpoints
+    // return data; layout entries are present so RGL has positions ready.
+    { i: 'imf-reserves', x: 0, y: 14, w: 6,  h: 4 },
+    { i: 'imf-cofer',    x: 6, y: 14, w: 6,  h: 4 },
+    { i: 'wb-trade',     x: 0, y: 18, w: 6,  h: 4 },
+    { i: 'wb-dev',       x: 6, y: 18, w: 6,  h: 4 },
   ]
 };
 
 function GlobalMacroDashboard({
+  kpiSidebar,
   scorecardData, growthInflationData, centralBankData, debtData,
   m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
+  imfData, wbData,
   fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
+  const { convertAndFormat, currentSymbol } = useCurrency();
   const [selectedCountry, setSelectedCountry] = useState(null);
 
   const sortedByGdp = useMemo(() => {
@@ -133,11 +153,51 @@ function GlobalMacroDashboard({
 
   return (
     <div className="mac-dashboard mac-dashboard--bento">
-      <GlobalKpiStrip scorecardData={scorecardData} cfnai={cfnai} m2Growth={m2Growth} centralBankData={centralBankData} />
+      {/* GlobalKpiStrip is rendered in GlobalMacroMarket above this component to avoid duplication */}
 
-      <div className="mac-dashboard-layout">
-        <BentoWrapper layout={LAYOUT} storageKey="macro-layout">
-          {/* Scorecard */}
+      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v3">
+        {/* KPI strip — real bento child rendered at row 0. The strip body
+            is provided by the parent (GlobalMacroKpiStrip) so it can wire
+            up the right data and seriesKeys. */}
+        {kpiSidebar && (
+          <div key="kpi" className="mac-bento-card">
+            <div className="mac-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Macro Key Metrics</span>
+            </div>
+            <div className="bento-panel-content mac-panel-scroll">
+              {kpiSidebar}
+            </div>
+          </div>
+        )}
+
+        {/* Sidebar — Quick Indicators */}
+        <div key="sidebar" className="mac-bento-card">
+          <div className="mac-panel-title-row bento-panel-title-row">
+            <span className="bento-panel-title">Quick Indicators</span>
+          </div>
+          <div className="bento-panel-content mac-panel-scroll" onMouseDown={stopDrag}>
+      <div className="mac-sidebar-section">
+        <div className="mac-sidebar-title">GDP Growth</div>
+        <GdpBars data={sortedByGdp} lastUpdated={lastUpdated} />
+      </div>
+      <div className="mac-sidebar-section">
+        <div className="mac-sidebar-title">Inflation</div>
+        <CpiBars data={sortedByCpi} lastUpdated={lastUpdated} />
+      </div>
+      <div className="mac-sidebar-section">
+        <div className="mac-sidebar-title">CB Rates</div>
+        <RateBars data={centralBankData} lastUpdated={lastUpdated} />
+      </div>
+      <div className="mac-sidebar-section" style={{ borderBottom: 'none' }}>
+        <div className="mac-sidebar-title">Debt/GDP</div>
+              <DebtBars data={debtData} lastUpdated={lastUpdated} convertAndFormat={convertAndFormat} currentSymbol={currentSymbol} />
+      </div>
+
+          </div>
+          <DataFooter source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+        </div>
+
+        {/* Scorecard */}
           <div key="scorecard" className="mac-bento-card">
             <div className="mac-panel-title-row bento-panel-title-row">
               <span className="bento-panel-title">Country Scorecard</span>
@@ -214,7 +274,7 @@ function GlobalMacroDashboard({
               <span className="bento-panel-title">Debt / GDP</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <DebtBars data={debtData} lastUpdated={lastUpdated} />
+        <DebtBars data={debtData} lastUpdated={lastUpdated} convertAndFormat={convertAndFormat} currentSymbol={currentSymbol} />
             </div>
             <DataFooter source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
@@ -244,26 +304,94 @@ function GlobalMacroDashboard({
             <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
 
-          {/* OECD CLI */}
+          {/* OECD CLI — server returns map { US: {value, date}, ... }.
+              Render whatever country codes are present (flags pulled from
+              the macro scorecard for consistency). */}
           <div key="cli" className="mac-bento-card">
             <div className="mac-panel-title-row bento-panel-title-row">
               <span className="bento-panel-title">OECD Leading Indicators</span>
+              <span className="mac-panel-subtitle">Amplitude-adjusted CLI · 100 = trend</span>
             </div>
             <div className="bento-panel-content" onMouseDown={stopDrag}>
               <div className="mac-cli-mini-grid">
-                {oecdCli?.countries?.slice(0, 6).map(c => (
-                  <div key={c.code} className="mac-cli-mini-card">
-                    <span className="mac-cli-mini-flag">{c.flag}</span>
-                    <span className="mac-cli-mini-value" style={{ color: c.cli > 100 ? '#4ade80' : '#f87171' }}><MetricValue value={c.cli} seriesKey="oecdCli" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}` : '—'} /></span>
-                    <span className="mac-cli-mini-trend" style={{ color: c.trend === 'improving' ? '#4ade80' : c.trend === 'slowing' ? '#f87171' : '#fbbf24' }}>
-                      {c.trend === 'improving' ? '↗' : c.trend === 'slowing' ? '↘' : '→'}
-                    </span>
-                  </div>
-                ))}
+                {oecdCli && Object.entries(oecdCli).map(([code, entry]) => {
+                  const meta = scorecardData?.find(sc => sc.code === code);
+                  const v = entry?.value;
+                  return (
+                    <div key={code} className="mac-cli-mini-card">
+                      <span className="mac-cli-mini-flag">{meta?.flag || code}</span>
+                      <span className="mac-cli-mini-value" style={{ color: v > 100 ? '#4ade80' : v != null ? '#f87171' : '#94a3b8' }}>
+                        <MetricValue value={v} seriesKey="oecdCli" timestamp={entry?.date || lastUpdated} format={x => x != null ? `${x.toFixed(1)}` : '—'} />
+                      </span>
+                      <span className="mac-cli-mini-trend" style={{ color: v > 100 ? '#4ade80' : v < 99 ? '#f87171' : '#fbbf24' }}>
+                        {v > 100 ? '↗' : v < 99 ? '↘' : '→'}
+                      </span>
+                    </div>
+                  );
+                })}
+                {(!oecdCli || Object.keys(oecdCli).length === 0) && (
+                  <div className="mac-empty">No CLI data available — FRED OECD series unavailable</div>
+                )}
               </div>
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+            <DataFooter source="FRED OECD CLI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
+
+          {/* IMF — International Reserves (merged from former IMF tab) */}
+          {imfData?.countries?.length > 0 && (
+            <div key="imf-reserves" className="mac-bento-card">
+              <div className="mac-panel-title-row bento-panel-title-row">
+                <span className="bento-panel-title">International Reserves</span>
+                <span className="mac-panel-subtitle">Central-bank FX reserves · USD billions · IMF IFS</span>
+              </div>
+              <div className="bento-panel-content" onMouseDown={stopDrag}>
+                <ImfReserves countries={imfData.countries} ifsReserves={imfData.ifsReserves} lastUpdated={lastUpdated} />
+              </div>
+              <DataFooter source="IMF IFS (RAXFSFX)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+            </div>
+          )}
+
+          {/* IMF — COFER currency-share donut (merged from former IMF tab) */}
+          {imfData?.cofer && Object.keys(imfData.cofer).length > 0 && (
+            <div key="imf-cofer" className="mac-bento-card">
+              <div className="mac-panel-title-row bento-panel-title-row">
+                <span className="bento-panel-title">COFER Currency Shares</span>
+                <span className="mac-panel-subtitle">Global FX reserves by currency · IMF COFER · quarterly</span>
+              </div>
+              <div className="bento-panel-content" onMouseDown={stopDrag}>
+                <ImfCofier cofer={imfData.cofer} lastUpdated={lastUpdated} />
+              </div>
+              <DataFooter source="IMF COFER" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+            </div>
+          )}
+
+          {/* World Bank — Trade Openness (merged from former WB tab) */}
+          {wbData?.countries?.length > 0 && (
+            <div key="wb-trade" className="mac-bento-card">
+              <div className="mac-panel-title-row bento-panel-title-row">
+                <span className="bento-panel-title">Trade Openness</span>
+                <span className="mac-panel-subtitle">(Exports + Imports) / GDP · World Bank WDI</span>
+              </div>
+              <div className="bento-panel-content" onMouseDown={stopDrag}>
+                <WbTradeOpenness countries={wbData.countries} lastUpdated={lastUpdated} />
+              </div>
+              <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+            </div>
+          )}
+
+          {/* World Bank — GDP per Capita vs Growth scatter */}
+          {wbData?.countries?.length > 0 && (
+            <div key="wb-dev" className="mac-bento-card">
+              <div className="mac-panel-title-row bento-panel-title-row">
+                <span className="bento-panel-title">GDP per Capita vs Growth</span>
+                <span className="mac-panel-subtitle">Bubble = population · World Bank WDI</span>
+              </div>
+              <div className="bento-panel-content" onMouseDown={stopDrag}>
+                <WbDevScatter countries={wbData.countries} lastUpdated={lastUpdated} />
+              </div>
+              <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+            </div>
+          )}
         </BentoWrapper>
 
         {selectedCountry && (
@@ -273,9 +401,10 @@ function GlobalMacroDashboard({
             centralBankData={centralBankData}
             oecdCli={oecdCli}
             scorecardData={scorecardData}
+            convertAndFormat={convertAndFormat}
+            currentSymbol={currentSymbol}
           />
         )}
-      </div>
     </div>
   );
 }

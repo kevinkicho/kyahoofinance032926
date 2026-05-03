@@ -194,6 +194,113 @@
   flex-shrink: 0;
 }
 
+/* ── Duration Ladder — bento body layout ── */
+.dl-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+.dl-kpi { margin-bottom: 0; }
+
+.dl-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 3fr) minmax(220px, 2fr);
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+@container bento-card (max-width: 560px) {
+  .dl-grid { grid-template-columns: 1fr; }
+}
+
+.dl-chart {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.dl-table-wrap {
+  overflow: auto;
+  min-height: 0;
+}
+
+.dl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  table-layout: fixed;
+}
+
+.dl-table thead th {
+  text-align: right;
+  padding: 4px 8px;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dl-table thead th:first-child { text-align: left; }
+
+.dl-table tbody td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dl-table tbody tr:last-child td { border-bottom: none; }
+
+.dl-bucket {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.dl-num {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  text-align: right;
+  color: var(--text-primary);
+}
+
+.dl-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 16px;
+}
+
+.dl-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.dl-fff {
+  flex-shrink: 0;
+}
+
+.dl-footer {
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
 .bonds-kpi-pill {
   display: flex;
   flex-direction: column;

@@ -60,8 +60,20 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
     });
   });
 
+  // Retry once on FRED 5xx — they're often transient and otherwise nuke
+  // panels during cold-cache fetches when 20+ series fire at once.
+  const withRetry = async () => {
+    try { return await doFetch(); }
+    catch (e) {
+      if (isFRED && /HTTP 5\d\d/.test(String(e?.message))) {
+        await new Promise(r => setTimeout(r, 750));
+        return doFetch();
+      }
+      throw e;
+    }
+  };
   if (isFRED) {
-    return throttleFRED().then(doFetch);
+    return throttleFRED().then(withRetry);
   }
   return doFetch();
 }

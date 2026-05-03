@@ -20,6 +20,10 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
   const leastAdequateIdx = adequacy.length ? adequacy.indexOf(Math.min(...adequacy)) : -1;
   const totalReserves = reserves.reduce((s, v) => s + v, 0);
 
+  const insurerSurplus = reserveAdequacyData.insurerSurplus || {};
+  const surplusTickers = ['PGR', 'ALL', 'TRV', 'HIG'];
+
+
   const option = {
     animation: false, backgroundColor: 'transparent',
     tooltip: {
@@ -49,32 +53,42 @@ export default function ReserveAdequacy({ reserveAdequacyData }) {
       </div>
 
       {/* KPI Strip */}
-      <div className="ins-kpi-strip">
-        <div className="ins-kpi-pill">
-          <span className="ins-kpi-label">Avg Adequacy</span>
-          <span className={`ins-kpi-value ${avgAdequacy != null ? (avgAdequacy >= 100 ? 'positive' : 'negative') : ''}`}>
-            {avgAdequacy != null ? `${avgAdequacy.toFixed(1)}%` : '—'}
-          </span>
-        </div>
-        {mostAdequateIdx >= 0 && (
-          <div className="ins-kpi-pill">
-            <span className="ins-kpi-label">Most Adequate</span>
-            <span className="ins-kpi-value accent">{lines[mostAdequateIdx]}</span>
-            <span className="ins-kpi-sub" style={{ color: '#22c55e' }}>{adequacy[mostAdequateIdx].toFixed(1)}%</span>
-          </div>
-        )}
-        {leastAdequateIdx >= 0 && (
-          <div className="ins-kpi-pill">
-            <span className="ins-kpi-label">Least Adequate</span>
-            <span className="ins-kpi-value" style={{ color: '#ef4444' }}>{lines[leastAdequateIdx]}</span>
-            <span className="ins-kpi-sub" style={{ color: '#ef4444' }}>{adequacy[leastAdequateIdx].toFixed(1)}%</span>
-          </div>
-        )}
-        <div className="ins-kpi-pill">
-          <span className="ins-kpi-label">Total Reserves</span>
-          <span className="ins-kpi-value">${(totalReserves / 1000).toFixed(1)}B</span>
-        </div>
-      </div>
+       <div className="ins-kpi-strip">
+         <div className="ins-kpi-pill">
+           <span className="ins-kpi-label">Avg Adequacy</span>
+           <span className={`ins-kpi-value ${avgAdequacy != null ? (avgAdequacy >= 100 ? 'positive' : 'negative') : ''}`}>
+             {avgAdequacy != null ? `${avgAdequacy.toFixed(1)}%` : '—'}
+           </span>
+         </div>
+         {mostAdequateIdx >= 0 && (
+           <div className="ins-kpi-pill">
+             <span className="ins-kpi-label">Most Adequate</span>
+             <span className="ins-kpi-value accent">{lines[mostAdequateIdx]}</span>
+             <span className="ins-kpi-sub" style={{ color: '#22c55e' }}>{adequacy[mostAdequateIdx].toFixed(1)}%</span>
+           </div>
+         )}
+         {leastAdequateIdx >= 0 && (
+           <div className="ins-kpi-pill">
+             <span className="ins-kpi-label">Least Adequate</span>
+             <span className="ins-kpi-value" style={{ color: '#ef4444' }}>{lines[leastAdequateIdx]}</span>
+             <span className="ins-kpi-sub" style={{ color: '#ef4444' }}>{adequacy[leastAdequateIdx].toFixed(1)}%</span>
+           </div>
+         )}
+         <div className="ins-kpi-pill">
+           <span className="ins-kpi-label">Total Reserves</span>
+           <span className="ins-kpi-value">${(totalReserves / 1000).toFixed(1)}B</span>
+         </div>
+       </div>
+
+       <div className="ins-kpi-strip" style={{ marginTop: 8 }}>
+         {surplusTickers.map(t => (
+           <div key={t} className="ins-kpi-pill">
+             <span className="ins-kpi-label">{t} Surplus</span>
+             <span className="ins-kpi-value accent">{insurerSurplus[t] != null ? `${insurerSurplus[t].toFixed(1)}%` : '—'}</span>
+           </div>
+         ))}
+       </div>
+
 
       {/* Main: chart (wide) + adequacy list (narrow) */}
       <div className="ins-wide-narrow">

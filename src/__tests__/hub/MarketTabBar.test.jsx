@@ -1,13 +1,34 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MarketTabBar from '../../hub/MarketTabBar';
+import CurrencyContext from '../../hub/CurrencyContext';
+
+// MarketTabBar reads { currency, setCurrency } from CurrencyContext, not props.
+// Tests that need to assert on setCurrency must wrap in a provider with a stub.
+function renderWithCurrency(ui, { currency = 'USD', setCurrency = vi.fn() } = {}) {
+  const ctxValue = {
+    currency,
+    setCurrency,
+    rates: { USD: 1, EUR: 0.92 },
+    symbols: { USD: '$', EUR: '€' },
+    currentRate: 1,
+    currentSymbol: '$',
+    convert: v => v,
+    convertAndFormat: v => String(v),
+    ratesLive: false,
+  };
+  return {
+    setCurrency,
+    ...render(
+      <CurrencyContext.Provider value={ctxValue}>{ui}</CurrencyContext.Provider>
+    ),
+  };
+}
 
 describe('MarketTabBar', () => {
   const defaultProps = {
     activeMarket: 'equities',
     setActiveMarket: vi.fn(),
-    currency: 'USD',
-    setCurrency: vi.fn(),
   };
 
   it('renders all 6 market tabs', () => {
@@ -36,8 +57,7 @@ describe('MarketTabBar', () => {
   });
 
   it('calls setCurrency when the currency select changes', () => {
-    const setCurrency = vi.fn();
-    render(<MarketTabBar {...defaultProps} setCurrency={setCurrency} />);
+    const { setCurrency } = renderWithCurrency(<MarketTabBar {...defaultProps} />);
     fireEvent.change(screen.getByRole('combobox', { name: /currency/i }), { target: { value: 'EUR' } });
     expect(setCurrency).toHaveBeenCalledWith('EUR');
   });

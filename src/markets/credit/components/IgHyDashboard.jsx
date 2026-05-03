@@ -3,6 +3,7 @@ import React from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import { MarketSidebarPanel } from '../../../components/Sidebar/Sidebar';
 import './CreditComponents.css';
 
 function spreadTrend(cur, prev) {
@@ -42,10 +43,22 @@ function buildSpreadHistoryOption(history, colors) {
   };
 }
 
-export default function IgHyDashboard({ spreadData, commercialPaper, lastUpdated }) {
+export default function IgHyDashboard({ spreadData, commercialPaper, lastUpdated, delinquencyRates, defaultData }) {
   if (!spreadData) return null;
   const { colors } = useTheme();
   const { current = {}, history = {}, etfs = [] } = spreadData;
+
+  const creditMetrics = [
+    { label: 'IG Spread', value: current.igSpread, change: current.igSpread - (history.IG || []).at(-2), unit: ' bps' },
+    { label: 'HY Spread', value: current.hySpread, change: current.hySpread - (history.HY || []).at(-2), unit: ' bps' },
+    { label: 'EM Spread', value: current.emSpread, change: 0, unit: ' bps' },
+    { label: 'Default Rate', value: defaultData?.currentRate, change: 0, unit: '%' },
+    { label: 'Delinquency', value: delinquencyRates?.latest, change: 0, unit: '%' },
+    { label: 'Fin CP 3M', value: commercialPaper?.financial3m, change: 0, unit: '%' },
+  ].filter(m => m.value != null).map(m => ({
+    ...m,
+    change: m.change !== 0 ? (m.change / Math.abs((history.IG?.[history.IG.length-2] || 1))) * 100 : 0 // Simplified pct change for demo as original was bps diff
+  }));
 
   const spreads = [
     { label: 'IG Spread',  value: current.igSpread,  series: 'IG',  prev: (history.IG  || []).at(-2) },
@@ -57,73 +70,84 @@ export default function IgHyDashboard({ spreadData, commercialPaper, lastUpdated
 
   return (
     <div className="credit-panel">
-      <div className="credit-panel-header">
-        <span className="credit-panel-title">IG / HY Dashboard</span>
-        <span className="credit-panel-subtitle">OAS spreads in bps · FRED · rising spread = wider = more risk premium</span>
-      </div>
-      <div className="credit-stats-row">
-        {spreads.map(s => {
-          const trend = spreadTrend(s.value, s.prev);
-          return (
-            <div key={s.label} className="credit-stat-pill">
-              <span className="credit-stat-label">{s.label}</span>
-              <span className="credit-stat-value cyan">{s.value != null ? `${s.value}bps` : '—'}</span>
-              {s.prev != null && <span style={{ fontSize: 9, color: trend.cls === 'credit-pos' ? '#34d399' : trend.cls === 'credit-neg' ? '#f87171' : colors.textMuted }}>{trend.text} MoM</span>}
-            </div>
-          );
-        })}
-        {commercialPaper?.financial3m != null && (
-          <div className="credit-stat-pill">
-            <span className="credit-stat-label">Fin CP 3M</span>
-            <span className="credit-stat-value">{commercialPaper.financial3m.toFixed(2)}%</span>
-          </div>
-        )}
-        {commercialPaper?.nonfinancial3m != null && (
-          <div className="credit-stat-pill">
-            <span className="credit-stat-label">Non-Fin CP 3M</span>
-            <span className="credit-stat-value">{commercialPaper.nonfinancial3m.toFixed(2)}%</span>
-          </div>
-        )}
-      </div>
-      <div className="credit-two-col">
-        <div className="credit-chart-panel">
-          <div className="credit-chart-title">12-Month Spread History</div>
-          <div className="credit-chart-subtitle">IG · HY · BBB OAS in basis points · cyan narrows = compression</div>
-          <div className="credit-chart-wrap">
-            <SafeECharts option={buildSpreadHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: '12-Month Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }] }} />
-          </div>
+      <div className="credit-two-col" style={{ gridTemplateColumns: '250px 1fr', gap: '1rem' }}>
+        <div className="credit-sidebar">
+          <MarketSidebarPanel 
+            title="Credit Indicators" 
+            metrics={creditMetrics} 
+            isLive={false} 
+          />
         </div>
-        <div className="credit-chart-panel">
-          <div className="credit-chart-title">Credit ETF Monitor</div>
-          <div className="credit-chart-subtitle">LQD · HYG · EMB · JNK · BKLN · MUB — price · 1d Δ · yield · duration</div>
-          <div className="credit-scroll">
-            <table className="credit-table">
-              <thead>
-                <tr>
-                  <th className="credit-th" style={{ textAlign: 'left' }}>ETF</th>
-                  <th className="credit-th" style={{ textAlign: 'left' }}>Name</th>
-                  <th className="credit-th">Price</th>
-                  <th className="credit-th">1d Δ%</th>
-                  <th className="credit-th">Yield</th>
-                  <th className="credit-th">Dur (yr)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {etfs.map(e => {
-                  const chCls = e.change1d > 0.05 ? 'credit-pos' : e.change1d < -0.05 ? 'credit-neg' : 'credit-neu';
-                  return (
-                    <tr key={e.ticker} className="credit-row">
-                      <td className="credit-cell"><strong>{e.ticker}</strong></td>
-                      <td className="credit-cell credit-muted">{e.name}</td>
-                      <td className="credit-cell credit-num"><MetricValue value={e.price} seriesKey="igHyEtf" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
-                      <td className={`credit-cell credit-num ${chCls}`}><MetricValue value={e.change1d} seriesKey="igHyEtf" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
-                      <td className="credit-cell credit-num"><MetricValue value={e.yieldPct} seriesKey="igHyYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></td>
-                      <td className="credit-cell credit-num"><MetricValue value={e.durationYr} seriesKey="igHyDuration" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+        <div className="credit-main-content">
+          <div className="credit-panel-header">
+            <span className="credit-panel-title">IG / HY Dashboard</span>
+            <span className="credit-panel-subtitle">OAS spreads in bps · FRED · rising spread = wider = more risk premium</span>
+          </div>
+          <div className="credit-stats-row">
+            {spreads.map(s => {
+              const trend = spreadTrend(s.value, s.prev);
+              return (
+                <div key={s.label} className="credit-stat-pill">
+                  <span className="credit-stat-label">{s.label}</span>
+                  <span className="credit-stat-value cyan">{s.value != null ? `${s.value}bps` : '—'}</span>
+                  {s.prev != null && <span style={{ fontSize: 9, color: trend.cls === 'credit-pos' ? '#34d399' : trend.cls === 'credit-neg' ? '#f87171' : colors.textMuted }}>{trend.text} MoM</span>}
+                </div>
+              );
+            })}
+            {commercialPaper?.financial3m != null && (
+              <div className="credit-stat-pill">
+                <span className="credit-stat-label">Fin CP 3M</span>
+                <span className="credit-stat-value">{commercialPaper.financial3m.toFixed(2)}%</span>
+              </div>
+            )}
+            {commercialPaper?.nonfinancial3m != null && (
+              <div className="credit-stat-pill">
+                <span className="credit-stat-label">Non-Fin CP 3M</span>
+                <span className="credit-stat-value">{commercialPaper.nonfinancial3m.toFixed(2)}%</span>
+              </div>
+            )}
+          </div>
+          <div className="credit-two-col">
+            <div className="credit-chart-panel">
+              <div className="credit-chart-title">12-Month Spread History</div>
+              <div className="credit-chart-subtitle">IG · HY · BBB OAS in basis points · cyan narrows = compression</div>
+              <div className="credit-chart-wrap">
+                <SafeECharts option={buildSpreadHistoryOption(history, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: '12-Month Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }] }} />
+              </div>
+            </div>
+            <div className="credit-chart-panel">
+              <div className="credit-chart-title">Credit ETF Monitor</div>
+              <div className="credit-chart-subtitle">LQD · HYG · EMB · JNK · BKLN · MUB — price · 1d Δ · yield · duration</div>
+              <div className="credit-scroll">
+                <table className="credit-table">
+                  <thead>
+                    <tr>
+                      <th className="credit-th" style={{ textAlign: 'left' }}>ETF</th>
+                      <th className="credit-th" style={{ textAlign: 'left' }}>Name</th>
+                      <th className="credit-th">Price</th>
+                      <th className="credit-th">1d Δ%</th>
+                      <th className="credit-th">Yield</th>
+                      <th className="credit-th">Dur (yr)</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {etfs.map(e => {
+                      const chCls = e.change1d > 0.05 ? 'credit-pos' : e.change1d < -0.05 ? 'credit-neg' : 'credit-neu';
+                      return (
+                        <tr key={e.ticker} className="credit-row">
+                          <td className="credit-cell"><strong>{e.ticker}</strong></td>
+                          <td className="credit-cell credit-muted">{e.name}</td>
+                          <td className="credit-cell credit-num"><MetricValue value={e.price} seriesKey="igHyEtf" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                          <td className={`credit-cell credit-num ${chCls}`}><MetricValue value={e.change1d} seriesKey="igHyEtf" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+                          <td className="credit-cell credit-num"><MetricValue value={e.yieldPct} seriesKey="igHyYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></td>
+                          <td className="credit-cell credit-num"><MetricValue value={e.durationYr} seriesKey="igHyDuration" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -140,3 +140,17 @@
 .ins-adequacy-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .ins-adequacy-name { font-size: 10px; color: var(--text-secondary); flex: 1; }
 .ins-adequacy-pct { font-size: 13px; font-weight: 700; font-family: monospace; width: 52px; text-align: right; }
+
+/* Synthetic data provenance badge */
+.ins-badge-synthetic {
+  font-size: 9px;
+  padding: 2px 6px;
+  background: #422006;
+  color: #fbbf24;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  border: 1px solid #92400e;
+}

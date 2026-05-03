@@ -6,9 +6,9 @@ vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) =>
 vi.mock('../../hub/ThemeContext', () => ({ useTheme: () => ({ colors: { textMuted: '#64748b', textSecondary: '#94a3b8', cardBg: '#1e293b' } }) }));
 
 const MOCK_DATA = [
-  { bucket: '0\u20132y',  amount: 8420, pct: 34.2 },
-  { bucket: '2\u20135y',  amount: 5980, pct: 24.3 },
-  { bucket: '5\u201310y', amount: 6250, pct: 25.4 },
+  { bucket: '0–2y',  amount: 8420, pct: 34.2 },
+  { bucket: '2–5y',  amount: 5980, pct: 24.3 },
+  { bucket: '5–10y', amount: 6250, pct: 25.4 },
   { bucket: '10y+',       amount: 3950, pct: 16.1 },
 ];
 
@@ -19,28 +19,27 @@ describe('DurationLadder', () => {
     expect(screen.getByTestId('echarts-mock')).toBeInTheDocument();
   });
 
-  it('does not show rate items when treasuryRates is null', () => {
+  it('shows the bucket detail table with one row per bucket', () => {
     render(<DurationLadder durationLadderData={MOCK_DATA} />);
-    expect(document.querySelectorAll('.bonds-rate-item').length).toBe(0);
-  });
-
-  it('shows four rate items when treasuryRates provided', () => {
-    const rates = { '0\u20132y': 4.82, '2\u20135y': 4.01, '5\u201310y': 4.01, '10y+': 4.55 };
-    render(<DurationLadder durationLadderData={MOCK_DATA} treasuryRates={rates} />);
     expect(document.querySelectorAll('.bonds-rate-item').length).toBe(4);
   });
 
-  it('shows formatted rate values in pills', () => {
-    const rates = { '0\u20132y': 4.82, '2\u20135y': 4.01, '5\u201310y': 4.01, '10y+': 4.55 };
+  it('renders em-dash placeholders in the rate column when no rates are supplied', () => {
+    render(<DurationLadder durationLadderData={MOCK_DATA} />);
+    // Last column ("Avg Rate") falls back to em-dash for every bucket.
+    expect(document.querySelectorAll('.bonds-rate-item .dl-num').length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('shows formatted rate values in the table when treasuryRates provided', () => {
+    const rates = { '0–2y': 4.82, '2–5y': 4.01, '5–10y': 4.01, '10y+': 4.55 };
     render(<DurationLadder durationLadderData={MOCK_DATA} treasuryRates={rates} />);
     expect(screen.getByText('4.82%')).toBeInTheDocument();
     expect(screen.getByText('4.55%')).toBeInTheDocument();
   });
 
-  it('shows bucket label alongside each rate pill', () => {
-    const rates = { '0\u20132y': 4.82, '2\u20135y': 4.01, '5\u201310y': 4.01, '10y+': 4.55 };
+  it('shows bucket label alongside each rate row', () => {
+    const rates = { '0–2y': 4.82, '2–5y': 4.01, '5–10y': 4.01, '10y+': 4.55 };
     render(<DurationLadder durationLadderData={MOCK_DATA} treasuryRates={rates} />);
-    // At least one element with the bucket text
-    expect(screen.getAllByText('0\u20132y').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('0–2y').length).toBeGreaterThanOrEqual(1);
   });
 });

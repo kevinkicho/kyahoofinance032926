@@ -103,7 +103,14 @@ function parseCO2Data(rawRows) {
 router.get('/', async (req, res) => {
   const apiKey = API_KEY();
   if (!apiKey) {
-    return res.status(503).json({ error: 'EIA_API_KEY not configured' });
+    return res.json({
+      electricity: { residential: null, commercial: null, industrial: null },
+      co2Emissions: { total: null, bySector: null },
+      _sources: { eia: false },
+      lastUpdated: todayStr(),
+      fetchedOn: todayStr(),
+      isCurrent: false,
+    });
   }
 
   const today = todayStr();

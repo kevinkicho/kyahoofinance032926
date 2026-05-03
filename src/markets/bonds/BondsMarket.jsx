@@ -1,5 +1,6 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
+import { useCurrency } from '../../hub/CurrencyContext';
 import BondsDashboard from './components/BondsDashboard';
 import './components/BondsDashboard.css';
 
@@ -65,43 +66,52 @@ function getBondsProps(centralData) {
 }
 
 function BondsMarket({ centralData } = {}) {
+  const { currency, currentSymbol, convert } = useCurrency();
   if (!centralData) return <MarketSkeleton />;
   const props = getBondsProps(centralData);
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    <div className="bonds-market">
-
-      <BondsDashboard
-        yieldCurveData={props.yieldCurveData}
-        creditRatingsData={props.creditRatingsData}
-        creditRatingsAsOf={props.creditRatingsAsOf}
-        spreadIndicators={props.spreadIndicators}
-        spreadData={props.spreadData}
-        durationLadderData={props.durationLadderData}
-        durationLadderMeta={props.durationLadderMeta}
-        breakevensData={props.breakevensData}
-        treasuryRates={props.treasuryRates}
-        fredYieldHistory={props.fredYieldHistory}
-        fedFundsFutures={props.fedFundsFutures}
-        yieldHistory={props.yieldHistory}
-        mortgageSpread={props.mortgageSpread}
-        tipsYields={props.tipsYields}
-        realYieldHistory={props.realYieldHistory}
-        macroData={props.macroData}
-        fedBalanceSheetHistory={props.fedBalanceSheetHistory}
-        m2HistoryData={props.m2HistoryData}
-        auctionData={props.auctionData}
-        nationalDebt={props.nationalDebt}
-        spreadHistory={props.spreadHistory}
-        cpiComponents={props.cpiComponents}
-        debtToGdpHistory={props.debtToGdpHistory}
-        isLive={props.isLive}
-        lastUpdated={props.lastUpdated}
-        fetchLog={props.fetchLog}
-        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
-        provenance={props.provenance}
-      />
+    // KPIs (US 10Y/2Y/Fed Funds/etc.) now live as a real bento panel
+    // inside BondsDashboard's BentoWrapper, so the loose strip here is
+    // gone. The two-column `--with-sidebar` grid is also dropped since
+    // there's no sidebar to host.
+    <div className="bonds-market" role="region" aria-label="Bonds">
+      <div className="bonds-market-main">
+          <BondsDashboard
+            currency={currency}
+            currentSymbol={currentSymbol}
+            convert={convert}
+            yieldCurveData={props.yieldCurveData}
+            creditRatingsData={props.creditRatingsData}
+            creditRatingsAsOf={props.creditRatingsAsOf}
+            spreadIndicators={props.spreadIndicators}
+            spreadData={props.spreadData}
+            durationLadderData={props.durationLadderData}
+            durationLadderMeta={props.durationLadderMeta}
+            breakevensData={props.breakevensData}
+            treasuryRates={props.treasuryRates}
+            fredYieldHistory={props.fredYieldHistory}
+            fedFundsFutures={props.fedFundsFutures}
+            yieldHistory={props.yieldHistory}
+            mortgageSpread={props.mortgageSpread}
+            tipsYields={props.tipsYields}
+            realYieldHistory={props.realYieldHistory}
+            macroData={props.macroData}
+            fedBalanceSheetHistory={props.fedBalanceSheetHistory}
+            m2HistoryData={props.m2HistoryData}
+            auctionData={props.auctionData}
+            nationalDebt={props.nationalDebt}
+            spreadHistory={props.spreadHistory}
+            cpiComponents={props.cpiComponents}
+            debtToGdpHistory={props.debtToGdpHistory}
+            isLive={props.isLive}
+            lastUpdated={props.lastUpdated}
+            fetchLog={props.fetchLog}
+            error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+            provenance={props.provenance}
+          />
+        </div>
     </div>
   );
 }

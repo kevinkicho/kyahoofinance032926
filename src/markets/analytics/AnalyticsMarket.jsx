@@ -1,32 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import BentoWrapper from '../../components/BentoWrapper';
-import DataFooter from '../../components/DataFooter/DataFooter';
+import MarketKpiStrip from '../../components/MarketKpiStrip';
+import { useMarketData } from '../../hub/DataContext';
 import './AnalyticsDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
 
 const FRED_API_BASE = '/api/fred/observations';
 
-const MARKET_ENDPOINTS = [
-  { path: '/api/bonds', label: 'Bonds' },
-  { path: '/api/fx', label: 'FX' },
-  { path: '/api/derivatives', label: 'Derivatives' },
-  { path: '/api/realEstate', label: 'Real Estate' },
-  { path: '/api/insurance', label: 'Insurance' },
-  { path: '/api/commodities/v2', label: 'Commodities' },
-  { path: '/api/globalMacro', label: 'Global Macro' },
-  { path: '/api/equityDeepDive', label: 'Equity Deep Dive' },
-  { path: '/api/institutional', label: 'Institutional' },
-  { path: '/api/crypto', label: 'Crypto' },
-  { path: '/api/credit', label: 'Credit' },
-  { path: '/api/sentiment', label: 'Sentiment' },
-  { path: '/api/calendar', label: 'Calendar' },
-  { path: '/api/imf', label: 'IMF' },
-  { path: '/api/worldbank', label: 'World Bank' },
-  { path: '/api/bls', label: 'BLS' },
-  { path: '/api/eia', label: 'EIA' },
-  { path: '/api/census', label: 'Census' },
-];
+import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
+
+const MARKET_ENDPOINTS = Object.entries(MARKET_ENDPOINTS_MAP).map(([id, path]) => ({
+  path,
+  label: id.charAt(0).toUpperCase() + id.slice(1).replace(/([A-Z])/g, ' $1').trim(),
+}));
 
 function fredVerifyUrl(seriesId) {
   const p = new URLSearchParams({ series_id: seriesId, file_type: 'json', sort_order: 'desc', limit: '1' });
@@ -325,17 +312,21 @@ function getSeriesForSource(endpointPath, sourceKey) {
   return ENDPOINT_SERIES_MAP[endpointPath]?.[sourceKey] || [];
 }
 
+// KPI strip is now a real bento child at row 0 (h:2). Other panels
+// shifted down 2 rows.
 const LAYOUT = {
   lg: [
-    { i: 'provenance', x: 0, y: 0, w: 6, h: 6 },
-    { i: 'server', x: 6, y: 0, w: 3, h: 3 },
-    { i: 'source-health', x: 9, y: 0, w: 3, h: 5 },
-    { i: 'endpoints', x: 6, y: 3, w: 3, h: 5 },
-    { i: 'freshness', x: 9, y: 5, w: 3, h: 5 },
-    { i: 'error-log', x: 0, y: 6, w: 6, h: 3 },
-    { i: 'mem-cache', x: 6, y: 8, w: 3, h: 3 },
-    { i: 'cache-files', x: 9, y: 10, w: 3, h: 3 },
-    { i: 'routes', x: 6, y: 11, w: 3, h: 3 },
+    { i: 'kpi', x: 0, y: 0, w: 12, h: 2 },
+    { i: 'provenance', x: 0, y: 2, w: 6, h: 6 },
+    { i: 'server', x: 6, y: 2, w: 3, h: 3 },
+    { i: 'api-usage', x: 9, y: 2, w: 3, h: 3 },
+    { i: 'source-health', x: 9, y: 5, w: 3, h: 5 },
+    { i: 'endpoints', x: 6, y: 5, w: 3, h: 5 },
+    { i: 'freshness', x: 9, y: 10, w: 3, h: 5 },
+    { i: 'error-log', x: 0, y: 8, w: 6, h: 3 },
+    { i: 'mem-cache', x: 6, y: 10, w: 3, h: 3 },
+    { i: 'cache-files', x: 9, y: 15, w: 3, h: 3 },
+    { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
   ]
 };
 
@@ -442,10 +433,18 @@ export default function AnalyticsMarket() {
   const mc = data.memCache || {};
   const routes = data.routes || [];
 
-  return (
-    <div className="ana-market">
-      <div className="ana-status-bar">
-        <span className="ana-status-live">● Analytics</span>
+    const kpis = [
+      { label: 'Endpoints',  value: String(MARKET_ENDPOINTS.length), sublabel: 'Tracked'  },
+      { label: 'Last Fetch', value: data.dataFreshness?.lastFetch || '—', sublabel: 'Across markets' },
+      { label: 'Cache Hit',  value: `${mc.hitRate || 0}%`, sublabel: 'In-memory'    },
+      { label: 'Hot Limits', value: String(sortedSources.filter(s => s.used / s.limit > 0.8).length), sublabel: '> 80% used', color: '#fbbf24' },
+    ];
+
+    return (
+      <div className="ana-market">
+        <div className="ana-status-bar">
+          <span className="ana-status-live">● Analytics</span>
+
         <span>Uptime {formatUptime(up.seconds || 0)}</span>
         <span>Heap {up.memoryMB || 0} / {up.heapTotalMB || 0} MB</span>
         <span>RSS {up.rssMB || 0} MB</span>
@@ -456,7 +455,16 @@ export default function AnalyticsMarket() {
         <button className="ana-refresh-btn" onClick={fetchData}>Refresh</button>
       </div>
       <div className="ana-dashboard ana-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="analytics-layout">
+        <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v2">
+          {/* KPI strip — real bento child at row 0. */}
+          <div key="kpi" className="ana-bento-card">
+            <div className="ana-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Analytics Key Metrics</span>
+            </div>
+            <div className="bento-panel-content ana-panel-scroll">
+              <MarketKpiStrip kpis={kpis} bare />
+            </div>
+          </div>
 
           {/* Provenance Audit */}
           <div key="provenance" className="ana-bento-card">
@@ -489,6 +497,32 @@ export default function AnalyticsMarket() {
               <DetailRow label="Heap Total" value={`${up.heapTotalMB} MB`} />
               <DetailRow label="RSS" value={`${up.rssMB} MB`} />
               <DetailRow label="External" value={`${up.externalMB} MB`} />
+            </div>
+          </div>
+
+          {/* API Usage */}
+          <div key="api-usage" className="ana-bento-card">
+            <div className="ana-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">API Usage</span>
+              <span className="bento-panel-subtitle">{data.apiUsage?.totalExternalCalls || 0} calls today</span>
+            </div>
+            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+              <div className="ana-stat-grid-sm">
+                <div className="ana-detail-row"><span className="ana-detail-label">Total Calls</span><span className="ana-mono">{data.apiUsage?.totalExternalCalls || 0}</span></div>
+                <div className="ana-detail-row"><span className="ana-detail-label">Sources</span><span className="ana-mono">{sortedSources.length}</span></div>
+                <div className="ana-detail-row"><span className="ana-detail-label">Near Limit</span><span className="ana-mono">{sortedSources.filter(s => s.used / s.limit > 0.8).length}</span></div>
+                <div className="ana-detail-row"><span className="ana-detail-label">Exhausted</span><span className="ana-mono">{sortedSources.filter(s => s.used >= s.limit).length}</span></div>
+              </div>
+              <div className="ana-section-divider" />
+              {sortedSources.map(s => (
+                <div key={s.name} className="ana-rate-row">
+                  <div className="ana-rate-header">
+                    <span className="ana-rate-name">{s.name}</span>
+                    <span className="ana-rate-count">{s.used}/{s.limit}</span>
+                  </div>
+                  {pctBar(s.pct)}
+                </div>
+              ))}
             </div>
           </div>
 

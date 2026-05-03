@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import CensusMarket from '../../markets/census/CensusMarket';
 
+vi.mock('../../components/BentoWrapper', () => ({ default: ({ children }) => <div data-testid="bento-wrapper">{children}</div> }));
+
 const mockCentralData = {
   isLoading: false,
   isLive: true,

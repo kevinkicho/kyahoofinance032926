@@ -3,30 +3,13 @@ import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
 
 const router = Router();
 
 function dateToMonthLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
   return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }).replace(' ', '-');
-}
-
-async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: String(limit) });
-  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
-  const data = await fetchJSON(url);
-  return (data?.observations || [])
-    .filter(o => o.value !== '.')
-    .map(o => ({ date: o.date, value: parseFloat(o.value) }))
-    .reverse();
-}
-
-async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const params = new URLSearchParams({ series_id: seriesId, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '5' });
-  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
-  const data = await fetchJSON(url);
-  const valid = (data?.observations || []).filter(o => o.value !== '.');
-  return valid.length ? parseFloat(valid[0].value) : null;
 }
 
 router.get('/', async (_req, res) => {
@@ -73,7 +56,8 @@ router.get('/', async (_req, res) => {
           )
         ),
         Promise.allSettled([
-          fetchFredHistory('DRSFRMACBS', FRED_API_KEY, 24).then(d => ['commercial', d]),
+          fetchFredHistory('DRSFRWBS',   FRED_API_KEY, 24).then(d => ['sfrMortgage', d]),
+          fetchFredHistory('DRSFRMACBS', FRED_API_KEY, 24).then(d => ['sfrMortgageChargeoff', d]),
           fetchFredHistory('DRALACBS',   FRED_API_KEY, 24).then(d => ['allLoans',   d]),
         ]),
         Promise.allSettled([fetchFredHistory('DRTSCILM', FRED_API_KEY, 24)]),
@@ -137,18 +121,23 @@ router.get('/', async (_req, res) => {
       const delinqRaw = {};
       delinqResults.forEach(r => { if (r.status === 'fulfilled') delinqRaw[r.value[0]] = r.value[1]; });
 
-      const delinqCommercial = delinqRaw.commercial || [];
-      const delinqAllLoans   = delinqRaw.allLoans   || [];
-      const delinqAnchor     = delinqCommercial.length >= 4 ? delinqCommercial : delinqAllLoans;
-      delinquencyRates = delinqAnchor.length >= 4 ? {
-        dates:      delinqAnchor.map(p => {
-          const d = new Date(p.date + 'T00:00:00Z');
-          const q = Math.ceil((d.getUTCMonth() + 1) / 3);
-          return `Q${q}-${String(d.getUTCFullYear()).slice(2)}`;
-        }),
-        commercial: delinqCommercial.map(p => Math.round(p.value * 100) / 100),
-        allLoans:   delinqAllLoans.map(p   => Math.round(p.value * 100) / 100),
-      } : null;
+      const delinqArr = [];
+      const sfr = delinqRaw.sfrMortgage || [];
+      const sfrChargeoff = delinqRaw.sfrMortgageChargeoff || [];
+      const allLoans = delinqRaw.allLoans || [];
+      if (sfr.length > 0) {
+        const latest = sfr[sfr.length - 1];
+        delinqArr.push({ type: 'SFR Mortgage Delinquency', rate: Math.round(latest.value * 100) / 100, series: 'DRSFRWBS', history: { dates: sfr.map(p => p.date), values: sfr.map(p => Math.round(p.value * 100) / 100) } });
+      }
+      if (sfrChargeoff.length > 0) {
+        const latest = sfrChargeoff[sfrChargeoff.length - 1];
+        delinqArr.push({ type: 'Mortgage Charge-Off Rate', rate: Math.round(latest.value * 100) / 100, series: 'DRSFRMACBS', history: { dates: sfrChargeoff.map(p => p.date), values: sfrChargeoff.map(p => Math.round(p.value * 100) / 100) } });
+      }
+      if (allLoans.length > 0) {
+        const latest = allLoans[allLoans.length - 1];
+        delinqArr.push({ type: 'All Loans Delinquency', rate: Math.round(latest.value * 100) / 100, series: 'DRALACBS', history: { dates: allLoans.map(p => p.date), values: allLoans.map(p => Math.round(p.value * 100) / 100) } });
+      }
+      delinquencyRates = delinqArr.length > 0 ? delinqArr : null;
 
       const lendingRaw = lendingStdResult[0]?.status === 'fulfilled' ? lendingStdResult[0].value : [];
       lendingStandards = lendingRaw.length >= 4 ? {
@@ -206,91 +195,182 @@ router.get('/', async (_req, res) => {
 
     if (spreadData) spreadData.etfs = etfs;
 
-    const emBondData = {
-      countries: [
-        { country: 'Brazil',       code: 'BZ', spread: 210, rating: 'BB',  change1m:  -8, yld10y: 7.2, debtGdp:  88 },
-        { country: 'Mexico',       code: 'MX', spread: 180, rating: 'BBB', change1m: -12, yld10y: 6.8, debtGdp:  54 },
-        { country: 'Indonesia',    code: 'ID', spread: 165, rating: 'BBB', change1m:  -6, yld10y: 6.5, debtGdp:  39 },
-        { country: 'South Africa', code: 'ZA', spread: 285, rating: 'BB',  change1m:   4, yld10y: 9.8, debtGdp:  74 },
-        { country: 'India',        code: 'IN', spread: 142, rating: 'BBB', change1m:  -4, yld10y: 7.0, debtGdp:  84 },
-        { country: 'Turkey',       code: 'TR', spread: 342, rating: 'B+',  change1m:  18, yld10y:12.4, debtGdp:  32 },
-        { country: 'Philippines',  code: 'PH', spread: 128, rating: 'BBB', change1m:  -8, yld10y: 5.8, debtGdp:  58 },
-        { country: 'Colombia',     code: 'CO', spread: 248, rating: 'BB+', change1m:   6, yld10y: 8.4, debtGdp:  58 },
-        { country: 'Egypt',        code: 'EG', spread: 624, rating: 'B-',  change1m: -22, yld10y:18.2, debtGdp:  96 },
-        { country: 'Nigeria',      code: 'NG', spread: 512, rating: 'B-',  change1m:  14, yld10y:15.8, debtGdp:  38 },
-        { country: 'Saudi Arabia', code: 'SA', spread:  68, rating: 'A+',  change1m:  -2, yld10y: 4.6, debtGdp:  26 },
-        { country: 'Chile',        code: 'CL', spread:  98, rating: 'A',   change1m:  -4, yld10y: 5.2, debtGdp:  40 },
-      ],
-      regions: [
-        { region: 'Latin America', avgSpread: 184, change1m:  -3 },
-        { region: 'Asia EM',       avgSpread: 145, change1m:  -6 },
-        { region: 'EMEA',          avgSpread: 248, change1m:   8 },
-        { region: 'Frontier',      avgSpread: 568, change1m:  -4 },
-      ],
+    const EM_BOND_TICKERS = {
+      BRZ:  { country: 'Brazil',         code: 'BR', region: 'Latin America', rating: 'BB-', debtGdp: 78,  yahooETF: 'EWZ'  },
+      MEX:  { country: 'Mexico',         code: 'MX', region: 'Latin America', rating: 'BBB',  debtGdp: 53,  yahooETF: 'EWW'  },
+      TUR:  { country: 'Turkey',         code: 'TR', region: 'EMEA',           rating: 'B+',   debtGdp: 35,  yahooETF: 'TUR'  },
+      ZAF:  { country: 'South Africa',   code: 'ZA', region: 'EMEA',           rating: 'BB-',  debtGdp: 72,  yahooETF: 'EZA'  },
+      IDN:  { country: 'Indonesia',      code: 'ID', region: 'Asia-Pacific',   rating: 'BBB',  debtGdp: 39,  yahooETF: 'EIDO' },
+      IND:  { country: 'India',          code: 'IN', region: 'Asia-Pacific',   rating: 'BBB-', debtGdp: 83,  yahooETF: 'INDA' },
+      CHN:  { country: 'China',          code: 'CN', region: 'Asia-Pacific',   rating: 'A+',   debtGdp: 83,  yahooETF: 'MCHI' },
+      KOR:  { country: 'South Korea',   code: 'KR', region: 'Asia-Pacific',   rating: 'AA-',  debtGdp: 54,  yahooETF: 'EWY'  },
+      RUS:  { country: 'Russia',         code: 'RU', region: 'EMEA',           rating: 'NR',   debtGdp: 20,  yahooETF: null   },
+      POL:  { country: 'Poland',         code: 'PL', region: 'EMEA',           rating: 'A-',   debtGdp: 50,  yahooETF: 'EPOL' },
+      COL:  { country: 'Colombia',       code: 'CO', region: 'Latin America', rating: 'BB+',  debtGdp: 56,  yahooETF: 'GXG'  },
+      CHL:  { country: 'Chile',          code: 'CL', region: 'Latin America', rating: 'A-',   debtGdp: 38,  yahooETF: 'ECH'  },
+      HUN:  { country: 'Hungary',        code: 'HU', region: 'EMEA',           rating: 'BBB',  debtGdp: 71,  yahooETF: 'EWH'  },
+      MYS:  { country: 'Malaysia',       code: 'MY', region: 'Asia-Pacific',   rating: 'A-',   debtGdp: 65,  yahooETF: 'EWM'  },
+      PHL:  { country: 'Philippines',    code: 'PH', region: 'Asia-Pacific',   rating: 'BBB+', debtGdp: 57,  yahooETF: 'EPHE' },
+      EGY:  { country: 'Egypt',          code: 'EG', region: 'EMEA',           rating: 'B+',   debtGdp: 90,  yahooETF: 'EGPT' },
     };
 
+let emBondCountries = [];
+    let emBondRegions = {};
+    let emYieldDataFetched = false;
+
+    try {
+      trackApiCall('Yahoo Finance');
+      const embQuote = await yf.quote('EMB').catch(() => null);
+      const emSpread = spreadData?.current?.emSpread ?? null;
+
+      const etfTickers = Object.entries(EM_BOND_TICKERS)
+        .filter(([, v]) => v.yahooETF)
+        .map(([k, v]) => ({ key: k, ticker: v.yahooETF }));
+      const etfSymbols = etfTickers.map(e => e.ticker);
+
+      let etfQuotes = {};
+      try {
+        const etfResults = await Promise.allSettled(etfSymbols.map(t => yf.quote(t)));
+        etfResults.forEach((r, i) => {
+          if (r.status === 'fulfilled') etfQuotes[etfTickers[i].ticker] = r.value;
+        });
+      } catch (_) { /* non-fatal */ }
+
+      for (const [key, info] of Object.entries(EM_BOND_TICKERS)) {
+        const etfQuote = info.yahooETF ? etfQuotes[info.yahooETF] : null;
+        const price = etfQuote?.regularMarketPrice ?? null;
+        const change1d = etfQuote?.regularMarketChangePercent ?? null;
+        const etfYield = etfQuote?.trailingAnnualDividendYield != null
+          ? etfQuote.trailingAnnualDividendYield * 100
+          : null;
+
+        let yld10y = null;
+        if (emSpread != null && etfYield != null) {
+          const us10yProxy = spreadData?.current?.igSpread != null
+            ? (etfYield - emSpread / 100 * 0.5)
+            : null;
+          yld10y = us10yProxy;
+        }
+
+        const country = {
+          country:   info.country,
+          code:      info.code,
+          rating:    info.rating,
+          spread:    emSpread,
+          change1m:  change1d != null ? Math.round(change1d * 10) / 10 : null,
+          yld10y,
+          debtGdp:   info.debtGdp,
+          etfTicker: info.yahooETF,
+          etfPrice:  price,
+          etfYield,
+          dataSource: price != null ? 'Yahoo Finance' : 'no-yahoo-data',
+        };
+
+        emBondCountries.push(country);
+
+        if (!emBondRegions[info.region]) {
+          emBondRegions[info.region] = { region: info.region, countries: [], avgSpread: 0, count: 0 };
+        }
+        emBondRegions[info.region].countries.push(country.code);
+        if (country.spread != null) {
+          emBondRegions[info.region].avgSpread += country.spread;
+          emBondRegions[info.region].count++;
+        }
+      }
+
+      emBondRegions = Object.values(emBondRegions).map(r => ({
+        region: r.region,
+        avgSpread: r.count > 0 ? Math.round(r.avgSpread / r.count) : null,
+      }));
+
+      emYieldDataFetched = true;
+    } catch (e) {
+      console.warn('[Credit] EM bond yield fetch failed:', e.message || e);
+    }
+
+    const emBondData = {
+      countries: emBondCountries,
+      regions: Object.values(emBondRegions),
+      noYahoo: emBondCountries.filter(c => c.dataSource === 'no-yahoo-data').map(c => c.country),
+    };
+
+    const igLatest = spreadData?.current?.igSpread ?? null;
+    const hyLatest = spreadData?.current?.hySpread ?? null;
+
+    const cloTranches = [];
+    if (igLatest != null || hyLatest != null) {
+      const igBase = igLatest ?? 100;
+      const cloConventions = [
+        { tranche: 'AAA',  spreadOffset: -40, rating: 'AAA', ltv: 65 },
+        { tranche: 'AA',   spreadOffset:  10, rating: 'AA',  ltv: 72 },
+        { tranche: 'A',    spreadOffset:  50, rating: 'A',   ltv: 78 },
+        { tranche: 'BBB',  spreadSource: 'bbb', rating: 'BBB', ltv: 83 },
+        { tranche: 'BB',   spreadOffset: 380, rating: 'BB',  ltv: 89 },
+        { tranche: 'B',    spreadOffset: 710, rating: 'B',   ltv: 94 },
+      ];
+      for (const c of cloConventions) {
+        let spread;
+        if (c.spreadSource === 'bbb') {
+          spread = spreadData?.current?.bbbSpread ?? null;
+        } else {
+          spread = Math.round(igBase + c.spreadOffset);
+        }
+        const yieldBase = c.tranche === 'BBB' || c.tranche === 'BB' || c.tranche === 'B'
+          ? (etfs.find(e => e.ticker === 'HYG')?.yieldPct ?? null)
+          : (etfs.find(e => e.ticker === 'LQD')?.yieldPct ?? null);
+        cloTranches.push({
+          tranche: c.tranche,
+          spread,
+          yield: yieldBase != null ? Math.round((yieldBase + (spread ?? 0) / 100) * 100) / 100 : null,
+          rating: c.rating,
+          ltv: c.ltv,
+        });
+      }
+    }
+
     const loanData = {
-      cloTranches: [
-        { tranche: 'AAA', spread: 145, yield: 6.82, rating: 'AAA', ltv: 65 },
-        { tranche: 'AA',  spread: 210, yield: 7.47, rating: 'AA',  ltv: 72 },
-        { tranche: 'A',   spread: 290, yield: 8.27, rating: 'A',   ltv: 78 },
-        { tranche: 'BBB', spread: 420, yield: 9.57, rating: 'BBB', ltv: 83 },
-        { tranche: 'BB',  spread: 720, yield:12.07, rating: 'BB',  ltv: 89 },
-        { tranche: 'B',   spread:1050, yield:15.37, rating: 'B',   ltv: 94 },
-        { tranche: 'Equity', spread: null, yield:18.5, rating: 'NR', ltv:100 },
-      ],
+      cloTranches,
       indices: [
-        { name: 'BKLN NAV',                 value: etfs.find(e=>e.ticker==='BKLN')?.price ?? 21.84, change1d: etfs.find(e=>e.ticker==='BKLN')?.change1d ?? 0.02, spread: 312 },
-        { name: 'CS Lev Loan 100 Index',    value: 96.42, change1d: 0.08, spread: 318 },
-        { name: 'LL New Issue Vol ($B YTD)',  value: 142,   change1d: null, spread: null },
-        { name: 'Avg Loan Price',             value: 96.8,  change1d: 0.04, spread: null },
+        { name: 'BKLN NAV',                 value: etfs.find(e=>e.ticker==='BKLN')?.price ?? null, change1d: etfs.find(e=>e.ticker==='BKLN')?.change1d ?? null, spread: null },
+        { name: 'CS Lev Loan 100 Index',    value: null, change1d: null, spread: null },
+        { name: 'LL New Issue Vol ($B YTD)',  value: null,   change1d: null, spread: null },
       ],
-      priceHistory: {
-        dates: ['Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26'],
-        bkln:  [21.42, 21.54, 21.68, 21.72, 21.78, 21.84],
-      },
     };
 
     const defaultData = {
       rates: [
-        { category: 'HY Default Rate (TTM)',      value: 3.8, prev: 4.2, peak: 14.0, unit: '%' },
-        { category: 'Loan Default Rate (TTM)',     value: 2.4, prev: 2.8, peak: 10.8, unit: '%' },
-        { category: 'HY Distressed Ratio',        value: 8.2, prev: 9.1, peak: 42.0, unit: '%' },
-        { category: 'Loans Trading <80c',         value: 5.1, prev: 5.8, peak: 28.0, unit: '%' },
-        { category: 'CCC/Split-B % of HY Index',  value:12.4, prev:12.8, peak: 22.0, unit: '%' },
+        { category: 'HY Default Rate (TTM)',      value: null, prev: null, peak: null, unit: '%' },
+        { category: 'Loan Default Rate (TTM)',     value: null, prev: null, peak: null, unit: '%' },
+        { category: 'HY Distressed Ratio',        value: null, prev: null, peak: null, unit: '%' },
+        { category: 'Loans Trading <80c',         value: null, prev: null, peak: null, unit: '%' },
+        { category: 'CCC/Split-B % of HY Index',  value: null, prev: null, peak: null, unit: '%' },
       ],
-      chargeoffs: chargeoffData || {
-        dates: ['Q1-24','Q2-24','Q3-24','Q4-24','Q1-25','Q2-25','Q3-25','Q4-25'],
-        commercial: [1.42, 1.38, 1.44, 1.52, 1.48, 1.44, 1.40, 1.36],
-        consumer:   [3.84, 3.92, 4.08, 4.22, 4.18, 4.10, 4.02, 3.94],
-      },
-      defaultHistory: {
-        dates: ['Q1-24','Q2-24','Q3-24','Q4-24','Q1-25','Q2-25','Q3-25','Q4-25'],
-        hy:   [4.8, 4.6, 4.4, 4.2, 4.0, 3.9, 3.8, 3.8],
-        loan: [3.4, 3.2, 3.0, 2.8, 2.6, 2.5, 2.4, 2.4],
-      },
+      chargeoffs: chargeoffData || null,
+      defaultHistory: null,
     };
 
     const _sources = {
       spreadData:       spreadData != null,
-      emBondData:       emBondData != null,
+      emBondData:       emYieldDataFetched,
+      emBondData_countries: emBondCountries.length,
+      emBondData_noYahoo: emBondCountries.filter(c => c.dataSource === 'no-yahoo-data').map(c => c.country),
       loanData:         loanData != null,
+      cloTranches:      cloTranches.length > 0,
+      cloTranches_computed: true,
+      yahooCLO:         etfs.some(e => e.yieldPct != null),
       defaultData:      defaultData != null,
       delinquencyRates: delinquencyRates != null,
+      delinquencyRates_DRSFRWBS: delinquencyRates?.some(d => d.series === 'DRSFRWBS') ?? false,
+      delinquencyRates_DRSFRMACBS: delinquencyRates?.some(d => d.series === 'DRSFRMACBS') ?? false,
+      delinquencyRates_DRALACBS: delinquencyRates?.some(d => d.series === 'DRALACBS') ?? false,
       lendingStandards:  lendingStandards != null,
       commercialPaper:  commercialPaper != null,
       excessReserves:   excessReserves != null,
     };
 
     const finalSpreadData = spreadData ?? {
-      current: { igSpread: 98, hySpread: 342, emSpread: 285, bbbSpread: 138, cccSpread: 842 },
-      history: {
-        dates: ['Apr-25','May-25','Jun-25','Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26'],
-        IG:  [ 92, 94, 96, 98,102, 99, 97, 95, 96, 98,100, 98],
-        HY:  [312,318,324,330,358,345,338,332,336,340,348,342],
-        EM:  [262,268,274,278,298,292,286,280,284,288,292,285],
-        BBB: [128,130,132,135,142,139,136,133,135,137,140,138],
-      },
+      current: { igSpread: null, hySpread: null, emSpread: null, bbbSpread: null, cccSpread: null },
+      history: { dates: [], IG: [], HY: [], EM: [], BBB: [] },
       etfs,
     };
 

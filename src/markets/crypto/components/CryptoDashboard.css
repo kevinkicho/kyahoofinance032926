@@ -302,7 +302,7 @@
 .crypto-stat-value.amber { color: #f59e0b; }
 
 /* On-chain metrics */
-.onchain-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 8px 12px; flex-shrink: 0; }
+.onchain-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 8px 12px; flex-shrink: 0; }
 .onchain-card { background: var(--bg-card); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
 .onchain-card-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .onchain-card-value { font-size: 18px; font-weight: 700; color: var(--text-primary); font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; }

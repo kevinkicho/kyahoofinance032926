@@ -20,6 +20,7 @@ const DATA_SOURCES = {
   realEstate: [
     { name: 'Yahoo Finance',   url: 'https://finance.yahoo.com',                   items: 'REIT quotes, dividends, NAV' },
     { name: 'FRED',            url: 'https://fred.stlouisfed.org',                  items: 'House price indices, 30Y/15Y mortgage rates, housing starts (HOUST), building permits, rental vacancy rate, homeownership rate, existing home sales, median home price' },
+    { name: 'US Census Bureau', url: 'https://www.census.gov/economic-indicators/', items: 'Housing starts, building permits, new home sales, construction spending, retail sales, durable goods orders, advance trade balance (via FRED)' },
   ],
   insurance: [
     { name: 'Yahoo Finance',   url: 'https://finance.yahoo.com',                   items: 'Quarterly financials (AIG, HIG, MMC, PGR, TRV), combined ratios, KIE insurance sector ETF, cat bond proxy (SHRX/ILS)' },
@@ -31,11 +32,14 @@ const DATA_SOURCES = {
     { name: 'FRED',            url: 'https://fred.stlouisfed.org',                  items: 'WTI/Brent futures curves, gold forward curves, contango/backwardation indicator' },
   ],
   globalMacro: [
-    { name: 'World Bank',      url: 'https://data.worldbank.org',                   items: 'GDP growth, CPI, unemployment, debt-to-GDP, current account for 40+ countries' },
-    { name: 'FRED',            url: 'https://fred.stlouisfed.org',                  items: 'Central bank rates (8 banks), M2 money supply growth (YoY), trade balance, industrial production (YoY), consumer sentiment (U. Michigan), yield spread recession indicator (T10Y2Y)' },
+    { name: 'World Bank',      url: 'https://data.worldbank.org',                   items: 'GDP growth, CPI, unemployment, debt-to-GDP, current account for 40+ countries; trade openness, GDP per capita, population' },
+    { name: 'FRED',            url: 'https://fred.stlouisfed.org',                  items: 'Central bank rates (8 banks), M2 money supply growth (YoY), trade balance, industrial production (YoY), consumer sentiment (U. Michigan), yield spread recession indicator (T10Y2Y), CFNAI 3-mo MA, OECD CLI mirrors' },
+    { name: 'IMF IFS',         url: 'https://data.imf.org',                          items: 'International Reserves (RAXFSFX) — central-bank FX reserves by country in USD billions' },
+    { name: 'IMF COFER',       url: 'https://data.imf.org',                          items: 'Currency Composition of Official Foreign Exchange Reserves — global FX reserve shares by currency, quarterly' },
+    { name: 'BIS',             url: 'https://www.bis.org/statistics/',               items: 'Credit-to-GDP gap by country, BIS policy rate set' },
   ],
   equitiesDeepDive: [
-    { name: 'Yahoo Finance',   url: 'https://finance.yahoo.com',                   items: '12 sector ETFs (XLK–XLRE), factor stocks, S&P 500 P/E, breadth divergence (SPY vs RSP equal-weight)' },
+    { name: 'Yahoo Finance',   url: 'https://finance.yahoo.com',                   items: '12 sector ETFs (XLK–XLRE), factor stocks, S&P 500 P/E, breadth divergence (SPY vs RSP equal-weight), insider holders & transactions (Form 4 filings)' },
     { name: 'FRED',            url: 'https://fred.stlouisfed.org',                  items: 'Equity risk premium (earnings yield vs 10Y), Buffett Indicator (Wilshire 5000 / GDP), 10Y Treasury yield' },
   ],
   crypto: [
@@ -56,8 +60,7 @@ const DATA_SOURCES = {
     { name: 'CFTC',            url: 'https://www.cftc.gov/MarketReports/CommitmentsofTraders', items: 'Commitment of Traders positioning (6 FX, 2 equity, 1 rate, 2 commodity)' },
   ],
   calendar: [
-    { name: 'EconDB',         url: 'https://www.econdb.com/api',                   items: 'Economic calendar events (30-day forward)' },
-    { name: 'FRED',            url: 'https://fred.stlouisfed.org',                  items: 'Central bank meeting dates, rate decisions' },
+    { name: 'FRED',            url: 'https://fred.stlouisfed.org',                  items: 'Economic calendar events (30-day forward), central bank meeting dates, rate decisions' },
     { name: 'Yahoo Finance',   url: 'https://finance.yahoo.com',                   items: 'Earnings calendar (20+ stocks), dividend ex-dates (AAPL, MSFT, JNJ, JPM, XOM)' },
     { name: 'Treasury Fiscal Data', url: 'https://fiscaldata.treasury.gov/api-documentation', items: 'Upcoming Treasury auction schedule' },
   ],

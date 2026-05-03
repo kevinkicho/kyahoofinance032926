@@ -27,7 +27,7 @@
 .com-loading-text { font-size: 12px; color: var(--text-muted); }
 
 /* ── 2. Dashboard container ── */
-.com-dashboard.com-dashboard--no-sidebar {
+.com-dashboard {
   display: flex;
   flex-direction: column;
   flex: 1;

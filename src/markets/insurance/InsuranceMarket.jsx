@@ -1,6 +1,8 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import InsuranceDashboard from './components/InsuranceDashboard';
+import DataFooter from '../../components/DataFooter/DataFooter';
+import { useCurrency } from '../../hub/CurrencyContext';
 import './components/InsuranceDashboard.css';
 
 const HY_OAS_BASELINE = 350;
@@ -39,6 +41,7 @@ function getInsuranceProps(centralData) {
 }
 
 function InsuranceMarket({ centralData } = {}) {
+  const { currency, convert, currentSymbol } = useCurrency();
   if (!centralData) return <MarketSkeleton />;
   const props = getInsuranceProps(centralData);
 
@@ -46,8 +49,10 @@ function InsuranceMarket({ centralData } = {}) {
 
   return (
     <div className="ins-market">
-
       <InsuranceDashboard
+        currency={currency}
+        currentSymbol={currentSymbol}
+        convert={convert}
         catBondSpreads={props.catBondSpreads}
         combinedRatioData={props.combinedRatioData}
         reserveAdequacyData={props.reserveAdequacyData}
@@ -60,11 +65,14 @@ function InsuranceMarket({ centralData } = {}) {
         treasury10y={props.treasury10y}
         catLosses={props.catLosses}
         combinedRatioHistory={props.combinedRatioHistory}
-        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+        error={props.error}
+        fetchedOn={props.fetchedOn}
+        isCurrent={props.isCurrent}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
         fetchLog={props.fetchLog}
       />
+      <DataFooter source="Yahoo Finance / FRED" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
     </div>
   );
 }

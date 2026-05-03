@@ -22,7 +22,8 @@ function usePersistedState(key, defaultValue) {
   });
   const persist = (v) => {
     setValue(v);
-    try { localStorage.setItem(key, v); } catch {}
+    try { localStorage.setItem(key, v); }
+    catch (e) { console.warn(`[CommoditiesDashboard] persist failed for "${key}":`, e?.message); }
   };
   return [value, persist];
 }
@@ -56,17 +57,87 @@ function CommoditiesDashboard({
   // RGL uses x, y, w, h. 12-column system.
   const layout = {
     lg: [
+      { i: 'sidebar', x: 8, y: 0, w: 4, h: 4 },
       { i: 'prices',  x: 0, y: 0, w: 8, h: 4 },
-      { i: 'futures', x: 8, y: 0, w: 4, h: 4 },
+      { i: 'futures', x: 8, y: 4, w: 4, h: 4 },
       { i: 'sector',  x: 0, y: 4, w: 4, h: 3 },
       { i: 'supply',  x: 4, y: 4, w: 4, h: 3 },
-      { i: 'cot',     x: 8, y: 4, w: 4, h: 3 },
+      { i: 'cot',     x: 8, y: 8, w: 4, h: 3 },
+      { i: 'comfx',   x: 0, y: 7, w: 4, h: 3 },
     ]
   };
 
   return (
-    <div className="com-dashboard com-dashboard--no-sidebar">
+    <div className="com-dashboard">
       <BentoWrapper layout={layout} storageKey="commodities-layout">
+        <div key="sidebar" className="bento-card">
+          <div className="com-panel-title-row bento-panel-title-row">
+            <span className="com-panel-title">Market Summary</span>
+          </div>
+          <div className="com-panel-content bento-panel-content com-panel-scroll" onMouseDown={stopDrag}>
+            <div className="com-sidebar-section">
+              <div className="com-sidebar-title">Key Prices</div>
+              <div className="com-sidebar-list">
+                 {allCommodities.filter(c => ['Gold', 'WTI Crude Oil', 'Natural Gas'].includes(c.name)).map(c => (
+                   <div key={c.ticker} className="com-sidebar-item">
+                     <span className="com-sidebar-label">{c.name}</span>
+                     <div className="com-sidebar-value-row">
+                       <span className="com-sidebar-value">{c.price?.toLocaleString()}</span>
+                       <span className="com-sidebar-change">{formatChange(c.change1d)}</span>
+                     </div>
+                   </div>
+                 ))}
+
+              </div>
+            </div>
+
+            <div className="com-sidebar-section">
+              <div className="com-sidebar-title">Indicators</div>
+              <div className="com-sidebar-list">
+                <div className="com-sidebar-item">
+                  <span className="com-sidebar-label">Gold/Oil Ratio</span>
+                  <span className="com-sidebar-value">{goldOilRatio?.ratio || '—'}</span>
+                </div>
+                <div className="com-sidebar-item">
+                  <span className="com-sidebar-label">DBC ETF</span>
+                  <div className="com-sidebar-value-row">
+                    <span className="com-sidebar-value">{dbcEtf?.price?.toLocaleString()}</span>
+                    <span className="com-sidebar-change">{formatChange(dbcEtf?.changePct)}</span>
+                  </div>
+                </div>
+                 <div className="com-sidebar-item">
+                   <span className="com-sidebar-label">Contango</span>
+                   <span className="com-sidebar-value">{contangoIndicator ? (contangoIndicator.structure === 'Contango' ? 'Contango' : 'Backwardation') : '—'}</span>
+                 </div>
+
+              </div>
+            </div>
+
+            <div className="com-sidebar-section">
+              <div className="com-sidebar-title">COT Net Positions</div>
+              <div className="com-sidebar-list">
+                {/* Cross-market enrichment now passes cotData as
+                    { commodities: [...] } (object with flat array). The
+                    older legacy shape was [{ sector, commodities: [] }, ...]
+                    so accept both — flatten if it's an array, or read
+                    .commodities directly. */}
+                {(Array.isArray(cotData)
+                  ? cotData.flatMap(s => s.commodities || [])
+                  : (cotData?.commodities || [])
+                ).slice(0, 5).map(c => (
+                  <div key={c.ticker || c.code || c.name} className="com-sidebar-item">
+                    <span className="com-sidebar-label">{c.name}</span>
+                    <span className={`com-sidebar-value ${(c.netPct ?? c.netPosition ?? 0) >= 0 ? 'pos' : 'neg'}`}>
+                      {(() => { const v = c.netPct != null ? `${c.netPct >= 0 ? '+' : ''}${c.netPct}%` : (c.netPosition != null ? `${c.netPosition > 0 ? '+' : ''}${c.netPosition.toLocaleString()}` : '—'); return v; })()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DataFooter source="CFTC / Yahoo" timestamp={lastUpdated} isLive={!!cotData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+        </div>
+
         <div key="prices" className="bento-card">
           <div className="com-panel-title-row bento-panel-title-row">
             <span className="com-panel-title">Commodity Prices</span>
@@ -119,15 +190,39 @@ function CommoditiesDashboard({
           </div>
           <DataFooter source="EIA" timestamp={lastUpdated} isLive={!!supplyDemandData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
         </div>
-        <div key="cot" className="bento-card">
-          <div className="com-panel-title-row bento-panel-title-row">
-            <span className="com-panel-title">COT Positioning</span>
-          </div>
-          <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            <CotPositioning cotData={cotData} lastUpdated={lastUpdated} />
-          </div>
-          <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+         <div key="cot" className="bento-card">
+           <div className="com-panel-title-row bento-panel-title-row">
+             <span className="com-panel-title">COT Positioning</span>
+           </div>
+           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
+             <CotPositioning cotData={cotData} lastUpdated={lastUpdated} />
+           </div>
+           <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+         </div>
+
+         <div key="comfx" className="bento-card">
+           <div className="com-panel-title-row bento-panel-title-row">
+             <span className="com-panel-title">Commodity FX (vs USD)</span>
+           </div>
+           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
+             <div className="com-fx-table">
+               <div className="com-fx-row header">
+                 <span>Currency</span>
+                 <span>Rate</span>
+                 <span>Change</span>
+               </div>
+               {commodityCurrencies && Object.entries(commodityCurrencies).map(([cur, data]) => (
+                 <div key={cur} className="com-fx-row">
+                   <span className="com-fx-name">{cur}</span>
+                   <span className="com-fx-rate">{data.rate?.toFixed(4)}</span>
+                   <span className="com-fx-change">{formatChange(data.changePct)}</span>
+                 </div>
+               ))}
+             </div>
+           </div>
+           <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={!!commodityCurrencies} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+         </div>
+
       </BentoWrapper>
     </div>
   );

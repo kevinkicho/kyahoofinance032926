@@ -30,8 +30,10 @@ describe('BondsMarket', () => {
 
   it('shows sidebar with key metrics', () => {
     render(<BondsMarket centralData={mockCentralData} />);
-    const yieldsSection = screen.getByText('Yields');
-    expect(yieldsSection).toBeInTheDocument();
+    // Sidebar headers: Yield Curve, Spreads, Credit Spreads (OAS), Breakevens.
+    expect(screen.getAllByText('Yield Curve').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Spreads').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Breakevens').length).toBeGreaterThan(0);
   });
 
   it('shows all charts visible at once (no tabs)', () => {

@@ -1,5 +1,24 @@
 /* src/markets/crypto/CryptoMarket.css */
 .crypto-market { display: flex; flex-direction: column; height: 100%; background: var(--bg-primary); }
+
+.crypto-market--with-sidebar {
+  display: grid !important;
+  grid-template-columns: 260px 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.crypto-market-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .crypto-market.crypto-loading { align-items: center; justify-content: center; gap: 12px; }
 .crypto-loading-spinner {
   width: 36px; height: 36px; border: 3px solid var(--border-subtle);

@@ -1,15 +1,22 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import DataContext from './DataContext';
+import { useCurrency } from './CurrencyContext';
 import { useInterval } from '../hooks/useInterval';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { putSnapshot, todayStr } from '../utils/snapshotDB';
 
 const SERVER = '';
 
-const FETCH_TIMEOUT = 30000;
-const FETCH_RETRIES = 1;
-const BATCH_CONCURRENCY = 4;
-const BATCH_DELAY_MS = 300;
+// Verbose fetch progress is helpful in dev but noisy in production.
+// Gate behind import.meta.env.DEV so prod builds stay clean.
+const dlog = import.meta.env.DEV ? console.log.bind(console) : () => {};
+
+const FETCH_SETTINGS = {
+  timeout: 30000,
+  retries: 1,
+  batchConcurrency: 4,
+  batchDelayMs: 300,
+};
 
 function tsNow() {
   const d = new Date();
@@ -17,7 +24,12 @@ function tsNow() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-const MARKET_ENDPOINTS = {
+// `analytics` ends with /api/rate-limits because the Analytics tab consumes
+// that endpoint for provenance. It used to be patched in from DataContext
+// after import, which created a circular-init TDZ in dev-mode ESM and broke
+// the app from mounting. Inline the entry here instead.
+export const MARKET_ENDPOINTS = {
+  analytics:         '/api/rate-limits',
   bonds:             '/api/bonds',
   fx:                '/api/fx',
   derivatives:       '/api/derivatives',
@@ -25,7 +37,11 @@ const MARKET_ENDPOINTS = {
   insurance:         '/api/insurance',
   commodities:       '/api/commodities/v2',
   globalMacro:       '/api/globalMacro',
-  equitiesDeepDive:  '/api/equityDeepDive',
+  watchlist:            '/api/watchlist',
+  // `/api/equities` doesn't exist on the backend — the Equities tab fetches
+  // from `/api/stocks` directly. Removing this entry stops DataProvider
+  // from crashing the wave on a JSON-parse error against the static fallback.
+  equitiesDeepDive:    '/api/equityDeepDive',
   institutional:     '/api/institutional',
   crypto:            '/api/crypto',
   credit:            '/api/credit',
@@ -39,6 +55,7 @@ const MARKET_ENDPOINTS = {
 };
 
 const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);
+const PRIORITY_MARKETS = ['equities', 'bonds', 'fx', 'crypto', 'sentiment'];
 
 const FEDERATED_MARKETS = {
   alerts: { endpoints: ['sentiment', 'bonds', 'credit', 'crypto', 'commodities', 'fx'] },
@@ -136,13 +153,14 @@ async function fetchMarket(marketId) {
   }
   const t0 = performance.now();
   try {
-    console.log(`[DataProvider] → ${marketId}`);
-    const r = await fetchWithRetry(`${SERVER}${url}`, { retries: FETCH_RETRIES, timeout: FETCH_TIMEOUT });
+    dlog(`[DataProvider] → ${marketId}`);
+    const r = await fetchWithRetry(`${SERVER}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
     const data = await r.json();
     const dur = Math.round(performance.now() - t0);
+    const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;
     const summary = summarizeData(data);
-    console.log(`[DataProvider] ✓ ${marketId} ${r.status} ${dur}ms — ${summary}`, data._sources || '');
-    return { marketId, data, ok: true, status: r.status, duration: dur };
+    dlog(`[DataProvider] ✓ ${marketId} ${r.status} ${dur}ms — ${summary}`, data._sources || '');
+    return { marketId, data, ok: true, status: r.status, duration: dur, requestId };
   } catch (err) {
     const dur = Math.round(performance.now() - t0);
     console.error(`[DataProvider] ✗ ${marketId} failed (${dur}ms):`, err?.message || err);
@@ -187,6 +205,7 @@ const STRUCTURAL_GUARDS = {
   globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
   credit:         d => d.spreadData?.history?.dates?.length >= 6,
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
+  equities:      d => Array.isArray(d.stocks) ? d.stocks.length >= 1 : true,
   equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
   calendar:       d => {
     const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 5;
@@ -228,7 +247,7 @@ function applyResult(prev, result) {
     } else if (!structuralOk) {
       console.warn(`[DataProvider] ⚠ ${id} passed hasNonNullData but failed structural guard — treating as empty`);
     }
-    console.log(`[DataProvider] ✓ ${id} isLive=${structuralOk} isCurrent=${isCurrent} fetchedOn=${d?.fetchedOn || 'n/a'}`);
+    dlog(`[DataProvider] ✓ ${id} isLive=${structuralOk} isCurrent=${isCurrent} fetchedOn=${d?.fetchedOn || 'n/a'}`);
     return {
       ...prev,
       [id]: {
@@ -239,7 +258,7 @@ function applyResult(prev, result) {
         fetchedOn: structuralOk ? (d?.fetchedOn || null) : null,
         isCurrent,
         error: structuralOk ? null : (hasRealData ? 'API returned insufficient data' : 'API returned empty data'),
-        fetchLog: [{ time: tsNow(), url: MARKET_ENDPOINTS[id], status: result.status, duration: result.duration, ...(structuralOk ? {} : { warning: hasRealData ? 'failed structural guard' : 'empty response' }) }, ...(prev[id]?.fetchLog || [])].slice(0, 20),
+        fetchLog: [{ time: tsNow(), url: MARKET_ENDPOINTS[id], status: result.status, duration: result.duration, requestId: result.requestId || null, ...(structuralOk ? {} : { warning: hasRealData ? 'failed structural guard' : 'empty response' }) }, ...(prev[id]?.fetchLog || [])].slice(0, 20),
         provenance: structuralOk && d?._sources ? { sources: d._sources } : prev[id]?.provenance || {},
       },
     };
@@ -251,15 +270,30 @@ function applyResult(prev, result) {
       ...prev[id],
       isLoading: false,
       error: result.error,
-      fetchLog: [{ time: tsNow(), url: MARKET_ENDPOINTS[id], status: 0, duration: result.duration, error: result.error }, ...(prev[id]?.fetchLog || [])].slice(0, 20),
+      fetchLog: [{ time: tsNow(), url: MARKET_ENDPOINTS[id], status: 0, duration: result.duration, error: result.error, requestId: result.requestId || null }, ...(prev[id]?.fetchLog || [])].slice(0, 20),
     },
   };
 }
 
-function computeAlerts(baseMarkets) {
+function getDisabledRuleIds() {
+  try {
+    const raw = localStorage.getItem('alert-rules-enabled');
+    if (!raw) return [];
+    const map = JSON.parse(raw);
+    return Object.entries(map).filter(([, v]) => v === false).map(([k]) => k);
+  } catch { return []; }
+}
+
+function computeAlerts(baseMarkets, disabledRuleIds) {
+  const disabledSet = new Set(disabledRuleIds || []);
   const ALERT_RULES = [
     { id: 'vix-spike', label: 'VIX Spike', severity: 'high', market: 'derivatives',
-      check: (d) => { const vixSignal = d.sentiment?.riskData?.signals?.find(s => s.name === 'VIX'); const vix = vixSignal?.value; return vix != null && vix > 25 ? { triggered: true, value: vix, message: `VIX at ${vix.toFixed(1)} — elevated volatility` } : { triggered: false }; } },
+      check: (d) => { 
+        const vixSignal = d.sentiment?.riskData?.signals?.find(s => s.name === 'VIX'); 
+        const vixDeriv = d.derivatives?.vixData?.spot;
+        const vix = vixSignal?.value ?? vixDeriv; 
+        return vix != null && vix > 30 ? { triggered: true, value: vix, message: `VIX at ${vix.toFixed(1)} — elevated volatility` } : { triggered: false }; 
+      } },
     { id: 'curve-inversion', label: 'Yield Curve Inversion', severity: 'high', market: 'bonds',
       check: (d) => { const ycd = d.bonds?.yieldCurveData; if (!ycd) return { triggered: false }; const us = ycd.US || ycd.us; if (!us) return { triggered: false }; const t10 = us['10y'] ?? us['10Y']; const t2 = us['2y'] ?? us['2Y']; return (t10 != null && t2 != null && t10 < t2) ? { triggered: true, value: (t10 - t2).toFixed(2), message: `10Y-2Y spread at ${(t10 - t2).toFixed(2)}% — inverted` } : { triggered: false }; } },
     { id: 'hy-spread-wide', label: 'HY Spread Widening', severity: 'medium', market: 'credit',
@@ -275,24 +309,25 @@ function computeAlerts(baseMarkets) {
         const v2 = d.commodities?.yahoo;
         if (v2) {
           const goldQuote = v2.futures?.['GC=F'];
-          if (goldQuote?.change != null && Math.abs(goldQuote.change) > 2) return { triggered: true, value: goldQuote.change.toFixed(1), message: `Gold ${goldQuote.change > 0 ? '+' : ''}${goldQuote.change.toFixed(1)}% — significant move` };
+          if (goldQuote?.change != null && Math.abs(goldQuote.change) > 3) return { triggered: true, value: goldQuote.change.toFixed(1), message: `Gold ${goldQuote.change > 0 ? '+' : ''}${goldQuote.change.toFixed(1)}% — significant move` };
         }
         const legacy = d.commodities?.priceDashboardData;
         if (legacy) {
           for (const sector of legacy) {
             const gold = sector.commodities?.find(c => c.ticker === 'GC=F');
-            if (gold?.change1d != null && Math.abs(gold.change1d) > 2) return { triggered: true, value: gold.change1d.toFixed(1), message: `Gold ${gold.change1d > 0 ? '+' : ''}${gold.change1d.toFixed(1)}% — significant move` };
+            if (gold?.change1d != null && Math.abs(gold.change1d) > 3) return { triggered: true, value: gold.change1d.toFixed(1), message: `Gold ${gold.change1d > 0 ? '+' : ''}${gold.change1d.toFixed(1)}% — significant move` };
           }
         }
         return { triggered: false };
       } },
+
     { id: 'dxy-move', label: 'Dollar Strength Shift', severity: 'low', market: 'fx',
       check: (d) => {
         const dxyH = d.fx?.dxyHistory;
         if (dxyH?.values?.length >= 2) {
           const vals = dxyH.values;
           const pctChange = ((vals[vals.length - 1] - vals[vals.length - 2]) / vals[vals.length - 2]) * 100;
-          if (Math.abs(pctChange) > 0.5) return { triggered: true, value: pctChange.toFixed(2), message: `DXY ${pctChange > 0 ? '+' : ''}${pctChange.toFixed(2)}% — dollar ${pctChange > 0 ? 'strengthening' : 'weakening'}` };
+          if (Math.abs(pctChange) > 2) return { triggered: true, value: pctChange.toFixed(2), message: `DXY ${pctChange > 0 ? '+' : ''}${pctChange.toFixed(2)}% — dollar ${pctChange > 0 ? 'strengthening' : 'weakening'}` };
         }
         return { triggered: false };
       } },
@@ -304,6 +339,7 @@ function computeAlerts(baseMarkets) {
   }
   const triggered = [];
   for (const rule of ALERT_RULES) {
+    if (disabledSet.has(rule.id)) continue;
     try {
       const result = rule.check(combined);
       if (result.triggered) triggered.push({ id: rule.id, label: rule.label, severity: rule.severity, market: rule.market, value: result.value, message: result.message });
@@ -317,9 +353,9 @@ function maybeComputeFederated(prev, next) {
   for (const [fedId, config] of Object.entries(FEDERATED_MARKETS)) {
     const allReady = config.endpoints.every(ep => next[ep]?.data);
     if (allReady) {
-      const alertResult = computeAlerts(next);
+      const alertResult = computeAlerts(next, getDisabledRuleIds());
       const triggered = alertResult.alerts.length;
-      console.log(`[DataProvider] ✓ Federated "${fedId}" computed — ${triggered} alert(s) triggered`);
+      dlog(`[DataProvider] ✓ Federated "${fedId}" computed — ${triggered} alert(s) triggered`);
       next[fedId] = {
         ...prev[fedId],
         data: alertResult,
@@ -330,7 +366,7 @@ function maybeComputeFederated(prev, next) {
       };
     } else {
       const missing = config.endpoints.filter(ep => !next[ep]?.data);
-      console.log(`[DataProvider] ⏳ Federated "${fedId}" waiting for: [${missing.join(', ')}]`);
+      dlog(`[DataProvider] ⏳ Federated "${fedId}" waiting for: [${missing.join(', ')}]`);
     }
   }
   return next;
@@ -345,19 +381,36 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
   useEffect(() => { marketsRef.current = markets; }, [markets]);
 
-  const fetchSingleMarket = useCallback(async (marketId) => {
-    const result = await fetchMarket(marketId);
-    if (!mountedRef.current) return;
-    setMarkets(prev => {
-      const next = applyResult(prev, result);
-      return maybeComputeFederated(prev, next);
-    });
-    persistToIDB(result);
+  const fetchSingleMarket = useCallback(async (marketId, params = null) => {
+    let url = MARKET_ENDPOINTS[marketId];
+    if (params) {
+      const query = new URLSearchParams(params).toString();
+      url = `${url}?${query}`;
+    }
+    if (!url) {
+      console.warn(`[DataProvider] ⚠ No endpoint for "${marketId}"`);
+      return { marketId, data: null, ok: false, status: 0, duration: 0, error: `No endpoint for ${marketId}` };
+    }
+    const t0 = performance.now();
+    try {
+      dlog(`[DataProvider] → ${marketId}`);
+      const r = await fetchWithRetry(`${SERVER}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
+      const data = await r.json();
+      const dur = Math.round(performance.now() - t0);
+      const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;
+      const summary = summarizeData(data);
+      dlog(`[DataProvider] ✓ ${marketId} ${r.status} ${dur}ms — ${summary}`, data._sources || '');
+      return { marketId, data, ok: true, status: r.status, duration: dur, requestId };
+    } catch (err) {
+      const dur = Math.round(performance.now() - t0);
+      console.error(`[DataProvider] ✗ ${marketId} failed (${dur}ms):`, err?.message || err);
+      return { marketId, data: null, ok: false, status: 0, duration: dur, error: err?.message || 'Fetch failed' };
+    }
   }, []);
 
   const fetchAllMarkets = useCallback(async () => {
     if (fetchingRef.current) {
-      console.log('[DataProvider] Fetch already in progress — skipping duplicate');
+      dlog('[DataProvider] Fetch already in progress — skipping duplicate');
       return;
     }
     fetchingRef.current = true;
@@ -372,13 +425,13 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     });
     setGlobalLoading(true);
 
-    console.log(`[DataProvider] Fetching ${ids.length} markets in batches of ${BATCH_CONCURRENCY}…`);
+    dlog(`[DataProvider] Fetching ${ids.length} markets in batches of ${FETCH_SETTINGS.batchConcurrency}…`);
 
-    for (let i = 0; i < ids.length; i += BATCH_CONCURRENCY) {
-      const batch = ids.slice(i, i + BATCH_CONCURRENCY);
-      if (i > 0) await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+    for (let i = 0; i < ids.length; i += FETCH_SETTINGS.batchConcurrency) {
+      const batch = ids.slice(i, i + FETCH_SETTINGS.batchConcurrency);
+      if (i > 0) await new Promise(r => setTimeout(r, FETCH_SETTINGS.batchDelayMs));
 
-      console.log(`[DataProvider] Batch ${Math.floor(i / BATCH_CONCURRENCY) + 1}: [${batch.join(', ')}]`);
+      dlog(`[DataProvider] Batch ${Math.floor(i / FETCH_SETTINGS.batchConcurrency) + 1}: [${batch.join(', ')}]`);
       const results = await Promise.allSettled(batch.map(id => fetchMarket(id)));
 
       if (!mountedRef.current) { fetchingRef.current = false; return; }
@@ -406,11 +459,11 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       }
     }
 
-    console.log(`[DataProvider] ✅ All fetches complete`);
+    dlog(`[DataProvider] ✅ All fetches complete`);
     fetchingRef.current = false;
     setGlobalLoading(false);
     const liveCount = Object.keys(MARKET_ENDPOINTS).length + Object.keys(FEDERATED_MARKETS).length;
-    console.log(`[DataProvider] ✅ All fetches complete`);
+    dlog(`[DataProvider] ✅ All fetches complete`);
   }, []);
 
   const fetchFederatedMarket = useCallback((fedId) => {
@@ -427,7 +480,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     }
     if (Object.keys(combined).length === 0) return;
     if (fedId === 'alerts') {
-      const alertResult = computeAlerts(marketsRef.current);
+      const alertResult = computeAlerts(marketsRef.current, getDisabledRuleIds());
       setMarkets(prev => ({
         ...prev,
         [fedId]: { ...prev[fedId], data: alertResult, isLoading: false, isLive: true, lastUpdated: tsNow(), fetchedOn: latestFetchedOn, fetchLog: [{ time: tsNow(), url: 'federated:alerts', status: 200, duration: 0 }, ...(prev[fedId]?.fetchLog || [])].slice(0, 20) },
@@ -437,11 +490,24 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
   const refetchAll = useCallback(() => { fetchAllMarkets(); }, [fetchAllMarkets]);
 
-  const refreshSingle = useCallback((marketId) => {
+  const refetchSingle = useCallback((marketId, params = null) => {
     if (FEDERATED_MARKETS[marketId]) { fetchFederatedMarket(marketId); }
-    else if (MARKET_ENDPOINTS[marketId]) { fetchSingleMarket(marketId); }
+    else if (MARKET_ENDPOINTS[marketId]) { fetchSingleMarket(marketId, params); }
   }, [fetchSingleMarket, fetchFederatedMarket]);
 
+  // Initial fetch on mount — without this, every panel sits at PENDING
+  // until the user clicks the manual refresh button. We track a separate
+  // `didInitialFetch` ref so the snapshot-from-localStorage path still
+  // hydrates first, but the fresh wave kicks off right after.
+  const didInitialFetchRef = useRef(false);
+  useEffect(() => {
+    if (didInitialFetchRef.current) return;
+    didInitialFetchRef.current = true;
+    fetchAllMarkets();
+  }, [fetchAllMarkets]);
+
+  // Manual-refresh button increments refreshKey from outside; this fires
+  // a wave each time it changes (skipping the initial 0→0 no-op).
   useEffect(() => {
     if (refreshKey > 0) fetchAllMarkets();
   }, [refreshKey, fetchAllMarkets]);
@@ -455,17 +521,60 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   }, [markets]);
 
   useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    const handleBeforeUnload = () => { saveSnapshot(marketsRef.current); };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
+
+  // WebSocket live-updates disabled — no WS server is deployed yet.
+  // Re-enable by adding `ws` on the server and uncommenting this effect.
 
   const getMarket = useCallback((marketId) => {
     const m = markets[marketId];
-    if (!m) return { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, error: null, fetchLog: [], refetch: () => {}, provenance: {} };
-    return { ...m, refetch: () => refreshSingle(marketId) };
-  }, [markets, refreshSingle]);
+    const { convert } = useCurrency();
+    
+    if (!m) return { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, error: null, fetchLog: [], refetch: () => refetchSingle(marketId), provenance: {} };
+    
+    let data = m.data;
+    if (data && typeof data === 'object') {
+      // Deep clone or map to avoid mutating state
+      data = JSON.parse(JSON.stringify(data));
+      
+      const convertValues = (obj) => {
+        if (!obj || typeof obj !== 'object') return obj;
+        for (const key in obj) {
+          const val = obj[key];
+          if (typeof val === 'number') {
+            obj[key] = convert(val);
+          } else if (typeof val === 'object') {
+            convertValues(val);
+          }
+        }
+        return obj;
+      };
+      convertValues(data);
+    }
 
-  const value = React.useMemo(() => ({ markets, globalLoading, getMarket, refetchAll, refreshSingle }), [markets, globalLoading, getMarket, refetchAll, refreshSingle]);
+    return { ...m, data, refetch: () => refetchSingle(marketId) };
+  }, [markets, refetchSingle]);
+
+  const auditFreshness = useCallback(() => {
+    const report = {};
+    const now = new Date();
+    Object.keys(MARKET_ENDPOINTS).forEach(id => {
+      const m = markets[id];
+      const fetchedAt = m?.fetchedOn ? new Date(m.fetchedOn) : null;
+      const diff = fetchedAt ? (now - fetchedAt) / 1000 / 60 : Infinity;
+      report[id] = {
+        status: diff <<  15 ? 'fresh' : diff <<  60 ? 'stale' : 'outdated',
+        ageMinutes: Math.round(diff),
+        timestamp: m?.fetchedOn || 'never'
+      };
+    });
+    return report;
+  }, [markets]);
+
+  const value = React.useMemo(() => ({ markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

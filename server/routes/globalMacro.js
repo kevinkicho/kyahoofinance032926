@@ -6,18 +6,18 @@ import { trackApiCall } from '../lib/rateLimits.js';
 const router = Router();
 
 const MACRO_COUNTRIES = [
-  { code: 'US', wbCode: 'US', weoCode: 'USA', name: 'United States',  flag: '🇺🇸', region: 'G7'       },
-  { code: 'EA', wbCode: 'XC', weoCode: 'EA19', name: 'Euro Area',      flag: '🇪🇺', region: 'Advanced' },
-  { code: 'GB', wbCode: 'GB', weoCode: 'GBR', name: 'United Kingdom', flag: '🇬🇧', region: 'G7'       },
-  { code: 'JP', wbCode: 'JP', weoCode: 'JPN', name: 'Japan',          flag: '🇯🇵', region: 'G7'       },
-  { code: 'CA', wbCode: 'CA', weoCode: 'CAN', name: 'Canada',         flag: '🇨🇦', region: 'G7'       },
-  { code: 'CN', wbCode: 'CN', weoCode: 'CHN', name: 'China',          flag: '🇨🇳', region: 'EM'       },
-  { code: 'IN', wbCode: 'IN', weoCode: 'IND', name: 'India',           flag: '🇮🇳', region: 'EM'       },
-  { code: 'BR', wbCode: 'BR', weoCode: 'BRA', name: 'Brazil',         flag: '🇧🇷', region: 'EM'       },
-  { code: 'KR', wbCode: 'KR', weoCode: 'KOR', name: 'South Korea',   flag: '🇰🇷', region: 'EM'       },
-  { code: 'AU', wbCode: 'AU', weoCode: 'AUS', name: 'Australia',      flag: '🇦🇺', region: 'Advanced' },
-  { code: 'MX', wbCode: 'MX', weoCode: 'MEX', name: 'Mexico',         flag: '🇲🇽', region: 'EM'       },
-  { code: 'SE', wbCode: 'SE', weoCode: 'SWE', name: 'Sweden',         flag: '🇸🇪', region: 'Advanced' },
+  { code: 'US', wbCode: 'US', weoCode: 'USA', name: 'United States',  flag: '🇺🇸', region: 'G7', fxCode: 'USD'       },
+  { code: 'EA', wbCode: 'XC', weoCode: 'EA19', name: 'Euro Area',      flag: '🇪🇺', region: 'Advanced', fxCode: 'EUR' },
+  { code: 'GB', wbCode: 'GB', weoCode: 'GBR', name: 'United Kingdom', flag: '🇬🇧', region: 'G7', fxCode: 'GBP'       },
+  { code: 'JP', wbCode: 'JP', weoCode: 'JPN', name: 'Japan',          flag: '🇯🇵', region: 'G7', fxCode: 'JPY'       },
+  { code: 'CA', wbCode: 'CA', weoCode: 'CAN', name: 'Canada',         flag: '🇨🇦', region: 'G7', fxCode: 'CAD'       },
+  { code: 'CN', wbCode: 'CN', weoCode: 'CHN', name: 'China',          flag: '🇨🇳', region: 'EM', fxCode: 'CNY'       },
+  { code: 'IN', wbCode: 'IN', weoCode: 'IND', name: 'India',           flag: '🇮🇳', region: 'EM', fxCode: 'INR'       },
+  { code: 'BR', wbCode: 'BR', weoCode: 'BRA', name: 'Brazil',         flag: '🇧🇷', region: 'EM', fxCode: 'BRL'       },
+  { code: 'KR', wbCode: 'KR', weoCode: 'KOR', name: 'South Korea',   flag: '🇰🇷', region: 'EM', fxCode: 'KRW'       },
+  { code: 'AU', wbCode: 'AU', weoCode: 'AUS', name: 'Australia',      flag: '🇦🇺', region: 'Advanced', fxCode: 'AUD' },
+  { code: 'MX', wbCode: 'MX', weoCode: 'MEX', name: 'Mexico',         flag: '🇲🇽', region: 'EM', fxCode: 'MXN'       },
+  { code: 'SE', wbCode: 'SE', weoCode: 'SWE', name: 'Sweden',         flag: '🇸🇪', region: 'Advanced', fxCode: 'SEK' },
 ];
 const MACRO_WB_CODES = MACRO_COUNTRIES.map(c => c.wbCode).join(';');
 
@@ -43,10 +43,23 @@ const BIS_BANK_NAMES = {
 
 const MACRO_TO_BIS = { US: 'US', EA: 'XM', GB: 'GB', JP: 'JP', CA: 'CA', CN: 'CN', IN: 'IN', BR: 'BR', KR: 'KR', AU: 'AU', MX: 'MX', SE: 'SE' };
 
-// OECD CLI country codes mapping
-const OECD_CLI_CODES = {
-  US: 'USA', EA: 'EA19', GB: 'GBR', JP: 'JPN', CA: 'CAN',
-  CN: 'CHN', IN: 'IND', BR: 'BRA', KR: 'KOR', AU: 'AUS', MX: 'MEX', SE: 'SWE',
+// OECD CLI: amplitude-adjusted Composite Leading Indicators, monthly.
+// Pulled from FRED (which mirrors the OECD MEI_CLI dataset). The previous
+// stats.oecd.org SDMX endpoint was deprecated mid-2024; FRED is the more
+// stable mirror. Series IDs follow OECD's own ISO3 + LOLITOAASTSAM pattern.
+const OECD_CLI_FRED_SERIES = {
+  US: 'USALOLITOAASTSAM',
+  EA: 'EA19LOLITOAASTSAM',
+  GB: 'GBRLOLITOAASTSAM',
+  JP: 'JPNLOLITOAASTSAM',
+  CA: 'CANLOLITOAASTSAM',
+  CN: 'CHNLOLITOAASTSAM',
+  IN: 'INDLOLITOAASTSAM',
+  BR: 'BRALOLITOAASTSAM',
+  KR: 'KORLOLITOAASTSAM',
+  AU: 'AUSLOLITOAASTSAM',
+  MX: 'MEXLOLITOAASTSAM',
+  SE: 'SWELOLITOAASTSAM',
 };
 
 // BLS CPI series for breakdown analysis
@@ -135,49 +148,33 @@ async function fetchBlsCpiBreakdown(BLS_API_KEY) {
 }
 
 async function fetchOECDCli() {
-  // OECD SDMX API for CLI (Leading Indicators)
-  // MEI_CLI_LOLITO_AGG = CLI Amplitude adjusted (LOLITO)
-  const codes = Object.values(OECD_CLI_CODES).join('+');
-  const url = `https://stats.oecd.org/sdmx-json/data/MEI_CLI/LOLITO_AGG.M.${codes}?contentType=csv`;
-  try {
-    const response = await fetch(url);
-    const text = await response.text();
-    const lines = text.split('\n');
-    if (lines.length < 2) return null;
+  const FRED_API_KEY = process.env.FRED_API_KEY;
+  if (!FRED_API_KEY) return null;
 
-    // Parse CSV - find header and data
-    const headerIdx = lines.findIndex(l => l.includes('LOCATION') || l.includes('TIME'));
-    if (headerIdx < 0) return null;
+  const entries = Object.entries(OECD_CLI_FRED_SERIES);
+  const results = await Promise.allSettled(
+    entries.map(async ([country, seriesId]) => {
+      const params = new URLSearchParams({
+        series_id: seriesId,
+        api_key: FRED_API_KEY,
+        file_type: 'json',
+        sort_order: 'desc',
+        limit: '1',
+      });
+      const data = await fetchJSON(`https://api.stlouisfed.org/fred/series/observations?${params.toString()}`);
+      const obs = (data?.observations || []).find(o => o.value !== '.');
+      if (!obs) return [country, null];
+      return [country, { value: Math.round(parseFloat(obs.value) * 10) / 10, date: obs.date }];
+    })
+  );
 
-    const result = {};
-    // Get the latest value for each country
-    for (let i = headerIdx + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      const cols = line.split(',');
-      if (cols.length < 3) continue;
-
-      // OECD CSV format: LOCATION, SUBJECT, MEASURE, FREQUENCY, TIME, Value, ...
-      const location = cols[0]?.replace(/"/g, '');
-      const time = cols[4]?.replace(/"/g, '');
-      const value = parseFloat(cols[5]?.replace(/"/g, ''));
-
-      if (!location || isNaN(value)) continue;
-
-      // Map back to our country codes
-      const countryCode = Object.keys(OECD_CLI_CODES).find(k => OECD_CLI_CODES[k] === location);
-      if (!countryCode) continue;
-
-      // Keep the most recent value
-      if (!result[countryCode] || time > result[countryCode].date) {
-        result[countryCode] = { value: Math.round(value * 10) / 10, date: time };
-      }
+  const out = {};
+  for (const r of results) {
+    if (r.status === 'fulfilled' && r.value[1]) {
+      out[r.value[0]] = r.value[1];
     }
-    return result;
-  } catch (e) {
-    console.warn('OECD CLI fetch failed:', e.message);
-    return null;
   }
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 async function fetchWBIndicator(indicator) {
@@ -487,7 +484,7 @@ router.get('/', async (req, res) => {
         fetchFredHistory('INDPRO',  FRED_API_KEY, 24).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
         fetchFredHistory('UMCSENT', FRED_API_KEY, 24).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
         fetchFredHistory('T10Y2Y',  FRED_API_KEY, 36).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
-        fetchFredHistory('CFNAIMA', FRED_API_KEY, 36).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
+        fetchFredHistory('CFNAIMA3', FRED_API_KEY, 36).catch(e => { console.warn('[GlobalMacro]', e.message || e); return null; }),
       ]);
 
       function computeYoY(obs) {

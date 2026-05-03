@@ -1,0 +1,106 @@
+/* src/markets/realEstate/RealEstateMarket.css */
+
+.re-market {
+  display: flex;
+  flex-direction: column;
+  /* See CreditMarket.css — `height: 100%` clipped the lower bento panels. */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+
+.re-market--with-sidebar {
+  display: grid !important;
+  grid-template-columns: 260px 1fr;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.re-market-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Sidebar styling */
+.realestate-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px 10px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  max-height: 100%;
+}
+
+.realestate-sidebar h3 {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 4px 0;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.realestate-sidebar .sidebar-section {
+  margin-bottom: 10px;
+}
+
+.realestate-sidebar .stat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.realestate-sidebar .sidebar-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  gap: 6px;
+}
+
+.realestate-sidebar .label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.realestate-sidebar .value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+/* Responsive breakpoint */
+@media (max-width: 900px) {
+  .re-market--with-sidebar {
+    grid-template-columns: 1fr;
+  }
+  .realestate-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    max-height: 200px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+  }
+  .realestate-sidebar .sidebar-section {
+    margin-bottom: 0;
+    flex: 1 1 140px;
+  }
+}

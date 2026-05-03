@@ -1,5 +1,6 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
+import { useCurrency } from '../../hub/CurrencyContext';
 import SentimentDashboard from './components/SentimentDashboard';
 import './SentimentMarket.css';
 
@@ -28,26 +29,34 @@ function getSentimentProps(centralData) {
 function SentimentMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getSentimentProps(centralData);
+  const { convert, currentSymbol } = useCurrency();
 
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    <div className="sent-market">
-
-      <SentimentDashboard
-        fearGreedData={props.fearGreedData}
-        cftcData={props.cftcData}
-        riskData={props.riskData}
-        returnsData={props.returnsData}
-        marginDebt={props.marginDebt}
-        consumerCredit={props.consumerCredit}
-        vvixHistory={props.vvixHistory}
-        fsiHistory={props.fsiHistory}
-        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
-        fetchLog={props.fetchLog}
-        isLive={props.isLive}
-        lastUpdated={props.lastUpdated}
-      />
+    // SentimentDashboard already wraps <SentimentSidebar> inside its
+    // BentoWrapper as a real grid panel; the loose left-column copy
+    // here was a duplicate and is gone, along with the outer two-column
+    // grid (`--with-sidebar`).
+    <div className="sent-market" role="region" aria-label="Sentiment">
+      <div className="sent-market-main">
+        <SentimentDashboard
+          fearGreedData={props.fearGreedData}
+          cftcData={props.cftcData}
+          riskData={props.riskData}
+          returnsData={props.returnsData}
+          marginDebt={props.marginDebt}
+          consumerCredit={props.consumerCredit}
+          vvixHistory={props.vvixHistory}
+          fsiHistory={props.fsiHistory}
+          convert={convert}
+          currentSymbol={currentSymbol}
+          error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+          fetchLog={props.fetchLog}
+          isLive={props.isLive}
+          lastUpdated={props.lastUpdated}
+        />
+      </div>
     </div>
   );
 }

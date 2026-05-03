@@ -4,6 +4,15 @@ import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import DataFooter from '../../../components/DataFooter/DataFooter';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import {
+  HousingPanel as CensusHousingPanel,
+  TradePanel as CensusTradePanel,
+  TrendsHousingPanel as CensusTrendsHousingPanel,
+  TrendsTradePanel as CensusTrendsTradePanel,
+  HOUSING_KEYS as CENSUS_HOUSING_KEYS,
+  ECO_KEYS as CENSUS_ECO_KEYS,
+  useCensusData,
+} from '../../census/components/CensusDashboard';
 import './RealEstateDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -24,10 +33,16 @@ function RealEstateDashboard({
   priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,
   caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
   housingStarts, existingHomeSales, rentalVacancy, medianHomePrice,
-  foreclosureData, mbaApplications, creDelinquencies,
+  foreclosureData, mbaApplications, creDelinquencies, commoditiesData, censusData,
   fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
+  const censusSeries = censusData?.series || {};
+  const { kpiData: censusKpiData, housingSeries: censusHousingSeries, ecoSeries: censusEcoSeries } = useCensusData(censusSeries);
+  const hasCensusHousingKpi = censusKpiData.some(k => CENSUS_HOUSING_KEYS.includes(k.key));
+  const hasCensusEcoKpi = censusKpiData.some(k => CENSUS_ECO_KEYS.includes(k.key));
+  const hasCensusHousingTrends = censusHousingSeries.length > 0;
+  const hasCensusEcoTrends = censusEcoSeries.length > 0;
 
   const shillerOption = useMemo(() => {
     const d = caseShillerData?.national || caseShillerData;
@@ -119,11 +134,18 @@ function RealEstateDashboard({
   if (affordabilityData?.length > 0) { layoutItems.push({ i: 'afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
   if (supplyData?.length > 0) { layoutItems.push({ i: 'supply', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
 
+  // Census panels (merged from former Census tab) — placed below RE panels.
+  const censusY = chartH * 2;
+  if (hasCensusHousingKpi) layoutItems.push({ i: 'census-housing', x: 0, y: censusY, w: 6, h: 3 });
+  if (hasCensusEcoKpi)     layoutItems.push({ i: 'census-trade',   x: 6, y: censusY, w: 6, h: 3 });
+  if (hasCensusHousingTrends) layoutItems.push({ i: 'census-trends-housing', x: 0, y: censusY + 3, w: 6, h: 4 });
+  if (hasCensusEcoTrends)     layoutItems.push({ i: 'census-trends-trade',   x: 6, y: censusY + 3, w: 6, h: 4 });
+
   const dynamicLayout = { lg: layoutItems };
 
   return (
     <div className="re-dashboard re-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout">
+      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v3">
         {/* Key Metrics */}
         <div key="metrics" className="re-bento-card">
           <div className="re-panel-title-row bento-panel-title-row">
@@ -137,14 +159,23 @@ function RealEstateDashboard({
                   <div className="re-metric-label">Case-Shiller</div>
                   <div className="re-metric-value" style={{ color: '#60a5fa' }}><MetricValue value={shillerLatest} seriesKey="caseShiller" timestamp={lastUpdated} format={v => v.toFixed(1)} /></div>
                 </div>
-                {typeof medianHomePrice === 'number' && (
-                  <div className="re-metric-card">
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">Median Price</span>
-                      <span className="re-metric-num"><MetricValue value={medianHomePrice} seriesKey="medianHomePrice" timestamp={lastUpdated} format={v => v != null ? `$${(v / 1000).toFixed(0)}K` : '—'} /></span>
+                {(() => {
+                  // Server returns medianHomePrice as either a scalar
+                  // (legacy) or { dates, values } from the affordability
+                  // history fallback path. Pick the latest numeric value.
+                  const v = typeof medianHomePrice === 'number'
+                    ? medianHomePrice
+                    : medianHomePrice?.values?.[medianHomePrice.values.length - 1];
+                  if (typeof v !== 'number') return null;
+                  return (
+                    <div className="re-metric-card">
+                      <div className="re-metric-row">
+                        <span className="re-metric-name">Median Price</span>
+                        <span className="re-metric-num"><MetricValue value={v} seriesKey="medianHomePrice" timestamp={lastUpdated} format={x => typeof x === 'number' ? `$${(x / 1000).toFixed(0)}K` : '—'} /></span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )}
 
@@ -173,18 +204,33 @@ function RealEstateDashboard({
             <div className="re-sidebar-section">
               <div className="re-sidebar-title">Activity</div>
               <div className="re-metric-card">
-                {typeof housingStarts === 'number' && (
-                  <div className="re-metric-row">
-                    <span className="re-metric-name">Housing Starts</span>
-                     <span className="re-metric-num"><MetricValue value={housingStarts} seriesKey="housingStarts" timestamp={lastUpdated} format={v => `${(v / 1000).toFixed(1)}M`} /></span>
-                  </div>
-                )}
-                {typeof existingHomeSales === 'number' && (
-                  <div className="re-metric-row">
-                    <span className="re-metric-name">Existing Sales</span>
-                     <span className="re-metric-num"><MetricValue value={existingHomeSales} seriesKey="existingHomeSales" timestamp={lastUpdated} format={v => `${(v / 1000).toFixed(1)}M`} /></span>
-                  </div>
-                )}
+                {(() => {
+                  // Server: housingStarts = { dates, starts, permits } from supplyData.
+                  // Pull the latest scalar; bail if the panel got nothing.
+                  const v = typeof housingStarts === 'number'
+                    ? housingStarts
+                    : housingStarts?.starts?.[housingStarts.starts.length - 1] ?? housingStarts?.values?.[housingStarts.values?.length - 1];
+                  if (typeof v !== 'number') return null;
+                  return (
+                    <div className="re-metric-row">
+                      <span className="re-metric-name">Housing Starts</span>
+                      <span className="re-metric-num"><MetricValue value={v} seriesKey="housingStarts" timestamp={lastUpdated} format={x => typeof x === 'number' ? `${(x / 1000).toFixed(1)}M` : '—'} /></span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  // Server: existingHomeSales = { dates, values } from FRED EXHOSLUSM495S.
+                  const v = typeof existingHomeSales === 'number'
+                    ? existingHomeSales
+                    : existingHomeSales?.values?.[existingHomeSales.values.length - 1];
+                  if (typeof v !== 'number') return null;
+                  return (
+                    <div className="re-metric-row">
+                      <span className="re-metric-name">Existing Sales</span>
+                      <span className="re-metric-num"><MetricValue value={v} seriesKey="existingHomeSales" timestamp={lastUpdated} format={x => typeof x === 'number' ? `${(x / 1000).toFixed(1)}M` : '—'} /></span>
+                    </div>
+                  );
+                })()}
                 {typeof homeownershipRate === 'number' && (
                   <div className="re-metric-row">
                     <span className="re-metric-name">Homeownership</span>
@@ -226,14 +272,46 @@ function RealEstateDashboard({
                       <span className="re-metric-num" style={{ color: '#8b5cf6' }}>
                         <MetricValue value={creDelinquencies?.values?.[creDelinquencies.values.length - 1]} seriesKey="creDelinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
                       </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             )}
+
+             {commoditiesData && (
+               <div className="re-sidebar-section">
+                 <div className="re-sidebar-title">Commodities</div>
+                 <div className="re-metric-card">
+                   {commoditiesData.gold && (
+                     <div className="re-metric-row">
+                       <span className="re-metric-name">Gold</span>
+                       <span className="re-metric-num"><MetricValue value={commoditiesData.gold.price} seriesKey="goldPrice" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /></span>
+                     </div>
+                   )}
+                   {commoditiesData.wti && (
+                     <div className="re-metric-row">
+                       <span className="re-metric-name">WTI Oil</span>
+                       <span className="re-metric-num"><MetricValue value={commoditiesData.wti.price} seriesKey="wtiPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(2)}`} /></span>
+                     </div>
+                   )}
+                   {commoditiesData.natGas && (
+                     <div className="re-metric-row">
+                       <span className="re-metric-name">Nat Gas</span>
+                       <span className="re-metric-num"><MetricValue value={commoditiesData.natGas.price} seriesKey="natGasPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(3)}`} /></span>
+                     </div>
+                   )}
+                   {typeof commoditiesData.goldOilRatio === 'number' && (
+                     <div className="re-metric-row">
+                       <span className="re-metric-name">Gold/Oil Ratio</span>
+                       <span className="re-metric-num"><MetricValue value={commoditiesData.goldOilRatio} seriesKey="goldOilRatio" timestamp={lastUpdated} format={v => v.toFixed(2)} /></span>
+                     </div>
+                   )}
+                 </div>
+               </div>
+             )}
+           </div>
+           <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+         </div>
 
         {/* Case-Shiller */}
         {shillerOption && (
@@ -383,6 +461,32 @@ function RealEstateDashboard({
               </div>
             </div>
             <DataFooter source="FRED / Census" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+          </div>
+        )}
+
+        {/* ── Census panels (merged from former Census tab) ── */}
+        {hasCensusHousingKpi && (
+          <div key="census-housing" className="re-bento-card">
+            <CensusHousingPanel kpiData={censusKpiData} housingKeys={CENSUS_HOUSING_KEYS} />
+            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+          </div>
+        )}
+        {hasCensusEcoKpi && (
+          <div key="census-trade" className="re-bento-card">
+            <CensusTradePanel kpiData={censusKpiData} ecoKeys={CENSUS_ECO_KEYS} />
+            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+          </div>
+        )}
+        {hasCensusHousingTrends && (
+          <div key="census-trends-housing" className="re-bento-card">
+            <CensusTrendsHousingPanel housingSeries={censusHousingSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
+            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+          </div>
+        )}
+        {hasCensusEcoTrends && (
+          <div key="census-trends-trade" className="re-bento-card">
+            <CensusTrendsTradePanel ecoSeries={censusEcoSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
+            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
       </BentoWrapper>

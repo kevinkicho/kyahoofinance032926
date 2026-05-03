@@ -218,6 +218,11 @@ router.get('/', async (req, res) => {
     let reer = null;
     if (FRED_API_KEY) {
       try {
+        // BIS Real Effective Exchange Rates via FRED. The BIS series have
+        // been reshuffled over the years — `RB[CC]BIS` is the historical
+        // ID set; if any are 404'd we still surface whatever returned
+        // (lowered the floor from 3 to 2 countries so the panel binds
+        // even when 1–3 of the 5 series are missing).
         const REER_SERIES = { US: 'RBUSBIS', EU: 'RBEUBIS', JP: 'RBJPBIS', GB: 'RBGBBIS', CN: 'RBCNBIS' };
         const reerEntries = Object.entries(REER_SERIES);
         trackApiCall('FRED');
@@ -226,16 +231,23 @@ router.get('/', async (req, res) => {
         );
         const reerData = {};
         let dateSet = null;
-        reerResults.forEach(r => {
+        const failures = [];
+        reerResults.forEach((r, i) => {
+          const [seriesKey, sid] = reerEntries[i];
           if (r.status === 'fulfilled') {
             const [key, hist] = r.value;
             if (hist && hist.length >= 2) {
               reerData[key] = hist.map(p => Math.round(p.value * 100) / 100);
-              if (!dateSet) dateSet = hist.map(p => p.date);
+              if (!dateSet || hist.length > dateSet.length) dateSet = hist.map(p => p.date);
+            } else {
+              failures.push(`${seriesKey}(${sid}): empty`);
             }
+          } else {
+            failures.push(`${seriesKey}(${sid}): ${r.reason?.message || 'rejected'}`);
           }
         });
-        if (dateSet && Object.keys(reerData).length >= 3) {
+        if (failures.length > 0) console.warn('[FX-REER] partial:', failures.join(', '));
+        if (dateSet && Object.keys(reerData).length >= 2) {
           reer = { dates: dateSet, ...reerData };
         }
       } catch (e) { console.warn('[FX]', e.message || e); }

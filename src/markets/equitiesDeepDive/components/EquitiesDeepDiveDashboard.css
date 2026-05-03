@@ -75,6 +75,159 @@
   border-bottom: 2px solid #6366f1 !important;
 }
 
+/* ── KPI strip (Equity+ Key Metrics top bento card) ──
+   3-column layout: ranked sector bar chart · factor rotation · summary pills.
+   Responsive: collapses to single column on narrow viewports. */
+.eqd-kpi-strip {
+  display: grid;
+  grid-template-columns: minmax(260px, 5fr) minmax(180px, 3fr) minmax(200px, 3fr);
+  gap: 12px;
+  padding: 8px 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+@container bento-card (max-width: 760px) {
+  .eqd-kpi-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .eqd-kpi-section-summary { grid-column: 1 / -1; }
+}
+
+@container bento-card (max-width: 460px) {
+  .eqd-kpi-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+.eqd-kpi-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.eqd-kpi-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.eqd-kpi-section-sectors > div:last-child { flex: 1; min-height: 0; }
+
+.eqd-kpi-empty,
+.eqd-kpi-strip-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 12px;
+  text-align: center;
+}
+
+/* ── Factor rotation rows (mini diverging bars) ── */
+.eqd-factor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  justify-content: space-around;
+}
+
+.eqd-factor-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+}
+
+.eqd-factor-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.eqd-factor-bar-track {
+  position: relative;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.eqd-factor-bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+.eqd-factor-bar-axis {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  opacity: 0.4;
+}
+
+.eqd-factor-value {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  text-align: right;
+}
+
+/* ── Summary KPI pill grid (2x2) ── */
+.eqd-kpi-pill-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+.eqd-kpi-pill {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 4px;
+  background: var(--bg-card);
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle);
+  gap: 1px;
+  min-width: 0;
+}
+
+.eqd-kpi-pill-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.eqd-kpi-pill-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  line-height: 1.1;
+}
+
+.eqd-kpi-pill-sub {
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+
 /* ── Sidebar metric cards (used inside Key Metrics bento card) ── */
 .eqd-metric-card {
   background: var(--bg-primary);

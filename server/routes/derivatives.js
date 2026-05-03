@@ -3,22 +3,14 @@ import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchFredHistory } from '../lib/fred.js';
 
 const router = Router();
 
 const VIX_TICKERS = ['^VIX9D', '^VIX', '^VIX3M', '^VIX6M'];
 const VIX_LABELS  = ['9D', '1M', '3M', '6M'];
 
-async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
-  const data = await fetchJSON(url);
-  return (data?.observations || [])
-    .filter(o => o.value !== '.')
-    .map(o => ({ date: o.date, value: parseFloat(o.value) }))
-    .reverse();
-}
-
-async function buildVolSurface(spyPrice) {
+async function buildVolAndGamma(spyPrice) {
   const targetDays  = [7, 14, 30, 60, 90, 180, 365, 730];
   const expLabels   = ['1W', '2W', '1M', '2M', '3M', '6M', '1Y', '2Y'];
   const strikePcts  = [0.80, 0.85, 0.90, 0.95, 1.00, 1.05, 1.10, 1.15, 1.20];
@@ -32,7 +24,8 @@ async function buildVolSurface(spyPrice) {
   } catch { return null; }
 
   const now = Math.floor(Date.now() / 1000);
-  const grid = [];
+  const volGrid = [];
+  const gexMap = {};
 
   for (const days of targetDays) {
     const target = now + days * 86400;
@@ -42,21 +35,43 @@ async function buildVolSurface(spyPrice) {
       trackApiCall('Yahoo Finance');
       const opts = await yf.options('SPY', { date: nearest });
       const calls = opts.options[0]?.calls || [];
+      const puts = opts.options[0]?.puts || [];
+
+      // Vol Surface Row
       const row = strikePcts.map(pct => {
         const ts = Math.round(spyPrice * pct);
         const c  = calls.reduce((b, x) => Math.abs(x.strike - ts) < Math.abs((b?.strike ?? Infinity) - ts) ? x : b, null);
         return c?.impliedVolatility ? Math.round(c.impliedVolatility * 1000) / 10 : null;
       });
-      grid.push(row);
-} catch (err) {
-      grid.push(new Array(9).fill(null));
+      volGrid.push(row);
+
+      // GEX Calculation (using first available expiry for surface-consistent layout if needed, 
+      // but usually GEX is summed across all near-term)
+      // The requirement says "for each SPY option chain", we group by strike.
+      [...calls, ...puts].forEach(opt => {
+        if (opt.gamma && opt.openInterest) {
+          const strike = opt.strike;
+          const contractSize = 100;
+          const gex = (opt.type === 'call' ? -1 : 1) * opt.delta * opt.gamma * opt.openInterest * contractSize * spyPrice * 0.01;
+          gexMap[strike] = (gexMap[strike] || 0) + gex;
+        }
+      });
+    } catch (err) {
+      volGrid.push(new Array(9).fill(null));
     }
   }
 
-  const total = grid.flat().filter(v => v != null).length;
+  const total = volGrid.flat().filter(v => v != null).length;
   if (total < 20) return null;
 
-  return { strikes, expiries: expLabels, grid };
+  const gammaExposure = Object.entries(gexMap)
+    .map(([strike, value]) => ({ strike: parseFloat(strike), value: Math.round(value / 1e6) }))
+    .sort((a, b) => a.strike - b.strike);
+
+  return {
+    volSurfaceData: { strikes, expiries: expLabels, grid: volGrid },
+    gammaExposure
+  };
 }
 
 router.get('/', async (req, res) => {
@@ -138,11 +153,16 @@ router.get('/', async (req, res) => {
     } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     let volSurfaceData = null;
+    let gammaExposure = null;
     try {
       trackApiCall('Yahoo Finance');
       const spyQuote = await yf.quote('SPY');
       if (!spyQuote?.regularMarketPrice) throw new Error('SPY price unavailable');
-      volSurfaceData = await buildVolSurface(spyQuote.regularMarketPrice);
+      const result = await buildVolAndGamma(spyQuote.regularMarketPrice);
+      if (result) {
+        volSurfaceData = result.volSurfaceData;
+        gammaExposure = result.gammaExposure;
+      }
     } catch (e) { console.warn('[Derivatives]', e.message || e); }
 
     let volPremium = null;
@@ -224,43 +244,6 @@ router.get('/', async (req, res) => {
       } catch (e) { console.warn('[Derivatives]', e.message || e); }
     }
 
-    // Gamma Exposure estimate from SPY options
-    let gammaExposure = null;
-    try {
-      trackApiCall('Yahoo Finance');
-      const spyOpts = await yf.options('SPY').catch(e => { console.warn('[Derivatives]', e.message || e); return null; });
-      if (spyOpts?.options?.[0]) {
-        const exp = spyOpts.options[0];
-        const calls = exp.calls || [];
-        const puts = exp.puts || [];
-        const spyPrice = spyQuote?.regularMarketPrice || 500;
-        let totalGamma = 0;
-        let callGamma = 0;
-        let putGamma = 0;
-
-        // Calculate gamma exposure from near-ATM options
-        [...calls, ...puts].forEach(opt => {
-          if (opt.gamma && opt.openInterest) {
-            const gammaContrib = opt.gamma * opt.openInterest * 100 * spyPrice * 0.01;
-            totalGamma += gammaContrib;
-            if (opt.strike >= spyPrice * 0.95 && opt.strike <= spyPrice * 1.05) {
-              if (calls.includes(opt)) callGamma += gammaContrib;
-              else putGamma += gammaContrib;
-            }
-          }
-        });
-
-        if (totalGamma > 0) {
-          gammaExposure = {
-            total: Math.round(totalGamma / 1e9 * 10) / 10,
-            callGamma: Math.round(callGamma / 1e9 * 10) / 10,
-            putGamma: Math.round(putGamma / 1e9 * 10) / 10,
-            netGamma: Math.round((callGamma - putGamma) / 1e9 * 10) / 10,
-          };
-        }
-      }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); }
-
     const vixPercentile = vixEnrichment?.vixPercentile ?? null;
 
     let termSpread = null;
@@ -278,27 +261,28 @@ router.get('/', async (req, res) => {
       vixEnrichment: !!vixEnrichment,
       optionsFlow: !!(optionsFlow && optionsFlow.length),
       volSurfaceData: !!(volSurfaceData && volSurfaceData.grid?.length),
+      gammaExposure: !!(gammaExposure && gammaExposure.length),
       volPremium: !!volPremium,
       fredVixHistory: !!(fredVixHistory && fredVixHistory.values?.length),
       putCallRatio: putCallRatio != null,
       skewIndex: !!skewIndex,
       skewHistory: !!(skewHistory && skewHistory.values?.length),
-      gammaExposure: !!gammaExposure,
       vixPercentile: vixPercentile != null,
       termSpread: !!termSpread,
     };
+
 
     const result = {
       vixTermStructure,
       optionsFlow,
       volSurfaceData,
+      gammaExposure,
       vixEnrichment,
       volPremium,
       fredVixHistory,
       putCallRatio,
       skewIndex,
       skewHistory,
-      gammaExposure,
       vixPercentile,
       termSpread,
       _sources,

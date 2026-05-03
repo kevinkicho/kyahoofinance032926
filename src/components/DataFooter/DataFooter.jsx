@@ -133,6 +133,28 @@ const SOURCE_META = {
   spPE: { desc: 'S&P 500 P/E ratio', series: [] },
   breadthDivergence: { desc: 'Market breadth and divergence indicators', series: [] },
   buffettIndicator: { desc: 'Buffett Indicator (total market cap / GDP)', series: ['GFDEBTN'] },
+  census_housingStarts: { desc: 'Housing Starts (HOUST) — Census Bureau via FRED', series: ['HOUST'] },
+  census_buildingPermits: { desc: 'Building Permits (PERMIT) — Census Bureau via FRED', series: ['PERMIT'] },
+  census_retailSales: { desc: 'Retail Sales (RSAFS) — Census Bureau via FRED', series: ['RSAFS'] },
+  census_tradeBalance: { desc: 'Trade Balance (BOPGSTB) — Census Bureau / BEA via FRED', series: ['BOPGSTB'] },
+  census_durableGoods: { desc: 'Durable Goods Orders (DGORDER) — Census Bureau via FRED', series: ['DGORDER'] },
+  census_newHomeSales: { desc: 'New Home Sales (HSN1F) — Census Bureau via FRED', series: ['HSN1F'] },
+  census_constructionSpending: { desc: 'Construction Spending (TTLCONS) — Census Bureau via FRED', series: ['TTLCONS'] },
+  bls_unemployment: { desc: 'Unemployment Rate (LNS14000000) — BLS', series: ['LNS14000000'] },
+  bls_laborParticipation: { desc: 'Labor Force Participation Rate (LNS11300000) — BLS', series: ['LNS11300000'] },
+  bls_employmentPop: { desc: 'Employment-Population Ratio (LNS12300000) — BLS', series: ['LNS12300000'] },
+  bls_nonfarmPayrolls: { desc: 'Nonfarm Payrolls (CES0000000001) — BLS', series: ['CES0000000001'] },
+  bls_avgHourlyEarnings: { desc: 'Avg Hourly Earnings (CES0500000008) — BLS', series: ['CES0500000008'] },
+  bls_cpi: { desc: 'CPI All Urban Consumers (CUUR0000SA0) — BLS', series: ['CUUR0000SA0'] },
+  bls_ppi: { desc: 'PPI Final Demand (WPSFD4111) — BLS', series: ['WPSFD4111'] },
+  bls_jobOpenings: { desc: 'Job Openings (LNS17200000) — BLS', series: ['LNS17200000'] },
+  bls_unemployedPersons: { desc: 'Unemployed Persons (LNS13000000) — BLS', series: ['LNS13000000'] },
+  bls_avgWeeklyHours: { desc: 'Avg Weekly Hours (CES0500000002) — BLS', series: ['CES0500000002'] },
+  eia_elecResidential: { desc: 'US residential electricity retail sales and prices — EIA', series: [] },
+  eia_elecCommercial: { desc: 'US commercial electricity retail sales and prices — EIA', series: [] },
+  eia_elecIndustrial: { desc: 'US industrial electricity retail sales and prices — EIA', series: [] },
+  eia_co2Total: { desc: 'US total CO₂ emissions — EIA', series: [] },
+  eia_co2BySector: { desc: 'US CO₂ emissions by sector — EIA', series: [] },
 };
 
 function resolveMeta(key) {
@@ -222,6 +244,7 @@ function EntryDetail({ entry }) {
       <div className="df-detail-row"><span className="df-dl"></span><span className="df-dv-sub">{utc}</span></div>
       <div className="df-detail-row"><span className="df-dl">Endpoint</span><span className="df-dv df-url-row"><a className="df-url-link" href={fullUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>{fullUrl}</a><CopyBtn text={fullUrl} /></span></div>
       <div className="df-detail-row"><span className="df-dl">Status</span><span className="df-dv">{entry.error ? <span className="df-err">Error: {entry.error}</span> : <span className="df-ok">{entry.status} in {entry.duration}</span>}</span></div>
+      {entry.requestId && <div className="df-detail-row"><span className="df-dl">Request ID</span><span className="df-dv df-request-id">{entry.requestId}</span></div>}
 
       {entry.sources && Object.keys(entry.sources).length > 0 && (
         <div className="df-detail-sources">

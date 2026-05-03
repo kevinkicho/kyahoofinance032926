@@ -74,6 +74,15 @@
   color: var(--text-muted, #666);
 }
 
+.bls-kpi-sparkline {
+  margin-top: 4px;
+}
+
+.bls-kpi-sparkline svg {
+  width: 100%;
+  height: auto;
+}
+
 .bls-chart-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -93,4 +102,28 @@
   font-size: 0.8rem;
   color: var(--text-muted, #aaa);
   font-weight: 500;
+}
+
+.bls-bento-panel {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.bls-bento-panel > .bento-panel-title-row {
+  padding: 6px 12px;
+  cursor: grab;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-color, #222);
+}
+
+.bls-bento-panel > .bento-panel-content {
+  padding: 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }

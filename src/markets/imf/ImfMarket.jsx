@@ -1,6 +1,7 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import ImfDashboard from './ImfDashboard';
+import DataFooter from '../../components/DataFooter/DataFooter';
 import './ImfDashboard.css';
 
 function getImfProps(centralData) {
@@ -28,20 +29,30 @@ function ImfMarket({ centralData } = {}) {
 
   if (props.isLoading) return <MarketSkeleton />;
 
-  return (
-    <div className="imf-market">
-      <ImfDashboard
-        countries={props.countries}
-        weoForecasts={props.weoForecasts}
-        ifsReserves={props.ifsReserves}
-        cofer={props.cofer}
-        error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
-        fetchLog={props.fetchLog}
-        isLive={props.isLive || !!props.snapshot}
-        lastUpdated={props.lastUpdated}
-      />
-    </div>
-  );
+    return (
+      <div className="imf-market">
+        <ImfDashboard
+          countries={props.countries}
+          weoForecasts={props.weoForecasts}
+          ifsReserves={props.ifsReserves}
+          cofer={props.cofer}
+          error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+          fetchLog={props.fetchLog}
+          isLive={props.isLive || !!props.snapshot}
+          lastUpdated={props.lastUpdated}
+        />
+        <DataFooter 
+          source="IMF" 
+          timestamp={props.lastUpdated} 
+          isLive={props.isLive} 
+          fetchLog={props.fetchLog} 
+          error={props.error} 
+          fetchedOn={props.fetchedOn} 
+          isCurrent={props.isCurrent} 
+        />
+      </div>
+    );
+
 }
 
 export default React.memo(ImfMarket);

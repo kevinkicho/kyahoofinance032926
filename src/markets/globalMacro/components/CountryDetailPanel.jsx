@@ -7,8 +7,13 @@ import { useTheme } from '../../../hub/ThemeContext';
  * CountryDetailPanel - Sidebar showing detailed country metrics
  * Slides in from right when a country is clicked
  */
-export default function CountryDetailPanel({ country, onClose, centralBankData, oecdCli, scorecardData }) {
+export default function CountryDetailPanel({ country, onClose, centralBankData, oecdCli, scorecardData, convertAndFormat, currentSymbol }) {
   const { colors } = useTheme();
+  const fmtCurrency = (val, decimals = 0) => {
+    if (val == null) return '—';
+    if (convertAndFormat) return convertAndFormat(val, 'USD', decimals);
+    return `${currentSymbol || '$'}${Number(val).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+  };
 
   // Find matching data from other sources
   const rateInfo = useMemo(() => {
@@ -109,6 +114,22 @@ export default function CountryDetailPanel({ country, onClose, centralBankData, 
               <span className="mac-metric-rank">#{rankings.debt}/{rankings.total}</span>
             </span>
           </div>
+          {country.gdpPerCapita != null && (
+            <div className="mac-metric-row">
+              <span className="mac-metric-label">GDP per Capita</span>
+              <span className="mac-metric-value" style={{ color: colors.textPrimary }}>
+                {fmtCurrency(country.gdpPerCapita, 0)}
+              </span>
+            </div>
+          )}
+          {country.intlReserves != null && (
+            <div className="mac-metric-row">
+              <span className="mac-metric-label">Intl Reserves</span>
+              <span className="mac-metric-value" style={{ color: colors.textSecondary }}>
+                {fmtCurrency(country.intlReserves * 1e9, 1)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

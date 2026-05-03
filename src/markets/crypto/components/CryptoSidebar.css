@@ -1,0 +1,113 @@
+/* Sidebar lives inside a .crypto-bento-card — chrome comes from .bento-card.
+   This rule only handles internal vertical layout. */
+.crypto-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.crypto-sidebar.crypto-sidebar--in-bento {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.crypto-sidebar-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 10px 0;
+  padding-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.crypto-sidebar-section {
+  margin-bottom: 10px;
+}
+
+.crypto-sidebar-section-title {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 4px 0;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.crypto-sidebar-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  gap: 6px;
+}
+
+.crypto-sidebar-metric-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.crypto-sidebar-metric-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.crypto-sidebar-metric-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.crypto-sidebar-metric-change {
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.crypto-sidebar-metric-sub {
+  font-size: 10px;
+  font-weight: 500;
+  padding-left: 2px;
+}
+
+.crypto-sidebar-status {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 10px;
+}
+
+.crypto-sidebar-live {
+  color: #22c55e;
+}
+
+.crypto-sidebar-fallback {
+  color: var(--text-dim);
+}
+
+@media (max-width: 900px) {
+  .crypto-market--with-sidebar {
+    grid-template-columns: 1fr;
+  }
+  .crypto-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    max-height: 200px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+  }
+  .crypto-sidebar-section {
+    margin-bottom: 0;
+    flex: 1 1 140px;
+  }
+}

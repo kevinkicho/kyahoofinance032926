@@ -195,6 +195,7 @@
 .df-dv { color: var(--text-primary); font-size: 10px; min-width: 0; }
 .df-dv-sub { color: var(--text-muted); font-size: 8px; font-family: monospace; }
 .df-dv-muted { color: var(--text-muted); font-size: 8px; }
+.df-request-id { font-family: monospace; font-size: 9px; color: #a78bfa; user-select: all; }
 
 .df-tz { color: #fbbf24; font-size: 9px; font-weight: 600; margin-left: 4px; }
 

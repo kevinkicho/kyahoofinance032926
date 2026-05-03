@@ -53,6 +53,9 @@ function parseSeriesObservations(rawObs) {
   const latest = { date: dates[0], value: values[0] };
   const previous = dates.length > 1 ? { date: dates[1], value: values[1] } : null;
 
+  dates.reverse();
+  values.reverse();
+
   return { dates, values, latest, previous };
 }
 

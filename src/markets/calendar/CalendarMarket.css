@@ -168,3 +168,46 @@
 .cal-kpi-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .cal-kpi-value { font-size: 12px; font-weight: 600; color: var(--text-primary); }
 .cal-kpi-value.accent { color: #f43f5e; }
+
+/* ── 16. Sidebar ── */
+.cal-sidebar-section {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.cal-sidebar-section:last-child {
+  border-bottom: none;
+}
+.cal-sidebar-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.cal-sidebar-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+}
+.cal-sidebar-metric-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.cal-sidebar-metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
+}
+.cal-sidebar-metric-value.accent {
+  color: #f43f5e;
+}
+.cal-sidebar-metric-num {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
+}

@@ -47,6 +47,7 @@ export default function CombinedRatioMonitor({ combinedRatioData, industryAvgCom
     <div className="ins-panel">
       <div className="ins-panel-header">
         <span className="ins-panel-title">Combined Ratio Monitor</span>
+        <span className="ins-badge-synthetic">Synthetic Data</span>
         <span className="ins-panel-subtitle">Loss ratio + expense ratio by line · below 100% = underwriting profit</span>
       </div>
 

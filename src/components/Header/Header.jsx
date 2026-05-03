@@ -40,6 +40,26 @@ const Header = ({
               onClick={handleViewMode('race')}
               style={{ color: viewMode === 'race' ? '#fff' : '#f59e0b', borderColor: '#f59e0b' }}
             >Bar Race</button>
+            <button
+              className={viewMode === 'datahub' ? 'active' : ''}
+              onClick={handleViewMode('datahub')}
+              style={{ color: viewMode === 'datahub' ? '#fff' : '#06b6d4', borderColor: '#06b6d4' }}
+            >Data Hub</button>
+            <button
+              className={viewMode === 'portfolio' ? 'active' : ''}
+              onClick={handleViewMode('portfolio')}
+              style={{ color: viewMode === 'portfolio' ? '#fff' : '#8b5cf6', borderColor: '#8b5cf6' }}
+            >Portfolio</button>
+            <button
+              className={viewMode === 'ml-explorer' ? 'active' : ''}
+              onClick={handleViewMode('ml-explorer')}
+              style={{ color: viewMode === 'ml-explorer' ? '#fff' : '#a855f7', borderColor: '#a855f7' }}
+            >ML Explorer</button>
+            <button
+              className={viewMode === 'radar' ? 'active' : ''}
+              onClick={handleViewMode('radar')}
+              style={{ color: viewMode === 'radar' ? '#fff' : '#14b8a6', borderColor: '#14b8a6' }}
+            >Radar</button>
           </div>
         </div>
       </div>

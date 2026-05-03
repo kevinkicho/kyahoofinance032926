@@ -33,7 +33,10 @@ export default function CatBondSpreads({ catBondSpreads, catBondProxy }) {
   return (
     <div className="ins-panel">
       <div className="ins-panel-header">
-        <span className="ins-panel-title">Cat Bond Spreads</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+           <span className="ins-panel-title">Cat Bond Spreads</span>
+           <span className="ins-badge-synthetic">Synthetic Data</span>
+        </div>
         <span className="ins-panel-subtitle">Catastrophe bond market · spread over risk-free rate (bps)</span>
       </div>
 

@@ -9,8 +9,10 @@ const router = Router();
 
 const CACHEABLE_MARKETS = [
   'bonds','derivatives','realEstate','insurance','commodities',
-  'globalMacro','equityDeepDive','crypto','credit','sentiment','calendar'
+  'globalMacro','equityDeepDive','crypto','credit','sentiment','calendar',
+  'imf','worldbank','bls','eia','census',
 ];
+const CACHEABLE_MARKET_SET = new Set(CACHEABLE_MARKETS);
 
 const ERROR_LOG_MAX = 100;
 const errorLog = [];
@@ -231,12 +233,16 @@ router.get('/', (req, res) => {
     result.routes = [];
   }
 
+  result._sources = { analytics: true };
   res.json(result);
 });
 
 // GET /api/analytics/cache/:market — detailed cache content for a market
 router.get('/cache/:market', (req, res) => {
   const { market } = req.params;
+  if (!CACHEABLE_MARKET_SET.has(market)) {
+    return res.status(400).json({ error: 'Unknown market' });
+  }
   const latest = readLatestCache(market);
   if (!latest) return res.status(404).json({ error: `No cache for ${market}` });
   res.json({ market, fetchedOn: latest.fetchedOn, dataSize: Buffer.byteLength(JSON.stringify(latest.data)), keys: Object.keys(latest.data), sample: Object.fromEntries(Object.entries(latest.data).slice(0, 5)) });
@@ -262,9 +268,31 @@ router.get('/endpoint/:path', (req, res) => {
   });
 });
 
+// GET /api/analytics/correlations — simultaneous anomalies across markets
+router.get('/correlations', (req, res) => {
+  const alerts = req.app.locals.currentAlerts || [];
+  const markets = [...new Set(alerts.map(a => a.market))];
+  const matrix = [];
+
+  markets.forEach(m1 => {
+    const row = markets.map(m2 => {
+      const m1Alerts = alerts.filter(a => a.market === m1);
+      const m2Alerts = alerts.filter(a => a.market === m2);
+      const simultaneous = m1Alerts.filter(a1 => m2Alerts.some(a2 => a1.timestamp === a2.timestamp));
+      return { m1, m2, count: simultaneous.length };
+    });
+    matrix.push(row);
+  });
+
+  res.json({ markets, matrix });
+});
+
 // DELETE /api/analytics/cache/:market — clear a market's file cache
 router.delete('/cache/:market', (req, res) => {
   const { market } = req.params;
+  if (!CACHEABLE_MARKET_SET.has(market)) {
+    return res.status(400).json({ error: 'Unknown market' });
+  }
   const files = fs.readdirSync(CACHE_DIR).filter(f => f.startsWith(`${market}-`) && f.endsWith('.json'));
   for (const f of files) {
     try { fs.unlinkSync(path.join(CACHE_DIR, f)); } catch {}

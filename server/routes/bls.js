@@ -1,23 +1,61 @@
 import { Router } from 'express';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchFredHistory } from '../lib/fred.js';
 
 const router = Router();
 
 const BLS_API = 'https://api.bls.gov/publicAPI/v2/timeseries/data/';
 
+// Each entry maps the panel's logical key to (BLS series id) plus a FRED
+// equivalent — FRED mirrors most BLS series, so we can fall back when the
+// user has FRED_API_KEY but not BLS_API_KEY.
 const BLS_SERIES = {
-  unemployment:     { id: 'LNS14000000',  label: 'Unemployment Rate',        unit: '%' },
-  laborParticipation: { id: 'LNS11300000',  label: 'Labor Force Participation',  unit: '%' },
-  employmentPop:    { id: 'LNS12300000',  label: 'Employment-Population Ratio', unit: '%' },
-  nonfarmPayrolls:  { id: 'CES0000000001', label: 'Nonfarm Payrolls (thousands)', unit: 'K' },
-  avgHourlyEarnings: { id: 'CES0500000008', label: 'Avg Hourly Earnings',        unit: '$' },
-  cpi:              { id: 'CUUR0000SA0',   label: 'CPI (All Urban)',            unit: 'index' },
-  ppi:              { id: 'WPSFD4111',    label: 'PPI (Final Demand)',          unit: 'index' },
-  jobOpenings:      { id: 'LNS17200000',  label: 'Job Openings (thousands)',     unit: 'K' },
-  unemployedPersons: { id: 'LNS13000000',  label: 'Unemployed Persons (thousands)', unit: 'K' },
-  avgWeeklyHours:   { id: 'CES0500000002', label: 'Avg Weekly Hours',            unit: 'hrs' },
+  unemployment:      { id: 'LNS14000000',   fred: 'UNRATE',    label: 'Unemployment Rate',          unit: '%' },
+  laborParticipation:{ id: 'LNS11300000',   fred: 'CIVPART',   label: 'Labor Force Participation',  unit: '%' },
+  employmentPop:     { id: 'LNS12300000',   fred: 'EMRATIO',   label: 'Employment-Population Ratio', unit: '%' },
+  nonfarmPayrolls:   { id: 'CES0000000001', fred: 'PAYEMS',    label: 'Nonfarm Payrolls (thousands)', unit: 'K' },
+  avgHourlyEarnings: { id: 'CES0500000008', fred: 'CES0500000003', label: 'Avg Hourly Earnings',    unit: '$' },
+  cpi:               { id: 'CUUR0000SA0',   fred: 'CPIAUCSL',  label: 'CPI (All Urban)',            unit: 'index' },
+  ppi:               { id: 'WPSFD4111',     fred: 'PPIFIS',    label: 'PPI (Final Demand)',          unit: 'index' },
+  jobOpenings:       { id: 'LNS17200000',   fred: 'JTSJOL',    label: 'Job Openings (thousands)',    unit: 'K' },
+  unemployedPersons: { id: 'LNS13000000',   fred: 'UNEMPLOY',  label: 'Unemployed Persons (thousands)', unit: 'K' },
+  avgWeeklyHours:    { id: 'CES0500000002', fred: 'AWHAEMAN',  label: 'Avg Weekly Hours',            unit: 'hrs' },
 };
+
+async function fetchFromFred(FRED_API_KEY) {
+  // Fall back to FRED for each series. We model the same shape parseSeries
+  // produces so the route's downstream code doesn't care which source won.
+  const result = {};
+  const entries = Object.entries(BLS_SERIES);
+  const fetched = await Promise.all(
+    entries.map(async ([key, def]) => {
+      try {
+        trackApiCall('FRED');
+        const hist = await fetchFredHistory(def.fred, FRED_API_KEY, 36);
+        if (!Array.isArray(hist) || hist.length === 0) return [key, null];
+        const dates = hist.map(p => p.date.slice(0, 7));
+        const values = hist.map(p => p.value);
+        const latest = hist[hist.length - 1];
+        const prev = hist[hist.length - 2];
+        return [key, {
+          label: def.label,
+          unit: def.unit,
+          seriesId: def.id,
+          latest: latest ? { period: null, year: latest.date.slice(0, 4), value: latest.value } : null,
+          previous: prev ? { period: null, year: prev.date.slice(0, 4), value: prev.value } : null,
+          history: { dates, values },
+          _source: true,
+        }];
+      } catch (e) { return [key, null]; }
+    })
+  );
+  for (const [key, def] of entries) {
+    const v = fetched.find(([k]) => k === key)?.[1];
+    result[key] = v ?? { label: def.label, unit: def.unit, seriesId: def.id, latest: null, previous: null, history: { dates: [], values: [] }, _source: false };
+  }
+  return result;
+}
 
 export async function fetchBLSSeries(seriesIds, apiKey) {
   const controller = new AbortController();
@@ -59,7 +97,7 @@ export function parseSeries(rawSeries) {
   for (const [key, def] of Object.entries(BLS_SERIES)) {
     const matched = rawSeries.find(s => s.seriesID === def.id);
     if (!matched?.data?.length) {
-      result[key] = { label: def.label, unit: def.unit, seriesId: def.id, latest: null, previous: null, history: [], _source: false };
+      result[key] = { label: def.label, unit: def.unit, seriesId: def.id, latest: null, previous: null, history: { dates: [], values: [] }, _source: false };
       continue;
     }
     const sorted = matched.data
@@ -86,7 +124,7 @@ export function parseSeries(rawSeries) {
       seriesId: def.id,
       latest: latestVal ? { period: latestVal.periodName ?? null, year: latestVal.year ?? null, value: parseFloat(latestVal.value) } : null,
       previous: prevVal ? { period: prevVal.periodName ?? null, year: prevVal.year ?? null, value: parseFloat(prevVal.value) } : null,
-      history: { dates, values },
+      history: { dates: [...dates].reverse(), values: [...values].reverse() },
       _source: true,
     };
   }
@@ -95,8 +133,32 @@ export function parseSeries(rawSeries) {
 
 router.get('/', async (req, res) => {
   const apiKey = process.env.BLS_API_KEY;
+  const FRED_API_KEY = process.env.FRED_API_KEY;
   if (!apiKey) {
-    return res.status(503).json({ error: 'BLS_API_KEY not configured' });
+    // Without a BLS key, try FRED — every series in BLS_SERIES has a
+    // FRED mirror. Only fall through to the empty payload if both keys
+    // are missing.
+    if (FRED_API_KEY) {
+      const seriesData = await fetchFromFred(FRED_API_KEY);
+      const _sources = {};
+      for (const [key, val] of Object.entries(seriesData)) _sources[`bls_${key}`] = val._source;
+      const result = { series: seriesData, _sources, lastUpdated: todayStr(), source: 'FRED (BLS mirror)' };
+      writeDailyCache('bls', result);
+      return res.json({ ...result, fetchedOn: todayStr(), isCurrent: Object.values(_sources).some(v => v === true) });
+    }
+    const seriesData = parseSeries([]);
+    const _sources = {};
+    for (const [key, val] of Object.entries(seriesData)) {
+      _sources[`bls_${key}`] = val._source;
+    }
+    delete _sources.bls__source;
+    return res.json({
+      series: seriesData,
+      _sources,
+      lastUpdated: todayStr(),
+      fetchedOn: todayStr(),
+      isCurrent: false
+    });
   }
 
   const cacheKey = 'bls_data';

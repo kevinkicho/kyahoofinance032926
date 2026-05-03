@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { MARKETS, SEARCH_INDEX } from './markets.config';
 import { currencySymbols } from '../utils/constants';
 import { useTheme } from './ThemeContext';
+import { useCurrency } from './CurrencyContext';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
@@ -19,7 +20,8 @@ function highlightMatch(text, query) {
   );
 }
 
-export default function MarketTabBar({ activeMarket, setActiveMarket, currency, setCurrency, onExport, onExportData, autoRefresh, onToggleRefresh, onRefresh }) {
+export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, autoRefresh, onToggleRefresh, onRefresh }) {
+  const { currency, setCurrency } = useCurrency();
   function handlePopout() {
     window.open('/?popout=' + activeMarket, '_blank', 'width=1200,height=800,menubar=no,toolbar=no');
   }
@@ -35,9 +37,22 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
     if (!q) return [];
     return SEARCH_INDEX.filter(entry =>
       entry.label.toLowerCase().includes(q) ||
-      entry.subTabs.some(s => s.toLowerCase().includes(q))
+      entry.subTabs.some(s => s.toLowerCase().includes(q)) ||
+      entry.keywords?.some(k => k.toLowerCase().includes(q))
     );
   }, [query]);
+
+  // Ctrl+K → focus search input
+  useEffect(() => {
+    function handleGlobalKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -55,8 +70,11 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
     setHighlighted(0);
   }, [results]);
 
-  function handleSelect(marketId) {
+  function handleSelect(marketId, subTab) {
     setActiveMarket(marketId);
+    if (subTab && window.setHubSubTab) {
+      window.setHubSubTab(subTab);
+    }
     setQuery('');
     setOpen(false);
   }
@@ -71,7 +89,12 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
       setHighlighted(h => (h - 1 + results.length) % results.length);
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (results[highlighted]) handleSelect(results[highlighted].marketId);
+       if (results[highlighted]) {
+         const entry = results[highlighted];
+         const q = query.trim().toLowerCase();
+         const matchingSub = entry.subTabs.find(s => s.toLowerCase().includes(q));
+         handleSelect(entry.marketId, matchingSub);
+       }
     } else if (e.key === 'Escape') {
       setOpen(false);
       setQuery('');
@@ -189,7 +212,12 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, currency, 
                   aria-selected={i === highlighted}
                   className={`hub-search-item${i === highlighted ? ' highlighted' : ''}`}
                   onMouseEnter={() => setHighlighted(i)}
-                  onMouseDown={e => { e.preventDefault(); handleSelect(entry.marketId); }}
+                    onMouseDown={e => { 
+                      e.preventDefault(); 
+                      const q = query.trim().toLowerCase();
+                      const matchingSub = entry.subTabs.find(s => s.toLowerCase().includes(q));
+                      handleSelect(entry.marketId, matchingSub); 
+                    }}
                 >
                   <div className="hub-search-item-label">
                     {highlightMatch(entry.label, query.trim())}

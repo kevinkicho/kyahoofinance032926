@@ -43,7 +43,7 @@ describe('CryptoMarket', () => {
 
   it('renders fetched status when live', () => {
     render(<CryptoMarket centralData={mockCentralData} />);
-    expect(screen.getByText(/Crypto/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Crypto/).length).toBeGreaterThan(0);
   });
 
   it('renders unavailable message when not live', () => {

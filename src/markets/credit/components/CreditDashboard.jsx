@@ -8,21 +8,25 @@ import './CreditDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
 
+// KPI strip is now a real bento child at row 0 (h:2). All other panels
+// shifted down 2 rows. Storage key bumped.
 const LAYOUT = {
   lg: [
-    { i: 'key-metrics', x: 0, y: 0, w: 3, h: 3 },
-    { i: 'credit-spreads', x: 3, y: 0, w: 3, h: 3 },
-    { i: 'spread-summary', x: 6, y: 0, w: 3, h: 3 },
-    { i: 'em-spread', x: 9, y: 0, w: 3, h: 3 },
-    { i: 'em-yields', x: 0, y: 3, w: 4, h: 2 },
-    { i: 'cp-rates', x: 4, y: 3, w: 4, h: 2 },
-    { i: 'clo-tranches', x: 8, y: 3, w: 4, h: 2 },
-    { i: 'default-rates', x: 0, y: 5, w: 6, h: 2 },
-    { i: 'delinquency', x: 6, y: 5, w: 6, h: 2 },
+    { i: 'kpi', x: 0, y: 0, w: 12, h: 2 },
+    { i: 'key-metrics', x: 0, y: 2, w: 3, h: 3 },
+    { i: 'credit-spreads', x: 3, y: 2, w: 3, h: 3 },
+    { i: 'spread-summary', x: 6, y: 2, w: 3, h: 3 },
+    { i: 'em-spread', x: 9, y: 2, w: 3, h: 3 },
+    { i: 'em-yields', x: 0, y: 5, w: 4, h: 2 },
+    { i: 'cp-rates', x: 4, y: 5, w: 4, h: 2 },
+    { i: 'clo-tranches', x: 8, y: 5, w: 4, h: 2 },
+    { i: 'default-rates', x: 0, y: 7, w: 6, h: 2 },
+    { i: 'delinquency', x: 6, y: 7, w: 6, h: 2 },
   ]
 };
 
 function CreditDashboard({
+  kpiPanel,
   spreadData,
   emBondData,
   loanData,
@@ -94,7 +98,19 @@ function CreditDashboard({
 
   return (
     <div className="credit-dashboard credit-dashboard--bento">
-      <BentoWrapper layout={LAYOUT} storageKey="credit-layout">
+      <BentoWrapper layout={LAYOUT} storageKey="credit-layout-v2">
+        {/* KPI strip — real bento child at row 0. Provided by parent so
+            the credit-specific KPI builder lives there. */}
+        {kpiPanel && (
+          <div key="kpi" className="credit-bento-card">
+            <div className="credit-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Credit Key Metrics</span>
+            </div>
+            <div className="bento-panel-content credit-panel-scroll" onMouseDown={stopDrag}>
+              {kpiPanel}
+            </div>
+          </div>
+        )}
         {/* Key Metrics */}
         <div key="key-metrics" className="credit-bento-card">
           <div className="credit-panel-title-row bento-panel-title-row">
@@ -265,14 +281,28 @@ function CreditDashboard({
               <span className="bento-panel-title">CLO Tranches</span>
             </div>
             <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
+              <div className="credit-mini-row credit-mini-row-header">
+                <span className="credit-mini-name" style={{ fontWeight: 700 }}>Tranche</span>
+                <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 60 }}>Spread</span>
+                <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 60 }}>Yield</span>
+                <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 40 }}>LTV</span>
+              </div>
               {(loanData.cloTranches || loanData).slice(0, 8).map((l) => (
                 <div key={l.tranche || l.sector} className="credit-mini-row">
                   <span className="credit-mini-name">{l.tranche || l.sector}</span>
-                  <span className="credit-mini-value"><MetricValue value={l.yield} seriesKey="cloYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+                  <span className="credit-mini-value" style={{ textAlign: 'right', minWidth: 60 }}>
+                    <MetricValue value={l.spread} seriesKey="cloSpread" timestamp={lastUpdated} format={v => v != null ? `${v} bps` : '—'} />
+                  </span>
+                  <span className="credit-mini-value" style={{ textAlign: 'right', minWidth: 60 }}>
+                    <MetricValue value={l.yield} seriesKey="cloYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
+                  </span>
+                  <span className="credit-mini-value" style={{ textAlign: 'right', minWidth: 40, color: colors.textMuted }}>
+                    {l.ltv != null ? `${l.ltv}%` : '—'}
+                  </span>
                 </div>
               ))}
             </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+            <DataFooter source="FRED (IG OAS + conventions) / Yahoo" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
           </div>
         )}
 

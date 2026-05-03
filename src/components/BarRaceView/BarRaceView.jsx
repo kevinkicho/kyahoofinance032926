@@ -47,7 +47,9 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
   };
 
   const option = useMemo(() => ({
-    animation: false,
+    animation: true,
+    animationDuration: 800,
+    animationEasing: 'cubicInOut',
     backgroundColor: 'transparent',
     grid: { top: 12, bottom: 42, left: 210, right: 120 },
     xAxis: {
@@ -78,7 +80,7 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
       axisTick: { show: false },
     },
     series: [{
-      realtimeSort: false,
+      realtimeSort: true,
       type: 'bar',
       data: top.map(s => ({
         value: s.adjustedValue || s.value,

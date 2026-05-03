@@ -10,10 +10,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:audit": "playwright test tests/data-binding-audit.spec.js --reporter=list",
+    "test:persist": "playwright test tests/persistence.spec.js --reporter=list",
+    "test:regress": "node scripts/regress.mjs",
+    "test:validate": "node scripts/validate.mjs",
+    "setup": "node scripts/setup-env.js"
   },
   "dependencies": {
-    "bento-grid-builder": "^0.2.1",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
     "html2canvas": "^1.4.1",
@@ -24,6 +29,7 @@
     "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -32,6 +38,8 @@
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^5.2.0",
     "concurrently": "^9.2.1",
+    "eslint": "^9.39.4",
+    "globals": "^17.5.0",
     "jsdom": "^29.0.1",
     "rollup-plugin-visualizer": "^7.0.1",
     "vite": "^5.2.0",

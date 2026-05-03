@@ -110,3 +110,8 @@
 .eia-co2-sector { font-size: 0.8rem; color: var(--text-secondary, #bbb); }
 .eia-co2-value { font-size: 0.85rem; font-weight: 600; color: var(--text-primary, #eee); }
 .eia-co2-unit { font-size: 0.7rem; color: var(--text-muted, #666); margin-left: 4px; }
+
+.eia-panel-title-row {
+  border-left: 3px solid var(--accent-orange, #ffa726);
+  padding-left: 8px;
+}

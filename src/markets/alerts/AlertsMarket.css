@@ -1,0 +1,12 @@
+.alerts-market--with-sidebar {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .alerts-market--with-sidebar {
+    grid-template-columns: 1fr;
+  }
+}

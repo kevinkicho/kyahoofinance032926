@@ -50,10 +50,11 @@ describe('IgHyDashboard', () => {
 
   it('renders all spread stat pills with values', () => {
     render(<IgHyDashboard spreadData={mockSpreadData} commercialPaper={mockCommercialPaper} lastUpdated="2026-04-22" />);
-    expect(screen.getByText('IG Spread')).toBeInTheDocument();
-    expect(screen.getByText('HY Spread')).toBeInTheDocument();
+    // IG/HY/EM Spread appear in both the MarketSidebarPanel and the stats-row pills.
+    expect(screen.getAllByText('IG Spread').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('HY Spread').length).toBeGreaterThan(0);
     expect(screen.getByText('BBB Spread')).toBeInTheDocument();
-    expect(screen.getByText('EM Spread')).toBeInTheDocument();
+    expect(screen.getAllByText('EM Spread').length).toBeGreaterThan(0);
     expect(screen.getByText('CCC Spread')).toBeInTheDocument();
   });
 
@@ -65,9 +66,10 @@ describe('IgHyDashboard', () => {
 
   it('renders commercial paper rates when provided', () => {
     render(<IgHyDashboard spreadData={mockSpreadData} commercialPaper={mockCommercialPaper} lastUpdated="2026-04-22" />);
-    expect(screen.getByText('Fin CP 3M')).toBeInTheDocument();
+    // "Fin CP 3M" also surfaces in the sidebar's MarketSidebarPanel metrics.
+    expect(screen.getAllByText('Fin CP 3M').length).toBeGreaterThan(0);
     expect(screen.getByText('Non-Fin CP 3M')).toBeInTheDocument();
-    expect(screen.getByText('4.32%')).toBeInTheDocument();
+    expect(screen.getAllByText('4.32%').length).toBeGreaterThan(0);
     expect(screen.getByText('4.18%')).toBeInTheDocument();
   });
 

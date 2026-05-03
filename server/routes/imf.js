@@ -3,6 +3,7 @@ import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { WEO_SNAPSHOT } from '../dataSources/weoSnapshot.js';
+import { IFS_SNAPSHOT, COFER_SNAPSHOT } from '../dataSources/ifsCofeSnapshot.js';
 
 const router = Router();
 
@@ -140,9 +141,10 @@ router.get('/', async (req, res) => {
   const cached = cache.get(cacheKey);
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
+  let routeTimer;
   try {
     const ROUTE_TIMEOUT = 15000;
-    const routeTimer = setTimeout(() => {
+    routeTimer = setTimeout(() => {
       if (!res.headersSent) {
         console.warn('[IMF] Route timeout — responding with partial data');
         const fallback = readLatestCache('imf');
@@ -191,6 +193,24 @@ router.get('/', async (req, res) => {
       console.warn('[IMF] All WEO fetches failed — using static WEO snapshot');
     }
 
+    let ifsReservesFinal = ifsReserves;
+    let coferFinal = cofer;
+    let ifsSnapshotUsed = false;
+    let coferSnapshotUsed = false;
+
+    if (!ifsReserves || Object.keys(ifsReserves).length === 0) {
+      ifsReservesFinal = {};
+      for (const [code, val] of Object.entries(IFS_SNAPSHOT.reserves)) {
+        ifsReservesFinal[code] = { [new Date().getFullYear()]: val };
+      }
+      ifsSnapshotUsed = true;
+    }
+
+    if (!cofer || (cofer && Object.keys(cofer).length < 3)) {
+      coferFinal = COFER_SNAPSHOT.shares;
+      coferSnapshotUsed = true;
+    }
+
     let isStaticFallback = false;
     let countries;
     if (weoHasData) {
@@ -205,10 +225,11 @@ router.get('/', async (req, res) => {
             entry[key + 'Prev'] = yearlyData[prevYear] != null ? Math.round(yearlyData[prevYear] * 10) / 10 : null;
           }
         }
-        if (ifsReserves?.[c.code]) {
-          const yrs = Object.keys(ifsReserves[c.code]).sort();
-          entry.intlReserves = ifsReserves[c.code][yrs[yrs.length - 1]] != null
-            ? Math.round(ifsReserves[c.code][yrs[yrs.length - 1]] / 1e9 * 10) / 10 : null;
+        if (ifsReservesFinal?.[c.code]) {
+          const yrs = Object.keys(ifsReservesFinal[c.code]).sort();
+          const lastVal = ifsReservesFinal[c.code][yrs[yrs.length - 1]];
+          entry.intlReserves = lastVal != null
+            ? (typeof lastVal === 'number' ? Math.round(lastVal * 10) / 10 : lastVal) : null;
         }
         return entry;
       });
@@ -228,8 +249,10 @@ router.get('/', async (req, res) => {
     for (const [key] of Object.entries(WEO_SUBJECTS)) {
       _sources[`imfWEO_${key}`] = weoForecasts[key] != null && Object.keys(weoForecasts[key]).length > 0;
     }
-    _sources.imfIFS_Reserves = ifsReserves != null && Object.keys(ifsReserves).length > 0;
-    _sources.imfCOFER = cofer != null && Object.keys(cofer).length > 0;
+    _sources.imfIFS_Reserves = ifsReservesFinal != null && Object.keys(ifsReservesFinal).length > 0;
+    _sources.imfCOFER = coferFinal != null && Object.keys(coferFinal).length >= 3;
+    if (ifsSnapshotUsed) _sources.imfIFS_snapshot = true;
+    if (coferSnapshotUsed) _sources.imfCOFER_snapshot = true;
     if (isStaticFallback) {
       for (const key of WEO_SNAPSHOT.indicators) {
         _sources[`imfWEO_${key}`] = true;
@@ -241,8 +264,8 @@ router.get('/', async (req, res) => {
     const result = {
       countries,
       weoForecasts,
-      ifsReserves,
-      cofer,
+      ifsReserves: ifsReservesFinal,
+      cofer: coferFinal,
       snapshot: isStaticFallback ? { vintage: WEO_SNAPSHOT.vintage, asOf: WEO_SNAPSHOT.asOf } : null,
       _sources,
       lastUpdated: today,

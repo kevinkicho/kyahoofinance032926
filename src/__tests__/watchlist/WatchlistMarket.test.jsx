@@ -1,11 +1,28 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WatchlistMarket from '../../markets/watchlist/WatchlistMarket';
+import DataContext from '../../hub/DataContext';
 
 vi.mock('../../utils/fetchWithRetry', () => ({
   fetchWithRetry: vi.fn(),
 }));
+
+// WatchlistMarket reads quotes from useMarketData('watchlist') (centralized
+// DataProvider) rather than fetching directly. Tests that need quote data
+// must wrap in a DataContext provider with a stub getMarket.
+function renderWithWatchlist(ui, { data = {}, isLoading = false, refetch = vi.fn() } = {}) {
+  const ctxValue = {
+    getMarket: (id) => id === 'watchlist'
+      ? { data, isLoading, isLive: !isLoading, error: null, refetch }
+      : { isLoading: false, isLive: false },
+    refetchSingle: vi.fn(),
+  };
+  return render(
+    <DataContext.Provider value={ctxValue}>{ui}</DataContext.Provider>
+  );
+}
 
 const createLocalStorageMock = () => {
   let store = {};
@@ -71,6 +88,11 @@ describe('WatchlistMarket', () => {
   });
 
   it('displays ticker data from API response', async () => {
+    mockLocalStorage._setStore({
+      'hub-watchlist-tickers': JSON.stringify(['AAPL']),
+      'hub-watchlist-metrics': null,
+    });
+
     const mockQuote = {
       price: {
         regularMarketPrice: { raw: 150.25, fmt: '150.25' },
@@ -80,23 +102,17 @@ describe('WatchlistMarket', () => {
       },
     };
 
-    fetchWithRetry.mockResolvedValueOnce({
-      json: () => Promise.resolve(mockQuote),
-    });
+    renderWithWatchlist(<WatchlistMarket />, { data: { AAPL: mockQuote } });
 
-    render(<WatchlistMarket />);
-
-    const input = screen.getByPlaceholderText(/Add ticker/i);
-    const user = userEvent.setup();
-    await user.type(input, 'AAPL');
-    await user.click(screen.getByText('Add'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Apple Inc.')).toBeInTheDocument();
-    });
+    expect(screen.getByText('Apple Inc.')).toBeInTheDocument();
   });
 
   it('shows price for tickers', async () => {
+    mockLocalStorage._setStore({
+      'hub-watchlist-tickers': JSON.stringify(['AAPL']),
+      'hub-watchlist-metrics': null,
+    });
+
     const mockQuote = {
       price: {
         regularMarketPrice: { raw: 150.25, fmt: '150.25' },
@@ -106,20 +122,9 @@ describe('WatchlistMarket', () => {
       },
     };
 
-    fetchWithRetry.mockResolvedValueOnce({
-      json: () => Promise.resolve(mockQuote),
-    });
+    renderWithWatchlist(<WatchlistMarket />, { data: { AAPL: mockQuote } });
 
-    render(<WatchlistMarket />);
-
-    const input = screen.getByPlaceholderText(/Add ticker/i);
-    const user = userEvent.setup();
-    await user.type(input, 'AAPL');
-    await user.click(screen.getByText('Add'));
-
-    await waitFor(() => {
-      expect(screen.getByText('150.25')).toBeInTheDocument();
-    });
+    expect(screen.getByText('150.25')).toBeInTheDocument();
   });
 
   it('switches between tickers and metrics tabs', async () => {

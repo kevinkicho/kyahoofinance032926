@@ -1,3 +1,8 @@
+// Legacy commodities route mounted at /api/commodities. The frontend's main
+// dashboard fetches from /api/commodities/v2 (commoditiesEnhanced.js); this
+// route still serves the "verify" links that MetricValue / sourceInfo widgets
+// surface in the UI for individual data-point provenance. Don't delete without
+// also retargeting those links to v2.
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';

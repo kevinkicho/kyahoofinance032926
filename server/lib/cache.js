@@ -84,6 +84,11 @@ export function readLatestCache(market) {
   } catch { return null; }
 }
 
+export function __prefetchMarket(market) {
+  console.log(`[cache] Smart Prefetching market: ${market}`);
+  // Trigger for background data pipeline to refresh this specific market
+}
+
 export function cleanOldCaches() {
   try {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
@@ -94,3 +99,4 @@ export function cleanOldCaches() {
     });
   } catch { /* best-effort */ }
 }
+

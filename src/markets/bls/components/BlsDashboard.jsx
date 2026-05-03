@@ -1,4 +1,16 @@
 import React, { useMemo } from 'react';
+import MetricValue from '../../../components/MetricValue/MetricValue';
+import SafeECharts from '../../../components/SafeECharts';
+import BentoWrapper from '../../../components/BentoWrapper';
+import DataFooter from '../../../components/DataFooter/DataFooter';
+
+const BLS_LAYOUT = {
+  lg: [
+    { i: 'kpi', x: 0, y: 0, w: 12, h: 3 },
+    { i: 'trends-top', x: 0, y: 3, w: 6, h: 3 },
+    { i: 'trends-bottom', x: 6, y: 3, w: 6, h: 3 },
+  ]
+};
 
 const SERIES_ORDER = ['unemployment', 'laborParticipation', 'employmentPop', 'nonfarmPayrolls', 'avgHourlyEarnings', 'avgWeeklyHours', 'cpi', 'ppi', 'jobOpenings', 'unemployedPersons'];
 
@@ -40,23 +52,51 @@ function computeChange(key, series) {
   return { diff: null, pct: pct.toFixed(1), direction: diff >= 0 ? '+' : '' };
 }
 
-function MiniSparkline({ data, width = 200, height = 60, color = '#42a5f5' }) {
+function buildSparklineOption(data, { color = '#42a5f5', unit = '', label = '' } = {}) {
   if (!data?.values?.length) return null;
   const vals = data.values.filter(v => v != null);
   if (vals.length < 2) return null;
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const range = max - min || 1;
-  const step = width / (vals.length - 1);
-  const points = vals.map((v, i) => `${i * step},${height - ((v - min) / range) * (height - 4) - 2}`).join(' ');
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
-      <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
-    </svg>
-  );
+  const dates = data.dates || [];
+  return {
+    grid: { left: 2, right: 2, top: 4, bottom: 2, containLabel: false },
+    xAxis: { type: 'category', show: false, data: dates.length === vals.length ? dates : vals.map((_, i) => i), boundaryGap: false },
+    yAxis: { type: 'value', show: false, min: 'dataMin', max: 'dataMax' },
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      formatter: (params) => {
+        const p = Array.isArray(params) ? params[0] : params;
+        const dateStr = dates.length === vals.length ? p.axisValue : '';
+        return `<div style="font-size:11px"><b>${label || p.seriesName || ''}</b>${dateStr ? '<br/>' + dateStr : ''}<br/>${p.marker} ${p.value?.toFixed != null ? p.value.toFixed(2) : p.value}${unit ? ' ' + unit : ''}</div>`;
+      },
+    },
+    dataZoom: [{ type: 'inside', zoomLock: false }],
+    series: [{
+      type: 'line',
+      data: vals,
+      smooth: 0.3,
+      symbol: 'none',
+      lineStyle: { color, width: 1.5 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + '40' }, { offset: 1, color: color + '05' }] } },
+    }],
+    animation: false,
+  };
 }
 
-export default function BlsDashboard({ series, isLive }) {
+const BLS_SERIES_KEY = {
+  unemployment: 'blsUnemployment',
+  laborParticipation: 'blsLaborParticipation',
+  employmentPop: 'blsEmploymentPop',
+  nonfarmPayrolls: 'blsNonfarmPayrolls',
+  avgHourlyEarnings: 'blsAvgHourlyEarnings',
+  avgWeeklyHours: 'blsAvgWeeklyHours',
+  cpi: 'blsCpi',
+  ppi: 'blsPpi',
+  jobOpenings: 'blsJobOpenings',
+  unemployedPersons: 'blsUnemployedPersons',
+};
+
+export default function BlsDashboard({ series, isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent }) {
   const kpiData = useMemo(() => {
     return SERIES_ORDER
       .map(key => {
@@ -84,44 +124,57 @@ export default function BlsDashboard({ series, isLive }) {
   }
 
   return (
-    <div className="bls-dashboard">
-      <div className="bls-section-title">Key Labor Market Indicators</div>
-      <div className="bls-kpi-grid">
-        {kpiData.map(k => (
-          <div key={k.key} className="bls-kpi-card">
-            <span className="bls-kpi-label">{k.label}</span>
-            <span className="bls-kpi-value">
-              {FORMAT[k.key]?.(k.latest?.value) ?? '—'}
-              {k.unit && k.unit !== '%' && k.unit !== '$' && k.unit !== 'index' && <span className="bls-kpi-unit"> {k.unit}</span>}
-            </span>
-            {k.change && (
-              <span className={`bls-kpi-change ${k.changeClass}`}>
-                {k.change.direction}{k.change.pct}%
-                {k.change.diff !== null && ` (${k.change.direction}${k.change.diff})`}
+    <BentoWrapper layout={BLS_LAYOUT} storageKey="bls-layout-v2">
+      <div key="kpi" className="bls-bento-panel">
+        <div className="bls-section-title bento-panel-title-row">Key Labor Market Indicators</div>
+        <div className="bls-kpi-grid bento-panel-content" onMouseDown={e => e.stopPropagation()}>
+          {kpiData.map(k => (
+            <div key={k.key} className="bls-kpi-card">
+              <span className="bls-kpi-label">{k.label}</span>
+              <span className="bls-kpi-value">
+                <MetricValue value={k.latest?.value} seriesKey={BLS_SERIES_KEY[k.key]} timestamp={`${k.latest?.period || ''} ${k.latest?.year || ''}`.trim() || undefined} format={FORMAT[k.key]} />
+                {k.unit && k.unit !== '%' && k.unit !== '$' && k.unit !== 'index' && <span className="bls-kpi-unit"> {k.unit}</span>}
               </span>
-            )}
-            <span className="bls-kpi-unit">{k.latest?.period} {k.latest?.year}</span>
-          </div>
-        ))}
+              {k.change && (
+                <span className={`bls-kpi-change ${k.changeClass}`}>
+                  {k.change.direction}{k.change.pct}%
+                  {k.change.diff !== null && ` (${k.change.direction}${k.change.diff})`}
+                </span>
+              )}
+              <span className="bls-kpi-unit">{k.latest?.period} {k.latest?.year}</span>
+              {k.history?.values?.length >= 2 && (
+                <div className="bls-kpi-sparkline">
+                  <SafeECharts option={buildSparklineOption(k.history, { color: '#42a5f5', unit: k.unit, label: k.label })} style={{ height: 40, width: '100%' }} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="bls-section-title">Trends (3-Year)</div>
-      <div className="bls-chart-row">
-        {chartSeries.slice(0, Math.ceil(chartSeries.length / 2)).map(cs => (
-          <div key={cs.key} className="bls-mini-chart">
-            <h4>{cs.label} ({cs.unit})</h4>
-            <MiniSparkline data={cs.history} color={cs.key === 'unemployment' ? '#ef5350' : '#42a5f5'} />
-          </div>
-        ))}
+      <div key="trends-top" className="bls-bento-panel">
+        <div className="bls-section-title bento-panel-title-row">Trends (3-Year) — Labor</div>
+        <div className="bls-chart-row bento-panel-content" onMouseDown={e => e.stopPropagation()}>
+          {chartSeries.slice(0, Math.ceil(chartSeries.length / 2)).map(cs => (
+            <div key={cs.key} className="bls-mini-chart">
+              <h4>{cs.label} ({cs.unit})</h4>
+              <SafeECharts option={buildSparklineOption(cs.history, { color: cs.key === 'unemployment' ? '#ef5350' : '#42a5f5', unit: cs.unit, label: cs.label })} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: cs.label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="bls-chart-row">
-        {chartSeries.slice(Math.ceil(chartSeries.length / 2)).map(cs => (
-          <div key={cs.key} className="bls-mini-chart">
-            <h4>{cs.label} ({cs.unit})</h4>
-            <MiniSparkline data={cs.history} color={cs.key === 'cpi' || cs.key === 'ppi' ? '#ffa726' : '#66bb6a'} />
-          </div>
-        ))}
+
+      <div key="trends-bottom" className="bls-bento-panel">
+        <div className="bls-section-title bento-panel-title-row">Trends (3-Year) — Prices & Jobs</div>
+        <div className="bls-chart-row bento-panel-content" onMouseDown={e => e.stopPropagation()}>
+          {chartSeries.slice(Math.ceil(chartSeries.length / 2)).map(cs => (
+            <div key={cs.key} className="bls-mini-chart">
+              <h4>{cs.label} ({cs.unit})</h4>
+              <SafeECharts option={buildSparklineOption(cs.history, { color: cs.key === 'cpi' || cs.key === 'ppi' ? '#ffa726' : '#66bb6a', unit: cs.unit, label: cs.label })} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: cs.label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </BentoWrapper>
   );
 }

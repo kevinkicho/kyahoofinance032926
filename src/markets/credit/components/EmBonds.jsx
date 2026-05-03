@@ -65,9 +65,11 @@ export default function EmBonds({ emBondData, lastUpdated }) {
 
   const kpis = useMemo(() => {
     if (!countries.length) return null;
-    const tightest = countries.reduce((a, b) => b.spread < a.spread ? b : a);
-    const widest   = countries.reduce((a, b) => b.spread > a.spread ? b : a);
-    const avgSpread = Math.round(countries.reduce((s, c) => s + c.spread, 0) / countries.length);
+    const withSpread = countries.filter(c => c.spread != null);
+    if (!withSpread.length) return null;
+    const tightest = withSpread.reduce((a, b) => b.spread < a.spread ? b : a);
+    const widest   = withSpread.reduce((a, b) => b.spread > a.spread ? b : a);
+    const avgSpread = Math.round(withSpread.reduce((s, c) => s + c.spread, 0) / withSpread.length);
     const igCount = countries.filter(c => {
       if (!c.rating) return false;
       const u = c.rating.toUpperCase();
@@ -80,7 +82,7 @@ export default function EmBonds({ emBondData, lastUpdated }) {
     <div className="credit-panel">
       <div className="credit-panel-header">
         <span className="credit-panel-title">EM Bonds</span>
-        <span className="credit-panel-subtitle">Sovereign spreads · EMBI · 10yr yield · debt/GDP · FRED / Bloomberg proxies</span>
+        <span className="credit-panel-subtitle">Sovereign spreads · EMBI · 10yr yield · debt/GDP · Yahoo Finance (EMB + local ETFs){emBondData.noYahoo?.length ? ` · No Yahoo data: ${emBondData.noYahoo.join(', ')}` : ''}</span>
       </div>
       {kpis && (
         <div className="credit-kpi-strip">
@@ -119,19 +121,19 @@ export default function EmBonds({ emBondData, lastUpdated }) {
                 </tr>
               </thead>
               <tbody>
-                {[...countries].sort((a, b) => a.spread - b.spread).map(c => {
+                {[...countries].sort((a, b) => (a.spread ?? Infinity) - (b.spread ?? Infinity)).map(c => {
                   const ch = fmtChange(c.change1m);
                   return (
-                    <tr key={c.code} className="credit-row">
-                      <td className="credit-cell"><strong>{c.country}</strong></td>
-                      <td className="credit-cell" style={{ textAlign: 'center' }}>
-                        <span className={`credit-rating-badge ${ratingClass(c.rating)}`}>{c.rating}</span>
-                      </td>
-                      <td className="credit-cell credit-num"><MetricValue value={c.spread} seriesKey="emBondSpread" timestamp={lastUpdated} format={v => `${v}bps`} /></td>
-                      <td className={`credit-cell credit-num ${ch.cls}`}>{c.change1m != null ? <MetricValue value={c.change1m} seriesKey="emBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /> : ch.text}</td>
-                      <td className="credit-cell credit-num"><MetricValue value={c.yld10y} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></td>
-                      <td className="credit-cell credit-num"><MetricValue value={c.debtGdp} seriesKey="emDebtGdp" timestamp={lastUpdated} format={v => `${v}%`} /></td>
-                    </tr>
+                  <tr key={c.code} className="credit-row">
+                       <td className="credit-cell"><strong>{c.country}</strong></td>
+                       <td className="credit-cell" style={{ textAlign: 'center' }}>
+                         <span className={`credit-rating-badge ${ratingClass(c.rating)}`}>{c.rating}</span>
+                       </td>
+                       <td className="credit-cell credit-num"><MetricValue value={c.spread} seriesKey="emBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v}bps` : '—'} /></td>
+                       <td className={`credit-cell credit-num ${ch.cls}`}>{c.change1m != null ? <MetricValue value={c.change1m} seriesKey="emBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /> : ch.text}</td>
+                       <td className="credit-cell credit-num"><MetricValue value={c.yld10y} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />{c.dataSource === 'no-yahoo-data' && <span className="credit-no-data" title="Yahoo Finance returned no data for this country"> *</span>}</td>
+                       <td className="credit-cell credit-num"><MetricValue value={c.debtGdp} seriesKey="emDebtGdp" timestamp={lastUpdated} format={v => v != null ? `${v}%` : '—'} /></td>
+                     </tr>
                   );
                 })}
               </tbody>

@@ -31,6 +31,10 @@ function BlsMarket({ centralData } = {}) {
         series={props.series}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
+        fetchLog={props.fetchLog}
+        error={props.error}
+        fetchedOn={props.fetchedOn}
+        isCurrent={props.isCurrent}
       />
       <DataFooter source="Bureau of Labor Statistics (via FRED)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
     </div>

@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchFredLatest } from '../lib/fred.js';
 
 const router = Router();
 
@@ -74,13 +74,6 @@ const EQ_SHORT_META = {
   XPEV: { name: 'XPeng',           sector: 'Consumer Disc.'   },
   WOLF: { name: 'Wolfspeed',       sector: 'Technology'       },
 };
-
-async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=5`;
-  const data = await fetchJSON(url);
-  const valid = (data?.observations || []).filter(o => o.value !== '.');
-  return valid.length ? parseFloat(valid[0].value) : null;
-}
 
 router.get('/', async (req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY || '';
@@ -378,12 +371,64 @@ router.get('/', async (req, res) => {
       console.warn('Buffett Indicator fetch failed:', e.message);
     }
 
+    const INSIDER_TICKERS = ['AAPL','MSFT','NVDA','META','GOOGL','AMZN','TSLA','JPM','V','UNH'];
+    let insiderData = { holders: [], transactions: [] };
+    try {
+      trackApiCall('Yahoo Finance');
+      const insiderResults = await Promise.allSettled(
+        INSIDER_TICKERS.map(t =>
+          yf.quoteSummary(t, { modules: ['insiderHolders', 'insiderTransactions'] })
+            .then(d => ({ ticker: t, ...d }))
+        )
+      );
+      const holders = [];
+      const transactions = [];
+      insiderResults.forEach(r => {
+        if (r.status !== 'fulfilled') return;
+        const s = r.value;
+        const ticker = s.ticker;
+        const ih = s.insiderHolders || {};
+        const it = s.insiderTransactions || {};
+        (ih.holders || []).forEach(h => {
+          holders.push({
+            ticker,
+            name: h.name || h.fullName || '',
+            title: h.positionTitle || h.title || '',
+            shares: h.numberOfSharesHeld?.raw ?? h.numberOfSharesHeld ?? null,
+            date: h.latestTransDate?.fmt || h.latestTransDate || '',
+            relation: h.relation || '',
+          });
+        });
+        (it.transactions || []).forEach(t => {
+          transactions.push({
+            ticker,
+            name: t.insiderName || t.name || '',
+            title: t.positionTitle || t.title || '',
+            relation: t.relation || '',
+            shares: t.shares?.raw ?? t.shares ?? null,
+            value: t.value?.raw ?? t.value ?? null,
+            date: t.startDate?.fmt || t.startDate || '',
+            type: t.transactionType || t.type || '',
+          });
+        });
+      });
+      holders.sort((a, b) => {
+        const va = a.shares ?? 0; const vb = b.shares ?? 0;
+        return vb - va;
+      });
+      transactions.sort((a, b) => b.date.localeCompare(a.date));
+      insiderData = { holders: holders.slice(0, 30), transactions: transactions.slice(0, 40) };
+    } catch (e) {
+      console.warn('Insider trading fetch failed:', e.message);
+    }
+
     const hasData = v => v != null && !(Array.isArray(v) && v.length === 0) && !(typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0);
     const result = {
       sectorData:   { sectors },
       factorData,
       earningsData,
       shortData,
+      insiderData,
       equityRiskPremium,
       spPE,
       breadthDivergence,
@@ -392,6 +437,7 @@ router.get('/', async (req, res) => {
         sectorETFs:         hasData(sectors),
         factorStocks:       hasData(factorStocks),
         shortInterest:      hasData(mostShorted),
+        insiderTrading:     insiderData.holders.length > 0 || insiderData.transactions.length > 0,
         equityRiskPremium:  hasData(equityRiskPremium),
         spPE:               spPE != null,
         breadthDivergence:  hasData(breadthDivergence),

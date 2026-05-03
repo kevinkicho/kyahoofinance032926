@@ -92,7 +92,7 @@ describe('parseSeries', () => {
       seriesId: 'LNS14000000',
       latest: null,
       previous: null,
-      history: [],
+      history: { dates: [], values: [] },
       _source: false,
     });
   });
@@ -112,11 +112,11 @@ describe('parseSeries', () => {
     const result = parseSeries(rawSeries);
 
     expect(result.unemployment.history.dates).toEqual([
-      '2024-01',
-      '2023-12',
       '2023-06',
+      '2023-12',
+      '2024-01',
     ]);
-    expect(result.unemployment.history.values).toEqual([4.0, 3.9, 3.8]);
+    expect(result.unemployment.history.values).toEqual([3.8, 3.9, 4.0]);
   });
 
   it('filters out invalid values', () => {

@@ -30,13 +30,6 @@
   overflow-y: auto;
 }
 
-.mac-dashboard-layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  min-width: 0;
-}
-
 /* ── 3. RGL overrides (accent: teal) ── */
 .mac-dashboard--bento .react-grid-item.react-grid-placeholder {
   background: #14b8a6 !important;
@@ -73,12 +66,6 @@
 .mac-bento-card:hover {
   border-color: #14b8a6;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(20, 184, 166, 0.15);
-}
-
-/* Ensure com-bento-root inside flex row allows horizontal resize */
-.mac-dashboard-layout > .com-bento-root {
-  flex: 1 1 0;
-  min-width: 0;
 }
 
 /* ── 5. Panel title row ── */
@@ -308,7 +295,24 @@
 .mac-sparkline-labels { display: flex; justify-content: space-between; font-size: 10px; }
 .mac-context-notes { font-size: 12px; line-height: 1.5; }
 
-/* ── 15. Responsive ── */
+/* ── 15. Sidebar (bento panel) ── */
+.mac-sidebar-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.mac-sidebar-section:last-child {
+  border-bottom: none;
+}
+.mac-sidebar-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+/* ── 16. Responsive ── */
 @container bento-card (max-width: 500px) {
   .mac-scorecard-compact { grid-template-columns: 32px 48px repeat(3, 1fr); font-size: 10px; }
   .mac-activity-summary { grid-template-columns: 1fr; }

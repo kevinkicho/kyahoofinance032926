@@ -210,12 +210,19 @@ router.get('/', async (req, res) => {
   try {
     trackApiCall('SEC EDGAR');
 
-    // For now, return curated data
-    // Real 13F parsing would require fetching and parsing XML from SEC
-    // which is complex and rate-limited
+    const results = await Promise.all(
+      MAJOR_INSTITUTIONS.map(async (inst) => {
+        const data = await fetchInstitutionalHoldings(inst.cik, inst.name);
+        return data ? { ...inst, ...data } : null;
+      })
+    );
+    const filteredResults = results.filter(Boolean);
+    
     const result = {
       ...CURATED_HOLDINGS,
       lastUpdated: today,
+      liveStatus: filteredResults,
+      _sources: { secEdgar: filteredResults.length > 0, curated: true },
     };
 
     writeDailyCache('institutional', result);

@@ -205,6 +205,10 @@ const API_ROUTES = [
   '/api/cache', '/api/crypto', '/api/credit', '/api/sentiment',
   '/api/calendar', '/api/fx', '/api/rate-limits', '/api/analytics',
   '/api/institutional', '/api/worldbank', '/api/imf', '/api/fred', '/api/macro', '/api/bls', '/api/eia', '/api/census',
+  // Without these two, vite returned index.html for the requests and
+  // DataProvider blew up on JSON parse — manifesting as the entire
+  // equities/watchlist data being missing across the app.
+  '/api/equities', '/api/watchlist', '/api/health',
 ];
 
 function buildProxyConfig() {
@@ -234,7 +238,13 @@ export default defineConfig({
     },
   },
   server: {
-    port: 0,
+    // Pin the port + strictPort so a stale dev server fails loudly rather
+    // than silently shifting to 5174+. The previous `port: 0` setup let two
+    // concurrent dev runs both "succeed" on different ports, which made
+    // browser tests appear to pass against an outdated app — see Playwright
+    // troubleshooting note in README.
+    port: 5173,
+    strictPort: true,
     proxy: buildProxyConfig(),
   }
 })

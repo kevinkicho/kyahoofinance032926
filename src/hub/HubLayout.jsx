@@ -5,6 +5,8 @@ import HubFooter from './HubFooter';
 import { useToast } from './ToastContext';
 import { DataProvider } from './DataProvider';
 import { useMarketData } from './DataContext';
+import { useCurrency } from './CurrencyContext';
+import { captureBentoSnapshot } from '../utils/exportUtils';
 import './Skeleton.css';
 import './responsive.css';
 
@@ -30,22 +32,37 @@ function flattenForCSV(obj, prefix = '') {
 }
 
 class MarketErrorBoundary extends Component {
-  state = { error: null };
+  state = { error: null, componentStack: null };
   static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(err, info) { console.error(`[${this.props.name}] crashed:`, err, info); }
+  componentDidCatch(err, info) {
+    console.error(`[${this.props.name}] crashed:`, err, info);
+    this.setState({ componentStack: info?.componentStack || null });
+  }
   componentDidUpdate(prev) {
-    if (this.state.error && prev.name !== this.props.name) this.setState({ error: null });
+    if (this.state.error && prev.name !== this.props.name) this.setState({ error: null, componentStack: null });
   }
   render() {
     if (this.state.error) {
+      const stackLines = (this.state.componentStack || '').split('\n').filter(l => l.trim()).slice(0, 3);
+      const fullStack = this.state.componentStack || '';
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'var(--text-muted)', fontSize: 13 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'var(--text-muted)', fontSize: 13, padding: 16 }}>
           <span style={{ fontSize: 28 }}>&#9888;</span>
           <span><strong>{this.props.name}</strong> failed to load.</span>
-          <button onClick={() => this.setState({ error: null })} style={{ padding: '4px 14px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12 }}>
-            Retry
-          </button>
-          <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>{this.state.error.message}</span>
+          <span style={{ fontSize: 10, color: 'var(--text-dim)', maxWidth: 400, textAlign: 'center', wordBreak: 'break-word' }}>{this.state.error.message}</span>
+          {stackLines.length > 0 && (
+            <pre style={{ fontSize: 9, color: 'var(--text-dim)', background: 'rgba(0,0,0,0.15)', padding: '6px 10px', borderRadius: 4, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, lineHeight: 1.4 }}>{stackLines.join('\n')}</pre>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => this.setState({ error: null, componentStack: null })} style={{ padding: '4px 14px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12 }}>
+              Retry
+            </button>
+            {fullStack && (
+              <button onClick={() => { navigator.clipboard.writeText(`${this.state.error?.stack || this.state.error?.message}\n\nComponent stack:\n${fullStack}`); }} style={{ padding: '4px 14px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 11 }}>
+                Copy Stack
+              </button>
+            )}
+          </div>
         </div>
       );
     }
@@ -97,20 +114,24 @@ function MarketFallback() {
   );
 }
 
-function ActiveMarketWrapper({ activeMarket, currency, setCurrency, snapshotDate, setSnapshotDate, autoRefresh, refreshKey }) {
+function ActiveMarketWrapper({ activeMarket, currency, setCurrency, snapshotDate, setSnapshotDate, autoRefresh, refreshKey, onNavigate }) {
   const ActiveMarket = MARKET_COMPONENTS[activeMarket];
   const marketCtx = useMarketData(activeMarket);
   const institutionalCtx = useMarketData('institutional');
+
   if (!ActiveMarket) return null;
   return (
-    <ActiveMarket
-      currency={currency}
-      setCurrency={setCurrency}
-      snapshotDate={snapshotDate}
-      setSnapshotDate={setSnapshotDate}
-      centralData={marketCtx}
-      institutionalData={activeMarket === 'equitiesDeepDive' ? institutionalCtx : undefined}
-    />
+    <div role="region" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
+      <ActiveMarket
+        currency={currency}
+        setCurrency={setCurrency}
+        snapshotDate={snapshotDate}
+        setSnapshotDate={setSnapshotDate}
+        centralData={marketCtx}
+        institutionalData={activeMarket === 'equitiesDeepDive' ? institutionalCtx : undefined}
+        onNavigate={onNavigate}
+      />
+    </div>
   );
 }
 
@@ -122,12 +143,15 @@ export default function HubLayout() {
     const saved = localStorage.getItem('hub-active-market');
     return saved && MARKETS.some(m => m.id === saved) ? saved : DEFAULT_MARKET;
   });
-  const [currency, setCurrency] = useState('USD');
+  const { currency, setCurrency } = useCurrency();
   const [snapshotDate, setSnapshotDate] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('hub-auto-refresh') === 'on');
   const [refreshKey, setRefreshKey] = useState(0);
   const contentRef = useRef(null);
+  const marketDataRef = useRef(null);
   const { addToast } = useToast();
+  const activeMarketData = useMarketData(activeMarket);
+  marketDataRef.current = activeMarketData;
 
   useEffect(() => {
     localStorage.setItem('hub-active-market', activeMarket);
@@ -136,6 +160,9 @@ export default function HubLayout() {
     const url = new URL(window.location);
     url.searchParams.set('market', activeMarket);
     window.history.pushState({}, '', url);
+
+    const marketLabel = MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket;
+    document.title = `${marketLabel} — Global Market Hub`;
   }, [activeMarket]);
 
   // Sync market from browser back/forward navigation
@@ -149,33 +176,41 @@ export default function HubLayout() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  useEffect(() => {
+    document.title = 'Global Market Hub';
+  }, []);
+
   useEffect(() => { localStorage.setItem('hub-auto-refresh', autoRefresh ? 'on' : 'off'); }, [autoRefresh]);
 
   const ActiveMarket = MARKET_COMPONENTS[activeMarket];
 
-  const handleExport = useCallback(async () => {
-    if (!contentRef.current) return;
-    const { default: html2canvas } = await import('html2canvas');
-    const canvas = await html2canvas(contentRef.current, { useCORS: true, scale: 2 });
-    const link = document.createElement('a');
-    const marketLabel = MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket;
-    const date = new Date().toISOString().slice(0, 10);
-    link.download = `${marketLabel}-${date}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    addToast('Screenshot saved', 'success');
+  const handlePopout = useCallback(() => {
+    const url = new URL(window.location.origin);
+    url.searchParams.set('popout', 'true');
+    url.searchParams.set('market', activeMarket);
+    window.open(url.toString(), `popout-${activeMarket}`, 'width=1200,height=800');
+    addToast(`Popped out ${MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}`, 'success');
   }, [activeMarket, addToast]);
 
-  const API_MAP = { equities: null, equitiesDeepDive: 'equityDeepDive' };
-  const handleExportData = useCallback(async (format) => {
-    const endpoint = API_MAP[activeMarket] ?? activeMarket;
-    if (!endpoint) return; // equities has no single JSON endpoint
+  const handleExport = useCallback(async () => {
+    if (!contentRef.current) return;
+    const marketLabel = MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket;
+    const date = new Date().toISOString().slice(0, 10);
+    
     try {
-      const r = await fetch(`/api/${endpoint}`);
-      if (!r.ok) throw new Error(r.status);
-      const data = await r.json();
-      const marketLabel = MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket;
-      const date = new Date().toISOString().slice(0, 10);
+      await captureBentoSnapshot(contentRef.current, `${marketLabel}-${date}.png`);
+      addToast('Screenshot saved', 'success');
+    } catch (e) {
+      addToast('Export failed: ' + e.message, 'error');
+    }
+  }, [activeMarket, addToast]);
+
+  const handleExportData = useCallback(async (format) => {
+    const marketLabel = MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket;
+    const date = new Date().toISOString().slice(0, 10);
+    try {
+      const data = marketDataRef.current?.data;
+      if (!data) { addToast('No data available to export — fetch first', 'error'); return; }
       let blob, ext;
       if (format === 'csv') {
         const { unparse } = await import('papaparse');
@@ -251,21 +286,23 @@ export default function HubLayout() {
   return (
     <DataProvider autoRefresh={autoRefresh} refreshKey={refreshKey}>
       <div className="hub-layout">
-        <MarketTabBar
-          activeMarket={activeMarket}
-          setActiveMarket={setActiveMarket}
-          currency={currency}
-          setCurrency={setCurrency}
-          onExport={handleExport}
-          onExportData={handleExportData}
-          autoRefresh={autoRefresh}
-          onToggleRefresh={handleToggleRefresh}
-          onRefresh={handleRefresh}
-        />
+        <a href='#main-content' className='skip-link'>Skip to content</a>
+         <MarketTabBar
+           activeMarket={activeMarket}
+           setActiveMarket={setActiveMarket}
+           currency={currency}
+           setCurrency={setCurrency}
+           onExport={handleExport}
+           onExportData={handleExportData}
+           onPopout={handlePopout}
+           autoRefresh={autoRefresh}
+           onToggleRefresh={handleToggleRefresh}
+           onRefresh={handleRefresh}
+         />
         <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
           <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
             <Suspense fallback={<MarketFallback />}>
-              <ActiveMarketWrapper activeMarket={activeMarket} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} />
+              <ActiveMarketWrapper activeMarket={activeMarket} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} onNavigate={setActiveMarket} />
             </Suspense>
           </MarketErrorBoundary>
         </main>

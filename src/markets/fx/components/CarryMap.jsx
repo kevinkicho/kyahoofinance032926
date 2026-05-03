@@ -1,6 +1,6 @@
-// src/markets/fx/components/CarryMap.jsx
 import React, { useMemo } from 'react';
 import { CENTRAL_BANK_RATES } from '../data/centralBankRates';
+import DataFooter from '../../../components/DataFooter/DataFooter';
 import './FXComponents.css';
 
 const CARRY_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'NZD'];
@@ -14,30 +14,42 @@ function carryBg(diff) {
     : `rgba(239, 68, 68, ${alpha})`;
 }
 
-export default function CarryMap() {
+function mergeLiveRates(baseRates, rateDiffs) {
+  const merged = { ...baseRates };
+  if (!rateDiffs) return merged;
+  if (rateDiffs.fed != null) merged.USD = { ...merged.USD, rate: rateDiffs.fed };
+  if (rateDiffs.ecb != null)  merged.EUR = { ...merged.EUR, rate: rateDiffs.ecb };
+  if (rateDiffs.boe != null)  merged.GBP = { ...merged.GBP, rate: rateDiffs.boe };
+  if (rateDiffs.boj != null)  merged.JPY = { ...merged.JPY, rate: rateDiffs.boj };
+  return merged;
+}
+
+const stopDrag = (e) => e.stopPropagation();
+
+export default function CarryMap({ rateDifferentials, isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent }) {
+  const rates = useMemo(() => mergeLiveRates(CENTRAL_BANK_RATES, rateDifferentials), [rateDifferentials]);
+
   const pairs = useMemo(() => {
     const result = {};
     for (const base of CARRY_CURRENCIES) {
       result[base] = {};
       for (const quote of CARRY_CURRENCIES) {
         if (base === quote) { result[base][quote] = null; continue; }
-        const baseRate  = CENTRAL_BANK_RATES[base]?.rate ?? 0;
-        const quoteRate = CENTRAL_BANK_RATES[quote]?.rate ?? 0;
+        const baseRate  = rates[base]?.rate ?? 0;
+        const quoteRate = rates[quote]?.rate ?? 0;
         result[base][quote] = baseRate - quoteRate;
       }
     }
     return result;
-  }, []);
+  }, [rates]);
 
-  // KPI computations
-  const rates = CARRY_CURRENCIES.map(c => ({ code: c, rate: CENTRAL_BANK_RATES[c]?.rate ?? 0 }));
-  const sortedRates = [...rates].sort((a, b) => b.rate - a.rate);
+  const rateList = CARRY_CURRENCIES.map(c => ({ code: c, rate: rates[c]?.rate ?? 0 }));
+  const sortedRates = [...rateList].sort((a, b) => b.rate - a.rate);
   const maxRate = sortedRates[0]?.rate ?? 0;
   const minRate = sortedRates[sortedRates.length - 1]?.rate ?? 0;
   const g7 = ['USD', 'EUR', 'GBP', 'JPY', 'CAD'];
-  const avgG7 = g7.reduce((s, c) => s + (CENTRAL_BANK_RATES[c]?.rate ?? 0), 0) / g7.length;
+  const avgG7 = g7.reduce((s, c) => s + (rates[c]?.rate ?? 0), 0) / g7.length;
 
-  // Best/worst carry pairs
   let bestCarry = null, worstCarry = null;
   for (const base of CARRY_CURRENCIES) {
     for (const quote of CARRY_CURRENCIES) {
@@ -49,16 +61,22 @@ export default function CarryMap() {
     }
   }
 
+  const isCarryLive = !!(rateDifferentials && (rateDifferentials.fed != null));
+  const liveLabel = isCarryLive
+    ? CARRY_CURRENCIES.filter(c => rateDifferentials && rates[c]?.rate !== CENTRAL_BANK_RATES[c]?.rate).map(c => `${c} Live`).join(', ')
+    : '';
+
   return (
-    <div className="fx-panel">
-      <div className="fx-panel-header">
+    <>
+      <div className="fx-panel-title-row bento-panel-title-row">
         <span className="fx-panel-title">Carry Map</span>
         <span className="fx-panel-subtitle">
           Interest rate differential (long base − short quote). Positive = earn positive carry.
+          {liveLabel && <span style={{ color: '#22c55e', marginLeft: 6 }}>· {liveLabel}</span>}
         </span>
       </div>
 
-      {/* KPI Strip */}
+      <div className="bento-panel-content fx-panel-scroll" style={{ overflow: 'auto' }} onMouseDown={stopDrag}>
       <div className="fx-kpi-strip">
         {bestCarry && (
           <div className="fx-kpi-pill">
@@ -85,7 +103,6 @@ export default function CarryMap() {
         </div>
       </div>
 
-      {/* Main: carry table (wide) + rate bars (narrow) */}
       <div className="fx-wide-narrow">
         <div className="carry-scroll">
           <table className="fx-table">
@@ -95,7 +112,7 @@ export default function CarryMap() {
                 {CARRY_CURRENCIES.map(c => (
                   <th key={c} className="fx-th">
                     {c}<br />
-                    <span className="fx-rate-hint">{CENTRAL_BANK_RATES[c]?.rate ?? '—'}%</span>
+                    <span className="fx-rate-hint">{rates[c]?.rate ?? '—'}%</span>
                   </th>
                 ))}
               </tr>
@@ -105,7 +122,7 @@ export default function CarryMap() {
                 <tr key={base}>
                   <td className="fx-row-header">
                     {base}<br />
-                    <span className="fx-rate-hint">{CENTRAL_BANK_RATES[base]?.rate ?? '—'}%</span>
+                    <span className="fx-rate-hint">{rates[base]?.rate ?? '—'}%</span>
                   </td>
                   {CARRY_CURRENCIES.map(quote => {
                     if (base === quote) {
@@ -147,9 +164,8 @@ export default function CarryMap() {
         </div>
       </div>
 
-      <div className="fx-panel-footer">
-        Central bank policy rates (approximate). Green = positive carry. Red = negative carry.
       </div>
-    </div>
+      <DataFooter source="FRED / Central Banks" timestamp={lastUpdated} isLive={isCarryLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+    </>
   );
 }

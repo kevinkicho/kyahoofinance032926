@@ -101,6 +101,20 @@ body {
   overflow: hidden;
 }
 
+/* The market tab bar can be wider than the viewport (21 tabs + theme +
+   export + refresh + currency picker > 1440px). Without an explicit
+   scroll container here, the browser used `.hub-layout`'s scrollLeft
+   when the ▶ button gained focus — silently shifting the bento panels
+   off-screen by ~771px. Make the tab bar own its own horizontal scroll.
+   Hide the scrollbar visually since markers in the bar already imply
+   horizontal navigation. */
+.market-tab-bar {
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+}
+.market-tab-bar::-webkit-scrollbar { display: none; }
+
 /* ── Market placeholder (stub workspaces) ──────── */
 .market-placeholder {
   display: flex;
@@ -164,17 +178,155 @@ body {
   z-index: 9999;
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+   Shared market-panel chrome.
+
+   Use `.market-panel-card` to wrap any element that lives outside the
+   bento grid (top KPI strips, sidebars rendered as their own column)
+   so it visually matches the bento panels. The chrome is identical to
+   `.bento-card` — same background, border, radius, shadow — plus an
+   outer margin that mirrors the bento grid's gutter (16px).
+
+   Pair the optional header with `.bento-panel-title-row` for the title
+   bar treatment used inside the grid, so titles align across panels.
+   ────────────────────────────────────────────────────────────────────── */
+.market-panel-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 12px 16px 4px 16px;
+  flex-shrink: 0;
+}
+
+.market-panel-card.market-side-panel {
+  /* Side-rendered panels (sidebars) stretch vertically inside their flex
+     column container instead of sitting flush against the top. */
+  margin: 12px 0 12px 16px;
+  flex: 1 0 auto;
+  min-height: 200px;
+}
+
+.market-panel-card-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* KPI strip layout — formerly inline styles in MarketKpiStrip.jsx, lifted
+   into CSS so theming and overflow are predictable. */
+.market-kpi-strip {
+  display: flex;
+  gap: 12px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.market-kpi-pill {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.market-kpi-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.market-kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.market-kpi-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.market-kpi-trend {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.market-kpi-sublabel {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Loose sidebars rendered outside the bento grid (Crypto, FX, Commodities,
+   Derivatives, Alerts) get the same panel chrome as a `.bento-card` plus a
+   small outer margin to separate them from the grid visually. The
+   per-market CSS still owns layout (flex column, gap, internal padding);
+   this block only standardizes the wrapping chrome.
+
+   `!important` is needed because the per-market rules below set the
+   conflicting `border-right` directly.
+   ────────────────────────────────────────────────────────────────────── */
+/* All five formerly-loose sidebars now live inside their markets'
+   BentoWrapper as real bento panels — no more fallback chrome needed. */
+
 /* ── Print-friendly stylesheet ────────────────── */
 @media print {
   body { overflow: visible; height: auto; background: #fff; color: #000; }
   .hub-layout { height: auto; overflow: visible; }
   .market-tab-bar, .hub-footer, .hub-theme-toggle,
   .hub-export-btn, .hub-popout-btn, .hub-search-wrap,
-  .hub-currency-picker, .sr-only-focusable { display: none !important; }
+  .hub-currency-picker, .sr-only-focusable,
+  .data-footer-popover, .metric-value-popover, .bento-panel-title-row,
+  .react-grid-layout__resize-handle, .react-grid-layout__placeholder { display: none !important; }
   main[role="tabpanel"] { overflow: visible !important; height: auto !important; }
+  .bento-wrapper { width: 100% !important; overflow: visible !important; }
+  .bento-panel { break-inside: avoid; width: 100%; overflow: visible !important; }
   /* Force light colors for charts/cards */
   * { color-adjust: exact; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .sent-market, .bonds-market, .fx-market, .deriv-market,
   .re-market, .ins-market, .com-market, .macro-market,
   .eq-market, .crypto-market, .credit-market, .cal-market { overflow: visible; height: auto; }
+}
+
+/* A11y skip-to-content link — hidden off-screen until keyboard-focused.
+   Without this CSS the unstyled <a> was rendering as a regular underlined
+   link above the topbar. */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 8px;
+  width: 1px;
+  height: 1px;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10000;
+  overflow: hidden;
+  white-space: nowrap;
+  text-decoration: none;
+  outline: none;
+  clip: rect(0 0 0 0);
+}
+.skip-link:focus {
+  top: 8px;
+  width: auto;
+  height: auto;
+  clip: auto;
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
 }

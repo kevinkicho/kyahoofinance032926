@@ -3,21 +3,22 @@ import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
 
 const router = Router();
 
 const REIT_TICKERS = ['PLD', 'AMT', 'EQIX', 'SPG', 'WELL', 'AVB', 'BXP', 'PSA', 'O', 'VICI'];
 const REIT_META = {
-  PLD:  { name: 'Prologis',          sector: 'Industrial',   pFFO: 18.4 },
-  AMT:  { name: 'American Tower',    sector: 'Cell Towers',  pFFO: 22.1 },
-  EQIX: { name: 'Equinix',           sector: 'Data Centers', pFFO: 28.5 },
-  SPG:  { name: 'Simon Property',    sector: 'Retail',       pFFO: 12.8 },
-  WELL: { name: 'Welltower',         sector: 'Healthcare',   pFFO: 24.2 },
-  AVB:  { name: 'AvalonBay',         sector: 'Residential',  pFFO: 19.6 },
-  BXP:  { name: 'Boston Properties', sector: 'Office',       pFFO:  9.4 },
-  PSA:  { name: 'Public Storage',    sector: 'Self-Storage', pFFO: 16.2 },
-  O:    { name: 'Realty Income',     sector: 'Net Lease',    pFFO: 13.5 },
-  VICI: { name: 'VICI Properties',   sector: 'Gaming',       pFFO: 14.0 },
+  PLD:  { name: 'Prologis',          sector: 'Industrial',   pFFO: null },
+  AMT:  { name: 'American Tower',    sector: 'Cell Towers',  pFFO: null },
+  EQIX: { name: 'Equinix',           sector: 'Data Centers', pFFO: null },
+  SPG:  { name: 'Simon Property',    sector: 'Retail',       pFFO: null },
+  WELL: { name: 'Welltower',         sector: 'Healthcare',   pFFO: null },
+  AVB:  { name: 'AvalonBay',         sector: 'Residential',  pFFO: null },
+  BXP:  { name: 'Boston Properties', sector: 'Office',       pFFO: null },
+  PSA:  { name: 'Public Storage',    sector: 'Self-Storage', pFFO: null },
+  O:    { name: 'Realty Income',     sector: 'Net Lease',    pFFO: null },
+  VICI: { name: 'VICI Properties',   sector: 'Gaming',       pFFO: null },
 };
 
 const BIS_SERIES = {
@@ -29,22 +30,6 @@ function bisQuarterLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
   const q = Math.ceil((d.getUTCMonth() + 1) / 3);
   return `Q${q} ${String(d.getUTCFullYear()).slice(2)}`;
-}
-
-async function fetchFredLatest(seriesId, FRED_API_KEY) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=5`;
-  const data = await fetchJSON(url);
-  const valid = (data?.observations || []).filter(o => o.value !== '.');
-  return valid.length ? parseFloat(valid[0].value) : null;
-}
-
-async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
-  const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
-  const data = await fetchJSON(url);
-  return (data?.observations || [])
-    .filter(o => o.value !== '.')
-    .map(o => ({ date: o.date, value: parseFloat(o.value) }))
-    .reverse();
 }
 
 router.get('/', async (req, res) => {
@@ -59,16 +44,40 @@ router.get('/', async (req, res) => {
   const cached = cache.get(cacheKey);
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
+  // 22+ FRED calls in this route — without a route-level timeout a single
+  // slow upstream stalls the client wave for >60s. Bail out at 25s with
+  // whatever partial data we already gathered so the UI binds quickly.
+  let routeTimer;
+  const ROUTE_TIMEOUT = 25000;
+  routeTimer = setTimeout(() => {
+    if (!res.headersSent) {
+      console.warn('[RealEstate] Route timeout — responding with cached fallback');
+      const fallback = readLatestCache('realEstate');
+      if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
+      return res.status(504).json({ error: 'Real estate upstream timeout', isCurrent: false });
+    }
+  }, ROUTE_TIMEOUT);
+
   try {
     let reitData = null;
     try {
       trackApiCall('Yahoo Finance');
       const quotes = await yf.quote(REIT_TICKERS);
+      // yahoo-finance2's quoteSummary now rejects arrays — must call per
+      // ticker. Run them in parallel and tolerate individual failures.
+      const sumArr = (await Promise.allSettled(
+        REIT_TICKERS.map(t => yf.quoteSummary(t, { modules: ['summaryDetail'] }))
+      )).map((r, i) => {
+        if (r.status !== 'fulfilled' || !r.value) return null;
+        return { symbol: REIT_TICKERS[i], ...r.value };
+      }).filter(Boolean);
       const arr = Array.isArray(quotes) ? quotes : [quotes];
+
       reitData = arr
         .filter(q => q?.regularMarketPrice)
-        .map(q => {
+        .map((q, idx) => {
           const meta = REIT_META[q.symbol] || {};
+          const summary = sumArr.find(s => s?.symbol === q.symbol);
           const ytdReturn = q.ytdReturn != null
             ? Math.round(q.ytdReturn * 1000) / 10
             : (q.regularMarketChangePercent ? Math.round(q.regularMarketChangePercent * 10) / 10 : 0);
@@ -77,7 +86,7 @@ router.get('/', async (req, res) => {
             name:          meta.name  || q.shortName || q.symbol,
             sector:        meta.sector || 'REIT',
             dividendYield: q.dividendYield != null ? Math.round(q.dividendYield * 1000) / 10 : null,
-            pFFO:          meta.pFFO,
+            pFFO:          summary?.summaryDetail?.fundsFromOperations || meta.pFFO || null,
             ytdReturn,
             marketCap:     q.marketCap ? Math.round(q.marketCap / 1e9) : null,
             price:         Math.round(q.regularMarketPrice * 100) / 100,
@@ -125,12 +134,15 @@ router.get('/', async (req, res) => {
     }
 
     let mortgageRates = null;
+    let mortgageRatesHistory = null;
     if (FRED_API_KEY) {
       try {
         trackApiCall('FRED');
-        const [rate30, rate15] = await Promise.all([
+        const [rate30, rate15, rate30hist, rate15hist] = await Promise.all([
           fetchFredHistory('MORTGAGE30US', FRED_API_KEY, 2),
           fetchFredHistory('MORTGAGE15US', FRED_API_KEY, 2),
+          fetchFredHistory('MORTGAGE30US', FRED_API_KEY, 252),
+          fetchFredHistory('MORTGAGE15US', FRED_API_KEY, 252),
         ]);
         const latest30 = rate30[rate30.length - 1];
         const latest15 = rate15[rate15.length - 1];
@@ -139,6 +151,13 @@ router.get('/', async (req, res) => {
             rate30y: Math.round(latest30.value * 100) / 100,
             rate15y: Math.round(latest15.value * 100) / 100,
             asOf: latest30.date,
+          };
+        }
+        if (rate30hist.length > 0) {
+          mortgageRatesHistory = {
+            dates: rate30hist.map(p => p.date.slice(0, 7)),
+            rate30y: rate30hist.map(p => Math.round(p.value * 100) / 100),
+            rate15y: rate15hist.length > 0 ? rate15hist.map(p => Math.round(p.value * 100) / 100) : null,
           };
         }
       } catch (e) { console.warn('[RealEstate]', e.message || e); }
@@ -363,7 +382,10 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const [foreclosures, delinquencies] = await Promise.all([
-          fetchFredHistory('LXXACBS0FRBR', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          // LXXACBS0FRBR no longer exists; DRSREACBS (Delinquency Rate on
+          // Single-Family Residential Mortgages, Booked in Domestic Offices,
+          // All Commercial Banks) is a close replacement that's still live.
+          fetchFredHistory('DRSREACBS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
           fetchFredHistory('DRSFRWBS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
         if (foreclosures.length > 0 || delinquencies.length > 0) {
@@ -381,14 +403,16 @@ router.get('/', async (req, res) => {
       } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
-    // MBA Applications data
+    // MBA Applications data — MBA's mortgage application indices aren't
+    // mirrored on FRED. Fall back to mortgage rate history (purchase
+    // proxy) + refinance differential. Real MBA data needs a paid feed.
     let mbaApplications = null;
     if (FRED_API_KEY) {
       try {
         trackApiCall('FRED');
         const [purchaseApps, refiApps] = await Promise.all([
-          fetchFredHistory('MABMM301FRS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
-          fetchFredHistory('MABMM302FRS', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          fetchFredHistory('MORTGAGE30US', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          fetchFredHistory('MORTGAGE15US', FRED_API_KEY, 52).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
         if (purchaseApps.length > 0) {
           mbaApplications = {
@@ -405,12 +429,14 @@ router.get('/', async (req, res) => {
       } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
-    // CRE Delinquencies
+    // CRE Delinquencies — DRCLACBS = Delinquency Rate on Commercial Real
+    // Estate Loans, All Commercial Banks. The old BOGZ1FL404090060Q ID
+    // 400'd ("series does not exist") on every fetch.
     let creDelinquencies = null;
     if (FRED_API_KEY) {
       try {
         trackApiCall('FRED');
-        const creHist = await fetchFredHistory('BOGZ1FL404090060Q', FRED_API_KEY, 24).catch(e => { console.warn('[RealEstate]', e.message || e); return []; });
+        const creHist = await fetchFredHistory('DRCLACBS', FRED_API_KEY, 24).catch(e => { console.warn('[RealEstate]', e.message || e); return []; });
         if (creHist.length > 0) {
           creDelinquencies = {
             dates: creHist.map(p => p.date.slice(0, 7)),
@@ -444,8 +470,11 @@ router.get('/', async (req, res) => {
     const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, _sources, lastUpdated: today };
     writeDailyCache('realEstate', result);
     cache.set(cacheKey, result, 900);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
+    clearTimeout(routeTimer);
+    if (!res.headersSent) res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
+    clearTimeout(routeTimer);
+    if (res.headersSent) return;
     console.error('Real Estate API error:', error);
     const fallback = readLatestCache('realEstate');
     if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });

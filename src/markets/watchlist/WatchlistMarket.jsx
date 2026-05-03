@@ -1,7 +1,10 @@
 // src/markets/watchlist/WatchlistMarket.jsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { fetchWithRetry } from '../../utils/fetchWithRetry';
 import BentoWrapper from '../../components/BentoWrapper';
+import { useMarketData } from '../../hub/DataContext';
+import MarketKpiStrip from '../../components/MarketKpiStrip';
+import DataFooter from '../../components/DataFooter/DataFooter';
 import './WatchlistMarket.css';
 
 const MAX_TICKERS = 20;
@@ -26,15 +29,19 @@ const SUB_TABS = [
 
 const stopDrag = (e) => e.stopPropagation();
 
+// KPI strip is now a real bento child at row 0 (h:2). Storage keys
+// bumped because the layout schema changed.
 const LAYOUTS = {
   tickers: {
     lg: [
-      { i: 'ticker-list', x: 0, y: 0, w: 12, h: 5 },
+      { i: 'kpi',         x: 0, y: 0, w: 12, h: 2 },
+      { i: 'ticker-list', x: 0, y: 2, w: 12, h: 5 },
     ]
   },
   metrics: {
     lg: [
-      { i: 'metric-cards', x: 0, y: 0, w: 12, h: 3 },
+      { i: 'kpi',          x: 0, y: 0, w: 12, h: 2 },
+      { i: 'metric-cards', x: 0, y: 2, w: 12, h: 3 },
     ]
   },
 };
@@ -47,9 +54,10 @@ function loadJSON(key, fallback) {
 function WatchlistMarket({ onNavigate }) {
   const [activeTab, setActiveTab] = useState('tickers');
   const [tickers, setTickers] = useState(() => loadJSON(LS_TICKERS, []));
-  const [quotes, setQuotes] = useState({});
-  const [loading, setLoading] = useState({});
-  const [errors, setErrors] = useState({});
+  const watchlistData = useMarketData('watchlist');
+  const quotes = watchlistData?.data || {};
+  const isLoading = watchlistData?.isLoading || false;
+  const errors = watchlistData?.error ? { global: watchlistData.error } : {};
   const [input, setInput] = useState('');
   const [favMetrics, setFavMetrics] = useState(() => loadJSON(LS_METRICS, []));
   const fetchedRef = useRef(new Set());
@@ -62,31 +70,15 @@ function WatchlistMarket({ onNavigate }) {
     localStorage.setItem(LS_METRICS, JSON.stringify(favMetrics));
   }, [favMetrics]);
 
-  const fetchQuote = useCallback(async (ticker) => {
-    setLoading(prev => ({ ...prev, [ticker]: true }));
-    setErrors(prev => { const n = { ...prev }; delete n[ticker]; return n; });
-    try {
-      const res = await fetchWithRetry(`/api/summary/${encodeURIComponent(ticker)}`);
-      const data = await res.json();
-      setQuotes(prev => ({ ...prev, [ticker]: data }));
-    } catch (err) {
-      setErrors(prev => ({ ...prev, [ticker]: err.message }));
-    } finally {
-      setLoading(prev => ({ ...prev, [ticker]: false }));
+  const refetchWatchlist = useCallback(() => {
+    if (watchlistData?.refetch) {
+        watchlistData.refetch({ tickers: tickers.join(',') });
     }
-  }, []);
+  }, [watchlistData, tickers]);
 
   useEffect(() => {
-    tickers.forEach(t => {
-      if (!fetchedRef.current.has(t)) {
-        fetchedRef.current.add(t);
-        fetchQuote(t);
-      }
-    });
-    fetchedRef.current.forEach(t => {
-      if (!tickers.includes(t)) fetchedRef.current.delete(t);
-    });
-  }, [tickers, fetchQuote]);
+    refetchWatchlist();
+  }, [tickers, refetchWatchlist]);
 
   const addTicker = useCallback(() => {
     const sym = input.trim().toUpperCase();
@@ -97,8 +89,6 @@ function WatchlistMarket({ onNavigate }) {
 
   const removeTicker = useCallback((sym) => {
     setTickers(prev => prev.filter(t => t !== sym));
-    setQuotes(prev => { const n = { ...prev }; delete n[sym]; return n; });
-    setErrors(prev => { const n = { ...prev }; delete n[sym]; return n; });
     fetchedRef.current.delete(sym);
   }, []);
 
@@ -142,10 +132,107 @@ function WatchlistMarket({ onNavigate }) {
     return aFav - bFav;
   });
 
-  return (
-    <div className="watch-market">
-      <div className="watch-sub-tabs" role="tablist" aria-label="Sub-tabs">
-        {SUB_TABS.map(t => (
+  const derivData = useMarketData('derivatives');
+  const fxData = useMarketData('fx');
+  const bondData = useMarketData('bonds');
+  const cryptoData = useMarketData('crypto');
+  const commData = useMarketData('commodities');
+  const creditData = useMarketData('credit');
+  const sentimentData = useMarketData('sentiment');
+  const equityEddData = useMarketData('equitiesDeepDive');
+
+  const MARKET_CONTEXTS = {
+    vix: derivData,
+    dxy: fxData,
+    ust10y: bondData,
+    btc: cryptoData,
+    gold: commData,
+    spx: equityEddData,
+    hyspread: creditData,
+    feargreed: sentimentData,
+  };
+
+  const getSourceStatus = (metric) => {
+    const ctx = MARKET_CONTEXTS[metric.id];
+    if (!ctx) return 'nodata';
+    if (ctx.isLoading) return 'loading';
+    if (ctx.error) return 'error';
+    if (ctx.isLive || ctx.isCurrent) return 'live';
+    if (ctx.fetchedOn) return 'stale';
+    return 'nodata';
+  };
+
+  const getLiveValue = (metric) => {
+    switch (metric.id) {
+      case 'vix': {
+        const ts = derivData?.data?.vixTermStructure?.values;
+        const vix = (ts && ts.length > 1) ? ts[1] : ts?.[0];
+        if (vix != null) return Number(vix).toFixed(2);
+        const hist = derivData?.data?.fredVixHistory?.values;
+        if (hist?.length) return Number(hist[hist.length - 1]).toFixed(2);
+        return null;
+      }
+      case 'dxy': {
+        const dxyHist = fxData?.data?.dxyHistory?.values;
+        if (dxyHist?.length) return Number(dxyHist[dxyHist.length - 1]).toFixed(2);
+        const dxyFred = fxData?.data?.fredFxRates?.dollarIndex?.values;
+        if (dxyFred?.length) return Number(dxyFred[dxyFred.length - 1]).toFixed(2);
+        return null;
+      }
+      case 'ust10y': {
+        const us10y = bondData?.data?.yieldCurveData?.US?.['10y'];
+        if (us10y != null) return `${Number(us10y).toFixed(2)}%`;
+        const notes10y = bondData?.data?.treasuryRates?.notes;
+        if (notes10y != null) return `${Number(notes10y).toFixed(2)}%`;
+        return null;
+      }
+      case 'btc': {
+        const coins = cryptoData?.data?.coinMarketData?.coins;
+        const btcObj = coins?.find(c => c.symbol === 'BTC');
+        if (btcObj?.price != null) return `$${Number(btcObj.price).toLocaleString()}`;
+        return null;
+      }
+      case 'gold': {
+        const spot = commData?.data?.goldFuturesCurve?.spotPrice;
+        if (spot != null) return `$${Number(spot).toLocaleString()}`;
+        const sectorGold = commData?.data?.priceDashboardData
+          ?.flatMap(s => s.commodities || [])
+          ?.find(c => c.ticker === 'GC=F');
+        if (sectorGold?.price != null) return `$${Number(sectorGold.price).toLocaleString()}`;
+        return null;
+      }
+      case 'spx': {
+        const sectors = equityEddData?.data?.sectorData?.sectors;
+        const spy = sectors?.find(s => s.code === 'SPY');
+        if (spy?.price != null) return Number(spy.price).toLocaleString();
+        return null;
+      }
+      case 'hyspread': {
+        const hy = creditData?.data?.spreadData?.current?.hySpread;
+        return hy != null ? `${Math.round(hy)} bps` : null;
+      }
+      case 'feargreed': {
+        const fg = sentimentData?.data?.fearGreedData?.score;
+        return fg != null ? Math.round(fg) : null;
+      }
+      default: return null;
+    }
+  };
+
+  const kpis = useMemo(() => {
+    return [
+      { label: 'VIX', value: getLiveValue({ id: 'vix' }) ?? '—', color: 'var(--text-primary)', trend: null, sublabel: 'Volatility' },
+      { label: 'DXY', value: getLiveValue({ id: 'dxy' }) ?? '—', color: 'var(--text-primary)', trend: null, sublabel: 'US Dollar' },
+      { label: 'US 10Y', value: getLiveValue({ id: 'ust10y' }) ?? '—', color: 'var(--text-primary)', trend: null, sublabel: 'Treasury' },
+      { label: 'BTC', value: getLiveValue({ id: 'btc' }) ?? '—', color: 'var(--text-primary)', trend: null, sublabel: 'Crypto' },
+    ];
+  }, [derivData, fxData, bondData, cryptoData, commData, creditData, sentimentData, equityEddData]);
+
+    return (
+      <div className="watch-market">
+        <div className="watch-sub-tabs" role="tablist" aria-label="Sub-tabs">
+          {SUB_TABS.map(t => (
+
           <button
             key={t.id}
             role="tab"
@@ -159,7 +246,25 @@ function WatchlistMarket({ onNavigate }) {
       </div>
 
       <div className="watch-dashboard watch-dashboard--bento">
-        <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout`}>
+        <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout-v2`}>
+          {/* KPI strip — full-width bento child at row 0 in both sub-tabs. */}
+          <div key="kpi" className="watch-bento-card">
+            <div className="watch-panel-title-row bento-panel-title-row">
+              <span className="bento-panel-title">Watchlist Key Metrics</span>
+            </div>
+            <div className="bento-panel-content watch-panel-scroll" onMouseDown={stopDrag}>
+              <MarketKpiStrip kpis={kpis} bare />
+            </div>
+            <DataFooter
+              source="Cross-market shortcuts"
+              timestamp={watchlistData?.lastUpdated}
+              isLive={watchlistData?.isLive}
+              fetchLog={watchlistData?.fetchLog}
+              error={watchlistData?.error}
+              fetchedOn={watchlistData?.fetchedOn}
+              isCurrent={watchlistData?.isCurrent}
+            />
+          </div>
           {activeTab === 'tickers' && (
             <div key="ticker-list" className="watch-bento-card">
               <div className="watch-panel-title-row bento-panel-title-row">
@@ -204,8 +309,7 @@ function WatchlistMarket({ onNavigate }) {
                     <tbody>
                       {tickers.map(sym => {
                         const q = quotes[sym];
-                        const isLoading = loading[sym];
-                        const err = errors[sym];
+                        const err = errors[sym] || errors.global;
                         const price = q?.price?.regularMarketPrice?.raw ?? q?.price?.regularMarketPrice;
                         const change = q?.price?.regularMarketChange?.raw ?? q?.price?.regularMarketChange;
                         const changePct = q?.price?.regularMarketChangePercent?.raw ?? q?.price?.regularMarketChangePercent;
@@ -238,6 +342,7 @@ function WatchlistMarket({ onNavigate }) {
                   </table>
                 )}
               </div>
+              <DataFooter source="Yahoo Finance" timestamp={watchlistData?.lastUpdated} isLive={watchlistData?.isLive} fetchLog={watchlistData?.fetchLog || []} error={watchlistData?.error} fetchedOn={watchlistData?.fetchedOn} isCurrent={watchlistData?.isCurrent} />
             </div>
           )}
           {activeTab === 'metrics' && (
@@ -252,25 +357,37 @@ function WatchlistMarket({ onNavigate }) {
                 <div className="watch-metrics-grid">
                   {sortedMetrics.map(m => {
                     const isFav = favMetrics.includes(m.id);
+                    const status = getSourceStatus(m);
+                    const statusClass = `watch-metric-status-${status}`;
+                    const statusLabel = { live: 'LIVE', stale: 'STALE', loading: '…', error: 'ERR', nodata: '—' }[status];
                     return (
                       <div
                         key={m.id}
                         className={`watch-metric-card${isFav ? ' favorited' : ''}`}
                         onClick={() => handleMetricClick(m)}
                       >
-                        <span className="watch-metric-label">{m.label}</span>
-                        <button
-                          className={`watch-metric-star${isFav ? ' active' : ''}`}
-                          onClick={(e) => { e.stopPropagation(); toggleMetric(m.id); }}
-                          title={isFav ? 'Remove from favorites' : 'Add to favorites'}
-                        >
-                          {isFav ? '\u2605' : '\u2606'}
-                        </button>
+                        <div className="watch-metric-main">
+                          <span className="watch-metric-label">{m.label}</span>
+                          <span className={`watch-metric-value ${statusClass}`} title={status === 'error' ? (MARKET_CONTEXTS[m.id]?.error || 'Fetch error') : ''}>
+                            {status === 'loading' ? <span className="watch-ticker-loading" /> : getLiveValue(m) ?? '—'}
+                          </span>
+                        </div>
+                        <div className="watch-metric-right">
+                          <span className={`watch-metric-status ${statusClass}`} title={`Source: ${m.label} — ${status}`}>{statusLabel}</span>
+                          <button
+                            className={`watch-metric-star${isFav ? ' active' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); toggleMetric(m.id); }}
+                            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                          >
+                            {isFav ? '\u2605' : '\u2606'}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
+              <DataFooter source="Internal / FRED" timestamp={watchlistData?.lastUpdated} isLive={watchlistData?.isLive} fetchLog={watchlistData?.fetchLog || []} error={watchlistData?.error} fetchedOn={watchlistData?.fetchedOn} isCurrent={watchlistData?.isCurrent} />
             </div>
           )}
         </BentoWrapper>

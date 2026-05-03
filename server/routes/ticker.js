@@ -1,13 +1,21 @@
 import { Router } from 'express';
 import { yf } from '../lib/yahoo.js';
-import { readBestFile, readLocalData, adaptCompact, periodCutoff, snapshotIndex, snapshotBuilding, buildSnapshotIndex } from '../lib/stocks.js';
+import { readBestFile, readLocalData, adaptCompact, periodCutoff, snapshotIndex, snapshotBuilding, buildSnapshotIndex, REGION_SUFFIX } from '../lib/stocks.js';
 
 const router = Router();
+
+// Yahoo tickers: letters, digits, dot, dash, caret, equals; max 16 chars.
+// Leading `^` is valid for index symbols (^GSPC, ^IXIC, ^DJI, ^RUT, ^VIX, ...).
+const TICKER_RE = /^[A-Z0-9^][A-Z0-9.\-^=]{0,15}$/;
+const isValidTicker = (t) => typeof t === 'string' && TICKER_RE.test(t);
+const isValidRegion = (r) => r === '' || Object.prototype.hasOwnProperty.call(REGION_SUFFIX, r);
 
 // GET /api/summary/:ticker
 router.get('/summary/:ticker', async (req, res) => {
   const { ticker } = req.params;
   const region = req.query.region || '';
+  if (!isValidTicker(ticker)) return res.status(400).json({ error: 'Invalid ticker' });
+  if (!isValidRegion(region)) return res.status(400).json({ error: 'Invalid region' });
   const cache = req.app.locals.cache;
   const cacheKey = `summary_${ticker}`;
   const memCached = cache.get(cacheKey);
@@ -16,12 +24,14 @@ router.get('/summary/:ticker', async (req, res) => {
   const resolved = readBestFile(ticker, region);
   if (resolved?.data?.summary) {
     cache.set(cacheKey, resolved.data.summary, 1800);
-    return res.json(resolved.data.summary);
+    const sources = { yahooSummary: true, cached: false };
+    res.set('X-Data-Sources', JSON.stringify(sources));
+    return res.json({ ...resolved.data.summary, _sources: sources });
   }
   const local = readLocalData(ticker);
   if (local?.summary) {
     cache.set(cacheKey, local.summary, 1800);
-    return res.json(local.summary);
+    return res.json({ ...local.summary, _sources: { yahooSummary: true, cached: true } });
   }
 
   try {
@@ -31,7 +41,9 @@ router.get('/summary/:ticker', async (req, res) => {
                 'incomeStatementHistory','cashflowStatementHistory','balanceSheetHistory']
     });
     cache.set(cacheKey, data, 1800);
-    res.json(data);
+    const sources = { yahooSummary: true, cached: false };
+    res.set('X-Data-Sources', JSON.stringify(sources));
+    res.json({ ...data, _sources: sources });
   } catch (error) {
     console.warn(`Summary unavailable for ${ticker}: ${error.message}`);
     res.status(404).json({ error: `No summary data for ${ticker}`, ticker });
@@ -43,6 +55,11 @@ router.get('/history/:ticker', async (req, res) => {
   const { ticker } = req.params;
   const period = req.query.period || '1y';
   const region = req.query.region || '';
+  if (!isValidTicker(ticker)) return res.status(400).json({ error: 'Invalid ticker' });
+  if (!isValidRegion(region)) return res.status(400).json({ error: 'Invalid region' });
+  if (!['3m', '1y', '3y', '5y'].includes(period)) {
+    return res.status(400).json({ error: 'Invalid period (allowed: 3m, 1y, 3y, 5y)' });
+  }
   const cache = req.app.locals.cache;
   const cacheKey = `history_${ticker}_${period}_${region}`;
   const memCached = cache.get(cacheKey);
