@@ -84,8 +84,38 @@ export function readLatestCache(market) {
   } catch { return null; }
 }
 
+// Walk historical cache files (newest first) and return the first one
+// where `fieldPath` resolves to a present, non-empty value. `fieldPath` is
+// dot-separated, e.g. "fedBalanceSheetHistory.dates". Used by routes that
+// want a per-field fallback when today's fetch failed for a specific
+// series but yesterday's cache had it. `lookbackDays` caps how far we
+// look back (default 14).
+export function readLatestCacheWithField(market, fieldPath, lookbackDays = 14) {
+  try {
+    const parts = String(fieldPath).split('.');
+    const files = fs.readdirSync(CACHE_DIR)
+      .filter(f => f.startsWith(`${market}-`) && f.endsWith('.json'))
+      .sort().reverse()
+      .slice(0, lookbackDays);
+    for (const file of files) {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, file), 'utf8'));
+        let cur = data;
+        for (const p of parts) cur = cur?.[p];
+        // Treat empty arrays / empty objects as missing.
+        if (cur == null) continue;
+        if (Array.isArray(cur) && cur.length === 0) continue;
+        if (typeof cur === 'object' && Object.keys(cur).length === 0) continue;
+        const fetchedOn = file.slice(market.length + 1, -5);
+        return { data, fetchedOn };
+      } catch { /* skip unreadable file */ }
+    }
+  } catch { /* swallow */ }
+  return null;
+}
+
 export function __prefetchMarket(market) {
-  console.log(`[cache] Smart Prefetching market: ${market}`);
+  if (process.env.LOG_VERBOSE) console.log(`[cache] Smart Prefetching market: ${market}`);
   // Trigger for background data pipeline to refresh this specific market
 }
 

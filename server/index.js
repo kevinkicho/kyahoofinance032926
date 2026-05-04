@@ -41,6 +41,26 @@ import worldbankRouter from './routes/worldbank.js';
 import blsRouter from './routes/bls.js';
 import eiaRouter from './routes/eia.js';
 import censusRouter from './routes/census.js';
+// Tier-1 additional public-data sources (added 2026-05-03). Server-only —
+// not yet wired to UI panels; consumed via direct /api/<source> fetches
+// or future cross-market reads.
+import nyfedRouter from './routes/nyfed.js';
+import fdicRouter from './routes/fdic.js';
+import beaRouter from './routes/bea.js';
+import edgarRouter from './routes/edgar.js';
+import ecbRouter from './routes/ecb.js';
+import eurostatRouter from './routes/eurostat.js';
+import oecdRouter from './routes/oecd.js';
+import treasuryTICRouter from './routes/treasuryTIC.js';
+import treasuryAuctionsRouter from './routes/treasuryAuctions.js';
+import treasuryDTSRouter from './routes/treasuryDTS.js';
+import fedRouter from './routes/fed.js';
+import msrbRouter from './routes/msrb.js';
+import femaRouter from './routes/fema.js';
+import usgsRouter from './routes/usgs.js';
+import usdaRouter from './routes/usda.js';
+import censusTradeRouter from './routes/censusTrade.js';
+import eiaPetroleumRouter from './routes/eiaPetroleum.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -87,6 +107,27 @@ const app = express();
 const port = parseInt(process.env.PORT, 10) || 0;
 
 const localCache = new NodeCache({ stdTTL: 900 });
+
+// Security headers — opt-in via `SECURITY_HEADERS=1` or auto-on when
+// NODE_ENV=production. Loaded dynamically so dev environments without
+// `helmet` installed continue to boot. The dashboard ships as a
+// trusted-network app by default; flip this on for any deployment that
+// reaches beyond localhost. See KNOWN_LIMITATIONS §10.
+const wantSecurity = process.env.SECURITY_HEADERS === '1' || process.env.NODE_ENV === 'production';
+if (wantSecurity) {
+  try {
+    const { default: helmet } = await import('helmet');
+    app.use(helmet({
+      // contentSecurityPolicy needs allowlisting Vite's inline scripts in
+      // dev; leave it permissive here and tighten per-deployment.
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }));
+    console.log('[security] helmet middleware enabled');
+  } catch (e) {
+    console.warn('[security] helmet not installed — run `npm i helmet` in server/ to enable security headers. Skipping.');
+  }
+}
 
 const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 app.use(cors({ origin: allowedOrigin }));
@@ -159,7 +200,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date(), dataDir: DATA_DIR });
 });
 
-const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','globalMacro','equitiesDeepDive','crypto','credit','sentiment','calendar','imf','worldbank','bls','eia','census'];
+// Keep this list in sync with the keys actually passed to writeDailyCache
+// in server/routes/*.js — the cache-status panel reads files by these names.
+// Note `equityDeepDive` is singular (matches the route's writeDailyCache key
+// even though the URL is /api/equityDeepDive). `commodities_enhanced` is the
+// v2 commodities cache; `commodities` (legacy) is kept until the legacy
+// route is retired.
+const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','commodities_enhanced','globalMacro','equityDeepDive','crypto','credit','sentiment','calendar','fx','imf','worldbank','bls','eia','census','institutional','nyfed','fdic','bea','edgar','ecb','eurostat','oecd','treasuryTIC','treasuryAuctions','treasuryDTS'];
 app.get('/api/cache/status', (_req, res) => {
   const today = todayStr();
   const status = {};
@@ -208,6 +255,24 @@ app.use('/api/worldbank', worldbankRouter);
 app.use('/api/bls', blsRouter);
 app.use('/api/eia', eiaRouter);
 app.use('/api/census', censusRouter);
+// Tier-1 public-data sources
+app.use('/api/nyfed', nyfedRouter);
+app.use('/api/fdic', fdicRouter);
+app.use('/api/bea', beaRouter);
+app.use('/api/edgar', edgarRouter);
+app.use('/api/ecb', ecbRouter);
+app.use('/api/eurostat', eurostatRouter);
+app.use('/api/oecd', oecdRouter);
+app.use('/api/treasury/tic', treasuryTICRouter);
+app.use('/api/treasury/auctions', treasuryAuctionsRouter);
+app.use('/api/treasury/dts', treasuryDTSRouter);
+app.use('/api/fed', fedRouter);
+app.use('/api/msrb', msrbRouter);
+app.use('/api/fema', femaRouter);
+app.use('/api/usgs', usgsRouter);
+app.use('/api/usda', usdaRouter);
+app.use('/api/census-trade', censusTradeRouter);
+app.use('/api/eia-petroleum', eiaPetroleumRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 
