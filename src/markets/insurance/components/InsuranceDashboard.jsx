@@ -1,14 +1,13 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import { useCurrency } from '../../../hub/CurrencyContext';
+import { useMarketData } from '../../../hub/DataContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
-import DataFooter from '../../../components/DataFooter/DataFooter';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './InsuranceDashboard.css';
-
-const stopDrag = (e) => e.stopPropagation();
 
 function fmtChangePct(v) {
   if (v == null) return '';
@@ -24,6 +23,12 @@ function InsuranceDashboard({
   currency, currentSymbol, convert,
 }) {
   const { colors } = useTheme();
+  // 2026-05-04: Catastrophe data (FEMA + USGS), insurance penetration
+  // (World Bank), and EDGAR-derived insurer combined ratios.
+  const femaCtx = useMarketData('fema');
+  const usgsCtx = useMarketData('usgs');
+  const wbCtx   = useMarketData('worldbank');
+  const insRatiosCtx = useMarketData('edgarInsurerRatios');
 
   const hyOasOption = useMemo(() => {
     if (!fredHyOasHistory?.dates?.length) return null;
@@ -76,32 +81,41 @@ function InsuranceDashboard({
         sublabel: industryAvgCombinedRatio > 100 ? 'Underwriting loss' : industryAvgCombinedRatio > 95 ? 'Marginal' : 'Profitable',
       });
     }
-    if (reinsurers) {
-      const targetTickers = ['PGR', 'ALL', 'TRV', 'HIG'];
-      reinsurers.forEach(r => {
-        if (targetTickers.includes(r.ticker)) {
-          const change = r.changePct;
-          items.push({
-            label: r.ticker,
-            value: `${currentSymbol}${convert(r.price).toFixed(2)}`,
-            color: change >= 0 ? '#4ade80' : '#f87171',
-            trend: change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : null,
-            sublabel: 'Reinsurer',
-          });
-        }
+    // Server fetches reinsurers RNR / ACGL / AXS (not the P&C names PGR/ALL/
+    // TRV/HIG that an earlier filter assumed). Render whatever the server
+    // returns — the panel was silently empty when none matched.
+    if (Array.isArray(reinsurers)) {
+      reinsurers.slice(0, 4).forEach(r => {
+        if (r?.price == null) return;
+        const change = r.changePct;
+        items.push({
+          label: r.ticker,
+          value: `${currentSymbol}${convert(r.price).toFixed(2)}`,
+          color: change >= 0 ? '#4ade80' : '#f87171',
+          trend: change != null ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%` : null,
+          sublabel: 'Reinsurer',
+        });
       });
     }
-    const hyOas = fredHyOasHistory?.values?.[fredHyOasHistory.values.length - 1];
-    if (hyOas != null) {
+    // FRED's BAMLH0A0HYM2 is reported in *percent* (e.g. 2.83 = 283 bps),
+    // not basis points. Convert before display and threshold comparison —
+    // otherwise "HY OAS" rendered as "3 bps" with always-green coloring.
+    const hyOasPct = fredHyOasHistory?.values?.[fredHyOasHistory.values.length - 1];
+    if (hyOasPct != null) {
+      const hyOasBps = Math.round(hyOasPct * 100);
       items.push({
         label: 'HY OAS',
-        value: `${Math.round(hyOas)} bps`,
-        color: hyOas > 400 ? '#f87171' : hyOas > 300 ? '#fbbf24' : '#22c55e',
+        value: `${hyOasBps} bps`,
+        color: hyOasBps > 400 ? '#f87171' : hyOasBps > 300 ? '#fbbf24' : '#22c55e',
         sublabel: 'High Yield Spread',
       });
     }
     if (sectorETF?.price != null) {
-      const etfChange = sectorETF.change;
+      // Server emits the change as `changePct`; the older `change` field
+      // never existed, so `etfChange` was always undefined and the trend
+      // line silently dropped. Read both for safety in case the API contract
+      // changes again.
+      const etfChange = sectorETF.changePct ?? sectorETF.change;
       items.push({
         label: 'KIE ETF',
         value: `$${Number(sectorETF.price).toFixed(2)}`,
@@ -112,6 +126,74 @@ function InsuranceDashboard({
     }
     return items;
   }, [industryAvgCombinedRatio, reinsurers, fredHyOasHistory, sectorETF, convert, currentSymbol]);
+
+  // ── FEMA disaster type bar chart ───────────────────────────────────────
+  const femaTypeOption = useMemo(() => {
+    const rows = femaCtx?.data?.byType || [];
+    if (!rows.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { top: 8, right: 12, bottom: 24, left: 110 },
+      xAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'category', data: rows.map(r => r.type), inverse: true, axisLabel: { color: colors.textSecondary, fontSize: 10 } },
+      series: [{
+        type: 'bar', data: rows.map(r => r.count),
+        itemStyle: { color: '#ef4444', borderRadius: [0, 3, 3, 0] },
+        label: { show: true, position: 'right', color: colors.textSecondary, fontSize: 9 },
+      }],
+    };
+  }, [femaCtx, colors]);
+
+  // ── World Bank insurance penetration — life vs non-life by country ────
+  const wbInsuranceOption = useMemo(() => {
+    const countries = (wbCtx?.data?.countries || []).filter(c => c.lifeInsPctGdp != null || c.nonLifeInsPctGdp != null);
+    if (!countries.length) return null;
+    const sorted = [...countries].sort((a, b) =>
+      ((b.lifeInsPctGdp || 0) + (b.nonLifeInsPctGdp || 0)) -
+      ((a.lifeInsPctGdp || 0) + (a.nonLifeInsPctGdp || 0))
+    );
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: v => v != null ? `${v.toFixed(2)}%` : '—' },
+      legend: { data: ['Life premiums', 'Non-life premiums'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
+      grid: { top: 28, right: 12, bottom: 24, left: 36 },
+      xAxis: { type: 'category', data: sorted.map(c => c.flag || c.code), axisLabel: { color: colors.textMuted, fontSize: 11 } },
+      yAxis: { type: 'value', axisLabel: { formatter: '{value}%', color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [
+        { name: 'Life premiums', type: 'bar', stack: 'pen', data: sorted.map(c => c.lifeInsPctGdp), itemStyle: { color: '#3b82f6', borderRadius: [0, 0, 0, 0] } },
+        { name: 'Non-life premiums', type: 'bar', stack: 'pen', data: sorted.map(c => c.nonLifeInsPctGdp), itemStyle: { color: '#f59e0b', borderRadius: [3, 3, 0, 0] } },
+      ],
+    };
+  }, [wbCtx, colors]);
+
+  // ── EDGAR-derived combined ratios — bar chart per issuer ───────────────
+  const insurerRatiosOption = useMemo(() => {
+    const issuers = insRatiosCtx?.data?.issuers || {};
+    const rows = Object.entries(issuers)
+      .filter(([, v]) => v?.latest)
+      .map(([t, v]) => ({ ticker: t, ...v.latest }));
+    if (!rows.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: ps => {
+        const r = rows[ps[0]?.dataIndex];
+        if (!r) return '';
+        return `<b>${r.ticker}</b> · FY${r.fy} (${r.end})<br/>Combined: ${r.combinedPct?.toFixed(1)}%<br/>Loss: ${r.lossPct?.toFixed(1)}%<br/>Expense: ${r.expensePct?.toFixed(1)}%<br/>Premiums: $${r.premiumsB}B`;
+      }},
+      legend: { data: ['Loss', 'Expense'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
+      grid: { top: 28, right: 12, bottom: 24, left: 36 },
+      xAxis: { type: 'category', data: rows.map(r => r.ticker), axisLabel: { color: colors.textSecondary, fontSize: 11 } },
+      yAxis: { type: 'value', axisLabel: { formatter: '{value}%', color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } }, max: 110 },
+      series: [
+        { name: 'Loss', type: 'bar', stack: 'cr', data: rows.map(r => r.lossPct), itemStyle: { color: '#ef4444' } },
+        { name: 'Expense', type: 'bar', stack: 'cr', data: rows.map(r => r.expensePct), itemStyle: { color: '#3b82f6', borderRadius: [3, 3, 0, 0] } },
+      ],
+    };
+  }, [insRatiosCtx, colors]);
 
   const layoutItems = [{ i: 'kpi', x: 0, y: 0, w: 12, h: 2 }];
   let x = 0;
@@ -124,171 +206,353 @@ function InsuranceDashboard({
   if (reserveAdequacyData?.length > 0) { layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   if (catBondSpreads?.length > 0) { layoutItems.push({ i: 'catbonds', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   if (sectorETF?.length > 0) { layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  // 2026-05-04 additions: catastrophes (FEMA + USGS), penetration (WB),
+  // insurer combined ratios (EDGAR XBRL).
+  if (femaCtx?.data?.declarations?.length || usgsCtx?.data?.events?.length) {
+    layoutItems.push({ i: 'catastrophes', x: 0, y: 8, w: 8, h: 4 });
+  }
+  if (wbCtx?.data?.countries?.some(c => c.lifeInsPctGdp != null || c.nonLifeInsPctGdp != null)) {
+    layoutItems.push({ i: 'ins-penetration', x: 8, y: 8, w: 4, h: 4 });
+  }
+  if (insRatiosCtx?.data?.issuers && Object.values(insRatiosCtx.data.issuers).some(v => v?.latest)) {
+    layoutItems.push({ i: 'combined-ratios', x: 0, y: 12, w: 12, h: 3 });
+  }
 
   const dynamicLayout = { lg: layoutItems };
 
   return (
     <div className="ins-dashboard ins-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout">
+      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v2">
         {/* KPI Strip — bento card with title row drag handle. */}
-        <div key="kpi" className="ins-bento-card ins-bento-kpi">
-          <div className="ins-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Insurance Key Metrics</span>
-          </div>
-          <div className="bento-panel-content" onMouseDown={stopDrag}>
-            <MarketKpiStrip kpis={kpis} bare />
-          </div>
-        </div>
+        <BentoCard
+          key="kpi"
+          title="Insurance Key Metrics"
+          accent="insurance"
+          className="ins-bento-card ins-bento-kpi"
+          noFooter
+        >
+          <MarketKpiStrip kpis={kpis} bare />
+        </BentoCard>
 
         {/* HY OAS */}
         {hyOasOption && (
-          <div key="hyoas" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">HY OAS Spread</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY OAS Spread', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="hyoas"
+            title="HY OAS Spread"
+            accent="insurance"
+            className="ins-bento-card"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY OAS Spread', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Cat Losses */}
         {catLossesOption && (
-          <div key="catloss" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Natural Catastrophe Losses</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: 'FRED / Server', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="catloss"
+            title="Natural Catastrophe Losses"
+            accent="insurance"
+            className="ins-bento-card"
+            source="FRED / Server"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: 'FRED / Server', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Combined Ratio History */}
         {combinedRatioOption && (
-          <div key="crhist" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Industry Combined Ratio</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={combinedRatioOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Industry Combined Ratio', source: 'FRED / A.M. Best', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED / A.M. Best" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="crhist"
+            title="Industry Combined Ratio"
+            accent="insurance"
+            className="ins-bento-card"
+            source="FRED / A.M. Best"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={combinedRatioOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Industry Combined Ratio', source: 'FRED / A.M. Best', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Combined Ratio by Line */}
         {combinedRatioData?.byLine?.length > 0 && (
-          <div key="crline" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Combined Ratio by Line</span>
+          <BentoCard
+            key="crline"
+            title="Combined Ratio by Line"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="FRED / NAIC"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
+              {combinedRatioData.byLine.slice(0, 8).map((l) => (
+                <div key={l.line} className="ins-mini-row">
+                  <span className="ins-mini-name">{l.line}</span>
+                  <span className="ins-mini-value" style={{ color: l.ratio > 100 ? '#f87171' : '#4ade80' }}>
+                    <MetricValue value={l.ratio} seriesKey="insuranceCombinedRatioByLine" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content ins-panel-scroll" onMouseDown={stopDrag}>
-              <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-                {combinedRatioData.byLine.slice(0, 8).map((l) => (
-                  <div key={l.line} className="ins-mini-row">
-                    <span className="ins-mini-name">{l.line}</span>
-                    <span className="ins-mini-value" style={{ color: l.ratio > 100 ? '#f87171' : '#4ade80' }}>
-                      <MetricValue value={l.ratio} seriesKey="insuranceCombinedRatioByLine" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Reinsurance Rates */}
         {reinsurancePricing?.byCategory?.length > 0 && (
-          <div key="reinsrates" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Reinsurance Rates</span>
+          <BentoCard
+            key="reinsrates"
+            title="Reinsurance Rates"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="FRED / Server"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
+              {reinsurancePricing.byCategory.slice(0, 8).map((c, i) => {
+                const name = c.category ?? c.peril ?? `row-${i}`;
+                const rate = c.rate ?? c.rol;
+                return (
+                  <div key={name} className="ins-mini-row">
+                    <span className="ins-mini-name">{name}</span>
+                    <span className="ins-mini-value"><MetricValue value={rate} seriesKey="reinsuranceRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
+                  </div>
+                );
+              })}
             </div>
-            <div className="bento-panel-content ins-panel-scroll" onMouseDown={stopDrag}>
-              <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-                {reinsurancePricing.byCategory.slice(0, 8).map((c, i) => {
-                  const name = c.category ?? c.peril ?? `row-${i}`;
-                  const rate = c.rate ?? c.rol;
-                  return (
-                    <div key={name} className="ins-mini-row">
-                      <span className="ins-mini-name">{name}</span>
-                      <span className="ins-mini-value"><MetricValue value={rate} seriesKey="reinsuranceRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Reserve Adequacy */}
         {reserveAdequacyData?.length > 0 && (
-          <div key="reserves" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Reserve Adequacy</span>
+          <BentoCard
+            key="reserves"
+            title="Reserve Adequacy"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="FRED / NAIC"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
+              {reserveAdequacyData.slice(0, 8).map((r) => (
+                <div key={r.insurer} className="ins-mini-row">
+                  <span className="ins-mini-name">{r.insurer}</span>
+                  <span className="ins-mini-value" style={{ color: r.ratio > 1.1 ? '#4ade80' : r.ratio < 1 ? '#f87171' : '#fbbf24' }}>
+                    <MetricValue value={r.ratio} seriesKey="reserveAdequacy" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}x` : '—'} />
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content ins-panel-scroll" onMouseDown={stopDrag}>
-              <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-                {reserveAdequacyData.slice(0, 8).map((r) => (
-                  <div key={r.insurer} className="ins-mini-row">
-                    <span className="ins-mini-name">{r.insurer}</span>
-                    <span className="ins-mini-value" style={{ color: r.ratio > 1.1 ? '#4ade80' : r.ratio < 1 ? '#f87171' : '#fbbf24' }}>
-                      <MetricValue value={r.ratio} seriesKey="reserveAdequacy" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}x` : '—'} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / NAIC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Cat Bond Spreads */}
         {catBondSpreads?.length > 0 && (
-          <div key="catbonds" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Cat Bond Spreads</span>
+          <BentoCard
+            key="catbonds"
+            title="Cat Bond Spreads"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
+              {catBondSpreads.slice(0, 8).map((b) => (
+                <div key={b.name} className="ins-mini-row">
+                  <span className="ins-mini-name">{b.name}</span>
+                  <span className="ins-mini-value" style={{ color: b.spread > 8 ? '#4ade80' : '#fbbf24' }}>
+                    <MetricValue value={b.spread} seriesKey="catBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content ins-panel-scroll" onMouseDown={stopDrag}>
-              <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-                {catBondSpreads.slice(0, 8).map((b) => (
-                  <div key={b.name} className="ins-mini-row">
-                    <span className="ins-mini-name">{b.name}</span>
-                    <span className="ins-mini-value" style={{ color: b.spread > 8 ? '#4ade80' : '#fbbf24' }}>
-                      <MetricValue value={b.spread} seriesKey="catBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Sector ETFs */}
         {sectorETF?.length > 0 && (
-          <div key="etfs" className="ins-bento-card">
-            <div className="ins-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Sector ETFs</span>
+          <BentoCard
+            key="etfs"
+            title="Sector ETFs"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
+              {sectorETF.slice(0, 8).map((e) => (
+                <div key={e.symbol} className="ins-mini-row">
+                  <span className="ins-mini-name">{e.symbol}</span>
+                  <span className="ins-mini-value" style={{ color: (e.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
+                    <MetricValue value={e.changePct || 0} seriesKey="insuranceSectorEtf" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content ins-panel-scroll" onMouseDown={stopDrag}>
-              <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-                {sectorETF.slice(0, 8).map((e) => (
-                  <div key={e.symbol} className="ins-mini-row">
-                    <span className="ins-mini-name">{e.symbol}</span>
-                    <span className="ins-mini-value" style={{ color: (e.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                      <MetricValue value={e.changePct || 0} seriesKey="insuranceSectorEtf" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
-                    </span>
+          </BentoCard>
+        )}
+
+        {/* Recent US Catastrophes — FEMA disaster declarations + USGS quakes */}
+        {(femaCtx?.data?.declarations?.length || usgsCtx?.data?.events?.length) && (
+          <BentoCard
+            key="catastrophes"
+            title="Recent US Catastrophes"
+            subtitle={femaCtx?.data?.summary
+              ? `${femaCtx.data.summary.totalRecent} FEMA declarations · most-common: ${femaCtx.data.summary.mostCommonType} · ${usgsCtx?.data?.eventsCount || 0} M4.5+ quakes globally (30d)`
+              : 'OpenFEMA disaster declarations + USGS earthquakes'}
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="OpenFEMA · USGS"
+            timestamp={femaCtx?.lastUpdated || lastUpdated}
+            isLive={!!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive)}
+            isCurrent={femaCtx?.isCurrent ?? isCurrent}
+            fetchedOn={femaCtx?.fetchedOn || fetchedOn}
+            fetchLog={femaCtx?.fetchLog || fetchLog}
+            error={femaCtx?.error || error}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 12, height: '100%' }}>
+              <div style={{ overflow: 'auto', minHeight: 0 }}>
+                <div className="ins-panel-title" style={{ marginBottom: 4, fontSize: 11, color: colors.textMuted }}>FEMA Declarations</div>
+                <table style={{ width: '100%', fontSize: 10, borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
+                      <th style={{ textAlign: 'left', padding: '3px 6px' }}>Date</th>
+                      <th style={{ textAlign: 'left', padding: '3px 6px' }}>State(s)</th>
+                      <th style={{ textAlign: 'left', padding: '3px 6px' }}>Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(femaCtx?.data?.declarations || []).slice(0, 10).map((d, i) => (
+                      <tr key={i} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                        <td style={{ padding: '3px 6px', color: colors.textSecondary, fontVariantNumeric: 'tabular-nums' }}>{d.firstDeclared?.slice(0, 10)}</td>
+                        <td style={{ padding: '3px 6px', color: colors.textPrimary || colors.textSecondary }}>
+                          {d.stateCount > 3 ? `${d.states.slice(0, 2).join(',')} +${d.stateCount - 2}` : d.states.join(',')}
+                        </td>
+                        <td style={{ padding: '3px 6px', color: '#f87171' }}>{d.type}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div className="ins-panel-title" style={{ marginBottom: 4, fontSize: 11, color: colors.textMuted }}>By Incident Type</div>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  {femaTypeOption && <SafeECharts option={femaTypeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'FEMA Declarations by Type', source: 'OpenFEMA', endpoint: '/api/fema', series: [], updatedAt: femaCtx?.lastUpdated || lastUpdated }} />}
+                </div>
+              </div>
+              <div style={{ overflow: 'auto', minHeight: 0 }}>
+                <div className="ins-panel-title" style={{ marginBottom: 4, fontSize: 11, color: colors.textMuted }}>USGS M4.5+ Quakes (30d)</div>
+                {usgsCtx?.data?.biggest && (
+                  <div style={{ marginBottom: 6, padding: 6, background: colors.cardBg, borderRadius: 4, fontSize: 10 }}>
+                    <div style={{ color: colors.textMuted }}>Largest:</div>
+                    <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>M{usgsCtx.data.biggest.mag.toFixed(1)}</div>
+                    <div style={{ color: colors.textSecondary }}>{usgsCtx.data.biggest.place?.slice(0, 50)}</div>
                   </div>
-                ))}
+                )}
+                <table style={{ width: '100%', fontSize: 10, borderCollapse: 'collapse' }}>
+                  <tbody>
+                    {(usgsCtx?.data?.magBuckets || []).map((b, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '3px 6px', color: colors.textSecondary }}>{b.range}</td>
+                        <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: b.range.startsWith('7') ? '#ef4444' : b.range.startsWith('6') ? '#f59e0b' : colors.textPrimary }}>{b.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
+        )}
+
+        {/* Insurance Penetration — Life + Non-life premium %GDP by country */}
+        {wbInsuranceOption && (
+          <BentoCard
+            key="ins-penetration"
+            title="Insurance Penetration"
+            subtitle="Life + Non-life premium / GDP · World Bank GFDD (latest available)"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-content"
+            source="World Bank GFDD"
+            timestamp={wbCtx?.lastUpdated || lastUpdated}
+            isLive={!!wbCtx?.data?.countries?.length}
+            isCurrent={wbCtx?.isCurrent ?? isCurrent}
+            fetchedOn={wbCtx?.fetchedOn || fetchedOn}
+            fetchLog={wbCtx?.fetchLog || fetchLog}
+            error={wbCtx?.error || error}
+          >
+            <SafeECharts option={wbInsuranceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Insurance Penetration', source: 'World Bank GFDD', endpoint: '/api/worldbank', series: [{ id: 'GFDD.DI.09' }, { id: 'GFDD.DI.10' }], updatedAt: wbCtx?.lastUpdated || lastUpdated }} />
+          </BentoCard>
+        )}
+
+        {/* US P&C insurer combined ratios — EDGAR XBRL derived */}
+        {insurerRatiosOption && (
+          <BentoCard
+            key="combined-ratios"
+            title="US P&C Insurer Combined Ratios"
+            subtitle={insRatiosCtx?.data?.summary
+              ? `Avg ${insRatiosCtx.data.summary.avgCombinedPct}% across ${insRatiosCtx.data.summary.issuersWithData} issuers · latest FY ${insRatiosCtx.data.summary.latestEnd}`
+              : 'Loss ratio + expense ratio per issuer (latest fiscal year)'}
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-content"
+            source="SEC EDGAR XBRL"
+            timestamp={insRatiosCtx?.lastUpdated || lastUpdated}
+            isLive={!!insRatiosCtx?.data?.isLive}
+            isCurrent={insRatiosCtx?.isCurrent ?? isCurrent}
+            fetchedOn={insRatiosCtx?.fetchedOn || fetchedOn}
+            fetchLog={insRatiosCtx?.fetchLog || fetchLog}
+            error={insRatiosCtx?.error || error}
+          >
+            <SafeECharts option={insurerRatiosOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US P&C Combined Ratios', source: 'SEC EDGAR XBRL', endpoint: '/api/edgar/insurer-ratios', series: [], updatedAt: insRatiosCtx?.lastUpdated || lastUpdated }} />
+          </BentoCard>
         )}
       </BentoWrapper>
     </div>

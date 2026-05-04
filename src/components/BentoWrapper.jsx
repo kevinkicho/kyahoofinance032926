@@ -27,9 +27,21 @@ function mergeLayoutWithDefaults(saved, defaults) {
     seen.add(def.i);
     if (savedMap.has(def.i)) {
       // Preserve saved x/y/w/h but pick up minW/minH/maxW/maxH/static
-      // changes from the default in case the schema evolved.
+      // changes from the default in case the schema evolved. Guard against
+      // degenerate saved sizes (w=1, h=1) — those happen when RGL renders
+      // an item before its layout entry is in `layouts.lg`, then persists
+      // the default 1×1 size; once written, the saved 1×1 would shadow
+      // the real layout forever. If the saved area is < ~30% of the
+      // default, fall back to defaults rather than the saved values.
       const s = savedMap.get(def.i);
-      merged.push({ ...def, x: s.x, y: s.y, w: s.w, h: s.h });
+      const savedArea = (s.w || 1) * (s.h || 1);
+      const defaultArea = (def.w || 1) * (def.h || 1);
+      const degenerate = defaultArea > 4 && savedArea < defaultArea * 0.3;
+      if (degenerate) {
+        merged.push({ ...def });
+      } else {
+        merged.push({ ...def, x: s.x, y: s.y, w: s.w, h: s.h });
+      }
     } else {
       merged.push({ ...def });
     }
@@ -69,12 +81,29 @@ export default function BentoWrapper({ children, layout, className = "", storage
   }, [layoutSig, storageKey, layout]);
 
   const handleLayoutChange = useCallback((newLayout) => {
-    setCurrentLayout(newLayout);
+    // RGL synthesizes default 1×1 entries when a conditionally-rendered
+    // child first appears (e.g. an async data panel). It then immediately
+    // fires onLayoutChange with the synthesized 1×1 entry, which we'd
+    // otherwise persist forever. Sanitize against defaults: anything that
+    // came back smaller than ~30% of the default area is treated as a
+    // synthetic default and replaced with the original layout entry.
+    const defaultsByKey = new Map((layout?.lg || []).map(d => [d.i, d]));
+    const sanitized = newLayout.map(item => {
+      const def = defaultsByKey.get(item.i);
+      if (!def) return item;
+      const itemArea = (item.w || 1) * (item.h || 1);
+      const defArea  = (def.w  || 1) * (def.h  || 1);
+      if (defArea > 4 && itemArea < defArea * 0.3) {
+        return { ...item, w: def.w, h: def.h, x: def.x, y: def.y };
+      }
+      return item;
+    });
+    setCurrentLayout(sanitized);
     if (storageKey) {
-      saveLayout(storageKey, newLayout);
-      lastSavedRef.current = newLayout;
+      saveLayout(storageKey, sanitized);
+      lastSavedRef.current = sanitized;
     }
-  }, [storageKey]);
+  }, [storageKey, layout]);
 
   // Defensive: flush latest layout on unmount (e.g., tab switch) so the
   // most recent state is persisted even if the last onLayoutChange fired

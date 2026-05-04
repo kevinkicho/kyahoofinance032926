@@ -1,12 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import BentoWrapper from '../../../components/BentoWrapper';
-import DataFooter from '../../../components/DataFooter/DataFooter';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import AlertsSidebar from './AlertsSidebar';
 import './AlertsDashboard.css';
-
-const stopDrag = (e) => e.stopPropagation();
 
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
 
@@ -85,31 +83,33 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
 
   const correlationMatrix = useMemo(() => {
     if (!correlationData) return null;
-    const assets = ['spx', 'tenYear', 'vix', 'btc', 'gold', 'dxy'];
-    const labels = ['S&P', '10Y', 'VIX', 'BTC', 'Gold', 'DXY'];
+    const ALL = [
+      { key: 'spx',     label: 'S&P' },
+      { key: 'tenYear', label: '10Y' },
+      { key: 'vix',     label: 'VIX' },
+      { key: 'btc',     label: 'BTC' },
+      { key: 'gold',    label: 'Gold' },
+      { key: 'dxy',     label: 'DXY' },
+    ];
+    // Drop assets whose history is missing/too short — without this, missing
+    // assets paint a row/column of zeros that look like real "uncorrelated"
+    // signal. (Earlier bug used `assets[i]?.history` which always returned
+    // undefined and made the entire matrix zeros.)
+    const present = ALL.filter(a => Array.isArray(correlationData[a.key]?.history) && correlationData[a.key].history.length >= 2);
+    if (present.length < 2) return null;
+
+    const labels = present.map(a => a.label);
     const data = [];
-
-    for (let i = 0; i < assets.length; i++) {
-      for (let j = 0; j < assets.length; j++) {
-        const seriesI = correlationData[assets[i]?.history] || [];
-        const seriesJ = correlationData[assets[j]?.history] || [];
-        
-        if (seriesI.length < 2 || seriesJ.length < 2) {
-          data.push([i, j, 0]);
-          continue;
-        }
-
+    for (let i = 0; i < present.length; i++) {
+      const seriesI = correlationData[present[i].key].history;
+      for (let j = 0; j < present.length; j++) {
+        const seriesJ = correlationData[present[j].key].history;
         const minLen = Math.min(seriesI.length, seriesJ.length);
         const sI = seriesI.slice(-minLen);
         const sJ = seriesJ.slice(-minLen);
-        
         const meanI = sI.reduce((a, b) => a + b, 0) / minLen;
         const meanJ = sJ.reduce((a, b) => a + b, 0) / minLen;
-        
-        let num = 0;
-        let denI = 0;
-        let denJ = 0;
-        
+        let num = 0, denI = 0, denJ = 0;
         for (let k = 0; k < minLen; k++) {
           const diffI = sI[k] - meanI;
           const diffJ = sJ[k] - meanJ;
@@ -117,9 +117,8 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
           denI += diffI * diffI;
           denJ += diffJ * diffJ;
         }
-        
         const corr = denI === 0 || denJ === 0 ? 0 : num / Math.sqrt(denI * denJ);
-        data.push([i, j, corr]);
+        data.push([i, j, Math.round(corr * 100) / 100]);
       }
     }
     return { data, labels };
@@ -130,28 +129,41 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
         <BentoWrapper layout={LAYOUT} storageKey="alerts-layout">
 
         {/* Sidebar — Status Summary + Rule Health */}
-        <div key="sidebar" className="alerts-bento-card">
-          <div className="alerts-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Status Summary</span>
-          </div>
-          <div className="alerts-panel-content bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-            <AlertsSidebar 
-              alerts={alerts} 
-              rules={rules} 
-              enabledMap={enabledMap} 
-              fetchedOn={fetchedOn} 
-              lastUpdated={lastUpdated} 
-            />
-          </div>
-          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+        <BentoCard
+          key="sidebar"
+          title="Status Summary"
+          accent="alerts"
+          className="alerts-bento-card"
+          source="FRED / Yahoo Finance"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <AlertsSidebar
+            alerts={alerts}
+            rules={rules}
+            enabledMap={enabledMap}
+            fetchedOn={fetchedOn}
+            lastUpdated={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchLog={fetchLog}
+            error={error}
+          />
+        </BentoCard>
 
         {/* Alert Feed */}
-        <div key="alert-feed" className="alerts-bento-card">
-          <div className="alerts-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Active Alerts</span>
-          </div>
-          <div className="alerts-panel-content bento-panel-content" onMouseDown={stopDrag}>
+        <BentoCard
+          key="alert-feed"
+          title="Active Alerts"
+          accent="alerts"
+          className="alerts-bento-card"
+          noFooter
+        >
+          <>
             {alerts.length === 0 ? (
               <div className="alerts-all-clear">
                 <div className="alerts-clear-icon">&#x2713;</div>
@@ -197,15 +209,18 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
                 <span className="alerts-legend-dot low" /> Low severity
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        </BentoCard>
 
         {/* Correlations Matrix */}
-        <div key="correlations" className="alerts-bento-card">
-          <div className="alerts-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Cross-Market Correlations</span>
-          </div>
-          <div className="alerts-panel-content bento-panel-content" onMouseDown={stopDrag}>
+        <BentoCard
+          key="correlations"
+          title="Cross-Market Correlations"
+          accent="alerts"
+          className="alerts-bento-card"
+          noFooter
+        >
+          <>
             {correlationMatrix ? (
               <SafeECharts
                 option={{
@@ -242,8 +257,8 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
             ) : (
               <div className="alerts-empty-state">Loading correlation data...</div>
             )}
-          </div>
-        </div>
+          </>
+        </BentoCard>
 
         </BentoWrapper>
       </div>

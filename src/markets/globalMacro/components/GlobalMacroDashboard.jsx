@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import { useCurrency } from '../../../hub/CurrencyContext';
 import BentoWrapper from '../../../components/BentoWrapper';
+import BentoCard from '../../../components/BentoCard/BentoCard';
+import SafeECharts from '../../../components/SafeECharts';
 import GlobalKpiStrip from './GlobalKpiStrip';
 import CountryDetailPanel from './CountryDetailPanel';
-import DataFooter from '../../../components/DataFooter/DataFooter';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 // Merged-in panels from former IMF + World Bank tabs.
 import ImfReserves from '../../imf/ImfReserves';
@@ -13,7 +14,6 @@ import WbDevScatter from '../../worldbank/WbDevScatter';
 import WbTradeOpenness from '../../worldbank/WbTradeOpenness';
 import './GlobalMacroDashboard.css';
 
-const stopDrag = (e) => e.stopPropagation();
 
 function GdpBars({ data, lastUpdated }) {
   if (!data?.length) return null;
@@ -109,6 +109,17 @@ const LAYOUT = {
     { i: 'imf-cofer',    x: 6, y: 14, w: 6,  h: 4 },
     { i: 'wb-trade',     x: 0, y: 18, w: 6,  h: 4 },
     { i: 'wb-dev',       x: 6, y: 18, w: 6,  h: 4 },
+    // Tier-1 addition: ECB euro-area policy stance + price/money signals.
+    { i: 'ecb-eur',      x: 0, y: 22, w: 12, h: 5 },
+    // Tier-1 addition (2026-05-04): US Treasury DTS — TGA cash balance and
+    // daily net flow. Sourced from /api/treasury/dts via useMarketData.
+    { i: 'tga-balance',  x: 0, y: 27, w: 12, h: 4 },
+    // Federal Reserve panels (2026-05-04): Atlanta GDPNow, FOMC SEP, and
+    // Cleveland Fed inflation nowcast. All three live in the macro tab
+    // because they're forward-looking US macro indicators.
+    { i: 'gdpnow',       x: 0, y: 31, w: 6,  h: 4 },
+    { i: 'fomc-sep',     x: 6, y: 31, w: 6,  h: 4 },
+    { i: 'cleveland',    x: 0, y: 35, w: 12, h: 3 },
   ]
 };
 
@@ -117,6 +128,11 @@ function GlobalMacroDashboard({
   scorecardData, growthInflationData, centralBankData, debtData,
   m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
   imfData, wbData,
+  ecbData, ecbLastUpdated,
+  dtsData, dtsLastUpdated,
+  sepData, sepLastUpdated,
+  gdpNowData, gdpNowLastUpdated,
+  cleveData, cleveLastUpdated,
   fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
@@ -139,6 +155,119 @@ function GlobalMacroDashboard({
   const unempHeat = (v) => { if (v == null) return 'mac-heat-neu'; if (v <= 4) return 'mac-heat-dg'; if (v <= 6) return 'mac-heat-lg'; if (v <= 8) return 'mac-heat-lr'; return 'mac-heat-dr'; };
   const debtHeat = (v) => { if (v == null) return 'mac-heat-neu'; if (v <= 60) return 'mac-heat-dg'; if (v <= 90) return 'mac-heat-lg'; if (v <= 120) return 'mac-heat-lr'; return 'mac-heat-dr'; };
 
+  // ECB HICP — line chart, last ~24 months. Reference line at the 2% target.
+  const hicpOption = useMemo(() => {
+    const series = ecbData?.hicpDetail || [];
+    if (!series.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      grid: { left: 36, right: 12, top: 8, bottom: 24 },
+      tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>HICP YoY: ${p[0].value.toFixed(2)}%` },
+      xAxis: { type: 'category', data: series.map(p => p.period), axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.ceil(series.length / 6) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { formatter: v => `${v.toFixed(1)}%`, color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        data: series.map(p => p.value),
+        lineStyle: { color: '#ef4444', width: 2 },
+        itemStyle: { color: '#ef4444' },
+        areaStyle: { color: 'rgba(239, 68, 68, 0.12)' },
+        markLine: { silent: true, symbol: 'none', lineStyle: { color: '#4ade80', type: 'dashed', width: 1 }, data: [{ yAxis: 2, label: { show: true, formatter: 'ECB target 2%', color: '#4ade80', fontSize: 9 } }] },
+      }],
+    };
+  }, [ecbData, colors]);
+
+  // ECB M3 — last 12 monthly observations as bars (annual rate of change).
+  const m3Option = useMemo(() => {
+    const series = (ecbData?.m3Growth || []).slice(-12);
+    if (!series.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      grid: { left: 36, right: 12, top: 8, bottom: 24 },
+      tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>M3 YoY: ${p[0].value.toFixed(2)}%` },
+      xAxis: { type: 'category', data: series.map(p => p.period), axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.ceil(series.length / 6) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { formatter: v => `${v.toFixed(1)}%`, color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{
+        type: 'bar',
+        data: series.map(p => p.value),
+        itemStyle: { color: '#3b82f6', borderRadius: [3, 3, 0, 0] },
+      }],
+    };
+  }, [ecbData, colors]);
+
+  // ── TGA Cash Balance + daily net flow (US Treasury DTS) ────────────────
+  // Closing balance line (left axis) + net deposits-minus-withdrawals bar
+  // (right axis). When TGA rises faster than the Treasury issues, it
+  // drains private-sector liquidity; falling TGA does the opposite.
+  const tgaOption = useMemo(() => {
+    const series = (dtsData?.series || []).slice(-90); // ~4 trading months
+    if (!series.length) return null;
+    const dates = series.map(p => p.date);
+    const closeVals = series.map(p => p.closeB);
+    const netVals = series.map(p => p.netB);
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', formatter: ps => {
+        const i = ps[0]?.dataIndex;
+        const r = series[i];
+        if (!r) return '';
+        return `<b>${r.date}</b><br/>TGA close: $${r.closeB?.toFixed(0)}B<br/>Deposits: $${r.depositsB?.toFixed(0)}B<br/>Withdrawals: $${r.withdrawalsB?.toFixed(0)}B<br/>Net: ${r.netB > 0 ? '+' : ''}$${r.netB?.toFixed(0)}B`;
+      }},
+      legend: { data: ['TGA close ($B)', 'Net flow ($B)'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
+      grid: { top: 28, right: 56, bottom: 28, left: 50 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(dates.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: [
+        { type: 'value', name: '$B', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+        { type: 'value', name: 'Net $B', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, position: 'right', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { show: false } },
+      ],
+      series: [
+        { name: 'TGA close ($B)', type: 'line', yAxisIndex: 0, data: closeVals, symbol: 'none', smooth: true, lineStyle: { color: '#22d3ee', width: 2 }, areaStyle: { color: 'rgba(34, 211, 238, 0.08)' } },
+        { name: 'Net flow ($B)', type: 'bar', yAxisIndex: 1, data: netVals, itemStyle: {
+          color: p => p.value >= 0 ? '#10b98155' : '#ef444455',
+        }, barWidth: 4 },
+      ],
+    };
+  }, [dtsData, colors]);
+
+  // ── Atlanta GDPNow — current quarter evolution ──────────────────────────
+  // Bar chart of: BEA actual prior quarters + each in-quarter release with
+  // its post-release nowcast. New-data shocks read directly off the chart.
+  const gdpNowOption = useMemo(() => {
+    const prior = gdpNowData?.priorQuarters || [];
+    const evo = gdpNowData?.evolution || [];
+    if (!prior.length && !evo.length) return null;
+    // Concatenate prior actuals + current-quarter nowcast evolution. Use the
+    // event label as the x-axis category. Color the prior actuals neutral
+    // grey and the current quarter cyan so the eye separates them.
+    const all = [
+      ...prior.map(r => ({ label: (r.event.match(/(\d{2}:Q[1-4])/i) || [, 'BEA'])[1] + ' actual', value: r.gdp, kind: 'prior' })),
+      ...evo.map(r => ({ label: r.event, value: r.gdp, kind: 'current' })),
+    ];
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      grid: { top: 12, right: 12, bottom: 56, left: 36 },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: ps => {
+        const i = ps[0]?.dataIndex;
+        const r = all[i];
+        return r ? `<b>${r.label}</b><br/>${r.value?.toFixed(2)}%` : '';
+      }},
+      xAxis: { type: 'category', data: all.map(r => r.label), axisLabel: { color: colors.textMuted, fontSize: 9, interval: 0, rotate: 35, formatter: s => s.length > 18 ? s.slice(0, 18) + '…' : s }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', name: '%', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{
+        type: 'bar',
+        data: all.map(r => ({ value: r.value, itemStyle: { color: r.kind === 'prior' ? '#94a3b8' : '#22d3ee' } })),
+        label: { show: true, position: 'top', formatter: p => p.value?.toFixed(2) + '%', color: colors.textSecondary, fontSize: 9 },
+        barWidth: 18,
+      }],
+    };
+  }, [gdpNowData, colors]);
+
   const cfnaiStatus = useMemo(() => {
     const v = cfnai?.latest ?? cfnai?.values?.[cfnai.values?.length - 1];
     if (v == null) return { label: '—', color: colors.textMuted };
@@ -155,55 +284,74 @@ function GlobalMacroDashboard({
     <div className="mac-dashboard mac-dashboard--bento">
       {/* GlobalKpiStrip is rendered in GlobalMacroMarket above this component to avoid duplication */}
 
-      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v3">
+      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v8">
         {/* KPI strip — real bento child rendered at row 0. The strip body
             is provided by the parent (GlobalMacroKpiStrip) so it can wire
             up the right data and seriesKeys. */}
         {kpiSidebar && (
-          <div key="kpi" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Macro Key Metrics</span>
-            </div>
-            <div className="bento-panel-content mac-panel-scroll">
-              {kpiSidebar}
-            </div>
-          </div>
+          <BentoCard
+            key="kpi"
+            title="Macro Key Metrics"
+            accent="globalMacro"
+            className="mac-bento-card"
+            contentClassName="mac-panel-scroll"
+            noFooter
+          >
+            {kpiSidebar}
+          </BentoCard>
         )}
 
         {/* Sidebar — Quick Indicators */}
-        <div key="sidebar" className="mac-bento-card">
-          <div className="mac-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Quick Indicators</span>
-          </div>
-          <div className="bento-panel-content mac-panel-scroll" onMouseDown={stopDrag}>
-      <div className="mac-sidebar-section">
-        <div className="mac-sidebar-title">GDP Growth</div>
-        <GdpBars data={sortedByGdp} lastUpdated={lastUpdated} />
-      </div>
-      <div className="mac-sidebar-section">
-        <div className="mac-sidebar-title">Inflation</div>
-        <CpiBars data={sortedByCpi} lastUpdated={lastUpdated} />
-      </div>
-      <div className="mac-sidebar-section">
-        <div className="mac-sidebar-title">CB Rates</div>
-        <RateBars data={centralBankData} lastUpdated={lastUpdated} />
-      </div>
-      <div className="mac-sidebar-section" style={{ borderBottom: 'none' }}>
-        <div className="mac-sidebar-title">Debt/GDP</div>
+        <BentoCard
+          key="sidebar"
+          title="Quick Indicators"
+          accent="globalMacro"
+          className="mac-bento-card"
+          contentClassName="mac-panel-scroll"
+          source="World Bank / FRED / BIS"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <>
+            <div className="mac-sidebar-section">
+              <div className="mac-sidebar-title">GDP Growth</div>
+              <GdpBars data={sortedByGdp} lastUpdated={lastUpdated} />
+            </div>
+            <div className="mac-sidebar-section">
+              <div className="mac-sidebar-title">Inflation</div>
+              <CpiBars data={sortedByCpi} lastUpdated={lastUpdated} />
+            </div>
+            <div className="mac-sidebar-section">
+              <div className="mac-sidebar-title">CB Rates</div>
+              <RateBars data={centralBankData} lastUpdated={lastUpdated} />
+            </div>
+            <div className="mac-sidebar-section" style={{ borderBottom: 'none' }}>
+              <div className="mac-sidebar-title">Debt/GDP</div>
               <DebtBars data={debtData} lastUpdated={lastUpdated} convertAndFormat={convertAndFormat} currentSymbol={currentSymbol} />
-      </div>
-
-          </div>
-          <DataFooter source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+            </div>
+          </>
+        </BentoCard>
 
         {/* Scorecard */}
-          <div key="scorecard" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Country Scorecard</span>
-              <span className="bento-panel-subtitle">Click row for details</span>
-            </div>
-            <div className="bento-panel-content mac-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard
+            key="scorecard"
+            title="Country Scorecard"
+            subtitle="Click row for details"
+            accent="globalMacro"
+            className="mac-bento-card"
+            contentClassName="mac-panel-scroll"
+            source="World Bank / FRED / BIS"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
               <div className="mac-scorecard-compact" style={{ background: colors.bgCard }}>
                 <div className="mac-scorecard-header-row">
                   <div className="mac-scorecell mac-scorecell-flag"></div>
@@ -231,166 +379,281 @@ function GlobalMacroDashboard({
                   </div>
                 ))}
               </div>
-            </div>
-            <DataFooter source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
 
-          {/* GDP Growth */}
-          <div key="gdp" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">GDP Growth</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <GdpBars data={sortedByGdp} lastUpdated={lastUpdated} />
-            </div>
-            <DataFooter source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard key="gdp" title="GDP Growth" accent="globalMacro" className="mac-bento-card" source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <GdpBars data={sortedByGdp} lastUpdated={lastUpdated} />
+          </BentoCard>
 
-          {/* CPI Inflation */}
-          <div key="cpi" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">CPI Inflation</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <CpiBars data={sortedByCpi} lastUpdated={lastUpdated} />
-            </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard key="cpi" title="CPI Inflation" accent="globalMacro" className="mac-bento-card" source="FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <CpiBars data={sortedByCpi} lastUpdated={lastUpdated} />
+          </BentoCard>
 
-          {/* Policy Rates */}
-          <div key="rates" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Policy Rates</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <RateBars data={centralBankData} lastUpdated={lastUpdated} />
-            </div>
-            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard key="rates" title="Policy Rates" accent="globalMacro" className="mac-bento-card" source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <RateBars data={centralBankData} lastUpdated={lastUpdated} />
+          </BentoCard>
 
-          {/* Debt / GDP */}
-          <div key="debt" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Debt / GDP</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-        <DebtBars data={debtData} lastUpdated={lastUpdated} convertAndFormat={convertAndFormat} currentSymbol={currentSymbol} />
-            </div>
-            <DataFooter source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard key="debt" title="Debt / GDP" accent="globalMacro" className="mac-bento-card" source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <DebtBars data={debtData} lastUpdated={lastUpdated} convertAndFormat={convertAndFormat} currentSymbol={currentSymbol} />
+          </BentoCard>
 
-          {/* Economic Activity */}
-          <div key="activity" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Economic Activity</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <div className="mac-activity-summary">
+          <BentoCard key="activity" title="Economic Activity" accent="globalMacro" className="mac-bento-card" source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <div className="mac-activity-summary">
+              <div className="mac-activity-metric">
+                <span className="mac-activity-label">CFNAI</span>
+                <span className="mac-activity-value" style={{ color: cfnaiStatus.color }}><MetricValue value={cfnai?.latest} seriesKey="cfnai" timestamp={lastUpdated} format={v => v != null ? v.toFixed(2) : '—'} /></span>
+                <span className="mac-activity-status">{cfnaiStatus.label}</span>
+              </div>
+              {yieldSpread?.values?.length > 0 && (
                 <div className="mac-activity-metric">
-                  <span className="mac-activity-label">CFNAI</span>
-                  <span className="mac-activity-value" style={{ color: cfnaiStatus.color }}><MetricValue value={cfnai?.latest} seriesKey="cfnai" timestamp={lastUpdated} format={v => v != null ? v.toFixed(2) : '—'} /></span>
-                  <span className="mac-activity-status">{cfnaiStatus.label}</span>
+                  <span className="mac-activity-label">10Y-2Y Spread</span>
+                  <span className="mac-activity-value" style={{ color: yieldSpread.values[yieldSpread.values.length - 1] < 0 ? '#ef4444' : '#4ade80' }}>
+                    <MetricValue value={yieldSpread.values[yieldSpread.values.length - 1]} seriesKey="t10y2y" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
+                  </span>
                 </div>
-                {yieldSpread?.values?.length > 0 && (
-                  <div className="mac-activity-metric">
-                    <span className="mac-activity-label">10Y-2Y Spread</span>
-                    <span className="mac-activity-value" style={{ color: yieldSpread.values[yieldSpread.values.length - 1] < 0 ? '#ef4444' : '#4ade80' }}>
-                      <MetricValue value={yieldSpread.values[yieldSpread.values.length - 1]} seriesKey="t10y2y" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
+              )}
+            </div>
+          </BentoCard>
+
+          {/* OECD CLI */}
+          <BentoCard key="cli" title="OECD Leading Indicators" subtitle="Amplitude-adjusted CLI · 100 = trend" accent="globalMacro" className="mac-bento-card" source="FRED OECD CLI" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <div className="mac-cli-mini-grid">
+              {oecdCli && Object.entries(oecdCli).map(([code, entry]) => {
+                const meta = scorecardData?.find(sc => sc.code === code);
+                const v = entry?.value;
+                return (
+                  <div key={code} className="mac-cli-mini-card">
+                    <span className="mac-cli-mini-flag">{meta?.flag || code}</span>
+                    <span className="mac-cli-mini-value" style={{ color: v > 100 ? '#4ade80' : v != null ? '#f87171' : '#94a3b8' }}>
+                      <MetricValue value={v} seriesKey="oecdCli" timestamp={entry?.date || lastUpdated} format={x => x != null ? `${x.toFixed(1)}` : '—'} />
+                    </span>
+                    <span className="mac-cli-mini-trend" style={{ color: v > 100 ? '#4ade80' : v < 99 ? '#f87171' : '#fbbf24' }}>
+                      {v > 100 ? '↗' : v < 99 ? '↘' : '→'}
                     </span>
                   </div>
-                )}
-              </div>
+                );
+              })}
+              {(!oecdCli || Object.keys(oecdCli).length === 0) && (
+                <div className="mac-empty">No CLI data available — FRED OECD series unavailable</div>
+              )}
             </div>
-            <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
 
-          {/* OECD CLI — server returns map { US: {value, date}, ... }.
-              Render whatever country codes are present (flags pulled from
-              the macro scorecard for consistency). */}
-          <div key="cli" className="mac-bento-card">
-            <div className="mac-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">OECD Leading Indicators</span>
-              <span className="mac-panel-subtitle">Amplitude-adjusted CLI · 100 = trend</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <div className="mac-cli-mini-grid">
-                {oecdCli && Object.entries(oecdCli).map(([code, entry]) => {
-                  const meta = scorecardData?.find(sc => sc.code === code);
-                  const v = entry?.value;
-                  return (
-                    <div key={code} className="mac-cli-mini-card">
-                      <span className="mac-cli-mini-flag">{meta?.flag || code}</span>
-                      <span className="mac-cli-mini-value" style={{ color: v > 100 ? '#4ade80' : v != null ? '#f87171' : '#94a3b8' }}>
-                        <MetricValue value={v} seriesKey="oecdCli" timestamp={entry?.date || lastUpdated} format={x => x != null ? `${x.toFixed(1)}` : '—'} />
-                      </span>
-                      <span className="mac-cli-mini-trend" style={{ color: v > 100 ? '#4ade80' : v < 99 ? '#f87171' : '#fbbf24' }}>
-                        {v > 100 ? '↗' : v < 99 ? '↘' : '→'}
-                      </span>
-                    </div>
-                  );
-                })}
-                {(!oecdCli || Object.keys(oecdCli).length === 0) && (
-                  <div className="mac-empty">No CLI data available — FRED OECD series unavailable</div>
-                )}
-              </div>
-            </div>
-            <DataFooter source="FRED OECD CLI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
-
-          {/* IMF — International Reserves (merged from former IMF tab) */}
+          {/* IMF — International Reserves */}
           {imfData?.countries?.length > 0 && (
-            <div key="imf-reserves" className="mac-bento-card">
-              <div className="mac-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">International Reserves</span>
-                <span className="mac-panel-subtitle">Central-bank FX reserves · USD billions · IMF IFS</span>
-              </div>
-              <div className="bento-panel-content" onMouseDown={stopDrag}>
-                <ImfReserves countries={imfData.countries} ifsReserves={imfData.ifsReserves} lastUpdated={lastUpdated} />
-              </div>
-              <DataFooter source="IMF IFS (RAXFSFX)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-            </div>
+            <BentoCard key="imf-reserves" title="International Reserves" subtitle="Central-bank FX reserves · USD billions · IMF IFS" accent="globalMacro" className="mac-bento-card" source="IMF IFS (RAXFSFX)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+              <ImfReserves countries={imfData.countries} ifsReserves={imfData.ifsReserves} lastUpdated={lastUpdated} />
+            </BentoCard>
           )}
 
-          {/* IMF — COFER currency-share donut (merged from former IMF tab) */}
+          {/* IMF — COFER currency-share donut */}
           {imfData?.cofer && Object.keys(imfData.cofer).length > 0 && (
-            <div key="imf-cofer" className="mac-bento-card">
-              <div className="mac-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">COFER Currency Shares</span>
-                <span className="mac-panel-subtitle">Global FX reserves by currency · IMF COFER · quarterly</span>
-              </div>
-              <div className="bento-panel-content" onMouseDown={stopDrag}>
-                <ImfCofier cofer={imfData.cofer} lastUpdated={lastUpdated} />
-              </div>
-              <DataFooter source="IMF COFER" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-            </div>
+            <BentoCard key="imf-cofer" title="COFER Currency Shares" subtitle="Global FX reserves by currency · IMF COFER · quarterly" accent="globalMacro" className="mac-bento-card" source="IMF COFER" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+              <ImfCofier cofer={imfData.cofer} lastUpdated={lastUpdated} />
+            </BentoCard>
           )}
 
-          {/* World Bank — Trade Openness (merged from former WB tab) */}
+          {/* World Bank — Trade Openness */}
           {wbData?.countries?.length > 0 && (
-            <div key="wb-trade" className="mac-bento-card">
-              <div className="mac-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">Trade Openness</span>
-                <span className="mac-panel-subtitle">(Exports + Imports) / GDP · World Bank WDI</span>
-              </div>
-              <div className="bento-panel-content" onMouseDown={stopDrag}>
-                <WbTradeOpenness countries={wbData.countries} lastUpdated={lastUpdated} />
-              </div>
-              <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-            </div>
+            <BentoCard key="wb-trade" title="Trade Openness" subtitle="(Exports + Imports) / GDP · World Bank WDI" accent="globalMacro" className="mac-bento-card" source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+              <WbTradeOpenness countries={wbData.countries} lastUpdated={lastUpdated} />
+            </BentoCard>
           )}
 
           {/* World Bank — GDP per Capita vs Growth scatter */}
           {wbData?.countries?.length > 0 && (
-            <div key="wb-dev" className="mac-bento-card">
-              <div className="mac-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">GDP per Capita vs Growth</span>
-                <span className="mac-panel-subtitle">Bubble = population · World Bank WDI</span>
+            <BentoCard key="wb-dev" title="GDP per Capita vs Growth" subtitle="Bubble = population · World Bank WDI" accent="globalMacro" className="mac-bento-card" source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+              <WbDevScatter countries={wbData.countries} lastUpdated={lastUpdated} />
+            </BentoCard>
+          )}
+
+          {/* ECB — Euro Area policy rates ladder + HICP line + M3 bars */}
+          {ecbData?.policyRates && (
+            <BentoCard
+              key="ecb-eur"
+              title="Euro Area · ECB"
+              subtitle="Policy rates · HICP inflation · M3 monetary aggregate"
+              accent="globalMacro"
+              className="mac-bento-card"
+              contentClassName="mac-panel-scroll"
+              source="ECB SDW"
+              timestamp={ecbLastUpdated || lastUpdated}
+              isLive={!!ecbData?.isLive}
+              isCurrent={ecbData?.isCurrent !== false}
+              fetchedOn={ecbData?.fetchedOn || fetchedOn}
+              fetchLog={fetchLog}
+              error={error}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 1fr', gap: 14, height: '100%' }}>
+                <div>
+                  <div className="mac-sidebar-title">Policy Rates</div>
+                  {[
+                    { key: 'mainRefinancing', label: 'Main Refinancing (MRR)', color: '#14b8a6' },
+                    { key: 'depositFacility',  label: 'Deposit Facility (DFR)',  color: '#3b82f6' },
+                    { key: 'marginalLending',  label: 'Marginal Lending (MLFR)', color: '#f59e0b' },
+                  ].map(row => {
+                    const obs = ecbData.policyRates[row.key];
+                    if (!obs) return null;
+                    return (
+                      <div key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${colors.cardBg}` }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ color: colors.textSecondary, fontSize: 11 }}>{row.label}</span>
+                          <span style={{ color: colors.textMuted, fontSize: 9 }}>since {obs.period}</span>
+                        </div>
+                        <span style={{ color: row.color, fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                          <MetricValue value={obs.value} seriesKey={`ecb-${row.key}`} timestamp={obs.period} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  <div className="mac-sidebar-title">HICP Inflation (YoY)</div>
+                  <div style={{ flex: 1, minHeight: 0 }}>
+                    {hicpOption && <SafeECharts option={hicpOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Euro Area HICP', source: 'ECB SDW (ICP)', endpoint: '/api/ecb', series: [{ id: 'M.U2.N.000000.4.ANR' }], updatedAt: ecbLastUpdated || lastUpdated }} />}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  <div className="mac-sidebar-title">M3 Growth (YoY)</div>
+                  <div style={{ flex: 1, minHeight: 0 }}>
+                    {m3Option && <SafeECharts option={m3Option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Euro Area M3', source: 'ECB SDW (BSI)', endpoint: '/api/ecb', series: [{ id: 'M.U2.N.V.M30.X.I.U2.2300.Z01.A' }], updatedAt: ecbLastUpdated || lastUpdated }} />}
+                  </div>
+                </div>
               </div>
-              <div className="bento-panel-content" onMouseDown={stopDrag}>
-                <WbDevScatter countries={wbData.countries} lastUpdated={lastUpdated} />
+            </BentoCard>
+          )}
+
+          {/* US Treasury DTS — TGA cash balance + daily net flow */}
+          {dtsData?.series?.length > 0 && (
+            <BentoCard
+              key="tga-balance"
+              title="US Treasury · TGA Cash Balance"
+              subtitle={dtsData?.latest ? `Closing $${dtsData.latest.closeB?.toFixed(0)}B · net ${dtsData.latest.netB > 0 ? '+' : ''}$${dtsData.latest.netB?.toFixed(0)}B (${dtsData.latest.date})` : 'Daily Treasury Statement · 90 days'}
+              accent="globalMacro"
+              className="mac-bento-card"
+              source="US Treasury Fiscal Data"
+              timestamp={dtsLastUpdated || lastUpdated}
+              isLive={!!(dtsData?.isLive)}
+              isCurrent={dtsData?.isCurrent !== false}
+              fetchedOn={dtsData?.fetchedOn || fetchedOn}
+              fetchLog={fetchLog}
+              error={error}
+            >
+              {tgaOption && <SafeECharts option={tgaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'TGA Cash Balance', source: 'US Treasury Fiscal Data', endpoint: '/api/treasury/dts', series: [], updatedAt: dtsLastUpdated || lastUpdated }} />}
+            </BentoCard>
+          )}
+
+          {/* Atlanta Fed GDPNow — current-quarter nowcast evolution */}
+          {gdpNowData?.evolution?.length > 0 && (
+            <BentoCard
+              key="gdpnow"
+              title={`GDPNow · ${gdpNowData.currentQuarter || ''}`.trim()}
+              subtitle={gdpNowData.latest ? `Latest ${gdpNowData.latest.gdp?.toFixed(2)}% (${gdpNowData.latest.event})` : 'Atlanta Fed real-time GDP nowcast'}
+              accent="globalMacro"
+              className="mac-bento-card"
+              source="Atlanta Fed"
+              timestamp={gdpNowLastUpdated || lastUpdated}
+              isLive={!!gdpNowData?.isLive}
+              isCurrent={gdpNowData?.isCurrent !== false}
+              fetchedOn={gdpNowData?.fetchedOn || fetchedOn}
+              fetchLog={fetchLog}
+              error={error}
+            >
+              {gdpNowOption && <SafeECharts option={gdpNowOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'GDPNow', source: 'Atlanta Fed', endpoint: '/api/fed/gdpnow', series: [], updatedAt: gdpNowLastUpdated || lastUpdated }} />}
+            </BentoCard>
+          )}
+
+          {/* FOMC SEP — median projections table */}
+          {sepData?.projections?.length > 0 && (
+            <BentoCard
+              key="fomc-sep"
+              title="FOMC Summary of Economic Projections"
+              subtitle={sepData.summary?.releaseDate ? `Median forecasts · ${sepData.summary.releaseDate} release` : 'Median forecasts (current year + 2 forward + longer run)'}
+              accent="globalMacro"
+              className="mac-bento-card"
+              contentClassName="mac-panel-scroll"
+              source="Federal Reserve Board"
+              timestamp={sepLastUpdated || lastUpdated}
+              isLive={!!sepData?.isLive}
+              isCurrent={sepData?.isCurrent !== false}
+              fetchedOn={sepData?.fetchedOn || fetchedOn}
+              fetchLog={fetchLog}
+              error={error}
+            >
+              <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>Variable</th>
+                    {(sepData.yearHeaders || ['Y1', 'Y2', 'Y3', 'Longer']).map((y, i) => (
+                      <th key={i} style={{ textAlign: 'right', padding: '6px 8px' }}>{y}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sepData.projections.map((p, i) => (
+                    <tr key={i} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                      <td style={{ padding: '6px 8px', color: colors.textSecondary }}>{p.variable}</td>
+                      {['current', 'next', 'twoOut', 'longerRun'].map(k => (
+                        <td key={k} style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: colors.textPrimary || '#e2e8f0' }}>
+                          {typeof p.median[k] === 'number' && Number.isFinite(p.median[k]) ? `${p.median[k].toFixed(1)}%` : '—'}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </BentoCard>
+          )}
+
+          {/* Cleveland Fed Inflation Nowcasting — MoM + YoY tables */}
+          {cleveData?.tables?.length > 0 && (
+            <BentoCard
+              key="cleveland"
+              title="Cleveland Fed · Inflation Nowcast"
+              subtitle={cleveData.latest ? `${cleveData.latest.period}: CPI ${cleveData.latest.cpi}% · Core ${cleveData.latest.coreCpi}% · PCE ${cleveData.latest.pce}% · Core PCE ${cleveData.latest.corePce}%` : 'Current-month inflation projection'}
+              accent="globalMacro"
+              className="mac-bento-card"
+              contentClassName="mac-panel-scroll"
+              source="Cleveland Fed"
+              timestamp={cleveLastUpdated || lastUpdated}
+              isLive={!!cleveData?.isLive}
+              isCurrent={cleveData?.isCurrent !== false}
+              fetchedOn={cleveData?.fetchedOn || fetchedOn}
+              fetchLog={fetchLog}
+              error={error}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {cleveData.tables.slice(0, 2).map((tbl, i) => (
+                  <div key={i}>
+                    <div className="mac-sidebar-title" style={{ marginBottom: 4 }}>
+                      {tbl.kind === 'mom' ? 'Month-over-Month' : tbl.kind === 'yoy' ? 'Year-over-Year' : 'Quarterly QoQ'}
+                    </div>
+                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
+                          <th style={{ textAlign: 'left', padding: '4px 6px' }}>{tbl.kind === 'quarterly' ? 'Quarter' : 'Month'}</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>CPI</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>Core</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>PCE</th>
+                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>Core PCE</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tbl.rows.slice(0, 4).map((r, j) => (
+                          <tr key={j} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                            <td style={{ padding: '4px 6px', color: colors.textSecondary }}>{r.period}</td>
+                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.cpi?.toFixed(2)}%</td>
+                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.coreCpi?.toFixed(2)}%</td>
+                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.pce?.toFixed(2)}%</td>
+                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.corePce?.toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
               </div>
-              <DataFooter source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-            </div>
+            </BentoCard>
           )}
         </BentoWrapper>
 

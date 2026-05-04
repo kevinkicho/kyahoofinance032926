@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { useMarketData } from '../../../hub/DataContext';
 import BentoWrapper from '../../../components/BentoWrapper';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import SafeECharts from '../../../components/SafeECharts';
-import DataFooter from '../../../components/DataFooter/DataFooter';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CreditDashboard.css';
-
-const stopDrag = (e) => e.stopPropagation();
 
 // KPI strip is now a real bento child at row 0 (h:2). All other panels
 // shifted down 2 rows. Storage key bumped.
@@ -22,6 +21,13 @@ const LAYOUT = {
     { i: 'clo-tranches', x: 8, y: 5, w: 4, h: 2 },
     { i: 'default-rates', x: 0, y: 7, w: 6, h: 2 },
     { i: 'delinquency', x: 6, y: 7, w: 6, h: 2 },
+    // Tier-1 addition (2026-05-03): US banking sector aggregate + recent
+    // bank failures (FDIC summary + failures endpoints).
+    { i: 'bank-sector', x: 0, y: 9, w: 12, h: 3 },
+    // 2026-05-04 additions: Moody's Aaa/Baa credit-quality spread (FRED)
+    // and MSRB EMMA municipal-bond market activity (HTML scrape).
+    { i: 'credit-quality', x: 0, y: 12, w: 6, h: 4 },
+    { i: 'muni-market',    x: 6, y: 12, w: 6, h: 4 },
   ]
 };
 
@@ -35,6 +41,7 @@ function CreditDashboard({
   lendingStandards,
   commercialPaper,
   excessReserves,
+  creditQuality,
   isLive,
   lastUpdated,
   fetchLog,
@@ -43,6 +50,10 @@ function CreditDashboard({
   isCurrent,
 }) {
   const { colors } = useTheme();
+  // Tier-1: US banking sector aggregate + recent bank failures.
+  const fdicCtx = useMarketData('fdic');
+  // 2026-05-04: MSRB EMMA municipal market activity.
+  const msrbCtx = useMarketData('msrb');
 
   const igSpread = spreadData?.current?.igSpread ?? spreadData?.find?.(s => s.name?.includes('IG'))?.spread;
   const hySpread = spreadData?.current?.hySpread ?? spreadData?.find?.(s => s.name?.includes('HY'))?.spread;
@@ -96,27 +107,94 @@ function CreditDashboard({
     return Array.isArray(spreadData) ? spreadData.slice(0, 6) : [];
   }, [spreadData]);
 
+  // ── Moody's Aaa vs Baa credit-quality spread (FRED DAAA/DBAA) ──────────
+  // Two stacked panels in one chart: Aaa + Baa yields on the top axis,
+  // Baa-Aaa spread (bps) on the bottom axis with a shaded band for the
+  // long-run normal range (~80-130bps). Spread widening = credit cycle
+  // weakening; tightening = benign / risk-on.
+  const creditQualityOption = useMemo(() => {
+    const cq = creditQuality;
+    if (!cq?.dates?.length) return null;
+    const dates = cq.dates;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+      legend: { data: ['Aaa (%)', 'Baa (%)', 'Baa-Aaa spread (bps)'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: [
+        { top: 28, right: 16, bottom: '50%', left: 44 },
+        { top: '58%', right: 16, bottom: 28, left: 44 },
+      ],
+      xAxis: [
+        { type: 'category', gridIndex: 0, data: dates, axisLabel: { show: false }, axisLine: { lineStyle: { color: colors.cardBg } } },
+        { type: 'category', gridIndex: 1, data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(dates.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      ],
+      yAxis: [
+        { type: 'value', gridIndex: 0, name: '%', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { formatter: '{value}%', color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+        { type: 'value', gridIndex: 1, name: 'bps', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      ],
+      series: [
+        { name: 'Aaa (%)', xAxisIndex: 0, yAxisIndex: 0, type: 'line', data: cq.aaaPct, smooth: true, symbol: 'none', lineStyle: { color: '#22d3ee', width: 1.6 } },
+        { name: 'Baa (%)', xAxisIndex: 0, yAxisIndex: 0, type: 'line', data: cq.baaPct, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 1.6 } },
+        { name: 'Baa-Aaa spread (bps)', xAxisIndex: 1, yAxisIndex: 1, type: 'line', data: cq.spreadBps, smooth: true, symbol: 'none', lineStyle: { color: '#a78bfa', width: 1.8 }, areaStyle: { color: 'rgba(167, 139, 250, 0.12)' } },
+      ],
+    };
+  }, [creditQuality, colors]);
+
+  // ── MSRB primary-market YTD bar chart ──────────────────────────────────
+  // Monthly issuance (par $M) — gives a sense of new-issue calendar pace
+  // and demand. Total row excluded from the bars.
+  const msrbPrimaryOption = useMemo(() => {
+    const rows = (msrbCtx?.data?.primaryMarket || []).filter(r => !/total/i.test(r.period));
+    if (!rows.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', formatter: ps => {
+        const i = ps[0]?.dataIndex;
+        const r = rows[i];
+        return r ? `<b>${r.period}</b><br/>Issues: ${r.issues?.toLocaleString()}<br/>Par: $${r.parM?.toLocaleString()}M<br/>Avg size: $${r.avgSizeM?.toFixed(1)}M` : '';
+      }},
+      grid: { top: 12, right: 12, bottom: 28, left: 50 },
+      xAxis: { type: 'category', data: rows.map(r => r.period.slice(0, 3)), axisLabel: { color: colors.textMuted, fontSize: 9 }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', name: '$M', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${(v / 1000).toFixed(0)}B` }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{ type: 'bar', data: rows.map(r => r.parM), itemStyle: { color: '#10b981', borderRadius: [3, 3, 0, 0] }, barWidth: 16 }],
+    };
+  }, [msrbCtx, colors]);
+
   return (
     <div className="credit-dashboard credit-dashboard--bento">
-      <BentoWrapper layout={LAYOUT} storageKey="credit-layout-v2">
+      <BentoWrapper layout={LAYOUT} storageKey="credit-layout-v3">
         {/* KPI strip — real bento child at row 0. Provided by parent so
             the credit-specific KPI builder lives there. */}
         {kpiPanel && (
-          <div key="kpi" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Credit Key Metrics</span>
-            </div>
-            <div className="bento-panel-content credit-panel-scroll" onMouseDown={stopDrag}>
-              {kpiPanel}
-            </div>
-          </div>
+          <BentoCard
+            key="kpi"
+            title="Credit Key Metrics"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="credit-panel-scroll"
+            noFooter
+          >
+            {kpiPanel}
+          </BentoCard>
         )}
         {/* Key Metrics */}
-        <div key="key-metrics" className="credit-bento-card">
-          <div className="credit-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Key Metrics</span>
-          </div>
-          <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
+        <BentoCard
+          key="key-metrics"
+          title="Key Metrics"
+          accent="credit"
+          className="credit-bento-card"
+          contentClassName="bento-panel-scroll"
+          source="FRED / Yahoo Finance"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <>
             <div className="credit-sidebar-section">
               <div className="credit-sidebar-title">Credit Spreads</div>
               {typeof igSpread === 'number' && (
@@ -184,81 +262,118 @@ function CreditDashboard({
                 </div>
               </div>
             )}
-          </div>
-          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+          </>
+        </BentoCard>
 
         {/* Credit Spreads Chart */}
         {spreadOption && (
-          <div key="credit-spreads" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Credit Spreads</span>
-            </div>
-            <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spreads', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="credit-spreads"
+            title="Credit Spreads"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="credit-panel-content"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={spreadOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spreads', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Spread Summary */}
         {spreadSummary.length > 0 && (
-          <div key="spread-summary" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Spread Summary</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-              {spreadSummary.map((s) => (
-                <div key={s.name} className="credit-mini-row">
-                  <span className="credit-mini-name">{s.name}</span>
-                  <span className="credit-mini-value" style={{ color: s.spread > 150 ? '#f87171' : s.spread > 80 ? '#fbbf24' : '#22c55e' }}>
-                    <MetricValue value={s.spread} seriesKey={s.label === 'High Yield' ? 'hyOAS' : s.label === 'Investment Grade' ? 'igOAS' : s.label === 'EM Sovereign' ? 'emOAS' : 'spreadSummary'} timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(0)} bps` : '—'} />
-                  </span>
-                </div>
-              ))}
-            </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="spread-summary"
+            title="Spread Summary"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {spreadSummary.map((s) => (
+              <div key={s.name} className="credit-mini-row">
+                <span className="credit-mini-name">{s.name}</span>
+                <span className="credit-mini-value" style={{ color: s.spread > 150 ? '#f87171' : s.spread > 80 ? '#fbbf24' : '#22c55e' }}>
+                  <MetricValue value={s.spread} seriesKey={s.label === 'High Yield' ? 'hyOAS' : s.label === 'Investment Grade' ? 'igOAS' : s.label === 'EM Sovereign' ? 'emOAS' : 'spreadSummary'} timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(0)} bps` : '—'} />
+                </span>
+              </div>
+            ))}
+          </BentoCard>
         )}
 
         {/* EM Spread History */}
         {emOption && (
-          <div key="em-spread" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">EM Spread History</span>
-            </div>
-            <div className="credit-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EM Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLEMRACRPIOAS' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="em-spread"
+            title="EM Spread History"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="credit-panel-content"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EM Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLEMRACRPIOAS' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* EM Yields */}
         {(emBondData?.countries || emBondData)?.length > 0 && (
-          <div key="em-yields" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">EM Yields</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-              {(emBondData.countries || emBondData).slice(0, 8).map((e) => (
-                <div key={e.country || e.name} className="credit-mini-row">
-                  <span className="credit-mini-name">{e.country || e.name}</span>
-                  <span className="credit-mini-value"><MetricValue value={e.yld10y ?? e.yield} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
-                </div>
-              ))}
-            </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="em-yields"
+            title="EM Yields"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {(emBondData.countries || emBondData).slice(0, 8).map((e) => (
+              <div key={e.country || e.name} className="credit-mini-row">
+                <span className="credit-mini-name">{e.country || e.name}</span>
+                <span className="credit-mini-value"><MetricValue value={e.yld10y ?? e.yield} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+              </div>
+            ))}
+          </BentoCard>
         )}
 
         {/* Commercial Paper */}
         {commercialPaper?.history?.dates?.length > 0 && (
-          <div key="cp-rates" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Commercial Paper</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard
+            key="cp-rates"
+            title="Commercial Paper"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <>
               <div className="credit-mini-row">
                 <span className="credit-mini-name">AA 30-Day</span>
                 <span className="credit-mini-value"><MetricValue value={commercialPaper.rate} seriesKey="commercialPaper" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
@@ -269,18 +384,27 @@ function CreditDashboard({
                   <span className="credit-mini-value"><MetricValue value={commercialPaper.volume} seriesKey="commercialPaperVolume" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} /></span>
                 </div>
               )}
-            </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+            </>
+          </BentoCard>
         )}
 
         {/* CLO Tranches */}
         {(loanData?.cloTranches || loanData)?.length > 0 && (
-          <div key="clo-tranches" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">CLO Tranches</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard
+            key="clo-tranches"
+            title="CLO Tranches"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED (IG OAS + conventions) / Yahoo"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <>
               <div className="credit-mini-row credit-mini-row-header">
                 <span className="credit-mini-name" style={{ fontWeight: 700 }}>Tranche</span>
                 <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 60 }}>Spread</span>
@@ -301,47 +425,187 @@ function CreditDashboard({
                   </span>
                 </div>
               ))}
-            </div>
-            <DataFooter source="FRED (IG OAS + conventions) / Yahoo" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+            </>
+          </BentoCard>
         )}
 
         {/* Default Rates */}
         {defaultData?.rates?.length > 0 && (
-          <div key="default-rates" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Default Rates</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-              {defaultData.rates.slice(0, 8).map((d) => (
-                <div key={d.category} className="credit-mini-row">
-                  <span className="credit-mini-name">{d.category}</span>
-                  <span className="credit-mini-value" style={{ color: d.value > 3 ? '#f87171' : '#fbbf24' }}>
-                    <MetricValue value={d.value} seriesKey="defaultRateByCategory" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
-                  </span>
-                </div>
-              ))}
-            </div>
-            <DataFooter source="FRED / Moody's" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="default-rates"
+            title="Default Rates"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED / Moody's"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {defaultData.rates.slice(0, 8).map((d) => (
+              <div key={d.category} className="credit-mini-row">
+                <span className="credit-mini-name">{d.category}</span>
+                <span className="credit-mini-value" style={{ color: d.value > 3 ? '#f87171' : '#fbbf24' }}>
+                  <MetricValue value={d.value} seriesKey="defaultRateByCategory" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
+                </span>
+              </div>
+            ))}
+          </BentoCard>
         )}
 
         {/* Delinquency Rates */}
         {delinquencyRates?.length > 0 && (
-          <div key="delinquency" className="credit-bento-card">
-            <div className="credit-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Delinquency Rates</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-              {delinquencyRates.slice(0, 8).map((d) => (
-                <div key={d.type} className="credit-mini-row">
-                  <span className="credit-mini-name">{d.type}</span>
-                  <span className="credit-mini-value"><MetricValue value={d.rate} seriesKey="delinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+          <BentoCard
+            key="delinquency"
+            title="Delinquency Rates"
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {delinquencyRates.slice(0, 8).map((d) => (
+              <div key={d.type} className="credit-mini-row">
+                <span className="credit-mini-name">{d.type}</span>
+                <span className="credit-mini-value"><MetricValue value={d.rate} seriesKey="delinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+              </div>
+            ))}
+          </BentoCard>
+        )}
+
+        {/* US Banking Sector — FDIC aggregate + recent bank failures.
+            Two-column layout: aggregate KPIs on the left, failures list on
+            the right. Both fed by /api/fdic. */}
+        <BentoCard
+          key="bank-sector"
+          title="US Banking Sector"
+          subtitle="FDIC aggregate + recent failures"
+          accent="credit"
+          className="credit-bento-card"
+          contentClassName="bento-panel-scroll"
+          source="FDIC"
+          timestamp={fdicCtx?.lastUpdated || lastUpdated}
+          isLive={!!(fdicCtx?.data?.aggregate?.length || fdicCtx?.data?.failures?.length)}
+          isCurrent={fdicCtx?.isCurrent ?? isCurrent}
+          fetchedOn={fdicCtx?.fetchedOn || fetchedOn}
+          fetchLog={fdicCtx?.fetchLog || fetchLog}
+          error={fdicCtx?.error || error}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <div className="credit-sidebar-title">Aggregate ($B, thousands of banks)</div>
+              {(fdicCtx?.data?.aggregate || []).slice(0, 4).map(y => (
+                <div key={y.year} className="credit-mini-row" style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', gap: 6 }}>
+                  <span className="credit-mini-name" style={{ color: colors.textSecondary, fontWeight: 600 }}>{y.year}</span>
+                  <span className="credit-mini-value" title="Total assets" style={{ color: '#22d3ee' }}>
+                    <MetricValue value={y.assetsB} seriesKey="fdicAssets" timestamp={fdicCtx?.lastUpdated} format={v => v != null ? `$${(v / 1000).toFixed(1)}T` : '—'} />
+                  </span>
+                  <span className="credit-mini-value" title="Total deposits" style={{ color: '#a78bfa' }}>
+                    <MetricValue value={y.depositsB} seriesKey="fdicDeposits" timestamp={fdicCtx?.lastUpdated} format={v => v != null ? `$${(v / 1000).toFixed(1)}T` : '—'} />
+                  </span>
+                  <span className="credit-mini-value" title="Net income" style={{ color: '#4ade80' }}>
+                    <MetricValue value={y.netIncomeB} seriesKey="fdicNetIncome" timestamp={fdicCtx?.lastUpdated} format={v => v != null ? `$${v.toFixed(1)}B` : '—'} />
+                  </span>
                 </div>
               ))}
+              <div style={{ fontSize: 9, color: colors.textMuted, marginTop: 4 }}>year · assets · deposits · net income</div>
             </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
+            <div>
+              <div className="credit-sidebar-title">Recent Failures</div>
+              {(fdicCtx?.data?.failures || []).slice(0, 6).map((f, i) => (
+                <div key={`${f.name}-${i}`} className="credit-mini-row" style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px', gap: 6 }}>
+                  <span className="credit-mini-name" title={f.city} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                  <span className="credit-mini-value" style={{ color: colors.textMuted, fontSize: 10 }}>{f.date}</span>
+                  <span className="credit-mini-value" style={{ color: '#f87171' }}>
+                    <MetricValue value={f.assets} seriesKey="fdicFailureAssets" timestamp={f.date} format={v => v != null ? `$${(v / 1000).toFixed(1)}B` : '—'} />
+                  </span>
+                </div>
+              ))}
+              {(!fdicCtx?.data?.failures?.length) && <div style={{ color: colors.textMuted, fontSize: 11 }}>No recent failures</div>}
+            </div>
           </div>
+        </BentoCard>
+
+        {/* Moody's Aaa/Baa credit-quality spread (FRED DAAA/DBAA) */}
+        {creditQuality?.dates?.length > 0 && (
+          <BentoCard
+            key="credit-quality"
+            title="Credit Quality Premium"
+            subtitle={creditQuality.latest
+              ? `Baa-Aaa spread: ${creditQuality.latest.spreadBps} bps · Aaa ${creditQuality.latest.aaaPct?.toFixed(2)}% / Baa ${creditQuality.latest.baaPct?.toFixed(2)}% (${creditQuality.latest.date})`
+              : "Moody's seasoned Aaa & Baa corporate yields · 1-year history"}
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="credit-panel-content"
+            source="FRED · Moody's seasoned indices"
+            timestamp={lastUpdated}
+            isLive={!!creditQuality?.dates?.length}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {creditQualityOption && <SafeECharts option={creditQualityOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Quality Premium', source: "Moody's via FRED", endpoint: '/api/credit', series: [{ id: 'DAAA' }, { id: 'DBAA' }], updatedAt: lastUpdated }} />}
+          </BentoCard>
+        )}
+
+        {/* MSRB EMMA — US Municipal market activity */}
+        {msrbCtx?.data?.summary && (
+          <BentoCard
+            key="muni-market"
+            title="US Municipal Bond Market"
+            subtitle={msrbCtx.data.summary.tradesAll
+              ? `${msrbCtx.data.summary.tradesAll.toLocaleString()} trades / $${msrbCtx.data.summary.parAllM?.toLocaleString()}M par · YTD ${msrbCtx.data.summary.ytdIssues?.toLocaleString()} issues / $${(msrbCtx.data.summary.ytdParM / 1000).toFixed(1)}B`
+              : 'MSRB EMMA · trade activity + new-issue calendar'}
+            accent="credit"
+            className="credit-bento-card"
+            contentClassName="credit-panel-content"
+            source="MSRB EMMA"
+            timestamp={msrbCtx?.lastUpdated || lastUpdated}
+            isLive={!!msrbCtx?.data?.isLive}
+            isCurrent={msrbCtx?.isCurrent ?? isCurrent}
+            fetchedOn={msrbCtx?.fetchedOn || fetchedOn}
+            fetchLog={msrbCtx?.fetchLog || fetchLog}
+            error={msrbCtx?.error || error}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 12, height: '100%' }}>
+              <div>
+                <div className="credit-sidebar-title" style={{ marginBottom: 4 }}>Trade Activity (latest day)</div>
+                <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
+                      <th style={{ textAlign: 'left', padding: '4px 6px' }}>Type</th>
+                      <th style={{ textAlign: 'right', padding: '4px 6px' }}>Trades</th>
+                      <th style={{ textAlign: 'right', padding: '4px 6px' }}>Par $M</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(msrbCtx?.data?.tradeTypes || []).map((r, i) => (
+                      <tr key={i} style={{ borderBottom: `1px solid ${colors.cardBg}`, fontWeight: /All/i.test(r.type) ? 600 : 400 }}>
+                        <td style={{ padding: '4px 6px', color: colors.textSecondary }}>{r.type}</td>
+                        <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.trades?.toLocaleString()}</td>
+                        <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: /All/i.test(r.type) ? '#10b981' : colors.textPrimary }}>${r.parM?.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div className="credit-sidebar-title" style={{ marginBottom: 4 }}>Primary Market YTD ($ par)</div>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  {msrbPrimaryOption && <SafeECharts option={msrbPrimaryOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Muni Primary Market', source: 'MSRB EMMA', endpoint: '/api/msrb', series: [], updatedAt: msrbCtx?.lastUpdated || lastUpdated }} />}
+                </div>
+              </div>
+            </div>
+          </BentoCard>
         )}
       </BentoWrapper>
     </div>

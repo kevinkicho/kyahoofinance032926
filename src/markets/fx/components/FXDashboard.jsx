@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
-import DataFooter from '../../../components/DataFooter/DataFooter';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import CarryMap from './CarryMap';
 import ReerChart from './ReerChart';
@@ -59,7 +59,6 @@ const FX_KPI_SERIES = {
   'DXY':     'dxy',
 };
 
-const stopDrag = (e) => e.stopPropagation();
 
 function FXDashboard({
   spotRates, changes, changes1w, changes1m, sparklines,
@@ -141,148 +140,92 @@ function FXDashboard({
   return (
     <div className="fx-dashboard fx-dashboard--bento">
       <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v5">
-        {/* KPI strip — full-width row 0, real bento panel (drag/resize/
-            persist). Each pill is clickable via MetricValue. */}
-        <div key="kpi" className="fx-bento-card">
-          <div className="fx-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">FX Key Metrics</span>
-            <span className="fx-panel-subtitle">Spot rates · DXY · G10 average</span>
-          </div>
-          <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            <MarketKpiStrip kpis={kpiItems} bare />
-          </div>
-          <DataFooter
-            source="Frankfurter / FRED"
-            timestamp={lastUpdated}
+        <BentoCard key="kpi" title="FX Key Metrics" subtitle="Spot rates · DXY · G10 average" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter / FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <MarketKpiStrip kpis={kpiItems} bare />
+        </BentoCard>
+
+        {/* FX Dashboard sidebar — FXSidebar manages its own footer; pass noFooter. */}
+        <BentoCard key="sidebar" title="FX Dashboard" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content bento-panel-scroll" noFooter>
+          <FXSidebar
+            spotRates={spotRates}
+            changes={changes}
+            rateDifferentials={rateDifferentials}
+            cotHistory={cotHistory}
+            lastUpdated={lastUpdated}
             isLive={isLive}
             fetchLog={fetchLog}
             error={error}
             fetchedOn={fetchedOn}
             isCurrent={isCurrent}
           />
-        </div>
+        </BentoCard>
 
-        {/* FX Dashboard sidebar — bento panel (left column under the KPI
-            strip). Drag the title to move it; resize the corner. */}
-        <div key="sidebar" className="fx-bento-card">
-          <div className="fx-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">FX Dashboard</span>
+        <BentoCard key="movers" title="Top Movers vs USD" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content fx-panel-scroll" source="Frankfurter API" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <div className="fx-movers-list">
+            {movers.slice(0, 8).map((m, i) => (
+              <div key={m.code} className="fx-mover-row">
+                <span className="fx-mover-rank">{i + 1}</span>
+                <span className="fx-mover-code"><MetricValue value={m.changePct} seriesKey={`fx${m.code}`} timestamp={lastUpdated} format={() => m.code} /></span>
+                <span className="fx-mover-pct" style={{ color: m.changePct >= 0 ? '#4ade80' : '#f87171' }}>
+                  <MetricValue value={m.changePct} seriesKey={`fx${m.code}`} timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} />
+                </span>
+                <Sparkline values={m.spark} />
+              </div>
+            ))}
           </div>
-          <div className="fx-panel-content bento-panel-content bento-panel-scroll">
-            <FXSidebar
-              spotRates={spotRates}
-              changes={changes}
-              rateDifferentials={rateDifferentials}
-              cotHistory={cotHistory}
-              lastUpdated={lastUpdated}
-              isLive={isLive}
-              fetchLog={fetchLog}
-              error={error}
-              fetchedOn={fetchedOn}
-              isCurrent={isCurrent}
-            />
-          </div>
-        </div>
-        {/* Top Movers */}
-        <div key="movers" className="fx-bento-card">
-          <div className="fx-panel-title-row bento-panel-title-row">
-            <span className="fx-panel-title">Top Movers vs USD</span>
-          </div>
-          <div className="fx-panel-content bento-panel-content fx-panel-scroll" onMouseDown={stopDrag}>
-            <div className="fx-movers-list">
-              {movers.slice(0, 8).map((m, i) => (
-                <div key={m.code} className="fx-mover-row">
-                  <span className="fx-mover-rank">{i + 1}</span>
-                  <span className="fx-mover-code"><MetricValue value={m.changePct} seriesKey={`fx${m.code}`} timestamp={lastUpdated} format={() => m.code} /></span>
-                  <span className="fx-mover-pct" style={{ color: m.changePct >= 0 ? '#4ade80' : '#f87171' }}>
-                    <MetricValue value={m.changePct} seriesKey={`fx${m.code}`} timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} />
+        </BentoCard>
+
+        <BentoCard key="dxy" title="DXY Dollar Index" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="FRED DTWEXBGS" timestamp={lastUpdated} isLive={!!dxyHistory?.dates?.length} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'DXY Dollar Index', source: 'FRED', endpoint: '/api/fx', series: [{ id: 'DTWEXBGS' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No DXY data</div>}
+        </BentoCard>
+
+        <BentoCard key="cot" title="CFTC COT Positioning" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFTC COT Positioning', source: 'CFTC', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No COT data</div>}
+        </BentoCard>
+
+        <BentoCard key="corr" title="Currency Correlation (30D)" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter API" timestamp={lastUpdated} isLive={!!history && Object.keys(history).length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <CurrencyCorrelationMatrix history={history} lastUpdated={lastUpdated} />
+        </BentoCard>
+
+        <BentoCard key="reer" title="Real Effective Exchange Rates" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="FRED / BIS" timestamp={lastUpdated} isLive={!!reer?.dates?.length} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <ReerChart reer={reer} lastUpdated={lastUpdated} />
+        </BentoCard>
+
+        {rateDiff && (
+          <BentoCard key="ratediff" title="Rate Differentials" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content fx-panel-scroll" source="FRED / Server" timestamp={lastUpdated} isLive={!!rateDiff?.length} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <div className="fx-mini-table" style={{ paddingTop: 0 }}>
+              {rateDiff.map(([ccy, diff]) => (
+                <div key={ccy} className="fx-mini-row">
+                  <span className="fx-mini-name">{ccy}</span>
+                  <span className="fx-mini-value" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}>
+                     <MetricValue value={diff} seriesKey="rateDifferential" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
                   </span>
-                  <Sparkline values={m.spark} />
                 </div>
               ))}
             </div>
-          </div>
-          <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
-
-        {/* DXY Chart */}
-        <div key="dxy" className="fx-bento-card">
-          <div className="fx-panel-title-row bento-panel-title-row">
-            <span className="fx-panel-title">DXY Dollar Index</span>
-          </div>
-          <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'DXY Dollar Index', source: 'FRED', endpoint: '/api/fx', series: [{ id: 'DTWEXBGS' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No DXY data</div>}
-          </div>
-          <DataFooter source="FRED DTWEXBGS" timestamp={lastUpdated} isLive={!!dxyHistory?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
-
-        {/* COT Positioning */}
-        <div key="cot" className="fx-bento-card">
-          <div className="fx-panel-title-row bento-panel-title-row">
-            <span className="fx-panel-title">CFTC COT Positioning</span>
-          </div>
-          <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFTC COT Positioning', source: 'CFTC', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No COT data</div>}
-          </div>
-          <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
-
-         {/* Correlation Matrix */}
-         <div key="corr" className="fx-bento-card">
-           <div className="fx-panel-title-row bento-panel-title-row">
-             <span className="fx-panel-title">Currency Correlation (30D)</span>
-           </div>
-           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-             <CurrencyCorrelationMatrix history={history} lastUpdated={lastUpdated} />
-           </div>
-           <DataFooter source="Frankfurter API" timestamp={lastUpdated} isLive={!!history && Object.keys(history).length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-         </div>
- 
-         {/* REER */}
-         <div key="reer" className="fx-bento-card">
-           <div className="fx-panel-title-row bento-panel-title-row">
-             <span className="fx-panel-title">Real Effective Exchange Rates</span>
-           </div>
-           <div className="fx-panel-content bento-panel-content" onMouseDown={stopDrag}>
-             <ReerChart reer={reer} lastUpdated={lastUpdated} />
-           </div>
-           <DataFooter source="FRED / BIS" timestamp={lastUpdated} isLive={!!reer?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-         </div>
-
-        {/* Rate Differentials */}
-        {rateDiff && (
-          <div key="ratediff" className="fx-bento-card">
-            <div className="fx-panel-title-row bento-panel-title-row">
-              <span className="fx-panel-title">Rate Differentials</span>
-            </div>
-            <div className="fx-panel-content bento-panel-content fx-panel-scroll" onMouseDown={stopDrag}>
-              <div className="fx-mini-table" style={{ paddingTop: 0 }}>
-                {rateDiff.map(([ccy, diff]) => (
-                  <div key={ccy} className="fx-mini-row">
-                    <span className="fx-mini-name">{ccy}</span>
-                    <span className="fx-mini-value" style={{ color: diff >= 0 ? '#4ade80' : '#f87171' }}>
-                       <MetricValue value={diff} seriesKey="rateDifferential" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / Server" timestamp={lastUpdated} isLive={!!rateDiff?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
-        {/* Carry Map */}
-        <div key="carry" className="fx-bento-card fx-bento-card--carry">
-          <CarryMap
-            rateDifferentials={rateDifferentials}
-            isLive={isLive}
-            lastUpdated={lastUpdated}
-            fetchLog={fetchLog}
-            error={error}
-            fetchedOn={fetchedOn}
-            isCurrent={isCurrent}
-          />
-        </div>
+        {/* Carry Map — refactored in Phase 6b to expose just content.
+            Note `--carry` modifier still applied for any tab-specific
+            sizing in FXDashboard.css. */}
+        <BentoCard
+          key="carry"
+          title="Carry Map"
+          subtitle="Interest rate differential (long base − short quote). Positive = earn positive carry."
+          accent="fx"
+          className="fx-bento-card fx-bento-card--carry"
+          contentClassName="fx-panel-scroll"
+          source="FRED / Central Banks"
+          timestamp={lastUpdated}
+          isLive={!!(rateDifferentials && rateDifferentials.fed != null)}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <CarryMap rateDifferentials={rateDifferentials} />
+        </BentoCard>
       </BentoWrapper>
     </div>
   );

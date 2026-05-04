@@ -1,15 +1,13 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import BentoWrapper from '../../../components/BentoWrapper';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import SafeECharts from '../../../components/SafeECharts';
-import DataFooter from '../../../components/DataFooter/DataFooter';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import CftcPositioning from './CftcPositioning';
 import RiskDashboard from './RiskDashboard';
 import SentimentSidebar from './SentimentSidebar';
 import './SentimentDashboard.css';
-
-const stopDrag = (e) => e.stopPropagation();
 
 const LAYOUT = {
   lg: [
@@ -20,6 +18,8 @@ const LAYOUT = {
     { i: 'cftc', x: 3, y: 3, w: 6, h: 3 },
     { i: 'risk-dashboard', x: 9, y: 3, w: 3, h: 3 },
     { i: 'leverage', x: 0, y: 5, w: 12, h: 2 },
+    // SF Fed Daily News Sentiment Index — full-width line below leverage.
+    { i: 'news-sentiment', x: 0, y: 7, w: 12, h: 3 },
   ]
 };
 
@@ -32,6 +32,8 @@ function SentimentDashboard({
   consumerCredit,
   vvixHistory,
   fsiHistory,
+  newsSentimentData,
+  newsSentimentLastUpdated,
   fetchLog,
   isLive,
   lastUpdated,
@@ -102,62 +104,196 @@ function SentimentDashboard({
     }));
   }, [returnsData]);
 
+  // SF Fed Daily News Sentiment — area chart with the zero baseline. The
+  // index runs roughly between -0.5 (very negative news flow) and +0.5
+  // (very positive). 30-day moving average smooths the daily noise.
+  const newsSentimentOption = useMemo(() => {
+    const series = newsSentimentData?.series || [];
+    if (!series.length) return null;
+    const dates = series.map(p => p.date);
+    const vals = series.map(p => p.sentiment);
+    // Compute a trailing 30-day moving average aligned to `vals`.
+    const ma = vals.map((_, i) => {
+      const start = Math.max(0, i - 29);
+      const window = vals.slice(start, i + 1);
+      return window.reduce((s, v) => s + v, 0) / window.length;
+    });
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', valueFormatter: v => v != null ? v.toFixed(3) : '—' },
+      legend: { data: ['Daily', '30d avg'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
+      grid: { top: 28, right: 16, bottom: 28, left: 44 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(dates.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [
+        { name: 'Daily', type: 'line', data: vals, smooth: true, symbol: 'none', lineStyle: { color: '#94a3b8', width: 1 }, areaStyle: { color: 'rgba(148,163,184,0.08)' } },
+        { name: '30d avg', type: 'line', data: ma, smooth: true, symbol: 'none', lineStyle: { color: '#22d3ee', width: 2 } },
+      ],
+    };
+  }, [newsSentimentData, colors]);
+
+  // Latest + 30-day-average headline numbers for the panel subtitle.
+  const newsSentimentSummary = useMemo(() => {
+    const series = newsSentimentData?.series;
+    if (!series?.length) return null;
+    const latest = series[series.length - 1];
+    const last30 = series.slice(-30);
+    const avg30 = last30.reduce((s, p) => s + p.sentiment, 0) / last30.length;
+    return { latest, avg30 };
+  }, [newsSentimentData]);
+
     return (
       <div className="sent-dashboard sent-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="sentiment-layout">
           {/* Sidebar */}
-          <div key="sidebar" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Market Snapshot</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-              <SentimentSidebar 
-                fearGreedData={fearGreedData}
-                riskData={riskData}
-                marginDebt={marginDebt}
-                consumerCredit={consumerCredit}
-                lastUpdated={lastUpdated}
-              />
-            </div>
-            <DataFooter source="Alternative.me / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="sidebar"
+            title="Market Snapshot"
+            accent="sentiment"
+            className="sent-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="Alternative.me / FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SentimentSidebar
+              fearGreedData={fearGreedData}
+              riskData={riskData}
+              marginDebt={marginDebt}
+              consumerCredit={consumerCredit}
+              lastUpdated={lastUpdated}
+            />
+          </BentoCard>
 
         {/* Key Metrics */}
-        <div key="key-metrics" className="sent-bento-card">
-          <div className="sent-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Key Metrics</span>
+        <BentoCard
+          key="key-metrics"
+          title="Key Metrics"
+          accent="sentiment"
+          className="sent-bento-card"
+          contentClassName="bento-panel-scroll"
+          source="FRED"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <div className="sent-sidebar-section">
+            <div className="sent-sidebar-title">Risk Regime</div>
+            {typeof riskData?.overallScore === 'number' && (
+              <div className="sent-metric-card">
+                <div className="sent-metric-row">
+                  <span className="sent-metric-name">Risk Score</span>
+                  <span className="sent-metric-num" style={{ color: riskData.overallScore >= 60 ? '#22c55e' : riskData.overallScore >= 40 ? '#fbbf24' : '#f87171' }}>
+                    <MetricValue value={riskData.overallScore} seriesKey="riskScore" timestamp={lastUpdated} format={v => `${v}/100`} />
+                  </span>
+                </div>
+                {riskData.overallLabel && (
+                  <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
+                    <span className="sent-metric-name">Regime</span>
+                    <span className="sent-metric-num">{riskData.overallLabel}</span>
+                  </div>
+                )}
+              </div>
+            )}
+            {typeof fgiValue === 'number' && (
+              <div className="sent-metric-card">
+                <div className="sent-metric-row">
+                  <span className="sent-metric-name">Fear &amp; Greed</span>
+                  <span className="sent-metric-num" style={{ color: fgiValue >= 60 ? '#22c55e' : fgiValue >= 40 ? '#fbbf24' : '#f87171' }}>
+                    <MetricValue value={fgiValue} seriesKey="fearGreed" timestamp={lastUpdated} format={v => `${v}/100`} />
+                  </span>
+                </div>
+                {fgiLabel && (
+                  <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
+                    <span className="sent-metric-name">Sentiment</span>
+                    <span className="sent-metric-num">{fgiLabel}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-            <div className="sent-sidebar-section">
-              <div className="sent-sidebar-title">Stress</div>
-              {fsiHistory?.values?.length > 0 && (() => {
-                const fsiLatest = fsiHistory.values[fsiHistory.values.length - 1];
-                return typeof fsiLatest === 'number' ? (
-                  <div className="sent-metric-card">
-                    <div className="sent-metric-row">
-                      <span className="sent-metric-name">FSI</span>
-                      <span className="sent-metric-num" style={{ color: fsiLatest > 0 ? '#f87171' : '#22c55e' }}>
-                        <MetricValue value={fsiLatest} seriesKey="financialStressIndex" timestamp={lastUpdated} format={v => v.toFixed(2)} />
+          <div className="sent-sidebar-section">
+            <div className="sent-sidebar-title">Volatility</div>
+            {vvixHistory?.values?.length > 0 && (() => {
+              const last = vvixHistory.values[vvixHistory.values.length - 1];
+              return typeof last === 'number' ? (
+                <div className="sent-metric-card">
+                  <div className="sent-metric-row">
+                    <span className="sent-metric-name">VVIX</span>
+                    <span className="sent-metric-num" style={{ color: last > 100 ? '#f87171' : last > 80 ? '#fbbf24' : '#22c55e' }}>
+                      <MetricValue value={last} seriesKey="vvix" timestamp={lastUpdated} format={v => v.toFixed(1)} />
+                    </span>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+            {fsiHistory?.values?.length > 0 && (() => {
+              const fsiLatest = fsiHistory.values[fsiHistory.values.length - 1];
+              return typeof fsiLatest === 'number' ? (
+                <div className="sent-metric-card">
+                  <div className="sent-metric-row">
+                    <span className="sent-metric-name">FSI</span>
+                    <span className="sent-metric-num" style={{ color: fsiLatest > 0 ? '#f87171' : '#22c55e' }}>
+                      <MetricValue value={fsiLatest} seriesKey="financialStressIndex" timestamp={lastUpdated} format={v => v.toFixed(2)} />
+                    </span>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+          </div>
+          {marginDebt?.values?.length > 0 && (() => {
+            const last = marginDebt.values[marginDebt.values.length - 1];
+            const prev = marginDebt.values[marginDebt.values.length - 13]; // ~yoy from monthly
+            const yoyPct = (typeof last === 'number' && typeof prev === 'number' && prev !== 0) ? ((last - prev) / prev) * 100 : null;
+            return (
+              <div className="sent-sidebar-section">
+                <div className="sent-sidebar-title">Leverage</div>
+                <div className="sent-metric-card">
+                  <div className="sent-metric-row">
+                    <span className="sent-metric-name">Margin Debt</span>
+                    <span className="sent-metric-num">${(last / 1000).toFixed(1)}B</span>
+                  </div>
+                  {typeof yoyPct === 'number' && (
+                    <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
+                      <span className="sent-metric-name">YoY</span>
+                      <span className="sent-metric-num" style={{ color: yoyPct > 0 ? '#22c55e' : '#f87171' }}>
+                        {yoyPct > 0 ? '+' : ''}{yoyPct.toFixed(1)}%
                       </span>
                     </div>
-                  </div>
-                ) : null;
-              })()}
-            </div>
-          </div>
-          <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </BentoCard>
 
         {/* Fear & Greed Index — show the panel even if history is empty
             (alternative.me is sometimes blocked); fall back to the score
             + sub-indicators which are computed from FRED VIX/HY/yield data. */}
         {fearGreedData && (fgiValue != null || fearGreedData.indicators?.length > 0) && (
-          <div key="fear-greed" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Fear & Greed Index</span>
-              <span className="sent-panel-subtitle">{fgiLabel || '—'} · score {fgiValue ?? '—'}/100</span>
-            </div>
-            <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
+          <BentoCard
+            key="fear-greed"
+            title="Fear & Greed Index"
+            subtitle={`${fgiLabel || '—'} · score ${fgiValue ?? '—'}/100`}
+            accent="sentiment"
+            className="sent-bento-card"
+            contentClassName="sent-panel-content"
+            source="Alternative.me / FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
               {fgiOption ? (
                 <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fear & Greed Index', source: 'Alternative.me / FRED', endpoint: '/api/sentiment', series: [], updatedAt: lastUpdated }} />
               ) : (
@@ -179,79 +315,100 @@ function SentimentDashboard({
                   )}
                 </div>
               )}
-            </div>
-            <DataFooter source="Alternative.me / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Financial Stress Index */}
         {fsiOption && (
-          <div key="fsi" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Financial Stress Index</span>
-            </div>
-            <div className="sent-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Financial Stress Index', source: 'FRED', endpoint: '/api/sentiment', series: [{ id: 'STLFSI4' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="fsi"
+            title="Financial Stress Index"
+            accent="sentiment"
+            className="sent-bento-card"
+            contentClassName="sent-panel-content"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Financial Stress Index', source: 'FRED', endpoint: '/api/sentiment', series: [{ id: 'STLFSI4' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Cross-Asset Returns */}
         {returnsList.length > 0 && (
-          <div key="cross-asset" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Cross-Asset Returns</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
-              {returnsList.slice(0, 8).map((r) => (
-                <div key={r.asset || r.ticker || r.name} className="sent-mini-row">
-                  <span className="sent-mini-name">{r.asset}</span>
-                  <span className="sent-mini-value" style={{ color: (r.return || 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                    <MetricValue value={r.return || 0} seriesKey="crossAssetReturn" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
-                  </span>
-                </div>
-              ))}
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="cross-asset"
+            title="Cross-Asset Returns"
+            accent="sentiment"
+            className="sent-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {returnsList.slice(0, 8).map((r) => (
+              <div key={r.asset || r.ticker || r.name} className="sent-mini-row">
+                <span className="sent-mini-name">{r.asset}</span>
+                <span className="sent-mini-value" style={{ color: (r.return || 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                  <MetricValue value={r.return || 0} seriesKey="crossAssetReturn" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
+                </span>
+              </div>
+            ))}
+          </BentoCard>
         )}
 
         {/* CFTC Positioning */}
         {cftcData?.currencies?.length > 0 && (
-          <div key="cftc" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">CFTC Positioning</span>
-              <span className="sent-panel-subtitle">
-                Net speculative position as % of open interest · green = net long · red = net short
-                {cftcData?.asOf && <> · as of {cftcData.asOf}</>}
-              </span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <CftcPositioning bare cftcData={cftcData} />
-            </div>
-            <DataFooter source="CFTC" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="cftc"
+            title="CFTC Positioning"
+            subtitle={`Net speculative position as % of open interest · green = net long · red = net short${cftcData?.asOf ? ` · as of ${cftcData.asOf}` : ''}`}
+            accent="sentiment"
+            className="sent-bento-card"
+            source="CFTC"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <CftcPositioning bare cftcData={cftcData} />
+          </BentoCard>
         )}
 
         {/* Risk Dashboard */}
         {(riskData || vvixHistory || fsiHistory) && (
-          <div key="risk-dashboard" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Risk Dashboard</span>
-              <span className="sent-panel-subtitle">Cross-asset risk-on / risk-off signals · FRED + Yahoo Finance</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <RiskDashboard
-                bare
-                riskData={riskData}
-                marginDebt={marginDebt}
-                vvixHistory={vvixHistory}
-                fsiHistory={fsiHistory}
-              />
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="risk-dashboard"
+            title="Risk Dashboard"
+            subtitle="Cross-asset risk-on / risk-off signals · FRED + Yahoo Finance"
+            accent="sentiment"
+            className="sent-bento-card"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <RiskDashboard
+              bare
+              riskData={riskData}
+              marginDebt={marginDebt}
+              vvixHistory={vvixHistory}
+              fsiHistory={fsiHistory}
+            />
+          </BentoCard>
         )}
 
         {/* Leverage Metrics — server returns { dates, values } so we read
@@ -259,12 +416,22 @@ function SentimentDashboard({
             (margin debt) is reported in millions; multiply by 1e6 to render
             as USD. TOTALSL (consumer credit) is in billions, stored as-is. */}
         {(marginDebt?.values?.length || consumerCredit?.values?.length) && (
-          <div key="leverage" className="sent-bento-card">
-            <div className="sent-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Leverage Metrics</span>
-              <span className="sent-panel-subtitle">FINRA margin · consumer credit · quarterly / monthly</span>
-            </div>
-            <div className="bento-panel-content bento-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard
+            key="leverage"
+            title="Leverage Metrics"
+            subtitle="FINRA margin · consumer credit · quarterly / monthly"
+            accent="sentiment"
+            className="sent-bento-card"
+            contentClassName="bento-panel-scroll"
+            source="FRED BOGZ1FL663067003Q / TOTALSL"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <>
               {marginDebt?.values?.length > 0 && (() => {
                 const latest = marginDebt.values[marginDebt.values.length - 1];
                 const prev   = marginDebt.values[marginDebt.values.length - 2];
@@ -293,9 +460,30 @@ function SentimentDashboard({
                   </div>
                 );
               })()}
-            </div>
-            <DataFooter source="FRED BOGZ1FL663067003Q / TOTALSL" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+            </>
+          </BentoCard>
+        )}
+
+        {/* SF Fed Daily News Sentiment Index — full-year history line */}
+        {newsSentimentData?.series?.length > 0 && (
+          <BentoCard
+            key="news-sentiment"
+            title="Daily News Sentiment Index"
+            subtitle={newsSentimentSummary
+              ? `Latest ${newsSentimentSummary.latest.sentiment > 0 ? '+' : ''}${newsSentimentSummary.latest.sentiment.toFixed(3)} (${newsSentimentSummary.latest.date}) · 30d avg ${newsSentimentSummary.avg30 > 0 ? '+' : ''}${newsSentimentSummary.avg30.toFixed(3)}`
+              : 'San Francisco Fed · text-based macro sentiment from major papers'}
+            accent="sentiment"
+            className="sent-bento-card"
+            source="SF Fed"
+            timestamp={newsSentimentLastUpdated || lastUpdated}
+            isLive={!!newsSentimentData?.isLive}
+            isCurrent={newsSentimentData?.isCurrent !== false}
+            fetchedOn={newsSentimentData?.fetchedOn || fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {newsSentimentOption && <SafeECharts option={newsSentimentOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Daily News Sentiment Index', source: 'SF Fed', endpoint: '/api/fed/news-sentiment', series: [], updatedAt: newsSentimentLastUpdated || lastUpdated }} />}
+          </BentoCard>
         )}
         </BentoWrapper>
       </div>

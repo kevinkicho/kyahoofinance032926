@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { fetchWithRetry } from '../../utils/fetchWithRetry';
 import BentoWrapper from '../../components/BentoWrapper';
+import BentoCard from '../../components/BentoCard/BentoCard';
 import { useMarketData } from '../../hub/DataContext';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
-import DataFooter from '../../components/DataFooter/DataFooter';
 import './WatchlistMarket.css';
 
 const MAX_TICKERS = 20;
@@ -26,8 +26,6 @@ const SUB_TABS = [
   { id: 'tickers', label: 'My Tickers' },
   { id: 'metrics', label: 'My Metrics' },
 ];
-
-const stopDrag = (e) => e.stopPropagation();
 
 // KPI strip is now a real bento child at row 0 (h:2). Storage keys
 // bumped because the layout schema changed.
@@ -58,6 +56,15 @@ function WatchlistMarket({ onNavigate }) {
   const quotes = watchlistData?.data || {};
   const isLoading = watchlistData?.isLoading || false;
   const errors = watchlistData?.error ? { global: watchlistData.error } : {};
+  // When the user hasn't added any tickers yet, the watchlist endpoint is
+  // never called and isLive stays false, which paints "NO DATA" pills on
+  // the empty state. Treat zero-tickers as an intentional, healthy state
+  // so the badge says FETCHED and the inline "Add ticker" hint isn't
+  // overshadowed by an error-looking pill.
+  const isEmptyByDesign = (tickers?.length ?? 0) === 0;
+  const effectiveIsLive = isEmptyByDesign ? true : !!watchlistData?.isLive;
+  const effectiveSource = isEmptyByDesign ? 'No tickers yet' : 'Cross-market shortcuts';
+  const tickersSource = isEmptyByDesign ? 'No tickers yet' : 'Yahoo Finance';
   const [input, setInput] = useState('');
   const [favMetrics, setFavMetrics] = useState(() => loadJSON(LS_METRICS, []));
   const fetchedRef = useRef(new Set());
@@ -248,31 +255,38 @@ function WatchlistMarket({ onNavigate }) {
       <div className="watch-dashboard watch-dashboard--bento">
         <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout-v2`}>
           {/* KPI strip — full-width bento child at row 0 in both sub-tabs. */}
-          <div key="kpi" className="watch-bento-card">
-            <div className="watch-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Watchlist Key Metrics</span>
-            </div>
-            <div className="bento-panel-content watch-panel-scroll" onMouseDown={stopDrag}>
-              <MarketKpiStrip kpis={kpis} bare />
-            </div>
-            <DataFooter
-              source="Cross-market shortcuts"
-              timestamp={watchlistData?.lastUpdated}
-              isLive={watchlistData?.isLive}
-              fetchLog={watchlistData?.fetchLog}
-              error={watchlistData?.error}
-              fetchedOn={watchlistData?.fetchedOn}
-              isCurrent={watchlistData?.isCurrent}
-            />
-          </div>
+          <BentoCard
+            key="kpi"
+            title="Watchlist Key Metrics"
+            accent="watchlist"
+            className="watch-bento-card"
+            contentClassName="watch-panel-scroll"
+            source={effectiveSource}
+            timestamp={watchlistData?.lastUpdated}
+            isLive={effectiveIsLive}
+            isCurrent={watchlistData?.isCurrent}
+            fetchedOn={watchlistData?.fetchedOn}
+            fetchLog={watchlistData?.fetchLog}
+            error={watchlistData?.error}
+          >
+            <MarketKpiStrip kpis={kpis} bare />
+          </BentoCard>
           {activeTab === 'tickers' && (
-            <div key="ticker-list" className="watch-bento-card">
-              <div className="watch-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">My Tickers</span>
-                <span className="bento-panel-subtitle">{tickers.length}/{MAX_TICKERS}</span>
-                <span className="bento-panel-title-spacer" />
-              </div>
-              <div className="bento-panel-content watch-panel-scroll" onMouseDown={stopDrag}>
+            <BentoCard
+              key="ticker-list"
+              title="My Tickers"
+              subtitle={`${tickers.length}/${MAX_TICKERS}`}
+              accent="watchlist"
+              className="watch-bento-card"
+              contentClassName="watch-panel-scroll"
+              source={tickersSource}
+              timestamp={watchlistData?.lastUpdated}
+              isLive={effectiveIsLive}
+              isCurrent={watchlistData?.isCurrent}
+              fetchedOn={watchlistData?.fetchedOn}
+              fetchLog={watchlistData?.fetchLog || []}
+              error={watchlistData?.error}
+            >
                 <div className="watch-add-bar">
                   <input
                     className="watch-add-input"
@@ -341,18 +355,24 @@ function WatchlistMarket({ onNavigate }) {
                     </tbody>
                   </table>
                 )}
-              </div>
-              <DataFooter source="Yahoo Finance" timestamp={watchlistData?.lastUpdated} isLive={watchlistData?.isLive} fetchLog={watchlistData?.fetchLog || []} error={watchlistData?.error} fetchedOn={watchlistData?.fetchedOn} isCurrent={watchlistData?.isCurrent} />
-            </div>
+            </BentoCard>
           )}
           {activeTab === 'metrics' && (
-            <div key="metric-cards" className="watch-bento-card">
-              <div className="watch-panel-title-row bento-panel-title-row">
-                <span className="bento-panel-title">My Metrics</span>
-                <span className="bento-panel-subtitle">Quick shortcuts</span>
-                <span className="bento-panel-title-spacer" />
-              </div>
-              <div className="bento-panel-content watch-panel-scroll" onMouseDown={stopDrag}>
+            <BentoCard
+              key="metric-cards"
+              title="My Metrics"
+              subtitle="Quick shortcuts"
+              accent="watchlist"
+              className="watch-bento-card"
+              contentClassName="watch-panel-scroll"
+              source="Internal / FRED"
+              timestamp={watchlistData?.lastUpdated}
+              isLive={watchlistData?.isLive}
+              isCurrent={watchlistData?.isCurrent}
+              fetchedOn={watchlistData?.fetchedOn}
+              fetchLog={watchlistData?.fetchLog || []}
+              error={watchlistData?.error}
+            >
                 <div className="watch-metrics-hint">Click ★ to favorite. Click card to navigate.</div>
                 <div className="watch-metrics-grid">
                   {sortedMetrics.map(m => {
@@ -386,9 +406,7 @@ function WatchlistMarket({ onNavigate }) {
                     );
                   })}
                 </div>
-              </div>
-              <DataFooter source="Internal / FRED" timestamp={watchlistData?.lastUpdated} isLive={watchlistData?.isLive} fetchLog={watchlistData?.fetchLog || []} error={watchlistData?.error} fetchedOn={watchlistData?.fetchedOn} isCurrent={watchlistData?.isCurrent} />
-            </div>
+            </BentoCard>
           )}
         </BentoWrapper>
       </div>

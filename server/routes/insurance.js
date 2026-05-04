@@ -189,9 +189,13 @@ router.get('/', async (req, res) => {
     const kieArr = Array.isArray(kieQuote) ? kieQuote : [kieQuote];
     const kq = kieArr.find(q => q?.symbol === 'KIE');
     if (kq?.regularMarketPrice) {
+      // yahoo-finance2's regularMarketChangePercent is already in percent
+      // (e.g. -0.94 for -0.94%), not a fraction. Earlier code multiplied by
+      // 10000 — meant to be `× 100` for 2-decimal rounding — and rendered
+      // KIE as -94.19% per day. Use × 100 / 100 to round to 2 decimals.
       sectorETF = {
         price:     Math.round(kq.regularMarketPrice * 100) / 100,
-        changePct: Math.round((kq.regularMarketChangePercent ?? 0) * 10000) / 100,
+        changePct: Math.round((kq.regularMarketChangePercent ?? 0) * 100) / 100,
         high52w:   kq.fiftyTwoWeekHigh  != null ? Math.round(kq.fiftyTwoWeekHigh  * 100) / 100 : null,
         low52w:    kq.fiftyTwoWeekLow   != null ? Math.round(kq.fiftyTwoWeekLow   * 100) / 100 : null,
         sma50:     kq.fiftyDayAverage   != null ? Math.round(kq.fiftyDayAverage   * 100) / 100 : null,
@@ -209,7 +213,7 @@ router.get('/', async (req, res) => {
       catBondProxy = {
         ticker:    'SHRX',
         price:     Math.round(sq.regularMarketPrice * 100) / 100,
-        changePct: Math.round((sq.regularMarketChangePercent ?? 0) * 10000) / 100,
+        changePct: Math.round((sq.regularMarketChangePercent ?? 0) * 100) / 100,
       };
     }
   } catch (e) { console.warn('[Insurance]', e.message || e); }
@@ -224,7 +228,7 @@ router.get('/', async (req, res) => {
         catBondProxy = {
           ticker:    'ILS',
           price:     Math.round(iq.regularMarketPrice * 100) / 100,
-          changePct: Math.round((iq.regularMarketChangePercent ?? 0) * 10000) / 100,
+          changePct: Math.round((iq.regularMarketChangePercent ?? 0) * 100) / 100,
         };
       }
     } catch (e) { console.warn('[Insurance]', e.message || e); }

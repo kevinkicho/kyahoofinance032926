@@ -24,6 +24,11 @@ const INDICATORS = [
   { key: 'inflation',   wdi: 'FP.CPI.TOTL.ZG',    label: 'Inflation (CPI)',  unit: '%' },
   { key: 'tradeGdp',    wdi: 'NE.TRD.GNFS.ZS',    label: 'Trade (% GDP)',    unit: '%' },
   { key: 'population',  wdi: 'SP.POP.TOTL',       label: 'Population',       unit: '' },
+  // Insurance penetration (GFDD has a ~2-year lag — these stop at 2020 for
+  // most G7 countries — but they're the only free cross-country measure of
+  // life vs non-life premium share of GDP). Used by the Insurance tab.
+  { key: 'lifeInsPctGdp',     wdi: 'GFDD.DI.09', label: 'Life insurance premium / GDP',     unit: '%' },
+  { key: 'nonLifeInsPctGdp',  wdi: 'GFDD.DI.10', label: 'Non-life insurance premium / GDP', unit: '%' },
 ];
 
 const WB_API = 'https://api.worldbank.org/v2';
@@ -53,7 +58,9 @@ export function getPrevLatest(dataPoints) {
 async function fetchIndicator(indicator, countryCodes) {
   const code = indicator.wdi;
   const countries = countryCodes.join(';');
-  const url = `${WB_API}/country/${countries}/indicator/${code}?format=json&per_page=200&date=2019:2025`;
+  // GFDD insurance series stop ~2020, so widen the lookback for those.
+  const dateRange = code.startsWith('GFDD.') ? '2010:2025' : '2019:2025';
+  const url = `${WB_API}/country/${countries}/indicator/${code}?format=json&per_page=200&date=${dateRange}`;
   try {
     trackApiCall('WorldBank');
     const data = await fetchJSON(url);

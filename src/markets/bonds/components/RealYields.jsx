@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
-import DataFooter from '../../../components/DataFooter/DataFooter';
 
-function RealYields({ realYieldHistory, lastUpdated, isLive, fetchLog, error, fetchedOn, isCurrent }) {
+// Renders just the chart content. Parent wraps in <BentoCard
+// title="TIPS Real Yields"> and supplies the DataFooter slots.
+function RealYields({ realYieldHistory, lastUpdated }) {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
@@ -26,24 +27,14 @@ function RealYields({ realYieldHistory, lastUpdated, isLive, fetchLog, error, fe
     };
   }, [realYieldHistory, colors]);
 
-  return (
-    <>
-      <div className="bonds-panel-title-row bento-panel-title-row">
-        <span className="bonds-panel-title">TIPS Real Yields</span>
-      </div>
-      <div className="bonds-panel-content bento-panel-content">
-        {option ? (
-          <SafeECharts
-            option={option}
-            style={{ height: '100%', width: '100%' }}
-            sourceInfo={{ title: 'TIPS Real Yields', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'DFII5' }, { id: 'DFII10' }], updatedAt: lastUpdated }}
-          />
-        ) : (
-          <div className="bonds-empty">No real yield data available</div>
-        )}
-      </div>
-      <DataFooter source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={realYieldHistory?.dates?.length > 0} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-    </>
+  return option ? (
+    <SafeECharts
+      option={option}
+      style={{ height: '100%', width: '100%' }}
+      sourceInfo={{ title: 'TIPS Real Yields', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'DFII5' }, { id: 'DFII10' }], updatedAt: lastUpdated }}
+    />
+  ) : (
+    <div className="bonds-empty">No real yield data available</div>
   );
 }
 

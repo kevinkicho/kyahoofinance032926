@@ -47,7 +47,13 @@
   gap: 6px;
 }
 
-/* ── Bento card base (drag target) ── */
+/* ── Bento card base (drag target) ──
+   Canonical class for new code: `.bento-card`. The per-market aliases
+   below exist for historical reasons — each tab's CSS adds an accent
+   :hover border-color on top of this shared base. New panels should
+   use `.bento-card` directly and let a market-specific class only
+   carry the accent (e.g. `.bento-card.bls-accent:hover { ... }`).
+   Keep the alias list in sync with classes used in src/markets/*. */
 .bento-card,
 .bonds-bento-card,
 .eq-bento-card,
@@ -61,7 +67,12 @@
 .ana-bento-card,
 .cal-bento-card,
 .watch-bento-card,
-.eia-bento-card {
+.eia-bento-card,
+.eia-bento-panel,
+.bls-bento-panel,
+.ins-bento-card,
+.re-bento-card,
+.deriv-bento-card {
   background: var(--bg-card);
   border-radius: 12px;
   border: 1px solid var(--border-subtle);

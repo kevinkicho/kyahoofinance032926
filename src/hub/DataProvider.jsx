@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import DataContext from './DataContext';
-import { useCurrency } from './CurrencyContext';
 import { useInterval } from '../hooks/useInterval';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { putSnapshot, todayStr } from '../utils/snapshotDB';
@@ -52,6 +51,35 @@ export const MARKET_ENDPOINTS = {
   bls:               '/api/bls',
   eia:               '/api/eia',
   census:             '/api/census',
+  // Tier-1 additions: consumed by Bonds (Foreign Holders, Money Market),
+  // Credit (Bank Sector), and Macro (Euro Area) panels.
+  nyfed:             '/api/nyfed',
+  fdic:              '/api/fdic',
+  ecb:               '/api/ecb',
+  treasuryTIC:       '/api/treasury/tic',
+  // Tier-1 additions (Treasury Fiscal Data API): auctions + DTS feed
+  // Bonds Recent Auctions and Macro TGA Cash Balance panels.
+  treasuryAuctions:  '/api/treasury/auctions',
+  treasuryDTS:       '/api/treasury/dts',
+  // Federal Reserve System: FOMC SEP, Atlanta GDPNow, Cleveland inflation
+  // nowcast, SF news sentiment. Consumed by Macro and Sentiment panels.
+  fedSEP:              '/api/fed/sep',
+  fedGDPNow:           '/api/fed/gdpnow',
+  fedInflationNowcast: '/api/fed/inflation-nowcast',
+  fedNewsSentiment:    '/api/fed/news-sentiment',
+  // MSRB EMMA — US municipal trade & primary-market activity. Consumed by
+  // the Credit tab's Municipal Credit panel.
+  msrb:                '/api/msrb',
+  // Insurance-tab additions: OpenFEMA disaster declarations, USGS quakes,
+  // and SEC-EDGAR-derived US P&C insurer combined ratios.
+  fema:                '/api/fema',
+  usgs:                '/api/usgs',
+  edgarInsurerRatios:  '/api/edgar/insurer-ratios',
+  // Commodities-tab additions: USDA NASS ag prices, Census trade flows,
+  // EIA petroleum & natural gas. USDA gracefully degrades without a key.
+  usda:                '/api/usda',
+  censusTrade:         '/api/census-trade',
+  eiaPetroleum:        '/api/eia-petroleum',
 };
 
 const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);
@@ -168,7 +196,7 @@ async function fetchMarket(marketId) {
   }
 }
 
-function hasNonNullData(d) {
+export function hasNonNullData(d) {
   if (!d || typeof d !== 'object') return false;
   let nonNull = 0;
   for (const [k, v] of Object.entries(d)) {
@@ -198,7 +226,7 @@ function hasNonNullData(d) {
   return nonNull >= 2;
 }
 
-const STRUCTURAL_GUARDS = {
+export const STRUCTURAL_GUARDS = {
   bonds:          d => { const yd = d.yieldCurveData; if (!yd || typeof yd !== 'object') return false; return Object.values(yd).filter(v => v && typeof v === 'object' && Object.values(v).some(x => x != null)).length >= 3; },
   commodities:    d => Array.isArray(d.cotData) ? d.cotData.length >= 2 : true,
   sentiment:      d => Array.isArray(d.currencies) ? d.currencies.length >= 4 : true,
@@ -224,7 +252,7 @@ const STRUCTURAL_GUARDS = {
   census:         d => d.series && Object.values(d.series).some(s => s._source),
 };
 
-function passesStructuralGuard(id, d) {
+export function passesStructuralGuard(id, d) {
   const guard = STRUCTURAL_GUARDS[id];
   if (!guard) return true;
   try {
@@ -234,7 +262,7 @@ function passesStructuralGuard(id, d) {
   }
 }
 
-function applyResult(prev, result) {
+export function applyResult(prev, result) {
   const id = result.marketId;
   if (result.ok) {
     const d = result.data;
@@ -284,7 +312,7 @@ function getDisabledRuleIds() {
   } catch { return []; }
 }
 
-function computeAlerts(baseMarkets, disabledRuleIds) {
+export function computeAlerts(baseMarkets, disabledRuleIds) {
   const disabledSet = new Set(disabledRuleIds || []);
   const ALERT_RULES = [
     { id: 'vix-spike', label: 'VIX Spike', severity: 'high', market: 'derivatives',
@@ -349,25 +377,50 @@ function computeAlerts(baseMarkets, disabledRuleIds) {
   return { alerts: triggered, rules: ALERT_RULES };
 }
 
+// Buckets a wave fetch into freshness tiers based on minutes since
+// `fetchedOn`. Pure helper so it's unit-testable; previous in-component
+// version had a bitshift bug (`diff << 15` instead of `<`) that silently
+// reported every market as 'fresh'.
+export function computeFreshnessReport(marketsState, now = new Date()) {
+  const report = {};
+  for (const id of Object.keys(MARKET_ENDPOINTS)) {
+    const m = marketsState?.[id];
+    const fetchedAt = m?.fetchedOn ? new Date(m.fetchedOn) : null;
+    const diff = fetchedAt ? (now - fetchedAt) / 1000 / 60 : Infinity;
+    report[id] = {
+      status: diff < 15 ? 'fresh' : diff < 60 ? 'stale' : 'outdated',
+      ageMinutes: Number.isFinite(diff) ? Math.round(diff) : Infinity,
+      timestamp: m?.fetchedOn || 'never',
+    };
+  }
+  return report;
+}
+
 function maybeComputeFederated(prev, next) {
   for (const [fedId, config] of Object.entries(FEDERATED_MARKETS)) {
-    const allReady = config.endpoints.every(ep => next[ep]?.data);
-    if (allReady) {
-      const alertResult = computeAlerts(next, getDisabledRuleIds());
-      const triggered = alertResult.alerts.length;
-      dlog(`[DataProvider] ✓ Federated "${fedId}" computed — ${triggered} alert(s) triggered`);
-      next[fedId] = {
-        ...prev[fedId],
-        data: alertResult,
-        isLoading: false,
-        isLive: true,
-        lastUpdated: tsNow(),
-        fetchLog: [{ time: tsNow(), url: 'federated:alerts', status: 200, duration: 0 }, ...(prev[fedId]?.fetchLog || [])].slice(0, 20),
-      };
-    } else {
-      const missing = config.endpoints.filter(ep => !next[ep]?.data);
-      dlog(`[DataProvider] ⏳ Federated "${fedId}" waiting for: [${missing.join(', ')}]`);
+    const ready = config.endpoints.filter(ep => next[ep]?.data);
+    const missing = config.endpoints.filter(ep => !next[ep]?.data);
+    if (ready.length === 0) {
+      dlog(`[DataProvider] ⏳ Federated "${fedId}" waiting for any of: [${missing.join(', ')}]`);
+      continue;
     }
+    // Render incrementally: re-compute every time a sister lands. Each
+    // alert rule already returns {triggered:false} when its required market
+    // is missing, so partial results are correct (just incomplete) — much
+    // better UX than holding the panel on PENDING for the slowest endpoint.
+    const alertResult = computeAlerts(next, getDisabledRuleIds());
+    const triggered = alertResult.alerts.length;
+    const allReady = missing.length === 0;
+    if (allReady) dlog(`[DataProvider] ✓ Federated "${fedId}" complete — ${triggered} alert(s) triggered`);
+    else dlog(`[DataProvider] ◐ Federated "${fedId}" partial (${ready.length}/${config.endpoints.length}) — ${triggered} alert(s); still waiting on: [${missing.join(', ')}]`);
+    next[fedId] = {
+      ...prev[fedId],
+      data: { ...alertResult, _partial: !allReady, _missing: missing },
+      isLoading: false,
+      isLive: true,
+      lastUpdated: tsNow(),
+      fetchLog: [{ time: tsNow(), url: `federated:${fedId}`, status: 200, duration: 0, partial: !allReady, missing }, ...(prev[fedId]?.fetchLog || [])].slice(0, 20),
+    };
   }
   return next;
 }
@@ -529,50 +582,23 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   // WebSocket live-updates disabled — no WS server is deployed yet.
   // Re-enable by adding `ws` on the server and uncommenting this effect.
 
+  // Returns the raw market state. Currency conversion is intentionally NOT
+  // applied here — see history note below. Panels that need conversion call
+  // `useCurrency().convert(value)` at render time, which is the only correct
+  // place to do it (we can't tell at this layer which numeric fields are
+  // USD-denominated currency vs yields, percentages, ratios, or indices).
+  //
+  // History: this used to deep-clone and recursively rewrite every numeric
+  // field via `convert()`. That violated rules-of-hooks (useCurrency called
+  // inside a useCallback body), produced O(N·payload) work per consumer per
+  // render, and silently mis-converted non-currency numbers. Removed.
   const getMarket = useCallback((marketId) => {
     const m = markets[marketId];
-    const { convert } = useCurrency();
-    
     if (!m) return { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, error: null, fetchLog: [], refetch: () => refetchSingle(marketId), provenance: {} };
-    
-    let data = m.data;
-    if (data && typeof data === 'object') {
-      // Deep clone or map to avoid mutating state
-      data = JSON.parse(JSON.stringify(data));
-      
-      const convertValues = (obj) => {
-        if (!obj || typeof obj !== 'object') return obj;
-        for (const key in obj) {
-          const val = obj[key];
-          if (typeof val === 'number') {
-            obj[key] = convert(val);
-          } else if (typeof val === 'object') {
-            convertValues(val);
-          }
-        }
-        return obj;
-      };
-      convertValues(data);
-    }
-
-    return { ...m, data, refetch: () => refetchSingle(marketId) };
+    return { ...m, refetch: () => refetchSingle(marketId) };
   }, [markets, refetchSingle]);
 
-  const auditFreshness = useCallback(() => {
-    const report = {};
-    const now = new Date();
-    Object.keys(MARKET_ENDPOINTS).forEach(id => {
-      const m = markets[id];
-      const fetchedAt = m?.fetchedOn ? new Date(m.fetchedOn) : null;
-      const diff = fetchedAt ? (now - fetchedAt) / 1000 / 60 : Infinity;
-      report[id] = {
-        status: diff <<  15 ? 'fresh' : diff <<  60 ? 'stale' : 'outdated',
-        ageMinutes: Math.round(diff),
-        timestamp: m?.fetchedOn || 'never'
-      };
-    });
-    return report;
-  }, [markets]);
+  const auditFreshness = useCallback(() => computeFreshnessReport(markets, new Date()), [markets]);
 
   const value = React.useMemo(() => ({ markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness]);
 

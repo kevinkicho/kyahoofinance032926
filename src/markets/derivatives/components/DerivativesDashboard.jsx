@@ -2,13 +2,11 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
-import DataFooter from '../../../components/DataFooter/DataFooter';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import DerivativesSidebar from './DerivativesSidebar';
 import './DerivativesDashboard.css';
-
-const stopDrag = (e) => e.stopPropagation();
 
 // KPI strip is now a real bento child at row 0 (h:2). Other panels shifted
 // down 2 rows. Storage key bumped.
@@ -111,126 +109,177 @@ function DerivativesDashboard({
     <div className="deriv-dashboard deriv-dashboard--bento">
       <BentoWrapper layout={LAYOUT} storageKey="derivatives-layout-v2">
         {/* KPI strip — full-width row 0, real bento panel. */}
-        <div key="kpi" className="deriv-bento-card">
-          <div className="deriv-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Derivatives Key Metrics</span>
-          </div>
-          <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
-            <MarketKpiStrip kpis={kpis || []} bare />
-          </div>
-          <DataFooter
-            source="Yahoo Finance / CBOE / FRED"
-            timestamp={lastUpdated}
+        <BentoCard
+          key="kpi"
+          title="Derivatives Key Metrics"
+          accent="derivatives"
+          className="deriv-bento-card"
+          contentClassName="deriv-panel-scroll"
+          source="Yahoo Finance / CBOE / FRED"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <MarketKpiStrip kpis={kpis || []} bare />
+        </BentoCard>
+        {/* Metrics Sidebar */}
+        <BentoCard
+          key="metrics"
+          title="Key Metrics"
+          accent="derivatives"
+          className="deriv-bento-card"
+          contentClassName="deriv-panel-scroll"
+          source="Yahoo Finance / CBOE"
+          timestamp={lastUpdated}
+          isLive={!!vixTermStructure?.values?.length}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <DerivativesSidebar
+            vixTermStructure={vixTermStructure}
+            vixEnrichment={vixEnrichment}
+            termStatus={termStatus}
+            putCallRatio={putCallRatio}
+            volPremium={volPremium}
+            vixPercentile={vixPercentile}
+            termSpread={termSpread}
+            skewIndex={skewIndex}
+            gammaExposure={gammaExposure}
+            lastUpdated={lastUpdated}
             isLive={isLive}
+            isCurrent={isCurrent}
             fetchLog={fetchLog}
             error={error}
             fetchedOn={fetchedOn}
-            isCurrent={isCurrent}
           />
-        </div>
-        {/* Metrics Sidebar */}
-        <div key="metrics" className="deriv-bento-card">
-           <div className="deriv-panel-title-row bento-panel-title-row">
-             <span className="bento-panel-title">Key Metrics</span>
-           </div>
-             <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
-               <DerivativesSidebar 
-                 vixTermStructure={vixTermStructure}
-                 vixEnrichment={vixEnrichment}
-                 termStatus={termStatus}
-                 putCallRatio={putCallRatio}
-                 volPremium={volPremium}
-                 vixPercentile={vixPercentile}
-                 termSpread={termSpread}
-                 skewIndex={skewIndex}
-                 gammaExposure={gammaExposure}
-                 lastUpdated={lastUpdated}
-               />
-             </div>
-          <DataFooter source="Yahoo Finance / CBOE" timestamp={lastUpdated} isLive={!!vixTermStructure?.values?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+        </BentoCard>
 
         {/* VIX Term Structure */}
         {vixOption && (
-          <div key="vixterm" className="deriv-bento-card">
-            <div className="deriv-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">VIX Term Structure</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX Term Structure', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!vixTermStructure?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="vixterm"
+            title="VIX Term Structure"
+            accent="derivatives"
+            className="deriv-bento-card"
+            source="CBOE / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={!!vixTermStructure?.dates?.length}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={vixOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX Term Structure', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* VIX 1 Year */}
         {fredOption && (
-          <div key="vix1y" className="deriv-bento-card">
-            <div className="deriv-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">VIX — 1 Year</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX — 1 Year History', source: 'FRED', endpoint: '/api/derivatives', series: [{ id: 'VIXCLS' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!fredVixHistory?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="vix1y"
+            title="VIX — 1 Year"
+            accent="derivatives"
+            className="deriv-bento-card"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={!!fredVixHistory?.dates?.length}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={fredOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'VIX — 1 Year History', source: 'FRED', endpoint: '/api/derivatives', series: [{ id: 'VIXCLS' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* SKEW Index */}
         {skewOption && (
-          <div key="skew" className="deriv-bento-card">
-            <div className="deriv-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">SKEW Index</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'SKEW Index', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [{ id: 'SKEW' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!skewHistory?.dates?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="skew"
+            title="SKEW Index"
+            accent="derivatives"
+            className="deriv-bento-card"
+            source="CBOE / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={!!skewHistory?.dates?.length}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={skewOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'SKEW Index', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [{ id: 'SKEW' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Vol Surface */}
         {heatmapOption && (
-          <div key="volsurf" className="deriv-bento-card">
-            <div className="deriv-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Vol Surface (SPX)</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Vol Surface (SPX)', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!volSurfaceData?.grid?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="volsurf"
+            title="Vol Surface (SPX)"
+            accent="derivatives"
+            className="deriv-bento-card"
+            source="CBOE / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={!!volSurfaceData?.grid?.length}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={heatmapOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Vol Surface (SPX)', source: 'CBOE / Yahoo Finance', endpoint: '/api/derivatives', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Options Flow */}
         {flowSummary && (
-          <div key="flow" className="deriv-bento-card">
-            <div className="deriv-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Options Flow</span>
+          <BentoCard
+            key="flow"
+            title="Options Flow"
+            accent="derivatives"
+            className="deriv-bento-card"
+            contentClassName="deriv-panel-scroll"
+            source="CBOE / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={!!optionsFlow?.length}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="deriv-mini-table" style={{ paddingTop: 0 }}>
+              {flowSummary.map((f) => (
+                <div key={`${f.ticker || f.symbol}-${f.strike || ''}-${f.expiry || ''}-${f.type}`} className="deriv-mini-row">
+                  <span className="deriv-mini-name">{f.ticker || f.symbol}</span>
+                  <span className="deriv-mini-type">{f.type}</span>
+                  <span className="deriv-mini-value" style={{ color: f.side === 'BUY' ? '#4ade80' : '#f87171' }}>
+                    {f.side}
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
-              <div className="deriv-mini-table" style={{ paddingTop: 0 }}>
-                {flowSummary.map((f) => (
-                  <div key={`${f.ticker || f.symbol}-${f.strike || ''}-${f.expiry || ''}-${f.type}`} className="deriv-mini-row">
-                    <span className="deriv-mini-name">{f.ticker || f.symbol}</span>
-                    <span className="deriv-mini-type">{f.type}</span>
-                    <span className="deriv-mini-value" style={{ color: f.side === 'BUY' ? '#4ade80' : '#f87171' }}>
-                      {f.side}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!optionsFlow?.length} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
       {/* Gamma Exposure */}
         {gammaExposure?.total != null && (
-          <div key="gamma" className="deriv-bento-card">
-            <div className="deriv-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Gamma Exposure (GEX)</span>
-            </div>
-            <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard
+            key="gamma"
+            title="Gamma Exposure (GEX)"
+            accent="derivatives"
+            className="deriv-bento-card"
+            contentClassName="deriv-panel-scroll"
+            source="Yahoo Finance / SpotGamma"
+            timestamp={lastUpdated}
+            isLive={!!gammaExposure}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
               <div className="deriv-sidebar-section" style={{ borderBottom: 'none' }}>
                 <div className="deriv-metric-card">
                   <div className="deriv-metric-row">
@@ -265,19 +314,27 @@ function DerivativesDashboard({
                   </div>
                 </div>
               </div>
-            </div>
-            <DataFooter source="Yahoo Finance / SpotGamma" timestamp={lastUpdated} isLive={!!gammaExposure} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Vol Premium — only render the panel when we actually have data,
             so the bento doesn't stay populated with an empty placeholder. */}
         {volPremium?.atm1mIV != null && (
-          <div key="volprem" className="deriv-bento-card">
-            <div className="deriv-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Vol Premium</span>
-            </div>
-            <div className="bento-panel-content deriv-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard
+            key="volprem"
+            title="Vol Premium"
+            accent="derivatives"
+            className="deriv-bento-card"
+            contentClassName="deriv-panel-scroll"
+            source="CBOE / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={!!volPremium}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <>
               <div className="vol-premium-row">
                 <div className="vol-premium-pill">
                   <span className="vol-premium-label">ATM 1M IV</span>
@@ -302,9 +359,8 @@ function DerivativesDashboard({
                   </div>
                 </div>
               )}
-            </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={lastUpdated} isLive={!!volPremium} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+            </>
+          </BentoCard>
         )}
       </BentoWrapper>
     </div>

@@ -16,6 +16,7 @@ function getCreditProps(centralData) {
     lendingStandards: d.lendingStandards,
     commercialPaper: d.commercialPaper,
     excessReserves: d.excessReserves,
+    creditQuality: d.creditQuality,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
@@ -85,6 +86,7 @@ function CreditMarket({ centralData } = {}) {
           lendingStandards={props.lendingStandards}
           commercialPaper={props.commercialPaper}
           excessReserves={convert(props.excessReserves)}
+          creditQuality={props.creditQuality}
           isLive={props.isLive}
           lastUpdated={props.lastUpdated}
           error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}

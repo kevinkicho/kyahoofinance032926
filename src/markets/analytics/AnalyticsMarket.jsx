@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import BentoWrapper from '../../components/BentoWrapper';
+import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import { useMarketData } from '../../hub/DataContext';
 import './AnalyticsDashboard.css';
-
-const stopDrag = (e) => e.stopPropagation();
 
 const FRED_API_BASE = '/api/fred/observations';
 
@@ -28,11 +27,35 @@ function isFRED(id) {
   return id && /^[A-Z0-9]{3,15}$/.test(id) && !id.startsWith('/');
 }
 
+// Persist audit history so it can be inspected later (we keep the last
+// AUDIT_HISTORY_MAX runs). Each entry is a {ranAt, results} record. The
+// most recent audit is restored on mount so the panel stops showing the
+// "Click Run Audit" empty state across reloads.
+const AUDIT_HISTORY_KEY = 'analytics-prov-audit-history-v1';
+const AUDIT_HISTORY_MAX = 10;
+
+function loadAuditHistory() {
+  try {
+    const raw = localStorage.getItem(AUDIT_HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+
+function saveAuditHistory(history) {
+  try { localStorage.setItem(AUDIT_HISTORY_KEY, JSON.stringify(history.slice(0, AUDIT_HISTORY_MAX))); }
+  catch (e) { console.warn('[ProvenanceAudit] localStorage save failed:', e?.message); }
+}
+
 function ProvenanceAudit() {
-  const [results, setResults] = useState([]);
+  const initialHistory = typeof window !== 'undefined' ? loadAuditHistory() : [];
+  const [results, setResults] = useState(initialHistory[0]?.results || []);
   const [loading, setLoading] = useState(false);
   const [verifyStates, setVerifyStates] = useState({});
   const [expandedSource, setExpandedSource] = useState(null);
+  const [history, setHistory] = useState(initialHistory);
+  const lastRanAt = history[0]?.ranAt || null;
 
   const runAudit = useCallback(async () => {
     setLoading(true);
@@ -50,6 +73,13 @@ function ProvenanceAudit() {
     }
     setResults(all);
     setLoading(false);
+    // Persist this audit to history (most recent first, capped to MAX).
+    const entry = { ranAt: new Date().toISOString(), results: all };
+    setHistory(prev => {
+      const next = [entry, ...prev].slice(0, AUDIT_HISTORY_MAX);
+      saveAuditHistory(next);
+      return next;
+    });
   }, []);
 
   const verifyFRED = useCallback(async (seriesId, sourceKey, marketPath) => {
@@ -83,7 +113,15 @@ function ProvenanceAudit() {
   return (
     <div className="ana-prov-audit">
       <div className="ana-prov-header">
-        <span className="ana-prov-summary">{totalSources} sources · {receivedSources} received · {missingSources} missing</span>
+        <span className="ana-prov-summary">
+          {totalSources} sources · {receivedSources} received · {missingSources} missing
+          {lastRanAt && (
+            <span style={{ marginLeft: 8, opacity: 0.6, fontSize: 11 }}>
+              · last run {new Date(lastRanAt).toLocaleString()}
+              {history.length > 1 && ` (${history.length} stored)`}
+            </span>
+          )}
+        </span>
         <button className="ana-refresh-btn" onClick={runAudit} disabled={loading}>{loading ? 'Auditing...' : 'Run Audit'}</button>
       </div>
       {results.length === 0 && !loading && <div className="ana-empty">Click "Run Audit" to fetch all market endpoints and check provenance</div>}
@@ -457,33 +495,18 @@ export default function AnalyticsMarket() {
       <div className="ana-dashboard ana-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v2">
           {/* KPI strip — real bento child at row 0. */}
-          <div key="kpi" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Analytics Key Metrics</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll">
-              <MarketKpiStrip kpis={kpis} bare />
-            </div>
-          </div>
+          <BentoCard key="kpi" title="Analytics Key Metrics" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <MarketKpiStrip kpis={kpis} bare />
+          </BentoCard>
 
           {/* Provenance Audit */}
-          <div key="provenance" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Provenance Audit</span>
-              <span className="bento-panel-subtitle">Cross-reference _sources with FRED</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
-              <ProvenanceAudit />
-            </div>
-          </div>
+          <BentoCard key="provenance" title="Provenance Audit" subtitle="Cross-reference _sources with FRED" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <ProvenanceAudit />
+          </BentoCard>
 
           {/* Server Info */}
-          <div key="server" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Server</span>
-              <span className="bento-panel-subtitle">PID {env.pid}</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="server" title="Server" subtitle={`PID ${env.pid}`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <>
               <DetailRow label="Node" value={env.nodeVersion} mono />
               <DetailRow label="Platform" value={`${env.platform} ${env.arch}`} />
               <DetailRow label="CPUs" value={env.cpus} />
@@ -497,16 +520,12 @@ export default function AnalyticsMarket() {
               <DetailRow label="Heap Total" value={`${up.heapTotalMB} MB`} />
               <DetailRow label="RSS" value={`${up.rssMB} MB`} />
               <DetailRow label="External" value={`${up.externalMB} MB`} />
-            </div>
-          </div>
+            </>
+          </BentoCard>
 
           {/* API Usage */}
-          <div key="api-usage" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">API Usage</span>
-              <span className="bento-panel-subtitle">{data.apiUsage?.totalExternalCalls || 0} calls today</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="api-usage" title="API Usage" subtitle={`${data.apiUsage?.totalExternalCalls || 0} calls today`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <>
               <div className="ana-stat-grid-sm">
                 <div className="ana-detail-row"><span className="ana-detail-label">Total Calls</span><span className="ana-mono">{data.apiUsage?.totalExternalCalls || 0}</span></div>
                 <div className="ana-detail-row"><span className="ana-detail-label">Sources</span><span className="ana-mono">{sortedSources.length}</span></div>
@@ -523,16 +542,11 @@ export default function AnalyticsMarket() {
                   {pctBar(s.pct)}
                 </div>
               ))}
-            </div>
-          </div>
+            </>
+          </BentoCard>
 
           {/* Source Health / Rate Limits */}
-          <div key="source-health" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Data Source Health</span>
-              <span className="bento-panel-subtitle">{data.apiUsage?.totalExternalCalls || 0} calls today</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="source-health" title="Data Source Health" subtitle={`${data.apiUsage?.totalExternalCalls || 0} calls today`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
               {sortedSources.map(s => (
                 <div key={s.name} className="ana-rate-row">
                   <div className="ana-rate-header" onClick={() => setExpandedSource(expandedSource === s.name ? null : s.name)} style={{ cursor: 'pointer' }}>
@@ -552,16 +566,10 @@ export default function AnalyticsMarket() {
                   )}
                 </div>
               ))}
-            </div>
-          </div>
+          </BentoCard>
 
           {/* Endpoint Metrics */}
-          <div key="endpoints" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Endpoint Metrics</span>
-              <span className="bento-panel-subtitle">{sortedEndpoints.length} routes</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="endpoints" title="Endpoint Metrics" subtitle={`${sortedEndpoints.length} routes`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
               <table className="ana-table">
                 <thead><tr><th></th><th>Route</th><th>Calls</th><th>Avg</th><th>P50</th><th>Max</th><th>Err</th></tr></thead>
                 <tbody>
@@ -610,16 +618,10 @@ export default function AnalyticsMarket() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
+          </BentoCard>
 
           {/* Data Freshness */}
-          <div key="freshness" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Data Freshness</span>
-              <span className="bento-panel-subtitle">{data.dataFreshness?.currentCount || 0}/{data.dataFreshness?.markets?.length || 0} current</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="freshness" title="Data Freshness" subtitle={`${data.dataFreshness?.currentCount || 0}/${data.dataFreshness?.markets?.length || 0} current`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
               <table className="ana-table">
                 <thead><tr><th></th><th></th><th>Market</th><th>Fetched</th><th>Age</th><th>Size</th><th>Keys</th></tr></thead>
                 <tbody>
@@ -661,16 +663,11 @@ export default function AnalyticsMarket() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
+          </BentoCard>
 
           {/* Error Log */}
-          <div key="error-log" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Error Log</span>
-              <span className="bento-panel-subtitle">{(data.errorLog || []).length} entries</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="error-log" title="Error Log" subtitle={`${(data.errorLog || []).length} entries`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <>
               {(data.errorLog || []).length === 0 && <div className="ana-empty">No errors recorded</div>}
               {(data.errorLog || []).map((e, i) => (
                 <div key={i} className="ana-err-entry">
@@ -682,16 +679,12 @@ export default function AnalyticsMarket() {
                   <div className="ana-err-time">{e.timestamp}</div>
                 </div>
               ))}
-            </div>
-          </div>
+            </>
+          </BentoCard>
 
           {/* Memory Cache */}
-          <div key="mem-cache" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Memory Cache</span>
-              <span className="bento-panel-subtitle">{mc.keyCount || 0} keys · {mc.hitRate || 0}% hit</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="mem-cache" title="Memory Cache" subtitle={`${mc.keyCount || 0} keys · ${mc.hitRate || 0}% hit`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <>
               <div className="ana-stat-grid-sm">
                 <div className="ana-detail-row"><span className="ana-detail-label">Keys</span><span className="ana-mono">{mc.keyCount}</span></div>
                 <div className="ana-detail-row"><span className="ana-detail-label">Hits</span><span className="ana-mono">{mc.hits}</span></div>
@@ -701,16 +694,12 @@ export default function AnalyticsMarket() {
               <div className="ana-section-divider" />
               <div className="ana-detail-label">Cache keys:</div>
               <div className="ana-key-list">{(mc.keys || []).map(k => <span key={k} className="ana-key-chip">{k}</span>)}</div>
-            </div>
-          </div>
+            </>
+          </BentoCard>
 
           {/* Cache Files */}
-          <div key="cache-files" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">File Cache</span>
-              <span className="bento-panel-subtitle">{data.cacheFiles?.count || 0} files · {data.cacheFiles?.totalSizeKB || 0} KB</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="cache-files" title="File Cache" subtitle={`${data.cacheFiles?.count || 0} files · ${data.cacheFiles?.totalSizeKB || 0} KB`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <>
               <table className="ana-table">
                 <thead><tr><th>File</th><th>Size</th><th>Modified</th></tr></thead>
                 <tbody>
@@ -723,16 +712,11 @@ export default function AnalyticsMarket() {
                 </tbody>
               </table>
               {(data.cacheFiles?.files || []).length === 0 && <div className="ana-empty">No cache files</div>}
-            </div>
-          </div>
+            </>
+          </BentoCard>
 
           {/* Registered Routes */}
-          <div key="routes" className="ana-bento-card">
-            <div className="ana-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Express Routes</span>
-              <span className="bento-panel-subtitle">{routes.length} routes</span>
-            </div>
-            <div className="bento-panel-content ana-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard key="routes" title="Express Routes" subtitle={`${routes.length} routes`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
               <table className="ana-table">
                 <thead><tr><th>Method</th><th>Path</th></tr></thead>
                 <tbody>
@@ -741,8 +725,7 @@ export default function AnalyticsMarket() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
+          </BentoCard>
 
         </BentoWrapper>
       </div>

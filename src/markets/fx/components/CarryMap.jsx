@@ -1,6 +1,5 @@
 import React, { useMemo } from 'react';
 import { CENTRAL_BANK_RATES } from '../data/centralBankRates';
-import DataFooter from '../../../components/DataFooter/DataFooter';
 import './FXComponents.css';
 
 const CARRY_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'NZD'];
@@ -24,9 +23,11 @@ function mergeLiveRates(baseRates, rateDiffs) {
   return merged;
 }
 
-const stopDrag = (e) => e.stopPropagation();
-
-export default function CarryMap({ rateDifferentials, isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent }) {
+// Returns just the carry-map content (KPI strip + matrix + bar list).
+// Parent wraps in <BentoCard title="Carry Map" subtitle={...}>. The
+// `isCarryLive` flag is exposed as `liveLabel` so the parent can include
+// it in the subtitle.
+export default function CarryMap({ rateDifferentials }) {
   const rates = useMemo(() => mergeLiveRates(CENTRAL_BANK_RATES, rateDifferentials), [rateDifferentials]);
 
   const pairs = useMemo(() => {
@@ -68,15 +69,6 @@ export default function CarryMap({ rateDifferentials, isLive, lastUpdated, fetch
 
   return (
     <>
-      <div className="fx-panel-title-row bento-panel-title-row">
-        <span className="fx-panel-title">Carry Map</span>
-        <span className="fx-panel-subtitle">
-          Interest rate differential (long base − short quote). Positive = earn positive carry.
-          {liveLabel && <span style={{ color: '#22c55e', marginLeft: 6 }}>· {liveLabel}</span>}
-        </span>
-      </div>
-
-      <div className="bento-panel-content fx-panel-scroll" style={{ overflow: 'auto' }} onMouseDown={stopDrag}>
       <div className="fx-kpi-strip">
         {bestCarry && (
           <div className="fx-kpi-pill">
@@ -164,8 +156,6 @@ export default function CarryMap({ rateDifferentials, isLive, lastUpdated, fetch
         </div>
       </div>
 
-      </div>
-      <DataFooter source="FRED / Central Banks" timestamp={lastUpdated} isLive={isCarryLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
     </>
   );
 }

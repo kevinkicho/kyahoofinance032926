@@ -190,36 +190,41 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
           </div>
         </div>
 
-        {/* Main: heatmap or table (wide) + sector bars (narrow) */}
-        <div className="com-wide-narrow" style={{ marginBottom: 8 }}>
+        {/* Main: heatmap or table — full width (was paired side-by-side
+            with the Sector Avg bars in `com-wide-narrow`, which wrapped at
+            this column count and clipped the bars). */}
+        <div style={{ marginBottom: 8 }}>
           {view === 'heatmap' ? renderHeatmap() : renderTable()}
-          <div className="com-chart-panel">
-            <div className="com-chart-title">Sector Avg 1d%</div>
-            <div className="com-sector-bars" style={{ marginTop: 8 }}>
-              {sectorAvgs.map(s => {
-                const pct = Math.abs(s.avg) / maxAbsAvg * 50;
-                const isPos = s.avg >= 0;
-                return (
-                  <div key={s.sector} className="com-sector-bar-row">
-                    <span className="com-sector-bar-name">{s.sector}</span>
-                    <div className="com-sector-bar-wrap">
-                      <div className="com-sector-bar-center" />
-                      <div
-                        className="com-sector-bar-fill"
-                        style={{
-                          width: `${pct}%`,
-                          left: isPos ? '50%' : `${50 - pct}%`,
-                          background: isPos ? '#22c55e' : '#ef4444',
-                        }}
-                      />
-                    </div>
-                    <span className={`com-sector-bar-val ${isPos ? 'positive' : 'negative'}`}>
-                      <MetricValue value={s.avg} seriesKey="sectorHeatmap" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
-                    </span>
+        </div>
+
+        {/* Sector Avg 1d% bars — own row, full width so the bars actually
+            use the panel's horizontal space. */}
+        <div className="com-chart-panel" style={{ marginBottom: 8 }}>
+          <div className="com-chart-title">Sector Avg 1d%</div>
+          <div className="com-sector-bars" style={{ marginTop: 8 }}>
+            {sectorAvgs.map(s => {
+              const pct = Math.abs(s.avg) / maxAbsAvg * 50;
+              const isPos = s.avg >= 0;
+              return (
+                <div key={s.sector} className="com-sector-bar-row">
+                  <span className="com-sector-bar-name">{s.sector}</span>
+                  <div className="com-sector-bar-wrap">
+                    <div className="com-sector-bar-center" />
+                    <div
+                      className="com-sector-bar-fill"
+                      style={{
+                        width: `${pct}%`,
+                        left: isPos ? '50%' : `${50 - pct}%`,
+                        background: isPos ? '#22c55e' : '#ef4444',
+                      }}
+                    />
                   </div>
-                );
-              })}
-            </div>
+                  <span className={`com-sector-bar-val ${isPos ? 'positive' : 'negative'}`}>
+                    <MetricValue value={s.avg} seriesKey="sectorHeatmap" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 

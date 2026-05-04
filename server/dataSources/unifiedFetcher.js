@@ -203,12 +203,12 @@ export async function fetchCommodityData(commodityKey, config = {}) {
     try {
       // Check if we have fresh cached data
       if (freshnessManager.isFresh(commodityKey, source, frequency)) {
-        console.log(`Using cached data for ${commodityKey} from ${source}`);
+        if (process.env.LOG_VERBOSE) console.log(`Using cached data for ${commodityKey} from ${source}`);
         // In a real implementation, you'd return cached data here
       }
 
       // Fetch from source
-      console.log(`Fetching ${commodityKey} from ${source}...`);
+      if (process.env.LOG_VERBOSE) console.log(`Fetching ${commodityKey} from ${source}...`);
       let data;
 
       switch (source) {

@@ -180,7 +180,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-chart-title">Factor In Favor</div>
           <div className="eq-chart-subtitle">Month-to-date factor return · indigo = positive · which factor is working</div>
           <div className="eq-chart-wrap">
-            <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Factor In Favor', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
+            <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Factor In Favor', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [] }} />
           </div>
         </div>
         <div className="eq-chart-panel">

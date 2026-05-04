@@ -34,12 +34,11 @@ function getDerivativesProps(centralData) {
 }
 
 function DerivativesMarket({ centralData } = {}) {
-  if (!centralData) return <MarketSkeleton />;
-  const props = getDerivativesProps(centralData);
+  // Hooks must run unconditionally on every render. The previous early
+  // returns above the hook calls produced "change in order of Hooks"
+  // warnings whenever centralData arrived after the first render.
   const { convert, currentSymbol } = useCurrency();
   const marketData = useMarketData('derivatives');
-
-  if (props.isLoading) return <MarketSkeleton />;
 
   const kpis = React.useMemo(() => {
     const d = marketData?.data || {};
@@ -58,6 +57,10 @@ function DerivativesMarket({ centralData } = {}) {
       { label: 'Gamma Exp', value: fmt(gexVal), color: 'var(--text-primary)', trend: null, sublabel: 'GEX' },
     ].filter(k => k.value !== '—');
   }, [marketData]);
+
+  if (!centralData) return <MarketSkeleton />;
+  const props = getDerivativesProps(centralData);
+  if (props.isLoading) return <MarketSkeleton />;
 
   return (
     // KPI strip is now a real bento child rendered inside

@@ -11,6 +11,17 @@ import { trackApiCall } from '../lib/rateLimits.js';
 
 const router = Router();
 
+// Mark every response from this legacy router as deprecated so monitoring,
+// proxies, and alert tooling can surface it. RFC 8594 (Deprecation) +
+// suggested-replacement Link header. Clients should migrate to
+// /api/commodities/v2. The route is NOT redirected because per-series
+// MetricValue "verify source" links still target /api/commodities/<series>.
+router.use((_req, res, next) => {
+  res.set('Deprecation', 'true');
+  res.set('Link', '</api/commodities/v2>; rel="successor-version"');
+  next();
+});
+
 const COMMODITY_META = {
   'CL=F': { name: 'WTI Crude',   sector: 'Energy',      unit: '$/bbl'   },
   'BZ=F': { name: 'Brent Crude', sector: 'Energy',      unit: '$/bbl'   },

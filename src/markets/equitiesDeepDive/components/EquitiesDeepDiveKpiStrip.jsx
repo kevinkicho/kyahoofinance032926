@@ -147,7 +147,7 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
           <SafeECharts
             option={sectorOption}
             style={{ width: '100%', height: '100%', minHeight: 160 }}
-            sourceInfo={{ title: 'Sector ETFs · 1M', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }}
+            sourceInfo={{ title: 'Sector ETFs · 1M', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [] }}
           />
         ) : (
           <div className="eqd-kpi-empty">No sector data</div>

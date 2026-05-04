@@ -1,21 +1,18 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { exchangeRates, currencySymbols } from '../utils/constants';
-import { useMarketData } from './DataContext';
+import { useFrankfurterRates } from '../utils/useFrankfurterRates';
 
 const CurrencyContext = createContext(null);
 
 export function CurrencyProvider({ children, initialCurrency = 'USD' }) {
   const [currency, setCurrency] = useState(initialCurrency);
-  const fx = useMarketData('fx');
-  
-  const rates = useMemo(() => {
-    if (fx && fx.rates && typeof fx.rates === 'object') {
-      return { USD: 1, ...fx.rates };
-    }
-    return exchangeRates;
-  }, [fx]);
+  // Live FX from Frankfurter (ECB data, daily). Independent of DataProvider
+  // so CurrencyProvider can sit above DataProvider in the tree without a
+  // circular dependency. Falls back to the static `exchangeRates` table on
+  // network failure.
+  const { rates: liveRates, isLive: ratesLive } = useFrankfurterRates();
 
-  const ratesLive = !!(fx && fx.isLive);
+  const rates = useMemo(() => liveRates || exchangeRates, [liveRates]);
 
   const currentRate = rates[currency] || 1;
   const currentSymbol = currencySymbols[currency] || currency;

@@ -5,8 +5,6 @@ import GlobalMacroKpiStrip from './components/GlobalMacroKpiStrip';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import './components/GlobalMacroDashboard.css';
-import '../imf/ImfDashboard.css';
-import '../worldbank/WorldBankDashboard.css';
 
 function getGlobalMacroProps(centralData) {
   const d = centralData.data || {};
@@ -38,6 +36,11 @@ function GlobalMacroMarket({ centralData } = {}) {
   const { convert, currentSymbol } = useCurrency();
   const imfCtx = useMarketData('imf');
   const wbCtx = useMarketData('worldbank');
+  const ecbCtx = useMarketData('ecb');
+  const dtsCtx = useMarketData('treasuryDTS');
+  const sepCtx = useMarketData('fedSEP');
+  const gdpNowCtx = useMarketData('fedGDPNow');
+  const cleveCtx = useMarketData('fedInflationNowcast');
   if (!centralData) return <MarketSkeleton />;
   const props = getGlobalMacroProps(centralData);
 
@@ -78,6 +81,16 @@ function GlobalMacroMarket({ centralData } = {}) {
         cpiBreakdown={props.cpiBreakdown}
         imfData={imfCtx?.data}
         wbData={wbCtx?.data}
+        ecbData={ecbCtx?.data}
+        ecbLastUpdated={ecbCtx?.lastUpdated}
+        dtsData={dtsCtx?.data}
+        dtsLastUpdated={dtsCtx?.lastUpdated}
+        sepData={sepCtx?.data}
+        sepLastUpdated={sepCtx?.lastUpdated}
+        gdpNowData={gdpNowCtx?.data}
+        gdpNowLastUpdated={gdpNowCtx?.lastUpdated}
+        cleveData={cleveCtx?.data}
+        cleveLastUpdated={cleveCtx?.lastUpdated}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

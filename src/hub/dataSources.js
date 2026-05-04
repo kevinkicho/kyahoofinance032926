@@ -64,6 +64,33 @@ const DATA_SOURCES = {
     { name: 'Yahoo Finance',   url: 'https://finance.yahoo.com',                   items: 'Earnings calendar (20+ stocks), dividend ex-dates (AAPL, MSFT, JNJ, JPM, XOM)' },
     { name: 'Treasury Fiscal Data', url: 'https://fiscaldata.treasury.gov/api-documentation', items: 'Upcoming Treasury auction schedule' },
   ],
+  // ── Tier-1 additional data sources (added 2026-05-03) ──
+  // Server routes are live at /api/<source>; not yet wired to UI panels.
+  // Catalogued here so future panels can pick them up via DataFooter.
+  nyfed: [
+    { name: 'NY Fed Markets',  url: 'https://markets.newyorkfed.org/static/docs/markets-api.html', items: 'SOFR (30-day), reverse repo, primary dealer positions' },
+  ],
+  fdic: [
+    { name: 'FDIC',            url: 'https://banks.data.fdic.gov/docs/',           items: 'Bank failures (5-year), aggregate sector financials (assets, deposits, ROA)' },
+  ],
+  bea: [
+    { name: 'BEA',             url: 'https://apps.bea.gov/API/docs/',              items: 'NIPA detail: GDP components (T10101), personal income (T20100), savings rate (T20600)' },
+  ],
+  edgar: [
+    { name: 'SEC EDGAR',       url: 'https://www.sec.gov/edgar/sec-api-documentation', items: 'XBRL company financial data: revenues, net income, assets, liabilities, equity (annual 10-K)' },
+  ],
+  ecb: [
+    { name: 'ECB SDW',         url: 'https://data.ecb.europa.eu/help/api/overview', items: 'Policy rates (MRR, DFR, MLFR), M3 monetary aggregate, HICP detail' },
+  ],
+  eurostat: [
+    { name: 'Eurostat',        url: 'https://wikis.ec.europa.eu/display/EUROSTATHELP/Web+Services', items: 'EU-27 monthly HICP, unemployment, government deficit/surplus' },
+  ],
+  oecd: [
+    { name: 'OECD',            url: 'https://data.oecd.org/api/sdmx-json-documentation/', items: 'Composite Leading Indicators (CLI) for G7 + emerging markets, monthly' },
+  ],
+  treasuryTIC: [
+    { name: 'Treasury TIC',    url: 'https://fiscaldata.treasury.gov/datasets/treasury-international-capital-tic-system/', items: 'Major Foreign Holders of US Treasuries (monthly, by country)' },
+  ],
 };
 
 export default DATA_SOURCES;

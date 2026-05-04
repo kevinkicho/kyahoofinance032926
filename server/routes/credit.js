@@ -80,20 +80,24 @@ router.get('/', async (_req, res) => {
       const anchorArr = igArr.length >= 6 ? igArr : hyArr.length >= 6 ? hyArr : null;
 
       if (anchorArr) {
+        // FRED reports BAML OAS series in *percent* (e.g. 0.81 = 81 bps).
+        // The dashboard formats these with a "bps" suffix, so multiply by 100
+        // before rounding. Without ×100 we silently rendered 81 bps as "1 bps".
+        const toBps = v => Math.round(v * 100);
         spreadData = {
           current: {
-            igSpread:  igArr.length  ? Math.round(igArr.at(-1).value)  : null,
-            hySpread:  hyArr.length  ? Math.round(hyArr.at(-1).value)  : null,
-            emSpread:  emArr.length  ? Math.round(emArr.at(-1).value)  : null,
-            bbbSpread: bbbArr.length ? Math.round(bbbArr.at(-1).value) : null,
-            cccSpread: cccArr.length ? Math.round(cccArr.at(-1).value) : null,
+            igSpread:  igArr.length  ? toBps(igArr.at(-1).value)  : null,
+            hySpread:  hyArr.length  ? toBps(hyArr.at(-1).value)  : null,
+            emSpread:  emArr.length  ? toBps(emArr.at(-1).value)  : null,
+            bbbSpread: bbbArr.length ? toBps(bbbArr.at(-1).value) : null,
+            cccSpread: cccArr.length ? toBps(cccArr.at(-1).value) : null,
           },
           history: {
             dates: anchorArr.map(p => dateToMonthLabel(p.date)),
-            IG:    igArr.length  === anchorArr.length ? igArr.map(p  => Math.round(p.value)) : anchorArr.map(() => null),
-            HY:    hyArr.length  === anchorArr.length ? hyArr.map(p  => Math.round(p.value)) : anchorArr.map(() => null),
-            EM:    emArr.length  === anchorArr.length ? emArr.map(p  => Math.round(p.value)) : anchorArr.map(() => null),
-            BBB:   bbbArr.length === anchorArr.length ? bbbArr.map(p => Math.round(p.value)) : anchorArr.map(() => null),
+            IG:    igArr.length  === anchorArr.length ? igArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
+            HY:    hyArr.length  === anchorArr.length ? hyArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
+            EM:    emArr.length  === anchorArr.length ? emArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
+            BBB:   bbbArr.length === anchorArr.length ? bbbArr.map(p => toBps(p.value)) : anchorArr.map(() => null),
           },
           etfs: [],
         };
@@ -163,6 +167,45 @@ router.get('/', async (_req, res) => {
         dates:  excessRaw.map(p => p.date),
         values: excessRaw.map(p => Math.round(p.value * 10) / 10),
       } : null;
+    }
+
+    // Moody's seasoned Aaa vs Baa corporate bond yields, plus the derived
+    // Baa-Aaa spread. The spread is a classic credit-cycle gauge: it
+    // widens in stress (investors demand more compensation for lower
+    // rated paper) and tightens in benign environments. FRED reports both
+    // series in *percent*; convert to bps for the spread to keep units
+    // consistent with the rest of the credit panel.
+    let creditQuality = null;
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const [aaaRes, baaRes] = await Promise.all([
+          fetchFredHistory('DAAA', FRED_API_KEY, 261).catch(() => null),  // ~1y daily
+          fetchFredHistory('DBAA', FRED_API_KEY, 261).catch(() => null),
+        ]);
+        if (aaaRes?.length && baaRes?.length) {
+          // Inner-join on date so the spread is well-defined for each point.
+          const baaByDate = new Map(baaRes.map(p => [p.date, p.value]));
+          const aligned = aaaRes
+            .filter(p => baaByDate.has(p.date) && p.value != null && baaByDate.get(p.date) != null)
+            .map(p => ({ date: p.date, aaa: p.value, baa: baaByDate.get(p.date) }));
+          if (aligned.length) {
+            const last = aligned[aligned.length - 1];
+            creditQuality = {
+              dates: aligned.map(p => p.date),
+              aaaPct: aligned.map(p => Math.round(p.aaa * 100) / 100),
+              baaPct: aligned.map(p => Math.round(p.baa * 100) / 100),
+              spreadBps: aligned.map(p => Math.round((p.baa - p.aaa) * 100)),
+              latest: {
+                date:      last.date,
+                aaaPct:    Math.round(last.aaa * 100) / 100,
+                baaPct:    Math.round(last.baa * 100) / 100,
+                spreadBps: Math.round((last.baa - last.aaa) * 100),
+              },
+            };
+          }
+        }
+      } catch (e) { console.warn('[Credit] DAAA/DBAA:', e.message || e); }
     }
 
     const ETF_TICKERS = ['LQD','HYG','EMB','JNK','BKLN','MUB'];
@@ -374,6 +417,21 @@ let emBondCountries = [];
       etfs,
     };
 
+    // isLive: true if any of the headline sources came back with data. The
+    // route was previously omitting this entirely, which made every panel
+    // that gated FETCHED on isLive (e.g. Credit Key Metrics) flip to
+    // NO DATA — even though spreads, EM yields and default rates were live.
+    const isLive = !!(
+      spreadData ||
+      emYieldDataFetched ||
+      loanData ||
+      defaultData ||
+      delinquencyRates ||
+      lendingStandards ||
+      commercialPaper ||
+      excessReserves
+    );
+
     const result = {
       _sources,
       spreadData:  finalSpreadData,
@@ -384,6 +442,8 @@ let emBondCountries = [];
       lendingStandards,
       commercialPaper,
       excessReserves,
+      creditQuality,
+      isLive,
       lastUpdated: today,
     };
 

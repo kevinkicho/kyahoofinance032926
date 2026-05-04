@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
-import DataFooter from '../../../components/DataFooter/DataFooter';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import InsiderTrading from './InsiderTrading';
 import { useTheme } from '../../../hub/ThemeContext';
@@ -332,8 +332,6 @@ function EquitiesDeepDiveDashboard({
     return { top, avgShort, above20, total: mostShorted.length };
   }, [mostShorted]);
 
-  const stopDrag = (e) => e.stopPropagation();
-
   return (
     <div className="eqd-dashboard eqd-dashboard--bento" role="region" aria-label="Equities Deep Dive Dashboard">
       <BentoWrapper layout={LAYOUT} storageKey="equities-deepdive-layout-v2">
@@ -341,34 +339,58 @@ function EquitiesDeepDiveDashboard({
             full-width; sidebar is right column. Both are passed in via
             props from the parent so they stay co-located with their data. */}
         {kpiPanel && (
-          <div key="kpi" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Equity+ Key Metrics</span>
-              <span className="eqd-panel-subtitle">Sector ETFs · factor rotation · vs SPY</span>
-            </div>
-            <div className="bento-panel-content eqd-panel-scroll" onMouseDown={stopDrag}>
-              {kpiPanel}
-            </div>
-            <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="kpi"
+            title="Equity+ Key Metrics"
+            subtitle="Sector ETFs · factor rotation · vs SPY"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            contentClassName="eqd-panel-scroll"
+            source="Yahoo Finance / FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {kpiPanel}
+          </BentoCard>
         )}
         {sidebarPanel && (
-          <div key="sidebar" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Equity+ Summary</span>
-            </div>
-            <div className="bento-panel-content eqd-panel-scroll" onMouseDown={stopDrag}>
-              {sidebarPanel}
-            </div>
-            <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="sidebar"
+            title="Equity+ Summary"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            contentClassName="eqd-panel-scroll"
+            source="Yahoo Finance / FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {sidebarPanel}
+          </BentoCard>
         )}
         {/* Key Metrics */}
-        <div key="valuation" className="eqd-bento-card">
-          <div className="eqd-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Key Metrics</span>
-          </div>
-          <div className="bento-panel-content eqd-panel-scroll" onMouseDown={stopDrag}>
+        <BentoCard
+          key="valuation"
+          title="Key Metrics"
+          accent="equitiesDeepDive"
+          className="eqd-bento-card"
+          contentClassName="eqd-panel-scroll"
+          source="Yahoo Finance / FRED"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <>
             {/* Market Valuation */}
             {(spPE != null || buffettIndicator || equityRiskPremium) && (
               <div className="eqd-metric-card">
@@ -501,177 +523,227 @@ function EquitiesDeepDiveDashboard({
                 </div>
               </div>
             )}
-          </div>
-          <DataFooter source="Yahoo Finance / FRED" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+          </>
+        </BentoCard>
 
         {/* ETF Performance Chart */}
         {rankedOption && (
-          <div key="etf" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">ETF Performance</span>
-              <span className="eqd-panel-subtitle">1-month % vs SPY</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'ETF Performance', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="etf"
+            title="ETF Performance"
+            subtitle="1-month % vs SPY"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            source="Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={rankedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'ETF Performance', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Factor In Favor Chart */}
         {inFavorOption && (
-          <div key="factor-favor" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Factor In Favor</span>
-              <span className="eqd-panel-subtitle">Average composite by factor</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Factor In Favor', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="factor-favor"
+            title="Factor In Favor"
+            subtitle="Average composite by factor"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            source="Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={inFavorOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Factor In Favor', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Sector Beat Rate Chart */}
         {beatRateOption && (
-          <div key="sector-beat" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Sector Beat Rate</span>
-              <span className="eqd-panel-subtitle">% of names beating EPS estimates</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="sector-beat"
+            title="Sector Beat Rate"
+            subtitle="% of names beating EPS estimates"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            source="Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Most Shorted Chart */}
         {shortedOption && (
-          <div key="shorted" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Most Shorted</span>
-              <span className="eqd-panel-subtitle">% of float short · days to cover</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="shorted"
+            title="Most Shorted"
+            subtitle="% of float short · days to cover"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            source="Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Stock Factor Scores Table */}
         {stocks.length > 0 && (
-          <div key="scores" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Stock Factor Scores</span>
-              <span className="eqd-panel-subtitle">Top {Math.min(stocks.length, 10)} by composite</span>
-            </div>
-            <div className="bento-panel-content eqd-panel-scroll" onMouseDown={stopDrag}>
-              <table className="eqd-table">
-                <thead>
-                  <tr>
-                    <th className="eqd-th">Ticker</th>
-                    <th className="eqd-th">Value</th>
-                    <th className="eqd-th">Momentum</th>
-                    <th className="eqd-th">Quality</th>
-                    <th className="eqd-th">Composite</th>
+          <BentoCard
+            key="scores"
+            title="Stock Factor Scores"
+            subtitle={`Top ${Math.min(stocks.length, 10)} by composite`}
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            contentClassName="eqd-panel-scroll"
+            source="Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <table className="eqd-table">
+              <thead>
+                <tr>
+                  <th className="eqd-th">Ticker</th>
+                  <th className="eqd-th">Value</th>
+                  <th className="eqd-th">Momentum</th>
+                  <th className="eqd-th">Quality</th>
+                  <th className="eqd-th">Composite</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stocks.slice(0, 10).map(s => (
+                  <tr key={s.ticker} className="eqd-row">
+                    <td className="eqd-cell"><strong>{s.ticker}</strong></td>
+                    <td className={`eqd-cell eqd-score ${factorHeat(s.value)}`}><MetricValue value={s.value} seriesKey="factorValue" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                    <td className={`eqd-cell eqd-score ${factorHeat(s.momentum)}`}><MetricValue value={s.momentum} seriesKey="factorMomentum" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                    <td className={`eqd-cell eqd-score ${factorHeat(s.quality)}`}><MetricValue value={s.quality} seriesKey="factorQuality" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+                    <td className={`eqd-cell eqd-score ${factorHeat(s.composite)}`}><strong><MetricValue value={s.composite} seriesKey="factorComposite" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></strong></td>
                   </tr>
-                </thead>
-                <tbody>
-                  {stocks.slice(0, 10).map(s => (
-                    <tr key={s.ticker} className="eqd-row">
-                      <td className="eqd-cell"><strong>{s.ticker}</strong></td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.value)}`}><MetricValue value={s.value} seriesKey="factorValue" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.momentum)}`}><MetricValue value={s.momentum} seriesKey="factorMomentum" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.quality)}`}><MetricValue value={s.quality} seriesKey="factorQuality" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
-                      <td className={`eqd-cell eqd-score ${factorHeat(s.composite)}`}><strong><MetricValue value={s.composite} seriesKey="factorComposite" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></strong></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+                ))}
+              </tbody>
+            </table>
+          </BentoCard>
         )}
 
         {/* Upcoming Earnings */}
         {upcoming.length > 0 && (
-          <div key="earnings" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Upcoming Earnings</span>
-              <span className="eqd-panel-subtitle">Next {Math.min(upcoming.length, 10)} reports</span>
-            </div>
-            <div className="bento-panel-content eqd-panel-scroll" onMouseDown={stopDrag}>
-              <table className="eqd-table">
-                <thead>
-                  <tr>
-                    <th className="eqd-th">Date</th>
-                    <th className="eqd-th">Ticker</th>
-                    <th className="eqd-th">EPS Est</th>
-                    <th className="eqd-th">Dir</th>
+          <BentoCard
+            key="earnings"
+            title="Upcoming Earnings"
+            subtitle={`Next ${Math.min(upcoming.length, 10)} reports`}
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            contentClassName="eqd-panel-scroll"
+            source="Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <table className="eqd-table">
+              <thead>
+                <tr>
+                  <th className="eqd-th">Date</th>
+                  <th className="eqd-th">Ticker</th>
+                  <th className="eqd-th">EPS Est</th>
+                  <th className="eqd-th">Dir</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upcoming.slice(0, 10).map(e => (
+                  <tr key={e.ticker} className="eqd-row">
+                    <td className="eqd-cell eqd-date">{e.date}</td>
+                    <td className="eqd-cell"><strong>{e.ticker}</strong></td>
+                    <td className="eqd-cell eqd-num"><MetricValue value={e.epsEst} seriesKey="earningsEpsEst" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                    <td className="eqd-cell eqd-dir">
+                      {(e.epsEst ?? 0) >= (e.epsPrev ?? 0) ? '▲' : '▼'}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {upcoming.slice(0, 10).map(e => (
-                    <tr key={e.ticker} className="eqd-row">
-                      <td className="eqd-cell eqd-date">{e.date}</td>
-                      <td className="eqd-cell"><strong>{e.ticker}</strong></td>
-                      <td className="eqd-cell eqd-num"><MetricValue value={e.epsEst} seriesKey="earningsEpsEst" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
-                      <td className="eqd-cell eqd-dir">
-                        {(e.epsEst ?? 0) >= (e.epsPrev ?? 0) ? '▲' : '▼'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+                ))}
+              </tbody>
+            </table>
+          </BentoCard>
         )}
 
         {/* Institutions */}
         {institutions.length > 0 && (
-          <div key="institutions" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Top Institutions</span>
-              <span className="eqd-panel-subtitle">By total AUM (13F)</span>
+          <BentoCard
+            key="institutions"
+            title="Top Institutions"
+            subtitle="By total AUM (13F)"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            contentClassName="eqd-panel-scroll"
+            source="SEC EDGAR / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="eqd-mini-table">
+              {institutions.slice(0, 6).map((inst, i) => (
+                <div key={i} className="eqd-mini-row">
+                  <span className="eqd-mini-name">{inst.name.length > 18 ? inst.name.slice(0, 18) + '…' : inst.name}</span>
+                   <span className="eqd-mini-value"><MetricValue value={inst.totalValue} seriesKey="institutionTotalValue" timestamp={lastUpdated} format={v => `$${(v / 1000).toFixed(1)}T`} /></span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content eqd-panel-scroll" onMouseDown={stopDrag}>
-              <div className="eqd-mini-table">
-                {institutions.slice(0, 6).map((inst, i) => (
-                  <div key={i} className="eqd-mini-row">
-                    <span className="eqd-mini-name">{inst.name.length > 18 ? inst.name.slice(0, 18) + '…' : inst.name}</span>
-                     <span className="eqd-mini-value"><MetricValue value={inst.totalValue} seriesKey="institutionTotalValue" timestamp={lastUpdated} format={v => `$${(v / 1000).toFixed(1)}T`} /></span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="SEC EDGAR / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Insider Trading */}
         {insiderData && (insiderHolders.length > 0 || insiderTransactions.length > 0) && (
-          <div key="insider" className="eqd-bento-card">
-            <div className="eqd-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Insider Trading</span>
-              <span className="eqd-panel-subtitle">Form 4 filings</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <InsiderTrading
-                insiderData={insiderData}
-                isLive={isLive}
-                lastUpdated={lastUpdated}
-                fetchLog={fetchLog}
-                error={error}
-                fetchedOn={fetchedOn}
-                isCurrent={isCurrent}
-              />
-            </div>
-            <DataFooter source="SEC EDGAR / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="insider"
+            title="Insider Trading"
+            subtitle="Form 4 filings"
+            accent="equitiesDeepDive"
+            className="eqd-bento-card"
+            source="SEC EDGAR / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <InsiderTrading
+              insiderData={insiderData}
+              isLive={isLive}
+              lastUpdated={lastUpdated}
+              fetchLog={fetchLog}
+              error={error}
+              fetchedOn={fetchedOn}
+              isCurrent={isCurrent}
+            />
+          </BentoCard>
         )}
       </BentoWrapper>
     </div>

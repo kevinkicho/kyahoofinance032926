@@ -19,18 +19,7 @@
 .watch-dashboard--bento .react-grid-item.react-grid-placeholder { background: #eab308 !important; opacity: 0.15 !important; border-radius: 12px !important; border: 2px dashed #eab308 !important; }
 .watch-dashboard--bento .react-grid-item > .react-resizable-handle::after { border-right-color: #eab308 !important; border-bottom-color: #eab308 !important; }
 
-/* ── 4. Bento Card ── */
-.watch-bento-card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  display: flex; flex-direction: column; overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  height: 100%;
-  container-type: inline-size; container-name: bento-card;
-  cursor: default;
-}
+/* ── 4. Bento Card ── base styling now in BentoWrapper.css's multi-selector */
 .watch-bento-card:hover { border-color: #eab308; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(234, 179, 8, 0.15); }
 
 /* ── 5. Panel title row ── */

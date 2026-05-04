@@ -35,22 +35,7 @@
   transition: none !important;
 }
 
-/* ── 4. Bento Card ── */
-.sent-bento-card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  height: 100%;
-  container-type: inline-size;
-  container-name: bento-card;
-  cursor: default;
-}
-
+/* ── 4. Bento Card ── base styling now in BentoWrapper.css's multi-selector */
 .sent-bento-card:hover {
   border-color: #7c3aed;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(124, 58, 237, 0.15);

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { readDailyCache, writeDailyCache, readLatestCache, readLatestCacheWithField, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { SOVEREIGN_RATINGS } from '../dataSources/sovereignRatings.js';
 import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
@@ -187,7 +187,7 @@ router.get('/', async (req, res) => {
     // US TREASURY YIELD CURVE (Full Tenors)
     // ═══════════════════════════════════════════════════════════════════════
     trackApiCall('FRED');
-    console.log('[Bonds] Fetching US Treasury yields...');
+    if (process.env.LOG_VERBOSE) console.log('[Bonds] Fetching US Treasury yields...');
     const usEntries = await Promise.allSettled(
       Object.entries(TENOR_SERIES).map(async ([tenor, sid]) => {
         try { const v = await fetchFredLatest(sid, FRED_API_KEY); return [tenor, v]; }
@@ -525,26 +525,42 @@ router.get('/', async (req, res) => {
       if (r.status === 'fulfilled' && r.value[1] != null) macroData[r.value[0]] = r.value[1];
     });
 
-    // Fed Balance Sheet History (for charting)
+    // Fed Balance Sheet History (for charting). WALCL and M2SL are the two
+    // FRED series Akamai's WAF blocks most often from this network — if the
+    // live fetch fails, walk back through historical caches and pick the
+    // most recent one that actually has the field. Without the per-field
+    // walkback, today's failed cache shadows yesterday's good cache.
     trackApiCall('FRED');
-    const fedBalanceHistory = await fetchFredHistory('WALCL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds]', e.message || e); return null; });
+    const fedBalanceHistory = await fetchFredHistory('WALCL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] WALCL:', e.message || e); return null; });
     let fedBalanceSheetHistory = null;
     if (fedBalanceHistory?.length > 0) {
       fedBalanceSheetHistory = {
         dates: fedBalanceHistory.map(p => dateToMonthLabel(p.date)),
         values: fedBalanceHistory.map(p => p.value / 1000), // Convert to trillions
       };
+    } else {
+      const fb = readLatestCacheWithField('bonds', 'fedBalanceSheetHistory.dates');
+      if (fb?.data?.fedBalanceSheetHistory?.dates?.length) {
+        fedBalanceSheetHistory = fb.data.fedBalanceSheetHistory;
+        console.warn(`[Bonds] WALCL fallback to cache fetched ${fb.fetchedOn}`);
+      }
     }
 
     // M2 History (for charting)
     trackApiCall('FRED');
-    const m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds]', e.message || e); return null; });
+    const m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] M2SL:', e.message || e); return null; });
     let m2HistoryData = null;
     if (m2History?.length > 0) {
       m2HistoryData = {
         dates: m2History.map(p => dateToMonthLabel(p.date)),
         values: m2History.map(p => p.value / 1000), // Convert to trillions
       };
+    } else {
+      const fb = readLatestCacheWithField('bonds', 'm2HistoryData.dates');
+      if (fb?.data?.m2HistoryData?.dates?.length) {
+        m2HistoryData = fb.data.m2HistoryData;
+        console.warn(`[Bonds] M2SL fallback to cache fetched ${fb.fetchedOn}`);
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════════════

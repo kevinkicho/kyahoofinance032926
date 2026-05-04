@@ -153,7 +153,7 @@ export default function EarningsWatch({ earningsData }) {
               <div className="eq-chart-title">Sector Beat Rate</div>
               <div className="eq-chart-subtitle">Last quarter EPS beat % · indigo ≥70% · amber 50–70% · red &lt;50%</div>
               <div className="eq-chart-wrap">
-                <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equities-deep-dive', series: [] }} />
+                <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [] }} />
               </div>
             </>
           ) : (

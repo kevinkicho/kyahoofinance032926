@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import BentoWrapper from '../../components/BentoWrapper';
+import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import MetricValue from '../../components/MetricValue/MetricValue';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
@@ -7,10 +8,8 @@ import EconomicCalendar from './components/EconomicCalendar';
 import CentralBankSchedule from './components/CentralBankSchedule';
 import EarningsSeason from './components/EarningsSeason';
 import KeyReleases from './components/KeyReleases';
-import DataFooter from '../../components/DataFooter/DataFooter';
 import './CalendarMarket.css';
 
-const stopDrag = (e) => e.stopPropagation();
 
 function PanelEmpty({ label }) {
   return <div className="cal-empty cal-empty--loading">{label ? `Press ▶ to fetch ${label}` : 'Press ▶ to load data'}</div>;
@@ -104,28 +103,37 @@ function CalendarMarket({ centralData } = {}) {
       <div className="cal-dashboard cal-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v2">
           {/* KPI strip — first bento child, full-width row 0. */}
-          <div key="kpi" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Calendar Key Metrics</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              <MarketKpiStrip kpis={kpis} bare />
-            </div>
-            <DataFooter
-              source="FRED / Yahoo Finance"
-              timestamp={props.lastUpdated}
-              isLive={props.isLive}
-              fetchLog={props.fetchLog}
-              error={props.error}
-              fetchedOn={props.fetchedOn}
-              isCurrent={props.isCurrent}
-            />
-          </div>
-          <div key="sidebar" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Calendar Summary</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
+          <BentoCard
+            key="kpi"
+            title="Calendar Key Metrics"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / Yahoo Finance"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            <MarketKpiStrip kpis={kpis} bare />
+          </BentoCard>
+          <BentoCard
+            key="sidebar"
+            title="Calendar Summary"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / Econdb / Yahoo Finance"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            <>
               <div className="cal-sidebar-section">
                 <div className="cal-sidebar-title">Today</div>
                 <div className="cal-sidebar-metric">
@@ -215,108 +223,156 @@ function CalendarMarket({ centralData } = {}) {
                   ))}
                 </div>
               )}
-            </div>
-            <DataFooter source="FRED / Econdb / Yahoo Finance" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+            </>
+          </BentoCard>
 
-          <div key="economic" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Economic Calendar</span>
-              <span className="bento-panel-subtitle">High-importance macro releases · next 30 days</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {props.economicEvents.length > 0
-                ? <EconomicCalendar economicEvents={props.economicEvents} insideBento />
-                : <PanelEmpty label="economic events" />}
-            </div>
-            <DataFooter source="FRED / Econdb" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+          <BentoCard
+            key="economic"
+            title="Economic Calendar"
+            subtitle="High-importance macro releases · next 30 days"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / Econdb"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {props.economicEvents.length > 0
+              ? <EconomicCalendar economicEvents={props.economicEvents} insideBento />
+              : <PanelEmpty label="economic events" />}
+          </BentoCard>
 
-          <div key="cb-rates" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Central Bank Rates</span>
-              <span className="bento-panel-subtitle">Fed / ECB / BOE / BOJ</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {props.centralBanks.length > 0
-                ? <CentralBankSchedule centralBanks={props.centralBanks} section="rates" />
-                : <PanelEmpty label="central bank rates" />}
-            </div>
-            <DataFooter source="FRED / BIS" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+          <BentoCard
+            key="cb-rates"
+            title="Central Bank Rates"
+            subtitle="Fed / ECB / BOE / BOJ"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / BIS"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {props.centralBanks.length > 0
+              ? <CentralBankSchedule centralBanks={props.centralBanks} section="rates" />
+              : <PanelEmpty label="central bank rates" />}
+          </BentoCard>
 
-          <div key="cb-timeline" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Upcoming Meetings</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {props.centralBanks.length > 0
-                ? <CentralBankSchedule centralBanks={props.centralBanks} section="timeline" />
-                : <PanelEmpty label="meeting schedule" />}
-            </div>
-            <DataFooter source="FRED / BIS" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+          <BentoCard
+            key="cb-timeline"
+            title="Upcoming Meetings"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / BIS"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {props.centralBanks.length > 0
+              ? <CentralBankSchedule centralBanks={props.centralBanks} section="timeline" />
+              : <PanelEmpty label="meeting schedule" />}
+          </BentoCard>
 
-          <div key="earnings" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Earnings Season</span>
-              <span className="bento-panel-subtitle">Mega-cap earnings · next 60 days</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {props.earningsSeason.length > 0
-                ? <EarningsSeason earningsSeason={props.earningsSeason} dividendCalendar={props.dividendCalendar} insideBento />
-                : <PanelEmpty label="earnings data" />}
-            </div>
-            <DataFooter source="Yahoo Finance" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+          <BentoCard
+            key="earnings"
+            title="Earnings Season"
+            subtitle="Mega-cap earnings · next 60 days"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="Yahoo Finance"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {props.earningsSeason.length > 0
+              ? <EarningsSeason earningsSeason={props.earningsSeason} dividendCalendar={props.dividendCalendar} insideBento />
+              : <PanelEmpty label="earnings data" />}
+          </BentoCard>
 
-          <div key="key-data" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Key US Releases</span>
-              <span className="bento-panel-subtitle">Scheduled macro data</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {props.keyReleases.length > 0
-                ? <KeyReleases keyReleases={props.keyReleases} section="data" />
-                : <PanelEmpty label="key releases" />}
-            </div>
-            <DataFooter source="FRED / BLS" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+          <BentoCard
+            key="key-data"
+            title="Key US Releases"
+            subtitle="Scheduled macro data"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / BLS"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {props.keyReleases.length > 0
+              ? <KeyReleases keyReleases={props.keyReleases} section="data" />
+              : <PanelEmpty label="key releases" />}
+          </BentoCard>
 
-          <div key="treasury" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Treasury Auctions</span>
-              <span className="bento-panel-subtitle">US Treasury schedule</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {props.treasuryAuctions && props.treasuryAuctions.length > 0
-                ? <KeyReleases keyReleases={[]} treasuryAuctions={props.treasuryAuctions} optionsExpiry={[]} section="treasury" />
-                : <PanelEmpty label="treasury auctions" />}
-            </div>
-            <DataFooter source="US Treasury" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+          <BentoCard
+            key="treasury"
+            title="Treasury Auctions"
+            subtitle="US Treasury schedule"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="US Treasury"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {props.treasuryAuctions && props.treasuryAuctions.length > 0
+              ? <KeyReleases keyReleases={[]} treasuryAuctions={props.treasuryAuctions} optionsExpiry={[]} section="treasury" />
+              : <PanelEmpty label="treasury auctions" />}
+          </BentoCard>
 
-          <div key="options" className="cal-bento-card">
-            <div className="cal-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Options Expiry</span>
-              <span className="bento-panel-subtitle">Monthly expiry dates</span>
-            </div>
-            <div className="bento-panel-content cal-panel-scroll" onMouseDown={stopDrag}>
-              {(props.optionsExpiry && props.optionsExpiry.length > 0) ? (
-                <div className="cal-options-grid">
-                  {props.optionsExpiry.map((e, i) => (
-                    <div key={i} className="cal-options-card">
-                      <span className="cal-options-date">{e.date}</span>
-                      <span className="cal-options-type">{e.type}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="cal-empty">No upcoming options expiry dates</div>
-              )}
-            </div>
-            <DataFooter source="CBOE / Yahoo Finance" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
-          </div>
+          <BentoCard
+            key="options"
+            title="Options Expiry"
+            subtitle="Monthly expiry dates"
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="CBOE / Yahoo Finance"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {(props.optionsExpiry && props.optionsExpiry.length > 0) ? (
+              <div className="cal-options-grid">
+                {props.optionsExpiry.map((e, i) => (
+                  <div key={i} className="cal-options-card">
+                    <span className="cal-options-date">{e.date}</span>
+                    <span className="cal-options-type">{e.type}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="cal-empty">No upcoming options expiry dates</div>
+            )}
+          </BentoCard>
         </BentoWrapper>
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
-import DataFooter from '../../../components/DataFooter/DataFooter';
+import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import {
   HousingPanel as CensusHousingPanel,
@@ -15,7 +15,6 @@ import {
 } from '../../census/components/CensusDashboard';
 import './RealEstateDashboard.css';
 
-const stopDrag = (e) => e.stopPropagation();
 
 const LAYOUT = {
   lg: [
@@ -147,11 +146,21 @@ function RealEstateDashboard({
     <div className="re-dashboard re-dashboard--bento">
       <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v3">
         {/* Key Metrics */}
-        <div key="metrics" className="re-bento-card">
-          <div className="re-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Key Metrics</span>
-          </div>
-          <div className="bento-panel-content re-panel-scroll" onMouseDown={stopDrag}>
+        <BentoCard
+          key="metrics"
+          title="Key Metrics"
+          accent="realEstate"
+          className="re-bento-card"
+          contentClassName="re-panel-scroll"
+          source="FRED / Yahoo Finance"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <>
             {typeof shillerLatest === 'number' && (
               <div className="re-sidebar-section">
                 <div className="re-sidebar-title">Home Prices</div>
@@ -309,185 +318,238 @@ function RealEstateDashboard({
                  </div>
                </div>
              )}
-           </div>
-           <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-         </div>
+           </>
+        </BentoCard>
 
         {/* Case-Shiller */}
         {shillerOption && (
-          <div key="shiller" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Case-Shiller Index</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={shillerOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Case-Shiller Index', source: 'FRED', endpoint: '/api/real-estate', series: [{ id: 'CSUSHPISA' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED CSUSHPISA" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="shiller"
+            title="Case-Shiller Index"
+            accent="realEstate"
+            className="re-bento-card"
+            source="FRED CSUSHPISA"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={shillerOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Case-Shiller Index', source: 'FRED', endpoint: '/api/realEstate', series: [{ id: 'CSUSHPISA' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* REIT ETF */}
         {reitOption && (
-          <div key="reitetf" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">REIT ETF (VNQ)</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'REIT ETF (VNQ)', source: 'FRED / Yahoo Finance', endpoint: '/api/real-estate', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="reitetf"
+            title="REIT ETF (VNQ)"
+            accent="realEstate"
+            className="re-bento-card"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'REIT ETF (VNQ)', source: 'FRED / Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* REIT Performance */}
         {reitData?.length > 0 && (
-          <div key="reitperf" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">REIT Performance</span>
+          <BentoCard
+            key="reitperf"
+            title="REIT Performance"
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-scroll"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="re-mini-table" style={{ paddingTop: 0 }}>
+              {reitData.slice(0, 8).map((r, i) => (
+                <div key={i} className="re-mini-row">
+                  <span className="re-mini-name">{r.symbol}</span>
+                  <span className="re-mini-value" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
+                    <MetricValue value={r.changePct || 0} seriesKey="reitPerformance" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content re-panel-scroll" onMouseDown={stopDrag}>
-              <div className="re-mini-table" style={{ paddingTop: 0 }}>
-                {reitData.slice(0, 8).map((r, i) => (
-                  <div key={i} className="re-mini-row">
-                    <span className="re-mini-name">{r.symbol}</span>
-                    <span className="re-mini-value" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                      <MetricValue value={r.changePct || 0} seriesKey="reitPerformance" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Foreclosure */}
         {foreclosureOption && (
-          <div key="foreclosure" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Distress Indicators</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Distress Indicators', source: 'FRED / Yahoo Finance', endpoint: '/api/real-estate', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="foreclosure"
+            title="Distress Indicators"
+            accent="realEstate"
+            className="re-bento-card"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Distress Indicators', source: 'FRED / Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* MBA Applications */}
         {mbaOption && (
-          <div key="mba" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">MBA Applications</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={mbaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'MBA Applications', source: 'FRED', endpoint: '/api/real-estate', series: [{ id: 'MORTGAGE30US' }], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED MORTGAGE30US" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="mba"
+            title="MBA Applications"
+            accent="realEstate"
+            className="re-bento-card"
+            source="FRED MORTGAGE30US"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={mbaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'MBA Applications', source: 'FRED', endpoint: '/api/realEstate', series: [{ id: 'MORTGAGE30US' }], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* CRE Delinquencies */}
         {creOption && (
-          <div key="cre" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">CRE Delinquencies</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CRE Delinquencies', source: 'FRED / Yahoo Finance', endpoint: '/api/real-estate', series: [], updatedAt: lastUpdated }} />
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          <BentoCard
+            key="cre"
+            title="CRE Delinquencies"
+            accent="realEstate"
+            className="re-bento-card"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CRE Delinquencies', source: 'FRED / Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+          </BentoCard>
         )}
 
         {/* Cap Rates */}
         {capRateData?.length > 0 && (
-          <div key="caprate" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Cap Rates by Sector</span>
+          <BentoCard
+            key="caprate"
+            title="Cap Rates by Sector"
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-scroll"
+            source="FRED / Yahoo Finance"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="re-mini-table" style={{ paddingTop: 0 }}>
+              {capRateData.slice(0, 8).map((c, i) => (
+                <div key={i} className="re-mini-row">
+                  <span className="re-mini-name">{c.sector}</span>
+                  <span className="re-mini-value"><MetricValue value={c.impliedYield ?? c.capRate} seriesKey="capRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content re-panel-scroll" onMouseDown={stopDrag}>
-              <div className="re-mini-table" style={{ paddingTop: 0 }}>
-                {capRateData.slice(0, 8).map((c, i) => (
-                  <div key={i} className="re-mini-row">
-                    <span className="re-mini-name">{c.sector}</span>
-                    <span className="re-mini-value"><MetricValue value={c.impliedYield ?? c.capRate} seriesKey="capRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Affordability */}
         {affordabilityData?.length > 0 && (
-          <div key="afford" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Affordability Index</span>
+          <BentoCard
+            key="afford"
+            title="Affordability Index"
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-scroll"
+            source="FRED / Census"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="re-mini-table" style={{ paddingTop: 0 }}>
+              {affordabilityData.slice(0, 8).map((a, i) => (
+                <div key={i} className="re-mini-row">
+                  <span className="re-mini-name">{a.region}</span>
+                  <span className="re-mini-value" style={{ color: a.index > 100 ? '#4ade80' : a.index > 80 ? '#fbbf24' : '#f87171' }}>
+                    <MetricValue value={a.index} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={v => v != null ? v.toFixed(0) : '—'} />
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content re-panel-scroll" onMouseDown={stopDrag}>
-              <div className="re-mini-table" style={{ paddingTop: 0 }}>
-                {affordabilityData.slice(0, 8).map((a, i) => (
-                  <div key={i} className="re-mini-row">
-                    <span className="re-mini-name">{a.region}</span>
-                    <span className="re-mini-value" style={{ color: a.index > 100 ? '#4ade80' : a.index > 80 ? '#fbbf24' : '#f87171' }}>
-                      <MetricValue value={a.index} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={v => v != null ? v.toFixed(0) : '—'} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / Census" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* Supply/Demand */}
         {supplyData?.length > 0 && (
-          <div key="supply" className="re-bento-card">
-            <div className="re-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">Supply & Demand</span>
+          <BentoCard
+            key="supply"
+            title="Supply & Demand"
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-scroll"
+            source="FRED / Census"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div className="re-mini-table" style={{ paddingTop: 0 }}>
+              {supplyData.slice(0, 8).map((s, i) => (
+                <div key={i} className="re-mini-row">
+                  <span className="re-mini-name">{s.metric}</span>
+                  <span className="re-mini-value" style={{ color: s.trend === 'up' ? '#4ade80' : s.trend === 'down' ? '#f87171' : '#fbbf24' }}>
+                    <MetricValue value={s.value} seriesKey="supplyDemand" timestamp={lastUpdated} format={v => v != null ? `${v}` : '—'} />
+                  </span>
+                </div>
+              ))}
             </div>
-            <div className="bento-panel-content re-panel-scroll" onMouseDown={stopDrag}>
-              <div className="re-mini-table" style={{ paddingTop: 0 }}>
-                {supplyData.slice(0, 8).map((s, i) => (
-                  <div key={i} className="re-mini-row">
-                    <span className="re-mini-name">{s.metric}</span>
-                    <span className="re-mini-value" style={{ color: s.trend === 'up' ? '#4ade80' : s.trend === 'down' ? '#f87171' : '#fbbf24' }}>
-                      <MetricValue value={s.value} seriesKey="supplyDemand" timestamp={lastUpdated} format={v => v != null ? `${v}` : '—'} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <DataFooter source="FRED / Census" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
 
         {/* ── Census panels (merged from former Census tab) ── */}
         {hasCensusHousingKpi && (
-          <div key="census-housing" className="re-bento-card">
+          <BentoCard key="census-housing" title="Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusHousingPanel kpiData={censusKpiData} housingKeys={CENSUS_HOUSING_KEYS} />
-            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
         {hasCensusEcoKpi && (
-          <div key="census-trade" className="re-bento-card">
+          <BentoCard key="census-trade" title="Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTradePanel kpiData={censusKpiData} ecoKeys={CENSUS_ECO_KEYS} />
-            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
         {hasCensusHousingTrends && (
-          <div key="census-trends-housing" className="re-bento-card">
+          <BentoCard key="census-trends-housing" title="Trends — Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTrendsHousingPanel housingSeries={censusHousingSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
-            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
         {hasCensusEcoTrends && (
-          <div key="census-trends-trade" className="re-bento-card">
+          <BentoCard key="census-trends-trade" title="Trends — Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTrendsTradePanel ecoSeries={censusEcoSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
-            <DataFooter source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-          </div>
+          </BentoCard>
         )}
       </BentoWrapper>
     </div>

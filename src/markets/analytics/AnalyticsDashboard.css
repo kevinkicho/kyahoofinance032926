@@ -31,14 +31,7 @@
 .ana-dashboard--bento .react-grid-item.react-grid-placeholder { background: #94a3b8 !important; opacity: 0.15 !important; border-radius: 12px !important; border: 2px dashed #94a3b8 !important; }
 .ana-dashboard--bento .react-grid-item > .react-resizable-handle::after { border-right: 2px solid #94a3b8 !important; border-bottom: 2px solid #94a3b8 !important; }
 
-/* ── 4. Bento Card ── */
-.ana-bento-card {
-  background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-subtle);
-  display: flex; flex-direction: column; overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); height: 100%;
-  container-type: inline-size; container-name: bento-card; cursor: default;
-}
+/* ── 4. Bento Card ── base styling now in BentoWrapper.css's multi-selector */
 .ana-bento-card:hover { border-color: #94a3b8; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(148, 163, 184, 0.15); }
 
 /* ── 5. Panel title row ── */

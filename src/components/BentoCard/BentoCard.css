@@ -1,0 +1,75 @@
+/* ═══════════════════════════════════════════════════════════════
+   BentoCard — canonical card chrome (title row + accent palette).
+
+   The card-level base (background, border-radius, border, display,
+   shadow, etc.) lives in BentoWrapper.css under the `.bento-card`
+   multi-selector so all per-tab aliases inherit it. This file adds
+   structure for the title row, subtitle, action slot, and the per-tab
+   hover-accent palette.
+
+   Adding a new tab? Add an `.bento-card--<id>:hover` rule below.
+   Custom one-off color? Use `accentColor="#xx"` on the component;
+   it sets `--bento-accent-color` which the `:hover` falls back to.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Title row layout (titleActions slot lives at far right) ── */
+.bento-card > .bento-panel-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bento-panel-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary, #ddd);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bento-panel-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.bento-panel-title-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Hover accent fallback (consumer set --bento-accent-color via accentColor prop) ── */
+.bento-card:hover {
+  border-color: var(--bento-accent-color, var(--border-strong, #555));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2),
+              0 0 0 1px color-mix(in srgb, var(--bento-accent-color, transparent) 15%, transparent);
+}
+
+/* ── Per-tab accent palette ──
+   Each entry sets --bento-accent-color on the card, which the generic
+   :hover rule above picks up. Keep in sync with ACCENTS in BentoCard.jsx. */
+.bento-card--bonds            { --bento-accent-color: #10b981; }
+.bento-card--fx               { --bento-accent-color: #6366f1; }
+.bento-card--equities         { --bento-accent-color: #3b82f6; }
+.bento-card--derivatives      { --bento-accent-color: #f59e0b; }
+.bento-card--realEstate       { --bento-accent-color: #14b8a6; }
+.bento-card--insurance        { --bento-accent-color: #8b5cf6; }
+.bento-card--commodities      { --bento-accent-color: #eab308; }
+.bento-card--globalMacro      { --bento-accent-color: #06b6d4; }
+.bento-card--equitiesDeepDive { --bento-accent-color: #2563eb; }
+.bento-card--crypto           { --bento-accent-color: #f97316; }
+.bento-card--credit           { --bento-accent-color: #ef4444; }
+.bento-card--sentiment        { --bento-accent-color: #a855f7; }
+.bento-card--calendar         { --bento-accent-color: #84cc16; }
+.bento-card--bls              { --bento-accent-color: #0ea5e9; }
+.bento-card--eia              { --bento-accent-color: #d946ef; }
+.bento-card--alerts           { --bento-accent-color: #f43f5e; }
+.bento-card--watchlist        { --bento-accent-color: #22c55e; }
+.bento-card--analytics        { --bento-accent-color: #94a3b8; }

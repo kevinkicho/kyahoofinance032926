@@ -154,7 +154,7 @@ router.get('/', async (req, res) => {
         ? (async () => {
             const majorIds = Object.keys(MAJOR_FRED_RELEASES).map(Number);
             const [relData, obsResults] = await Promise.all([
-              fetchJSON(`https://api.stlouisfed.org/fred/releases/dates?api_key=${FRED_API_KEY}&file_type=json&include_release_dates_with_no_data=true&limit=200`),
+              fetchJSON(`https://api.stlouisfed.org/fred/releases/dates?api_key=${FRED_API_KEY}&file_type=json&include_release_dates_with_no_data=true&realtime_start=${today}&sort_order=asc&limit=200`),
               Promise.allSettled(
                 Object.entries(RELEASE_SERIES).map(async ([rid, sid]) =>
                   fetchJSON(`https://api.stlouisfed.org/fred/series/observations?series_id=${sid}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=2`)
@@ -279,7 +279,7 @@ router.get('/', async (req, res) => {
       }),
 
       FRED_API_KEY
-        ? fetchJSON(`https://api.stlouisfed.org/fred/releases/dates?api_key=${FRED_API_KEY}&file_type=json&include_release_dates_with_no_data=true&limit=200`)
+        ? fetchJSON(`https://api.stlouisfed.org/fred/releases/dates?api_key=${FRED_API_KEY}&file_type=json&include_release_dates_with_no_data=true&realtime_start=${today}&sort_order=asc&limit=200`)
             .then(data => {
               const dates = data?.release_dates || [];
               const majorIds = Object.keys(MAJOR_FRED_RELEASES).map(Number);

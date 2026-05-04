@@ -1,8 +1,10 @@
 // Commodities Dashboard — Dynamic tiling layout using React-Grid-Layout
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { useMarketData } from '../../../hub/DataContext';
 import BentoWrapper from '../../../components/BentoWrapper';
-import DataFooter from '../../../components/DataFooter/DataFooter';
+import BentoCard from '../../../components/BentoCard/BentoCard';
+import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import PriceDashboard from './PriceDashboard';
 import FuturesCurve from './FuturesCurve';
@@ -38,6 +40,10 @@ function CommoditiesDashboard({
   const { colors } = useTheme();
   const [priceView, setPriceView] = usePersistedState(`${STORAGE_KEY}-priceView`, 'table');
   const [sectorView, setSectorView] = usePersistedState(`${STORAGE_KEY}-sectorView`, 'heatmap');
+  // 2026-05-04: USDA NASS, Census trade, EIA petroleum.
+  const usdaCtx = useMarketData('usda');
+  const tradeCtx = useMarketData('censusTrade');
+  const eiaPetCtx = useMarketData('eiaPetroleum');
 
   const allCommodities = useMemo(() => {
     return priceDashboardData?.flatMap(s => s.commodities || []) || [];
@@ -52,7 +58,100 @@ function CommoditiesDashboard({
     return <span style={{ color }}>{sign}{num.toFixed(2)}%</span>;
   };
 
-  const stopDrag = (e) => e.stopPropagation();
+
+  // ── USDA ag prices: 4-line chart, last 36 months per commodity ────────
+  const usdaOption = useMemo(() => {
+    const summary = usdaCtx?.data?.summary || [];
+    const commodities = usdaCtx?.data?.commodities || {};
+    if (!summary.length) return null;
+    const periods = (commodities[summary[0].key] || []).map(p => `${p.period.slice(0, 3)}-${String(p.year).slice(2)}`);
+    const series = summary.map(s => ({
+      name: `${s.desc} (${s.unit})`,
+      type: 'line',
+      smooth: true,
+      symbol: 'none',
+      data: (commodities[s.key] || []).map(p => p.value),
+      lineStyle: { color: s.color, width: 1.8 },
+    }));
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: series.map(s => s.name), top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 28, right: 12, bottom: 24, left: 40 },
+      xAxis: { type: 'category', data: periods, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(periods.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series,
+    };
+  }, [usdaCtx, colors]);
+
+  // ── EIA petroleum: gasoline + Henry Hub gas dual line, crude stocks ──
+  const eiaPetrolOption = useMemo(() => {
+    const gas = eiaPetCtx?.data?.gasoline?.series || [];
+    const ng = eiaPetCtx?.data?.naturalGas?.series || [];
+    if (!gas.length && !ng.length) return null;
+    // Align natural-gas daily history to gasoline weekly dates (gas is the
+    // anchor — weekly is easier to read at this size). Take the gas value
+    // closest to each gasoline date.
+    const ngByDate = new Map(ng.map(p => [p.date, p.value]));
+    const gasDates = gas.slice(-78).map(p => p.date);
+    const gasVals = gas.slice(-78).map(p => p.value);
+    const ngVals = gasDates.map(d => {
+      // Walk back up to 7 days to find a NG observation if no exact match.
+      for (let off = 0; off < 7; off++) {
+        const probe = new Date(d);
+        probe.setUTCDate(probe.getUTCDate() - off);
+        const key = probe.toISOString().slice(0, 10);
+        if (ngByDate.has(key)) return ngByDate.get(key);
+      }
+      return null;
+    });
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['Gasoline ($/gal)', 'Henry Hub Gas ($/MMBtu)'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 28, right: 56, bottom: 24, left: 40 },
+      xAxis: { type: 'category', data: gasDates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(gasDates.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: [
+        { type: 'value', name: '$/gal', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '${value}' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+        { type: 'value', name: '$/MMBtu', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, position: 'right', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '${value}' }, splitLine: { show: false } },
+      ],
+      series: [
+        { name: 'Gasoline ($/gal)', type: 'line', yAxisIndex: 0, data: gasVals, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 2 }, areaStyle: { color: 'rgba(245, 158, 11, 0.08)' } },
+        { name: 'Henry Hub Gas ($/MMBtu)', type: 'line', yAxisIndex: 1, data: ngVals, smooth: true, symbol: 'none', lineStyle: { color: '#3b82f6', width: 1.6 } },
+      ],
+    };
+  }, [eiaPetCtx, colors]);
+
+  // ── US trade balance per bloc — line chart, 24 months ─────────────────
+  const tradeOption = useMemo(() => {
+    const blocs = tradeCtx?.data?.blocs || [];
+    if (!blocs.length) return null;
+    const world = blocs.find(b => b.code === '-');
+    const others = blocs.filter(b => b.code !== '-');
+    const periods = (world?.series || others[0]?.series || []).map(p => p.month);
+    if (!periods.length) return null;
+    const palette = ['#94a3b8', '#22d3ee', '#f59e0b', '#10b981', '#a78bfa', '#ec4899'];
+    const series = blocs.map((b, i) => ({
+      name: b.label,
+      type: 'line',
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { color: palette[i % palette.length], width: b.code === '-' ? 2.4 : 1.4 },
+      data: b.series.map(p => p.balanceB),
+    }));
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', valueFormatter: v => v != null ? (v >= 0 ? '+' : '') + '$' + v.toFixed(1) + 'B' : '—' },
+      legend: { top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
+      grid: { top: 28, right: 12, bottom: 24, left: 48 },
+      xAxis: { type: 'category', data: periods, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(periods.length / 8)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', name: '$B', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v >= 0 ? '+' : ''}${v}` }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series,
+    };
+  }, [tradeCtx, colors]);
 
   // RGL uses x, y, w, h. 12-column system.
   const layout = {
@@ -60,21 +159,36 @@ function CommoditiesDashboard({
       { i: 'sidebar', x: 8, y: 0, w: 4, h: 4 },
       { i: 'prices',  x: 0, y: 0, w: 8, h: 4 },
       { i: 'futures', x: 8, y: 4, w: 4, h: 4 },
-      { i: 'sector',  x: 0, y: 4, w: 4, h: 3 },
+      // Sector Performance was h:3 — bumped to h:6 so the Sector Avg 1d%
+      // bars and PPI mini-chart fit underneath the heatmap/table without
+      // getting clipped or wrapping.
+      { i: 'sector',  x: 0, y: 4, w: 4, h: 6 },
       { i: 'supply',  x: 4, y: 4, w: 4, h: 3 },
       { i: 'cot',     x: 8, y: 8, w: 4, h: 3 },
-      { i: 'comfx',   x: 0, y: 7, w: 4, h: 3 },
+      { i: 'comfx',   x: 0, y: 10, w: 4, h: 3 },
+      // 2026-05-04 additions: USDA ag prices, EIA petroleum, US trade.
+      { i: 'usda-ag',     x: 0, y: 11, w: 6, h: 4 },
+      { i: 'eia-petrol',  x: 6, y: 11, w: 6, h: 4 },
+      { i: 'us-trade',    x: 0, y: 15, w: 12, h: 4 },
     ]
   };
 
   return (
     <div className="com-dashboard">
-      <BentoWrapper layout={layout} storageKey="commodities-layout">
-        <div key="sidebar" className="bento-card">
-          <div className="com-panel-title-row bento-panel-title-row">
-            <span className="com-panel-title">Market Summary</span>
-          </div>
-          <div className="com-panel-content bento-panel-content com-panel-scroll" onMouseDown={stopDrag}>
+      <BentoWrapper layout={layout} storageKey="commodities-layout-v3">
+        <BentoCard
+          key="sidebar"
+          title="Market Summary"
+          accent="commodities"
+          contentClassName="com-panel-content com-panel-scroll"
+          source="CFTC / Yahoo"
+          timestamp={lastUpdated}
+          isLive={!!cotData}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
             <div className="com-sidebar-section">
               <div className="com-sidebar-title">Key Prices</div>
               <div className="com-sidebar-list">
@@ -134,94 +248,204 @@ function CommoditiesDashboard({
                 ))}
               </div>
             </div>
-          </div>
-          <DataFooter source="CFTC / Yahoo" timestamp={lastUpdated} isLive={!!cotData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
+        </BentoCard>
 
-        <div key="prices" className="bento-card">
-          <div className="com-panel-title-row bento-panel-title-row">
-            <span className="com-panel-title">Commodity Prices</span>
-            <span className="com-panel-subtitle">
+        <BentoCard
+          key="prices"
+          title="Commodity Prices"
+          subtitle={
+            <>
               Live futures + EIA + FRED
               {freshness && (
                 <span className="com-freshness-dot" style={{ color: freshness.color }}> · {freshness.label}</span>
               )}
-            </span>
-            <span className="com-panel-title-spacer" />
-            <button className={`com-toggle-btn ${priceView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('table')}>Table</button>
-            <button className={`com-toggle-btn ${priceView === 'chart' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('chart')}>Charts</button>
-          </div>
-          <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            {priceView === 'table' ? (
-              <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} goldOilRatio={goldOilRatio} contangoIndicator={contangoIndicator} commodityCurrencies={commodityCurrencies} enhancedData={enhancedData} lastUpdated={lastUpdated} />
-            ) : (
-              <PriceCharts priceDashboardData={priceDashboardData} allCommodities={allCommodities} colors={colors} formatChange={formatChange} />
-            )}
-          </div>
-          <DataFooter source="EIA / FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!priceDashboardData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
-        <div key="futures" className="bento-card">
-          <div className="com-panel-title-row bento-panel-title-row">
-            <span className="com-panel-title">Futures Curve</span>
-          </div>
-          <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            <FuturesCurve futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} seasonalPatterns={seasonalPatterns} />
-          </div>
-          <DataFooter source="EIA / FRED" timestamp={lastUpdated} isLive={!!futuresCurveData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
-        <div key="sector" className="bento-card">
-          <div className="com-panel-title-row bento-panel-title-row">
-            <span className="com-panel-title">Sector Performance</span>
-            <span className="com-panel-title-spacer" />
-            <button className={`com-toggle-btn ${sectorView === 'heatmap' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('heatmap')}>Heatmap</button>
-            <button className={`com-toggle-btn ${sectorView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('table')}>Table</button>
-          </div>
-          <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            <SectorHeatmap sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} view={sectorView} />
-          </div>
-          <DataFooter source="FRED / Yahoo Finance" timestamp={lastUpdated} isLive={!!sectorHeatmapData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
-        <div key="supply" className="bento-card">
-          <div className="com-panel-title-row bento-panel-title-row">
-            <span className="com-panel-title">Supply & Demand</span>
-          </div>
-          <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-            <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} lastUpdated={lastUpdated} />
-          </div>
-          <DataFooter source="EIA" timestamp={lastUpdated} isLive={!!supplyDemandData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-        </div>
-         <div key="cot" className="bento-card">
-           <div className="com-panel-title-row bento-panel-title-row">
-             <span className="com-panel-title">COT Positioning</span>
-           </div>
-           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-             <CotPositioning cotData={cotData} lastUpdated={lastUpdated} />
-           </div>
-           <DataFooter source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotData} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-         </div>
+            </>
+          }
+          accent="commodities"
+          contentClassName="com-panel-content"
+          titleActions={
+            <>
+              <button className={`com-toggle-btn ${priceView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('table')}>Table</button>
+              <button className={`com-toggle-btn ${priceView === 'chart' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('chart')}>Charts</button>
+            </>
+          }
+          source="EIA / FRED / Yahoo Finance"
+          timestamp={lastUpdated}
+          isLive={!!priceDashboardData}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          {priceView === 'table' ? (
+            <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} goldOilRatio={goldOilRatio} contangoIndicator={contangoIndicator} commodityCurrencies={commodityCurrencies} enhancedData={enhancedData} lastUpdated={lastUpdated} />
+          ) : (
+            <PriceCharts priceDashboardData={priceDashboardData} allCommodities={allCommodities} colors={colors} formatChange={formatChange} />
+          )}
+        </BentoCard>
 
-         <div key="comfx" className="bento-card">
-           <div className="com-panel-title-row bento-panel-title-row">
-             <span className="com-panel-title">Commodity FX (vs USD)</span>
-           </div>
-           <div className="com-panel-content bento-panel-content" onMouseDown={stopDrag}>
-             <div className="com-fx-table">
-               <div className="com-fx-row header">
-                 <span>Currency</span>
-                 <span>Rate</span>
-                 <span>Change</span>
-               </div>
-               {commodityCurrencies && Object.entries(commodityCurrencies).map(([cur, data]) => (
-                 <div key={cur} className="com-fx-row">
-                   <span className="com-fx-name">{cur}</span>
-                   <span className="com-fx-rate">{data.rate?.toFixed(4)}</span>
-                   <span className="com-fx-change">{formatChange(data.changePct)}</span>
-                 </div>
-               ))}
-             </div>
-           </div>
-           <DataFooter source="Yahoo Finance" timestamp={lastUpdated} isLive={!!commodityCurrencies} fetchLog={fetchLog} error={error} fetchedOn={fetchedOn} isCurrent={isCurrent} />
-         </div>
+        <BentoCard
+          key="futures"
+          title="Futures Curve"
+          accent="commodities"
+          contentClassName="com-panel-content"
+          source="EIA / FRED"
+          timestamp={lastUpdated}
+          isLive={!!futuresCurveData}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <FuturesCurve futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} seasonalPatterns={seasonalPatterns} />
+        </BentoCard>
+
+        <BentoCard
+          key="sector"
+          title="Sector Performance"
+          accent="commodities"
+          contentClassName="com-panel-content"
+          titleActions={
+            <>
+              <button className={`com-toggle-btn ${sectorView === 'heatmap' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('heatmap')}>Heatmap</button>
+              <button className={`com-toggle-btn ${sectorView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('table')}>Table</button>
+            </>
+          }
+          source="FRED / Yahoo Finance"
+          timestamp={lastUpdated}
+          isLive={!!sectorHeatmapData}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <SectorHeatmap sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} view={sectorView} />
+        </BentoCard>
+
+        <BentoCard
+          key="supply"
+          title="Supply & Demand"
+          accent="commodities"
+          contentClassName="com-panel-content"
+          source="EIA"
+          timestamp={lastUpdated}
+          isLive={!!supplyDemandData}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} lastUpdated={lastUpdated} />
+        </BentoCard>
+
+        <BentoCard
+          key="cot"
+          title="COT Positioning"
+          accent="commodities"
+          contentClassName="com-panel-content"
+          source="CFTC / Server"
+          timestamp={lastUpdated}
+          isLive={!!cotData}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <CotPositioning cotData={cotData} lastUpdated={lastUpdated} />
+        </BentoCard>
+
+        <BentoCard
+          key="comfx"
+          title="Commodity FX (vs USD)"
+          accent="commodities"
+          contentClassName="com-panel-content"
+          source="Yahoo Finance"
+          timestamp={lastUpdated}
+          isLive={!!commodityCurrencies}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <div className="com-fx-table">
+            <div className="com-fx-row header">
+              <span>Currency</span>
+              <span>Rate</span>
+              <span>Change</span>
+            </div>
+            {commodityCurrencies && Object.entries(commodityCurrencies).map(([cur, data]) => (
+              <div key={cur} className="com-fx-row">
+                <span className="com-fx-name">{cur}</span>
+                <span className="com-fx-rate">{data.rate?.toFixed(4)}</span>
+                <span className="com-fx-change">{formatChange(data.changePct)}</span>
+              </div>
+            ))}
+          </div>
+        </BentoCard>
+
+        {/* USDA NASS — US Ag Commodity Prices */}
+        {usdaOption && (
+          <BentoCard
+            key="usda-ag"
+            title="US Ag Commodity Prices"
+            subtitle={(usdaCtx?.data?.summary || []).filter(s => s.latest).slice(0, 4).map(s => `${s.desc.slice(0, 4)} ${s.latest.value.toFixed(2)}${s.unit.replace('$/','/')}${s.yoyPct != null ? ` (${s.yoyPct >= 0 ? '+' : ''}${s.yoyPct.toFixed(0)}% YoY)` : ''}`).join(' · ') || 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS'}
+            accent="commodities"
+            className="com-bento-card"
+            source="USDA NASS"
+            timestamp={usdaCtx?.lastUpdated || lastUpdated}
+            isLive={!!usdaCtx?.data?.isLive}
+            isCurrent={usdaCtx?.isCurrent ?? isCurrent}
+            fetchedOn={usdaCtx?.fetchedOn || fetchedOn}
+            fetchLog={usdaCtx?.fetchLog || fetchLog}
+            error={usdaCtx?.error || error}
+          >
+            <SafeECharts option={usdaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'USDA Ag Commodity Prices', source: 'USDA NASS Quick Stats', endpoint: '/api/usda', series: [], updatedAt: usdaCtx?.lastUpdated || lastUpdated }} />
+          </BentoCard>
+        )}
+
+        {/* EIA petroleum + natural gas */}
+        {eiaPetrolOption && (
+          <BentoCard
+            key="eia-petrol"
+            title="Petroleum & Natural Gas"
+            subtitle={eiaPetCtx?.data?.gasoline?.latest && eiaPetCtx?.data?.naturalGas?.latest
+              ? `Gasoline $${eiaPetCtx.data.gasoline.latest.value.toFixed(2)}/gal (${eiaPetCtx.data.gasoline.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.gasoline.yoyPct?.toFixed(0)}% YoY) · NG $${eiaPetCtx.data.naturalGas.latest.value.toFixed(2)}/MMBtu (${eiaPetCtx.data.naturalGas.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.naturalGas.yoyPct?.toFixed(0)}% YoY)${eiaPetCtx?.data?.crudeStocks?.latest ? ` · Crude stocks ${(eiaPetCtx.data.crudeStocks.latest.value / 1000).toFixed(0)}M bbl` : ''}`
+              : 'Retail gasoline · Henry Hub spot · weekly'}
+            accent="commodities"
+            className="com-bento-card"
+            source="EIA"
+            timestamp={eiaPetCtx?.lastUpdated || lastUpdated}
+            isLive={!!eiaPetCtx?.data?.isLive}
+            isCurrent={eiaPetCtx?.isCurrent ?? isCurrent}
+            fetchedOn={eiaPetCtx?.fetchedOn || fetchedOn}
+            fetchLog={eiaPetCtx?.fetchLog || fetchLog}
+            error={eiaPetCtx?.error || error}
+          >
+            <SafeECharts option={eiaPetrolOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EIA Petroleum & Natural Gas', source: 'EIA', endpoint: '/api/eia-petroleum', series: [{ id: 'EMM_EPMR_PTE_NUS_DPG' }, { id: 'RNGWHHD' }, { id: 'WCRSTUS1' }], updatedAt: eiaPetCtx?.lastUpdated || lastUpdated }} />
+          </BentoCard>
+        )}
+
+        {/* US trade balance by bloc */}
+        {tradeOption && (
+          <BentoCard
+            key="us-trade"
+            title="US Trade Balance"
+            subtitle={tradeCtx?.data?.summary
+              ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
+              : 'Monthly net trade by bloc · 24-month series · Census Bureau'}
+            accent="commodities"
+            className="com-bento-card"
+            source="US Census Bureau"
+            timestamp={tradeCtx?.lastUpdated || lastUpdated}
+            isLive={!!tradeCtx?.data?.isLive}
+            isCurrent={tradeCtx?.isCurrent ?? isCurrent}
+            fetchedOn={tradeCtx?.fetchedOn || fetchedOn}
+            fetchLog={tradeCtx?.fetchLog || fetchLog}
+            error={tradeCtx?.error || error}
+          >
+            <SafeECharts option={tradeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Trade Balance', source: 'US Census Bureau', endpoint: '/api/census-trade', series: [], updatedAt: tradeCtx?.lastUpdated || lastUpdated }} />
+          </BentoCard>
+        )}
 
       </BentoWrapper>
     </div>

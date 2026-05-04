@@ -5,11 +5,14 @@ import DataFooter from '../../components/DataFooter/DataFooter';
 import { useCurrency } from '../../hub/CurrencyContext';
 import './components/InsuranceDashboard.css';
 
-const HY_OAS_BASELINE = 350;
-function scaleCatBondSpreads(bonds, hyOAS) {
-  if (!hyOAS) return bonds;
-  const factor = hyOAS / HY_OAS_BASELINE;
-  return bonds.map(b => ({ ...b, spread: Math.round(b.spread * factor) }));
+// catBondSpreads from the server is now a heterogeneous list (one entry is
+// the ILS ETF daily change in %, others are HY/IG credit spreads in %). The
+// previous HY-OAS scale-factor assumed all entries were synthetic cat-bond
+// spreads in bps and mangled the values when the server contract changed
+// (factor ~0.008 against a 350-bps baseline → all spreads rounded to 0%).
+// Pass entries through unchanged; let the dashboard format each as %.
+function scaleCatBondSpreads(bonds /* , hyOAS */) {
+  return bonds;
 }
 
 function getInsuranceProps(centralData) {

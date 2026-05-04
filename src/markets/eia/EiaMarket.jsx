@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import MetricValue from '../../components/MetricValue/MetricValue';
 import BentoWrapper from '../../components/BentoWrapper';
+import BentoCard from '../../components/BentoCard/BentoCard';
 import DataFooter from '../../components/DataFooter/DataFooter';
 import './EiaMarket.css';
 
@@ -70,7 +71,6 @@ const ELEC_SECTORS = [
   { key: 'industrial', label: 'Industrial' },
 ];
 
-const stopDrag = (e) => e.stopPropagation();
 
 function getEiaProps(centralData) {
   const d = centralData.data || {};
@@ -112,67 +112,47 @@ function EiaMarket({ centralData } = {}) {
   return (
     <div className="eia-market">
       <BentoWrapper layout={EIA_LAYOUT} storageKey="eia-layout">
-        <div key="prices" className="bento-card">
-          <div className="eia-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">US Electricity Retail Prices</span>
+        <BentoCard key="prices" title="US Electricity Retail Prices" accent="eia" noFooter>
+          <div className="eia-kpi-grid">
+            {ELEC_SECTORS.map(({ key, label }) => (
+              <SectorCard key={key} label={label} data={props.electricity[key]} />
+            ))}
           </div>
-          <div className="bento-panel-content" onMouseDown={stopDrag}>
-            <div className="eia-kpi-grid">
-              {ELEC_SECTORS.map(({ key, label }) => (
-                <SectorCard key={key} label={label} data={props.electricity[key]} />
-              ))}
-            </div>
-          </div>
-        </div>
+        </BentoCard>
 
-        <div key="consumption" className="bento-card">
-          <div className="eia-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Electricity Consumption</span>
+        <BentoCard key="consumption" title="Electricity Consumption" accent="eia" noFooter>
+          <div className="eia-kpi-grid">
+            {ELEC_SECTORS.map(({ key, label }) => (
+              <SalesCard key={`sales-${key}`} label={label} data={props.electricity[key]} />
+            ))}
           </div>
-          <div className="bento-panel-content" onMouseDown={stopDrag}>
-            <div className="eia-kpi-grid">
-              {ELEC_SECTORS.map(({ key, label }) => (
-                <SalesCard key={`sales-${key}`} label={label} data={props.electricity[key]} />
-              ))}
-            </div>
-          </div>
-        </div>
+        </BentoCard>
 
-        <div key="trends" className="bento-card">
-          <div className="eia-panel-title-row bento-panel-title-row">
-            <span className="bento-panel-title">Price Trends (3-Year Monthly)</span>
+        <BentoCard key="trends" title="Price Trends (3-Year Monthly)" accent="eia" noFooter>
+          <div className="eia-chart-row">
+            {ELEC_SECTORS.filter(({ key }) => props.electricity[key]?.price?.values?.length >= 3).map(({ key, label }) => (
+              <div key={`chart-${key}`} className="eia-mini-chart">
+                <h4>{label} Price (¢/kWh)</h4>
+                <MiniSparkline values={props.electricity[key].price.values} color="#ffa726" />
+              </div>
+            ))}
           </div>
-          <div className="bento-panel-content" onMouseDown={stopDrag}>
-            <div className="eia-chart-row">
-              {ELEC_SECTORS.filter(({ key }) => props.electricity[key]?.price?.values?.length >= 3).map(({ key, label }) => (
-                <div key={`chart-${key}`} className="eia-mini-chart">
-                  <h4>{label} Price (¢/kWh)</h4>
-                  <MiniSparkline values={props.electricity[key].price.values} color="#ffa726" />
+        </BentoCard>
+
+        {co2Sectors.length > 0 && (
+          <BentoCard key="co2" title="CO₂ Emissions by Sector (US)" accent="eia" noFooter>
+            <div className="eia-co2-table">
+              {co2Sectors.map(s => (
+                <div key={s.name} className="eia-co2-row">
+                  <span className="eia-co2-sector">{s.name}</span>
+                  <span>
+                    <span className="eia-co2-value">{s.latest.toFixed(1)}</span>
+                    <span className="eia-co2-unit">{s.unit} ({s.period})</span>
+                  </span>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {co2Sectors.length > 0 && (
-          <div key="co2" className="bento-card">
-            <div className="eia-panel-title-row bento-panel-title-row">
-              <span className="bento-panel-title">CO₂ Emissions by Sector (US)</span>
-            </div>
-            <div className="bento-panel-content" onMouseDown={stopDrag}>
-              <div className="eia-co2-table">
-                {co2Sectors.map(s => (
-                  <div key={s.name} className="eia-co2-row">
-                    <span className="eia-co2-sector">{s.name}</span>
-                    <span>
-                      <span className="eia-co2-value">{s.latest.toFixed(1)}</span>
-                      <span className="eia-co2-unit">{s.unit} ({s.period})</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          </BentoCard>
         )}
       </BentoWrapper>
       <DataFooter source="EIA (US Energy Information Administration)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />

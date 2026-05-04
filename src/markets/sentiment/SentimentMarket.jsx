@@ -1,6 +1,7 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import { useCurrency } from '../../hub/CurrencyContext';
+import { useMarketData } from '../../hub/DataContext';
 import SentimentDashboard from './components/SentimentDashboard';
 import './SentimentMarket.css';
 
@@ -27,9 +28,12 @@ function getSentimentProps(centralData) {
 }
 
 function SentimentMarket({ centralData } = {}) {
+  // Hooks before any early return to keep call order stable across renders.
+  const { convert, currentSymbol } = useCurrency();
+  const newsCtx = useMarketData('fedNewsSentiment');
+
   if (!centralData) return <MarketSkeleton />;
   const props = getSentimentProps(centralData);
-  const { convert, currentSymbol } = useCurrency();
 
   if (props.isLoading) return <MarketSkeleton />;
 
@@ -55,6 +59,8 @@ function SentimentMarket({ centralData } = {}) {
           fetchLog={props.fetchLog}
           isLive={props.isLive}
           lastUpdated={props.lastUpdated}
+          newsSentimentData={newsCtx?.data}
+          newsSentimentLastUpdated={newsCtx?.lastUpdated}
         />
       </div>
     </div>
