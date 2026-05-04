@@ -79,8 +79,8 @@ const MARKET_COMPONENTS = {
   insurance:         lazy(() => import('../markets/insurance/InsuranceMarket')),
   commodities:       lazy(() => import('../markets/commodities/CommoditiesMarket')),
   globalMacro:       lazy(() => import('../markets/globalMacro/GlobalMacroMarket')),
-  imf:               lazy(() => import('../markets/imf/ImfMarket')),
-  worldbank:         lazy(() => import('../markets/worldbank/WorldBankMarket')),
+  // imf/worldbank/census merged into globalMacro and realEstate. Data still
+  // flows via DataProvider's MARKET_ENDPOINTS for cross-market reads.
   equitiesDeepDive:  lazy(() => import('../markets/equitiesDeepDive/EquitiesDeepDiveMarket')),
   crypto:            lazy(() => import('../markets/crypto/CryptoMarket')),
   credit:            lazy(() => import('../markets/credit/CreditMarket')),
@@ -88,7 +88,6 @@ const MARKET_COMPONENTS = {
   calendar:       lazy(() => import('../markets/calendar/CalendarMarket')),
   bls:            lazy(() => import('../markets/bls/BlsMarket')),
   eia:            lazy(() => import('../markets/eia/EiaMarket')),
-  census:          lazy(() => import('../markets/census/CensusMarket')),
   alerts:            lazy(() => import('../markets/alerts/AlertsMarket')),
   watchlist:         lazy(() => import('../markets/watchlist/WatchlistMarket')),
   analytics:         lazy(() => import('../markets/analytics/AnalyticsMarket')),
