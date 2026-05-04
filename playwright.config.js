@@ -3,8 +3,9 @@
 // auto-starts `npm start` (vite + express) and tears it down after.
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 5173;
-const BASE_URL = `http://localhost:${PORT}`;
+const PORT = Number(process.env.PLAYWRIGHT_PORT || 5173);
+const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || `http://localhost:${PORT}`;
+const SKIP_WEBSERVER = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 
 export default defineConfig({
   testDir: './tests',
@@ -22,7 +23,7 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  webServer: {
+  webServer: SKIP_WEBSERVER ? undefined : {
     command: 'npm start',
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,

@@ -124,7 +124,8 @@ Other routes follow the same pattern (warn + partial response); see any
 
 ## 6. FX rates
 
-`src/hub/CurrencyContext.jsx` provides FX rates globally via React context:
+`src/hub/CurrencyContext.jsx` provides FX rates globally via React context,
+backed by `src/utils/useFrankfurterRates.js`:
 
 - Primary: `api.frankfurter.dev/v1/latest?base=USD`, routed through
   `fetchWithRetry` (2 retries, 8 s per attempt, 20 s total budget).
@@ -134,9 +135,19 @@ Other routes follow the same pattern (warn + partial response); see any
 - Rates are fetched once on mount and shared via `CurrencyProvider` context.
   No background refresh if the session outlives the ECB daily publication.
 - `useCurrency()` hook provides `{ currency, setCurrency, rates, currentRate,
-  currentSymbol, convert }` to all markets. Only Equities currently converts
-  displayed values; other markets receive the context but do not yet apply
-  conversions.
+  currentSymbol, convert, convertAndFormat, ratesLive }` to all markets.
+- **Conversion happens at render time, in the panel that owns the value.**
+  Markets that display currency-denominated numbers (bonds, crypto, credit,
+  insurance, globalMacro country-detail) call `useCurrency().convert(value)`
+  or `convertAndFormat(value, 'USD', decimals)` explicitly. There is
+  intentionally NO automatic provider-level conversion, because at the
+  provider layer we cannot distinguish currency fields from yields,
+  percentages, ratios, indices, or counts. A previous experiment that
+  recursively rewrote every numeric field via `convert()` was removed
+  for that reason (see commit history).
+- Independence from `DataProvider`: `CurrencyProvider` wraps `DataProvider`
+  in the React tree, but uses its own `useFrankfurterRates` fetch — so
+  there is no circular dependency on the FX market's wave fetch.
 
 ## 7. Browser baseline
 

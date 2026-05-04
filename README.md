@@ -4,18 +4,55 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 
 ## 🚀 Quick Start
 
-1. **Install dependencies**: `npm install && cd server && npm install`
-2. **Configure environment**: `npm run setup` (interactive — creates `.env` from `.env.example` and walks you through each API key) — or copy `.env.example` to `.env` manually.
-3. **Launch**: `npm start` then open [http://localhost:5173](http://localhost:5173)
-4. **Verify**: dashboards auto-fetch on first load. Run `npm run test:regress` (or `node validate.mjs`) to get a screenshot + binding report for every tab.
+```bash
+# 1. install
+npm install
+cd server && npm install && cd ..
 
-**API keys:** all free, instant signup. Without them the matching panels show "Data source temporarily unavailable" but the app still runs.
+# 2. configure API keys (interactive — creates .env from .env.example)
+npm run setup
 
-| Key | Free signup | Powers |
+# 3. launch backend + Vite
+npm start            # → http://localhost:5173
+
+# 4. verify all panels bind (screenshots + bound/empty report)
+npm run test:validate
+```
+
+That's it. Dashboards auto-fetch on first load — no need to click refresh.
+
+**API keys** — all free, instant signup, all stored in `.env` (gitignored). Skip any and the matching panels show a "Data source temporarily unavailable" placeholder; the rest of the app keeps working.
+
+| Key | Powers | Free signup |
 |---|---|---|
-| `FRED_API_KEY` | https://fred.stlouisfed.org/docs/api/api_key.html | bonds, macro, credit, fx (DXY/REER), sentiment, real estate, insurance, calendar |
-| `EIA_API_KEY` | https://www.eia.gov/opendata/register.php | commodities supply/demand, eia tab |
-| `BLS_API_KEY` | https://data.bls.gov/registrationEngine/ | bls tab (optional — falls back to FRED if blank) |
+| `FRED_API_KEY` | bonds, macro, credit, fx (DXY/REER), sentiment, real estate, insurance, calendar | https://fred.stlouisfed.org/docs/api/api_key.html |
+| `EIA_API_KEY` | commodities supply/demand, eia tab | https://www.eia.gov/opendata/register.php |
+| `BLS_API_KEY` | bls tab (optional — falls back to FRED if blank) | https://data.bls.gov/registrationEngine/ |
+
+**Useful scripts**
+
+| Command | What it does |
+|---|---|
+| `npm start` | Boots Express backend on a free port + Vite dev server on 5173 |
+| `npm run setup` | Interactive `.env` walkthrough — prompts only for keys still blank |
+| `npm run test:regress` | API-shape + UI smoke check — non-zero exit on regression |
+| `npm run test:validate` | Playwright crawler — screenshots every tab, writes `test-results/validate.{md,json}` |
+| `npm run test:audit` | Playwright spec for PENDING/empty panels (soft report, never fails) |
+| `npm run test:coverage` | Strict per-panel coverage — registry-driven; **fails** when any registered panel goes empty or an unregistered panel appears. Source of truth: `tests/panel-registry.js`. |
+| `npm run test:persist` | Drag → reload → verify layout persisted |
+| `npm test` | Vitest unit suite (~380 tests) |
+
+**Documentation**
+
+- [`docs/PANELS.md`](docs/PANELS.md) — every tab + every panel with purpose, data source, signal interpretation
+- [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md) — end-to-end pipeline diagram (external APIs → server routes → DataProvider → panels), caching strategy, cross-market enrichment
+
+**Troubleshooting** — if a tab still shows "PENDING" / "NO DATA" after a code change:
+```bash
+del server\datacache\*.json     # Windows
+rm  server/datacache/*.json     # mac/linux
+```
+Caches survive 24h and can outlive a code change.
 
 ---
 
