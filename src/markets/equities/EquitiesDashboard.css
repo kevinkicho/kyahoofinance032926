@@ -122,21 +122,7 @@
   transition: none !important;
 }
 
-/* ── 4. Bento Card — react-grid-layout grid items ── */
-.eq-bento-card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  height: 100%;
-  container-type: inline-size;
-  container-name: bento-card;
-}
-
+/* ── 4. Bento Card ── base styling now in BentoWrapper.css's multi-selector */
 .eq-bento-card:hover {
   border-color: #3b82f6;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.15);
@@ -390,7 +376,9 @@
 }
 
 /* ── 10. Heatmap panel — force full height ── */
-.eq-bento-card .eq-panel-content > div {
+/* Excludes .pf-tracker (PortfolioTracker), which manages its own children's
+   flex behavior (header form fixed-size, holdings/chart flex-grow). */
+.eq-bento-card .eq-panel-content:not(.pf-tracker) > div {
   flex: 1;
   min-height: 0;
 }

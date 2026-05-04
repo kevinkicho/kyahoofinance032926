@@ -93,28 +93,12 @@ function macroApiPlugin() {
         }
       });
 
-      // Analytics dashboard data — proxy to Express backend
-      server.middlewares.use('/api/analytics', async (req, res) => {
-        res.setHeader('Content-Type', 'application/json');
-        try {
-          const backendPort = getBackendPort();
-          const url = `http://localhost:${backendPort}${req.originalUrl}`;
-          const opts = { method: req.method };
-          if (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE') {
-            let body = '';
-            for await (const chunk of req) body += chunk;
-            if (body) opts.body = body;
-            opts.headers = { 'Content-Type': 'application/json' };
-          }
-          const backendRes = await globalThis.fetch(url, opts);
-          const text = await backendRes.text();
-          res.statusCode = backendRes.status;
-          res.end(text);
-        } catch (e) {
-          res.statusCode = 502;
-          res.end(JSON.stringify({ error: `Analytics backend unreachable: ${e.message}` }));
-        }
-      });
+      // /api/analytics is handled by server.proxy below (see API_ROUTES).
+      // Removed a duplicate middleware that read .server-port per request
+      // and fell back to port 3001 if missing, returning 502 — but
+      // server.proxy already targets the correct port pinned at startup.
+      // Having both meant /api/analytics broke whenever .server-port was
+      // stale even though /api/stocks etc. worked fine.
 
       // /api/stocks, /api/summary, /api/history are proxied to Express (see server.proxy below)
 
@@ -205,6 +189,19 @@ const API_ROUTES = [
   '/api/cache', '/api/crypto', '/api/credit', '/api/sentiment',
   '/api/calendar', '/api/fx', '/api/rate-limits', '/api/analytics',
   '/api/institutional', '/api/worldbank', '/api/imf', '/api/fred', '/api/macro', '/api/bls', '/api/eia', '/api/census',
+  // Tier-1 public-data additions (NY Fed, FDIC, BEA, SEC EDGAR, ECB SDW,
+  // Eurostat, OECD, US Treasury TIC). Without entries here, Vite returns
+  // index.html for the requests and DataProvider blows up on JSON.parse.
+  '/api/nyfed', '/api/fdic', '/api/bea', '/api/edgar', '/api/ecb', '/api/eurostat', '/api/oecd', '/api/treasury',
+  // Federal Reserve sub-routes (FOMC SEP, Atlanta GDPNow, Cleveland inflation
+  // nowcast, SF news sentiment). Mounted under /api/fed/*.
+  '/api/fed',
+  // MSRB EMMA — US municipal-bond trade and primary-market activity.
+  '/api/msrb',
+  // OpenFEMA disaster declarations + USGS earthquakes — Insurance tab.
+  '/api/fema', '/api/usgs',
+  // Commodities-tab additions: USDA NASS, Census trade, EIA petroleum.
+  '/api/usda', '/api/census-trade', '/api/eia-petroleum',
   // Without these two, vite returned index.html for the requests and
   // DataProvider blew up on JSON parse — manifesting as the entire
   // equities/watchlist data being missing across the app.

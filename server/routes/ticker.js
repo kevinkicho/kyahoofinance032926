@@ -105,20 +105,27 @@ router.get('/history/:ticker', async (req, res) => {
     else if (period === '3m') start.setMonth(start.getMonth() - 3);
     else start.setFullYear(start.getFullYear() - 1);
 
-    const data = await yf.historical(ticker, {
+    // yahoo-finance2's `historical()` is deprecated and routes internally
+    // to `chart()`, but the auto-mapping returns just 1 row for some
+    // foreign-listed tickers (e.g. 000688.SS / STAR 50). Calling chart()
+    // directly with explicit period1/period2/interval returns the full
+    // window consistently.
+    const chartData = await yf.chart(ticker, {
       period1: start.toISOString().split('T')[0],
       period2: end.toISOString().split('T')[0],
       interval: '1d',
     });
-
-    const result = data.map(d => ({
-      date: d.date instanceof Date ? d.date.toISOString().split('T')[0] : String(d.date),
-      open: d.open,
-      high: d.high,
-      low: d.low,
-      close: d.close,
-      volume: d.volume,
-    }));
+    const quotes = Array.isArray(chartData?.quotes) ? chartData.quotes : [];
+    const result = quotes
+      .filter(q => q.close != null)
+      .map(q => ({
+        date: q.date instanceof Date ? q.date.toISOString().split('T')[0] : String(q.date).slice(0, 10),
+        open: q.open,
+        high: q.high,
+        low: q.low,
+        close: q.close,
+        volume: q.volume,
+      }));
 
     cache.set(cacheKey, result, 3600);
     res.json(result);

@@ -8,12 +8,17 @@ import BarRaceView from '../../components/BarRaceView/BarRaceView';
 import TimeTravel from '../../components/TimeTravel/TimeTravel';
 import DataHubView from '../../components/DataHubView/DataHubView';
 import BentoWrapper from '../../components/BentoWrapper';
+import BentoCard from '../../components/BentoCard/BentoCard';
 import DataFooter from '../../components/DataFooter/DataFooter';
 import { stockUniverseData } from '../../data/stockUniverse';
 import { currencySymbols } from '../../utils/constants';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
+import KeyIndicesStrip from './components/KeyIndicesStrip';
+import PortfolioTracker from './components/PortfolioTracker';
+import MLExplorer from './components/MLExplorer';
+import RadarView from './components/RadarView';
 import MetricValue from '../../components/MetricValue/MetricValue';
 
 import './EquitiesDashboard.css';
@@ -55,8 +60,51 @@ function usePersistedState(key, defaultValue) {
 
 const STORAGE_KEY = 'equities-view';
 
-const INDEX_TICKERS = ['^GSPC', '^IXIC', '^DJI', '^RUT'];
-const INDEX_LABELS = { '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', '^DJI': 'Dow Jones', '^RUT': 'Russell 2K' };
+const INDEX_TICKERS_US = ['^GSPC', '^IXIC', '^DJI', '^RUT'];
+// International — Europe + Japan + India + Australia. Combined into one
+// strip so the panel doesn't blow out vertically with too many groups.
+const INDEX_TICKERS_INTL = ['^STOXX50E', '^GDAXI', '^FTSE', '^FCHI', '^N225', '^NSEI', '^AXJO'];
+// China & HK strip: 4 native indices + 3 US-listed China ETFs that trade
+// during NY hours, so we have something live while the mainland is closed.
+// Note: STAR 50 (000688.SS) is requested as KSTR (KraneShares ETF tracker)
+// because Yahoo's chart endpoint returns only 1 day of history for the
+// native index — KSTR is the same exposure with a usable history series.
+const INDEX_TICKERS_CN = ['^HSI', '000300.SS', '000001.SS', '399001.SZ', 'KSTR', 'ASHR', 'FXI'];
+// Risk & macro — VIX (vol), 10Y Treasury yield (rates), DX=F (DXY dollar
+// futures since DX-Y.NYB is unreliable on Yahoo), and Gold (safe haven).
+// These four together capture most regime shifts that move equities.
+const INDEX_TICKERS_RISK = ['^VIX', '^TNX', 'DX=F', 'GC=F'];
+// Sector rotation — the four SPDR sectors that diverge most by cycle.
+const INDEX_TICKERS_SECTORS = ['XLK', 'XLF', 'XLE', 'XLV'];
+const INDEX_TICKERS = [
+  ...INDEX_TICKERS_US,
+  ...INDEX_TICKERS_INTL,
+  ...INDEX_TICKERS_CN,
+  ...INDEX_TICKERS_RISK,
+  ...INDEX_TICKERS_SECTORS,
+];
+const INDEX_LABELS = {
+  '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', '^DJI': 'Dow Jones', '^RUT': 'Russell 2K',
+  '^STOXX50E': 'Euro STOXX 50', '^GDAXI': 'DAX 40', '^FTSE': 'FTSE 100', '^FCHI': 'CAC 40',
+  '^N225': 'Nikkei 225', '^NSEI': 'NIFTY 50', '^AXJO': 'ASX 200',
+  '^HSI': 'Hang Seng', '000300.SS': 'CSI 300', '000001.SS': 'Shanghai',
+  '399001.SZ': 'Shenzhen',
+  'KSTR': 'STAR 50 (KSTR ETF)', 'ASHR': 'ASHR (CSI 300 ETF)', 'FXI': 'FXI (China L-Cap ETF)',
+  '^VIX': 'VIX', '^TNX': '10Y Yield', 'DX=F': 'Dollar Index', 'GC=F': 'Gold',
+  'XLK': 'XLK · Tech', 'XLF': 'XLF · Financials', 'XLE': 'XLE · Energy', 'XLV': 'XLV · Healthcare',
+};
+// Currency hint per ticker — used to suffix the price formatter so an
+// HKD or CNY index doesn't get read as USD. VIX/^TNX have no currency
+// (they're index points / yield %) so leave blank.
+const INDEX_CURRENCY = {
+  '^GSPC': '', '^IXIC': '', '^DJI': '', '^RUT': '',
+  '^STOXX50E': 'EUR', '^GDAXI': 'EUR', '^FTSE': 'GBP', '^FCHI': 'EUR',
+  '^N225': 'JPY', '^NSEI': 'INR', '^AXJO': 'AUD',
+  '^HSI': 'HKD', '000300.SS': 'CNY', '000001.SS': 'CNY', '399001.SZ': 'CNY',
+  'KSTR': 'USD', 'ASHR': 'USD', 'FXI': 'USD',
+  '^VIX': '', '^TNX': '%', 'DX=F': '', 'GC=F': 'USD',
+  'XLK': 'USD', 'XLF': 'USD', 'XLE': 'USD', 'XLV': 'USD',
+};
 
 // rowHeight is 120px in BentoWrapper, so h:5 = 600px and h:6 = 720px.
 // h:5 was leaving ~80px of empty vertical space below the heatmap panel
@@ -66,43 +114,47 @@ const INDEX_LABELS = { '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', '^DJI': 'Dow Jones
 // KPI strip (S&P 500 / NASDAQ / Dow / Russell 2K) is now a real bento
 // child at row 0 (h:2). All view-mode layouts include it as the first
 // entry; the rest shift down 2 rows. Storage keys bumped.
+// KPI panel: bumped h:2 -> h:4 (528px) to fit 5 groups (US, International,
+// China & HK, Risk & Macro, Sectors). Each group is ~78-95px tall (label +
+// strip with pills); 5 groups + title + footer ≈ 460-540px. h:4 covers
+// that with no clipping. h:3 (392px) clipped the bottom rows.
 const HEATMAP_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 2 },
-    { i: 'heatmap', x: 0, y: 2, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 2, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
+    { i: 'heatmap', x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
 const RADAR_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 2 },
-    { i: 'radar',   x: 0, y: 2, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 2, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
+    { i: 'radar',   x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
 const RACE_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 2 },
-    { i: 'race',   x: 0,  y: 2, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 2, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
+    { i: 'race',   x: 0,  y: 4, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
 const LIST_LAYOUT = {
   lg: [
-    { i: 'kpi',            x: 0, y: 0, w: 12, h: 2 },
-    { i: 'list-main',      x: 0, y: 2, w: 8,  h: 6 },
-    { i: 'detail-sidebar', x: 8, y: 2, w: 4,  h: 6 },
+    { i: 'kpi',            x: 0, y: 0, w: 12, h: 4 },
+    { i: 'list-main',      x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'detail-sidebar', x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
 const ML_LAYOUT = {
   lg: [
-    { i: 'kpi',         x: 0, y: 0, w: 12, h: 2 },
-    { i: 'ml-explorer', x: 0, y: 2, w: 8,  h: 6 },
-    { i: 'sidebar',     x: 8, y: 2, w: 4,  h: 6 },
+    { i: 'kpi',         x: 0, y: 0, w: 12, h: 4 },
+    { i: 'ml-explorer', x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'sidebar',     x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
@@ -110,8 +162,8 @@ const ML_LAYOUT = {
 // ReferenceError in the Portfolio sub-tab. Now defined alongside the KPI.
 const PORTFOLIO_LAYOUT = {
   lg: [
-    { i: 'kpi',       x: 0, y: 0, w: 12, h: 2 },
-    { i: 'portfolio', x: 0, y: 2, w: 12, h: 6 },
+    { i: 'kpi',       x: 0, y: 0, w: 12, h: 4 },
+    { i: 'portfolio', x: 0, y: 4, w: 12, h: 6 },
   ]
 };
 
@@ -221,7 +273,33 @@ function formatTimestamp(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+// One-time cleanup of obsolete layout-storage keys. Older versions of
+// the app saved layouts to `equities-*-layout`, `…-v2`, and `…-v3`.
+// When BentoWrapper later writes a layout under v4, RGL synthesizes
+// 1×1 entries for items it can't match — including ones missing from a
+// stale saved layout. Wiping the older keys guarantees v4 starts clean
+// for every user, regardless of browser cache state.
+const STALE_LAYOUT_KEYS = [
+  'equities-heatmap-layout',   'equities-heatmap-layout-v2',   'equities-heatmap-layout-v3',   'equities-heatmap-layout-v4',   'equities-heatmap-layout-v5',
+  'equities-list-layout',      'equities-list-layout-v2',      'equities-list-layout-v3',      'equities-list-layout-v4',      'equities-list-layout-v5',
+  'equities-radar-layout',     'equities-radar-layout-v2',     'equities-radar-layout-v3',     'equities-radar-layout-v4',     'equities-radar-layout-v5',
+  'equities-race-layout',      'equities-race-layout-v2',      'equities-race-layout-v3',      'equities-race-layout-v4',      'equities-race-layout-v5',
+  'equities-portfolio-layout', 'equities-portfolio-layout-v2', 'equities-portfolio-layout-v3', 'equities-portfolio-layout-v4', 'equities-portfolio-layout-v5',
+  'equities-ml-layout',        'equities-ml-layout-v2',        'equities-ml-layout-v3',        'equities-ml-layout-v4',        'equities-ml-layout-v5',
+];
+let __equitiesLayoutCleanupRan = false;
+function purgeStaleLayoutKeys() {
+  if (__equitiesLayoutCleanupRan || typeof window === 'undefined') return;
+  __equitiesLayoutCleanupRan = true;
+  for (const k of STALE_LAYOUT_KEYS) {
+    try { localStorage.removeItem(k); } catch { /* ignore */ }
+  }
+}
+
 export default function EquitiesMarket({ currency, setCurrency }) {
+  // Wipe legacy layout keys before any RGL render so a stale v3 entry can't
+  // sneak into the v4 layout merge as a degenerate 1×1.
+  purgeStaleLayoutKeys();
   const [viewMode, setViewMode] = usePersistedState(`${STORAGE_KEY}-viewMode`, 'heatmap');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'value', direction: 'descending' });
@@ -579,31 +657,61 @@ export default function EquitiesMarket({ currency, setCurrency }) {
 
   const globalValCap = flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0);
 
+    // Synthetic fetchLog so DataFooter's click-to-open popover has something
+    // to render. Without this, open() bails on `fetchLog.length === 0` and
+    // clicking the FETCHED bar appears to do nothing.
+    const quotesFetchLog = [{
+      time: dataTimestamp,
+      url: '/api/stocks',
+      status: dataTimestamp && dataTimestamp !== STATIC_DATA_TIMESTAMP ? 200 : 0,
+      sources: {
+        'Yahoo Finance · /api/stocks': {
+          _source: 'Yahoo Finance',
+          _description: `Live equity quotes for top ${REFRESH_BATCH} tickers (price, change %, market cap, 52w high/low). Refresh updates marketUniverse and persists to IndexedDB.`,
+        },
+        'Stock universe (local)': {
+          _source: 'src/data/stockUniverse.js',
+          _description: 'Static base universe — sectors, regions, fundamentals — overlaid with live quotes when available.',
+        },
+      },
+    }];
     const commonFooter = (
-      <DataFooter 
-        source="Yahoo Finance" 
-        timestamp={dataTimestamp} 
-        isLive={true} 
+      <DataFooter
+        source="Yahoo Finance"
+        timestamp={dataTimestamp}
+        isLive={true}
         isCurrent={true}
         fetchedOn={dataTimestamp}
+        fetchLog={quotesFetchLog}
       />
     );
 
+    const sidebarFooter = (
+      <div className="eq-panel-footer">
+        {selectedTicker
+          ? (selectedTicker.isLoading ? 'Loading live data…' : (selectedTicker.isLive ? `Fetched · Yahoo Finance` : 'Static data · Click ticker for quote'))
+          : <>{`Data as of ${dataTimestamp} · FX: ${ratesLive ? 'Fetched (ECB)' : 'Fallback'}`} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></>}
+        {commonFooter}
+      </div>
+    );
     const sidebarPanel = (
-      <div key="sidebar" className="eq-bento-card">
-        <div className="eq-panel-title-row bento-panel-title-row">
-          <span className="eq-panel-title">Market Summary</span>
-        </div>
-        <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-          {selectedTicker ? (
-            <DetailPanel
-              selectedTicker={selectedTicker}
-              setSelectedTicker={setSelectedTicker}
-              currentRate={currentRate}
-              currentSymbol={currentSymbol}
-            />
-          ) : (
-            <div className="eq-summary">
+      <BentoCard
+        key="sidebar"
+        title="Market Summary"
+        accent="equities"
+        className="eq-bento-card"
+        contentClassName="eq-panel-content"
+        footer={sidebarFooter}
+      >
+        {selectedTicker ? (
+          <DetailPanel
+            selectedTicker={selectedTicker}
+            setSelectedTicker={setSelectedTicker}
+            currentRate={currentRate}
+            currentSymbol={currentSymbol}
+          />
+        ) : (
+          <div className="eq-summary">
                <div className="eq-stat-card">
                  <div className="eq-stat-label">Global Market Cap ({currency})</div>
                  <div className="eq-stat-value">
@@ -665,51 +773,78 @@ export default function EquitiesMarket({ currency, setCurrency }) {
               )}
               <div className="eq-hint">Click any cell on the heatmap to view details</div>
             </div>
-          )}
-        </div>
-        <div className="eq-panel-footer">
-          {selectedTicker
-            ? (selectedTicker.isLoading ? 'Loading live data…' : (selectedTicker.isLive ? `Fetched · Yahoo Finance` : 'Static data · Click ticker for quote'))
-            : <>{`Data as of ${dataTimestamp} · FX: ${ratesLive ? 'Fetched (ECB)' : 'Fallback'}`} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></>}
-          {commonFooter}
-        </div>
-      </div>
+        )}
+      </BentoCard>
     );
 
   // KPI strip becomes a real bento child rendered as the first item of
   // each view-mode's BentoWrapper. Same content regardless of view mode,
   // so render it once into a variable and reuse.
+  // Build pills for a single ticker. Carries `ticker` + `currency` so the
+  // KeyIndicesStrip popover can fetch /api/history and label units.
+  const buildPill = (tk) => {
+    const q = indexQuotes?.[tk];
+    const label = INDEX_LABELS[tk];
+    const price = q?.price;
+    const changePct = q?.changePct;
+    const change = q?.change;
+    const hasData = price != null;
+    const ccy = INDEX_CURRENCY[tk] || '';
+    return {
+      ticker:   tk,
+      label,
+      currency: ccy,
+      value:    hasData ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—',
+      color:    hasData ? (changePct >= 0 ? '#4ade80' : '#f87171') : 'var(--text-primary)',
+      trend:    hasData ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : null,
+      // Sublabel carries the absolute change AND the currency for non-USD
+      // indices, so a glance at the strip makes the unit obvious.
+      sublabel: hasData
+        ? `(${change >= 0 ? '+' : ''}${change.toFixed(2)})${ccy && ccy !== 'USD' ? ` ${ccy}` : ''}`
+        : 'no data',
+    };
+  };
+
+  // Derive footer state from the index-quotes payload. fetchLog is a single
+  // synthetic entry per ticker so the popover surfaces something useful;
+  // isLive is true if any pill has data.
+  const indexFetchLog = INDEX_TICKERS.map(tk => ({
+    time: indexQuotes?._timestamp || new Date().toISOString(),
+    url: `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(tk)}`,
+    status: indexQuotes?.[tk]?.price != null ? 200 : 0,
+    sources: indexQuotes?.[tk] ? { [INDEX_LABELS[tk]]: { _source: 'Yahoo Finance', _ticker: tk, _currency: INDEX_CURRENCY[tk] || 'USD' } } : null,
+  }));
+  const indexIsLive = INDEX_TICKERS.some(tk => indexQuotes?.[tk]?.price != null);
+  const indexLastUpdated = indexQuotes?._timestamp || null;
+
+  // DataFooter is rendered by BentoCard in its footer slot (flush at the
+  // bottom of the card, like every other panel). KeyIndicesStrip itself
+  // no longer renders a footer — pass `source` to it as undefined so the
+  // internal footer is suppressed.
   const kpiBentoCard = (
-    <div key="kpi" className="eq-bento-card">
-      <div className="eq-panel-title-row bento-panel-title-row">
-        <span className="eq-panel-title">Key Indices</span>
-        <span className="eq-panel-subtitle">S&P 500 · NASDAQ · Dow · Russell 2000 — live Yahoo Finance quotes</span>
-      </div>
-      <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-        <MarketKpiStrip
-          kpis={INDEX_TICKERS.map(tk => {
-            const q = indexQuotes?.[tk];
-            const label = INDEX_LABELS[tk];
-            const price = q?.price;
-            const changePct = q?.changePct;
-            const change = q?.change;
-            const hasData = price != null;
-            const seriesKey = { '^GSPC': 'sp500', '^IXIC': 'nasdaq', '^DJI': 'dowJones', '^RUT': 'russell2k' }[tk];
-            return {
-              label,
-              rawValue: price,
-              value: hasData ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—',
-              format: v => typeof v === 'number' ? v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—',
-              seriesKey,
-              color: hasData ? (changePct >= 0 ? '#4ade80' : '#f87171') : 'var(--text-primary)',
-              trend: hasData ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%` : null,
-              sublabel: hasData ? `(${change >= 0 ? '+' : ''}${change.toFixed(2)})` : 'no data',
-            };
-          })}
-          bare
-        />
-      </div>
-    </div>
+    <BentoCard
+      key="kpi"
+      title="Key Indices"
+      subtitle="US · Intl · China & HK · Risk · Sectors — live Yahoo Finance quotes · hover/click pill for 3-month chart"
+      accent="equities"
+      className="eq-bento-card"
+      contentClassName="eq-panel-content"
+      source="Yahoo Finance"
+      timestamp={indexLastUpdated}
+      isLive={indexIsLive}
+      isCurrent={true}
+      fetchLog={indexFetchLog}
+    >
+      <KeyIndicesStrip
+        groups={[
+          { label: 'US',                                                kpis: INDEX_TICKERS_US.map(buildPill) },
+          { label: 'International · Europe + Japan + India + Aus',      kpis: INDEX_TICKERS_INTL.map(buildPill) },
+          { label: 'China & HK · native + USD-listed ETFs',             kpis: INDEX_TICKERS_CN.map(buildPill) },
+          { label: 'Risk & Macro · VIX, 10Y, DXY, Gold',                kpis: INDEX_TICKERS_RISK.map(buildPill) },
+          { label: 'Sectors · cycle-driven SPDRs',                      kpis: INDEX_TICKERS_SECTORS.map(buildPill) },
+        ]}
+      />
+    </BentoCard>
   );
 
   return (
@@ -729,7 +864,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
           onRowClick={handleSelectTicker}
         />
       ) : viewMode === 'ml-explorer' ? (
-        <BentoWrapper layout={ML_LAYOUT} storageKey="equities-ml-layout-v2">
+        <BentoWrapper layout={ML_LAYOUT} storageKey="equities-ml-layout-v6">
           {kpiBentoCard}
           <div key="ml-explorer" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -746,7 +881,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
           {sidebarPanel}
         </BentoWrapper>
       ) : viewMode === 'list' ? (
-        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v2">
+        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v6">
           {kpiBentoCard}
           <div key="list-main" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -790,7 +925,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
           )}
         </BentoWrapper>
       ) : viewMode === 'heatmap' ? (
-        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v2">
+        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v6">
           {kpiBentoCard}
           <div key="heatmap" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -817,21 +952,20 @@ export default function EquitiesMarket({ currency, setCurrency }) {
           {sidebarPanel}
         </BentoWrapper>
       ) : viewMode === 'portfolio' ? (
-        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v2">
+        // PORTFOLIO_LAYOUT only has 'kpi' + 'portfolio' slots — sidebar
+        // intentionally omitted because Portfolio takes full width. Don't
+        // render <sidebarPanel> here, otherwise RGL falls back to a 1×1
+        // default and Market Summary collapses to a 116×120 stub.
+        // PortfolioTracker also brings its own title row, so we wrap it in
+        // a slim shell instead of the redundant eq-panel-title chrome.
+        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v6">
           {kpiBentoCard}
-          <div key="portfolio" className="eq-bento-card">
-            <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">Portfolio Tracker</span>
-              <span className="eq-panel-subtitle">Add holdings · allocation pie · weighted return</span>
-            </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <PortfolioTracker indexQuotes={indexQuotes} onTickerSelect={handleSelectTicker} />
-            </div>
+          <div key="portfolio" className="eq-bento-card" onMouseDown={stopDrag}>
+            <PortfolioTracker indexQuotes={indexQuotes} onTickerSelect={handleSelectTicker} />
           </div>
-          {sidebarPanel}
         </BentoWrapper>
       ) : viewMode === 'radar' ? (
-        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v2">
+        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v6">
           {kpiBentoCard}
           <div key="radar" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -852,7 +986,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
           {sidebarPanel}
         </BentoWrapper>
       ) : (
-        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v2">
+        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v6">
           {kpiBentoCard}
           <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="eq-panel-title-row bento-panel-title-row">
