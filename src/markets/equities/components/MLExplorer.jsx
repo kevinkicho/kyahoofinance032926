@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { apiUrl } from '../../../lib/api';
 import SafeECharts from '../../../components/SafeECharts';
 import DataFooter from '../../../components/DataFooter/DataFooter';
 import { useTheme } from '../../../hub/ThemeContext';
@@ -230,7 +231,7 @@ const MLExplorer = ({ flatData, onTickerSelect }) => {
     let cancelled = false;
     setIsLoadingDetail(true);
     const enc = encodeURIComponent(selectedTicker.ticker);
-    fetch(`/api/summary/${enc}?region=${encodeURIComponent(selectedTicker.region || '')}`)
+    fetch(apiUrl(`/api/summary/${enc}?region=${encodeURIComponent(selectedTicker.region || '')}`))
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (!cancelled) setSummaryData(data); })
       .catch(() => {})

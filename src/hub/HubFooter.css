@@ -79,3 +79,15 @@
 .hub-footer-dot {
   color: var(--text-dim, #64748b);
 }
+
+/* Tiny indicator that the data is coming from the external Functions backend
+   (visible on the GitHub Pages deployment). Helps during debugging. */
+.hub-footer-backend {
+  font-size: 9px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-dim, #64748b);
+  align-self: center;
+}

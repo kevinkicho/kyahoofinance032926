@@ -3,6 +3,7 @@ import SafeECharts from '../SafeECharts';
 import './DetailPanel.css';
 import { useTheme } from '../../hub/ThemeContext';
 import { fetchWithRetry } from '../../utils/fetchWithRetry';
+import { apiUrl } from '../../lib/api';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -611,7 +612,7 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
 
   useEffect(() => {
     let cancelled = false;
-    fetchWithRetry('/api/macro', { retries: 1, timeout: 10000 })
+    fetchWithRetry(apiUrl('/api/macro'), { retries: 1, timeout: 10000 })
       .then(r => r.json())
       .then(data => { if (!cancelled && data && Object.keys(data).length) setMacroData(data); })
       .catch(() => {});

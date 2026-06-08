@@ -3,8 +3,18 @@ import DataContext from './DataContext';
 import { useInterval } from '../hooks/useInterval';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { putSnapshot, todayStr } from '../utils/snapshotDB';
+import { getApiBaseUrl, getApiInfo } from '../lib/api';
 
-const SERVER = '';
+const API_BASE = getApiBaseUrl();
+const API_INFO = getApiInfo();
+
+// One-time visibility into which backend the bundle is talking to.
+// Extremely useful after a Pages deploy when debugging "why is nothing loading?"
+if (!import.meta.env.DEV) {
+  console.info('[DataProvider] API backend:', API_INFO);
+} else {
+  console.info('[DataProvider] dev mode – using Vite proxy for /api');
+}
 
 // Verbose fetch progress is helpful in dev but noisy in production.
 // Gate behind import.meta.env.DEV so prod builds stay clean.
@@ -182,7 +192,7 @@ async function fetchMarket(marketId) {
   const t0 = performance.now();
   try {
     dlog(`[DataProvider] → ${marketId}`);
-    const r = await fetchWithRetry(`${SERVER}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
+    const r = await fetchWithRetry(`${API_BASE}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
     const data = await r.json();
     const dur = Math.round(performance.now() - t0);
     const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;
@@ -447,7 +457,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const t0 = performance.now();
     try {
       dlog(`[DataProvider] → ${marketId}`);
-      const r = await fetchWithRetry(`${SERVER}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
+      const r = await fetchWithRetry(`${API_BASE}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
       const data = await r.json();
       const dur = Math.round(performance.now() - t0);
       const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;

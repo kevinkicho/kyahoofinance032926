@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../lib/api';
+import { api, getApiInfo } from '../lib/api';
 import DATA_SOURCES from './dataSources';
 import './HubFooter.css';
+
+const apiInfo = getApiInfo();
 
 const MARKET_LABELS = {
   bonds:          'Bonds',
@@ -34,8 +36,13 @@ export default function HubFooter({ activeMarket }) {
   const sources = DATA_SOURCES[activeMarket] || [];
 
   return (
-    <footer className="hub-footer">
+    <footer className="hub-footer" title={apiInfo.isExternal ? `Backend: ${apiInfo.base}` : 'Local dev (Vite proxy)'}>
       <span className="hub-footer-time">{dateStr} · {timeStr}</span>
+      {apiInfo.isExternal && (
+        <span className="hub-footer-backend" title={apiInfo.base}>
+          api
+        </span>
+      )}
 
       {/* Data source attribution for active market */}
       {sources.length > 0 && (

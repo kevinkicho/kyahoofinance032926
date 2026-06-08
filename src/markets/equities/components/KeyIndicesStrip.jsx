@@ -13,6 +13,7 @@
 // render it inline at the end of the content, which left it floating
 // mid-panel with empty space below.
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { apiUrl } from '../../../lib/api';
 import { createPortal } from 'react-dom';
 
 // Tiny inline SVG sparkline. Styled green if last > first, red if down.
@@ -171,7 +172,7 @@ export default function KeyIndicesStrip({
     if (hist[ticker]?.history || hist[ticker]?.loading) return;
     setHist(prev => ({ ...prev, [ticker]: { loading: true } }));
     try {
-      const r = await fetch(`/api/history/${encodeURIComponent(ticker)}?period=3m`);
+      const r = await fetch(apiUrl(`/api/history/${encodeURIComponent(ticker)}?period=3m`));
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       if (Array.isArray(data) && data.length) {

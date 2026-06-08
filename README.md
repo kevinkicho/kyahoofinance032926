@@ -585,7 +585,58 @@ npm run build
 docker-compose up --build   # http://localhost:3001
 ```
 
-### 7. (Optional) Pre-fetch equity data
+### 7. Deploy frontend to GitHub Pages + Firebase Functions backend (the live setup)
+
+This app is a static SPA. When deployed to GitHub Pages (or any static host) it has **no local backend**, so all data must come from the Firebase Functions deployment.
+
+**One-time setup (do this in the GitHub repo UI):**
+
+1. Go to your repo → **Settings → Secrets and variables → Actions → Variables** (tab).
+2. Add a new **Variable**:
+   - Name: `VITE_API_BASE_URL`
+   - Value: the root URL of your `api` Cloud Function. After running the deploy command below you will see it printed. Typical value for this project:
+     ```
+     https://us-central1-kfinance032926.cloudfunctions.net/api
+     ```
+   (If you ever change regions or use a custom domain / Cloud Run direct URL, just update this variable.)
+
+**Deploy steps (run locally or via the workflow):**
+
+```bash
+# 1. Make sure your Firebase Functions are up to date and note the printed URL
+firebase deploy --only functions
+
+# 2. (Optional but recommended) Set the VITE_API_BASE_URL variable in the repo
+#    (see "One-time setup" above). The GitHub Action will pick it up automatically.
+
+# 3. Push to main (or use "Run workflow" from the Actions tab)
+git push origin main
+```
+
+The workflow (`.github/workflows/deploy-pages.yml`) will:
+- Build the Vite app (injecting `VITE_API_BASE_URL` if present)
+- Deploy the `dist/` folder to GitHub Pages
+
+After the Pages deployment finishes, hard-refresh the live site. All the previous 404s for `/api/*` should be gone because `DataProvider` and the other data layers now use the full external backend URL in production.
+
+**Verifying the live backend from the browser:**
+
+Open DevTools → Console. You should see lines like:
+```
+[DataProvider] → bonds
+[DataProvider] ✓ bonds 200 ...
+```
+
+You can also call the health endpoint directly:
+```
+https://us-central1-kfinance032926.cloudfunctions.net/api/api/health
+```
+
+**Updating the backend URL later**
+
+Just change the `VITE_API_BASE_URL` repository variable and re-run the Pages workflow (or push an empty commit). No code change required.
+
+### 8. (Optional) Pre-fetch equity data
 
 Downloads 5 years of history + fundamentals for 350+ tickers (~52 MB, ~21 min):
 

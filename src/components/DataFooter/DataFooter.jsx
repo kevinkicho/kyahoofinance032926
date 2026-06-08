@@ -1,8 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import './DataFooter.css';
+import { apiUrl } from '../../lib/api';
 
-const FRED_API_BASE = '/api/fred/observations';
+const FRED_API_BASE = apiUrl('/api/fred/observations');
 
 const SOURCE_META = {
   'US Treasury Yields': { desc: 'US Treasury yield curve across tenors (3M\u201330Y)', series: ['DGS3MO', 'DGS6MO', 'DGS1', 'DGS2', 'DGS5', 'DGS7', 'DGS10', 'DGS20', 'DGS30'] },
@@ -236,7 +237,7 @@ function SourceBlock({ name, received, meta }) {
 function EntryDetail({ entry }) {
   const { utc, offset } = formatUTC(entry.time);
   const url = entry.url || '';
-  const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url;
+  const fullUrl = url.startsWith('/') ? apiUrl(url) : url;
 
   return (
     <div className="df-detail">

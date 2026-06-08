@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { apiUrl } from '../../lib/api';
 
 const FRED_BASE = 'https://fred.stlouisfed.org/series';
 
 function fredApiUrl(seriesId) {
-  return `/api/fred/observations?series_id=${seriesId}&file_type=json&sort_order=desc&limit=5`;
+  return apiUrl(`/api/fred/observations?series_id=${seriesId}&file_type=json&sort_order=desc&limit=5`);
 }
 
 function isFRED(id) {
@@ -72,7 +73,7 @@ export default function ChartSourcePopover({ sourceInfo, anchorPos, onClose }) {
               <td className="mv-label">Endpoint</td>
               <td className="mv-mono">
                 <a
-                  href={sourceInfo.endpoint.startsWith('/') ? `${window.location.origin}${sourceInfo.endpoint}` : sourceInfo.endpoint}
+                  href={sourceInfo.endpoint.startsWith('/') ? apiUrl(sourceInfo.endpoint) : sourceInfo.endpoint}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: '#60a5fa', textDecoration: 'none', fontSize: 9 }}
@@ -99,7 +100,7 @@ export default function ChartSourcePopover({ sourceInfo, anchorPos, onClose }) {
                   </>
                 )}
                 {!isFRED(s.id) && s.url && (
-                  <a href={s.url.startsWith('/') ? `${window.location.origin}${s.url}` : s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', fontSize: 9 }}>Fetch JSON</a>
+                  <a href={s.url.startsWith('/') ? apiUrl(s.url) : s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textDecoration: 'none', fontSize: 9 }}>Fetch JSON</a>
                 )}
               </span>
             </div>

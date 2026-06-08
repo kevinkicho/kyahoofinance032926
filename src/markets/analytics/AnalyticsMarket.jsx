@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { api } from '../../lib/api';
+import { api, apiUrl } from '../../lib/api';
 import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import { useMarketData } from '../../hub/DataContext';
 import './AnalyticsDashboard.css';
 
-const FRED_API_BASE = '/api/fred/observations';
+const FRED_API_BASE = apiUrl('/api/fred/observations');
 
 import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
 
@@ -438,21 +438,21 @@ export default function AnalyticsMarket() {
   const fetchEpDetail = useCallback(async (epPath) => {
     const encoded = encodeURIComponent(epPath.substring(1));
     try {
-      const res = await fetch(`/api/analytics/endpoint/${encoded}`);
+      const res = await fetch(apiUrl(`/api/analytics/endpoint/${encoded}`));
       if (res.ok) setEpDetail(await res.json());
     } catch {}
   }, []);
 
   const fetchMarketDetail = useCallback(async (market) => {
     try {
-      const res = await fetch(`/api/analytics/cache/${market}`);
+      const res = await fetch(apiUrl(`/api/analytics/cache/${market}`));
       if (res.ok) setMarketDetail(await res.json());
     } catch {}
   }, []);
 
   const clearMarketCache = useCallback(async (market) => {
     try {
-      const res = await fetch(`/api/analytics/cache/${market}`, { method: 'DELETE' });
+      const res = await fetch(apiUrl(`/api/analytics/cache/${market}`), { method: 'DELETE' });
       if (res.ok) { fetchData(); }
     } catch {}
   }, [fetchData]);

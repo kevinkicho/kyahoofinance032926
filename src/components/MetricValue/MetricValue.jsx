@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import './MetricValue.css';
+import { apiUrl } from '../../lib/api';
 
 const FRED_BASE = 'https://fred.stlouisfed.org/series';
-const FRED_API_BASE = '/api/fred/observations';
+const FRED_API_BASE = apiUrl('/api/fred/observations');
 
 function formatTimestampUTC(ts) {
   if (!ts) return null;
@@ -400,7 +401,7 @@ export default function MetricValue({ value, format, seriesKey, timestamp, class
               </>
             )}
             {info.url && (
-              <a href={info.url.startsWith('/') ? `${window.location.origin}${info.url}` : info.url} target="_blank" rel="noopener noreferrer">Dashboard API</a>
+              <a href={info.url.startsWith('/') ? apiUrl(info.url) : info.url} target="_blank" rel="noopener noreferrer">Dashboard API</a>
             )}
           </div>
         </div>,
