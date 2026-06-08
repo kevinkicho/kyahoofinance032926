@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
+import { api } from '../../lib/api';
 import Header from '../../components/Header/Header';
 import HeatmapView from '../../components/HeatmapView/HeatmapView';
 import ListView from '../../components/ListView/ListView';
@@ -330,12 +331,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   }, []);
 
   const fetchIndexQuotes = useCallback(() => {
-    fetch('/api/stocks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tickers: INDEX_TICKERS }),
-    })
-      .then(r => r.json())
+    api.post('/api/stocks', { tickers: INDEX_TICKERS })
       .then(data => setIndexQuotes(data))
       .catch(() => {});
   }, []);
@@ -353,12 +349,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       });
     });
     const topTickers = allTickers.slice(0, REFRESH_BATCH);
-    fetch('/api/stocks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tickers: topTickers }),
-    })
-      .then(r => r.json())
+    api.post('/api/stocks', { tickers: topTickers })
       .then(quotes => {
         const now = formatTimestamp(new Date());
         const stamp = `Fetched · Yahoo Finance · ${now}`;
@@ -586,20 +577,16 @@ export default function EquitiesMarket({ currency, setCurrency }) {
     const enc = encodeURIComponent(tickerInfo.ticker);
 
     const [quoteRes, summaryRes, historyRes] = await Promise.allSettled([
-      fetch('/api/stocks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tickers: [tickerInfo.ticker] })
-      }),
-      fetch(`/api/summary/${enc}?region=${encodeURIComponent(tickerInfo.region || '')}`),
-      fetch(`/api/history/${enc}?period=5y&region=${encodeURIComponent(tickerInfo.region || '')}`),
+      api.post('/api/stocks', { tickers: [tickerInfo.ticker] }),
+      api.get(`/api/summary/${enc}?region=${encodeURIComponent(tickerInfo.region || '')}`),
+      api.get(`/api/history/${enc}?period=5y&region=${encodeURIComponent(tickerInfo.region || '')}`),
     ]);
 
     let mergedDetails = {};
     let isLive = false;
 
-    if (quoteRes.status === 'fulfilled' && quoteRes.value.ok) {
-      const liveData = await quoteRes.value.json();
+    if (quoteRes.status === 'fulfilled') {
+      const liveData = quoteRes.value;
       const live = liveData[tickerInfo.ticker];
       if (live) {
         isLive = true;
@@ -630,10 +617,8 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       mergedDetails = {};
     }
 
-    const summaryData = (summaryRes.status === 'fulfilled' && summaryRes.value.ok)
-      ? await summaryRes.value.json() : null;
-    const historyData = (historyRes.status === 'fulfilled' && historyRes.value.ok)
-      ? await historyRes.value.json() : null;
+    const summaryData = (summaryRes.status === 'fulfilled') ? summaryRes.value : null;
+    const historyData = (historyRes.status === 'fulfilled') ? historyRes.value : null;
 
     if (selectionRef.current !== selectionId) return;
     setSelectedTicker(prev => ({ ...prev, details: mergedDetails, isLive, summaryData, historyData, isLoading: false }));

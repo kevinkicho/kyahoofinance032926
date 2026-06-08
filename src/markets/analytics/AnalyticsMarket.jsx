@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { api } from '../../lib/api';
 import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
@@ -416,11 +417,7 @@ export default function AnalyticsMarket() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/analytics');
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      const text = await res.text();
-      let json;
-      try { json = JSON.parse(text); } catch { throw new Error(`Server returned non-JSON response.`); }
+      const json = await api.get('/api/analytics');
       setData(json);
       setError(null);
     } catch (e) {

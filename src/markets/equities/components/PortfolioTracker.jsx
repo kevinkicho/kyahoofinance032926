@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { api } from '../../../lib/api';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import DataFooter from '../../../components/DataFooter/DataFooter';
@@ -67,12 +68,7 @@ export default function PortfolioTracker({ indexQuotes, onTickerSelect }) {
   useEffect(() => {
     if (!tickersToFetch.length) { setLiveQuotes({}); return; }
     let cancelled = false;
-    fetch('/api/stocks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tickers: tickersToFetch }),
-    })
-      .then(r => r.json())
+    api.post('/api/stocks', { tickers: tickersToFetch })
       .then(data => { if (!cancelled) setLiveQuotes(data); })
       .catch(() => {});
     return () => { cancelled = true; };

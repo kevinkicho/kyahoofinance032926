@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../lib/api';
 import DATA_SOURCES from './dataSources';
 import './HubFooter.css';
 
@@ -22,8 +23,7 @@ export default function HubFooter({ activeMarket }) {
   }, []);
 
   useEffect(() => {
-    fetch('/api/cache/status')
-      .then(r => r.ok ? r.json() : null)
+    api.get('/api/cache/status')
       .then(data => { if (data) setCacheStatus(data); })
       .catch(() => {});
   }, []);

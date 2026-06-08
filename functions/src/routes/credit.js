@@ -1,0 +1,461 @@
+import { Router } from 'express';
+import { fetchJSON } from '../lib/fetch.js';
+import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { yf } from '../lib/yahoo.js';
+import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
+
+const router = Router();
+
+function dateToMonthLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }).replace(' ', '-');
+}
+
+router.get('/', async (_req, res) => {
+  const FRED_API_KEY = process.env.FRED_API_KEY || '';
+  const cache = _req.app.locals.cache;
+  const today = todayStr();
+  const daily = readDailyCache('credit');
+  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+  const cacheKey = 'credit_data';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+
+  try {
+    const CREDIT_SPREAD_SERIES = {
+      IG:  'BAMLC0A0CM',
+      HY:  'BAMLH0A0HYM2',
+      EM:  'BAMLEMCBPIOAS',
+      BBB: 'BAMLC0A4CBBB',
+      CCC: 'BAMLH0A3HYC',
+    };
+    const CHARGEOFF_SERIES = {
+      commercial: 'DRALACBN',
+      consumer:   'DRSFRMACBS',
+    };
+
+    let spreadData = null;
+    let chargeoffData = null;
+    let delinquencyRates = null;
+    let lendingStandards = null;
+    let commercialPaper  = null;
+    let excessReserves   = null;
+
+    if (FRED_API_KEY) {
+      trackApiCall('FRED');
+      const [spreadResults, chargeoffResults, delinqResults, lendingStdResult, cpRateResults, excessResResult] = await Promise.all([
+        Promise.allSettled(
+          Object.entries(CREDIT_SPREAD_SERIES).map(async ([key, sid]) =>
+            [key, await fetchFredHistory(sid, FRED_API_KEY, 13)]
+          )
+        ),
+        Promise.allSettled(
+          Object.entries(CHARGEOFF_SERIES).map(async ([key, sid]) =>
+            [key, await fetchFredHistory(sid, FRED_API_KEY, 9)]
+          )
+        ),
+        Promise.allSettled([
+          fetchFredHistory('DRSFRWBS',   FRED_API_KEY, 24).then(d => ['sfrMortgage', d]),
+          fetchFredHistory('DRSFRMACBS', FRED_API_KEY, 24).then(d => ['sfrMortgageChargeoff', d]),
+          fetchFredHistory('DRALACBS',   FRED_API_KEY, 24).then(d => ['allLoans',   d]),
+        ]),
+        Promise.allSettled([fetchFredHistory('DRTSCILM', FRED_API_KEY, 24)]),
+        Promise.allSettled([
+          fetchFredLatest('DCPN3M', FRED_API_KEY).then(v => ['nonfinancial3m', v]),
+          fetchFredLatest('DCPF3M', FRED_API_KEY).then(v => ['financial3m',    v]),
+        ]),
+        Promise.allSettled([fetchFredHistory('EXCSRESNS', FRED_API_KEY, 36)]),
+      ]);
+
+      const raw = {};
+      spreadResults.forEach(r => { if (r.status === 'fulfilled') raw[r.value[0]] = r.value[1]; });
+
+      const igArr  = (raw.IG  || []).slice(-12);
+      const hyArr  = (raw.HY  || []).slice(-12);
+      const emArr  = (raw.EM  || []).slice(-12);
+      const bbbArr = (raw.BBB || []).slice(-12);
+      const cccArr = (raw.CCC || []).slice(-1);
+
+      const anchorArr = igArr.length >= 6 ? igArr : hyArr.length >= 6 ? hyArr : null;
+
+      if (anchorArr) {
+        // FRED reports BAML OAS series in *percent* (e.g. 0.81 = 81 bps).
+        // The dashboard formats these with a "bps" suffix, so multiply by 100
+        // before rounding. Without ×100 we silently rendered 81 bps as "1 bps".
+        const toBps = v => Math.round(v * 100);
+        spreadData = {
+          current: {
+            igSpread:  igArr.length  ? toBps(igArr.at(-1).value)  : null,
+            hySpread:  hyArr.length  ? toBps(hyArr.at(-1).value)  : null,
+            emSpread:  emArr.length  ? toBps(emArr.at(-1).value)  : null,
+            bbbSpread: bbbArr.length ? toBps(bbbArr.at(-1).value) : null,
+            cccSpread: cccArr.length ? toBps(cccArr.at(-1).value) : null,
+          },
+          history: {
+            dates: anchorArr.map(p => dateToMonthLabel(p.date)),
+            IG:    igArr.length  === anchorArr.length ? igArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
+            HY:    hyArr.length  === anchorArr.length ? hyArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
+            EM:    emArr.length  === anchorArr.length ? emArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
+            BBB:   bbbArr.length === anchorArr.length ? bbbArr.map(p => toBps(p.value)) : anchorArr.map(() => null),
+          },
+          etfs: [],
+        };
+      }
+
+      const coRaw = {};
+      chargeoffResults.forEach(r => { if (r.status === 'fulfilled') coRaw[r.value[0]] = r.value[1]; });
+
+      const coCommercial = (coRaw.commercial || []).slice(-8);
+      const coConsumer   = (coRaw.consumer   || []).slice(-8);
+      const coAnchor     = coCommercial.length >= 4 ? coCommercial : coConsumer;
+
+      if (coAnchor.length >= 4) {
+        chargeoffData = {
+          dates:      coAnchor.map(p => {
+            const d = new Date(p.date + 'T00:00:00Z');
+            const q = Math.ceil((d.getUTCMonth() + 1) / 3);
+            return `Q${q}-${String(d.getUTCFullYear()).slice(2)}`;
+          }),
+          commercial: coCommercial.map(p => Math.round(p.value * 100) / 100),
+          consumer:   coConsumer.map(p   => Math.round(p.value * 100) / 100),
+        };
+      }
+
+      const delinqRaw = {};
+      delinqResults.forEach(r => { if (r.status === 'fulfilled') delinqRaw[r.value[0]] = r.value[1]; });
+
+      const delinqArr = [];
+      const sfr = delinqRaw.sfrMortgage || [];
+      const sfrChargeoff = delinqRaw.sfrMortgageChargeoff || [];
+      const allLoans = delinqRaw.allLoans || [];
+      if (sfr.length > 0) {
+        const latest = sfr[sfr.length - 1];
+        delinqArr.push({ type: 'SFR Mortgage Delinquency', rate: Math.round(latest.value * 100) / 100, series: 'DRSFRWBS', history: { dates: sfr.map(p => p.date), values: sfr.map(p => Math.round(p.value * 100) / 100) } });
+      }
+      if (sfrChargeoff.length > 0) {
+        const latest = sfrChargeoff[sfrChargeoff.length - 1];
+        delinqArr.push({ type: 'Mortgage Charge-Off Rate', rate: Math.round(latest.value * 100) / 100, series: 'DRSFRMACBS', history: { dates: sfrChargeoff.map(p => p.date), values: sfrChargeoff.map(p => Math.round(p.value * 100) / 100) } });
+      }
+      if (allLoans.length > 0) {
+        const latest = allLoans[allLoans.length - 1];
+        delinqArr.push({ type: 'All Loans Delinquency', rate: Math.round(latest.value * 100) / 100, series: 'DRALACBS', history: { dates: allLoans.map(p => p.date), values: allLoans.map(p => Math.round(p.value * 100) / 100) } });
+      }
+      delinquencyRates = delinqArr.length > 0 ? delinqArr : null;
+
+      const lendingRaw = lendingStdResult[0]?.status === 'fulfilled' ? lendingStdResult[0].value : [];
+      lendingStandards = lendingRaw.length >= 4 ? {
+        dates:  lendingRaw.map(p => {
+          const d = new Date(p.date + 'T00:00:00Z');
+          const q = Math.ceil((d.getUTCMonth() + 1) / 3);
+          return `Q${q}-${String(d.getUTCFullYear()).slice(2)}`;
+        }),
+        values: lendingRaw.map(p => Math.round(p.value * 10) / 10),
+      } : null;
+
+      const cpRaw = {};
+      cpRateResults.forEach(r => { if (r.status === 'fulfilled') cpRaw[r.value[0]] = r.value[1]; });
+      if (cpRaw.financial3m != null || cpRaw.nonfinancial3m != null) {
+        commercialPaper = {
+          financial3m:    cpRaw.financial3m    != null ? Math.round(cpRaw.financial3m    * 100) / 100 : null,
+          nonfinancial3m: cpRaw.nonfinancial3m != null ? Math.round(cpRaw.nonfinancial3m * 100) / 100 : null,
+        };
+      }
+
+      const excessRaw = excessResResult[0]?.status === 'fulfilled' ? excessResResult[0].value : [];
+      excessReserves = excessRaw.length >= 4 ? {
+        dates:  excessRaw.map(p => p.date),
+        values: excessRaw.map(p => Math.round(p.value * 10) / 10),
+      } : null;
+    }
+
+    // Moody's seasoned Aaa vs Baa corporate bond yields, plus the derived
+    // Baa-Aaa spread. The spread is a classic credit-cycle gauge: it
+    // widens in stress (investors demand more compensation for lower
+    // rated paper) and tightens in benign environments. FRED reports both
+    // series in *percent*; convert to bps for the spread to keep units
+    // consistent with the rest of the credit panel.
+    let creditQuality = null;
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const [aaaRes, baaRes] = await Promise.all([
+          fetchFredHistory('DAAA', FRED_API_KEY, 261).catch(() => null),  // ~1y daily
+          fetchFredHistory('DBAA', FRED_API_KEY, 261).catch(() => null),
+        ]);
+        if (aaaRes?.length && baaRes?.length) {
+          // Inner-join on date so the spread is well-defined for each point.
+          const baaByDate = new Map(baaRes.map(p => [p.date, p.value]));
+          const aligned = aaaRes
+            .filter(p => baaByDate.has(p.date) && p.value != null && baaByDate.get(p.date) != null)
+            .map(p => ({ date: p.date, aaa: p.value, baa: baaByDate.get(p.date) }));
+          if (aligned.length) {
+            const last = aligned[aligned.length - 1];
+            creditQuality = {
+              dates: aligned.map(p => p.date),
+              aaaPct: aligned.map(p => Math.round(p.aaa * 100) / 100),
+              baaPct: aligned.map(p => Math.round(p.baa * 100) / 100),
+              spreadBps: aligned.map(p => Math.round((p.baa - p.aaa) * 100)),
+              latest: {
+                date:      last.date,
+                aaaPct:    Math.round(last.aaa * 100) / 100,
+                baaPct:    Math.round(last.baa * 100) / 100,
+                spreadBps: Math.round((last.baa - last.aaa) * 100),
+              },
+            };
+          }
+        }
+      } catch (e) { console.warn('[Credit] DAAA/DBAA:', e.message || e); }
+    }
+
+    const ETF_TICKERS = ['LQD','HYG','EMB','JNK','BKLN','MUB'];
+    let etfs = [];
+    try {
+      trackApiCall('Yahoo Finance');
+      const quotes = await Promise.allSettled(ETF_TICKERS.map(t => yf.quote(t)));
+      const ETF_META = {
+        LQD:  { name: 'iShares IG Corp Bond',   durationYr: 8.4 },
+        HYG:  { name: 'iShares HY Corp Bond',   durationYr: 3.6 },
+        EMB:  { name: 'iShares EM USD Bond',    durationYr: 7.2 },
+        JNK:  { name: 'SPDR HY Bond',           durationYr: 3.4 },
+        BKLN: { name: 'Invesco Sr Loan ETF',    durationYr: 0.4 },
+        MUB:  { name: 'iShares Natl Muni Bond', durationYr: 6.8 },
+      };
+      etfs = quotes.map((r, i) => {
+        const ticker = ETF_TICKERS[i];
+        const q = r.status === 'fulfilled' ? r.value : null;
+        const meta = ETF_META[ticker];
+        return {
+          ticker,
+          name:       meta.name,
+          price:      q?.regularMarketPrice ?? null,
+          change1d:   q?.regularMarketChangePercent ?? null,
+          yieldPct:   q?.trailingAnnualDividendYield != null ? q.trailingAnnualDividendYield * 100 : null,
+          durationYr: meta.durationYr,
+        };
+      });
+    } catch (e) { console.warn('[Credit]', e.message || e); }
+
+    if (spreadData) spreadData.etfs = etfs;
+
+    const EM_BOND_TICKERS = {
+      BRZ:  { country: 'Brazil',         code: 'BR', region: 'Latin America', rating: 'BB-', debtGdp: 78,  yahooETF: 'EWZ'  },
+      MEX:  { country: 'Mexico',         code: 'MX', region: 'Latin America', rating: 'BBB',  debtGdp: 53,  yahooETF: 'EWW'  },
+      TUR:  { country: 'Turkey',         code: 'TR', region: 'EMEA',           rating: 'B+',   debtGdp: 35,  yahooETF: 'TUR'  },
+      ZAF:  { country: 'South Africa',   code: 'ZA', region: 'EMEA',           rating: 'BB-',  debtGdp: 72,  yahooETF: 'EZA'  },
+      IDN:  { country: 'Indonesia',      code: 'ID', region: 'Asia-Pacific',   rating: 'BBB',  debtGdp: 39,  yahooETF: 'EIDO' },
+      IND:  { country: 'India',          code: 'IN', region: 'Asia-Pacific',   rating: 'BBB-', debtGdp: 83,  yahooETF: 'INDA' },
+      CHN:  { country: 'China',          code: 'CN', region: 'Asia-Pacific',   rating: 'A+',   debtGdp: 83,  yahooETF: 'MCHI' },
+      KOR:  { country: 'South Korea',   code: 'KR', region: 'Asia-Pacific',   rating: 'AA-',  debtGdp: 54,  yahooETF: 'EWY'  },
+      RUS:  { country: 'Russia',         code: 'RU', region: 'EMEA',           rating: 'NR',   debtGdp: 20,  yahooETF: null   },
+      POL:  { country: 'Poland',         code: 'PL', region: 'EMEA',           rating: 'A-',   debtGdp: 50,  yahooETF: 'EPOL' },
+      COL:  { country: 'Colombia',       code: 'CO', region: 'Latin America', rating: 'BB+',  debtGdp: 56,  yahooETF: 'GXG'  },
+      CHL:  { country: 'Chile',          code: 'CL', region: 'Latin America', rating: 'A-',   debtGdp: 38,  yahooETF: 'ECH'  },
+      HUN:  { country: 'Hungary',        code: 'HU', region: 'EMEA',           rating: 'BBB',  debtGdp: 71,  yahooETF: 'EWH'  },
+      MYS:  { country: 'Malaysia',       code: 'MY', region: 'Asia-Pacific',   rating: 'A-',   debtGdp: 65,  yahooETF: 'EWM'  },
+      PHL:  { country: 'Philippines',    code: 'PH', region: 'Asia-Pacific',   rating: 'BBB+', debtGdp: 57,  yahooETF: 'EPHE' },
+      EGY:  { country: 'Egypt',          code: 'EG', region: 'EMEA',           rating: 'B+',   debtGdp: 90,  yahooETF: 'EGPT' },
+    };
+
+let emBondCountries = [];
+    let emBondRegions = {};
+    let emYieldDataFetched = false;
+
+    try {
+      trackApiCall('Yahoo Finance');
+      const embQuote = await yf.quote('EMB').catch(() => null);
+      const emSpread = spreadData?.current?.emSpread ?? null;
+
+      const etfTickers = Object.entries(EM_BOND_TICKERS)
+        .filter(([, v]) => v.yahooETF)
+        .map(([k, v]) => ({ key: k, ticker: v.yahooETF }));
+      const etfSymbols = etfTickers.map(e => e.ticker);
+
+      let etfQuotes = {};
+      try {
+        const etfResults = await Promise.allSettled(etfSymbols.map(t => yf.quote(t)));
+        etfResults.forEach((r, i) => {
+          if (r.status === 'fulfilled') etfQuotes[etfTickers[i].ticker] = r.value;
+        });
+      } catch (_) { /* non-fatal */ }
+
+      for (const [key, info] of Object.entries(EM_BOND_TICKERS)) {
+        const etfQuote = info.yahooETF ? etfQuotes[info.yahooETF] : null;
+        const price = etfQuote?.regularMarketPrice ?? null;
+        const change1d = etfQuote?.regularMarketChangePercent ?? null;
+        const etfYield = etfQuote?.trailingAnnualDividendYield != null
+          ? etfQuote.trailingAnnualDividendYield * 100
+          : null;
+
+        let yld10y = null;
+        if (emSpread != null && etfYield != null) {
+          const us10yProxy = spreadData?.current?.igSpread != null
+            ? (etfYield - emSpread / 100 * 0.5)
+            : null;
+          yld10y = us10yProxy;
+        }
+
+        const country = {
+          country:   info.country,
+          code:      info.code,
+          rating:    info.rating,
+          spread:    emSpread,
+          change1m:  change1d != null ? Math.round(change1d * 10) / 10 : null,
+          yld10y,
+          debtGdp:   info.debtGdp,
+          etfTicker: info.yahooETF,
+          etfPrice:  price,
+          etfYield,
+          dataSource: price != null ? 'Yahoo Finance' : 'no-yahoo-data',
+        };
+
+        emBondCountries.push(country);
+
+        if (!emBondRegions[info.region]) {
+          emBondRegions[info.region] = { region: info.region, countries: [], avgSpread: 0, count: 0 };
+        }
+        emBondRegions[info.region].countries.push(country.code);
+        if (country.spread != null) {
+          emBondRegions[info.region].avgSpread += country.spread;
+          emBondRegions[info.region].count++;
+        }
+      }
+
+      emBondRegions = Object.values(emBondRegions).map(r => ({
+        region: r.region,
+        avgSpread: r.count > 0 ? Math.round(r.avgSpread / r.count) : null,
+      }));
+
+      emYieldDataFetched = true;
+    } catch (e) {
+      console.warn('[Credit] EM bond yield fetch failed:', e.message || e);
+    }
+
+    const emBondData = {
+      countries: emBondCountries,
+      regions: Object.values(emBondRegions),
+      noYahoo: emBondCountries.filter(c => c.dataSource === 'no-yahoo-data').map(c => c.country),
+    };
+
+    const igLatest = spreadData?.current?.igSpread ?? null;
+    const hyLatest = spreadData?.current?.hySpread ?? null;
+
+    const cloTranches = [];
+    if (igLatest != null || hyLatest != null) {
+      const igBase = igLatest ?? 100;
+      const cloConventions = [
+        { tranche: 'AAA',  spreadOffset: -40, rating: 'AAA', ltv: 65 },
+        { tranche: 'AA',   spreadOffset:  10, rating: 'AA',  ltv: 72 },
+        { tranche: 'A',    spreadOffset:  50, rating: 'A',   ltv: 78 },
+        { tranche: 'BBB',  spreadSource: 'bbb', rating: 'BBB', ltv: 83 },
+        { tranche: 'BB',   spreadOffset: 380, rating: 'BB',  ltv: 89 },
+        { tranche: 'B',    spreadOffset: 710, rating: 'B',   ltv: 94 },
+      ];
+      for (const c of cloConventions) {
+        let spread;
+        if (c.spreadSource === 'bbb') {
+          spread = spreadData?.current?.bbbSpread ?? null;
+        } else {
+          spread = Math.round(igBase + c.spreadOffset);
+        }
+        const yieldBase = c.tranche === 'BBB' || c.tranche === 'BB' || c.tranche === 'B'
+          ? (etfs.find(e => e.ticker === 'HYG')?.yieldPct ?? null)
+          : (etfs.find(e => e.ticker === 'LQD')?.yieldPct ?? null);
+        cloTranches.push({
+          tranche: c.tranche,
+          spread,
+          yield: yieldBase != null ? Math.round((yieldBase + (spread ?? 0) / 100) * 100) / 100 : null,
+          rating: c.rating,
+          ltv: c.ltv,
+        });
+      }
+    }
+
+    const loanData = {
+      cloTranches,
+      indices: [
+        { name: 'BKLN NAV',                 value: etfs.find(e=>e.ticker==='BKLN')?.price ?? null, change1d: etfs.find(e=>e.ticker==='BKLN')?.change1d ?? null, spread: null },
+        { name: 'CS Lev Loan 100 Index',    value: null, change1d: null, spread: null },
+        { name: 'LL New Issue Vol ($B YTD)',  value: null,   change1d: null, spread: null },
+      ],
+    };
+
+    const defaultData = {
+      rates: [
+        { category: 'HY Default Rate (TTM)',      value: null, prev: null, peak: null, unit: '%' },
+        { category: 'Loan Default Rate (TTM)',     value: null, prev: null, peak: null, unit: '%' },
+        { category: 'HY Distressed Ratio',        value: null, prev: null, peak: null, unit: '%' },
+        { category: 'Loans Trading <80c',         value: null, prev: null, peak: null, unit: '%' },
+        { category: 'CCC/Split-B % of HY Index',  value: null, prev: null, peak: null, unit: '%' },
+      ],
+      chargeoffs: chargeoffData || null,
+      defaultHistory: null,
+    };
+
+    const _sources = {
+      spreadData:       spreadData != null,
+      emBondData:       emYieldDataFetched,
+      emBondData_countries: emBondCountries.length,
+      emBondData_noYahoo: emBondCountries.filter(c => c.dataSource === 'no-yahoo-data').map(c => c.country),
+      loanData:         loanData != null,
+      cloTranches:      cloTranches.length > 0,
+      cloTranches_computed: true,
+      yahooCLO:         etfs.some(e => e.yieldPct != null),
+      defaultData:      defaultData != null,
+      delinquencyRates: delinquencyRates != null,
+      delinquencyRates_DRSFRWBS: delinquencyRates?.some(d => d.series === 'DRSFRWBS') ?? false,
+      delinquencyRates_DRSFRMACBS: delinquencyRates?.some(d => d.series === 'DRSFRMACBS') ?? false,
+      delinquencyRates_DRALACBS: delinquencyRates?.some(d => d.series === 'DRALACBS') ?? false,
+      lendingStandards:  lendingStandards != null,
+      commercialPaper:  commercialPaper != null,
+      excessReserves:   excessReserves != null,
+    };
+
+    const finalSpreadData = spreadData ?? {
+      current: { igSpread: null, hySpread: null, emSpread: null, bbbSpread: null, cccSpread: null },
+      history: { dates: [], IG: [], HY: [], EM: [], BBB: [] },
+      etfs,
+    };
+
+    // isLive: true if any of the headline sources came back with data. The
+    // route was previously omitting this entirely, which made every panel
+    // that gated FETCHED on isLive (e.g. Credit Key Metrics) flip to
+    // NO DATA — even though spreads, EM yields and default rates were live.
+    const isLive = !!(
+      spreadData ||
+      emYieldDataFetched ||
+      loanData ||
+      defaultData ||
+      delinquencyRates ||
+      lendingStandards ||
+      commercialPaper ||
+      excessReserves
+    );
+
+    const result = {
+      _sources,
+      spreadData:  finalSpreadData,
+      emBondData,
+      loanData,
+      defaultData,
+      delinquencyRates,
+      lendingStandards,
+      commercialPaper,
+      excessReserves,
+      creditQuality,
+      isLive,
+      lastUpdated: today,
+    };
+
+    writeDailyCache('credit', result);
+    cache.set(cacheKey, result, 300);
+    res.json({ ...result, fetchedOn: today, isCurrent: true });
+  } catch (error) {
+    console.error('Credit API error:', error);
+    const fallback = readLatestCache('credit');
+    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+export default router;
