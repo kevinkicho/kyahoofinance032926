@@ -1,4 +1,4 @@
-const FIREBASE_FUNCTIONS_URL = 'https://us-central1-kfinance032926.cloudfunctions.net/api';
+const FIREBASE_FUNCTIONS_URL = 'https://api-4uzq3y2xva-uc.a.run.app';
 
 export function getApiBaseUrl() {
   if (import.meta.env.DEV) {
