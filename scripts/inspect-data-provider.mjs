@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+const page = await ctx.newPage();
+const reqs = [];
+page.on('request', r => { if (r.url().includes('/api/treasury')) reqs.push(r.url()); });
+await page.goto('http://localhost:5173/?market=bonds', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(20000);
+console.log('Treasury requests captured:');
+reqs.forEach(u => console.log('  ', u));
+console.log('Total Treasury requests:', reqs.length);
+await browser.close();

@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 1600, height: 1000 } });
+const p = await ctx.newPage();
+const errs = [];
+p.on('pageerror', e => errs.push('PE: ' + e.message.slice(0,150)));
+p.on('console', m => { if (m.type() === 'error') errs.push('CE: ' + m.text().slice(0,150)); });
+await p.goto('http://localhost:5173/?market=equities', { waitUntil: 'domcontentloaded' });
+await p.waitForTimeout(15000);
+console.log('errors:', errs.slice(0,5));
+const titleCount = await p.evaluate(() => document.querySelectorAll('.bento-panel-title').length);
+console.log('panels:', titleCount);
+await b.close();

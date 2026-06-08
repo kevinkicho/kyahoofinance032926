@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1600, height: 4500 } });
+const page = await ctx.newPage();
+await page.goto('http://localhost:5173/?market=credit', { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(22000);
+await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+await page.waitForTimeout(1500);
+await page.screenshot({ path: '/tmp/credit-tall.png', fullPage: true });
+await browser.close();

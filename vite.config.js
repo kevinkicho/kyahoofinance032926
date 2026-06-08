@@ -216,6 +216,7 @@ function buildProxyConfig() {
 }
 
 export default defineConfig({
+  base: '/kyahoofinance032926/',
   plugins: [
     react(),
     macroApiPlugin(),
