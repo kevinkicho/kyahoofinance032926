@@ -236,6 +236,19 @@ export function hasNonNullData(d) {
   return nonNull >= 2;
 }
 
+// Special-case analytics (rate-limits stub often returns {date, sources:[]}).
+// We still want to consider it "received" even if the sources array is empty.
+export function passesStructuralGuard(id, d) {
+  if (id === 'analytics') return true; // rate-limits provenance stub is intentionally minimal
+  const guard = STRUCTURAL_GUARDS[id];
+  if (!guard) return true;
+  try {
+    return guard(d);
+  } catch {
+    return false;
+  }
+}
+
 export const STRUCTURAL_GUARDS = {
   bonds:          d => { const yd = d.yieldCurveData; if (!yd || typeof yd !== 'object') return false; return Object.values(yd).filter(v => v && typeof v === 'object' && Object.values(v).some(x => x != null)).length >= 3; },
   commodities:    d => Array.isArray(d.cotData) ? d.cotData.length >= 2 : true,
@@ -261,16 +274,6 @@ export const STRUCTURAL_GUARDS = {
   eia:            d => d.electricity?.residential != null || d.co2Emissions?.total != null,
   census:         d => d.series && Object.values(d.series).some(s => s._source),
 };
-
-export function passesStructuralGuard(id, d) {
-  const guard = STRUCTURAL_GUARDS[id];
-  if (!guard) return true;
-  try {
-    return guard(d);
-  } catch {
-    return false;
-  }
-}
 
 export function applyResult(prev, result) {
   const id = result.marketId;

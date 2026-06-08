@@ -65,6 +65,11 @@ function loadRoutes(app) {
       
       if (routeName === 'ticker') {
         app.use('/api', router);
+      } else if (routeName === 'commoditiesEnhanced') {
+        app.use(`/api/${routeName}`, router);
+        // Back-compat: support the /api/commodities/v2 path that the frontend
+        // and many source links/docs expect for the enhanced data.
+        app.use('/api/commodities/v2', router);
       } else {
         app.use(`/api/${routeName}`, router);
       }
@@ -86,7 +91,11 @@ app.get('/api/cache/status', (req, res) => {
 });
 
 app.get('/api/rate-limits', (req, res) => {
-  res.json({ date: today, sources: [] });
+  res.json({ 
+    date: today, 
+    sources: [],
+    _note: 'stub - real implementation tracks per-endpoint calls and quotas' 
+  });
 });
 
 exports.api = onRequest({ 
