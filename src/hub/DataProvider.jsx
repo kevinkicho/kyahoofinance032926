@@ -44,7 +44,7 @@ export const MARKET_ENDPOINTS = {
   derivatives:       '/api/derivatives',
   realEstate:        '/api/realEstate',
   insurance:         '/api/insurance',
-  commodities:       '/api/commodities/v2',
+  commodities:       '/api/commoditiesEnhanced',
   globalMacro:       '/api/globalMacro',
   watchlist:            '/api/watchlist',
   // `/api/equities` doesn't exist on the backend — the Equities tab fetches
