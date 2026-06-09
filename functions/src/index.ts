@@ -114,24 +114,30 @@ export const api = onRequest(
   app
 );
 
-// --- Cost control + RTDB snapshot system ---
-// Scheduled function that runs on a fixed cron (independent of any user/browser).
-// It fetches fresh data for the heaviest/slowest endpoints using the live function URL,
-// then writes the responses to Firebase Realtime Database under /marketSnapshots/{marketId}.
-// 
+// --- Cost control + RTDB time-series snapshot system ---
+// Scheduled function that runs daily at midnight UTC (independent of any user/browser).
+// It fetches fresh data using the live function URL, then writes to RTDB so the DB *grows*
+// over time instead of overwriting:
+//
+//   marketSnapshots/{id}/
+//     latest/          {data, fetchedAt, source}   // fast access for normal UI loads
+//     history/
+//       2026-06-08/    {data, fetchedAt, source}   // historical daily entries
+//       2026-06-09/    ...
+//
 // Benefits:
-// - Drastically reduces the number of *client-triggered* function invocations (the main bill driver
-//   for a static GH Pages frontend).
-// - Frontend can read these snapshots cheaply and instantly via RTDB REST (public read rules).
-// - Scheduled invocations are predictable and limited (once per day).
-// - maxInstances + timeout already limit runaway scale.
+// - Drastically reduces client-triggered Functions invocations (RTDB reads are cheap/fast).
+// - Gives you a growing historical record for trends, comparisons, debugging, time-travel, etc.
+// - Snapshots for analytics/rate-limits/cacheStatus + all major markets are durable.
+// - Scheduled invocations remain very low (once/day).
 //
-// The frontend (DataProvider) will prefer a recent RTDB snapshot and only fall back to the
-// /api call when the snapshot is missing or stale.
+// Frontend (DataProvider + Analytics + TimeTravel) prefers /latest or specific /history/{date}.
+// Live /api calls are only the fallback.
 //
+// Retention: optional cleanup of old history entries is included (see cleanupOldHistory).
 // To enable:
-//   firebase deploy --only functions,database   (after setting rules)
-//   (RTDB must be enabled in the Firebase console for the project if not already.)
+//   firebase deploy --only functions,database
+//   (RTDB must be enabled; rules should allow public .read on marketSnapshots)
 
 if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp();
@@ -164,7 +170,8 @@ const SNAPSHOT_MARKETS = [
 export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
   const db = admin.database();
   const now = new Date().toISOString();
-  console.log(`[scheduled] refreshMarketSnapshots starting at ${now}`);
+  const dateKey = now.substring(0, 10); // YYYY-MM-DD for history keys
+  console.log(`[scheduled] refreshMarketSnapshots starting at ${now} (dateKey=${dateKey})`);
 
   await Promise.allSettled(
     SNAPSHOT_MARKETS.map(async ({ id, path }) => {
@@ -177,23 +184,58 @@ export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        // Write to RTDB. Frontend will read from here.
-        await db.ref(`marketSnapshots/${id}`).set({
-          data,
-          fetchedAt: now,
-          source: "scheduled",
-        });
-        console.log(`[scheduled] wrote snapshot for ${id}`);
+        const payload = { data, fetchedAt: now, source: "scheduled" };
+
+        // Historical entry — this makes the DB grow day by day instead of overwriting.
+        await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(payload);
+
+        // Latest pointer for fast current access (used by DataProvider seed + normal UI).
+        await db.ref(`marketSnapshots/${id}/latest`).set(payload);
+
+        console.log(`[scheduled] wrote snapshot for ${id} (history/${dateKey} + latest)`);
       } catch (e: any) {
         console.warn(`[scheduled] failed snapshot for ${id}:`, e?.message || e);
-        // still write a minimal marker so frontend knows it tried
-        await db.ref(`marketSnapshots/${id}/lastError`).set({
-          at: now,
-          message: String(e?.message || e),
-        });
+        const errPayload = { at: now, message: String(e?.message || e) };
+
+        // Record error in history for this day
+        await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
+
+        // Also surface on latest so UI can show "last known + error on latest attempt"
+        await db.ref(`marketSnapshots/${id}/latest/lastError`).set(errPayload);
       }
     })
   );
 
+  // Optional light retention — prunes history older than keepDays.
+  // Safe to leave enabled; only runs after successful daily write.
+  await cleanupOldHistory(db, dateKey, 365);
+
   console.log("[scheduled] refreshMarketSnapshots complete");
 });
+
+// Optional helper for retention (keeps DB from growing unbounded).
+// Call from the scheduled job if you want to prune history older than N days.
+async function cleanupOldHistory(db: any, todayKey: string, keepDays = 365) {
+  const cutoff = new Date(Date.parse(todayKey) - keepDays * 86400000)
+    .toISOString()
+    .substring(0, 10);
+
+  await Promise.allSettled(
+    SNAPSHOT_MARKETS.map(async ({ id }) => {
+      try {
+        const histRef = db.ref(`marketSnapshots/${id}/history`);
+        const old = await histRef.orderByKey().endAt(cutoff).once("value");
+        if (old.exists()) {
+          const updates: Record<string, null> = {};
+          old.forEach((snap: any) => {
+            updates[snap.key] = null;
+          });
+          await histRef.update(updates);
+          console.log(`[scheduled] pruned ${Object.keys(updates).length} old history entries for ${id}`);
+        }
+      } catch (e) {
+        console.warn(`[scheduled] retention prune failed for ${id}:`, e);
+      }
+    })
+  );
+}

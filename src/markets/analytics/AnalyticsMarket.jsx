@@ -11,7 +11,7 @@ import './AnalyticsDashboard.css';
 // without requiring live Functions calls every time.
 async function loadAnalyticsFromRTDB() {
   try {
-    const res = await fetch('https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/analytics.json');
+    const res = await fetch('https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/analytics/latest.json');
     if (!res.ok) return null;
     const payload = await res.json();
     if (payload && payload.data) {
@@ -86,7 +86,7 @@ function ProvenanceAudit() {
           // Leverage RTDB snapshot (populated by the daily scheduled refresher or force-runs).
           // This avoids live API calls from the static site (preventing .github.io 404s)
           // and makes audit results based on persisted backend data for debugging.
-          const snapUrl = `https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/${ep.id}.json`;
+          const snapUrl = `https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/${ep.id}/latest.json`;
           const r = await fetch(snapUrl);
           if (r.ok) {
             const snap = await r.json();

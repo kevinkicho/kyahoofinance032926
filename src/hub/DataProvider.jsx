@@ -8,11 +8,12 @@ import { getApiBaseUrl, getApiInfo } from '../lib/api';
 const API_BASE = getApiBaseUrl();
 const API_INFO = getApiInfo();
 
-// RTDB public REST endpoint for pre-computed snapshots written by the scheduled refresher.
-// This lets the static frontend get data instantly without hitting the Functions on every load.
-// Rules allow public .read on /marketSnapshots (and subpaths for analytics/system).
+// RTDB public REST endpoint for time-series snapshots.
+// Structure (growing daily):
+//   marketSnapshots/{id}/latest.json          → current (fast path)
+//   marketSnapshots/{id}/history/{yyyy-mm-dd}.json → historical
+// The scheduled refresher populates both. Frontend prefers RTDB; live API is fallback.
 const RTDB_BASE = 'https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots';
-const RTDB_SYSTEM_BASE = 'https://kfinance032926-default-rtdb.firebaseio.com/snapshots'; // for analytics/rateLimits/cacheStatus if stored separately, but we normalize under marketSnapshots for simplicity
 
 // One-time visibility into which backend the bundle is talking to.
 // Extremely useful after a Pages deploy when debugging "why is nothing loading?"
@@ -118,13 +119,17 @@ function loadSnapshot() {
 
 /**
  * Load a market snapshot from the public RTDB REST endpoint.
- * Returns the {data, fetchedAt, ...} written by the scheduled refresher (or null).
- * This is the primary mechanism to avoid hitting the (potentially cold/slow/$$) Functions
- * from the static GitHub Pages frontend on every page load / refresh.
+ * - marketId: e.g. "bonds", "analytics", "censusTrade"
+ * - date: optional "YYYY-MM-DD". If omitted, loads /latest (fast current view).
+ * Returns {data, fetchedAt, source: 'rtdb', ...} or null.
+ *
+ * This is the primary mechanism for cheap historical + current data.
+ * The DB now grows daily under /history/{date} while /latest is kept for convenience.
  */
-async function loadFromRTDB(marketId) {
+async function loadFromRTDB(marketId, date = null) {
   try {
-    const url = `${RTDB_BASE}/${marketId}.json`;
+    const suffix = date ? `history/${date}` : 'latest';
+    const url = `${RTDB_BASE}/${marketId}/${suffix}.json`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const payload = await res.json();
@@ -133,12 +138,30 @@ async function loadFromRTDB(marketId) {
         data: payload.data,
         fetchedAt: payload.fetchedAt || null,
         source: 'rtdb',
-        isLive: true, // treat RTDB snapshot as live for UI purposes
+        isLive: true, // treat RTDB snapshot as "current" for UI purposes
       };
     }
     return null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * List available historical dates for a market from RTDB.
+ * Returns sorted array of "YYYY-MM-DD" strings (most recent first).
+ * Useful for time-travel UI, audit date picker, etc.
+ */
+async function listSnapshotDates(marketId) {
+  try {
+    const url = `${RTDB_BASE}/${marketId}/history.json?shallow=true`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const keys = await res.json();
+    if (!keys || typeof keys !== 'object') return [];
+    return Object.keys(keys).sort().reverse(); // newest first
+  } catch {
+    return [];
   }
 }
 
@@ -524,8 +547,8 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const ids = ALL_FETCH_IDS;
 
     // Seed from RTDB snapshots first (fast, cheap, no function invocation).
-    // The scheduled refresher writes here once per day. This is the main lever
-    // for reducing client-driven Functions bills on static hosting.
+    // The scheduled refresher now writes daily under /history/{date} + /latest.
+    // This makes the DB grow over time while still giving fast "current" data.
     const rtdbSeeds = await Promise.all(
       ids.map(async (id) => {
         const seed = await loadFromRTDB(id);
