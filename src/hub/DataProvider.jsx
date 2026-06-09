@@ -10,8 +10,9 @@ const API_INFO = getApiInfo();
 
 // RTDB public REST endpoint for pre-computed snapshots written by the scheduled refresher.
 // This lets the static frontend get data instantly without hitting the Functions on every load.
-// Rules allow public .read on /marketSnapshots.
+// Rules allow public .read on /marketSnapshots (and subpaths for analytics/system).
 const RTDB_BASE = 'https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots';
+const RTDB_SYSTEM_BASE = 'https://kfinance032926-default-rtdb.firebaseio.com/snapshots'; // for analytics/rateLimits/cacheStatus if stored separately, but we normalize under marketSnapshots for simplicity
 
 // One-time visibility into which backend the bundle is talking to.
 // Extremely useful after a Pages deploy when debugging "why is nothing loading?"

@@ -124,13 +124,26 @@ if (!admin.apps || admin.apps.length === 0) {
 
 const LIVE_FUNCTIONS_BASE = "https://api-4uzq3y2xva-uc.a.run.app";
 
-// Markets we want to pre-snapshot on schedule (focus on the ones that were timing out or heavy).
+// Expanded list of things to pre-snapshot on schedule.
+// This makes RTDB the primary persistent store for market data + system/analytics state.
+// Goal: reduce per-client Functions calls (cost), provide historical/debuggable snapshots,
+// and make analytics/rate-limit/cache results durable and queryable (via RTDB or firebase CLI).
 const SNAPSHOT_MARKETS = [
   { id: "realEstate", path: "/api/realEstate" },
   { id: "insurance", path: "/api/insurance" },
   { id: "globalMacro", path: "/api/globalMacro" },
-  { id: "commodities", path: "/api/commodities/v2" }, // alias works thanks to loader
+  { id: "commodities", path: "/api/commodities/v2" },
   { id: "bonds", path: "/api/bonds" },
+  { id: "fx", path: "/api/fx" },
+  { id: "derivatives", path: "/api/derivatives" },
+  { id: "crypto", path: "/api/crypto" },
+  { id: "credit", path: "/api/credit" },
+  { id: "sentiment", path: "/api/sentiment" },
+  { id: "calendar", path: "/api/calendar" },
+  { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
+  { id: "analytics", path: "/api/analytics" },
+  { id: "rateLimits", path: "/api/rate-limits" },
+  { id: "cacheStatus", path: "/api/cache/status" },
 ];
 
 export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {

@@ -6,6 +6,23 @@ import MarketKpiStrip from '../../components/MarketKpiStrip';
 import { useMarketData } from '../../hub/DataContext';
 import './AnalyticsDashboard.css';
 
+// Helper to load analytics snapshot from RTDB (written by daily scheduled refresher).
+// This makes rich analytics / rate-limit / cache results persistent and debuggable
+// without requiring live Functions calls every time.
+async function loadAnalyticsFromRTDB() {
+  try {
+    const res = await fetch('https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/analytics.json');
+    if (!res.ok) return null;
+    const payload = await res.json();
+    if (payload && payload.data) {
+      return { data: payload.data, fetchedAt: payload.fetchedAt, source: 'rtdb' };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const FRED_API_BASE = apiUrl('/api/fred/observations');
 
 import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
@@ -415,7 +432,17 @@ export default function AnalyticsMarket() {
   const [marketDetail, setMarketDetail] = useState(null);
   const [expandedSource, setExpandedSource] = useState(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceLive = false) => {
+    if (!forceLive) {
+      const snap = await loadAnalyticsFromRTDB();
+      if (snap) {
+        setData(snap.data);
+        setError(null);
+        setLoading(false);
+        // Still allow live refresh via button
+        return;
+      }
+    }
     try {
       const json = await api.get('/api/analytics');
       setData(json);
@@ -487,7 +514,7 @@ export default function AnalyticsMarket() {
         <button className={`ana-refresh-btn${autoRefresh ? ' active' : ''}`} onClick={() => setAutoRefresh(r => !r)}>
           {autoRefresh ? 'Auto 30s' : 'Auto-refresh'}
         </button>
-        <button className="ana-refresh-btn" onClick={fetchData}>Refresh</button>
+        <button className="ana-refresh-btn" onClick={() => fetchData(true)}>Refresh (force live)</button>
       </div>
       <div className="ana-dashboard ana-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v2">
