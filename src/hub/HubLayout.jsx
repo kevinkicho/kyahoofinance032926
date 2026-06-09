@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect, Suspense, lazy, Component } from 'react';
+import React, { useState, useRef, useCallback, useEffect, Suspense, Component } from 'react';
 import MarketTabBar from './MarketTabBar';
 import { DEFAULT_MARKET, MARKETS } from './markets.config';
 import HubFooter from './HubFooter';
@@ -7,6 +7,7 @@ import { DataProvider } from './DataProvider';
 import { useMarketData } from './DataContext';
 import { useCurrency } from './CurrencyContext';
 import { captureBentoSnapshot } from '../utils/exportUtils';
+import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import './Skeleton.css';
 import './responsive.css';
 
@@ -70,28 +71,7 @@ class MarketErrorBoundary extends Component {
   }
 }
 
-const MARKET_COMPONENTS = {
-  equities:          lazy(() => import('../markets/equities/EquitiesMarket')),
-  bonds:             lazy(() => import('../markets/bonds/BondsMarket')),
-  fx:                lazy(() => import('../markets/fx/FXMarket')),
-  derivatives:       lazy(() => import('../markets/derivatives/DerivativesMarket')),
-  realEstate:        lazy(() => import('../markets/realEstate/RealEstateMarket')),
-  insurance:         lazy(() => import('../markets/insurance/InsuranceMarket')),
-  commodities:       lazy(() => import('../markets/commodities/CommoditiesMarket')),
-  globalMacro:       lazy(() => import('../markets/globalMacro/GlobalMacroMarket')),
-  // imf/worldbank/census merged into globalMacro and realEstate. Data still
-  // flows via DataProvider's MARKET_ENDPOINTS for cross-market reads.
-  equitiesDeepDive:  lazy(() => import('../markets/equitiesDeepDive/EquitiesDeepDiveMarket')),
-  crypto:            lazy(() => import('../markets/crypto/CryptoMarket')),
-  credit:            lazy(() => import('../markets/credit/CreditMarket')),
-  sentiment:         lazy(() => import('../markets/sentiment/SentimentMarket')),
-  calendar:       lazy(() => import('../markets/calendar/CalendarMarket')),
-  bls:            lazy(() => import('../markets/bls/BlsMarket')),
-  eia:            lazy(() => import('../markets/eia/EiaMarket')),
-  alerts:            lazy(() => import('../markets/alerts/AlertsMarket')),
-  watchlist:         lazy(() => import('../markets/watchlist/WatchlistMarket')),
-  analytics:         lazy(() => import('../markets/analytics/AnalyticsMarket')),
-};
+
 
 function MarketFallback() {
   return (

@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import './index.css';
 import { ThemeProvider } from './hub/ThemeContext';
 import { ToastProvider } from './hub/ToastContext';
@@ -8,31 +8,7 @@ import { CurrencyProvider } from './hub/CurrencyContext';
 import { useMarketData } from './hub/DataContext';
 import HubLayout from './hub/HubLayout';
 import { MARKETS } from './hub/markets.config';
-
-const MARKET_COMPONENTS = {
-  equities:          lazy(() => import('./markets/equities/EquitiesMarket')),
-  bonds:             lazy(() => import('./markets/bonds/BondsMarket')),
-  fx:                lazy(() => import('./markets/fx/FXMarket')),
-  derivatives:       lazy(() => import('./markets/derivatives/DerivativesMarket')),
-  realEstate:        lazy(() => import('./markets/realEstate/RealEstateMarket')),
-  insurance:         lazy(() => import('./markets/insurance/InsuranceMarket')),
-  commodities:       lazy(() => import('./markets/commodities/CommoditiesMarket')),
-  globalMacro:       lazy(() => import('./markets/globalMacro/GlobalMacroMarket')),
-  // imf/worldbank/census were merged into globalMacro and realEstate; their
-  // data is still fetched (see MARKET_ENDPOINTS in DataProvider) and consumed
-  // via useMarketData(...) by those tabs. The standalone tab UIs were
-  // removed.
-  equitiesDeepDive:  lazy(() => import('./markets/equitiesDeepDive/EquitiesDeepDiveMarket')),
-  crypto:            lazy(() => import('./markets/crypto/CryptoMarket')),
-  credit:            lazy(() => import('./markets/credit/CreditMarket')),
-  sentiment:         lazy(() => import('./markets/sentiment/SentimentMarket')),
-  calendar:          lazy(() => import('./markets/calendar/CalendarMarket')),
-  bls:               lazy(() => import('./markets/bls/BlsMarket')),
-  eia:               lazy(() => import('./markets/eia/EiaMarket')),
-  alerts:            lazy(() => import('./markets/alerts/AlertsMarket')),
-  watchlist:         lazy(() => import('./markets/watchlist/WatchlistMarket')),
-  analytics:         lazy(() => import('./markets/analytics/AnalyticsMarket')),
-};
+import { MARKET_COMPONENTS } from './hub/lazyMarketComponents';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
