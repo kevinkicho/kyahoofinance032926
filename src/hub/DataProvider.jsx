@@ -21,7 +21,7 @@ if (!import.meta.env.DEV) {
 const dlog = import.meta.env.DEV ? console.log.bind(console) : () => {};
 
 const FETCH_SETTINGS = {
-  timeout: 30000,
+  timeout: 45000,   // give slow external-dependent routes (realEstate, globalMacro, insurance, etc.) more headroom on cold starts
   retries: 1,
   batchConcurrency: 4,
   batchDelayMs: 300,
@@ -192,7 +192,7 @@ async function fetchMarket(marketId) {
   const t0 = performance.now();
   try {
     dlog(`[DataProvider] → ${marketId}`);
-    const r = await fetchWithRetry(`${API_BASE}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
+    const r = await fetchWithRetry(`${API_BASE}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout, totalTimeout: 60000 });
     const data = await r.json();
     const dur = Math.round(performance.now() - t0);
     const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;
@@ -460,7 +460,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const t0 = performance.now();
     try {
       dlog(`[DataProvider] → ${marketId}`);
-      const r = await fetchWithRetry(`${API_BASE}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout });
+      const r = await fetchWithRetry(`${API_BASE}${url}`, { retries: FETCH_SETTINGS.retries, timeout: FETCH_SETTINGS.timeout, totalTimeout: 60000 });
       const data = await r.json();
       const dur = Math.round(performance.now() - t0);
       const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;

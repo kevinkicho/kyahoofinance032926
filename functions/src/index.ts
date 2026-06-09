@@ -1,5 +1,4 @@
 import { onRequest } from "firebase-functions/v2/https";
-import { onSchedule } from "firebase-functions/v2/scheduler";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import NodeCache from "node-cache";
@@ -39,8 +38,6 @@ function loadRoutes() {
     'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank'
   ];
 
-  let commoditiesEnhancedRouter: any = null;
-
   for (const route of essentialRoutes) {
     try {
       const module = require(path.join(__dirname, "routes", `${route}.js`));
@@ -48,7 +45,6 @@ function loadRoutes() {
       if (route === 'ticker') {
         app.use("/api", router);
       } else if (route === 'commoditiesEnhanced') {
-        commoditiesEnhancedRouter = router;
         app.use(`/api/${route}`, router);
         // Back-compat alias: many docs, comments, and older links expect /api/commodities/v2
         // for the enhanced (EIA + enriched) commodities data that the main dashboard uses.
@@ -101,30 +97,11 @@ export const api = onRequest(
   app
 );
 
-/**
- * Scheduled snapshot refresher.
- *
- * This runs on a cron (Cloud Scheduler) independently of any client load.
- * Use it to:
- *   - Pre-warm the NodeCache for heavy endpoints (realEstate, insurance, globalMacro, etc.)
- *   - Fetch key market data and write structured snapshots to Firebase Realtime Database (or Firestore).
- *   - This dramatically reduces the number of client-triggered cold invocations,
- *     which is the main way to keep bills predictable and low when the app is
- *     served from static hosting (GitHub Pages).
- *
- * Example expansion (pseudo):
- *   const db = getDatabase();
- *   const snap = await fetchMarketDataSomehow('realEstate');
- *   await set(ref(db, 'snapshots/current/realEstate'), snap);
- *
- * Schedule can be adjusted in the onSchedule string (e.g. "every 10 minutes").
- * Make sure the function has the necessary IAM / secrets for any external APIs.
- */
-export const refreshMarketSnapshots = onSchedule("every 15 minutes", async (event) => {
-  console.log('[scheduled] refreshMarketSnapshots tick', event?.scheduleTime || new Date().toISOString());
-  // TODO: implement actual priming / RTDB writes here.
-  // For now this just keeps the function warm and gives you a hook.
-  // You can import route handlers or duplicate minimal fetch logic from the routes/*.
-  // When implemented, the frontend can be updated to read from RTDB first (via firebase SDK)
-  // and only fall back to the /api calls when the snapshot is stale/missing.
-});
+// NOTE on cost control / RTDB migration (see user's request):
+// A scheduled refresher (using onSchedule) can be added here later to pre-warm caches
+// and write snapshots to Realtime Database. This lets the static frontend read from
+// cheap/fast RTDB instead of hitting the function on every load, greatly reducing
+// invocation count and bill risk.
+// Example (once added):
+// import { onSchedule } from "firebase-functions/v2/scheduler";
+// export const refreshSnapshots = onSchedule("every 15 minutes", async () => { ... write to RTDB ... });
