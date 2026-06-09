@@ -6,7 +6,10 @@ const FIREBASE_PROJECT = 'kfinance032926';
 // After `firebase deploy --only functions` the CLI will print the exact URL
 // for the `api` Cloud Function. Override with VITE_API_BASE_URL if it differs
 // (custom domain, different region, or Cloud Run direct URL).
-const DEFAULT_PROD_API_BASE = `https://us-central1-${FIREBASE_PROJECT}.cloudfunctions.net/api`;
+// The actual live URL printed by `firebase deploy --only functions` for this project.
+// Using the .run.app (often a Cloud Run backing for the 2nd-gen function) ensures
+// the path construction (base + /api/xxx) matches what the Express mounts expect.
+const DEFAULT_PROD_API_BASE = 'https://api-4uzq3y2xva-uc.a.run.app';
 
 /**
  * Resolve the backend base at runtime.
