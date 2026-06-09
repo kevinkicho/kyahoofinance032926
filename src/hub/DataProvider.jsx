@@ -701,9 +701,27 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     return { ...m, refetch: () => refetchSingle(marketId) };
   }, [markets, refetchSingle]);
 
+  // New: load a specific historical snapshot for one or more markets.
+  // Useful for time-travel UIs, historical audits, trend computation, etc.
+  // Example: loadHistorical('2026-06-09') then use the returned data to override state.
+  const loadHistorical = useCallback(async (date) => {
+    if (!date) return null;
+    const histSeeds = await Promise.all(
+      ALL_FETCH_IDS.map(async (id) => {
+        const seed = await loadFromRTDB(id, date);
+        return seed ? { id, seed } : null;
+      })
+    );
+    const hist = {};
+    for (const item of histSeeds) {
+      if (item) hist[item.id] = item.seed;
+    }
+    return hist;
+  }, []);
+
   const auditFreshness = useCallback(() => computeFreshnessReport(markets, new Date()), [markets]);
 
-  const value = React.useMemo(() => ({ markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness]);
+  const value = React.useMemo(() => ({ markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
