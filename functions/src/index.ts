@@ -1,6 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import * as admin from "firebase-admin";
+import admin from "firebase-admin";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import NodeCache from "node-cache";
@@ -108,7 +108,7 @@ export const api = onRequest(
 // - Drastically reduces the number of *client-triggered* function invocations (the main bill driver
 //   for a static GH Pages frontend).
 // - Frontend can read these snapshots cheaply and instantly via RTDB REST (public read rules).
-// - Scheduled invocations are predictable and limited (e.g. 4x/hour = ~96/day).
+// - Scheduled invocations are predictable and limited (once per day).
 // - maxInstances + timeout already limit runaway scale.
 //
 // The frontend (DataProvider) will prefer a recent RTDB snapshot and only fall back to the
@@ -118,7 +118,7 @@ export const api = onRequest(
 //   firebase deploy --only functions,database   (after setting rules)
 //   (RTDB must be enabled in the Firebase console for the project if not already.)
 
-if (!admin.apps.length) {
+if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp();
 }
 
@@ -133,7 +133,7 @@ const SNAPSHOT_MARKETS = [
   { id: "bonds", path: "/api/bonds" },
 ];
 
-export const refreshMarketSnapshots = onSchedule("every 15 minutes", async (event) => {
+export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
   const db = admin.database();
   const now = new Date().toISOString();
   console.log(`[scheduled] refreshMarketSnapshots starting at ${now}`);

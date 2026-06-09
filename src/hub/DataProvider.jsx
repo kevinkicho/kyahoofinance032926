@@ -515,7 +515,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const ids = ALL_FETCH_IDS;
 
     // Seed from RTDB snapshots first (fast, cheap, no function invocation).
-    // The scheduled refresher writes here every 15 min. This is the main lever
+    // The scheduled refresher writes here once per day. This is the main lever
     // for reducing client-driven Functions bills on static hosting.
     const rtdbSeeds = await Promise.all(
       ids.map(async (id) => {
