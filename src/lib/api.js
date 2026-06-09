@@ -44,15 +44,17 @@ function resolveProdBase() {
   return DEFAULT_PROD_API_BASE;
 }
 
-const PROD_API_BASE = resolveProdBase();
-
 export function getApiBaseUrl() {
   if (import.meta.env.DEV) {
     // In dev, return '' so that fetch('/api/xxx') goes through Vite's dev proxy
     // (configured in vite.config.js for all the /api/* routes).
     return '';
   }
-  return PROD_API_BASE;
+  // Always re-resolve at call time so that even in lazily loaded chunks or
+  // after deploys, we correctly detect the current host (github.io etc) and
+  // force the external backend. This prevents mixed old/new chunks from
+  // accidentally using relative paths on static hosting.
+  return resolveProdBase();
 }
 
 /** Small diagnostic object useful for footers, toasts, or "copy debug info". */

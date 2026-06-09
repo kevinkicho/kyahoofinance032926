@@ -242,7 +242,7 @@ export function hasNonNullData(d, id) {
   if (!d || typeof d !== 'object') return false;
   // Relax for analytics (rate limits stub) and watchlist which often return
   // minimal but valid structures; we still want to treat them as "received".
-  if (id === 'analytics' || id === 'watchlist') {
+  if (id === 'analytics' || id === 'watchlist' || id === 'censusTrade') {
     return Object.keys(d).some(k => !k.startsWith('_') && d[k] != null);
   }
   let nonNull = 0;

@@ -170,6 +170,13 @@ export default function KeyIndicesStrip({
 
   const fetchHistory = useCallback(async (ticker) => {
     if (hist[ticker]?.history || hist[ticker]?.loading) return;
+    // DX=F (dollar index futures) often lacks reliable history in the current
+    // backend data pipeline (no local file + Yahoo fallback fails in Functions env).
+    // Skip to avoid spamming 404s in console; the pill will just show price without sparkline.
+    if (ticker === 'DX=F') {
+      setHist(prev => ({ ...prev, [ticker]: { error: 'No history (special ticker)' } }));
+      return;
+    }
     setHist(prev => ({ ...prev, [ticker]: { loading: true } }));
     try {
       const r = await fetch(apiUrl(`/api/history/${encodeURIComponent(ticker)}?period=3m`));

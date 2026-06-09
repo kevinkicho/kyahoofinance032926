@@ -51,6 +51,21 @@ function loadRoutes() {
         // Back-compat alias: many docs, comments, and older links expect /api/commodities/v2
         // for the enhanced (EIA + enriched) commodities data that the main dashboard uses.
         app.use('/api/commodities/v2', router);
+      } else if (route === 'treasuryTIC') {
+        app.use(`/api/${route}`, router);
+        app.use('/api/treasury/tic', router);
+      } else if (route === 'treasuryAuctions') {
+        app.use(`/api/${route}`, router);
+        app.use('/api/treasury/auctions', router);
+      } else if (route === 'treasuryDTS') {
+        app.use(`/api/${route}`, router);
+        app.use('/api/treasury/dts', router);
+      } else if (route === 'censusTrade') {
+        app.use(`/api/${route}`, router);
+        app.use('/api/census-trade', router);
+      } else if (route === 'eiaPetroleum') {
+        app.use(`/api/${route}`, router);
+        app.use('/api/eia-petroleum', router);
       } else {
         app.use(`/api/${route}`, router);
       }
