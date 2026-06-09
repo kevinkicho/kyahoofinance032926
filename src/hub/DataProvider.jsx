@@ -72,11 +72,11 @@ export const MARKET_ENDPOINTS = {
   nyfed:             '/api/nyfed',
   fdic:              '/api/fdic',
   ecb:               '/api/ecb',
-  treasuryTIC:       '/api/treasury/tic',
+  treasuryTIC:       '/api/treasuryTIC',
   // Tier-1 additions (Treasury Fiscal Data API): auctions + DTS feed
   // Bonds Recent Auctions and Macro TGA Cash Balance panels.
-  treasuryAuctions:  '/api/treasury/auctions',
-  treasuryDTS:       '/api/treasury/dts',
+  treasuryAuctions:  '/api/treasuryAuctions',
+  treasuryDTS:       '/api/treasuryDTS',
   // Federal Reserve System: FOMC SEP, Atlanta GDPNow, Cleveland inflation
   // nowcast, SF news sentiment. Consumed by Macro and Sentiment panels.
   fedSEP:              '/api/fed/sep',
@@ -94,8 +94,8 @@ export const MARKET_ENDPOINTS = {
   // Commodities-tab additions: USDA NASS ag prices, Census trade flows,
   // EIA petroleum & natural gas. USDA gracefully degrades without a key.
   usda:                '/api/usda',
-  censusTrade:         '/api/census-trade',
-  eiaPetroleum:        '/api/eia-petroleum',
+  censusTrade:         '/api/censusTrade',
+  eiaPetroleum:        '/api/eiaPetroleum',
 };
 
 const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);
@@ -238,8 +238,13 @@ async function fetchMarket(marketId) {
   }
 }
 
-export function hasNonNullData(d) {
+export function hasNonNullData(d, id) {
   if (!d || typeof d !== 'object') return false;
+  // Relax for analytics (rate limits stub) and watchlist which often return
+  // minimal but valid structures; we still want to treat them as "received".
+  if (id === 'analytics' || id === 'watchlist') {
+    return Object.keys(d).some(k => !k.startsWith('_') && d[k] != null);
+  }
   let nonNull = 0;
   for (const [k, v] of Object.entries(d)) {
     if (k.startsWith('_') || k === 'lastUpdated' || k === 'fetchedOn' || k === 'isCurrent' || k === 'isLive' || k === 'countryCount') continue;
@@ -311,7 +316,7 @@ export function applyResult(prev, result) {
   const id = result.marketId;
   if (result.ok) {
     const d = result.data;
-    const hasRealData = hasNonNullData(d);
+    const hasRealData = hasNonNullData(d, id);
     const structuralOk = hasRealData && passesStructuralGuard(id, d);
     const ts = d?.lastUpdated || tsNow();
     const isCurrent = structuralOk ? (d?.isCurrent != null ? !!d.isCurrent : !!d?.isLive) : false;
