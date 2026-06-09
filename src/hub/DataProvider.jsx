@@ -240,9 +240,12 @@ async function fetchMarket(marketId) {
 
 export function hasNonNullData(d, id) {
   if (!d || typeof d !== 'object') return false;
-  // Relax for analytics (rate limits stub) and watchlist which often return
-  // minimal but valid structures; we still want to treat them as "received".
-  if (id === 'analytics' || id === 'watchlist' || id === 'censusTrade') {
+  // Relax for system/analytics endpoints and any *-Trade / *Petroleum endpoints
+  // which frequently return metadata-heavy or sparse-but-valid responses.
+  // We still want to treat them as "received" so they don't spam warnings or get dropped.
+  const isSystemLike = id === 'analytics' || id === 'watchlist' || id === 'censusTrade' || id === 'eiaPetroleum' ||
+                       (id && (id.includes('Trade') || id.includes('Petroleum') || id.startsWith('treasury')));
+  if (isSystemLike) {
     return Object.keys(d).some(k => !k.startsWith('_') && d[k] != null);
   }
   let nonNull = 0;

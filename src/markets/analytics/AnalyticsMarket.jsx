@@ -28,6 +28,7 @@ const FRED_API_BASE = apiUrl('/api/fred/observations');
 import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
 
 const MARKET_ENDPOINTS = Object.entries(MARKET_ENDPOINTS_MAP).map(([id, path]) => ({
+  id,
   path,
   label: id.charAt(0).toUpperCase() + id.slice(1).replace(/([A-Z])/g, ' $1').trim(),
 }));
@@ -75,23 +76,54 @@ function ProvenanceAudit() {
   const [history, setHistory] = useState(initialHistory);
   const lastRanAt = history[0]?.ranAt || null;
 
-  const runAudit = useCallback(async () => {
+  const runAudit = useCallback(async (forceLive = false) => {
     setLoading(true);
     const all = [];
     for (const ep of MARKET_ENDPOINTS) {
-      try {
-        const r = await fetch(ep.path);
-        const data = await r.json();
-        const sources = data._sources || {};
-        const sourceKeys = Object.keys(sources);
-        all.push({ ...ep, status: r.status, sources, sourceKeys, error: null });
-      } catch (e) {
-        all.push({ ...ep, status: 0, sources: {}, sourceKeys: [], error: e.message });
+      let usedSnapshot = false;
+      if (!forceLive) {
+        try {
+          // Leverage RTDB snapshot (populated by the daily scheduled refresher or force-runs).
+          // This avoids live API calls from the static site (preventing .github.io 404s)
+          // and makes audit results based on persisted backend data for debugging.
+          const snapUrl = `https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/${ep.id}.json`;
+          const r = await fetch(snapUrl);
+          if (r.ok) {
+            const snap = await r.json();
+            const data = snap?.data || {};
+            const sources = data._sources || {};
+            const sourceKeys = Object.keys(sources);
+            all.push({
+              ...ep,
+              status: 200,
+              sources,
+              sourceKeys,
+              error: null,
+              fromSnapshot: snap?.fetchedAt || 'latest RTDB snapshot',
+            });
+            usedSnapshot = true;
+          }
+        } catch {}
+      }
+      if (!usedSnapshot) {
+        // Fallback to live (use apiUrl to ensure correct host even on GH Pages)
+        try {
+          const url = apiUrl(ep.path);
+          const r = await fetch(url);
+          const data = await r.json().catch(() => ({}));
+          const sources = data._sources || {};
+          const sourceKeys = Object.keys(sources);
+          all.push({ ...ep, status: r.status, sources, sourceKeys, error: null });
+        } catch (e) {
+          all.push({ ...ep, status: 0, sources: {}, sourceKeys: [], error: e.message });
+        }
       }
     }
     setResults(all);
     setLoading(false);
-    // Persist this audit to history (most recent first, capped to MAX).
+    // Persist this audit to local history (most recent first, capped to MAX).
+    // For wider backend persistence/debugging, the source data is already in RTDB snapshots.
+    // Future enhancement: write audit results to RTDB under /auditHistory if write rules allow.
     const entry = { ranAt: new Date().toISOString(), results: all };
     setHistory(prev => {
       const next = [entry, ...prev].slice(0, AUDIT_HISTORY_MAX);
@@ -140,9 +172,10 @@ function ProvenanceAudit() {
             </span>
           )}
         </span>
-        <button className="ana-refresh-btn" onClick={runAudit} disabled={loading}>{loading ? 'Auditing...' : 'Run Audit'}</button>
+        <button className="ana-refresh-btn" onClick={() => runAudit(false)} disabled={loading}>{loading ? 'Auditing...' : 'Run Audit (RTDB snapshots)'}</button>
+        <button className="ana-refresh-btn" onClick={() => runAudit(true)} disabled={loading}>Force Live Audit</button>
       </div>
-      {results.length === 0 && !loading && <div className="ana-empty">Click "Run Audit" to fetch all market endpoints and check provenance</div>}
+      {results.length === 0 && !loading && <div className="ana-empty">Click "Run Audit (RTDB snapshots)" to analyze provenance from the latest persisted backend data (no live calls). Use "Force Live" only when needed.</div>}
       {loading && <div className="ana-empty">Fetching endpoints...</div>}
       {results.map(r => (
         <div key={r.path} className="ana-prov-market">
@@ -151,6 +184,7 @@ function ProvenanceAudit() {
             <span className="ana-prov-market-path">{r.path}</span>
             <span className={`ana-prov-stat ${r.error ? 'ana-err' : r.sourceKeys.length > 0 ? 'ana-ok' : ''}`}>
               {r.error ? 'ERR' : `${r.sourceKeys.filter(k => r.sources[k]).length}/${r.sourceKeys.length}`}
+              {r.fromSnapshot && <span style={{fontSize: '9px', marginLeft: '4px', opacity: 0.7}}>(snapshot)</span>}
             </span>
           </div>
           {r.sourceKeys.map(k => {
@@ -515,6 +549,8 @@ export default function AnalyticsMarket() {
           {autoRefresh ? 'Auto 30s' : 'Auto-refresh'}
         </button>
         <button className="ana-refresh-btn" onClick={() => fetchData(true)}>Refresh (force live)</button>
+        <button className="ana-refresh-btn" onClick={() => runAudit(false)}>Run Audit (from RTDB snapshots)</button>
+        <button className="ana-refresh-btn" onClick={() => runAudit(true)}>Run Audit (force live)</button>
       </div>
       <div className="ana-dashboard ana-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v2">
