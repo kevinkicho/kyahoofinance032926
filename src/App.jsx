@@ -92,7 +92,8 @@ function PopoutView({ marketId }) {
           {label}
           <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-dim)', marginLeft: 4 }}>— Pop-out View</span>
           {marketCtx?.isLoading && <span style={{ fontSize: 10, color: 'var(--accent, #3b82f6)' }}>Loading…</span>}
-          {marketCtx?.isLive && !marketCtx?.isLoading && <span style={{ fontSize: 10, color: '#10b981' }}>● Live</span>}
+          {marketCtx?.isHistorical && marketCtx?.asOfDate && !marketCtx?.isLoading && <span style={{ fontSize: 10, color: '#fbbf24' }}>📜 {marketCtx.asOfDate}</span>}
+          {marketCtx?.isLive && !marketCtx?.isLoading && !marketCtx?.isHistorical && <span style={{ fontSize: 10, color: '#10b981' }}>● Live</span>}
         </span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={() => marketCtx?.refetch?.()} title="Refresh data" style={{ fontSize: 12, background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>

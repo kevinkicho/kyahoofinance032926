@@ -115,6 +115,30 @@ body {
 }
 .market-tab-bar::-webkit-scrollbar { display: none; }
 
+.hub-hist-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(90deg, rgba(245,158,11,0.12), rgba(245,158,11,0.06));
+  border-bottom: 1px solid rgba(245,158,11,0.35);
+  color: #fcd34d;
+  font-size: 12px;
+  padding: 4px 16px;
+  flex-shrink: 0;
+}
+.hub-hist-banner strong { color: #fde047; font-weight: 700; }
+.hub-hist-banner button {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(245,158,11,0.5);
+  color: #fde047;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.hub-hist-banner button:hover { background: rgba(239,68,68,0.2); border-color: #ef4444; color: #fecaca; }
+.hub-hist-hint { margin-left: auto; font-size: 10px; opacity: 0.7; }
+
 /* ── Market placeholder (stub workspaces) ──────── */
 .market-placeholder {
   display: flex;

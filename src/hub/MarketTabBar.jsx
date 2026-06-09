@@ -3,6 +3,7 @@ import { MARKETS, SEARCH_INDEX } from './markets.config';
 import { currencySymbols } from '../utils/constants';
 import { useTheme } from './ThemeContext';
 import { useCurrency } from './CurrencyContext';
+import { useDataContext } from './DataContext';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
@@ -22,6 +23,8 @@ function highlightMatch(text, query) {
 
 export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, autoRefresh, onToggleRefresh, onRefresh }) {
   const { currency, setCurrency } = useCurrency();
+  const dataCtx = useDataContext();
+  const { historicalDate, setHistoricalDate, listSnapshotDates } = dataCtx || { historicalDate: null, setHistoricalDate: () => {}, listSnapshotDates: async () => [] };
   function handlePopout() {
     window.open('/?popout=' + activeMarket, '_blank', 'width=1200,height=800,menubar=no,toolbar=no');
   }
@@ -31,6 +34,35 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   const [highlighted, setHighlighted] = useState(0);
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Global historical date picker (drives DataProvider.setHistoricalDate which seeds all markets from RTDB /history/{date})
+  const [histDates, setHistDates] = useState([]);
+  const [histLoading, setHistLoading] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    setHistLoading(true);
+    // Try a few reliably snapshotted markets; take the first that returns dates.
+    (async () => {
+      const candidates = ['sentiment', 'bonds', 'analytics', 'globalMacro'];
+      for (const c of candidates) {
+        try {
+          const ds = await listSnapshotDates(c);
+          if (alive && Array.isArray(ds) && ds.length) {
+            setHistDates(ds);
+            return;
+          }
+        } catch {}
+      }
+      if (alive) setHistDates([]);
+    })().finally(() => { if (alive) setHistLoading(false); });
+    return () => { alive = false; };
+  }, [listSnapshotDates]);
+
+  const handleHistChange = (e) => {
+    const v = e.target.value;
+    setHistoricalDate(v || null);
+  };
+  const handleHistClear = () => setHistoricalDate(null);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -175,6 +207,28 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       >
         {autoRefresh ? 'On' : 'Off'}
       </button>
+
+      {/* Global Time Travel / Historical snapshot picker — drives setHistoricalDate so DataProvider seeds from RTDB history for the whole app */}
+      <div className="hub-history-control" title={histDates.length ? `${histDates.length} historical dates available via RTDB` : 'Historical snapshots from daily RTDB (may be empty until scheduled runs populate history)'}>
+        <span className="hub-hist-label">History</span>
+        <select
+          className={`hub-hist-select${historicalDate ? ' active' : ''}`}
+          value={historicalDate || ''}
+          onChange={handleHistChange}
+          disabled={histLoading && !histDates.length}
+        >
+          <option value="">Live (latest)</option>
+          {histDates.map(d => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        {historicalDate && (
+          <button className="hub-hist-clear" onClick={handleHistClear} title="Return to live data">×</button>
+        )}
+        {historicalDate && <span className="hub-hist-badge">HIST</span>}
+        {!historicalDate && histDates.length > 0 && <span className="hub-hist-count">{histDates.length}</span>}
+      </div>
+
       <button
         className="hub-popout-btn"
         onClick={handlePopout}

@@ -4,7 +4,7 @@ import { DEFAULT_MARKET, MARKETS } from './markets.config';
 import HubFooter from './HubFooter';
 import { useToast } from './ToastContext';
 import { DataProvider } from './DataProvider';
-import { useMarketData } from './DataContext';
+import { useMarketData, useDataContext } from './DataContext';
 import { useCurrency } from './CurrencyContext';
 import { captureBentoSnapshot } from '../utils/exportUtils';
 import { MARKET_COMPONENTS } from './lazyMarketComponents';
@@ -110,6 +110,23 @@ function ActiveMarketWrapper({ activeMarket, currency, setCurrency, snapshotDate
         institutionalData={activeMarket === 'equitiesDeepDive' ? institutionalCtx : undefined}
         onNavigate={onNavigate}
       />
+    </div>
+  );
+}
+
+// Thin global banner shown whenever a historicalDate is active in DataProvider.
+// Clicking exit calls setHistoricalDate(null) which makes DataProvider fall back to /latest + live fetches.
+function HistoricalModeBanner() {
+  const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
+  if (!ctx || !ctx.historicalDate) return null;
+  const { historicalDate, setHistoricalDate } = ctx;
+  return (
+    <div className="hub-hist-banner" role="status" aria-live="polite">
+      <span>📜 Historical view: <strong>{historicalDate}</strong> (data from daily RTDB snapshots)</span>
+      <button onClick={() => setHistoricalDate(null)} title="Exit historical mode and return to live/latest data across the app">
+        Exit to live
+      </button>
+      <span className="hub-hist-hint">Other tabs &amp; panels now show {historicalDate} data</span>
     </div>
   );
 }
@@ -278,6 +295,7 @@ export default function HubLayout() {
            onToggleRefresh={handleToggleRefresh}
            onRefresh={handleRefresh}
          />
+        <HistoricalModeBanner />
         <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
           <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
             <Suspense fallback={<MarketFallback />}>

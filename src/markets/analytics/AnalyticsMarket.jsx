@@ -3,15 +3,17 @@ import { api, apiUrl } from '../../lib/api';
 import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
-import { useMarketData } from '../../hub/DataContext';
+import { useMarketData, useDataContext } from '../../hub/DataContext';
 import './AnalyticsDashboard.css';
 
 // Helper to load analytics snapshot from RTDB (written by daily scheduled refresher).
 // This makes rich analytics / rate-limit / cache results persistent and debuggable
 // without requiring live Functions calls every time.
-async function loadAnalyticsFromRTDB() {
+// Now accepts optional date to load a historical entry (for date-aware views).
+async function loadAnalyticsFromRTDB(date = null) {
   try {
-    const res = await fetch('https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/analytics/latest.json');
+    const suffix = date ? `history/${date}` : 'latest';
+    const res = await fetch(`https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/analytics/${suffix}.json`);
     if (!res.ok) return null;
     const payload = await res.json();
     if (payload && payload.data) {
@@ -67,7 +69,11 @@ function saveAuditHistory(history) {
   catch (e) { console.warn('[ProvenanceAudit] localStorage save failed:', e?.message); }
 }
 
-function ProvenanceAudit() {
+function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChange = null }) {
+  const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
+  const globalHistorical = ctx?.historicalDate || null;
+  const listDates = ctx?.listSnapshotDates || (async () => []);
+
   const initialHistory = typeof window !== 'undefined' ? loadAuditHistory() : [];
   const [results, setResults] = useState(initialHistory[0]?.results || []);
   const [loading, setLoading] = useState(false);
@@ -76,17 +82,38 @@ function ProvenanceAudit() {
   const [history, setHistory] = useState(initialHistory);
   const lastRanAt = history[0]?.ranAt || null;
 
-  const runAudit = useCallback(async (forceLive = false) => {
+  // Local audit date (for this panel) — falls back to global historicalDate when present.
+  const [auditDate, setAuditDate] = useState(defaultDate || globalHistorical || null);
+  const [auditDates, setAuditDates] = useState(Array.isArray(availableDates) ? availableDates : []);
+  useEffect(() => {
+    if (defaultDate) setAuditDate(defaultDate);
+  }, [defaultDate]);
+  // If global changes and we don't have a local override, follow it for convenience.
+  useEffect(() => {
+    if (!defaultDate && globalHistorical) setAuditDate(globalHistorical);
+  }, [globalHistorical, defaultDate]);
+
+  // Load date list for the audit picker (if not provided by parent)
+  useEffect(() => {
+    if (availableDates && availableDates.length) { setAuditDates(availableDates); return; }
+    let alive = true;
+    listDates('bonds').then(ds => { if (alive && ds?.length) setAuditDates(ds); }).catch(()=>{});
+    return () => { alive = false; };
+  }, [listDates, availableDates]);
+
+  const runAudit = useCallback(async (forceLive = false, explicitDate = null) => {
     setLoading(true);
+    const targetDate = explicitDate || auditDate || globalHistorical || null;
     const all = [];
     for (const ep of MARKET_ENDPOINTS) {
       let usedSnapshot = false;
       if (!forceLive) {
         try {
-          // Leverage RTDB snapshot (populated by the daily scheduled refresher or force-runs).
-          // This avoids live API calls from the static site (preventing .github.io 404s)
-          // and makes audit results based on persisted backend data for debugging.
-          const snapUrl = `https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/${ep.id}/latest.json`;
+          // Leverage RTDB snapshot (populated by the daily scheduled refresher).
+          // Now date-aware: when a historical date is selected (global or local to audit),
+          // fetch /history/{date}.json instead of /latest so audit reflects that day's data.
+          const suffix = targetDate ? `history/${targetDate}` : 'latest';
+          const snapUrl = `https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/${ep.id}/${suffix}.json`;
           const r = await fetch(snapUrl);
           if (r.ok) {
             const snap = await r.json();
@@ -99,7 +126,7 @@ function ProvenanceAudit() {
               sources,
               sourceKeys,
               error: null,
-              fromSnapshot: snap?.fetchedAt || 'latest RTDB snapshot',
+              fromSnapshot: snap?.fetchedAt || (targetDate ? `RTDB ${targetDate}` : 'latest RTDB snapshot'),
             });
             usedSnapshot = true;
           }
@@ -124,13 +151,13 @@ function ProvenanceAudit() {
     // Persist this audit to local history (most recent first, capped to MAX).
     // For wider backend persistence/debugging, the source data is already in RTDB snapshots.
     // Future enhancement: write audit results to RTDB under /auditHistory if write rules allow.
-    const entry = { ranAt: new Date().toISOString(), results: all };
+    const entry = { ranAt: new Date().toISOString(), results: all, date: targetDate || 'live' };
     setHistory(prev => {
       const next = [entry, ...prev].slice(0, AUDIT_HISTORY_MAX);
       saveAuditHistory(next);
       return next;
     });
-  }, []);
+  }, [auditDate, globalHistorical]);
 
   const verifyFRED = useCallback(async (seriesId, sourceKey, marketPath) => {
     const key = `${marketPath}::${sourceKey}::${seriesId}`;
@@ -160,11 +187,26 @@ function ProvenanceAudit() {
   const receivedSources = results.reduce((a, r) => a + r.sourceKeys.filter(k => r.sources[k]).length, 0);
   const missingSources = totalSources - receivedSources;
 
+  const effectiveAuditDate = auditDate || globalHistorical || null;
+  const handleAuditRun = (force) => runAudit(force);
+  const handleAuditDateChange = (e) => {
+    const v = e.target.value || null;
+    setAuditDate(v);
+    if (onDateChange) onDateChange(v);
+    // Auto re-run non-live audit for the newly chosen date so results match selection.
+    // User can still Force Live.
+    if (!loading) {
+      // slight delay so state settles; run with explicit to be sure
+      setTimeout(() => runAudit(false, v), 0);
+    }
+  };
+
   return (
     <div className="ana-prov-audit">
       <div className="ana-prov-header">
         <span className="ana-prov-summary">
           {totalSources} sources · {receivedSources} received · {missingSources} missing
+          {effectiveAuditDate && <span style={{ marginLeft: 6, color: '#f59e0b' }}>· {effectiveAuditDate}</span>}
           {lastRanAt && (
             <span style={{ marginLeft: 8, opacity: 0.6, fontSize: 11 }}>
               · last run {new Date(lastRanAt).toLocaleString()}
@@ -172,10 +214,23 @@ function ProvenanceAudit() {
             </span>
           )}
         </span>
-        <button className="ana-refresh-btn" onClick={() => runAudit(false)} disabled={loading}>{loading ? 'Auditing...' : 'Run Audit (RTDB snapshots)'}</button>
-        <button className="ana-refresh-btn" onClick={() => runAudit(true)} disabled={loading}>Force Live Audit</button>
+
+        {/* Date-aware controls for the audit */}
+        <select
+          className="ana-hist-select"
+          value={auditDate || ''}
+          onChange={handleAuditDateChange}
+          disabled={loading}
+          title="Audit a specific historical RTDB snapshot (or follow global History picker)"
+        >
+          <option value="">(global / latest)</option>
+          {auditDates.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+
+        <button className="ana-refresh-btn" onClick={() => handleAuditRun(false)} disabled={loading}>{loading ? 'Auditing...' : (effectiveAuditDate ? `Audit ${effectiveAuditDate}` : 'Run Audit (RTDB snapshots)')}</button>
+        <button className="ana-refresh-btn" onClick={() => handleAuditRun(true)} disabled={loading}>Force Live Audit</button>
       </div>
-      {results.length === 0 && !loading && <div className="ana-empty">Click "Run Audit (RTDB snapshots)" to analyze provenance from the latest persisted backend data (no live calls). Use "Force Live" only when needed.</div>}
+      {results.length === 0 && !loading && <div className="ana-empty">Click audit button to analyze provenance from RTDB snapshots for the selected date (or latest). The picker lets you audit a past day's data. "Force Live" bypasses RTDB.</div>}
       {loading && <div className="ana-empty">Fetching endpoints...</div>}
       {results.map(r => (
         <div key={r.path} className="ana-prov-market">
@@ -245,6 +300,92 @@ function ProvenanceAudit() {
           })}
         </div>
       ))}
+
+      {/* Trend chart example wired to the same historical/RTDB system */}
+      <HistoricalTrendExample />
+    </div>
+  );
+}
+
+/**
+ * Minimal trend chart example using the new RTDB-backed historical wiring.
+ * - Uses listSnapshotDates + loadHistorical from DataContext (exposed by DataProvider).
+ * - Loads a handful of recent snapshot dates for a sample market (sentiment).
+ * - Extracts a simple scalar if available (e.g. fear/greed score) and renders a tiny SVG bar chart.
+ * This demonstrates how any panel can now drive cross-date analysis cheaply from the growing history.
+ */
+function HistoricalTrendExample() {
+  const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
+  const loadHistorical = ctx?.loadHistorical;
+  const listSnapshotDates = ctx?.listSnapshotDates;
+  const [points, setPoints] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const runDemo = useCallback(async () => {
+    if (!listSnapshotDates || !loadHistorical) { setErr('Context not available'); return; }
+    setLoading(true); setErr(null);
+    try {
+      const dates = (await listSnapshotDates('sentiment')).slice(0, 8); // up to 8 recent
+      if (!dates.length) { setPoints([]); setErr('No RTDB history yet for demo market'); setLoading(false); return; }
+      const seeds = await Promise.all(dates.map(async (d) => {
+        const h = await loadHistorical(d);
+        const s = h?.sentiment?.data || h?.sentiment || {};
+        // Try common locations for a scalar we can trend (fear/greed or similar risk score).
+        const fg = s?.fearGreedData?.score ?? s?.fearGreedData?.value ?? s?.riskData?.score;
+        const val = (typeof fg === 'number') ? fg : (Array.isArray(s?.currencies) ? s.currencies.length : null);
+        return { date: d, val: val != null ? Number(val) : null };
+      }));
+      const cleaned = seeds.filter(p => p.val != null);
+      setPoints(cleaned.length ? cleaned : seeds.map(p => ({ date: p.date, val: 50 }))); // fallback placeholder bars
+    } catch (e) {
+      setErr(e?.message || 'Failed to load historical');
+    } finally {
+      setLoading(false);
+    }
+  }, [listSnapshotDates, loadHistorical]);
+
+  const maxVal = Math.max(1, ...points.map(p => p.val || 0));
+  const minVal = Math.min(0, ...points.map(p => p.val || 0));
+  const range = Math.max(1, maxVal - minVal);
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border-color, #333)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Trend demo (sentiment history)</span>
+        <button className="ana-refresh-btn" onClick={runDemo} disabled={loading} style={{ padding: '1px 6px', fontSize: 10 }}>
+          {loading ? 'Loading…' : (points.length ? 'Reload' : 'Load trend')}
+        </button>
+        {points.length > 0 && <span style={{ fontSize: 10, opacity: 0.7 }}>{points.length} snapshots</span>}
+      </div>
+      {err && <div style={{ fontSize: 10, color: '#f87171' }}>{err}</div>}
+      {!err && points.length > 0 && (
+        <svg width="100%" height="52" viewBox={`0 0 ${Math.max(120, points.length * 22)} 52`} preserveAspectRatio="none" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 3 }}>
+          {points.map((p, i) => {
+            const x = 4 + i * 22;
+            const h = 8 + Math.round(((p.val - minVal) / range) * 36);
+            const y = 46 - h;
+            const isRecent = i === points.length - 1;
+            return (
+              <g key={p.date}>
+                <rect x={x} y={y} width="16" height={h} rx="2" fill={isRecent ? '#22c55e' : '#3b82f6'} opacity={isRecent ? 0.95 : 0.75} />
+                <title>{p.date}: {p.val}</title>
+              </g>
+            );
+          })}
+          {/* baseline */}
+          <line x1="2" y1="46" x2={Math.max(118, points.length * 22)} y2="46" stroke="#555" strokeWidth="1" />
+        </svg>
+      )}
+      {points.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, opacity: 0.6, marginTop: 2 }}>
+          <span>{points[0]?.date}</span>
+          <span style={{ color: '#22c55e' }}>{points[points.length-1]?.date} (latest in set)</span>
+        </div>
+      )}
+      <div style={{ fontSize: 9, opacity: 0.55, marginTop: 2 }}>
+        Example: pulls via loadHistorical() from RTDB /history entries. Values are illustrative (fear/greed or proxy). Real panels can do richer math/comparisons.
+      </div>
     </div>
   );
 }
@@ -466,9 +607,12 @@ export default function AnalyticsMarket() {
   const [marketDetail, setMarketDetail] = useState(null);
   const [expandedSource, setExpandedSource] = useState(null);
 
+  const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
+  const histDate = ctx?.historicalDate || null;
+
   const fetchData = useCallback(async (forceLive = false) => {
     if (!forceLive) {
-      const snap = await loadAnalyticsFromRTDB();
+      const snap = await loadAnalyticsFromRTDB(histDate);
       if (snap) {
         setData(snap.data);
         setError(null);
@@ -486,7 +630,7 @@ export default function AnalyticsMarket() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [histDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -549,8 +693,7 @@ export default function AnalyticsMarket() {
           {autoRefresh ? 'Auto 30s' : 'Auto-refresh'}
         </button>
         <button className="ana-refresh-btn" onClick={() => fetchData(true)}>Refresh (force live)</button>
-        <button className="ana-refresh-btn" onClick={() => runAudit(false)}>Run Audit (from RTDB snapshots)</button>
-        <button className="ana-refresh-btn" onClick={() => runAudit(true)}>Run Audit (force live)</button>
+        {/* Audit controls (date-aware) live inside the "Provenance Audit" bento card below — supports global History picker + per-audit date select. */}
       </div>
       <div className="ana-dashboard ana-dashboard--bento">
         <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v2">

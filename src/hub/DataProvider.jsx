@@ -125,6 +125,11 @@ function loadSnapshot() {
  *
  * This is the primary mechanism for cheap historical + current data.
  * The DB now grows daily under /history/{date} while /latest is kept for convenience.
+ *
+ * Note on old root data: pre-history snapshots may have lived directly under marketSnapshots/{id}
+ * (without /latest or /history). The current loaders only read the structured paths written by the
+ * scheduled refresher. If you have legacy flat data, a one-off migration script or fallback read
+ * of the old shape can be added here; new daily growth uses the dated structure exclusively.
  */
 async function loadFromRTDB(marketId, date = null) {
   try {
@@ -570,6 +575,8 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             fetchedOn: seed.fetchedAt || next[item.id]?.fetchedOn,
             isLive: seed.isLive ?? next[item.id]?.isLive,
             isCurrent: true,
+            isHistorical: !!effectiveDate,
+            asOfDate: effectiveDate || null,
             error: null,
             // keep any previous fetchLog
           };
@@ -714,9 +721,19 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   // render, and silently mis-converted non-currency numbers. Removed.
   const getMarket = useCallback((marketId) => {
     const m = markets[marketId];
-    if (!m) return { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, error: null, fetchLog: [], refetch: () => refetchSingle(marketId), provenance: {} };
-    return { ...m, refetch: () => refetchSingle(marketId) };
-  }, [markets, refetchSingle]);
+    const base = !m
+      ? { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, isHistorical: !!historicalDate, asOfDate: historicalDate, error: null, fetchLog: [], refetch: () => refetchSingle(marketId), provenance: {} }
+      : { ...m, refetch: () => refetchSingle(marketId) };
+    // Always surface the app-wide historical mode so cards/footers can render "📜 as-of date" state even if this market wasn't (re)seeded this time.
+    if (historicalDate) {
+      base.isHistorical = base.isHistorical ?? true;
+      base.asOfDate = base.asOfDate || historicalDate;
+    } else {
+      base.isHistorical = base.isHistorical ?? false;
+      base.asOfDate = base.asOfDate || null;
+    }
+    return base;
+  }, [markets, refetchSingle, historicalDate]);
 
   // New: load a specific historical snapshot for one or more markets.
   // Useful for time-travel UIs, historical audits, trend computation, etc.
@@ -748,7 +765,9 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     loadHistorical, 
     listSnapshotDates,
     historicalDate,
-    setHistoricalDate 
+    setHistoricalDate,
+    isHistorical: !!historicalDate,
+    asOfDate: historicalDate
   }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates, historicalDate, setHistoricalDate]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

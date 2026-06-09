@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getAllDatesFor, getSnapshot } from '../../utils/snapshotDB';
 import { useInterval } from '../../hooks/useInterval';
+import { useDataContext } from '../../hub/DataContext';
 import './TimeTravel.css';
 
 const MACRO_EVENTS = [
@@ -54,6 +55,8 @@ const CAT_COLOR = {
 };
 
 export default function TimeTravel({ onSnapshotSelect, isActive }) {
+  const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
+  const setHistoricalDate = ctx?.setHistoricalDate || (() => {});
   const [dates, setDates] = useState([]);
   const [idx, setIdx] = useState(-1);
   const [playing, setPlaying] = useState(false);
@@ -82,8 +85,10 @@ export default function TimeTravel({ onSnapshotSelect, isActive }) {
     if (snap?.data?.quotes) {
       setLoadedSnap(snap);
       onSnapshotSelect(snap.data.quotes, date, snap.stamp);
+      // Drive global historical date so other markets/tabs (via DataProvider RTDB) reflect the same day.
+      setHistoricalDate(date);
     }
-  }, [onSnapshotSelect]);
+  }, [onSnapshotSelect, setHistoricalDate]);
 
   useEffect(() => {
     if (idx < 0 || idx >= dates.length) return;
@@ -114,6 +119,8 @@ export default function TimeTravel({ onSnapshotSelect, isActive }) {
     setIdx(-1);
     setLoadedSnap(null);
     onSnapshotSelect(null, null, null);
+    // Clear global historical so app returns to live/latest across all markets.
+    setHistoricalDate(null);
   };
 
   const currentDate = idx >= 0 && idx < dates.length ? dates[idx] : null;
@@ -180,10 +187,11 @@ export default function TimeTravel({ onSnapshotSelect, isActive }) {
           <span className="tt-date-label">
             {currentDate}
             {loadedSnap?.stamp && <span className="tt-stamp">{loadedSnap.stamp}</span>}
+            <span className="tt-global-hint" title="Sets historical view across the whole app (other tabs pull RTDB snapshots for this date)"> · app-wide</span>
           </span>
         ) : (
           <span className="tt-date-label tt-placeholder">
-            {dates.length ? 'Drag scrubber or press ▶' : 'No cached snapshots yet — fetch data first'}
+            {dates.length ? 'Drag scrubber or press ▶ (affects whole app via RTDB)' : 'No cached snapshots yet — fetch data first'}
           </span>
         )}
       </div>

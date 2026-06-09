@@ -295,7 +295,7 @@ function SourceExpand({ sourceKey, received }) {
   );
 }
 
-export default function DataFooter({ source, timestamp, isLive, fetchLog, error, fetchedOn, isCurrent }) {
+export default function DataFooter({ source, timestamp, isLive, fetchLog, error, fetchedOn, isCurrent, isHistorical, asOfDate }) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState(null);
   const [expandedEntry, setExpandedEntry] = useState(null);
@@ -353,19 +353,24 @@ export default function DataFooter({ source, timestamp, isLive, fetchLog, error,
   const toggleEntry = (i) => { setExpandedEntry(expandedEntry === i ? null : i); setExpandedSource(null); };
   const toggleSource = (k) => { setExpandedSource(expandedSource === k ? null : k); setExpandedEntry(null); };
 
-  const badge = isLive
-    ? <span className="df-fetched">FETCHED</span>
-    : (fetchLog?.length > 0 ? <span className="df-static">NO DATA</span> : <span className="df-pending">PENDING</span>);
+  const badge = isHistorical
+    ? <span className="df-snapshot">SNAPSHOT</span>
+    : (isLive
+        ? <span className="df-fetched">FETCHED</span>
+        : (fetchLog?.length > 0 ? <span className="df-static">NO DATA</span> : <span className="df-pending">PENDING</span>));
 
   const sources = fetchLog?.[0]?.sources;
+
+  const histSuffix = isHistorical && asOfDate ? ` · as of ${asOfDate}` : '';
 
   return (
     <>
       <div className="df-root" ref={rootRef} onClick={handleClick}>
         {badge}
-        <span className="df-label">{source}{timestamp ? ` \u00b7 ${timestamp}` : ''}</span>
+        <span className="df-label">{source}{timestamp ? ` \u00b7 ${timestamp}` : ''}{histSuffix}</span>
         {!isLive && error && <span className="df-error-text">\u25cb {error}</span>}
         {isCurrent === false && fetchedOn && <span className="df-stale">Stale \u00b7 fetched {fetchedOn}</span>}
+        {isHistorical && <span className="df-hist-pill">historical RTDB</span>}
       </div>
       {show && pos && fetchLog?.length > 0 && createPortal(
         <div

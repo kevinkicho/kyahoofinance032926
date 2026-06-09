@@ -56,6 +56,8 @@ const BentoCard = React.forwardRef(function BentoCard({
   timestamp,
   isLive,
   isCurrent,
+  isHistorical,
+  asOfDate,
   fetchedOn,
   fetchLog,
   error,
@@ -108,6 +110,8 @@ const BentoCard = React.forwardRef(function BentoCard({
           timestamp={timestamp}
           isLive={isLive}
           isCurrent={isCurrent}
+          isHistorical={isHistorical}
+          asOfDate={asOfDate}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
