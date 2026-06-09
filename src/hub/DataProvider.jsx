@@ -504,6 +504,7 @@ function maybeComputeFederated(prev, next) {
 export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) {
   const [markets, setMarkets] = useState(createInitialMarketState);
   const [globalLoading, setGlobalLoading] = useState(false);
+  const [historicalDate, setHistoricalDate] = useState(null); // e.g. '2026-06-09' to view past snapshot
   const mountedRef = useRef(true);
   const fetchingRef = useRef(false);
   const marketsRef = useRef(markets);
@@ -549,9 +550,10 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     // Seed from RTDB snapshots first (fast, cheap, no function invocation).
     // The scheduled refresher now writes daily under /history/{date} + /latest.
     // This makes the DB grow over time while still giving fast "current" data.
+    const effectiveDate = historicalDate; // if set, load that day's snapshot instead of latest
     const rtdbSeeds = await Promise.all(
       ids.map(async (id) => {
-        const seed = await loadFromRTDB(id);
+        const seed = await loadFromRTDB(id, effectiveDate);
         return seed ? { id, seed } : null;
       })
     );
@@ -578,6 +580,14 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       }
       return next;
     });
+
+    if (effectiveDate) {
+      // Historical mode: use the seeded snapshots, skip live network wave to avoid unnecessary calls.
+      dlog(`[DataProvider] Historical mode for ${effectiveDate} — using RTDB snapshots only.`);
+      setGlobalLoading(false);
+      fetchingRef.current = false;
+      return;
+    }
 
     setGlobalLoading(true);
 
@@ -662,6 +672,13 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     fetchAllMarkets();
   }, [fetchAllMarkets]);
 
+  // When historicalDate changes, re-seed from that day's RTDB snapshots.
+  useEffect(() => {
+    if (historicalDate) {
+      fetchAllMarkets();
+    }
+  }, [historicalDate, fetchAllMarkets]);
+
   // Manual-refresh button increments refreshKey from outside; this fires
   // a wave each time it changes (skipping the initial 0→0 no-op).
   useEffect(() => {
@@ -721,7 +738,18 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
   const auditFreshness = useCallback(() => computeFreshnessReport(markets, new Date()), [markets]);
 
-  const value = React.useMemo(() => ({ markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates]);
+  const value = React.useMemo(() => ({ 
+    markets, 
+    globalLoading, 
+    getMarket, 
+    refetchAll, 
+    refetchSingle, 
+    auditFreshness, 
+    loadHistorical, 
+    listSnapshotDates,
+    historicalDate,
+    setHistoricalDate 
+  }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates, historicalDate, setHistoricalDate]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
