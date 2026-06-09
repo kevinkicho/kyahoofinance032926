@@ -1,4 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import * as admin from "firebase-admin";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import NodeCache from "node-cache";
@@ -97,11 +99,73 @@ export const api = onRequest(
   app
 );
 
-// NOTE on cost control / RTDB migration (see user's request):
-// A scheduled refresher (using onSchedule) can be added here later to pre-warm caches
-// and write snapshots to Realtime Database. This lets the static frontend read from
-// cheap/fast RTDB instead of hitting the function on every load, greatly reducing
-// invocation count and bill risk.
-// Example (once added):
-// import { onSchedule } from "firebase-functions/v2/scheduler";
-// export const refreshSnapshots = onSchedule("every 15 minutes", async () => { ... write to RTDB ... });
+// --- Cost control + RTDB snapshot system ---
+// Scheduled function that runs on a fixed cron (independent of any user/browser).
+// It fetches fresh data for the heaviest/slowest endpoints using the live function URL,
+// then writes the responses to Firebase Realtime Database under /marketSnapshots/{marketId}.
+// 
+// Benefits:
+// - Drastically reduces the number of *client-triggered* function invocations (the main bill driver
+//   for a static GH Pages frontend).
+// - Frontend can read these snapshots cheaply and instantly via RTDB REST (public read rules).
+// - Scheduled invocations are predictable and limited (e.g. 4x/hour = ~96/day).
+// - maxInstances + timeout already limit runaway scale.
+//
+// The frontend (DataProvider) will prefer a recent RTDB snapshot and only fall back to the
+// /api call when the snapshot is missing or stale.
+//
+// To enable:
+//   firebase deploy --only functions,database   (after setting rules)
+//   (RTDB must be enabled in the Firebase console for the project if not already.)
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const LIVE_FUNCTIONS_BASE = "https://api-4uzq3y2xva-uc.a.run.app";
+
+// Markets we want to pre-snapshot on schedule (focus on the ones that were timing out or heavy).
+const SNAPSHOT_MARKETS = [
+  { id: "realEstate", path: "/api/realEstate" },
+  { id: "insurance", path: "/api/insurance" },
+  { id: "globalMacro", path: "/api/globalMacro" },
+  { id: "commodities", path: "/api/commodities/v2" }, // alias works thanks to loader
+  { id: "bonds", path: "/api/bonds" },
+];
+
+export const refreshMarketSnapshots = onSchedule("every 15 minutes", async (event) => {
+  const db = admin.database();
+  const now = new Date().toISOString();
+  console.log(`[scheduled] refreshMarketSnapshots starting at ${now}`);
+
+  await Promise.allSettled(
+    SNAPSHOT_MARKETS.map(async ({ id, path }) => {
+      try {
+        const url = `${LIVE_FUNCTIONS_BASE}${path}`;
+        const res = await fetch(url, { 
+          headers: { "User-Agent": "scheduled-snapshot-refresher" },
+          signal: AbortSignal.timeout(45000) // generous but bounded
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Write to RTDB. Frontend will read from here.
+        await db.ref(`marketSnapshots/${id}`).set({
+          data,
+          fetchedAt: now,
+          source: "scheduled",
+        });
+        console.log(`[scheduled] wrote snapshot for ${id}`);
+      } catch (e: any) {
+        console.warn(`[scheduled] failed snapshot for ${id}:`, e?.message || e);
+        // still write a minimal marker so frontend knows it tried
+        await db.ref(`marketSnapshots/${id}/lastError`).set({
+          at: now,
+          message: String(e?.message || e),
+        });
+      }
+    })
+  );
+
+  console.log("[scheduled] refreshMarketSnapshots complete");
+});

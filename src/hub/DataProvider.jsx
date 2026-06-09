@@ -8,6 +8,11 @@ import { getApiBaseUrl, getApiInfo } from '../lib/api';
 const API_BASE = getApiBaseUrl();
 const API_INFO = getApiInfo();
 
+// RTDB public REST endpoint for pre-computed snapshots written by the scheduled refresher.
+// This lets the static frontend get data instantly without hitting the Functions on every load.
+// Rules allow public .read on /marketSnapshots.
+const RTDB_BASE = 'https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots';
+
 // One-time visibility into which backend the bundle is talking to.
 // Extremely useful after a Pages deploy when debugging "why is nothing loading?"
 if (!import.meta.env.DEV) {
@@ -108,6 +113,32 @@ function loadSnapshot() {
     const parsed = JSON.parse(raw);
     return (parsed && typeof parsed === 'object') ? parsed : null;
   } catch { return null; }
+}
+
+/**
+ * Load a market snapshot from the public RTDB REST endpoint.
+ * Returns the {data, fetchedAt, ...} written by the scheduled refresher (or null).
+ * This is the primary mechanism to avoid hitting the (potentially cold/slow/$$) Functions
+ * from the static GitHub Pages frontend on every page load / refresh.
+ */
+async function loadFromRTDB(marketId) {
+  try {
+    const url = `${RTDB_BASE}/${marketId}.json`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const payload = await res.json();
+    if (payload && payload.data) {
+      return {
+        data: payload.data,
+        fetchedAt: payload.fetchedAt || null,
+        source: 'rtdb',
+        isLive: true, // treat RTDB snapshot as live for UI purposes
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function saveSnapshot(markets) {
@@ -482,13 +513,40 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     fetchingRef.current = true;
 
     const ids = ALL_FETCH_IDS;
+
+    // Seed from RTDB snapshots first (fast, cheap, no function invocation).
+    // The scheduled refresher writes here every 15 min. This is the main lever
+    // for reducing client-driven Functions bills on static hosting.
+    const rtdbSeeds = await Promise.all(
+      ids.map(async (id) => {
+        const seed = await loadFromRTDB(id);
+        return seed ? { id, seed } : null;
+      })
+    );
+
     setMarkets(prev => {
       const next = { ...prev };
+      for (const item of rtdbSeeds) {
+        if (item && MARKET_ENDPOINTS[item.id]) {
+          const { seed } = item;
+          next[item.id] = {
+            ...next[item.id],
+            data: seed.data || next[item.id]?.data,
+            lastUpdated: seed.fetchedAt || next[item.id]?.lastUpdated,
+            fetchedOn: seed.fetchedAt || next[item.id]?.fetchedOn,
+            isLive: seed.isLive ?? next[item.id]?.isLive,
+            isCurrent: true,
+            error: null,
+            // keep any previous fetchLog
+          };
+        }
+      }
       for (const id of ids) {
         if (MARKET_ENDPOINTS[id]) next[id] = { ...next[id], isLoading: true };
       }
       return next;
     });
+
     setGlobalLoading(true);
 
     dlog(`[DataProvider] Fetching ${ids.length} markets in batches of ${FETCH_SETTINGS.batchConcurrency}…`);
