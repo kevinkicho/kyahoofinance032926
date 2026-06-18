@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'VITE_FIREBASE_API_KEY_REQUIRED',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'kfinance032926.firebaseapp.com',
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || 'https://kfinance032926-default-rtdb.firebaseio.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kfinance032926',

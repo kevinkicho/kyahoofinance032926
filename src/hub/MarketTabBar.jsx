@@ -5,6 +5,7 @@ import { currencySymbols } from '../utils/constants';
 import { useTheme } from './ThemeContext';
 import { useCurrency } from './CurrencyContext';
 import { useDataContext } from './DataContext';
+import { useToast } from './ToastContext';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
@@ -25,6 +26,7 @@ function highlightMatch(text, query) {
 export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, autoRefresh, onToggleRefresh, onRefresh }) {
   const { currency, setCurrency } = useCurrency();
   const dataCtx = useDataContext();
+  const { addToast } = useToast();
   const { historicalDate, setHistoricalDate, listSnapshotDates } = dataCtx || { historicalDate: null, setHistoricalDate: () => {}, listSnapshotDates: async () => [] };
   function handlePopout() {
     window.open('/?popout=' + activeMarket, '_blank', 'width=1200,height=800,menubar=no,toolbar=no');
@@ -67,9 +69,12 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
         setDropdownOpen(false);
       } catch (e) {
         console.warn('Sign in failed:', e);
+        addToast(`Sign in failed: ${e.message || e}`, 'error');
       }
+    } else {
+      addToast('Firebase Auth is not configured in this build.', 'error');
     }
-  }, []);
+  }, [addToast]);
 
   // Global historical date picker (drives DataProvider.setHistoricalDate which seeds all markets from RTDB /history/{date})
   const [histDates, setHistDates] = useState([]);
