@@ -240,26 +240,26 @@ export default function HubLayout() {
 
   const handleRefresh = useCallback(async () => {
     try {
-      let token = 'mock-token';
-      let email = 'kevinkicho@gmail.com';
+      let token = null;
+      let email = null;
 
       // 1. Google sign-in if client-side Firebase Auth is configured
       if (auth && googleProvider) {
         let user = auth.currentUser;
         if (!user) {
-          addToast('Google Sign-In required to refresh global data', 'info');
-          const result = await signInWithPopup(auth, googleProvider);
-          user = result.user;
+          addToast('Admin sign-in required to refresh global data.', 'info');
+          return;
         }
         email = user.email;
         token = await user.getIdToken();
       } else {
-        console.log('[HubLayout] Firebase Auth not configured. Running in Local Dev Simulation Mode.');
+        addToast('Admin sign-in is not available in this build.', 'error');
+        return;
       }
 
       // 2. Email verification
       if (email !== 'kevinkicho@gmail.com') {
-        addToast(`Permission Denied: Only kevinkicho@gmail.com can trigger a global refresh. Logged in as ${email}`, 'error');
+        addToast('Admin account required to refresh global data.', 'error');
         return;
       }
 
@@ -278,8 +278,8 @@ export default function HubLayout() {
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        throw new Error(errData.error || `HTTP ${res.status}`);
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.userMessage || 'Admin refresh could not be started.');
       }
 
       const resData = await res.json();
@@ -298,7 +298,7 @@ export default function HubLayout() {
       }
     } catch (e) {
       console.error('[HubLayout] Global refresh failed:', e);
-      addToast(`Refresh failed: ${e.message}`, 'error');
+      addToast(e.message || 'Admin refresh could not be started.', 'error');
     }
   }, [dataCtx, addToast]);
 

@@ -36,6 +36,10 @@ const SNAPSHOT_MARKETS = [
   { id: "universeUpdates", path: "/api/universeUpdates" },
 ];
 
+function deny(res, status = 403, userMessage = 'Admin account required to refresh global data.') {
+  return res.status(status).json({ error: userMessage, userMessage });
+}
+
 router.post('/refresh-all', async (req, res) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
@@ -49,19 +53,19 @@ router.post('/refresh-all', async (req, res) => {
     // If there is an actual firebase-admin or auth configured, we could verify here.
     // For simplicity in the local server, we default to rejecting unless it's dev-mode bypass or we have verified token.
     if (!token) {
-      return res.status(401).json({ error: 'Unauthorized: Missing token' });
+      return deny(res, 401);
     }
     // Locally, since we do not always deploy firebase-admin with keys, we allow dev check
     email = 'kevinkicho@gmail.com'; 
   }
 
   if (email !== 'kevinkicho@gmail.com') {
-    return res.status(403).json({ error: 'Forbidden: Admin access only' });
+    return deny(res, 403);
   }
 
   const recaptcha = await verifyRecaptchaEnterprise(req, 'ADMIN_REFRESH');
   if (!recaptcha.ok) {
-    return res.status(recaptcha.status || 401).json({ error: recaptcha.error || 'reCAPTCHA verification failed' });
+    return deny(res, recaptcha.status || 401, 'Admin refresh verification failed. Please sign in again and retry.');
   }
 
   console.log('[admin-local] initiating global refresh...');

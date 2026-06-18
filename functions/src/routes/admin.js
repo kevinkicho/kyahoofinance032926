@@ -27,6 +27,10 @@ const SNAPSHOT_MARKETS = [
   { id: "universeUpdates", path: "/api/universeUpdates" },
 ];
 
+function deny(res, status = 403, userMessage = 'Admin account required to refresh global data.') {
+  return res.status(status).json({ error: userMessage, userMessage });
+}
+
 async function getGoogleAccessToken() {
   const res = await fetch(
     'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
@@ -82,7 +86,8 @@ async function verifyRecaptchaEnterprise(req, expectedAction) {
     const hostname = props.hostname || '';
 
     if (!props.valid) {
-      return { ok: false, status: 401, error: `Invalid reCAPTCHA token: ${props.invalidReason || 'unknown'}` };
+      console.warn('[admin-functions] invalid reCAPTCHA token:', props.invalidReason || 'unknown');
+      return { ok: false, status: 401, error: 'Verification failed' };
     }
     if (props.action !== expectedAction) {
       return { ok: false, status: 401, error: 'Invalid reCAPTCHA action' };
@@ -112,24 +117,24 @@ router.post('/refresh-all', async (req, res) => {
     console.log('[admin-functions] dev mode bypass: authenticated as', email);
   } else {
     if (!token) {
-      return res.status(401).json({ error: 'Unauthorized: Missing token' });
+      return deny(res, 401);
     }
     try {
       const decodedToken = await admin.auth().verifyIdToken(token);
       email = decodedToken.email;
     } catch (err) {
       console.error('[admin-functions] token verification failed:', err.message);
-      return res.status(401).json({ error: 'Unauthorized: Invalid token: ' + err.message });
+      return deny(res, 401);
     }
   }
 
   if (email !== 'kevinkicho@gmail.com') {
-    return res.status(403).json({ error: 'Forbidden: Admin access only' });
+    return deny(res, 403);
   }
 
   const recaptcha = await verifyRecaptchaEnterprise(req, 'ADMIN_REFRESH');
   if (!recaptcha.ok) {
-    return res.status(recaptcha.status || 401).json({ error: recaptcha.error || 'reCAPTCHA verification failed' });
+    return deny(res, recaptcha.status || 401, 'Admin refresh verification failed. Please sign in again and retry.');
   }
 
   console.log('[admin-functions] initiating global refresh & RTDB write...');
