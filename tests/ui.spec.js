@@ -8,10 +8,10 @@ test.describe('App shell', () => {
     await page.goto('/');
   });
 
-  test('renders the market tab bar with all 21 tabs', async ({ page }) => {
+  test('renders the market tab bar with all 18 tabs', async ({ page }) => {
     const tabs = page.getByRole('tab');
     await expect(tabs.first()).toBeVisible();
-    await expect(tabs).toHaveCount(21);
+    await expect(tabs).toHaveCount(18);
 
     // Spot-check a handful that span the list so a reorder is caught.
     await expect(page.getByRole('tab', { name: /Equities market/i })).toBeVisible();
@@ -115,5 +115,27 @@ test.describe('Empty-state rendering (no API keys)', () => {
     });
     await page.goto('/?market=watchlist');
     await expect(page.getByText(/No tickers added yet/i)).toBeVisible();
+  });
+});
+
+test.describe('User Profile Dropdown', () => {
+  test('opens profile menu on click and displays options', async ({ page }) => {
+    await page.goto('/');
+    const profileBtn = page.getByRole('button', { name: 'User profile menu' });
+    await expect(profileBtn).toBeVisible();
+
+    // Verify it initially shows "Not signed in" title/tooltip
+    await expect(profileBtn).toHaveAttribute('title', 'Not signed in');
+
+    // Clicking the profile button should open the dropdown
+    await profileBtn.click();
+
+    // The dropdown should now be visible and contain Guest User options
+    const guestUserText = page.getByText('Guest User');
+    await expect(guestUserText).toBeVisible();
+    await expect(page.getByText('Not signed in')).toBeVisible();
+
+    const signInBtn = page.getByRole('button', { name: 'Sign In with Google' });
+    await expect(signInBtn).toBeVisible();
   });
 });

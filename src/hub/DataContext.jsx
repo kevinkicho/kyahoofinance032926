@@ -4,8 +4,7 @@ const DataContext = createContext(null);
 
 export function useDataContext() {
   const ctx = useContext(DataContext);
-  if (!ctx) throw new Error('useDataContext must be used within DataProvider');
-  return ctx;
+  return ctx || null;
 }
 
 export function useMarketData(marketId) {
@@ -16,7 +15,7 @@ export function useMarketData(marketId) {
 
 export function useRefetchSingle() {
   const ctx = useContext(DataContext);
-  if (!ctx) throw new Error('useRefetchSingle must be used within DataProvider');
+  if (!ctx) return () => {};
   return ctx.refetchSingle;
 }
 

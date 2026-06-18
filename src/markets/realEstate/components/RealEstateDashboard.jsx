@@ -529,7 +529,7 @@ function RealEstateDashboard({
             title="REIT ETF (VNQ)"
             accent="realEstate"
             className="re-bento-card"
-            source="FRED / Yahoo Finance"
+            source="Yahoo Finance"
             timestamp={lastUpdated}
             isLive={isLive}
             isCurrent={isCurrent}
@@ -537,7 +537,7 @@ function RealEstateDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'REIT ETF (VNQ)', source: 'FRED / Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+            <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'REIT ETF (VNQ)', source: 'Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
           </BentoCard>
         )}
 
@@ -549,7 +549,7 @@ function RealEstateDashboard({
             accent="realEstate"
             className="re-bento-card"
             contentClassName="re-panel-scroll"
-            source="FRED / Yahoo Finance"
+            source="Yahoo Finance"
             timestamp={lastUpdated}
             isLive={isLive}
             isCurrent={isCurrent}
@@ -577,7 +577,7 @@ function RealEstateDashboard({
             title="Distress Indicators"
             accent="realEstate"
             className="re-bento-card"
-            source="FRED / Yahoo Finance"
+            source="FRED"
             timestamp={lastUpdated}
             isLive={isLive}
             isCurrent={isCurrent}
@@ -585,7 +585,7 @@ function RealEstateDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Distress Indicators', source: 'FRED / Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+            <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Distress Indicators', source: 'FRED', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
           </BentoCard>
         )}
 
@@ -615,7 +615,7 @@ function RealEstateDashboard({
             title="CRE Delinquencies"
             accent="realEstate"
             className="re-bento-card"
-            source="FRED / Yahoo Finance"
+            source="FRED"
             timestamp={lastUpdated}
             isLive={isLive}
             isCurrent={isCurrent}
@@ -623,7 +623,7 @@ function RealEstateDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CRE Delinquencies', source: 'FRED / Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+            <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CRE Delinquencies', source: 'FRED', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
           </BentoCard>
         )}
 
@@ -635,7 +635,7 @@ function RealEstateDashboard({
             accent="realEstate"
             className="re-bento-card"
             contentClassName="re-panel-scroll"
-            source="FRED / Yahoo Finance"
+            source="Yahoo Finance"
             timestamp={lastUpdated}
             isLive={isLive}
             isCurrent={isCurrent}

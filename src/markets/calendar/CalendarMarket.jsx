@@ -12,7 +12,7 @@ import './CalendarMarket.css';
 
 
 function PanelEmpty({ label }) {
-  return <div className="cal-empty cal-empty--loading">{label ? `Press ▶ to fetch ${label}` : 'Press ▶ to load data'}</div>;
+  return <div className="cal-empty">{label ? `No upcoming ${label} scheduled` : 'No data available'}</div>;
 }
 
 // Top-of-grid KPI strip is now a real bento panel (`kpi`); other panels

@@ -193,6 +193,7 @@ const API_ROUTES = [
   // Eurostat, OECD, US Treasury TIC). Without entries here, Vite returns
   // index.html for the requests and DataProvider blows up on JSON.parse.
   '/api/nyfed', '/api/fdic', '/api/bea', '/api/edgar', '/api/ecb', '/api/eurostat', '/api/oecd', '/api/treasury',
+  '/api/treasuryTIC', '/api/treasuryAuctions', '/api/treasuryDTS',
   // Federal Reserve sub-routes (FOMC SEP, Atlanta GDPNow, Cleveland inflation
   // nowcast, SF news sentiment). Mounted under /api/fed/*.
   '/api/fed',
@@ -201,11 +202,11 @@ const API_ROUTES = [
   // OpenFEMA disaster declarations + USGS earthquakes — Insurance tab.
   '/api/fema', '/api/usgs',
   // Commodities-tab additions: USDA NASS, Census trade, EIA petroleum.
-  '/api/usda', '/api/census-trade', '/api/eia-petroleum',
+  '/api/usda', '/api/census-trade', '/api/eia-petroleum', '/api/censusTrade', '/api/eiaPetroleum',
   // Without these two, vite returned index.html for the requests and
   // DataProvider blew up on JSON parse — manifesting as the entire
   // equities/watchlist data being missing across the app.
-  '/api/equities', '/api/watchlist', '/api/health',
+  '/api/equities', '/api/watchlist', '/api/health', '/api/admin',
 ];
 
 function buildProxyConfig() {
@@ -244,5 +245,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: buildProxyConfig(),
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
+    }
   }
 })

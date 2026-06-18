@@ -127,7 +127,7 @@ describe('CalendarMarket', () => {
       },
     };
     render(<CalendarMarket centralData={noData} />);
-    expect(screen.getByText('Press ▶ to fetch economic events')).toBeInTheDocument();
+    expect(screen.getByText('No upcoming economic events scheduled')).toBeInTheDocument();
   });
 
   it('handles missing data props gracefully', () => {
@@ -143,6 +143,6 @@ describe('CalendarMarket', () => {
       data: {},
     };
     render(<CalendarMarket centralData={minimalData} />);
-    expect(screen.getByText('Press ▶ to fetch economic events')).toBeInTheDocument();
+    expect(screen.getByText('No upcoming economic events scheduled')).toBeInTheDocument();
   });
 });

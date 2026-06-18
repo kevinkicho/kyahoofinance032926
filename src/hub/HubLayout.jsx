@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, Suspense, Component } from 'react';
 import MarketTabBar from './MarketTabBar';
+import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
 import { DEFAULT_MARKET, MARKETS } from './markets.config';
 import HubFooter from './HubFooter';
 import { useToast } from './ToastContext';
@@ -233,9 +234,65 @@ export default function HubLayout() {
     setAutoRefresh(r => !r);
   }, []);
 
-  const handleRefresh = useCallback(() => {
-    setRefreshKey(k => k + 1);
-  }, []);
+  const dataCtx = useDataContext();
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      let token = 'mock-token';
+      let email = 'kevinkicho@gmail.com';
+
+      // 1. Google sign-in if client-side Firebase Auth is configured
+      if (auth && googleProvider) {
+        let user = auth.currentUser;
+        if (!user) {
+          addToast('Google Sign-In required to refresh global data', 'info');
+          const result = await signInWithPopup(auth, googleProvider);
+          user = result.user;
+        }
+        email = user.email;
+        token = await user.getIdToken();
+      } else {
+        console.log('[HubLayout] Firebase Auth not configured. Running in Local Dev Simulation Mode.');
+      }
+
+      // 2. Email verification
+      if (email !== 'kevinkicho@gmail.com') {
+        addToast(`Permission Denied: Only kevinkicho@gmail.com can trigger a global refresh. Logged in as ${email}`, 'error');
+        return;
+      }
+
+      addToast('Admin authenticated. Triggering global refresh crawl (this may take up to 30s)...', 'info');
+
+      // 3. Trigger backend crawl
+      const res = await fetch('/api/admin/refresh-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+
+      const resData = await res.json();
+      console.log('[HubLayout] Global refresh completed:', resData);
+
+      // 4. Reload data in frontend
+      if (dataCtx && dataCtx.refetchAll) {
+        dataCtx.refetchAll();
+        addToast('Global refresh completed! Reloading all markets...', 'success');
+      } else {
+        setRefreshKey(k => k + 1);
+        addToast('Global refresh completed!', 'success');
+      }
+    } catch (e) {
+      console.error('[HubLayout] Global refresh failed:', e);
+      addToast(`Refresh failed: ${e.message}`, 'error');
+    }
+  }, [dataCtx, addToast]);
 
   // Keyboard shortcuts: 1-9,0 for markets, Ctrl+E export, Ctrl+K search, Escape
   useEffect(() => {

@@ -47,7 +47,7 @@ function decodeEntities(s) {
 // Run inside the page. Returns a per-tab snapshot of every bento card on
 // screen with enough metadata for the assertion layer to make decisions.
 async function collectPanels(page) {
-  return page.$$eval('[class*="bento-card"]', (cards) => {
+  return page.$$eval('[class*="bento-card"], [class*="bento-panel"]:not([class*="bento-panel-content"]):not([class*="bento-panel-title-row"])', (cards) => {
     function decode(s) {
       const t = document.createElement('textarea');
       t.innerHTML = s || '';
@@ -101,6 +101,123 @@ function matchesEntry(entry, panelTitle) {
   return decoded === entry.title;
 }
 
+test.beforeEach(async ({ page }) => {
+  // Intercept RTDB snapshot calls to force live fetches of /api/*
+  await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
+    await route.fulfill({ status: 404, contentType: 'application/json', body: 'null' });
+  });
+
+  const mockResponses = {
+    '/api/bonds': {
+      isLive: true, isCurrent: true,
+      yieldCurveData: { US: { '10y': 4.0 }, DE: { '10y': 2.0 }, JP: { '10y': 1.0 } },
+      spreadIndicators: { t10y2y: -0.38 },
+      spreadData: { current: { igSpread: 100, hySpread: 300 }, history: { dates: [1,2,3,4,5,6], IG: [1,2,3,4,5,6], HY: [1,2,3,4,5,6] } },
+      dummy: true
+    },
+    '/api/fx': {
+      isLive: true, isCurrent: true,
+      fredFxRates: [{ date: '2026-05-01' }, { date: '2026-05-02' }],
+      dxyHistory: { values: [100, 101] },
+      currencyCorrelations: { values: [[1]] },
+      dummy: true
+    },
+    '/api/derivatives': {
+      isLive: true, isCurrent: true,
+      vixTermStructure: { values: [1, 2] },
+      skewHistory: { values: [100, 101] },
+      dummy: true
+    },
+    '/api/realEstate': {
+      isLive: true, isCurrent: true,
+      reitData: [{}, {}],
+      caseShiller: { values: [1, 2] },
+      dummy: true
+    },
+    '/api/insurance': {
+      isLive: true, isCurrent: true,
+      combinedRatioData: [{}, {}],
+      dummy: true
+    },
+    '/api/commoditiesEnhanced': {
+      isLive: true, isCurrent: true,
+      cotData: [{}, {}],
+      dummy: true
+    },
+    '/api/globalMacro': {
+      isLive: true, isCurrent: true,
+      scorecardData: [{}, {}, {}, {}, {}, {}, {}, {}],
+      dummy: true
+    },
+    '/api/equityDeepDive': {
+      isLive: true, isCurrent: true,
+      sectors: [{}, {}, {}, {}, {}, {}, {}, {}],
+      dummy: true
+    },
+    '/api/crypto': {
+      isLive: true, isCurrent: true,
+      coins: [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
+      coinMarketData: { coins: [{}, {}] },
+      dummy: true
+    },
+    '/api/credit': {
+      isLive: true, isCurrent: true,
+      spreadData: { history: { dates: [1,2,3,4,5,6] } },
+      dummy: true
+    },
+    '/api/sentiment': {
+      isLive: true, isCurrent: true,
+      currencies: [{}, {}, {}, {}],
+      dummy: true
+    },
+    '/api/calendar': {
+      isLive: true, isCurrent: true,
+      economicEvents: [{}, {}, {}, {}, {}],
+      centralBanks: [{}, {}],
+      earningsSeason: [{}, {}],
+      dummy: true
+    },
+    '/api/imf': {
+      isLive: true, isCurrent: true,
+      countries: [{}, {}, {}, {}, {}],
+      dummy: true
+    },
+    '/api/worldbank': {
+      isLive: true, isCurrent: true,
+      countries: [{}, {}, {}, {}, {}],
+      dummy: true
+    },
+    '/api/bls': {
+      isLive: true, isCurrent: true,
+      series: { '1': { _source: true } },
+      dummy: true
+    },
+    '/api/eia': {
+      isLive: true, isCurrent: true,
+      electricity: { residential: 12.5 },
+      co2Emissions: { total: 100 },
+      dummy: true
+    },
+    '/api/census': {
+      isLive: true, isCurrent: true,
+      series: { '1': { _source: true } },
+      dummy: true
+    }
+  };
+
+  // Intercept all other /api/ calls to avoid hitting the throttled backend
+  await page.route(/\/api\//, async (route) => {
+    const url = route.request().url();
+    const matchedKey = Object.keys(mockResponses).find(k => url.includes(k));
+    const body = matchedKey ? mockResponses[matchedKey] : { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
+    });
+  });
+});
+
 // One Playwright test per market tab so the report breaks out by tab and
 // failures don't cascade across markets.
 for (const market of MARKETS) {
@@ -108,7 +225,7 @@ for (const market of MARKETS) {
     test.setTimeout(SETTLE_MS + 25_000);
     const expected = PANEL_REGISTRY[market]?.panels || [];
 
-    await page.goto(`/?market=${market}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/kyahoofinance032926/?market=${market}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(SETTLE_MS);
 
     const panels = await collectPanels(page);

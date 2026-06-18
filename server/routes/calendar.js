@@ -132,11 +132,12 @@ router.get('/', async (req, res) => {
   const cache = req.app.locals.cache;
   const cacheKey = 'calendar_data';
   const today = todayStr();
+  const refresh = req.query.refresh === 'true';
 
-  const daily = readDailyCache('calendar');
+  const daily = refresh ? null : readDailyCache('calendar');
   if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
 
-  const cached = cache.get(cacheKey);
+  const cached = refresh ? null : cache.get(cacheKey);
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {

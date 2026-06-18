@@ -243,41 +243,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
     }],
   } : null;
 
-  // WTI vs Brent overlay option
-  const wtiH = fredCommodities?.wtiHistory;
-  const brentH = fredCommodities?.brentHistory;
-  const overlayOption = wtiH?.dates?.length >= 10 && brentH?.dates?.length >= 10 ? {
-    animation: false,
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: colors.tooltipBg,
-      borderColor: colors.tooltipBorder,
-      textStyle: { color: colors.text, fontSize: 11 },
-    },
-    legend: {
-      data: ['WTI', 'Brent'],
-      textStyle: { color: colors.textMuted, fontSize: 10 },
-      top: 0, right: 0,
-    },
-    grid: { top: 24, right: 8, bottom: 24, left: 44, containLabel: false },
-    xAxis: {
-      type: 'category',
-      data: wtiH.dates,
-      axisLine: { lineStyle: { color: colors.cardBg } },
-      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => v ? v.slice(5) : v, interval: Math.floor(wtiH.dates.length / 6) },
-    },
-    yAxis: {
-      type: 'value',
-      axisLine: { show: false },
-      splitLine: { lineStyle: { color: colors.cardBg } },
-      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${v}` },
-    },
-    series: [
-      { name: 'WTI', type: 'line', data: wtiH.values, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#ca8a04' }, itemStyle: { color: '#ca8a04' } },
-      { name: 'Brent', type: 'line', data: brentH.values, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#60a5fa' }, itemStyle: { color: '#60a5fa' } },
-    ],
-  } : null;
+
 
   return (
     <div className="com-panel">
@@ -419,15 +385,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
           )}
         </div>
 
-        {/* Bottom chart: WTI vs Brent */}
-        {overlayOption && (
-          <div className="com-chart-panel" style={{ marginTop: 8 }}>
-            <div className="com-chart-title">WTI vs Brent Crude — 1 Year (FRED daily)</div>
-            <div className="com-mini-chart">
-              <SafeECharts option={overlayOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'WTI vs Brent Crude', source: 'FRED', endpoint: '/api/commodities', series: [{ id: 'DCOILWTICO' }, { id: 'DCOILBRENTEU' }], updatedAt: lastUpdated }} />
-            </div>
-          </div>
-        )}
+
       </div>
 
       <div className="com-panel-footer">

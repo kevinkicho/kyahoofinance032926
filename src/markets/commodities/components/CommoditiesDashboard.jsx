@@ -153,6 +153,45 @@ function CommoditiesDashboard({
     };
   }, [tradeCtx, colors]);
 
+  // WTI vs Brent overlay option
+  const wtiBrentOption = useMemo(() => {
+    const wtiH = fredCommodities?.wtiHistory;
+    const brentH = fredCommodities?.brentHistory;
+    if (!wtiH?.dates?.length || !brentH?.dates?.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: colors.tooltipBg,
+        borderColor: colors.tooltipBorder,
+        textStyle: { color: colors.text, fontSize: 11 },
+      },
+      legend: {
+        data: ['WTI', 'Brent'],
+        textStyle: { color: colors.textMuted, fontSize: 10 },
+        top: 0, right: 0,
+      },
+      grid: { top: 24, right: 8, bottom: 24, left: 44, containLabel: false },
+      xAxis: {
+        type: 'category',
+        data: wtiH.dates,
+        axisLine: { lineStyle: { color: colors.cardBg } },
+        axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => v ? v.slice(5) : v, interval: Math.floor(wtiH.dates.length / 6) },
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: { show: false },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+        axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${v}` },
+      },
+      series: [
+        { name: 'WTI', type: 'line', data: wtiH.values, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#ca8a04' }, itemStyle: { color: '#ca8a04' } },
+        { name: 'Brent', type: 'line', data: brentH.values, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#60a5fa' }, itemStyle: { color: '#60a5fa' } },
+      ],
+    };
+  }, [fredCommodities, colors]);
+
   // RGL uses x, y, w, h. 12-column system.
   const layout = {
     lg: [
@@ -164,6 +203,7 @@ function CommoditiesDashboard({
       // getting clipped or wrapping.
       { i: 'sector',  x: 0, y: 4, w: 4, h: 6 },
       { i: 'supply',  x: 4, y: 4, w: 4, h: 3 },
+      { i: 'wti-brent', x: 4, y: 7, w: 4, h: 3 },
       { i: 'cot',     x: 8, y: 8, w: 4, h: 3 },
       { i: 'comfx',   x: 0, y: 10, w: 4, h: 3 },
       // 2026-05-04 additions: USDA ag prices, EIA petroleum, US trade.
@@ -337,6 +377,37 @@ function CommoditiesDashboard({
         >
           <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} lastUpdated={lastUpdated} />
         </BentoCard>
+
+        {wtiBrentOption && (
+          <BentoCard
+            key="wti-brent"
+            title="WTI vs Brent Crude"
+            subtitle="1 Year (FRED daily)"
+            accent="commodities"
+            contentClassName="com-panel-content"
+            source="FRED"
+            timestamp={lastUpdated}
+            isLive={!!fredCommodities?.wtiHistory && !!fredCommodities?.brentHistory}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div style={{ height: '100%', width: '100%', padding: '0 8px 8px 8px', boxSizing: 'border-box' }}>
+              <SafeECharts
+                option={wtiBrentOption}
+                style={{ height: '100%', width: '100%' }}
+                sourceInfo={{
+                  title: 'WTI vs Brent Crude',
+                  source: 'FRED',
+                  endpoint: '/api/commodities',
+                  series: [{ id: 'DCOILWTICO' }, { id: 'DCOILBRENTEU' }],
+                  updatedAt: lastUpdated
+                }}
+              />
+            </div>
+          </BentoCard>
+        )}
 
         <BentoCard
           key="cot"

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { yf, cryptoYahoo, cryptoStrip, chunkArray } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { mapToYahooTicker } from '../lib/stocks.js';
 
 const router = Router();
 
@@ -29,7 +30,12 @@ router.post('/', async (req, res) => {
     });
 
     if (missingTickers.length > 0) {
-      const yahooTickers = missingTickers.map(cryptoYahoo);
+      const yahooToOriginal = {};
+      const yahooTickers = missingTickers.map(t => {
+         const y = mapToYahooTicker(t);
+         yahooToOriginal[y] = t;
+         return y;
+      });
       const chunks = chunkArray(yahooTickers, 100);
       for (const chunk of chunks) {
         try {
@@ -38,7 +44,7 @@ router.post('/', async (req, res) => {
           const arr = Array.isArray(results) ? results : [results];
           arr.forEach(quote => {
             if (!quote) return;
-            const originalTicker = cryptoStrip(quote.symbol);
+            const originalTicker = yahooToOriginal[quote.symbol] || cryptoStrip(quote.symbol);
             const normalized = {
               ticker: originalTicker,
               name: quote.longName || quote.shortName,

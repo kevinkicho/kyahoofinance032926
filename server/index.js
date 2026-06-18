@@ -62,6 +62,7 @@ import usdaRouter from './routes/usda.js';
 import censusTradeRouter from './routes/censusTrade.js';
 import eiaPetroleumRouter from './routes/eiaPetroleum.js';
 import universeUpdatesRouter from './routes/universeUpdates.js';
+import adminRouter from './routes/admin.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -136,6 +137,7 @@ app.use(express.json({ limit: '256kb' }));
 
 app.use((req, res, next) => {
   req.id = crypto.randomUUID();
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   next();
 });
 
@@ -265,16 +267,22 @@ app.use('/api/ecb', ecbRouter);
 app.use('/api/eurostat', eurostatRouter);
 app.use('/api/oecd', oecdRouter);
 app.use('/api/treasury/tic', treasuryTICRouter);
+app.use('/api/treasuryTIC', treasuryTICRouter);
 app.use('/api/treasury/auctions', treasuryAuctionsRouter);
+app.use('/api/treasuryAuctions', treasuryAuctionsRouter);
 app.use('/api/treasury/dts', treasuryDTSRouter);
+app.use('/api/treasuryDTS', treasuryDTSRouter);
 app.use('/api/fed', fedRouter);
 app.use('/api/msrb', msrbRouter);
 app.use('/api/fema', femaRouter);
 app.use('/api/usgs', usgsRouter);
 app.use('/api/usda', usdaRouter);
 app.use('/api/census-trade', censusTradeRouter);
+app.use('/api/censusTrade', censusTradeRouter);
 app.use('/api/eia-petroleum', eiaPetroleumRouter);
+app.use('/api/eiaPetroleum', eiaPetroleumRouter);
 app.use('/api/universeUpdates', universeUpdatesRouter);
+app.use('/api/admin', adminRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

@@ -59,8 +59,7 @@ function SentimentMarket({ centralData } = {}) {
           fetchLog={props.fetchLog}
           isLive={props.isLive}
           lastUpdated={props.lastUpdated}
-          newsSentimentData={newsCtx?.data}
-          newsSentimentLastUpdated={newsCtx?.lastUpdated}
+          newsSentimentCtx={newsCtx}
         />
       </div>
     </div>

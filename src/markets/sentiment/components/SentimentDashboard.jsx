@@ -32,8 +32,7 @@ function SentimentDashboard({
   consumerCredit,
   vvixHistory,
   fsiHistory,
-  newsSentimentData,
-  newsSentimentLastUpdated,
+  newsSentimentCtx,
   fetchLog,
   isLive,
   lastUpdated,
@@ -41,6 +40,7 @@ function SentimentDashboard({
   fetchedOn,
   isCurrent,
 }) {
+  const newsSentimentData = newsSentimentCtx?.data;
   const { colors } = useTheme();
 
   const fgiValue = fearGreedData?.value ?? fearGreedData?.score;
@@ -475,14 +475,14 @@ function SentimentDashboard({
             accent="sentiment"
             className="sent-bento-card"
             source="SF Fed"
-            timestamp={newsSentimentLastUpdated || lastUpdated}
-            isLive={!!newsSentimentData?.isLive}
-            isCurrent={newsSentimentData?.isCurrent !== false}
-            fetchedOn={newsSentimentData?.fetchedOn || fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
+            timestamp={newsSentimentCtx?.lastUpdated || lastUpdated}
+            isLive={newsSentimentCtx?.isLive}
+            isCurrent={newsSentimentCtx?.isCurrent !== false}
+            fetchedOn={newsSentimentCtx?.fetchedOn || fetchedOn}
+            fetchLog={newsSentimentCtx?.fetchLog || []}
+            error={newsSentimentCtx?.error}
           >
-            {newsSentimentOption && <SafeECharts option={newsSentimentOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Daily News Sentiment Index', source: 'SF Fed', endpoint: '/api/fed/news-sentiment', series: [], updatedAt: newsSentimentLastUpdated || lastUpdated }} />}
+            {newsSentimentOption && <SafeECharts option={newsSentimentOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Daily News Sentiment Index', source: 'SF Fed', endpoint: '/api/fed/news-sentiment', series: [], updatedAt: newsSentimentCtx?.lastUpdated || lastUpdated }} />}
           </BentoCard>
         )}
         </BentoWrapper>

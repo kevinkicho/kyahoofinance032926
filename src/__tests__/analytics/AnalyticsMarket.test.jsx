@@ -64,7 +64,7 @@ describe('AnalyticsMarket', () => {
     }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
-      expect(screen.getByText(/Analytics/)).toBeInTheDocument();
+      expect(screen.getByText(/● Analytics/)).toBeInTheDocument();
     });
   });
 

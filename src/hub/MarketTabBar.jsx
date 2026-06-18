@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { auth, googleProvider, signInWithPopup, signOut } from '../lib/firebase';
 import { MARKETS, SEARCH_INDEX } from './markets.config';
 import { currencySymbols } from '../utils/constants';
 import { useTheme } from './ThemeContext';
@@ -34,6 +35,41 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   const [highlighted, setHighlighted] = useState(0);
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
+
+  // User Auth Profile Dropdown State
+  const [user, setUser] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    if (auth) {
+      return auth.onAuthStateChanged(u => {
+        setUser(u);
+      });
+    }
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    if (auth) {
+      try {
+        await signOut(auth);
+        setDropdownOpen(false);
+      } catch (e) {
+        console.warn('Sign out failed:', e);
+      }
+    }
+  }, []);
+
+  const handleSignIn = useCallback(async () => {
+    if (auth && googleProvider) {
+      try {
+        await signInWithPopup(auth, googleProvider);
+        setDropdownOpen(false);
+      } catch (e) {
+        console.warn('Sign in failed:', e);
+      }
+    }
+  }, []);
 
   // Global historical date picker (drives DataProvider.setHistoricalDate which seeds all markets from RTDB /history/{date})
   const [histDates, setHistDates] = useState([]);
@@ -91,6 +127,9 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
     function handleClick(e) {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -236,6 +275,56 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       >
         &#10697;
       </button>
+
+      <div className="hub-user-profile" ref={profileRef}>
+        <button
+          className="hub-profile-btn"
+          onClick={() => setDropdownOpen(d => !d)}
+          aria-label="User profile menu"
+          title={user ? `Logged in as ${user.email}` : 'Not signed in'}
+        >
+          {user ? (
+            user.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || 'User'} className="hub-profile-img" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="hub-profile-avatar">{user.email[0].toUpperCase()}</div>
+            )
+          ) : (
+            <div className="hub-profile-avatar-placeholder">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+            </div>
+          )}
+        </button>
+        {dropdownOpen && (
+          <div className="hub-profile-dropdown">
+            {user ? (
+              <>
+                <div className="hub-user-info">
+                  <div className="hub-user-name">{user.displayName || 'User'}</div>
+                  <div className="hub-user-email">{user.email}</div>
+                </div>
+                <div className="hub-dropdown-divider" />
+                <button className="hub-dropdown-item logout" onClick={handleSignOut}>
+                  Log Off
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="hub-user-info">
+                  <div className="hub-user-name">Guest User</div>
+                  <div className="hub-user-email">Not signed in</div>
+                </div>
+                <div className="hub-dropdown-divider" />
+                <button className="hub-dropdown-item login" onClick={handleSignIn}>
+                  Sign In with Google
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
       <div className="hub-search-wrap" ref={wrapRef} role="search">
         <input
           ref={inputRef}

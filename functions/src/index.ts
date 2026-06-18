@@ -37,7 +37,7 @@ function loadRoutes() {
     'bls', 'eia', 'census', 'ticker', 'bea', 'censusTrade', 'commoditiesEnhanced',
     'ecb', 'edgar', 'eiaPetroleum', 'eurostat', 'fdic', 'fed', 'fema',
     'imf', 'institutional', 'msrb', 'nyfed', 'oecd', 'treasuryAuctions',
-    'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates'
+    'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates', 'admin'
   ];
 
   for (const route of essentialRoutes) {
@@ -110,7 +110,7 @@ export const api = onRequest(
     timeoutSeconds: 60,
     minInstances: 0,
     maxInstances: 10,
-    secrets: ["FINNHUB_API_KEY", "HUD_API_KEY", "CENSUS_API_KEY", "API_DATA_GOV_KEY"],
+    secrets: ["FINNHUB_API_KEY", "HUD_API_KEY", "CENSUS_API_KEY", "API_DATA_GOV_KEY", "FRED_API_KEY", "BLS_API_KEY", "EIA_API_KEY", "BEA_API_KEY", "USDA_NASS_API_KEY"],
   },
   app
 );

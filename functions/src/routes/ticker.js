@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { yf } from '../lib/yahoo.js';
-import { readBestFile, readLocalData, adaptCompact, periodCutoff, snapshotIndex, snapshotBuilding, buildSnapshotIndex, REGION_SUFFIX } from '../lib/stocks.js';
+import { readBestFile, readLocalData, adaptCompact, periodCutoff, snapshotIndex, snapshotBuilding, buildSnapshotIndex, REGION_SUFFIX, getYahooTicker } from '../lib/stocks.js';
 
 const router = Router();
 
@@ -35,7 +35,8 @@ router.get('/summary/:ticker', async (req, res) => {
   }
 
   try {
-    const data = await yf.quoteSummary(ticker, {
+    const yahooTicker = getYahooTicker(ticker, region);
+    const data = await yf.quoteSummary(yahooTicker, {
       modules: ['financialData','defaultKeyStatistics','earningsTrend',
                 'recommendationTrend','majorHoldersBreakdown',
                 'incomeStatementHistory','cashflowStatementHistory','balanceSheetHistory']
@@ -82,7 +83,8 @@ router.get('/history/:ticker', async (req, res) => {
       if (staleDays >= 2) {
         try {
           const deltaStart = new Date(Date.parse(lastDate) + 86400000).toISOString().split('T')[0];
-          const delta = await yf.historical(ticker, { period1: deltaStart, period2: today, interval: '1d' });
+          const yahooTicker = getYahooTicker(ticker, region);
+          const delta = await yf.historical(yahooTicker, { period1: deltaStart, period2: today, interval: '1d' });
           const deltaRows = (delta || []).map(d => ({
             date: d.date instanceof Date ? d.date.toISOString().split('T')[0] : String(d.date),
             open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume,
@@ -110,7 +112,8 @@ router.get('/history/:ticker', async (req, res) => {
     // foreign-listed tickers (e.g. 000688.SS / STAR 50). Calling chart()
     // directly with explicit period1/period2/interval returns the full
     // window consistently.
-    const chartData = await yf.chart(ticker, {
+    const yahooTicker = getYahooTicker(ticker, region);
+    const chartData = await yf.chart(yahooTicker, {
       period1: start.toISOString().split('T')[0],
       period2: end.toISOString().split('T')[0],
       interval: '1d',

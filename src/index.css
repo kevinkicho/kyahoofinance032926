@@ -109,11 +109,15 @@ body {
    Hide the scrollbar visually since markers in the bar already imply
    horizontal navigation. */
 .market-tab-bar {
-  overflow-x: auto;
-  overflow-y: visible;
-  scrollbar-width: none;
+  overflow: visible;
 }
-.market-tab-bar::-webkit-scrollbar { display: none; }
+.market-tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.market-tabs::-webkit-scrollbar { display: none; }
 
 .hub-hist-banner {
   display: flex;

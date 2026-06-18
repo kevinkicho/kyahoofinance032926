@@ -332,15 +332,15 @@ function CreditDashboard({
           </BentoCard>
         )}
 
-        {/* EM Yields */}
+        {/* EM Yields — ETF trailing yield proxy (best freely available) */}
         {(emBondData?.countries || emBondData)?.length > 0 && (
           <BentoCard
             key="em-yields"
-            title="EM Yields"
+            title="EM ETF Yields"
             accent="credit"
             className="credit-bento-card"
             contentClassName="bento-panel-scroll"
-            source="FRED"
+            source="Yahoo Finance"
             timestamp={lastUpdated}
             isLive={isLive}
             isCurrent={isCurrent}
@@ -350,8 +350,8 @@ function CreditDashboard({
           >
             {(emBondData.countries || emBondData).slice(0, 8).map((e) => (
               <div key={e.country || e.name} className="credit-mini-row">
-                <span className="credit-mini-name">{e.country || e.name}</span>
-                <span className="credit-mini-value"><MetricValue value={e.yld10y ?? e.yield} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+                <span className="credit-mini-name">{e.country || e.name}{e.etfTicker ? <span style={{ fontSize: 9, opacity: 0.55, marginLeft: 4 }}>{e.etfTicker}</span> : null}</span>
+                <span className="credit-mini-value"><MetricValue value={e.yld10y ?? e.etfYield ?? e.yield} seriesKey="emYield" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
               </div>
             ))}
           </BentoCard>

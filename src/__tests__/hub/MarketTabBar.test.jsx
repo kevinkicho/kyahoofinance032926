@@ -1,10 +1,28 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import MarketTabBar from '../../hub/MarketTabBar';
 import CurrencyContext from '../../hub/CurrencyContext';
 
-// MarketTabBar reads { currency, setCurrency } from CurrencyContext, not props.
-// Tests that need to assert on setCurrency must wrap in a provider with a stub.
+// Mock firebase helper
+let authStateCallback = null;
+const mockSignInWithPopup = vi.fn();
+const mockSignOut = vi.fn();
+
+vi.mock('../../lib/firebase', () => ({
+  auth: {
+    onAuthStateChanged: vi.fn(cb => {
+      authStateCallback = cb;
+      cb(null); // default to logged out
+      return () => {};
+    }),
+    currentUser: null,
+  },
+  googleProvider: {},
+  signInWithPopup: (...args) => mockSignInWithPopup(...args),
+  signOut: (...args) => mockSignOut(...args),
+}));
+
 function renderWithCurrency(ui, { currency = 'USD', setCurrency = vi.fn() } = {}) {
   const ctxValue = {
     currency,
@@ -30,6 +48,15 @@ describe('MarketTabBar', () => {
     activeMarket: 'equities',
     setActiveMarket: vi.fn(),
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    if (authStateCallback) {
+      act(() => {
+        authStateCallback(null);
+      });
+    }
+  });
 
   it('renders all 6 market tabs', () => {
     render(<MarketTabBar {...defaultProps} />);
@@ -60,5 +87,65 @@ describe('MarketTabBar', () => {
     const { setCurrency } = renderWithCurrency(<MarketTabBar {...defaultProps} />);
     fireEvent.change(screen.getByRole('combobox', { name: /currency/i }), { target: { value: 'EUR' } });
     expect(setCurrency).toHaveBeenCalledWith('EUR');
+  });
+
+  it('renders user profile avatar placeholder when logged out', () => {
+    render(<MarketTabBar {...defaultProps} />);
+    const profileBtn = screen.getByLabelText('User profile menu');
+    expect(profileBtn).toBeInTheDocument();
+    expect(profileBtn).toHaveAttribute('title', 'Not signed in');
+  });
+
+  it('opens login dropdown when clicking profile button in logged-out state', () => {
+    render(<MarketTabBar {...defaultProps} />);
+    const profileBtn = screen.getByLabelText('User profile menu');
+    
+    // Dropdown should not be visible initially
+    expect(screen.queryByText('Sign In with Google')).not.toBeInTheDocument();
+    
+    // Click to open dropdown
+    fireEvent.click(profileBtn);
+    expect(screen.getByText('Guest User')).toBeInTheDocument();
+    expect(screen.getByText('Not signed in')).toBeInTheDocument();
+    
+    const signInBtn = screen.getByText('Sign In with Google');
+    expect(signInBtn).toBeInTheDocument();
+    
+    // Click sign in button
+    fireEvent.click(signInBtn);
+    expect(mockSignInWithPopup).toHaveBeenCalled();
+  });
+
+  it('renders logged-in user profile details and supports logoff', () => {
+    render(<MarketTabBar {...defaultProps} />);
+    
+    // Simulate logging in
+    act(() => {
+      authStateCallback({
+        email: 'test@example.com',
+        displayName: 'Test User',
+        photoURL: 'https://example.com/photo.png',
+      });
+    });
+
+    const profileBtn = screen.getByLabelText('User profile menu');
+    expect(profileBtn).toHaveAttribute('title', 'Logged in as test@example.com');
+    
+    // Verify profile image is rendered
+    const img = screen.getByAltText('Test User');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', 'https://example.com/photo.png');
+
+    // Open dropdown
+    fireEvent.click(profileBtn);
+    expect(screen.getByText('Test User')).toBeInTheDocument();
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    
+    const logoutBtn = screen.getByText('Log Off');
+    expect(logoutBtn).toBeInTheDocument();
+    
+    // Click logoff
+    fireEvent.click(logoutBtn);
+    expect(mockSignOut).toHaveBeenCalled();
   });
 });

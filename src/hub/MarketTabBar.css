@@ -212,3 +212,118 @@
 .hub-search-item-label { font-size: 12px; font-weight: 600; color: var(--text-primary); }
 .hub-search-item-subs { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 .hub-search-match { color: #3b82f6; font-weight: 600; }
+
+/* — User Profile Icon & Dropdown — */
+.hub-user-profile {
+  position: relative;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+}
+.hub-profile-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+.hub-profile-btn:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-card);
+}
+.hub-profile-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.hub-profile-avatar {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.hub-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 100;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+.hub-user-info {
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hub-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.hub-user-email {
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+.hub-dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 8px 0;
+}
+.hub-dropdown-item {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s, color 0.15s;
+}
+.hub-dropdown-item:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.hub-dropdown-item.logout {
+  color: #f87171;
+}
+.hub-dropdown-item.logout:hover {
+  background: rgba(248, 113, 113, 0.08);
+  color: #ef4444;
+}
+.hub-dropdown-item.login {
+  color: #3b82f6;
+  font-weight: 500;
+}
+.hub-dropdown-item.login:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: #2563eb;
+}
+.hub-profile-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-dim);
+}
+.hub-profile-avatar-placeholder svg {
+  width: 16px;
+  height: 16px;
+}
+

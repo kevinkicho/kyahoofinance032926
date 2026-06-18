@@ -164,15 +164,16 @@ function resolveMeta(key) {
 
 function formatUTC(localTs) {
   if (!localTs) return { utc: '\u2014', offset: '' };
-  const d = new Date(localTs.replace(' ', 'T'));
-  if (isNaN(d.getTime())) return { utc: localTs, offset: '' };
+  const tsStr = String(localTs);
+  const d = new Date(tsStr.includes('T') ? tsStr : tsStr.replace(' ', 'T'));
+  if (isNaN(d.getTime())) return { utc: tsStr, offset: '' };
   const offsetMin = -d.getTimezoneOffset();
   const sign = offsetMin >= 0 ? '+' : '-';
   const absH = Math.floor(Math.abs(offsetMin) / 60);
   const absM = Math.abs(offsetMin) % 60;
   const offset = `UTC${sign}${String(absH).padStart(2, '0')}:${String(absM).padStart(2, '0')}`;
   const utc = d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '') + ' UTC';
-  return { utc, offset, local: localTs };
+  return { utc, offset, local: tsStr };
 }
 
 function fredSeriesUrl(sid) { return `https://fred.stlouisfed.org/series/${sid}`; }
@@ -365,7 +366,13 @@ export default function DataFooter({ source, timestamp, isLive, fetchLog, error,
 
   return (
     <>
-      <div className="df-root" ref={rootRef} onClick={handleClick}>
+      <div
+        className="df-root"
+        ref={rootRef}
+        onClick={handleClick}
+        onMouseDown={e => e.stopPropagation()}
+        onTouchStart={e => e.stopPropagation()}
+      >
         {badge}
         <span className="df-label">{source}{timestamp ? ` \u00b7 ${timestamp}` : ''}{histSuffix}</span>
         {!isLive && error && <span className="df-error-text">\u25cb {error}</span>}

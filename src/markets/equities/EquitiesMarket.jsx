@@ -463,7 +463,14 @@ export default function EquitiesMarket({ currency, setCurrency }) {
         const metricValue = (rankMetric === 'revenue' || rankMetric === 'netIncome')
           ? getMetricValue(stock, rankMetric)
           : stock.marketCap || stock.value || 1;
-        return { ...stock, adjustedValue: stock.marketCap || stock.value, metricValue };
+        return {
+          ...stock,
+          adjustedValue: stock.marketCap || stock.value,
+          metricValue,
+          regionName: region.name,
+          regionSymbol: region.symbol,
+          regionCurrency: region.currency,
+        };
       });
       const sorted = [...withAdjusted].sort((a, b) => {
         if (rankMetric === 'marketCap') return (b.adjustedValue || 0) - (a.adjustedValue || 0);

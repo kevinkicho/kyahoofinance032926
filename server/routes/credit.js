@@ -156,9 +156,17 @@ router.get('/', async (_req, res) => {
       const cpRaw = {};
       cpRateResults.forEach(r => { if (r.status === 'fulfilled') cpRaw[r.value[0]] = r.value[1]; });
       if (cpRaw.financial3m != null || cpRaw.nonfinancial3m != null) {
+        const fin = cpRaw.financial3m    != null ? Math.round(cpRaw.financial3m    * 100) / 100 : null;
+        const non = cpRaw.nonfinancial3m != null ? Math.round(cpRaw.nonfinancial3m * 100) / 100 : null;
+        // .rate = average of whichever series came back (used by KPI strip + Key Metrics panel)
+        const cpAvg = (fin != null && non != null) ? Math.round((fin + non) / 2 * 100) / 100
+                    : (fin ?? non);
         commercialPaper = {
-          financial3m:    cpRaw.financial3m    != null ? Math.round(cpRaw.financial3m    * 100) / 100 : null,
-          nonfinancial3m: cpRaw.nonfinancial3m != null ? Math.round(cpRaw.nonfinancial3m * 100) / 100 : null,
+          financial3m:    fin,
+          nonfinancial3m: non,
+          rate:           cpAvg,
+          volume:         null,
+          history:        { dates: [], values: [] },
         };
       }
 
@@ -287,13 +295,9 @@ let emBondCountries = [];
           ? etfQuote.trailingAnnualDividendYield * 100
           : null;
 
-        let yld10y = null;
-        if (emSpread != null && etfYield != null) {
-          const us10yProxy = spreadData?.current?.igSpread != null
-            ? (etfYield - emSpread / 100 * 0.5)
-            : null;
-          yld10y = us10yProxy;
-        }
+        // Use ETF trailing yield as the best freely-available EM yield proxy.
+        // A true 10Y government yield requires paid data (Bloomberg/Refinitiv).
+        const yld10y = etfYield ?? null;
 
         const country = {
           country:   info.country,
@@ -380,13 +384,26 @@ let emBondCountries = [];
       ],
     };
 
+    // Build defaultData.rates from real FRED charge-off data already fetched above,
+    // supplemented with HY/CCC spread-derived indicators.
+    const coCommLatest = chargeoffData?.commercial?.at(-1) ?? null;
+    const coConsLatest = chargeoffData?.consumer?.at(-1) ?? null;
+    // CCC-spread proxy: CCC/HY spread ratio gives a rough distressed-ratio proxy.
+    const cccSpread = spreadData?.current?.cccSpread ?? null;
+    const hySpread  = spreadData?.current?.hySpread  ?? null;
+    const distressedProxy = (cccSpread != null && hySpread != null && hySpread > 0)
+      ? Math.round((cccSpread / hySpread) * 100 * 10) / 10
+      : null;
     const defaultData = {
       rates: [
-        { category: 'HY Default Rate (TTM)',      value: null, prev: null, peak: null, unit: '%' },
+        // Charge-off rates from FRED (quarterly, all FDIC-insured banks)
+        { category: 'Commercial Charge-Off Rate', value: coCommLatest, prev: chargeoffData?.commercial?.at(-2) ?? null, peak: null, unit: '%' },
+        { category: 'Consumer Charge-Off Rate',   value: coConsLatest, prev: chargeoffData?.consumer?.at(-2)   ?? null, peak: null, unit: '%' },
+        // Spread-derived proxy: CCC-rated share of HY index (higher = more distress)
+        { category: 'CCC/HY Distress Proxy',      value: distressedProxy, prev: null, peak: null, unit: '%' },
+        // Placeholder rows — require proprietary Moody's/LCD data not freely available
+        { category: 'HY Default Rate (TTM)',       value: null, prev: null, peak: null, unit: '%' },
         { category: 'Loan Default Rate (TTM)',     value: null, prev: null, peak: null, unit: '%' },
-        { category: 'HY Distressed Ratio',        value: null, prev: null, peak: null, unit: '%' },
-        { category: 'Loans Trading <80c',         value: null, prev: null, peak: null, unit: '%' },
-        { category: 'CCC/Split-B % of HY Index',  value: null, prev: null, peak: null, unit: '%' },
       ],
       chargeoffs: chargeoffData || null,
       defaultHistory: null,

@@ -64,7 +64,7 @@ const cannedCryptoResponse = {
 
 // Helper: make /api/* respond with `data`, except `pass` paths which fall through.
 async function mockApi(page, path, data, status = 200) {
-  await page.route(`**${path}`, async (route) => {
+  await page.route(new RegExp(path), async (route) => {
     await route.fulfill({
       status,
       contentType: 'application/json',
@@ -79,6 +79,24 @@ test.describe('Mocked-API data correctness', () => {
   // can push the render of the active tab past Playwright's default 5s
   // assertion timeout. Bump it for these tests.
   test.slow();
+
+  test.beforeEach(async ({ page }) => {
+    // Intercept RTDB snapshot calls to force live fetches of /api/*
+    await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
+      await route.fulfill({ status: 404, contentType: 'application/json', body: 'null' });
+    });
+    // Intercept all other /api/ calls to avoid hitting the throttled backend
+    await page.route(/\/api\//, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ isLive: true, isCurrent: true }),
+      });
+    });
+    page.on('console', msg => console.log(`[browser console] ${msg.type()}: ${msg.text()}`));
+    page.on('pageerror', err => console.log(`[browser error] ${err.message}`));
+    page.on('request', req => console.log(`[browser req] ${req.method()} ${req.url()}`));
+  });
 
   test('Bonds KPI strip renders treasury rates from /api/bonds', async ({ page }) => {
     await mockApi(page, '/api/bonds', cannedBondsResponse);
