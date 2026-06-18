@@ -17,6 +17,7 @@
     "test:persist": "playwright test tests/persistence.spec.js --reporter=list",
     "test:regress": "node scripts/regress.mjs",
     "test:validate": "node scripts/validate.mjs",
+    "guard:secrets": "node scripts/guard-secrets.mjs",
     "setup": "node scripts/setup-env.js"
   },
   "dependencies": {
