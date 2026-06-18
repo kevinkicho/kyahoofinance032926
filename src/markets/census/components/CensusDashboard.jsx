@@ -123,8 +123,9 @@ export function TradePanel({ kpiData, ecoKeys }) {
 }
 
 export function TrendsHousingPanel({ housingSeries, fetchedOn, lastUpdated }) {
+  const colClass = housingSeries?.length === 1 ? 'one-col' : '';
   return (
-    <div className="census-chart-row">
+    <div className={`census-chart-row ${colClass}`}>
       {housingSeries.map(cs => (
         <div key={cs.key} className="census-mini-chart">
           <h4>{cs.label} ({cs.unit})</h4>
@@ -136,8 +137,9 @@ export function TrendsHousingPanel({ housingSeries, fetchedOn, lastUpdated }) {
 }
 
 export function TrendsTradePanel({ ecoSeries, fetchedOn, lastUpdated }) {
+  const colClass = ecoSeries?.length === 1 ? 'one-col' : '';
   return (
-    <div className="census-chart-row">
+    <div className={`census-chart-row ${colClass}`}>
       {ecoSeries.map(cs => (
         <div key={cs.key} className="census-mini-chart">
           <h4>{cs.label} ({cs.unit})</h4>

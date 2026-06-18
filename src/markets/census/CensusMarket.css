@@ -80,6 +80,10 @@
   grid-auto-rows: minmax(0, 1fr);
 }
 
+.census-chart-row.one-col {
+  grid-template-columns: 1fr;
+}
+
 .census-mini-chart {
   background: var(--card-bg, #1a1a2e);
   border: 1px solid var(--border-color, #333);

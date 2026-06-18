@@ -70,3 +70,7 @@ test-results/
 
 # Backup files from iterative script edits
 scripts/*.backup
+
+# User screenshots
+/screenshots/discardable/
+
