@@ -8,14 +8,30 @@ import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
 const router = Router();
 
 router.get('/', async (_req, res) => {
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
+  const FRED_API_KEY = (process.env.FRED_API_KEY || '').trim();
+  const refresh = _req.query.refresh === 'true';
   const cache = _req.app.locals.cache;
   const today = todayStr();
-  const daily = readDailyCache('sentiment');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+
+  function hasFredCoverage(data) {
+    const s = data?._sources || {};
+    return !!(
+      s.vixData ||
+      s.hySpreadData ||
+      s.igSpreadData ||
+      s.yieldCurveData ||
+      s.marginDebt ||
+      s.consumerCredit ||
+      s.vvixData ||
+      s.financialStressIndex
+    );
+  }
+
+  const daily = refresh ? null : readDailyCache('sentiment');
+  if (daily && (!FRED_API_KEY || hasFredCoverage(daily))) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
   const cacheKey = 'sentiment_data';
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+  const cached = refresh ? null : cache.get(cacheKey);
+  if (cached && (!FRED_API_KEY || hasFredCoverage(cached))) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
   try {
     const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; };
@@ -325,8 +341,10 @@ router.get('/', async (_req, res) => {
       lastUpdated: today,
     };
 
-    writeDailyCache('sentiment', result);
-    cache.set(cacheKey, result, 300);
+    if (!FRED_API_KEY || hasFredCoverage(result)) {
+      writeDailyCache('sentiment', result);
+      cache.set(cacheKey, result, 300);
+    }
     res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Sentiment API error:', error);
