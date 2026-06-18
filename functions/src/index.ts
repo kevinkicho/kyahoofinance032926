@@ -111,7 +111,7 @@ export const api = onRequest(
     timeoutSeconds: 540,
     minInstances: 0,
     maxInstances: 10,
-    secrets: ["FINNHUB_API_KEY", "HUD_API_KEY", "CENSUS_API_KEY", "API_DATA_GOV_KEY", "FRED_API_KEY", "BLS_API_KEY", "EIA_API_KEY", "BEA_API_KEY", "USDA_NASS_API_KEY"],
+    secrets: ["FINNHUB_API_KEY", "HUD_API_KEY", "CENSUS_API_KEY", "API_DATA_GOV_KEY", "FRED_API_KEY", "BLS_API_KEY", "EIA_API_KEY", "BEA_API_KEY", "USDA_NASS_API_KEY", "EDGAR_USER_AGENT"],
   },
   app
 );

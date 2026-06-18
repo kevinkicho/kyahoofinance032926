@@ -5,7 +5,7 @@ import { trackApiCall } from '../lib/rateLimits.js';
 const router = Router();
 
 const EIA_API_BASE = 'https://api.eia.gov/v2';
-const API_KEY = () => process.env.EIA_API_KEY;
+const API_KEY = () => (process.env.EIA_API_KEY || '').trim();
 
 const EIA_QUERIES = {
   elecResidential: {

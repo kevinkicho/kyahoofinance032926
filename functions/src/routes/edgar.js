@@ -88,7 +88,7 @@ const UNDERWRITING_EXPENSE_CONCEPTS = [
 ];
 
 router.get('/concepts/:ticker', async (req, res) => {
-  const ua = process.env.EDGAR_USER_AGENT || 'kyahoofinance-researcher (Educational Sandbox)';
+  const ua = (process.env.EDGAR_USER_AGENT || '').trim() || 'kyahoofinance-researcher (Educational Sandbox)';
   const ticker = (req.params.ticker || '').toUpperCase();
   const cacheKey = `edgar_concepts_${ticker.toLowerCase()}`;
   const cached = readDailyCache(cacheKey);
@@ -138,7 +138,7 @@ router.get('/', async (_req, res) => {
   const cached = readDailyCache('edgar');
   if (cached) return res.json(cached);
 
-  const ua = process.env.EDGAR_USER_AGENT || 'kyahoofinance-researcher (Educational Sandbox)';
+  const ua = (process.env.EDGAR_USER_AGENT || '').trim() || 'kyahoofinance-researcher (Educational Sandbox)';
   const today = todayStr();
   const out = {};
   let cikMap;

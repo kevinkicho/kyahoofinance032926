@@ -132,8 +132,8 @@ export function parseSeries(rawSeries) {
 }
 
 router.get('/', async (req, res) => {
-  const apiKey = process.env.BLS_API_KEY;
-  const FRED_API_KEY = process.env.FRED_API_KEY;
+  const apiKey = (process.env.BLS_API_KEY || '').trim();
+  const FRED_API_KEY = (process.env.FRED_API_KEY || '').trim();
   if (!apiKey) {
     // Without a BLS key, try FRED — every series in BLS_SERIES has a
     // FRED mirror. Only fall through to the empty payload if both keys
