@@ -338,6 +338,48 @@ export default function EquitiesMarket({ currency, setCurrency }) {
 
   React.useEffect(() => { fetchIndexQuotes(); }, [fetchIndexQuotes]);
 
+  React.useEffect(() => {
+    // Auto-discovery sidecar: fetch recently listed IPOs from the nightly RTDB job
+    fetch('https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/universeUpdates/latest.json')
+      .then(res => res.json())
+      .then(payload => {
+        if (!payload || !payload.data || !payload.data.updates || !payload.data.updates.length) return;
+        
+        setMarketUniverse(prevUniverse => {
+          const newUniverse = [...prevUniverse];
+          // Default to injecting into the main US region (where most tracked IPOs happen)
+          const usRegionIndex = newUniverse.findIndex(r => r.name.includes('USA'));
+          if (usRegionIndex === -1) return prevUniverse;
+
+          const usRegion = { ...newUniverse[usRegionIndex], children: [...newUniverse[usRegionIndex].children] };
+          
+          const existingTickers = new Set();
+          newUniverse.forEach(r => r.children.forEach(c => existingTickers.add(c.name)));
+
+          let added = 0;
+          payload.data.updates.forEach(newStock => {
+            if (!existingTickers.has(newStock.name)) {
+              if (!newStock.itemStyle) {
+                // Highlight newly discovered stocks with a distinct neon cyan border
+                newStock.itemStyle = { color: 'transparent', borderWidth: 2, borderColor: '#06b6d4', borderType: 'dashed' };
+              }
+              usRegion.children.push(newStock);
+              existingTickers.add(newStock.name);
+              added++;
+            }
+          });
+
+          if (added > 0) {
+            newUniverse[usRegionIndex] = usRegion;
+            console.log(`[EquitiesMarket] Auto-discovered and injected ${added} new listings.`);
+            return newUniverse;
+          }
+          return prevUniverse;
+        });
+      })
+      .catch(err => console.warn('[EquitiesMarket] Failed to load universe updates sidecar:', err));
+  }, []);
+
   const handleRefresh = useCallback(() => {
     if (isRefreshing) return;
     setIsRefreshing(true);

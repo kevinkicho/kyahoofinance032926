@@ -37,7 +37,7 @@ function loadRoutes() {
     'bls', 'eia', 'census', 'ticker', 'bea', 'censusTrade', 'commoditiesEnhanced',
     'ecb', 'edgar', 'eiaPetroleum', 'eurostat', 'fdic', 'fed', 'fema',
     'imf', 'institutional', 'msrb', 'nyfed', 'oecd', 'treasuryAuctions',
-    'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank'
+    'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates'
   ];
 
   for (const route of essentialRoutes) {
@@ -110,6 +110,7 @@ export const api = onRequest(
     timeoutSeconds: 60,
     minInstances: 0,
     maxInstances: 10,
+    secrets: ["FINNHUB_API_KEY"],
   },
   app
 );
@@ -165,6 +166,7 @@ const SNAPSHOT_MARKETS = [
   { id: "analytics", path: "/api/analytics" },
   { id: "rateLimits", path: "/api/rate-limits" },
   { id: "cacheStatus", path: "/api/cache/status" },
+  { id: "universeUpdates", path: "/api/universeUpdates" },
 ];
 
 export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {

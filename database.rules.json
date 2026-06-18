@@ -1,10 +1,11 @@
 {
   "rules": {
-    ".read": "auth != null || true", 
-    ".write": "auth != null",
+    ".read": false,
+    ".write": false,
+
     "marketSnapshots": {
       ".read": true,
-      ".write": "auth != null"
+      ".write": false
     }
   }
 }

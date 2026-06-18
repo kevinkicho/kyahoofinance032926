@@ -61,6 +61,7 @@ import usgsRouter from './routes/usgs.js';
 import usdaRouter from './routes/usda.js';
 import censusTradeRouter from './routes/censusTrade.js';
 import eiaPetroleumRouter from './routes/eiaPetroleum.js';
+import universeUpdatesRouter from './routes/universeUpdates.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -273,6 +274,7 @@ app.use('/api/usgs', usgsRouter);
 app.use('/api/usda', usdaRouter);
 app.use('/api/census-trade', censusTradeRouter);
 app.use('/api/eia-petroleum', eiaPetroleumRouter);
+app.use('/api/universeUpdates', universeUpdatesRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

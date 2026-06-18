@@ -28,7 +28,7 @@ if (!import.meta.env.DEV) {
 const dlog = import.meta.env.DEV ? console.log.bind(console) : () => {};
 
 const FETCH_SETTINGS = {
-  timeout: 45000,   // give slow external-dependent routes (realEstate, globalMacro, insurance, etc.) more headroom on cold starts
+  timeout: 45000,   // client timeout for live fetches. Note: on normal loads we now skip live for slow markets (realEstate etc.) when a daily RTDB snapshot is present. Explicit refresh still hits them.
   retries: 1,
   batchConcurrency: 4,
   batchDelayMs: 300,
@@ -261,7 +261,14 @@ async function fetchMarket(marketId) {
     return { marketId, data, ok: true, status: r.status, duration: dur, requestId };
   } catch (err) {
     const dur = Math.round(performance.now() - t0);
-    console.error(`[DataProvider] ✗ ${marketId} failed (${dur}ms):`, err?.message || err);
+    // Downgrade to warn when this is a known-slow endpoint that likely has a recent RTDB snapshot.
+    // The live call is now skipped in most cases; a failure here is usually just "snapshot is what we have".
+    const msg = `[DataProvider] ✗ ${marketId} failed (${dur}ms): ${err?.message || err}`;
+    if (['realEstate', 'insurance', 'globalMacro'].includes(marketId)) {
+      console.warn(msg);
+    } else {
+      console.error(msg);
+    }
     return { marketId, data: null, ok: false, status: 0, duration: dur, error: err?.message || 'Fetch failed' };
   }
 }
@@ -372,7 +379,14 @@ export function applyResult(prev, result) {
       },
     };
   }
-  console.error(`[DataProvider] ✗ ${id} fetch error: ${result.error}`);
+  // Softer logging for slow markets that usually have a good daily RTDB snapshot.
+  // We now keep any previously seeded data on failure (see spread of prev[id]).
+  const errMsg = `[DataProvider] ✗ ${id} fetch error: ${result.error}`;
+  if (['realEstate', 'insurance', 'globalMacro'].includes(id)) {
+    console.warn(errMsg);
+  } else {
+    console.error(errMsg);
+  }
   return {
     ...prev,
     [id]: {
@@ -543,7 +557,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     }
   }, []);
 
-  const fetchAllMarkets = useCallback(async () => {
+  const fetchAllMarkets = useCallback(async (forceLive = false) => {
     if (fetchingRef.current) {
       dlog('[DataProvider] Fetch already in progress — skipping duplicate');
       return;
@@ -555,12 +569,19 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     // Seed from RTDB snapshots first (fast, cheap, no function invocation).
     // The scheduled refresher now writes daily under /history/{date} + /latest.
     // This makes the DB grow over time while still giving fast "current" data.
+    // On normal loads we prefer the snapshot for slow/expensive endpoints (realEstate etc.)
+    // to avoid 504s and unnecessary Cloud Run invocations from the browser.
     const effectiveDate = historicalDate; // if set, load that day's snapshot instead of latest
     const rtdbSeeds = await Promise.all(
       ids.map(async (id) => {
         const seed = await loadFromRTDB(id, effectiveDate);
         return seed ? { id, seed } : null;
       })
+    );
+
+    // Track which markets got usable snapshot data this time
+    const seededIds = new Set(
+      rtdbSeeds.filter(Boolean).map(s => s.id)
     );
 
     setMarkets(prev => {
@@ -588,7 +609,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       return next;
     });
 
-    if (effectiveDate) {
+    if (effectiveDate && !forceLive) {
       // Historical mode: use the seeded snapshots, skip live network wave to avoid unnecessary calls.
       dlog(`[DataProvider] Historical mode for ${effectiveDate} — using RTDB snapshots only.`);
       setGlobalLoading(false);
@@ -596,12 +617,43 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       return;
     }
 
+    // Decide which markets still need a live fetch.
+    // By default we skip live for markets that successfully seeded from the daily RTDB snapshot.
+    // This avoids hammering slow endpoints (realEstate, insurance, etc.) from the static frontend.
+    // Explicit refresh (forceLive) or lack of a seed will still trigger the live call.
+    let liveIds = ids;
+    if (!forceLive) {
+      liveIds = ids.filter(id => !seededIds.has(id));
+      if (liveIds.length < ids.length) {
+        dlog(`[DataProvider] Skipping live fetch for ${ids.length - liveIds.length} markets that had good RTDB snapshots (realEstate etc. prefer daily snapshot).`);
+      }
+    }
+
+    if (liveIds.length === 0) {
+      setGlobalLoading(false);
+      fetchingRef.current = false;
+      dlog('[DataProvider] All markets satisfied by RTDB snapshots — no live wave needed.');
+      return;
+    }
+
+    // The seeded (snapshot) markets are already populated; turn off their loading state
+    // so they don't appear stuck while we do the (smaller) live wave for the others.
+    setMarkets(prev => {
+      const next = { ...prev };
+      for (const id of ids) {
+        if (!liveIds.includes(id) && next[id]) {
+          next[id] = { ...next[id], isLoading: false };
+        }
+      }
+      return next;
+    });
+
     setGlobalLoading(true);
 
-    dlog(`[DataProvider] Fetching ${ids.length} markets in batches of ${FETCH_SETTINGS.batchConcurrency}…`);
+    dlog(`[DataProvider] Fetching ${liveIds.length} markets (live) in batches of ${FETCH_SETTINGS.batchConcurrency}…`);
 
-    for (let i = 0; i < ids.length; i += FETCH_SETTINGS.batchConcurrency) {
-      const batch = ids.slice(i, i + FETCH_SETTINGS.batchConcurrency);
+    for (let i = 0; i < liveIds.length; i += FETCH_SETTINGS.batchConcurrency) {
+      const batch = liveIds.slice(i, i + FETCH_SETTINGS.batchConcurrency);
       if (i > 0) await new Promise(r => setTimeout(r, FETCH_SETTINGS.batchDelayMs));
 
       dlog(`[DataProvider] Batch ${Math.floor(i / FETCH_SETTINGS.batchConcurrency) + 1}: [${batch.join(', ')}]`);
@@ -635,8 +687,6 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     dlog(`[DataProvider] ✅ All fetches complete`);
     fetchingRef.current = false;
     setGlobalLoading(false);
-    const liveCount = Object.keys(MARKET_ENDPOINTS).length + Object.keys(FEDERATED_MARKETS).length;
-    dlog(`[DataProvider] ✅ All fetches complete`);
   }, []);
 
   const fetchFederatedMarket = useCallback((fedId) => {
@@ -661,7 +711,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     }
   }, []);
 
-  const refetchAll = useCallback(() => { fetchAllMarkets(); }, [fetchAllMarkets]);
+  const refetchAll = useCallback(() => { fetchAllMarkets(true); }, [fetchAllMarkets]); // explicit refresh → force live
 
   const refetchSingle = useCallback((marketId, params = null) => {
     if (FEDERATED_MARKETS[marketId]) { fetchFederatedMarket(marketId); }
@@ -672,24 +722,27 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   // until the user clicks the manual refresh button. We track a separate
   // `didInitialFetch` ref so the snapshot-from-localStorage path still
   // hydrates first, but the fresh wave kicks off right after.
+  // Normal initial load prefers RTDB snapshots for slow markets.
   const didInitialFetchRef = useRef(false);
   useEffect(() => {
     if (didInitialFetchRef.current) return;
     didInitialFetchRef.current = true;
-    fetchAllMarkets();
+    fetchAllMarkets(false); // snapshot-preferring
   }, [fetchAllMarkets]);
 
-  // When historicalDate changes, re-seed from that day's RTDB snapshots.
+  // When historicalDate changes, re-seed from that day's RTDB snapshots (no live).
   useEffect(() => {
     if (historicalDate) {
-      fetchAllMarkets();
+      fetchAllMarkets(false);
     }
   }, [historicalDate, fetchAllMarkets]);
 
   // Manual-refresh button increments refreshKey from outside; this fires
   // a wave each time it changes (skipping the initial 0→0 no-op).
+  // Explicit user refresh forces a full live pass (bypasses snapshot preference)
+  // so they can get up-to-the-second data when they want it.
   useEffect(() => {
-    if (refreshKey > 0) fetchAllMarkets();
+    if (refreshKey > 0) fetchAllMarkets(true); // force live on manual refresh
   }, [refreshKey, fetchAllMarkets]);
   useInterval(refetchAll, autoRefresh ? 300000 : null);
 

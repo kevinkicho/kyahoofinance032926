@@ -736,3 +736,27 @@
 .eps-vals { display: flex; align-items: baseline; gap: 0.5rem; }
 .eps-vals strong { color: #fff; font-weight: 600; }
 .eps-range { font-size: 0.68rem; color: var(--text-dim); }
+
+.detail-panel-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100% - 70px);
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.detail-panel-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border-subtle);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: detail-spin 1s linear infinite;
+}
+
+@keyframes detail-spin {
+  to { transform: rotate(360deg); }
+}
+

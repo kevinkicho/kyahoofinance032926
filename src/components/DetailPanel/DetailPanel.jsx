@@ -604,12 +604,6 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
   const [activeTab, setActiveTab] = useState('summary');
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const [macroData, setMacroData] = useState(null);
-  const sym = selectedTicker.regionSymbol || '$';
-  const fv = computeFairValue(
-    selectedTicker, details,
-    { riskAppetite: 50, interestRate: 0, inflation: 2 }
-  );
-
   useEffect(() => {
     let cancelled = false;
     fetchWithRetry(apiUrl('/api/macro'), { retries: 1, timeout: 10000 })
@@ -618,6 +612,30 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  if (selectedTicker.isLoading || !details) {
+    return (
+      <div className="detail-panel-content">
+        <div className="detail-header">
+          <div>
+            <h2 className="detail-ticker">{selectedTicker.ticker}</h2>
+            <p className="detail-region">{selectedTicker.region || 'Loading details...'}</p>
+          </div>
+          <button className="close-btn" onClick={() => setSelectedTicker(null)}>Close</button>
+        </div>
+        <div className="detail-panel-loading-container">
+          <div className="detail-panel-spinner" />
+          <span>Loading live quotes...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const sym = selectedTicker.regionSymbol || '$';
+  const fv = computeFairValue(
+    selectedTicker, details,
+    { riskAppetite: 50, interestRate: 0, inflation: 2 }
+  );
 
   return (
     <div className="detail-panel-content">
