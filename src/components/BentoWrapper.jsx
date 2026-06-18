@@ -28,15 +28,12 @@ function mergeLayoutWithDefaults(saved, defaults) {
     if (savedMap.has(def.i)) {
       // Preserve saved x/y/w/h but pick up minW/minH/maxW/maxH/static
       // changes from the default in case the schema evolved. Guard against
-      // degenerate saved sizes (w=1, h=1) — those happen when RGL renders
+      // true synthetic saved sizes (w=1, h=1) — those happen when RGL renders
       // an item before its layout entry is in `layouts.lg`, then persists
       // the default 1×1 size; once written, the saved 1×1 would shadow
-      // the real layout forever. If the saved area is < ~30% of the
-      // default, fall back to defaults rather than the saved values.
+      // the real layout forever.
       const s = savedMap.get(def.i);
-      const savedArea = (s.w || 1) * (s.h || 1);
-      const defaultArea = (def.w || 1) * (def.h || 1);
-      const degenerate = defaultArea > 4 && savedArea < defaultArea * 0.3;
+      const degenerate = s.w === 1 && s.h === 1 && (def.w !== 1 || def.h !== 1);
       if (degenerate) {
         merged.push({ ...def });
       } else {
@@ -84,16 +81,13 @@ export default function BentoWrapper({ children, layout, className = "", storage
     // RGL synthesizes default 1×1 entries when a conditionally-rendered
     // child first appears (e.g. an async data panel). It then immediately
     // fires onLayoutChange with the synthesized 1×1 entry, which we'd
-    // otherwise persist forever. Sanitize against defaults: anything that
-    // came back smaller than ~30% of the default area is treated as a
-    // synthetic default and replaced with the original layout entry.
+    // otherwise persist forever. Only reject true 1×1 synthetic entries;
+    // deliberate compact user resizes are valid layout choices.
     const defaultsByKey = new Map((layout?.lg || []).map(d => [d.i, d]));
     const sanitized = newLayout.map(item => {
       const def = defaultsByKey.get(item.i);
       if (!def) return item;
-      const itemArea = (item.w || 1) * (item.h || 1);
-      const defArea  = (def.w  || 1) * (def.h  || 1);
-      if (defArea > 4 && itemArea < defArea * 0.3) {
+      if (item.w === 1 && item.h === 1 && (def.w !== 1 || def.h !== 1)) {
         return { ...item, w: def.w, h: def.h, x: def.x, y: def.y };
       }
       return item;
