@@ -32,7 +32,172 @@ function bisQuarterLabel(dateStr) {
   return `Q${q} ${String(d.getUTCFullYear()).slice(2)}`;
 }
 
+const HUD_METROS = [
+  { city: 'New York', hud_code: 'METRO35620MM5600', cbsa_code: '35620', lat: 40.7128, lng: -74.0060 },
+  { city: 'Los Angeles', hud_code: 'METRO31080MM4480', cbsa_code: '31080', lat: 34.0522, lng: -118.2437 },
+  { city: 'Chicago', hud_code: 'METRO16980M16980', cbsa_code: '16980', lat: 41.8781, lng: -87.6298 },
+  { city: 'Dallas', hud_code: 'METRO19100M19100', cbsa_code: '19100', lat: 32.7767, lng: -96.7970 },
+  { city: 'Houston', hud_code: 'METRO26420M26420', cbsa_code: '26420', lat: 29.7604, lng: -95.3698 },
+  { city: 'Miami', hud_code: 'METRO33100MM5000', cbsa_code: '33100', lat: 25.7617, lng: -80.1918 },
+  { city: 'Atlanta', hud_code: 'METRO12060M12060', cbsa_code: '12060', lat: 33.7490, lng: -84.3880 },
+  { city: 'Philadelphia', hud_code: 'METRO37980M37980', cbsa_code: '37980', lat: 39.9526, lng: -75.1652 },
+  { city: 'Washington', hud_code: 'METRO47900M47900', cbsa_code: '47900', lat: 38.9072, lng: -77.0369 },
+  { city: 'Phoenix', hud_code: 'METRO38060M38060', cbsa_code: '38060', lat: 33.4484, lng: -112.0740 },
+  { city: 'Boston', hud_code: 'METRO14460MM1120', cbsa_code: '14460', lat: 42.3601, lng: -71.0589 },
+  { city: 'Riverside', hud_code: 'METRO40140M40140', cbsa_code: '40140', lat: 33.9806, lng: -117.3755 },
+  { city: 'San Francisco', hud_code: 'METRO41860MM7360', cbsa_code: '41860', lat: 37.7749, lng: -122.4194 },
+  { city: 'Detroit', hud_code: 'METRO19820M19820', cbsa_code: '19820', lat: 42.3314, lng: -83.0458 },
+  { city: 'Seattle', hud_code: 'METRO42660MM7600', cbsa_code: '42660', lat: 47.6062, lng: -122.3321 },
+  { city: 'Minneapolis', hud_code: 'METRO33460M33460', cbsa_code: '33460', lat: 44.9778, lng: -93.2650 },
+  { city: 'Tampa', hud_code: 'METRO45300M45300', cbsa_code: '45300', lat: 27.9506, lng: -82.4572 },
+  { city: 'San Diego', hud_code: 'METRO41740M41740', cbsa_code: '41740', lat: 32.7157, lng: -117.1611 },
+  { city: 'Denver', hud_code: 'METRO19740M19740', cbsa_code: '19740', lat: 39.7392, lng: -104.9903 },
+  { city: 'Orlando', hud_code: 'METRO36740M36740', cbsa_code: '36740', lat: 28.5383, lng: -81.3792 },
+  { city: 'Austin', hud_code: 'METRO12420M12420', cbsa_code: '12420', lat: 30.2672, lng: -97.7431 },
+  { city: 'St. Louis', hud_code: 'METRO41180M41180', cbsa_code: '41180', lat: 38.6270, lng: -90.1994 },
+  { city: 'Charlotte', hud_code: 'METRO16740M16740', cbsa_code: '16740', lat: 35.2271, lng: -80.8431 },
+  { city: 'San Antonio', hud_code: 'METRO41700M41700', cbsa_code: '41700', lat: 29.4241, lng: -98.4936 },
+  { city: 'Portland', hud_code: 'METRO38900M38900', cbsa_code: '38900', lat: 45.5152, lng: -122.6784 },
+  { city: 'Sacramento', hud_code: 'METRO40900M40900', cbsa_code: '40900', lat: 38.5816, lng: -121.4944 },
+  { city: 'Pittsburgh', hud_code: 'METRO38300M38300', cbsa_code: '38300', lat: 40.4406, lng: -79.9959 },
+  { city: 'Las Vegas', hud_code: 'METRO29820M29820', cbsa_code: '29820', lat: 36.1716, lng: -115.1398 },
+  { city: 'Cincinnati', hud_code: 'METRO17140M17140', cbsa_code: '17140', lat: 39.1031, lng: -84.5120 },
+  { city: 'Kansas City', hud_code: 'METRO28140M28140', cbsa_code: '28140', lat: 39.0997, lng: -94.5786 },
+  { city: 'Columbus', hud_code: 'METRO18140M18140', cbsa_code: '18140', lat: 39.9612, lng: -82.9988 },
+  { city: 'Indianapolis', hud_code: 'METRO26900M26900', cbsa_code: '26900', lat: 39.7684, lng: -86.1581 },
+  { city: 'Cleveland', hud_code: 'METRO17460M17460', cbsa_code: '17460', lat: 41.4993, lng: -81.6944 },
+  { city: 'San Jose', hud_code: 'METRO41940M41940', cbsa_code: '41940', lat: 37.3382, lng: -121.8863 },
+  { city: 'Nashville', hud_code: 'METRO34980M34980', cbsa_code: '34980', lat: 36.1627, lng: -86.7816 },
+  { city: 'Virginia Beach', hud_code: 'METRO47260M47260', cbsa_code: '47260', lat: 36.8529, lng: -75.9780 },
+  { city: 'Jacksonville', hud_code: 'METRO27260M27260', cbsa_code: '27260', lat: 30.3322, lng: -81.6557 },
+  { city: 'Providence', hud_code: 'METRO39300M39300', cbsa_code: '39300', lat: 41.8240, lng: -71.4128 },
+  { city: 'Milwaukee', hud_code: 'METRO33340M33340', cbsa_code: '33340', lat: 43.0389, lng: -87.9065 },
+  { city: 'Raleigh', hud_code: 'METRO39580M39580', cbsa_code: '39580', lat: 35.7796, lng: -78.6382 },
+  { city: 'Oklahoma City', hud_code: 'METRO36420M36420', cbsa_code: '36420', lat: 35.4676, lng: -97.5164 },
+  { city: 'Memphis', hud_code: 'METRO32820M32820', cbsa_code: '32820', lat: 35.1495, lng: -90.0490 },
+  { city: 'Louisville', hud_code: 'METRO31140M31140', cbsa_code: '31140', lat: 38.2527, lng: -85.7585 },
+  { city: 'Richmond', hud_code: 'METRO40060M40060', cbsa_code: '40060', lat: 37.5407, lng: -77.4360 },
+  { city: 'New Orleans', hud_code: 'METRO35380M35380', cbsa_code: '35380', lat: 29.9511, lng: -90.0715 },
+  { city: 'Salt Lake City', hud_code: 'METRO41620M41620', cbsa_code: '41620', lat: 40.7608, lng: -111.8910 },
+  { city: 'Hartford', hud_code: 'METRO25540M25540', cbsa_code: '25540', lat: 41.7637, lng: -72.6851 },
+  { city: 'Buffalo', hud_code: 'METRO15380M15380', cbsa_code: '15380', lat: 42.8864, lng: -78.8784 },
+  { city: 'Birmingham', hud_code: 'METRO13820M13820', cbsa_code: '13820', lat: 33.5186, lng: -86.8104 },
+  { city: 'Rochester', hud_code: 'METRO40380M40380', cbsa_code: '40380', lat: 43.1566, lng: -77.6088 }
+];
+
+async function fetchHudAffordabilityData(hudApiKey, censusApiKey) {
+  if (!hudApiKey) {
+    console.warn('[RealEstate] HUD_API_KEY is missing');
+    return null;
+  }
+
+  // 1. Fetch Census data in a single query
+  let censusMap = new Map();
+  if (censusApiKey) {
+    try {
+      const url = `https://api.census.gov/data/2022/acs/acs5?get=NAME,B25077_001E,B25064_001E,B25003_002E,B25003_003E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*&key=${censusApiKey}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const rawData = await res.json();
+        // Skip header row: ["NAME", "B25077_001E", "B25064_001E", "B25003_002E", "B25003_003E", "metropolitan statistical area/micropolitan statistical area"]
+        for (let i = 1; i < rawData.length; i++) {
+          const row = rawData[i];
+          const homeValue = parseInt(row[1]) || null;
+          const grossRent = parseInt(row[2]) || null;
+          const ownerOcc = parseInt(row[3]) || 0;
+          const renterOcc = parseInt(row[4]) || 0;
+          const cbsa = row[5];
+          censusMap.set(cbsa, {
+            homeValue,
+            grossRent,
+            homeownership: (ownerOcc + renterOcc) > 0 ? Math.round((ownerOcc / (ownerOcc + renterOcc)) * 100 * 10) / 10 : null
+          });
+        }
+      } else {
+        console.warn('[RealEstate] Census API returned error status:', res.status);
+      }
+    } catch (e) {
+      console.warn('[RealEstate] Census API fetch failed:', e.message || e);
+    }
+  }
+
+  // 2. Fetch HUD FMR and Income Limits in parallel chunks
+  const hudData = [];
+  const limit = 10;
+  
+  for (let i = 0; i < HUD_METROS.length; i += limit) {
+    const chunk = HUD_METROS.slice(i, i + limit);
+    const chunkPromises = chunk.map(async (metro) => {
+      try {
+        const fmrUrl = `https://www.huduser.gov/hudapi/public/fmr/data/${metro.hud_code}`;
+        const ilUrl = `https://www.huduser.gov/hudapi/public/il/data/${metro.hud_code}`;
+        
+        const [fmrRes, ilRes] = await Promise.all([
+          fetch(fmrUrl, { headers: { 'Authorization': `Bearer ${hudApiKey}` } }),
+          fetch(ilUrl, { headers: { 'Authorization': `Bearer ${hudApiKey}` } })
+        ]);
+        
+        let rent = null;
+        let income = null;
+        
+        if (fmrRes.ok) {
+          const fmrJson = await fmrRes.json();
+          rent = fmrJson?.data?.basicdata?.['Two-Bedroom'] || null;
+        }
+        
+        if (ilRes.ok) {
+          const ilJson = await ilRes.json();
+          income = ilJson?.data?.median_income || null;
+        }
+        
+        let ratio = null;
+        if (rent && income) {
+          ratio = Math.round(((rent * 12) / income) * 100 * 10) / 10;
+        }
+        
+        const censusInfo = censusMap.get(metro.cbsa_code) || null;
+        
+        return {
+          city: metro.city,
+          hud_code: metro.hud_code,
+          cbsa_code: metro.cbsa_code,
+          lat: metro.lat,
+          lng: metro.lng,
+          rent,
+          income,
+          ratio,
+          homeValue: censusInfo?.homeValue || null,
+          grossRent: censusInfo?.grossRent || null,
+          homeownership: censusInfo?.homeownership || null
+        };
+      } catch (e) {
+        console.warn(`[RealEstate] Error fetching HUD data for ${metro.city}:`, e.message || e);
+        return {
+          city: metro.city,
+          hud_code: metro.hud_code,
+          cbsa_code: metro.cbsa_code,
+          lat: metro.lat,
+          lng: metro.lng,
+          rent: null,
+          income: null,
+          ratio: null,
+          homeValue: null,
+          grossRent: null,
+          homeownership: null
+        };
+      }
+    });
+    
+    const chunkResults = await Promise.all(chunkPromises);
+    hudData.push(...chunkResults);
+  }
+  
+  return hudData;
+}
+
 router.get('/', async (req, res) => {
+  const HUD_API_KEY = process.env.HUD_API_KEY || '';
+  const CENSUS_API_KEY = process.env.CENSUS_API_KEY || '';
   const FRED_API_KEY = process.env.FRED_API_KEY || '';
   const cache = req.app.locals.cache;
   const cacheKey = 'realestate_data';
@@ -446,6 +611,13 @@ router.get('/', async (req, res) => {
       } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
 
+    let hudData = null;
+    try {
+      hudData = await fetchHudAffordabilityData(HUD_API_KEY, CENSUS_API_KEY);
+    } catch (e) {
+      console.warn('[RealEstate] HUD/Census fetch failed:', e.message || e);
+    }
+
     const _sources = {
       reitData:           reitData != null && reitData.length > 0,
       caseShiller:        caseShillerData != null,
@@ -465,9 +637,10 @@ router.get('/', async (req, res) => {
       foreclosureData:    foreclosureData != null,
       mbaApplications:    mbaApplications != null,
       creDelinquencies:   creDelinquencies != null,
+      hudData:            hudData != null && hudData.length > 0,
     };
 
-    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, _sources, lastUpdated: today };
+    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, hudData, _sources, lastUpdated: today };
     writeDailyCache('realEstate', result);
     cache.set(cacheKey, result, 900);
     clearTimeout(routeTimer);

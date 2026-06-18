@@ -28,6 +28,7 @@ function getRealEstateProps(centralData) {
     foreclosureData: d.foreclosureData,
     mbaApplications: d.mbaApplications,
     creDelinquencies: d.creDelinquencies,
+    hudData: d.hudData,
     commoditiesData: d.commoditiesData,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
@@ -79,6 +80,7 @@ function RealEstateMarket({ centralData } = {}) {
           foreclosureData={props.foreclosureData}
           mbaApplications={props.mbaApplications}
           creDelinquencies={props.creDelinquencies}
+          hudData={props.hudData}
           commoditiesData={commoditiesData}
           censusData={censusData}
           error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}

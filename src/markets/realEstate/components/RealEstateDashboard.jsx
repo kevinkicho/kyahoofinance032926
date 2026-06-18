@@ -15,6 +15,101 @@ import {
 } from '../../census/components/CensusDashboard';
 import './RealEstateDashboard.css';
 
+function RentalAffordabilityMap({ data }) {
+  const containerRef = React.useRef(null);
+  const mapRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!containerRef.current || !window.L || !data) return;
+
+    // Center map on the geographic center of the contiguous US
+    const map = window.L.map(containerRef.current, {
+      zoomControl: false,
+      attributionControl: true
+    }).setView([37.8, -96], 4);
+
+    mapRef.current = map;
+
+    window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    window.L.control.zoom({ position: 'topright' }).addTo(map);
+
+    data.forEach(d => {
+      if (d.lat == null || d.lng == null) return;
+
+      const val = d.ratio;
+      let color = '#10b981'; // Green
+      if (val > 40) color = '#ef4444'; // Red
+      else if (val > 30) color = '#f59e0b'; // Orange
+
+      const marker = window.L.circleMarker([d.lat, d.lng], {
+        radius: 6,
+        fillColor: color,
+        color: '#111827',
+        weight: 1.5,
+        fillOpacity: 0.85
+      }).addTo(map);
+
+      const popupContent = `
+        <div class="leaflet-dark-popup">
+          <div class="popup-title">${d.city}</div>
+          <div class="popup-grid">
+            <div class="popup-row">
+              <span class="popup-label">Rent-to-Income:</span>
+              <span class="popup-val" style="color: ${color}; font-weight: 600;">${val ? val.toFixed(1) + '%' : 'N/A'}</span>
+            </div>
+            <div class="popup-row">
+              <span class="popup-label">2B FMR Rent:</span>
+              <span class="popup-val">$${d.rent ? d.rent.toLocaleString() : 'N/A'}/mo</span>
+            </div>
+            <div class="popup-row">
+              <span class="popup-label">Median Income:</span>
+              <span class="popup-val">$${d.income ? d.income.toLocaleString() : 'N/A'}/yr</span>
+            </div>
+            ${d.homeValue ? `
+            <div class="popup-divider"></div>
+            <div class="popup-row">
+              <span class="popup-label">Census Home Value:</span>
+              <span class="popup-val">$${d.homeValue.toLocaleString()}</span>
+            </div>
+            ` : ''}
+            ${d.homeownership ? `
+            <div class="popup-row">
+              <span class="popup-label">Homeownership Rate:</span>
+              <span class="popup-val">${d.homeownership.toFixed(1)}%</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent, {
+        className: 'dark-popup-wrapper',
+        closeButton: false
+      });
+    });
+
+    setTimeout(() => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    }, 250);
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [data]);
+
+  return <div ref={containerRef} className="re-hud-map" style={{ height: '100%', width: '100%', borderRadius: '6px' }} />;
+}
+
 
 const LAYOUT = {
   lg: [
@@ -33,15 +128,101 @@ function RealEstateDashboard({
   caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
   housingStarts, existingHomeSales, rentalVacancy, medianHomePrice,
   foreclosureData, mbaApplications, creDelinquencies, commoditiesData, censusData,
-  fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
+  hudData, fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
+  const [hudView, setHudView] = React.useState('chart');
   const censusSeries = censusData?.series || {};
   const { kpiData: censusKpiData, housingSeries: censusHousingSeries, ecoSeries: censusEcoSeries } = useCensusData(censusSeries);
   const hasCensusHousingKpi = censusKpiData.some(k => CENSUS_HOUSING_KEYS.includes(k.key));
   const hasCensusEcoKpi = censusKpiData.some(k => CENSUS_ECO_KEYS.includes(k.key));
   const hasCensusHousingTrends = censusHousingSeries.length > 0;
   const hasCensusEcoTrends = censusEcoSeries.length > 0;
+
+  const hudOption = useMemo(() => {
+    if (!hudData || hudData.length === 0) return null;
+
+    const sortedData = [...hudData]
+      .filter(d => d.ratio != null)
+      .sort((a, b) => b.ratio - a.ratio);
+
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params) => {
+          const idx = params[0].dataIndex;
+          const d = sortedData[idx];
+          const color = d.ratio > 40 ? '#ef4444' : d.ratio > 30 ? '#f59e0b' : '#10b981';
+          return `
+            <div style="font-weight: 600; font-size: 11px; margin-bottom: 4px; color: ${colors.textPrimary};">${d.city}</div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 10px;">
+              <span style="color: ${colors.textMuted};">Rent-to-Income:</span>
+              <span style="font-weight: 600; color: ${color};">${d.ratio.toFixed(1)}%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 10px;">
+              <span style="color: ${colors.textMuted};">2B FMR Rent:</span>
+              <span style="color: ${colors.textSecondary};">$${d.rent?.toLocaleString()}/mo</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 10px;">
+              <span style="color: ${colors.textMuted};">Median Income:</span>
+              <span style="color: ${colors.textSecondary};">$${d.income?.toLocaleString()}/yr</span>
+            </div>
+          `;
+        }
+      },
+      grid: { top: 15, right: 10, bottom: 60, left: 35 },
+      xAxis: {
+        type: 'category',
+        data: sortedData.map(d => d.city),
+        axisLabel: {
+          color: colors.textMuted,
+          fontSize: 8,
+          rotate: 45,
+          interval: 0
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '%',
+        nameTextStyle: { color: colors.textMuted, fontSize: 8 },
+        axisLabel: { color: colors.textMuted, fontSize: 8 },
+        splitLine: { lineStyle: { color: colors.cardBg } }
+      },
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          end: 25
+        },
+        {
+          type: 'slider',
+          start: 0,
+          end: 25,
+          height: 12,
+          bottom: 5,
+          textStyle: { color: colors.textMuted, fontSize: 8 }
+        }
+      ],
+      series: [
+        {
+          type: 'bar',
+          data: sortedData.map(d => {
+            const val = d.ratio;
+            let color = '#10b981';
+            if (val > 40) color = '#ef4444';
+            else if (val > 30) color = '#f59e0b';
+            return {
+              value: val,
+              itemStyle: { color }
+            };
+          }),
+          barMaxWidth: 12
+        }
+      ]
+    };
+  }, [hudData, colors]);
 
   const shillerOption = useMemo(() => {
     const d = caseShillerData?.national || caseShillerData;
@@ -132,6 +313,7 @@ function RealEstateDashboard({
   if (capRateData?.length > 0) { layoutItems.push({ i: 'caprate', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
   if (affordabilityData?.length > 0) { layoutItems.push({ i: 'afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
   if (supplyData?.length > 0) { layoutItems.push({ i: 'supply', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
+  if (hudData?.length > 0) { layoutItems.push({ i: 'hud-afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
 
   // Census panels (merged from former Census tab) — placed below RE panels.
   const censusY = chartH * 2;
@@ -527,6 +709,45 @@ function RealEstateDashboard({
                 </div>
               ))}
             </div>
+          </BentoCard>
+        )}
+
+        {/* HUD Rental Affordability */}
+        {hudData?.length > 0 && (
+          <BentoCard
+            key="hud-afford"
+            title="Rental Affordability"
+            accent="realEstate"
+            className="re-bento-card hud-afford-card"
+            titleActions={
+              <div className="hud-toggle-container" onMouseDown={e => e.stopPropagation()}>
+                <button
+                  className={`hud-toggle-btn ${hudView === 'chart' ? 'active' : ''}`}
+                  onClick={() => setHudView('chart')}
+                >
+                  Chart
+                </button>
+                <button
+                  className={`hud-toggle-btn ${hudView === 'map' ? 'active' : ''}`}
+                  onClick={() => setHudView('map')}
+                >
+                  Map
+                </button>
+              </div>
+            }
+            source="HUD User / US Census"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            {hudView === 'chart' ? (
+              <SafeECharts option={hudOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Rental Affordability by City', source: 'HUD User / US Census', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+            ) : (
+              <RentalAffordabilityMap data={hudData} />
+            )}
           </BentoCard>
         )}
 
