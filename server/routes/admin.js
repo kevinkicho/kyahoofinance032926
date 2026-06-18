@@ -2,6 +2,21 @@ import { Router } from 'express';
 
 const router = Router();
 
+async function verifyRecaptchaEnterprise(req, expectedAction) {
+  if (process.env.NODE_ENV !== 'production') {
+    return { ok: true, skipped: true, reason: 'dev-mode' };
+  }
+
+  const recaptchaToken = req.get('x-recaptcha-token');
+  if (!recaptchaToken) {
+    return { ok: false, status: 401, error: 'Missing reCAPTCHA token' };
+  }
+
+  // Production verification runs in Firebase Functions. This local server
+  // keeps the same request contract without becoming the security boundary.
+  return { ok: true, skipped: true, reason: `local-server-${expectedAction}` };
+}
+
 const SNAPSHOT_MARKETS = [
   { id: "realEstate", path: "/api/realEstate" },
   { id: "insurance", path: "/api/insurance" },
@@ -42,6 +57,11 @@ router.post('/refresh-all', async (req, res) => {
 
   if (email !== 'kevinkicho@gmail.com') {
     return res.status(403).json({ error: 'Forbidden: Admin access only' });
+  }
+
+  const recaptcha = await verifyRecaptchaEnterprise(req, 'ADMIN_REFRESH');
+  if (!recaptcha.ok) {
+    return res.status(recaptcha.status || 401).json({ error: recaptcha.error || 'reCAPTCHA verification failed' });
   }
 
   console.log('[admin-local] initiating global refresh...');

@@ -9,6 +9,7 @@ import { useMarketData, useDataContext } from './DataContext';
 import { useCurrency } from './CurrencyContext';
 import { captureBentoSnapshot } from '../utils/exportUtils';
 import { apiUrl } from '../lib/api';
+import { getRecaptchaEnterpriseToken } from '../lib/recaptchaEnterprise';
 import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import './Skeleton.css';
 import './responsive.css';
@@ -263,13 +264,16 @@ export default function HubLayout() {
       }
 
       addToast('Admin authenticated. Triggering global refresh crawl...', 'info');
+      const recaptchaToken = await getRecaptchaEnterpriseToken('ADMIN_REFRESH');
 
       // 3. Trigger backend crawl
       const res = await fetch(apiUrl('/api/admin/refresh-all'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'X-Recaptcha-Token': recaptchaToken || '',
+          'X-Recaptcha-Action': 'ADMIN_REFRESH'
         }
       });
 

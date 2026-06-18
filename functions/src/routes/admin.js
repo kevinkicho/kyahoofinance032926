@@ -3,6 +3,11 @@ import admin from 'firebase-admin';
 
 const router = Router();
 
+const RECAPTCHA_PROJECT_ID = 'kfinance032926';
+const RECAPTCHA_SITE_KEY = '6Ldl3yYtAAAAAAmHpuYyoj1qMJyfrvlQFZNjf08f';
+const RECAPTCHA_MIN_SCORE = 0.3;
+const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(['kevinkicho.github.io', 'localhost', '127.0.0.1']);
+
 const SNAPSHOT_MARKETS = [
   { id: "realEstate", path: "/api/realEstate" },
   { id: "insurance", path: "/api/insurance" },
@@ -21,6 +26,80 @@ const SNAPSHOT_MARKETS = [
   { id: "cacheStatus", path: "/api/cache/status" },
   { id: "universeUpdates", path: "/api/universeUpdates" },
 ];
+
+async function getGoogleAccessToken() {
+  const res = await fetch(
+    'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token',
+    { headers: { 'Metadata-Flavor': 'Google' } }
+  );
+  if (!res.ok) throw new Error(`metadata token HTTP ${res.status}`);
+  const data = await res.json();
+  if (!data?.access_token) throw new Error('metadata token missing access_token');
+  return data.access_token;
+}
+
+async function verifyRecaptchaEnterprise(req, expectedAction) {
+  if (process.env.NODE_ENV !== 'production') {
+    return { ok: true, skipped: true, reason: 'dev-mode' };
+  }
+
+  const recaptchaToken = req.get('x-recaptcha-token');
+  if (!recaptchaToken) {
+    return { ok: false, status: 401, error: 'Missing reCAPTCHA token' };
+  }
+
+  try {
+    const accessToken = await getGoogleAccessToken();
+    const response = await fetch(
+      `https://recaptchaenterprise.googleapis.com/v1/projects/${RECAPTCHA_PROJECT_ID}/assessments`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event: {
+            token: recaptchaToken,
+            expectedAction,
+            siteKey: RECAPTCHA_SITE_KEY,
+          },
+        }),
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      console.error('[admin-functions] reCAPTCHA assessment failed:', response.status, text.slice(0, 300));
+      return { ok: false, status: 502, error: 'reCAPTCHA assessment failed' };
+    }
+
+    const assessment = await response.json();
+    const props = assessment.tokenProperties || {};
+    const risk = assessment.riskAnalysis || {};
+    const score = typeof risk.score === 'number' ? risk.score : 0;
+    const hostname = props.hostname || '';
+
+    if (!props.valid) {
+      return { ok: false, status: 401, error: `Invalid reCAPTCHA token: ${props.invalidReason || 'unknown'}` };
+    }
+    if (props.action !== expectedAction) {
+      return { ok: false, status: 401, error: 'Invalid reCAPTCHA action' };
+    }
+    if (hostname && !RECAPTCHA_ALLOWED_HOSTNAMES.has(hostname)) {
+      return { ok: false, status: 401, error: 'Invalid reCAPTCHA hostname' };
+    }
+    if (score < RECAPTCHA_MIN_SCORE) {
+      return { ok: false, status: 403, error: 'reCAPTCHA score too low' };
+    }
+
+    return { ok: true, score, hostname, reasons: risk.reasons || [] };
+  } catch (e) {
+    console.error('[admin-functions] reCAPTCHA verification error:', e.message || e);
+    return { ok: false, status: 502, error: 'reCAPTCHA verification unavailable' };
+  }
+}
 
 router.post('/refresh-all', async (req, res) => {
   const authHeader = req.headers.authorization;
@@ -46,6 +125,11 @@ router.post('/refresh-all', async (req, res) => {
 
   if (email !== 'kevinkicho@gmail.com') {
     return res.status(403).json({ error: 'Forbidden: Admin access only' });
+  }
+
+  const recaptcha = await verifyRecaptchaEnterprise(req, 'ADMIN_REFRESH');
+  if (!recaptcha.ok) {
+    return res.status(recaptcha.status || 401).json({ error: recaptcha.error || 'reCAPTCHA verification failed' });
   }
 
   console.log('[admin-functions] initiating global refresh & RTDB write...');
