@@ -740,6 +740,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   }, []);
 
   const refetchAll = useCallback(() => { fetchAllMarkets(true); }, [fetchAllMarkets]); // explicit refresh → force live
+  const refetchLatestSnapshots = useCallback(() => { fetchAllMarkets(false); }, [fetchAllMarkets]); // prefer RTDB snapshots, live only for gaps
 
   const refetchSingle = useCallback(async (marketId, params = null) => {
     if (FEDERATED_MARKETS[marketId]) {
@@ -859,6 +860,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     globalLoading, 
     getMarket, 
     refetchAll, 
+    refetchLatestSnapshots,
     refetchSingle, 
     auditFreshness, 
     loadHistorical, 
@@ -867,7 +869,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     setHistoricalDate,
     isHistorical: !!historicalDate,
     asOfDate: historicalDate
-  }), [markets, globalLoading, getMarket, refetchAll, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates, historicalDate, setHistoricalDate]);
+  }), [markets, globalLoading, getMarket, refetchAll, refetchLatestSnapshots, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates, historicalDate, setHistoricalDate]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

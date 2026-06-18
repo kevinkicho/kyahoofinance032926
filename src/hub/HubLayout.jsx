@@ -8,6 +8,7 @@ import { DataProvider } from './DataProvider';
 import { useMarketData, useDataContext } from './DataContext';
 import { useCurrency } from './CurrencyContext';
 import { captureBentoSnapshot } from '../utils/exportUtils';
+import { apiUrl } from '../lib/api';
 import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import './Skeleton.css';
 import './responsive.css';
@@ -261,10 +262,10 @@ export default function HubLayout() {
         return;
       }
 
-      addToast('Admin authenticated. Triggering global refresh crawl (this may take up to 30s)...', 'info');
+      addToast('Admin authenticated. Triggering global refresh crawl...', 'info');
 
       // 3. Trigger backend crawl
-      const res = await fetch('/api/admin/refresh-all', {
+      const res = await fetch(apiUrl('/api/admin/refresh-all'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -281,7 +282,10 @@ export default function HubLayout() {
       console.log('[HubLayout] Global refresh completed:', resData);
 
       // 4. Reload data in frontend
-      if (dataCtx && dataCtx.refetchAll) {
+      if (dataCtx && dataCtx.refetchLatestSnapshots) {
+        dataCtx.refetchLatestSnapshots();
+        addToast('Global refresh completed! Reloading latest snapshots...', 'success');
+      } else if (dataCtx && dataCtx.refetchAll) {
         dataCtx.refetchAll();
         addToast('Global refresh completed! Reloading all markets...', 'success');
       } else {
