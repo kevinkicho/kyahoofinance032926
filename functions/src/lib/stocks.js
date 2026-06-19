@@ -38,6 +38,7 @@ export const REGION_SUFFIX = {
   'OSL (Norway)':            'OL',
   'Euronext (Europe)':       'PA',
   'Tadawul (UAE/Gulf)':      'AE',
+  'Crypto':                  '',
 };
 
 // Nordic has mixed suffixes — try all three for fallback

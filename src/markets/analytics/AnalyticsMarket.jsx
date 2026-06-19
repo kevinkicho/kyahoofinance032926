@@ -25,6 +25,17 @@ async function loadAnalyticsFromRTDB(date = null) {
   }
 }
 
+async function loadDiagnosticsFromRTDB() {
+  try {
+    const res = await fetch('https://kfinance032926-default-rtdb.firebaseio.com/apiHealthReport/latest.json');
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+
 const FRED_API_BASE = apiUrl('/api/fred/observations');
 
 import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
@@ -555,6 +566,7 @@ const LAYOUT = {
     { i: 'endpoints', x: 6, y: 5, w: 3, h: 5 },
     { i: 'freshness', x: 9, y: 10, w: 3, h: 5 },
     { i: 'error-log', x: 0, y: 8, w: 6, h: 3 },
+    { i: 'diagnostics', x: 0, y: 11, w: 6, h: 5 },
     { i: 'mem-cache', x: 6, y: 10, w: 3, h: 3 },
     { i: 'cache-files', x: 9, y: 15, w: 3, h: 3 },
     { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
@@ -592,6 +604,97 @@ function DetailRow({ label, value, mono }) {
     <div className="ana-detail-row">
       <span className="ana-detail-label">{label}</span>
       <span className={mono ? 'ana-mono' : 'ana-detail-value'}>{value || '—'}</span>
+    </div>
+  );
+}
+
+function ApiDiagnosticsCard() {
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const fetchReport = useCallback(async () => {
+    setLoading(true);
+    const r = await loadDiagnosticsFromRTDB();
+    if (r) {
+      setReport(r);
+      setErr(null);
+    } else {
+      try {
+        const live = await api.get('/api/admin/diagnose');
+        setReport(live);
+        setErr(null);
+      } catch (e) {
+        setErr('No diagnostics report available in RTDB or API');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchReport();
+  }, [fetchReport]);
+
+  const runDiagnostics = async () => {
+    setRunning(true);
+    setErr(null);
+    try {
+      const live = await api.get('/api/admin/diagnose');
+      setReport(live);
+    } catch (e) {
+      setErr(`Failed to run diagnostics: ${e.message}`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  if (loading) return <div className="ana-loading">Loading diagnostics report...</div>;
+
+  return (
+    <div className="ana-diagnostics">
+      {err && <div className="ana-err-detail" style={{ margin: '8px 0', color: '#ef4444' }}>{err}</div>}
+      
+      {report && (
+        <>
+          <div className="ana-diagnostics-summary">
+            <span>Overall Status: </span>
+            <span className={`ana-status-badge ${report.overallStatus}`}>
+              {report.overallStatus}
+            </span>
+            <span className="ana-diagnostics-timestamp">
+              {report.timestamp ? new Date(report.timestamp).toLocaleTimeString() : 'never'}
+            </span>
+            <button 
+              className="ana-refresh-btn" 
+              onClick={runDiagnostics} 
+              disabled={running}
+              style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: '10px' }}
+            >
+              {running ? 'Running Probes...' : 'Run Live Diagnostics'}
+            </button>
+          </div>
+
+          <div className="ana-diagnostics-grid">
+            {Object.entries(report.markets || {}).map(([market, mData]) => (
+              <div key={market} className="ana-diag-card">
+                <div className="ana-diag-header">
+                  <span className="ana-diag-name">{market}</span>
+                  <span className={`ana-diag-status ${mData.status}`}>
+                    {mData.status}
+                  </span>
+                </div>
+                {mData.error && (
+                  <div className="ana-diag-error" title={mData.error}>{mData.error}</div>
+                )}
+                <div className="ana-diag-footer">
+                  <span>Latency: {mData.duration != null ? `${mData.duration}ms` : '—'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -705,6 +808,11 @@ export default function AnalyticsMarket() {
           {/* Provenance Audit */}
           <BentoCard key="provenance" title="Provenance Audit" subtitle="Cross-reference _sources with FRED" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
             <ProvenanceAudit />
+          </BentoCard>
+
+          {/* API Diagnostics */}
+          <BentoCard key="diagnostics" title="API Health Diagnostics" subtitle="Probe structural integrity and latency" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <ApiDiagnosticsCard />
           </BentoCard>
 
           {/* Server Info */}

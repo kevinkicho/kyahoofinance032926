@@ -97,4 +97,113 @@ router.post('/refresh-all', async (req, res) => {
   res.json({ success: true, timestamp: new Date().toISOString(), reports });
 });
 
+// GET /api/admin/diagnose — run active diagnostics on all endpoints
+router.get('/diagnose', async (req, res) => {
+  const protocol = req.protocol;
+  const host = req.get('host');
+  const base = `${protocol}://${host}`;
+  const now = new Date().toISOString();
+
+  // Import validation helpers lazily to keep routes clean
+  const { validateMarketData } = await import('../lib/validation.js');
+
+  const targets = [
+    { id: "realEstate", path: "/api/realEstate" },
+    { id: "insurance", path: "/api/insurance" },
+    { id: "globalMacro", path: "/api/globalMacro" },
+    { id: "commodities", path: "/api/commodities/v2" },
+    { id: "bonds", path: "/api/bonds" },
+    { id: "fx", path: "/api/fx" },
+    { id: "derivatives", path: "/api/derivatives" },
+    { id: "crypto", path: "/api/crypto" },
+    { id: "credit", path: "/api/credit" },
+    { id: "sentiment", path: "/api/sentiment" },
+    { id: "calendar", path: "/api/calendar" },
+    { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
+    { id: "usda", path: "/api/usda" }
+  ];
+
+  const results = {};
+  let healthyCount = 0;
+  let warningCount = 0;
+  let unhealthyCount = 0;
+
+  // Run validation on all endpoints
+  for (const { id, path } of targets) {
+    const start = Date.now();
+    try {
+      const url = `${base}${path}`;
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'diagnostics-prober' },
+        signal: AbortSignal.timeout(15000)
+      });
+      const duration = Date.now() - start;
+
+      if (!response.ok) {
+        results[id] = {
+          status: 'unhealthy',
+          error: `HTTP status ${response.status}`,
+          duration,
+          lastChecked: now
+        };
+        unhealthyCount++;
+        continue;
+      }
+
+      const data = await response.json();
+      const validation = validateMarketData(id, data);
+
+      if (validation.ok) {
+        results[id] = {
+          status: 'healthy',
+          duration,
+          lastChecked: now
+        };
+        healthyCount++;
+      } else {
+        // Special warning check for USDA when api key is not configured
+        if (id === 'usda' && data && data.error && data.error.includes('USDA_NASS_API_KEY not configured')) {
+          results[id] = {
+            status: 'warning',
+            error: 'USDA_NASS_API_KEY not configured (falls back to stub)',
+            duration,
+            lastChecked: now
+          };
+          warningCount++;
+        } else {
+          results[id] = {
+            status: 'unhealthy',
+            error: validation.error || 'Failed structural guard',
+            duration,
+            lastChecked: now
+          };
+          unhealthyCount++;
+        }
+      }
+    } catch (e) {
+      results[id] = {
+        status: 'unhealthy',
+        error: e.message || 'Fetch failed',
+        duration: Date.now() - start,
+        lastChecked: now
+      };
+      unhealthyCount++;
+    }
+  }
+
+  const report = {
+    timestamp: now,
+    overallStatus: unhealthyCount > 0 ? 'unhealthy' : (warningCount > 0 ? 'warning' : 'healthy'),
+    summary: {
+      total: targets.length,
+      healthy: healthyCount,
+      warning: warningCount,
+      unhealthy: unhealthyCount
+    },
+    markets: results
+  };
+
+  res.json(report);
+});
+
 export default router;

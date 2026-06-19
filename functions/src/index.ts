@@ -209,12 +209,123 @@ export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
     })
   );
 
+  // Run daily diagnostics to check health and save report to RTDB
+  try {
+    await runDailyDiagnostics(db, dateKey, now);
+  } catch (diagErr) {
+    console.error("[scheduled] runDailyDiagnostics failed:", diagErr);
+  }
+
   // Optional light retention — prunes history older than keepDays.
   // Safe to leave enabled; only runs after successful daily write.
   await cleanupOldHistory(db, dateKey, 365);
 
   console.log("[scheduled] refreshMarketSnapshots complete");
 });
+
+// Run structural checks on all endpoints and save report to RTDB
+async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
+  console.log(`[scheduled] running daily diagnostics at ${now}`);
+  const { validateMarketData } = await import("./lib/validation.js");
+
+  const targets = [
+    { id: "realEstate", path: "/api/realEstate" },
+    { id: "insurance", path: "/api/insurance" },
+    { id: "globalMacro", path: "/api/globalMacro" },
+    { id: "commodities", path: "/api/commodities/v2" },
+    { id: "bonds", path: "/api/bonds" },
+    { id: "fx", path: "/api/fx" },
+    { id: "derivatives", path: "/api/derivatives" },
+    { id: "crypto", path: "/api/crypto" },
+    { id: "credit", path: "/api/credit" },
+    { id: "sentiment", path: "/api/sentiment" },
+    { id: "calendar", path: "/api/calendar" },
+    { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
+    { id: "usda", path: "/api/usda" }
+  ];
+
+  const results: Record<string, any> = {};
+  let healthyCount = 0;
+  let warningCount = 0;
+  let unhealthyCount = 0;
+
+  for (const { id, path } of targets) {
+    const start = Date.now();
+    try {
+      const url = `${LIVE_FUNCTIONS_BASE}${path}`;
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'scheduled-diagnostics-refresher' },
+        signal: AbortSignal.timeout(20000)
+      });
+      const duration = Date.now() - start;
+
+      if (!response.ok) {
+        results[id] = {
+          status: 'unhealthy',
+          error: `HTTP status ${response.status}`,
+          duration,
+          lastChecked: now
+        };
+        unhealthyCount++;
+        continue;
+      }
+
+      const data = await response.json();
+      const validation = validateMarketData(id, data);
+
+      if (validation.ok) {
+        results[id] = {
+          status: 'healthy',
+          duration,
+          lastChecked: now
+        };
+        healthyCount++;
+      } else {
+        if (id === 'usda' && data && data.error && data.error.includes('USDA_NASS_API_KEY not configured')) {
+          results[id] = {
+            status: 'warning',
+            error: 'USDA_NASS_API_KEY not configured (falls back to stub)',
+            duration,
+            lastChecked: now
+          };
+          warningCount++;
+        } else {
+          results[id] = {
+            status: 'unhealthy',
+            error: validation.error || 'Failed structural guard',
+            duration,
+            lastChecked: now
+          };
+          unhealthyCount++;
+        }
+      }
+    } catch (e: any) {
+      results[id] = {
+        status: 'unhealthy',
+        error: e?.message || 'Fetch failed',
+        duration: Date.now() - start,
+        lastChecked: now
+      };
+      unhealthyCount++;
+    }
+  }
+
+  const report = {
+    timestamp: now,
+    overallStatus: unhealthyCount > 0 ? 'unhealthy' : (warningCount > 0 ? 'warning' : 'healthy'),
+    summary: {
+      total: targets.length,
+      healthy: healthyCount,
+      warning: warningCount,
+      unhealthy: unhealthyCount
+    },
+    markets: results
+  };
+
+  await db.ref(`apiHealthReport/history/${dateKey}`).set(report);
+  await db.ref(`apiHealthReport/latest`).set(report);
+  console.log(`[scheduled] wrote diagnostics report to RTDB (overallStatus=${report.overallStatus})`);
+}
 
 // Optional helper for retention (keeps DB from growing unbounded).
 // Call from the scheduled job if you want to prune history older than N days.
