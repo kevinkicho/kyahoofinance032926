@@ -15,6 +15,36 @@ import {
 } from '../../census/components/CensusDashboard';
 import './RealEstateDashboard.css';
 
+function latestNumber(value, keys = ['values']) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (!value || typeof value !== 'object') return null;
+  for (const key of keys) {
+    const series = value[key];
+    if (Array.isArray(series)) {
+      for (let i = series.length - 1; i >= 0; i -= 1) {
+        if (typeof series[i] === 'number' && Number.isFinite(series[i])) return series[i];
+      }
+    }
+  }
+  return null;
+}
+
+function getCommoditySnapshot(data) {
+  if (!data || typeof data !== 'object') return null;
+  const futures = data.yahoo?.futures || {};
+  const goldPrice = data.gold?.price ?? data.fred?.gold_am?.value ?? futures['GC=F']?.price ?? null;
+  const wtiPrice = data.wti?.price ?? data.eia?.wti_price?.value ?? data.fred?.wti?.value ?? futures['CL=F']?.price ?? null;
+  const natGasPrice = data.natGas?.price ?? data.eia?.henry_hub?.value ?? data.fred?.natgas?.value ?? futures['NG=F']?.price ?? null;
+  const goldOilRatio = typeof data.goldOilRatio === 'number'
+    ? data.goldOilRatio
+    : goldPrice != null && wtiPrice
+      ? goldPrice / wtiPrice
+      : null;
+
+  if (goldPrice == null && wtiPrice == null && natGasPrice == null && goldOilRatio == null) return null;
+  return { goldPrice, wtiPrice, natGasPrice, goldOilRatio };
+}
+
 function RentalAffordabilityMap({ data }) {
   const containerRef = React.useRef(null);
   const mapRef = React.useRef(null);
@@ -298,6 +328,10 @@ function RealEstateDashboard({
     const v = caseShillerData?.national?.values || caseShillerData?.values;
     return v?.[v.length - 1];
   }, [caseShillerData]);
+  const medianHomePriceLatest = latestNumber(medianHomePrice) ?? affordabilityData?.current?.medianPrice ?? null;
+  const housingStartsLatest = latestNumber(housingStarts, ['starts', 'values']) ?? latestNumber(supplyData?.housingStarts);
+  const existingHomeSalesLatest = latestNumber(existingHomeSales);
+  const commoditySnapshot = getCommoditySnapshot(commoditiesData);
 
   // Conditionally include optional panels
   const layoutItems = [{ i: 'metrics', x: 0, y: 0, w: 3, h: 5 }];
@@ -351,12 +385,7 @@ function RealEstateDashboard({
                   <div className="re-metric-value" style={{ color: '#60a5fa' }}><MetricValue value={shillerLatest} seriesKey="caseShiller" timestamp={lastUpdated} format={v => v.toFixed(1)} /></div>
                 </div>
                 {(() => {
-                  // Server returns medianHomePrice as either a scalar
-                  // (legacy) or { dates, values } from the affordability
-                  // history fallback path. Pick the latest numeric value.
-                  const v = typeof medianHomePrice === 'number'
-                    ? medianHomePrice
-                    : medianHomePrice?.values?.[medianHomePrice.values.length - 1];
+                  const v = medianHomePriceLatest;
                   if (typeof v !== 'number') return null;
                   return (
                     <div className="re-metric-card">
@@ -396,11 +425,7 @@ function RealEstateDashboard({
               <div className="re-sidebar-title">Activity</div>
               <div className="re-metric-card">
                 {(() => {
-                  // Server: housingStarts = { dates, starts, permits } from supplyData.
-                  // Pull the latest scalar; bail if the panel got nothing.
-                  const v = typeof housingStarts === 'number'
-                    ? housingStarts
-                    : housingStarts?.starts?.[housingStarts.starts.length - 1] ?? housingStarts?.values?.[housingStarts.values?.length - 1];
+                  const v = housingStartsLatest;
                   if (typeof v !== 'number') return null;
                   return (
                     <div className="re-metric-row">
@@ -410,10 +435,7 @@ function RealEstateDashboard({
                   );
                 })()}
                 {(() => {
-                  // Server: existingHomeSales = { dates, values } from FRED EXHOSLUSM495S.
-                  const v = typeof existingHomeSales === 'number'
-                    ? existingHomeSales
-                    : existingHomeSales?.values?.[existingHomeSales.values.length - 1];
+                  const v = existingHomeSalesLatest;
                   if (typeof v !== 'number') return null;
                   return (
                     <div className="re-metric-row">
@@ -469,32 +491,32 @@ function RealEstateDashboard({
                </div>
              )}
 
-             {commoditiesData && (
+             {commoditySnapshot && (
                <div className="re-sidebar-section">
                  <div className="re-sidebar-title">Commodities</div>
                  <div className="re-metric-card">
-                   {commoditiesData.gold && (
+                   {commoditySnapshot.goldPrice != null && (
                      <div className="re-metric-row">
                        <span className="re-metric-name">Gold</span>
-                       <span className="re-metric-num"><MetricValue value={commoditiesData.gold.price} seriesKey="goldPrice" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /></span>
+                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.goldPrice} seriesKey="goldPrice" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /></span>
                      </div>
                    )}
-                   {commoditiesData.wti && (
+                   {commoditySnapshot.wtiPrice != null && (
                      <div className="re-metric-row">
                        <span className="re-metric-name">WTI Oil</span>
-                       <span className="re-metric-num"><MetricValue value={commoditiesData.wti.price} seriesKey="wtiPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(2)}`} /></span>
+                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.wtiPrice} seriesKey="wtiPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(2)}`} /></span>
                      </div>
                    )}
-                   {commoditiesData.natGas && (
+                   {commoditySnapshot.natGasPrice != null && (
                      <div className="re-metric-row">
                        <span className="re-metric-name">Nat Gas</span>
-                       <span className="re-metric-num"><MetricValue value={commoditiesData.natGas.price} seriesKey="natGasPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(3)}`} /></span>
+                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.natGasPrice} seriesKey="natGasPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(3)}`} /></span>
                      </div>
                    )}
-                   {typeof commoditiesData.goldOilRatio === 'number' && (
+                   {typeof commoditySnapshot.goldOilRatio === 'number' && (
                      <div className="re-metric-row">
                        <span className="re-metric-name">Gold/Oil Ratio</span>
-                       <span className="re-metric-num"><MetricValue value={commoditiesData.goldOilRatio} seriesKey="goldOilRatio" timestamp={lastUpdated} format={v => v.toFixed(2)} /></span>
+                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.goldOilRatio} seriesKey="goldOilRatio" timestamp={lastUpdated} format={v => v.toFixed(2)} /></span>
                      </div>
                    )}
                  </div>

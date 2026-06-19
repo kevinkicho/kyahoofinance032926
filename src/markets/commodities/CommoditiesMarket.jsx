@@ -140,6 +140,14 @@ function mapV2ToLegacy(d) {
     if (wtiH) fc.wtiHistory = wtiH;
     const goldH = normalizeFredSeries(d.fred.gold_am);
     if (goldH) fc.goldHistory = goldH;
+    const goldFuture = d.yahoo?.futures?.['GC=F'];
+    if (!goldH && goldFuture?.price != null) {
+      fc.goldLatest = {
+        price: goldFuture.price,
+        source: 'Yahoo Finance',
+        timestamp: goldFuture._lastUpdated,
+      };
+    }
     const silverH = normalizeFredSeries(d.fred.silver);
     if (silverH) fc.silverHistory = silverH;
     const copperH = normalizeFredSeries(d.fred.copper);
@@ -216,9 +224,10 @@ function mapV2ToLegacy(d) {
       result.sectorHeatmapData = { commodities: flat, columns: ['d1', 'w1', 'm1'] };
     }
   }
-  if (d.fred?.gold_am?.value) {
-    const wtiPrice = d.eia?.wti_price?.value || d.fred?.wti?.value;
-    if (wtiPrice) result.goldOilRatio = { ratio: Math.round((d.fred.gold_am.value / wtiPrice) * 100) / 100 };
+  const goldPrice = d.fred?.gold_am?.value || d.yahoo?.futures?.['GC=F']?.price;
+  if (goldPrice) {
+    const wtiPrice = d.eia?.wti_price?.value || d.fred?.wti?.value || d.yahoo?.futures?.['CL=F']?.price;
+    if (wtiPrice) result.goldOilRatio = { ratio: Math.round((goldPrice / wtiPrice) * 100) / 100 };
   }
   return result;
 }

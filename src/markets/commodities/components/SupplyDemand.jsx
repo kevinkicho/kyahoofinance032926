@@ -69,7 +69,12 @@ function buildGoldOption(dates, values, colors) {
       backgroundColor: colors.tooltipBg,
       borderColor: colors.tooltipBorder,
       textStyle: { color: colors.text, fontSize: 11 },
-      formatter: params => `${params[0].axisValue}<br/>$${params[0].value.toFixed(2)}/oz`,
+      formatter: params => {
+        const point = Array.isArray(params) ? params[0] : null;
+        const value = Number(point?.value);
+        const formatted = Number.isFinite(value) ? `$${value.toFixed(2)}/oz` : 'N/A';
+        return `${point?.axisValue || ''}<br/>${formatted}`;
+      },
     },
     grid: { top: 10, right: 8, bottom: 28, left: 52, containLabel: false },
     xAxis: {
@@ -149,6 +154,10 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
   });
 
   const goldH = fredCommodities?.goldHistory;
+  const goldLatest = goldH?.values?.length
+    ? goldH.values[goldH.values.length - 1]
+    : fredCommodities?.goldLatest?.price ?? null;
+  const goldSource = fredCommodities?.goldLatest?.source || 'FRED';
   const goldOption = goldH?.dates?.length >= 10 ? buildGoldOption(goldH.dates, goldH.values, colors) : null;
 
   return (
@@ -184,9 +193,9 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Gold (FRED)</span>
           <span className="com-kpi-value" style={{ color: '#f59e0b' }}>
-            {goldH?.values?.length ? <MetricValue value={goldH.values[goldH.values.length - 1]} seriesKey="goldFRED" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /> : '—'}
+            {goldLatest != null ? <MetricValue value={goldLatest} seriesKey="goldFRED" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /> : '—'}
           </span>
-          <span className="com-kpi-sub">London Fix $/oz</span>
+          <span className="com-kpi-sub">{goldSource === 'Yahoo Finance' ? 'Gold futures $/oz' : 'London Fix $/oz'}</span>
         </div>
       </div>
 
@@ -251,7 +260,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
           <div className="com-chart-panel">
             <div className="com-chart-title">Gold Price</div>
             <div className="com-mini-chart" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textDim }}>
-              No FRED data available
+              {goldLatest != null ? `${goldSource} latest: $${goldLatest.toLocaleString()}` : 'No gold data available'}
             </div>
           </div>
         )}
@@ -269,7 +278,7 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
         </div>
       </div>
 
-      <div className="com-panel-footer">Source: EIA API v2 · FRED GOLDAMGBD228NLBM · Crude stocks released Wednesdays · Nat gas released Thursdays</div>
+      <div className="com-panel-footer">Source: EIA API v2 · FRED / Yahoo Finance gold · Crude stocks released Wednesdays · Nat gas released Thursdays</div>
     </div>
   );
 }

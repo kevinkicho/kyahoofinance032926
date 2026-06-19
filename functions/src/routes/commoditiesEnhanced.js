@@ -38,7 +38,7 @@ const EIA_SERIES = {
   natgas_storage: { series: 'NG.NW2_EPG0_SWO_R48_BCF.W', name: 'Natural Gas Storage', unit: 'Bcf' },
 
   // Weekly Production
-  crude_production: { series: 'PET.WCRFPUS1.W', name: 'Field Production of Crude Oil', unit: 'Thousand Barrels/Day' },
+  crude_production: { series: 'PET.WCRFPUS2.W', name: 'Field Production of Crude Oil', unit: 'Thousand Barrels/Day' },
   refinery_input: { series: 'PET.WCRRIUS2.W', name: 'Refinery Net Input', unit: 'Thousand Barrels/Day' },
 
   // Refinery Utilization
@@ -263,14 +263,15 @@ function formatTimestamp(isoString) {
 
 // Main commodities endpoint
 router.get('/', async (req, res) => {
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
-  const EIA_API_KEY = process.env.EIA_API_KEY || '';
+  const refresh = req.query.refresh === 'true';
+  const FRED_API_KEY = (process.env.FRED_API_KEY || '').trim();
+  const EIA_API_KEY = (process.env.EIA_API_KEY || '').trim();
   const cache = req.app.locals.cache;
   const cacheKey = 'commodities_enhanced';
   const today = todayStr();
 
   // Check cache
-  const daily = readDailyCache('commodities_enhanced');
+  const daily = refresh ? null : readDailyCache('commodities_enhanced');
   if (daily) {
     return res.json({
       ...daily,
@@ -281,7 +282,7 @@ router.get('/', async (req, res) => {
     });
   }
 
-  const cached = cache.get(cacheKey);
+  const cached = refresh ? null : cache.get(cacheKey);
   if (cached) {
     return res.json({
       ...cached,
