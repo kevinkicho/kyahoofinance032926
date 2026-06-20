@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { yf, chunkArray } from '../lib/yahoo.js';
-import { mapToYahooTicker } from '../lib/stocks.js';
+import { getYahooTicker, mapToYahooTicker } from '../lib/stocks.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { stockUniverseData } from '../data/stockUniverse.js';
 
@@ -80,13 +80,16 @@ function getCanonicalUniverse(perMarketLimit, totalLimit = MAX_TOTAL_LIMIT) {
     .slice(0, totalLimit);
 }
 
-async function fetchQuoteMap(tickers) {
+async function fetchQuoteMap(items) {
   const out = {};
+  const tickers = items.map(item => (typeof item === 'string' ? item : item.ticker));
   const missing = new Set(tickers);
   const yahooToOriginal = {};
-  const yahooTickers = tickers.map(t => {
-    const y = mapToYahooTicker(t);
-    yahooToOriginal[y] = t;
+  const yahooTickers = items.map(item => {
+    const ticker = typeof item === 'string' ? item : item.ticker;
+    const region = typeof item === 'string' ? null : item.region;
+    const y = region ? getYahooTicker(ticker, region) : mapToYahooTicker(ticker);
+    yahooToOriginal[y] = ticker;
     return y;
   });
 
@@ -124,7 +127,7 @@ router.get('/', async (req, res) => {
     const universe = getCanonicalUniverse(perMarketLimit, totalLimit);
     const equityTickers = universe.map(s => s.ticker);
     const [{ quotes, missing }, { quotes: indices, missing: missingIndices }] = await Promise.all([
-      fetchQuoteMap(equityTickers),
+      fetchQuoteMap(universe),
       fetchQuoteMap(INDEX_TICKERS),
     ]);
 
@@ -158,6 +161,10 @@ router.get('/', async (req, res) => {
         required,
         received,
         missing,
+        byRegion: universe.reduce((acc, item) => {
+          if (quotes[item.ticker]) acc[item.region] = (acc[item.region] || 0) + 1;
+          return acc;
+        }, {}),
         indicesRequired: INDEX_TICKERS.length,
         indicesReceived: indexReceived,
         missingIndices,
