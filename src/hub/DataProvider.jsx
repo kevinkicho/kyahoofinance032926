@@ -143,7 +143,7 @@ async function loadFromRTDB(marketId, date = null) {
         data: payload.data,
         fetchedAt: payload.fetchedAt || null,
         source: 'rtdb',
-        isLive: true, // treat RTDB snapshot as "current" for UI purposes
+        isLive: !date, // dated RTDB snapshots are historical, /latest is current
       };
     }
     return null;
@@ -541,8 +541,10 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   const mountedRef = useRef(true);
   const fetchingRef = useRef(false);
   const marketsRef = useRef(markets);
+  const historicalDateRef = useRef(historicalDate);
 
   useEffect(() => { marketsRef.current = markets; }, [markets]);
+  useEffect(() => { historicalDateRef.current = historicalDate; }, [historicalDate]);
 
   const fetchSingleMarket = useCallback(async (marketId, params = null) => {
     let url = MARKET_ENDPOINTS[marketId];
@@ -585,7 +587,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     // This makes the DB grow over time while still giving fast "current" data.
     // On normal loads we prefer the snapshot for slow/expensive endpoints (realEstate etc.)
     // to avoid 504s and unnecessary Cloud Run invocations from the browser.
-    const effectiveDate = historicalDate; // if set, load that day's snapshot instead of latest
+    const effectiveDate = historicalDateRef.current; // if set, load that day's snapshot instead of latest
     const rtdbSeeds = await Promise.all(
       ids.map(async (id) => {
         const seed = await loadFromRTDB(id, effectiveDate);
@@ -607,7 +609,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     setMarkets(prev => {
       const next = { ...prev };
       for (const item of rtdbSeeds) {
-        if (item && MARKET_ENDPOINTS[item.id]) {
+        if (item && MARKET_ENDPOINTS[item.id] && seededIds.has(item.id)) {
           const { seed } = item;
           const seedLog = {
             time: seed.fetchedAt || tsNow(),
@@ -623,7 +625,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             lastUpdated: seed.fetchedAt || next[item.id]?.lastUpdated,
             fetchedOn: seed.fetchedAt || next[item.id]?.fetchedOn,
             isLive: seed.isLive ?? next[item.id]?.isLive,
-            isCurrent: true,
+            isCurrent: !effectiveDate,
             isHistorical: !!effectiveDate,
             asOfDate: effectiveDate || null,
             error: null,
@@ -640,6 +642,23 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     if (effectiveDate && !forceLive) {
       // Historical mode: use the seeded snapshots, skip live network wave to avoid unnecessary calls.
       dlog(`[DataProvider] Historical mode for ${effectiveDate} — using RTDB snapshots only.`);
+      setMarkets(prev => {
+        const next = { ...prev };
+        for (const id of ids) {
+          if (next[id]) {
+            const hasHistoricalSeed = seededIds.has(id);
+            next[id] = {
+              ...next[id],
+              data: hasHistoricalSeed ? next[id].data : null,
+              isLoading: false,
+              isHistorical: true,
+              asOfDate: effectiveDate,
+              error: hasHistoricalSeed ? null : `No historical snapshot for ${effectiveDate}`,
+            };
+          }
+        }
+        return next;
+      });
       setGlobalLoading(false);
       fetchingRef.current = false;
       return;
@@ -771,17 +790,21 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   // hydrates first, but the fresh wave kicks off right after.
   // Normal initial load prefers RTDB snapshots for slow markets.
   const didInitialFetchRef = useRef(false);
+  const didObserveHistoricalDateRef = useRef(false);
   useEffect(() => {
     if (didInitialFetchRef.current) return;
     didInitialFetchRef.current = true;
     fetchAllMarkets(false); // snapshot-preferring
   }, [fetchAllMarkets]);
 
-  // When historicalDate changes, re-seed from that day's RTDB snapshots (no live).
+  // When historicalDate changes, re-seed from that day's RTDB snapshots.
+  // Clearing it loads the latest snapshots again.
   useEffect(() => {
-    if (historicalDate) {
-      fetchAllMarkets(false);
+    if (!didObserveHistoricalDateRef.current) {
+      didObserveHistoricalDateRef.current = true;
+      return;
     }
+    fetchAllMarkets(false);
   }, [historicalDate, fetchAllMarkets]);
 
   // Manual-refresh button increments refreshKey from outside; this fires
