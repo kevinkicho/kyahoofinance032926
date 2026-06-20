@@ -156,9 +156,17 @@ router.get('/', async (_req, res) => {
       const cpRaw = {};
       cpRateResults.forEach(r => { if (r.status === 'fulfilled') cpRaw[r.value[0]] = r.value[1]; });
       if (cpRaw.financial3m != null || cpRaw.nonfinancial3m != null) {
+        const fin = cpRaw.financial3m    != null ? Math.round(cpRaw.financial3m    * 100) / 100 : null;
+        const non = cpRaw.nonfinancial3m != null ? Math.round(cpRaw.nonfinancial3m * 100) / 100 : null;
+        // .rate = average of whichever series came back (used by KPI strip + Key Metrics panel)
+        const cpAvg = (fin != null && non != null) ? Math.round((fin + non) / 2 * 100) / 100
+                    : (fin ?? non);
         commercialPaper = {
-          financial3m:    cpRaw.financial3m    != null ? Math.round(cpRaw.financial3m    * 100) / 100 : null,
-          nonfinancial3m: cpRaw.nonfinancial3m != null ? Math.round(cpRaw.nonfinancial3m * 100) / 100 : null,
+          financial3m:    fin,
+          nonfinancial3m: non,
+          rate:           cpAvg,
+          volume:         null,
+          history:        { dates: [], values: [] },
         };
       }
 

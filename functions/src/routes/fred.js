@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchJSON } from '../lib/fetch.js';
 
 const router = Router();
 
@@ -30,8 +31,7 @@ router.get('/batch', async (req, res) => {
   const results = await Promise.all(seriesIds.map(async id => {
     try {
       const params = new URLSearchParams({ series_id: id, api_key: FRED_API_KEY, file_type: 'json', sort_order: 'desc', limit: '1' });
-      const r = await fetch(`https://api.stlouisfed.org/fred/series/observations?${params.toString()}`);
-      const d = await r.json();
+      const d = await fetchJSON(`https://api.stlouisfed.org/fred/series/observations?${params.toString()}`);
       return { id, data: d };
     } catch (e) {
       console.warn(`[FRED batch] ${id} failed:`, e.message);
@@ -89,16 +89,7 @@ router.get('/observations', async (req, res) => {
   try {
     trackApiCall('FRED');
     const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    const fredRes = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!fredRes.ok) {
-      const text = await fredRes.text();
-      console.warn(`[FRED proxy] upstream ${fredRes.status}: ${text.slice(0, 200)}`);
-      return res.status(fredRes.status).json({ error: 'FRED upstream error', status: fredRes.status });
-    }
-    const data = await fredRes.json();
+    const data = await fetchJSON(url);
     res.set('X-Data-Sources', JSON.stringify({ fredProxy: true, seriesId: series_id }));
     res.json({ ...data, _sources: { fredProxy: true, seriesId: series_id } });
   } catch (err) {

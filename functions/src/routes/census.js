@@ -18,21 +18,12 @@ const CENSUS_SERIES = {
 };
 
 async function fetchFREDSeries(seriesId, apiKey) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     trackApiCall('FRED (Census)');
     const url = `${FRED_API_BASE}/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=36`;
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!res.ok) {
-      console.warn(`[Census] FRED ${seriesId}: upstream ${res.status}`);
-      return null;
-    }
-    const data = await res.json();
+    const data = await fetchJSON(url);
     return data.observations || [];
   } catch (err) {
-    clearTimeout(timeout);
     console.warn(`[Census] FRED ${seriesId}: ${err.message}`);
     return null;
   }
