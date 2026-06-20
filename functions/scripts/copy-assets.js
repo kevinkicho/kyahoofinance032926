@@ -31,6 +31,7 @@ function copyDir(src, dest) {
 
 copyDir(path.join(srcDir, 'routes'), path.join(destDir, 'routes'));
 copyDir(path.join(srcDir, 'lib'), path.join(destDir, 'lib'));
+copyDir(path.join(__dirname, '..', '..', 'src', 'data'), path.join(destDir, 'data'));
 copyDir(path.join(__dirname, '..', '..', 'server', 'dataSources'), path.join(destDir, 'dataSources'));
 
 console.log('Assets copied to lib/');

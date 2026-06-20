@@ -31,7 +31,7 @@ function loadRoutes() {
   if (routesLoaded) return;
   
   const essentialRoutes = [
-    'stocks', 'macro', 'bonds', 'derivatives', 'realEstate', 'insurance',
+    'stocks', 'equities', 'macro', 'bonds', 'derivatives', 'realEstate', 'insurance',
     'commodities', 'globalMacro', 'equityDeepDive', 'crypto', 'credit',
     'sentiment', 'calendar', 'fx', 'analytics', 'watchlist', 'fred',
     'bls', 'eia', 'census', 'ticker', 'bea', 'censusTrade', 'commoditiesEnhanced',
@@ -165,6 +165,7 @@ function sanitizeForRTDB(value: any): any {
 // Goal: reduce per-client Functions calls (cost), provide historical/debuggable snapshots,
 // and make analytics/rate-limit/cache results durable and queryable (via RTDB or firebase CLI).
 const SNAPSHOT_MARKETS = [
+  { id: "equities", path: "/api/equities" },
   { id: "realEstate", path: "/api/realEstate" },
   { id: "insurance", path: "/api/insurance" },
   { id: "globalMacro", path: "/api/globalMacro" },
@@ -243,6 +244,7 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
   const { validateMarketData } = await import("./lib/validation.js");
 
   const targets = [
+    { id: "equities", path: "/api/equities" },
     { id: "realEstate", path: "/api/realEstate" },
     { id: "insurance", path: "/api/insurance" },
     { id: "globalMacro", path: "/api/globalMacro" },

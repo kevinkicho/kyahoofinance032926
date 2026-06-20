@@ -10,7 +10,7 @@ export const STRUCTURAL_GUARDS: Record<string, (d: any) => boolean> = {
   globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
   credit:         d => d.spreadData?.history?.dates?.length >= 6 && d.commercialPaper?.rate != null,
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
-  equities:       d => Array.isArray(d.stocks) ? d.stocks.length >= 1 : true,
+  equities:       d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
   equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
   calendar:       d => {
     const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 5;

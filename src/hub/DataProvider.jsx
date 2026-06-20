@@ -46,6 +46,7 @@ function tsNow() {
 // the app from mounting. Inline the entry here instead.
 export const MARKET_ENDPOINTS = {
   analytics:         '/api/rate-limits',
+  equities:          '/api/equities',
   bonds:             '/api/bonds',
   fx:                '/api/fx',
   derivatives:       '/api/derivatives',
@@ -54,9 +55,6 @@ export const MARKET_ENDPOINTS = {
   commodities:       '/api/commoditiesEnhanced',
   globalMacro:       '/api/globalMacro',
   watchlist:            '/api/watchlist',
-  // `/api/equities` doesn't exist on the backend — the Equities tab fetches
-  // from `/api/stocks` directly. Removing this entry stops DataProvider
-  // from crashing the wave on a JSON-parse error against the static fallback.
   equitiesDeepDive:    '/api/equityDeepDive',
   institutional:     '/api/institutional',
   crypto:            '/api/crypto',
@@ -345,7 +343,7 @@ export const STRUCTURAL_GUARDS = {
   globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
   credit:         d => d.spreadData?.history?.dates?.length >= 6 && d.commercialPaper?.rate != null,
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
-  equities:      d => Array.isArray(d.stocks) ? d.stocks.length >= 1 : true,
+  equities:      d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
   equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
   calendar:       d => {
     const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 5;

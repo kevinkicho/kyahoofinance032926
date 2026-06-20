@@ -15,7 +15,7 @@ import { stockUniverseData } from '../../data/stockUniverse';
 import { currencySymbols } from '../../utils/constants';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useDataContext } from '../../hub/DataContext';
-import { getSnapshot as getIDBSnapshot, putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
+import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import KeyIndicesStrip from './components/KeyIndicesStrip';
 import PortfolioTracker from './components/PortfolioTracker';
@@ -220,6 +220,23 @@ function quotesFromUniverse(universe) {
   return out;
 }
 
+function compactQuotesFromSnapshot(quotes) {
+  if (!quotes || typeof quotes !== 'object') return null;
+  const out = {};
+  for (const [ticker, q] of Object.entries(quotes)) {
+    if (!q || typeof q !== 'object') continue;
+    const compact = {};
+    if (q.price != null) compact.p = q.price;
+    if (q.change != null) compact.c = q.change;
+    if (q.changePct != null) compact.cp = q.changePct;
+    if (q.marketCap != null) compact.mc = q.marketCap > 1e6 ? q.marketCap / 1e9 : q.marketCap;
+    if (q.weekHigh52 != null) compact.wh = q.weekHigh52;
+    if (q.weekLow52 != null) compact.wl = q.weekLow52;
+    if (Object.keys(compact).length) out[ticker] = compact;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 function applyQuotesToUniverse(universe, quotes) {
   if (!quotes || !Object.keys(quotes).length) return universe;
   return universe.map(region => ({
@@ -298,7 +315,7 @@ function purgeStaleLayoutKeys() {
   }
 }
 
-export default function EquitiesMarket({ currency, setCurrency }) {
+export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   // Wipe legacy layout keys before any RGL render so a stale v3 entry can't
   // sneak into the v4 layout merge as a degenerate 1×1.
   purgeStaleLayoutKeys();
@@ -320,6 +337,8 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   const [historyNotice, setHistoryNotice] = useState(null);
   const dataCtx = (() => { try { return useDataContext(); } catch { return null; } })();
   const globalHistoricalDate = dataCtx?.historicalDate || null;
+  const centralSnapshot = centralData?.data || null;
+  const centralQuotes = useMemo(() => compactQuotesFromSnapshot(centralSnapshot?.quotes), [centralSnapshot]);
 
   const handleSnapshotSelect = useCallback((quotes, date, stamp) => {
     if (!quotes) {
@@ -337,48 +356,30 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-
-    async function loadGlobalHistoryDate(date) {
-      const localEntry = loadDailyMap()[date];
-      if (localEntry?.quotes && Object.keys(localEntry.quotes).length) {
-        if (!alive) return;
-        setSnapshotQuotes(localEntry.quotes);
-        setSnapshotDate(date);
-        setDataTimestamp(localEntry.stamp || `Loaded local snapshot · ${date}`);
-        setTimeTravelActive(true);
-        setHistoryNotice(null);
-        return;
-      }
-
-      const idbEntry = await getIDBSnapshot('equities', date);
-      const idbQuotes = idbEntry?.data?.quotes;
-      if (!alive) return;
-      if (idbQuotes && Object.keys(idbQuotes).length) {
-        setSnapshotQuotes(idbQuotes);
-        setSnapshotDate(date);
-        setDataTimestamp(idbEntry.stamp || `Loaded IndexedDB snapshot · ${date}`);
-        setTimeTravelActive(true);
-        setHistoryNotice(null);
-      } else {
-        setSnapshotQuotes(null);
-        setSnapshotDate(null);
-        setTimeTravelActive(false);
-        setHistoryNotice(`No local Equities quote snapshot for ${date}. Use the Equities refresh button to save today's quotes; older equity snapshots only exist if this browser saved them earlier.`);
-      }
-    }
-
     if (!globalHistoricalDate) {
       setSnapshotQuotes(null);
       setSnapshotDate(null);
       setTimeTravelActive(false);
       setHistoryNotice(null);
-      return () => { alive = false; };
+      if (centralQuotes) {
+        setDataTimestamp(centralData?.fetchedOn || centralSnapshot?.fetchedAt || centralSnapshot?.lastUpdated || 'RTDB latest equities snapshot');
+      }
+      return;
     }
 
-    loadGlobalHistoryDate(globalHistoricalDate);
-    return () => { alive = false; };
-  }, [globalHistoricalDate]);
+    if (centralQuotes && centralData?.isHistorical) {
+      setSnapshotQuotes(centralQuotes);
+      setSnapshotDate(globalHistoricalDate);
+      setDataTimestamp(centralData.fetchedOn || centralSnapshot?.fetchedAt || `RTDB snapshot · ${globalHistoricalDate}`);
+      setTimeTravelActive(true);
+      setHistoryNotice(null);
+    } else if (centralData?.error) {
+      setSnapshotQuotes(null);
+      setSnapshotDate(null);
+      setTimeTravelActive(false);
+      setHistoryNotice(`No RTDB Equities snapshot for ${globalHistoricalDate}. Equities history starts after the backend Equities snapshot job has run.`);
+    }
+  }, [globalHistoricalDate, centralQuotes, centralData?.isHistorical, centralData?.error, centralData?.fetchedOn, centralSnapshot]);
 
   const fetchIndexQuotes = useCallback(() => {
     api.post('/api/stocks', { tickers: INDEX_TICKERS })
@@ -387,6 +388,12 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   }, []);
 
   React.useEffect(() => { fetchIndexQuotes(); }, [fetchIndexQuotes]);
+
+  React.useEffect(() => {
+    if (centralSnapshot?.indices && Object.keys(centralSnapshot.indices).length) {
+      setIndexQuotes(centralSnapshot.indices);
+    }
+  }, [centralSnapshot]);
 
   React.useEffect(() => {
     // Auto-discovery sidecar: fetch recently listed IPOs from the nightly RTDB job
@@ -507,9 +514,10 @@ export default function EquitiesMarket({ currency, setCurrency }) {
 
   const rankColorFn = (rank) => RANK_PALETTE[(rank - 1) % RANK_PALETTE.length];
 
-  const displayUniverse = useMemo(() => (
-    snapshotQuotes ? applyQuotesToUniverse(marketUniverse, snapshotQuotes) : marketUniverse
-  ), [marketUniverse, snapshotQuotes]);
+  const displayUniverse = useMemo(() => {
+    const quoteLayer = snapshotQuotes || centralQuotes;
+    return quoteLayer ? applyQuotesToUniverse(marketUniverse, quoteLayer) : marketUniverse;
+  }, [marketUniverse, snapshotQuotes, centralQuotes]);
 
   const adjustedTreemapData = useMemo(() => {
     return displayUniverse.map(region => {

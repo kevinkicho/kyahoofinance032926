@@ -11,6 +11,7 @@ const RECAPTCHA_MIN_SCORE = 0.3;
 const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(['kevinkicho.github.io', 'localhost', '127.0.0.1']);
 
 const SNAPSHOT_MARKETS = [
+  { id: "equities", path: "/api/equities" },
   { id: "realEstate", path: "/api/realEstate" },
   { id: "insurance", path: "/api/insurance" },
   { id: "globalMacro", path: "/api/globalMacro" },
@@ -186,6 +187,7 @@ router.get('/diagnose', async (req, res) => {
   const { validateMarketData } = await import('../lib/validation.js');
 
   const targets = [
+    { id: "equities", path: "/api/equities" },
     { id: "realEstate", path: "/api/realEstate" },
     { id: "insurance", path: "/api/insurance" },
     { id: "globalMacro", path: "/api/globalMacro" },
