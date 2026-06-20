@@ -544,6 +544,12 @@ const ENDPOINT_SERIES_MAP = {
     'yahoo': [],
     'worldBank': [],
   },
+  '/api/commoditiesEnhanced': {
+    'eia': [],
+    'fred': ['POILWTIUSDM', 'GOLDAMGBD228NLBM', 'SLVPRUSD', 'PCOPPUSDM', 'POILBREUSDM', 'PNGASUSUSDM'],
+    'yahoo': [],
+    'worldBank': [],
+  },
   '/api/crypto': {
     'coinMarketData': [],
     'fearGreedData': [],

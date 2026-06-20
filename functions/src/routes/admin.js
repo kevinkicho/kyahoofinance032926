@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import admin from 'firebase-admin';
 import { GoogleAuth } from 'google-auth-library';
+import { DIAGNOSTIC_MARKETS, SNAPSHOT_MARKETS } from '../lib/snapshotMarkets.js';
 
 
 const router = Router();
@@ -10,27 +11,6 @@ const RECAPTCHA_SITE_KEY = '6Ldl3yYtAAAAAAmHpuYyoj1qMJyfrvlQFZNjf08f';
 const RECAPTCHA_MIN_SCORE = 0.3;
 const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(['kevinkicho.github.io', 'localhost', '127.0.0.1']);
 const ADMIN_EMAIL = 'kevinkicho@gmail.com';
-
-const SNAPSHOT_MARKETS = [
-  { id: "equities", path: "/api/equities" },
-  { id: "realEstate", path: "/api/realEstate" },
-  { id: "insurance", path: "/api/insurance" },
-  { id: "globalMacro", path: "/api/globalMacro" },
-  { id: "commodities", path: "/api/commodities/v2" },
-  { id: "bonds", path: "/api/bonds" },
-  { id: "fx", path: "/api/fx" },
-  { id: "derivatives", path: "/api/derivatives" },
-  { id: "crypto", path: "/api/crypto" },
-  { id: "credit", path: "/api/credit" },
-  { id: "sentiment", path: "/api/sentiment" },
-  { id: "calendar", path: "/api/calendar" },
-  { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
-  { id: "analytics", path: "/api/analytics" },
-  { id: "watchlist", path: "/api/watchlist" },
-  { id: "rateLimits", path: "/api/rate-limits" },
-  { id: "cacheStatus", path: "/api/cache/status" },
-  { id: "universeUpdates", path: "/api/universeUpdates" },
-];
 
 const RTDB_KEY_INVALID_CHARS = /[.#$/[\]]/g;
 
@@ -44,6 +24,17 @@ function sanitizeForRTDB(value) {
     out[key] = sanitizeForRTDB(rawValue);
   }
   return out;
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const item = items[cursor++];
+      await worker(item);
+    }
+  });
+  await Promise.allSettled(runners);
 }
 
 function deny(res, status = 403, userMessage = 'Admin account required to refresh global data.') {
@@ -218,30 +209,15 @@ router.get('/diagnose', async (req, res) => {
   // Import validation helpers
   const { validateMarketData } = await import('../lib/validation.js');
 
-  const targets = [
-    { id: "equities", path: "/api/equities" },
-    { id: "realEstate", path: "/api/realEstate" },
-    { id: "insurance", path: "/api/insurance" },
-    { id: "globalMacro", path: "/api/globalMacro" },
-    { id: "commodities", path: "/api/commodities/v2" },
-    { id: "bonds", path: "/api/bonds" },
-    { id: "fx", path: "/api/fx" },
-    { id: "derivatives", path: "/api/derivatives" },
-    { id: "crypto", path: "/api/crypto" },
-    { id: "credit", path: "/api/credit" },
-    { id: "sentiment", path: "/api/sentiment" },
-    { id: "calendar", path: "/api/calendar" },
-    { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
-    { id: "usda", path: "/api/usda" }
-  ];
+  const targets = DIAGNOSTIC_MARKETS;
 
   const results = {};
   let healthyCount = 0;
   let warningCount = 0;
   let unhealthyCount = 0;
 
-  // Run validation on all endpoints
-  for (const { id, path } of targets) {
+  // Run validation on all endpoints with bounded concurrency.
+  await mapWithConcurrency(targets, 4, async ({ id, path }) => {
     const start = Date.now();
     try {
       const url = `${base}${path}`;
@@ -259,7 +235,7 @@ router.get('/diagnose', async (req, res) => {
           lastChecked: now
         };
         unhealthyCount++;
-        continue;
+        return;
       }
 
       const data = await response.json();
@@ -301,7 +277,7 @@ router.get('/diagnose', async (req, res) => {
       };
       unhealthyCount++;
     }
-  }
+  });
 
   const report = {
     timestamp: now,

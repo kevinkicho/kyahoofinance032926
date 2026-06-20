@@ -7,6 +7,7 @@ import NodeCache from "node-cache";
 import { createRequire } from "module";
 import path from "path";
 import { fileURLToPath } from "url";
+import { DIAGNOSTIC_MARKETS, SNAPSHOT_MARKETS } from "./lib/snapshotMarkets.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -160,30 +161,20 @@ function sanitizeForRTDB(value: any): any {
   return out;
 }
 
-// Expanded list of things to pre-snapshot on schedule.
-// This makes RTDB the primary persistent store for market data + system/analytics state.
-// Goal: reduce per-client Functions calls (cost), provide historical/debuggable snapshots,
-// and make analytics/rate-limit/cache results durable and queryable (via RTDB or firebase CLI).
-const SNAPSHOT_MARKETS = [
-  { id: "equities", path: "/api/equities" },
-  { id: "realEstate", path: "/api/realEstate" },
-  { id: "insurance", path: "/api/insurance" },
-  { id: "globalMacro", path: "/api/globalMacro" },
-  { id: "commodities", path: "/api/commodities/v2" },
-  { id: "bonds", path: "/api/bonds" },
-  { id: "fx", path: "/api/fx" },
-  { id: "derivatives", path: "/api/derivatives" },
-  { id: "crypto", path: "/api/crypto" },
-  { id: "credit", path: "/api/credit" },
-  { id: "sentiment", path: "/api/sentiment" },
-  { id: "calendar", path: "/api/calendar" },
-  { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
-  { id: "analytics", path: "/api/analytics" },
-  { id: "watchlist", path: "/api/watchlist" },
-  { id: "rateLimits", path: "/api/rate-limits" },
-  { id: "cacheStatus", path: "/api/cache/status" },
-  { id: "universeUpdates", path: "/api/universeUpdates" },
-];
+async function mapWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>
+) {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const item = items[cursor++];
+      await worker(item);
+    }
+  });
+  await Promise.allSettled(runners);
+}
 
 export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
   const db = admin.database();
@@ -191,38 +182,36 @@ export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
   const dateKey = now.substring(0, 10); // YYYY-MM-DD for history keys
   console.log(`[scheduled] refreshMarketSnapshots starting at ${now} (dateKey=${dateKey})`);
 
-  await Promise.allSettled(
-    SNAPSHOT_MARKETS.map(async ({ id, path }) => {
-      try {
-        const url = `${LIVE_FUNCTIONS_BASE}${path}`;
-        const res = await fetch(url, { 
-          headers: { "User-Agent": "scheduled-snapshot-refresher" },
-          signal: AbortSignal.timeout(45000) // generous but bounded
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+  await mapWithConcurrency(SNAPSHOT_MARKETS, 5, async ({ id, path }) => {
+    try {
+      const url = `${LIVE_FUNCTIONS_BASE}${path}`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "scheduled-snapshot-refresher" },
+        signal: AbortSignal.timeout(45000) // generous but bounded
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
 
-        const payload = sanitizeForRTDB({ data, fetchedAt: now, source: "scheduled" });
+      const payload = sanitizeForRTDB({ data, fetchedAt: now, source: "scheduled" });
 
-        // Historical entry — this makes the DB grow day by day instead of overwriting.
-        await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(payload);
+      // Historical entry — this makes the DB grow day by day instead of overwriting.
+      await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(payload);
 
-        // Latest pointer for fast current access (used by DataProvider seed + normal UI).
-        await db.ref(`marketSnapshots/${id}/latest`).set(payload);
+      // Latest pointer for fast current access (used by DataProvider seed + normal UI).
+      await db.ref(`marketSnapshots/${id}/latest`).set(payload);
 
-        console.log(`[scheduled] wrote snapshot for ${id} (history/${dateKey} + latest)`);
-      } catch (e: any) {
-        console.warn(`[scheduled] failed snapshot for ${id}:`, e?.message || e);
-        const errPayload = { at: now, message: String(e?.message || e) };
+      console.log(`[scheduled] wrote snapshot for ${id} (history/${dateKey} + latest)`);
+    } catch (e: any) {
+      console.warn(`[scheduled] failed snapshot for ${id}:`, e?.message || e);
+      const errPayload = { at: now, message: String(e?.message || e) };
 
-        // Record error in history for this day
-        await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
+      // Record error in history for this day
+      await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
 
-        // Also surface on latest so UI can show "last known + error on latest attempt"
-        await db.ref(`marketSnapshots/${id}/latest/lastError`).set(errPayload);
-      }
-    })
-  );
+      // Also surface on latest so UI can show "last known + error on latest attempt"
+      await db.ref(`marketSnapshots/${id}/latest/lastError`).set(errPayload);
+    }
+  });
 
   // Run daily diagnostics to check health and save report to RTDB
   try {
@@ -243,29 +232,14 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
   console.log(`[scheduled] running daily diagnostics at ${now}`);
   const { validateMarketData } = await import("./lib/validation.js");
 
-  const targets = [
-    { id: "equities", path: "/api/equities" },
-    { id: "realEstate", path: "/api/realEstate" },
-    { id: "insurance", path: "/api/insurance" },
-    { id: "globalMacro", path: "/api/globalMacro" },
-    { id: "commodities", path: "/api/commodities/v2" },
-    { id: "bonds", path: "/api/bonds" },
-    { id: "fx", path: "/api/fx" },
-    { id: "derivatives", path: "/api/derivatives" },
-    { id: "crypto", path: "/api/crypto" },
-    { id: "credit", path: "/api/credit" },
-    { id: "sentiment", path: "/api/sentiment" },
-    { id: "calendar", path: "/api/calendar" },
-    { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
-    { id: "usda", path: "/api/usda" }
-  ];
+  const targets = DIAGNOSTIC_MARKETS;
 
   const results: Record<string, any> = {};
   let healthyCount = 0;
   let warningCount = 0;
   let unhealthyCount = 0;
 
-  for (const { id, path } of targets) {
+  await mapWithConcurrency(targets, 4, async ({ id, path }) => {
     const start = Date.now();
     try {
       const url = `${LIVE_FUNCTIONS_BASE}${path}`;
@@ -283,7 +257,7 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
           lastChecked: now
         };
         unhealthyCount++;
-        continue;
+        return;
       }
 
       const data = await response.json();
@@ -324,7 +298,7 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
       };
       unhealthyCount++;
     }
-  }
+  });
 
   const report = {
     timestamp: now,
