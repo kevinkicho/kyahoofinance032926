@@ -99,12 +99,15 @@ function MarketFallback() {
 function ActiveMarketWrapper({ activeMarket, currency, setCurrency, snapshotDate, setSnapshotDate, autoRefresh, refreshKey, onNavigate }) {
   const ActiveMarket = MARKET_COMPONENTS[activeMarket];
   const marketCtx = useMarketData(activeMarket);
+  const dataCtx = useDataContext();
   const institutionalCtx = useMarketData('institutional');
+  const historicalKey = dataCtx?.historicalDate || 'live';
 
   if (!ActiveMarket) return null;
   return (
     <div role="region" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
       <ActiveMarket
+        key={`${activeMarket}:${historicalKey}`}
         currency={currency}
         setCurrency={setCurrency}
         snapshotDate={snapshotDate}
@@ -125,11 +128,11 @@ function HistoricalModeBanner() {
   const { historicalDate, setHistoricalDate } = ctx;
   return (
     <div className="hub-hist-banner" role="status" aria-live="polite">
-      <span>📜 Historical view: <strong>{historicalDate}</strong> (data from daily RTDB snapshots)</span>
+      <span>Historical view: <strong>{historicalDate}</strong> (snapshots where available)</span>
       <button onClick={() => setHistoricalDate(null)} title="Exit historical mode and return to live/latest data across the app">
         Exit to live
       </button>
-      <span className="hub-hist-hint">Other tabs &amp; panels now show {historicalDate} data</span>
+      <span className="hub-hist-hint">Tabs without a snapshot will say so instead of silently showing live data.</span>
     </div>
   );
 }

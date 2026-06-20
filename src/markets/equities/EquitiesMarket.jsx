@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { api } from '../../lib/api';
 import Header from '../../components/Header/Header';
 import HeatmapView from '../../components/HeatmapView/HeatmapView';
@@ -14,7 +14,8 @@ import DataFooter from '../../components/DataFooter/DataFooter';
 import { stockUniverseData } from '../../data/stockUniverse';
 import { currencySymbols } from '../../utils/constants';
 import { useCurrency } from '../../hub/CurrencyContext';
-import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
+import { useDataContext } from '../../hub/DataContext';
+import { getSnapshot as getIDBSnapshot, putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import KeyIndicesStrip from './components/KeyIndicesStrip';
 import PortfolioTracker from './components/PortfolioTracker';
@@ -316,19 +317,68 @@ export default function EquitiesMarket({ currency, setCurrency }) {
   const [snapshotQuotes, setSnapshotQuotes] = useState(null);
   const [snapshotDate, setSnapshotDate] = useState(null);
   const [timeTravelActive, setTimeTravelActive] = useState(false);
+  const [historyNotice, setHistoryNotice] = useState(null);
+  const dataCtx = (() => { try { return useDataContext(); } catch { return null; } })();
+  const globalHistoricalDate = dataCtx?.historicalDate || null;
 
   const handleSnapshotSelect = useCallback((quotes, date, stamp) => {
     if (!quotes) {
       setSnapshotQuotes(null);
       setSnapshotDate(null);
       setTimeTravelActive(false);
+      setHistoryNotice(null);
       return;
     }
     setSnapshotQuotes(quotes);
     setSnapshotDate(date);
     setDataTimestamp(stamp || date);
     setTimeTravelActive(true);
+    setHistoryNotice(null);
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadGlobalHistoryDate(date) {
+      const localEntry = loadDailyMap()[date];
+      if (localEntry?.quotes && Object.keys(localEntry.quotes).length) {
+        if (!alive) return;
+        setSnapshotQuotes(localEntry.quotes);
+        setSnapshotDate(date);
+        setDataTimestamp(localEntry.stamp || `Loaded local snapshot · ${date}`);
+        setTimeTravelActive(true);
+        setHistoryNotice(null);
+        return;
+      }
+
+      const idbEntry = await getIDBSnapshot('equities', date);
+      const idbQuotes = idbEntry?.data?.quotes;
+      if (!alive) return;
+      if (idbQuotes && Object.keys(idbQuotes).length) {
+        setSnapshotQuotes(idbQuotes);
+        setSnapshotDate(date);
+        setDataTimestamp(idbEntry.stamp || `Loaded IndexedDB snapshot · ${date}`);
+        setTimeTravelActive(true);
+        setHistoryNotice(null);
+      } else {
+        setSnapshotQuotes(null);
+        setSnapshotDate(null);
+        setTimeTravelActive(false);
+        setHistoryNotice(`No local Equities quote snapshot for ${date}. Use the Equities refresh button to save today's quotes; older equity snapshots only exist if this browser saved them earlier.`);
+      }
+    }
+
+    if (!globalHistoricalDate) {
+      setSnapshotQuotes(null);
+      setSnapshotDate(null);
+      setTimeTravelActive(false);
+      setHistoryNotice(null);
+      return () => { alive = false; };
+    }
+
+    loadGlobalHistoryDate(globalHistoricalDate);
+    return () => { alive = false; };
+  }, [globalHistoricalDate]);
 
   const fetchIndexQuotes = useCallback(() => {
     api.post('/api/stocks', { tickers: INDEX_TICKERS })
@@ -457,8 +507,12 @@ export default function EquitiesMarket({ currency, setCurrency }) {
 
   const rankColorFn = (rank) => RANK_PALETTE[(rank - 1) % RANK_PALETTE.length];
 
+  const displayUniverse = useMemo(() => (
+    snapshotQuotes ? applyQuotesToUniverse(marketUniverse, snapshotQuotes) : marketUniverse
+  ), [marketUniverse, snapshotQuotes]);
+
   const adjustedTreemapData = useMemo(() => {
-    return marketUniverse.map(region => {
+    return displayUniverse.map(region => {
       const withAdjusted = region.children.map(stock => {
         const metricValue = (rankMetric === 'revenue' || rankMetric === 'netIncome')
           ? getMetricValue(stock, rankMetric)
@@ -485,7 +539,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
         }),
       };
     });
-  }, [marketUniverse, rankMetric]);
+  }, [displayUniverse, rankMetric]);
 
   const heatmapData = useMemo(() => {
     if (groupBy === 'sectorInMarket') {
@@ -542,33 +596,9 @@ export default function EquitiesMarket({ currency, setCurrency }) {
 
   const flatData = useMemo(() => {
     const arr = [];
-    const source = snapshotQuotes ? (() => {
-      const map = {};
-      adjustedTreemapData.forEach(region => {
-        region.children.forEach(stock => {
-          const q = snapshotQuotes[stock.name];
-          if (q) {
-            const liveCap = q.mc != null ? q.mc : stock.marketCap;
-            map[stock.name] = {
-              ...stock,
-              marketCap: liveCap || stock.marketCap,
-              value: liveCap || stock.value,
-              adjustedValue: liveCap || stock.adjustedValue,
-              changePct: q.cp != null ? q.cp : stock.changePct,
-              price: q.p != null ? q.p : stock.price,
-              change: q.c != null ? q.c : stock.change,
-            };
-          } else {
-            map[stock.name] = stock;
-          }
-        });
-      });
-      return map;
-    })() : null;
-
     adjustedTreemapData.forEach(region => {
       region.children.forEach(stock => {
-        const s = source ? source[stock.name] : stock;
+        const s = stock;
         arr.push({
           region: region.name,
           regionCurrency: region.currency,
@@ -591,7 +621,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
       });
     });
     return arr;
-  }, [adjustedTreemapData, snapshotQuotes]);
+  }, [adjustedTreemapData]);
 
   const processedData = useMemo(() => {
     let filtered = flatData.filter(item =>
@@ -711,10 +741,10 @@ export default function EquitiesMarket({ currency, setCurrency }) {
     }];
     const commonFooter = (
       <DataFooter
-        source="Yahoo Finance"
+        source={snapshotDate ? 'Yahoo Finance snapshot' : 'Yahoo Finance'}
         timestamp={dataTimestamp}
-        isLive={true}
-        isCurrent={true}
+        isLive={!snapshotDate}
+        isCurrent={!snapshotDate}
         fetchedOn={dataTimestamp}
         fetchLog={quotesFetchLog}
       />
@@ -889,6 +919,11 @@ export default function EquitiesMarket({ currency, setCurrency }) {
         groupBy={groupBy} setGroupBy={setGroupBy}
         colorByPerf={colorByPerf} setColorByPerf={setColorByPerf}
       />
+      {historyNotice && (
+        <div className="eq-history-notice" role="status">
+          {historyNotice}
+        </div>
+      )}
       {viewMode === 'datahub' ? (
         <DataHubView
           flatData={flatData}
@@ -964,7 +999,7 @@ export default function EquitiesMarket({ currency, setCurrency }) {
           <div key="heatmap" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
               <span className="eq-panel-title">Equity Heatmap</span>
-              <span className="eq-panel-subtitle">{flatData.length} equities · {groupBy === 'sectorGlobal' ? 'global sectors' : groupBy === 'sectorInMarket' ? 'sectors by market' : 'by market'}</span>
+              <span className="eq-panel-subtitle">{flatData.length} equities · {groupBy === 'sectorGlobal' ? 'global sectors' : groupBy === 'sectorInMarket' ? 'sectors by market' : 'by market'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
             </div>
             <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <HeatmapView
