@@ -92,7 +92,7 @@ export function getValidationWarning(id: string, data: any): string | null {
   if (id === 'usda' && data?.error && String(data.error).includes('USDA_NASS_API_KEY not configured')) {
     return 'USDA_NASS_API_KEY not configured (falls back to stub)';
   }
-  if (id === 'watchlist' && data && typeof data === 'object' && data.quotes && Object.keys(data.quotes).length === 0) {
+  if (id === 'watchlist' && data?._sources?.yahooFinance === false) {
     return 'No watchlist quotes returned yet';
   }
   if (id === 'censusTrade' && data?._sources?.censusTrade === false) {
