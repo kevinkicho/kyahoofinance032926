@@ -98,5 +98,11 @@ export function getValidationWarning(id: string, data: any): string | null {
   if (id === 'censusTrade' && data?._sources?.censusTrade === false) {
     return 'Census trade source unavailable or returned no current rows';
   }
+  if (id === 'fedSEP' && data?._sources?.fed_sep === false) {
+    return 'Federal Reserve SEP source unavailable or no current projection table found';
+  }
+  if (id === 'treasuryDTS' && data?._sources?.treasuryDTS === false) {
+    return 'Treasury DTS source unavailable or returned no current rows';
+  }
   return null;
 }
