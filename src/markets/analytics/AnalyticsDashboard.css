@@ -169,6 +169,7 @@
 .ana-prov-stat { font-size: 9px; font-weight: 600; }
 .ana-prov-stat.ana-ok { color: #4ade80; }
 .ana-prov-stat.ana-err { color: #f87171; }
+.ana-prov-optional-note { color: #fbbf24; }
 .ana-prov-required-missing { color: #f87171; }
 
 .ana-prov-source { }

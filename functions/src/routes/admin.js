@@ -9,6 +9,7 @@ const RECAPTCHA_PROJECT_ID = 'kfinance032926';
 const RECAPTCHA_SITE_KEY = '6Ldl3yYtAAAAAAmHpuYyoj1qMJyfrvlQFZNjf08f';
 const RECAPTCHA_MIN_SCORE = 0.3;
 const RECAPTCHA_ALLOWED_HOSTNAMES = new Set(['kevinkicho.github.io', 'localhost', '127.0.0.1']);
+const ADMIN_EMAIL = 'kevinkicho@gmail.com';
 
 const SNAPSHOT_MARKETS = [
   { id: "equities", path: "/api/equities" },
@@ -47,6 +48,34 @@ function sanitizeForRTDB(value) {
 
 function deny(res, status = 403, userMessage = 'Admin account required to refresh global data.') {
   return res.status(status).json({ error: userMessage, userMessage });
+}
+
+async function verifyAdminRequest(req, res, userMessage = 'Admin account required.') {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (process.env.NODE_ENV !== 'production' && (!token || token === 'mock-token')) {
+    return { ok: true, email: ADMIN_EMAIL, devBypass: true };
+  }
+
+  if (!token) {
+    deny(res, 401, userMessage);
+    return { ok: false };
+  }
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const email = decodedToken.email;
+    if (email !== ADMIN_EMAIL) {
+      deny(res, 403, userMessage);
+      return { ok: false };
+    }
+    return { ok: true, email };
+  } catch (err) {
+    console.error('[admin-functions] token verification failed:', err.message);
+    deny(res, 401, userMessage);
+    return { ok: false };
+  }
 }
 
 const auth = new GoogleAuth({
@@ -106,30 +135,9 @@ async function verifyRecaptchaEnterprise(req, expectedAction) {
 }
 
 router.post('/refresh-all', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-
-  let email = null;
-  // Dev mode bypass
-  if (process.env.NODE_ENV !== 'production' && (!token || token === 'mock-token')) {
-    email = 'kevinkicho@gmail.com';
-    console.log('[admin-functions] dev mode bypass: authenticated as', email);
-  } else {
-    if (!token) {
-      return deny(res, 401);
-    }
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      email = decodedToken.email;
-    } catch (err) {
-      console.error('[admin-functions] token verification failed:', err.message);
-      return deny(res, 401);
-    }
-  }
-
-  if (email !== 'kevinkicho@gmail.com') {
-    return deny(res, 403);
-  }
+  const adminCheck = await verifyAdminRequest(req, res, 'Admin account required to refresh global data.');
+  if (!adminCheck.ok) return;
+  if (adminCheck.devBypass) console.log('[admin-functions] dev mode bypass: authenticated as', adminCheck.email);
 
   const recaptcha = await verifyRecaptchaEnterprise(req, 'ADMIN_REFRESH');
   if (!recaptcha.ok) {
@@ -174,8 +182,32 @@ router.post('/refresh-all', async (req, res) => {
   res.json({ success: true, timestamp: now, reports });
 });
 
+// GET /api/admin/diagnostics-report — read the latest/specific saved diagnostics report.
+// This intentionally does not require user auth: it is a cheap read-only API proxy
+// over Admin SDK so the browser does not need broad public RTDB rules for apiHealthReport.
+router.get('/diagnostics-report', async (req, res) => {
+  const db = admin.database();
+  const date = typeof req.query.date === 'string' ? req.query.date : null;
+  const safeDate = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+  const refPath = safeDate ? `apiHealthReport/history/${safeDate}` : 'apiHealthReport/latest';
+
+  try {
+    const snap = await db.ref(refPath).once('value');
+    if (!snap.exists()) {
+      return res.status(404).json({ error: safeDate ? `No diagnostics report for ${safeDate}` : 'No diagnostics report available' });
+    }
+    res.json(snap.val());
+  } catch (e) {
+    console.error('[admin-functions] failed reading diagnostics report:', e.message);
+    res.status(500).json({ error: 'Failed to read diagnostics report' });
+  }
+});
+
 // GET /api/admin/diagnose — run active diagnostics on all endpoints and save to RTDB
 router.get('/diagnose', async (req, res) => {
+  const adminCheck = await verifyAdminRequest(req, res, 'Admin account required to run live diagnostics.');
+  if (!adminCheck.ok) return;
+
   const protocol = req.protocol;
   const host = req.get('host');
   const base = `${protocol}://${host}`;

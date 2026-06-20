@@ -26,11 +26,10 @@ async function loadAnalyticsFromRTDB(date = null) {
   }
 }
 
-async function loadDiagnosticsFromRTDB() {
+async function loadDiagnosticsReport(date = null) {
   try {
-    const res = await fetch('https://kfinance032926-default-rtdb.firebaseio.com/apiHealthReport/latest.json');
-    if (!res.ok) return null;
-    return await res.json();
+    const qs = date ? `?date=${encodeURIComponent(date)}` : '';
+    return await api.get(`/api/admin/diagnostics-report${qs}`);
   } catch {
     return null;
   }
@@ -348,9 +347,12 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
             <span className="ana-prov-market-label">{r.label}</span>
             <span className="ana-prov-market-path">{r.path}</span>
             <span className={`ana-prov-stat ${r.error || countSourcesByState(r, 'missing') > 0 ? 'ana-err' : r.sourceKeys.length > 0 ? 'ana-ok' : ''}`}>
-              {r.error ? 'ERR' : `${countSourcesByState(r, 'ok')}/${r.sourceKeys.length}`}
+              {r.error ? 'ERR' : `${countSourcesByState(r, 'ok')} received`}
+              {!r.error && countSourcesByState(r, 'optional') > 0 && (
+                <span className="ana-prov-optional-note"> · {countSourcesByState(r, 'optional')} optional</span>
+              )}
               {!r.error && countSourcesByState(r, 'missing') > 0 && (
-                <span className="ana-prov-required-missing"> · {countSourcesByState(r, 'missing')} missing</span>
+                <span className="ana-prov-required-missing"> · {countSourcesByState(r, 'missing')} required missing</span>
               )}
               {r.fromSnapshot && <span style={{fontSize: '9px', marginLeft: '4px', opacity: 0.7}}>(snapshot)</span>}
             </span>
@@ -719,18 +721,12 @@ function ApiDiagnosticsCard() {
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
-    const r = await loadDiagnosticsFromRTDB();
+    const r = await loadDiagnosticsReport();
     if (r) {
       setReport(r);
       setErr(null);
     } else {
-      try {
-        const live = await api.get('/api/admin/diagnose');
-        setReport(live);
-        setErr(null);
-      } catch (e) {
-        setErr('No diagnostics report available in RTDB or API');
-      }
+      setErr('No saved diagnostics report available yet.');
     }
     setLoading(false);
   }, []);
@@ -747,7 +743,15 @@ function ApiDiagnosticsCard() {
     setRunning(true);
     setErr(null);
     try {
-      const live = await api.get('/api/admin/diagnose');
+      const token = await auth?.currentUser?.getIdToken?.();
+      if (!token) throw new Error('Admin sign-in required');
+      const live = await fetch(apiUrl('/api/admin/diagnose'), {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(async res => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+        return body;
+      });
       setReport(live);
     } catch (e) {
       setErr(`Failed to run diagnostics: ${e.message}`);
