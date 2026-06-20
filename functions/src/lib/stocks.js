@@ -484,7 +484,23 @@ export const STATIC_TICKER_MAP = {
   "KSPI": "KSPI",
   "VIC": "VIC.VN",
   "VNM": "VNM.VN",
-  "VCB": "VCB.VN"
+  "VCB": "VCB.VN",
+  "ARGX": "ARGX.BR",
+  "BT/A": "BT-A.L",
+  "HEIA": "HEIA.AS",
+  "INGA": "INGA.AS",
+  "MAERSK-B": "MAERSK-B.CO",
+  "MRK_DE": "MRK.DE",
+  "PRX": "PRX.AS",
+  "SAN_ES": "SAN.MC",
+  "UMG": "UMG.AS",
+  "VOD_ZA": "VOD.JO",
+  "WKL": "WKL.AS",
+  "ADCB": "ADCB.AD",
+  "ADNOCDIST": "ADNOCDIST.AD",
+  "EMIRATESNBD": "EMIRATESNBD.DU",
+  "KFH": "KFH.KW",
+  "QNBK": "QNBK.QA"
 };
 
 export function mapToYahooTicker(ticker) {
@@ -500,6 +516,7 @@ export function mapToYahooTicker(ticker) {
 export function getYahooTicker(ticker, region) {
   if (!ticker || typeof ticker !== 'string') return ticker;
   if (ticker.includes('.')) return ticker;
+  if (STATIC_TICKER_MAP[ticker]) return STATIC_TICKER_MAP[ticker];
   const suffix = REGION_SUFFIX[region];
   if (suffix) return `${ticker}.${suffix}`;
   return mapToYahooTicker(ticker);
