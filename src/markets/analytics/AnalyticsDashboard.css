@@ -162,6 +162,7 @@
 .ana-prov-stat { font-size: 9px; font-weight: 600; }
 .ana-prov-stat.ana-ok { color: #4ade80; }
 .ana-prov-stat.ana-err { color: #f87171; }
+.ana-prov-required-missing { color: #f87171; }
 
 .ana-prov-source { }
 .ana-prov-source-row { display: grid; grid-template-columns: 1fr auto; padding: 3px 6px; cursor: pointer; border-radius: 2px; }
@@ -172,6 +173,11 @@
 .ana-prov-source.ana-ps-ok .ana-prov-source-badge { color: #4ade80; }
 .ana-prov-source.ana-ps-miss .ana-prov-source-name { color: #f87171; }
 .ana-prov-source.ana-ps-miss .ana-prov-source-badge { color: #f87171; }
+.ana-prov-source.ana-ps-optional .ana-prov-source-name { color: #fbbf24; }
+.ana-prov-source.ana-ps-optional .ana-prov-source-badge { color: #fbbf24; }
+.ana-source-state-text.ana-ps-ok { color: #4ade80; }
+.ana-source-state-text.ana-ps-miss { color: #f87171; }
+.ana-source-state-text.ana-ps-optional { color: #fbbf24; }
 
 .ana-prov-source-detail { padding: 4px 8px 6px; background: rgba(0,0,0,0.15); border-radius: 0 0 3px 3px; margin-bottom: 2px; }
 .ana-prov-detail-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }

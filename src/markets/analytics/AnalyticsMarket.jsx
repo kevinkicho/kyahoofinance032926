@@ -80,6 +80,79 @@ function saveAuditHistory(history) {
   catch (e) { console.warn('[ProvenanceAudit] localStorage save failed:', e?.message); }
 }
 
+const OPTIONAL_PROVENANCE_KEYS = new Set([
+  'ECB Yield Curve',
+  'bisCreditToGDP',
+  'buffettIndicator',
+  'catLosses',
+  'censusTrade',
+  'delinquencyRates_DRSFRWBS',
+  'econdb',
+  'econEventsFallback',
+  'equityRiskPremium',
+  'ethGas',
+  'fredReleasesFallback',
+  'gammaExposure',
+  'imfReserves',
+  'imfWEO',
+  'industryAvgCombinedRatio',
+  'insiderTrading',
+  'nyfedPrimaryDealers',
+  'reinsurancePricing',
+  'skewHistory',
+  'spPE',
+  'yahooFinance',
+]);
+
+function getSourceAuditState(endpointPath, sourceKey, value) {
+  if (value) {
+    return {
+      kind: 'ok',
+      className: 'ana-ps-ok',
+      badge: '\u2713',
+      status: 'Data received',
+      detail: 'Data received from this source for the selected snapshot.',
+    };
+  }
+
+  if (sourceKey.endsWith('Fallback')) {
+    return {
+      kind: 'optional',
+      className: 'ana-ps-optional',
+      badge: '-',
+      status: 'Fallback not used',
+      detail: 'This is a fallback marker. False means the primary source was used, so it is not a data failure.',
+    };
+  }
+
+  if (
+    OPTIONAL_PROVENANCE_KEYS.has(sourceKey) ||
+    OPTIONAL_PROVENANCE_KEYS.has(`${endpointPath}::${sourceKey}`) ||
+    sourceKey.startsWith('imfWEO_') ||
+    sourceKey.endsWith('_synthetic')
+  ) {
+    return {
+      kind: 'optional',
+      className: 'ana-ps-optional',
+      badge: '-',
+      status: 'Optional source unavailable',
+      detail: 'This source is optional, provider-limited, synthetic, or only populated for specific request modes. It is not counted as a hard failure.',
+    };
+  }
+
+  return {
+    kind: 'missing',
+    className: 'ana-ps-miss',
+    badge: '\u2717',
+    status: 'Missing',
+    detail: 'Required source data is missing from this endpoint for the selected snapshot.',
+  };
+}
+
+function countSourcesByState(row, kind) {
+  return row.sourceKeys.filter(k => getSourceAuditState(row.path, k, row.sources[k]).kind === kind).length;
+}
+
 function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChange = null }) {
   const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
   const globalHistorical = ctx?.historicalDate || null;
@@ -196,8 +269,9 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
   }, []);
 
   const totalSources = results.reduce((a, r) => a + r.sourceKeys.length, 0);
-  const receivedSources = results.reduce((a, r) => a + r.sourceKeys.filter(k => r.sources[k]).length, 0);
-  const missingSources = totalSources - receivedSources;
+  const receivedSources = results.reduce((a, r) => a + countSourcesByState(r, 'ok'), 0);
+  const optionalSources = results.reduce((a, r) => a + countSourcesByState(r, 'optional'), 0);
+  const missingSources = results.reduce((a, r) => a + countSourcesByState(r, 'missing'), 0);
 
   const effectiveAuditDate = auditDate || globalHistorical || null;
   const handleAuditRun = (force) => runAudit(force);
@@ -217,7 +291,7 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
     <div className="ana-prov-audit">
       <div className="ana-prov-header">
         <span className="ana-prov-summary">
-          {totalSources} sources · {receivedSources} received · {missingSources} missing
+          {totalSources} sources · {receivedSources} received · {optionalSources} optional · {missingSources} missing
           {effectiveAuditDate && <span style={{ marginLeft: 6, color: '#f59e0b' }}>· {effectiveAuditDate}</span>}
           {lastRanAt && (
             <span style={{ marginLeft: 8, opacity: 0.6, fontSize: 11 }}>
@@ -249,25 +323,28 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
           <div className="ana-prov-market-head">
             <span className="ana-prov-market-label">{r.label}</span>
             <span className="ana-prov-market-path">{r.path}</span>
-            <span className={`ana-prov-stat ${r.error ? 'ana-err' : r.sourceKeys.length > 0 ? 'ana-ok' : ''}`}>
-              {r.error ? 'ERR' : `${r.sourceKeys.filter(k => r.sources[k]).length}/${r.sourceKeys.length}`}
+            <span className={`ana-prov-stat ${r.error || countSourcesByState(r, 'missing') > 0 ? 'ana-err' : r.sourceKeys.length > 0 ? 'ana-ok' : ''}`}>
+              {r.error ? 'ERR' : `${countSourcesByState(r, 'ok')}/${r.sourceKeys.length}`}
+              {!r.error && countSourcesByState(r, 'missing') > 0 && (
+                <span className="ana-prov-required-missing"> · {countSourcesByState(r, 'missing')} missing</span>
+              )}
               {r.fromSnapshot && <span style={{fontSize: '9px', marginLeft: '4px', opacity: 0.7}}>(snapshot)</span>}
             </span>
           </div>
           {r.sourceKeys.map(k => {
-            const received = r.sources[k];
+            const auditState = getSourceAuditState(r.path, k, r.sources[k]);
             const isExpanded = expandedSource === `${r.path}::${k}`;
             return (
-              <div key={k} className={`ana-prov-source ${received ? 'ana-ps-ok' : 'ana-ps-miss'}`}>
+              <div key={k} className={`ana-prov-source ${auditState.className}`}>
                 <div className="ana-prov-source-row" onClick={() => setExpandedSource(isExpanded ? null : `${r.path}::${k}`)}>
                   <span className="ana-prov-source-name">{k}</span>
-                  <span className="ana-prov-source-badge">{received ? '\u2713' : '\u2717'}</span>
+                  <span className="ana-prov-source-badge">{auditState.badge}</span>
                 </div>
                 {isExpanded && (
                   <div className="ana-prov-source-detail">
                     <div className="ana-prov-detail-row">
                       <span className="ana-dl">Status</span>
-                      <span className={received ? 'ana-ok' : 'ana-err'}>{received ? 'Data received' : 'Missing'}</span>
+                      <span className={`ana-source-state-text ${auditState.className}`}>{auditState.status}</span>
                     </div>
                     <div className="ana-prov-detail-row">
                       <span className="ana-dl">Endpoint</span>
@@ -276,9 +353,9 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
                     <div className="ana-prov-detail-row">
                       <span className="ana-dl">Verify</span>
                       <span className="ana-prov-verify-text">
-                        {received
+                        {auditState.kind === 'ok'
                           ? 'Click "Verify" on FRED series below to confirm data exists and matches.'
-                          : 'Data is missing from this endpoint. Verify FRED series below \u2014 if FRED returns data, the server may have a caching or parsing issue.'}
+                          : auditState.detail}
                       </span>
                     </div>
                     <div className="ana-prov-fred-list">
