@@ -239,20 +239,19 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
   let warningCount = 0;
   let unhealthyCount = 0;
 
-  await mapWithConcurrency(targets, 4, async ({ id, path }) => {
+  await mapWithConcurrency(targets, 8, async ({ id }) => {
     const start = Date.now();
     try {
-      const url = `${LIVE_FUNCTIONS_BASE}${path}`;
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'scheduled-diagnostics-refresher' },
-        signal: AbortSignal.timeout(60000)
-      });
+      const snap = await db.ref(`marketSnapshots/${id}/history/${dateKey}`).once('value');
       const duration = Date.now() - start;
+      const payload = snap.val();
+      const data = payload?.data;
+      const lastError = payload?.lastError?.message || null;
 
-      if (!response.ok) {
+      if (!data) {
         results[id] = {
           status: 'unhealthy',
-          error: `HTTP status ${response.status}`,
+          error: lastError || 'No snapshot data for diagnostics date',
           duration,
           lastChecked: now
         };
@@ -260,16 +259,17 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
         return;
       }
 
-      const data = await response.json();
       const validation = validateMarketData(id, data);
 
       if (validation.ok) {
         results[id] = {
-          status: 'healthy',
+          status: lastError ? 'warning' : 'healthy',
+          ...(lastError ? { error: `Snapshot kept previous data; latest refresh error: ${lastError}` } : {}),
           duration,
           lastChecked: now
         };
-        healthyCount++;
+        if (lastError) warningCount++;
+        else healthyCount++;
       } else {
         const warning = getValidationWarning(id, data);
         if (warning) {
