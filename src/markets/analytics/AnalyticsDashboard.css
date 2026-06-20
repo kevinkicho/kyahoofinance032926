@@ -20,6 +20,13 @@
 }
 .ana-refresh-btn:hover { border-color: #94a3b8; }
 .ana-refresh-btn.active { background: #94a3b8; color: #1a1a1a; border-color: #94a3b8; }
+.ana-refresh-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.ana-refresh-btn:disabled:hover {
+  border-color: var(--border-subtle);
+}
 
 .ana-loading, .ana-error { display: flex; align-items: center; justify-content: center; flex: 1; font-size: 13px; color: var(--text-muted); }
 .ana-error { color: #f87171; }

@@ -4,6 +4,7 @@ import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import { useMarketData, useDataContext } from '../../hub/DataContext';
+import { auth } from '../../lib/firebase';
 import './AnalyticsDashboard.css';
 
 // Helper to load analytics snapshot from RTDB (written by daily scheduled refresher).
@@ -37,6 +38,7 @@ async function loadDiagnosticsFromRTDB() {
 
 
 const FRED_API_BASE = apiUrl('/api/fred/observations');
+const ADMIN_EMAIL = 'kevinkicho@gmail.com';
 
 import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
 
@@ -57,6 +59,17 @@ function fredSeriesPage(seriesId) {
 
 function isFRED(id) {
   return id && /^[A-Z0-9]{3,15}$/.test(id) && !id.startsWith('/');
+}
+
+function useIsAdminUser() {
+  const [user, setUser] = useState(() => auth?.currentUser || null);
+
+  useEffect(() => {
+    if (!auth) return undefined;
+    return auth.onAuthStateChanged(setUser);
+  }, []);
+
+  return user?.email === ADMIN_EMAIL;
 }
 
 // Persist audit history so it can be inspected later (we keep the last
@@ -155,6 +168,7 @@ function countSourcesByState(row, kind) {
 
 function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChange = null }) {
   const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
+  const isAdmin = useIsAdminUser();
   const globalHistorical = ctx?.historicalDate || null;
   const listDates = ctx?.listSnapshotDates || (async () => []);
 
@@ -274,7 +288,10 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
   const missingSources = results.reduce((a, r) => a + countSourcesByState(r, 'missing'), 0);
 
   const effectiveAuditDate = auditDate || globalHistorical || null;
-  const handleAuditRun = (force) => runAudit(force);
+  const handleAuditRun = (force) => {
+    if (force && !isAdmin) return;
+    runAudit(force);
+  };
   const handleAuditDateChange = (e) => {
     const v = e.target.value || null;
     setAuditDate(v);
@@ -314,7 +331,14 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
         </select>
 
         <button className="ana-refresh-btn" onClick={() => handleAuditRun(false)} disabled={loading}>{loading ? 'Auditing...' : (effectiveAuditDate ? `Audit ${effectiveAuditDate}` : 'Run Audit (RTDB snapshots)')}</button>
-        <button className="ana-refresh-btn" onClick={() => handleAuditRun(true)} disabled={loading}>Force Live Audit</button>
+        <button
+          className="ana-refresh-btn"
+          onClick={() => handleAuditRun(true)}
+          disabled={loading || !isAdmin}
+          title={isAdmin ? 'Bypass RTDB and query live endpoints' : 'Admin sign-in required'}
+        >
+          Force Live Audit
+        </button>
       </div>
       {results.length === 0 && !loading && <div className="ana-empty">Click audit button to analyze provenance from RTDB snapshots for the selected date (or latest). The picker lets you audit a past day's data. "Force Live" bypasses RTDB.</div>}
       {loading && <div className="ana-empty">Fetching endpoints...</div>}
@@ -687,6 +711,7 @@ function DetailRow({ label, value, mono }) {
 }
 
 function ApiDiagnosticsCard() {
+  const isAdmin = useIsAdminUser();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -715,6 +740,10 @@ function ApiDiagnosticsCard() {
   }, [fetchReport]);
 
   const runDiagnostics = async () => {
+    if (!isAdmin) {
+      setErr('Admin sign-in required to run live diagnostics.');
+      return;
+    }
     setRunning(true);
     setErr(null);
     try {
@@ -746,7 +775,8 @@ function ApiDiagnosticsCard() {
             <button 
               className="ana-refresh-btn" 
               onClick={runDiagnostics} 
-              disabled={running}
+              disabled={running || !isAdmin}
+              title={isAdmin ? 'Run live endpoint probes' : 'Admin sign-in required'}
               style={{ marginLeft: 'auto', padding: '4px 10px', fontSize: '10px' }}
             >
               {running ? 'Running Probes...' : 'Run Live Diagnostics'}
@@ -778,6 +808,7 @@ function ApiDiagnosticsCard() {
 }
 
 export default function AnalyticsMarket() {
+  const isAdmin = useIsAdminUser();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -820,6 +851,20 @@ export default function AnalyticsMarket() {
     const id = setInterval(fetchData, 30000);
     return () => clearInterval(id);
   }, [autoRefresh, fetchData]);
+
+  useEffect(() => {
+    if (autoRefresh && !isAdmin) setAutoRefresh(false);
+  }, [autoRefresh, isAdmin]);
+
+  const handleAutoRefreshToggle = useCallback(() => {
+    if (!isAdmin) return;
+    setAutoRefresh(r => !r);
+  }, [isAdmin]);
+
+  const handleForceLiveRefresh = useCallback(() => {
+    if (!isAdmin) return;
+    fetchData(true);
+  }, [fetchData, isAdmin]);
 
   const fetchEpDetail = useCallback(async (epPath) => {
     const encoded = encodeURIComponent(epPath.substring(1));
@@ -870,10 +915,22 @@ export default function AnalyticsMarket() {
         <span>Heap {up.memoryMB || 0} / {up.heapTotalMB || 0} MB</span>
         <span>RSS {up.rssMB || 0} MB</span>
         <span>MemCache {mc.keyCount || 0} keys ({mc.hitRate || 0}% hit)</span>
-        <button className={`ana-refresh-btn${autoRefresh ? ' active' : ''}`} onClick={() => setAutoRefresh(r => !r)}>
+        <button
+          className={`ana-refresh-btn${autoRefresh ? ' active' : ''}`}
+          onClick={handleAutoRefreshToggle}
+          disabled={!isAdmin}
+          title={isAdmin ? 'Auto-refresh analytics every 30 seconds' : 'Admin sign-in required'}
+        >
           {autoRefresh ? 'Auto 30s' : 'Auto-refresh'}
         </button>
-        <button className="ana-refresh-btn" onClick={() => fetchData(true)}>Refresh (force live)</button>
+        <button
+          className="ana-refresh-btn"
+          onClick={handleForceLiveRefresh}
+          disabled={!isAdmin}
+          title={isAdmin ? 'Bypass RTDB and fetch live analytics' : 'Admin sign-in required'}
+        >
+          Refresh (force live)
+        </button>
         {/* Audit controls (date-aware) live inside the "Provenance Audit" bento card below — supports global History picker + per-audit date select. */}
       </div>
       <div className="ana-dashboard ana-dashboard--bento">

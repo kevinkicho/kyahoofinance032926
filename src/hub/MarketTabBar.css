@@ -103,6 +103,13 @@
 .hub-refresh-toggle:hover {
   border-color: var(--text-muted);
 }
+.hub-refresh-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.hub-refresh-toggle:disabled:hover {
+  border-color: var(--border-color);
+}
 .hub-currency-picker { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
 .hub-currency-label { color: var(--text-dim); font-size: 11px; font-weight: 500; }
 .hub-currency-select {
@@ -327,4 +334,3 @@
   width: 16px;
   height: 16px;
 }
-

@@ -9,6 +9,7 @@ import { useToast } from './ToastContext';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
+const ADMIN_EMAIL = 'kevinkicho@gmail.com';
 
 function highlightMatch(text, query) {
   if (!query) return text;
@@ -42,6 +43,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   const [user, setUser] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const profileRef = useRef(null);
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   useEffect(() => {
     if (auth) {
@@ -50,6 +52,10 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       });
     }
   }, []);
+
+  useEffect(() => {
+    if (autoRefresh && !isAdmin) onToggleRefresh();
+  }, [autoRefresh, isAdmin, onToggleRefresh]);
 
   const handleSignOut = useCallback(async () => {
     if (auth) {
@@ -75,6 +81,14 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       addToast('Firebase Auth is not configured in this build.', 'error');
     }
   }, [addToast]);
+
+  const handleToggleRefresh = useCallback(() => {
+    if (!isAdmin) {
+      addToast('Admin account required to enable auto-refresh.', 'error');
+      return;
+    }
+    onToggleRefresh();
+  }, [addToast, isAdmin, onToggleRefresh]);
 
   // Global historical date picker (drives DataProvider.setHistoricalDate which seeds all markets from RTDB /history/{date})
   const [histDates, setHistDates] = useState([]);
@@ -245,8 +259,9 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       </button>
       <button
         className="hub-refresh-toggle"
-        onClick={onToggleRefresh}
-        title={autoRefresh ? 'Auto-refresh ON (5 min)' : 'Auto-refresh OFF'}
+        onClick={handleToggleRefresh}
+        disabled={!isAdmin}
+        title={isAdmin ? (autoRefresh ? 'Auto-refresh ON (5 min)' : 'Auto-refresh OFF') : 'Admin sign-in required'}
         aria-label={autoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh'}
       >
         {autoRefresh ? 'On' : 'Off'}
