@@ -37,6 +37,8 @@ function getInsuranceProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     fetchLog: centralData.fetchLog || [],
     error: centralData.error,
     refetch: centralData.refetch,
@@ -71,11 +73,13 @@ function InsuranceMarket({ centralData } = {}) {
         error={props.error}
         fetchedOn={props.fetchedOn}
         isCurrent={props.isCurrent}
+        isHistorical={props.isHistorical}
+        asOfDate={props.asOfDate}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}
         fetchLog={props.fetchLog}
       />
-      <DataFooter source="Yahoo Finance / FRED" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
+      <DataFooter source="Yahoo Finance / FRED" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} isHistorical={props.isHistorical} asOfDate={props.asOfDate} />
     </div>
   );
 }

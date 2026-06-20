@@ -137,7 +137,7 @@ function HistoricalModeBanner() {
   );
 }
 
-export default function HubLayout() {
+function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey }) {
   const [activeMarket, setActiveMarket] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get('market');
@@ -147,8 +147,6 @@ export default function HubLayout() {
   });
   const { currency, setCurrency } = useCurrency();
   const [snapshotDate, setSnapshotDate] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('hub-auto-refresh') === 'on');
-  const [refreshKey, setRefreshKey] = useState(0);
   const contentRef = useRef(null);
   const marketDataRef = useRef(null);
   const { addToast } = useToast();
@@ -348,7 +346,6 @@ export default function HubLayout() {
   }, [activeMarket, handleExport, setActiveMarket]);
 
   return (
-    <DataProvider autoRefresh={autoRefresh} refreshKey={refreshKey}>
       <div className="hub-layout">
         <a href='#main-content' className='skip-link'>Skip to content</a>
          <MarketTabBar
@@ -373,6 +370,21 @@ export default function HubLayout() {
         </main>
         <HubFooter activeMarket={activeMarket} />
       </div>
+  );
+}
+
+export default function HubLayout() {
+  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('hub-auto-refresh') === 'on');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  return (
+    <DataProvider autoRefresh={autoRefresh} refreshKey={refreshKey}>
+      <HubLayoutInner
+        autoRefresh={autoRefresh}
+        setAutoRefresh={setAutoRefresh}
+        refreshKey={refreshKey}
+        setRefreshKey={setRefreshKey}
+      />
     </DataProvider>
   );
 }

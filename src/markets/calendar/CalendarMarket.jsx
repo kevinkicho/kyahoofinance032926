@@ -46,6 +46,8 @@ function getCalendarProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     fetchLog: centralData.fetchLog || [],
     error: centralData.error,
     refetch: centralData.refetch,

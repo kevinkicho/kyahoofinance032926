@@ -13,6 +13,8 @@ function getBlsProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
@@ -35,8 +37,10 @@ function BlsMarket({ centralData } = {}) {
         error={props.error}
         fetchedOn={props.fetchedOn}
         isCurrent={props.isCurrent}
+        isHistorical={props.isHistorical}
+        asOfDate={props.asOfDate}
       />
-      <DataFooter source="Bureau of Labor Statistics (via FRED)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
+      <DataFooter source="Bureau of Labor Statistics (via FRED)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} isHistorical={props.isHistorical} asOfDate={props.asOfDate} />
     </div>
   );
 }

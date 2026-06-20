@@ -541,6 +541,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   const mountedRef = useRef(true);
   const fetchingRef = useRef(false);
   const pendingFetchRef = useRef(null);
+  const fetchGenerationRef = useRef(0);
   const marketsRef = useRef(markets);
   const historicalDateRef = useRef(historicalDate);
 
@@ -599,12 +600,19 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     // On normal loads we prefer the snapshot for slow/expensive endpoints (realEstate etc.)
     // to avoid 504s and unnecessary Cloud Run invocations from the browser.
     const effectiveDate = historicalDateRef.current; // if set, load that day's snapshot instead of latest
+    const fetchGeneration = fetchGenerationRef.current;
     const rtdbSeeds = await Promise.all(
       ids.map(async (id) => {
         const seed = await loadFromRTDB(id, effectiveDate);
         return seed ? { id, seed } : null;
       })
     );
+
+    if (fetchGeneration !== fetchGenerationRef.current || effectiveDate !== historicalDateRef.current) {
+      dlog('[DataProvider] Discarding stale fetch wave before applying RTDB seeds.');
+      completeFetch();
+      return;
+    }
 
     // Track which markets got usable snapshot data this time.
     // Apply the structural guard so stale snapshots (e.g. credit data
@@ -718,6 +726,11 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       const results = await Promise.allSettled(batch.map(id => fetchMarket(id, forceLive)));
 
         if (!mountedRef.current) { completeFetch(); return; }
+        if (fetchGeneration !== fetchGenerationRef.current || effectiveDate !== historicalDateRef.current) {
+          dlog('[DataProvider] Discarding stale live fetch wave after history/latest changed.');
+          completeFetch();
+          return;
+        }
 
       try {
         setMarkets(prev => {
@@ -744,6 +757,80 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
     dlog(`[DataProvider] ✅ All fetches complete`);
     completeFetch();
+    setGlobalLoading(false);
+  }, []);
+
+  const applySnapshotMode = useCallback(async (date = null) => {
+    const ids = ALL_FETCH_IDS;
+    const modeGeneration = fetchGenerationRef.current;
+    setGlobalLoading(true);
+
+    const rtdbSeeds = await Promise.all(
+      ids.map(async (id) => {
+        const seed = await loadFromRTDB(id, date);
+        return seed ? { id, seed } : null;
+      })
+    );
+
+    if (modeGeneration !== fetchGenerationRef.current || date !== historicalDateRef.current) return;
+
+    const seededIds = new Set(
+      rtdbSeeds.filter(Boolean).filter(s => {
+        const guard = STRUCTURAL_GUARDS[s.id];
+        if (!guard) return true;
+        try { return guard(s.seed.data); } catch { return false; }
+      }).map(s => s.id)
+    );
+
+    setMarkets(prev => {
+      const next = { ...prev };
+      for (const id of ids) {
+        if (!next[id]) continue;
+        const item = rtdbSeeds.find(s => s?.id === id);
+        const hasSeed = item && seededIds.has(id);
+        if (hasSeed) {
+          const { seed } = item;
+          const fetchedAt = seed.fetchedAt || seed.data?.fetchedOn || seed.data?.lastUpdated || tsNow();
+          next[id] = {
+            ...next[id],
+            data: seed.data,
+            isLoading: false,
+            isLive: !date,
+            isCurrent: !date,
+            isHistorical: !!date,
+            asOfDate: date || null,
+            lastUpdated: fetchedAt,
+            fetchedOn: fetchedAt,
+            error: null,
+            fetchLog: [{
+              time: fetchedAt,
+              url: `${MARKET_ENDPOINTS[id]} (RTDB Snapshot)`,
+              status: 200,
+              duration: 0,
+              requestId: 'RTDB',
+              sources: seed.data?._sources || null,
+            }, ...(next[id]?.fetchLog || [])].slice(0, 20),
+          };
+        } else if (date) {
+          next[id] = {
+            ...next[id],
+            data: null,
+            isLoading: false,
+            isLive: false,
+            isCurrent: false,
+            isHistorical: true,
+            asOfDate: date,
+            lastUpdated: null,
+            fetchedOn: null,
+            error: `No historical snapshot for ${date}`,
+          };
+        } else {
+          next[id] = { ...next[id], isLoading: false, isHistorical: false, asOfDate: null };
+        }
+      }
+      return next;
+    });
+
     setGlobalLoading(false);
   }, []);
 
@@ -815,8 +902,15 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       didObserveHistoricalDateRef.current = true;
       return;
     }
-    fetchAllMarkets(false);
-  }, [historicalDate, fetchAllMarkets]);
+    fetchGenerationRef.current += 1;
+    pendingFetchRef.current = null;
+    if (historicalDate) {
+      applySnapshotMode(historicalDate);
+    } else {
+      applySnapshotMode(null);
+      fetchAllMarkets(false);
+    }
+  }, [historicalDate, fetchAllMarkets, applySnapshotMode]);
 
   // Manual-refresh button increments refreshKey from outside; this fires
   // a wave each time it changes (skipping the initial 0→0 no-op).

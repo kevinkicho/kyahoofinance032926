@@ -358,7 +358,9 @@ export default function DataFooter({ source, timestamp, isLive, fetchLog, error,
     ? <span className="df-snapshot">SNAPSHOT</span>
     : (isLive
         ? <span className="df-fetched">FETCHED</span>
-        : (fetchLog?.length > 0 ? <span className="df-static">NO DATA</span> : <span className="df-pending">PENDING</span>));
+        : (fetchedOn
+            ? <span className="df-snapshot">STALE</span>
+            : (fetchLog?.length > 0 ? <span className="df-static">NO DATA</span> : <span className="df-pending">PENDING</span>)));
 
   const sources = fetchLog?.[0]?.sources;
 

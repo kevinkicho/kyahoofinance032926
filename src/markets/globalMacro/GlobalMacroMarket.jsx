@@ -26,6 +26,8 @@ function getGlobalMacroProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     fetchLog: centralData.fetchLog || [],
     error: centralData.error,
     refetch: centralData.refetch,
@@ -58,6 +60,8 @@ function GlobalMacroMarket({ centralData } = {}) {
       error={props.error}
       fetchedOn={props.fetchedOn}
       isCurrent={props.isCurrent}
+      isHistorical={props.isHistorical}
+      asOfDate={props.asOfDate}
     />
   );
 
@@ -97,6 +101,8 @@ function GlobalMacroMarket({ centralData } = {}) {
         error={props.error}
         fetchedOn={props.fetchedOn}
         isCurrent={props.isCurrent}
+        isHistorical={props.isHistorical}
+        asOfDate={props.asOfDate}
       />
     </div>
   );

@@ -36,6 +36,8 @@ function getAlertsProps(centralData) {
     isLive: centralData.isLive,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     fetchLog: centralData.fetchLog || [],
     error: centralData.error,
     lastUpdated: centralData.lastUpdated,
@@ -96,13 +98,15 @@ function AlertsMarket({ centralData } = {}) {
           isLive={props.isLive}
           fetchedOn={props.fetchedOn}
           isCurrent={props.isCurrent}
+          isHistorical={props.isHistorical}
+          asOfDate={props.asOfDate}
           fetchLog={props.fetchLog}
           lastUpdated={props.lastUpdated}
           error={props.error}
           onToggleRule={props.refetch}
           correlationData={correlationData}
         />
-        <DataFooter source="Multi-market (6 endpoints)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
+        <DataFooter source="Multi-market (6 endpoints)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} isHistorical={props.isHistorical} asOfDate={props.asOfDate} />
       </div>
     </div>
   );

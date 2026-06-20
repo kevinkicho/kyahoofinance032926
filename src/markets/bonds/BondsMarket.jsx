@@ -59,6 +59,8 @@ function getBondsProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
@@ -109,6 +111,7 @@ function BondsMarket({ centralData } = {}) {
             lastUpdated={props.lastUpdated}
             fetchLog={props.fetchLog}
             error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+            isHistorical={props.isHistorical} asOfDate={props.asOfDate}
             provenance={props.provenance}
           />
         </div>

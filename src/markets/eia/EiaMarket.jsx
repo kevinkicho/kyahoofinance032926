@@ -82,6 +82,8 @@ function getEiaProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
@@ -102,7 +104,7 @@ function EiaMarket({ centralData } = {}) {
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted, #888)' }}>
           Data source temporarily unavailable
         </div>
-        <DataFooter source="EIA (US Energy Information Administration)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
+        <DataFooter source="EIA (US Energy Information Administration)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} isHistorical={props.isHistorical} asOfDate={props.asOfDate} />
       </div>
     );
   }
@@ -155,7 +157,7 @@ function EiaMarket({ centralData } = {}) {
           </BentoCard>
         )}
       </BentoWrapper>
-      <DataFooter source="EIA (US Energy Information Administration)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} />
+      <DataFooter source="EIA (US Energy Information Administration)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} isHistorical={props.isHistorical} asOfDate={props.asOfDate} />
     </div>
   );
 }

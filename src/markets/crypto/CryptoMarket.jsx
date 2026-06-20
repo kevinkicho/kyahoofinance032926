@@ -22,6 +22,8 @@ function getCryptoProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,

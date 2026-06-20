@@ -21,6 +21,8 @@ function getSentimentProps(centralData) {
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
     isCurrent: centralData.isCurrent,
+    isHistorical: centralData.isHistorical,
+    asOfDate: centralData.asOfDate,
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
@@ -56,6 +58,7 @@ function SentimentMarket({ centralData } = {}) {
           convert={convert}
           currentSymbol={currentSymbol}
           error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}
+          isHistorical={props.isHistorical} asOfDate={props.asOfDate}
           fetchLog={props.fetchLog}
           isLive={props.isLive}
           lastUpdated={props.lastUpdated}
