@@ -205,8 +205,29 @@ export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
       console.warn(`[scheduled] failed snapshot for ${id}:`, e?.message || e);
       const errPayload = { at: now, message: String(e?.message || e) };
 
-      // Record error in history for this day
-      await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
+      // Preserve History coverage even when a live refresh flakes out. If a
+      // previous good snapshot exists, copy it into today's history and attach
+      // the refresh error so diagnostics can show a warning instead of a hard
+      // missing-data hole.
+      try {
+        const latestSnap = await db.ref(`marketSnapshots/${id}/latest`).once("value");
+        const latestPayload = latestSnap.val();
+        if (latestPayload?.data) {
+          const fallbackPayload = sanitizeForRTDB({
+            ...latestPayload,
+            fetchedAt: latestPayload.fetchedAt || now,
+            source: "scheduled-stale-fallback",
+            staleAsOf: now,
+            lastError: errPayload,
+          });
+          await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(fallbackPayload);
+        } else {
+          await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
+        }
+      } catch (fallbackErr: any) {
+        console.warn(`[scheduled] failed stale fallback for ${id}:`, fallbackErr?.message || fallbackErr);
+        await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
+      }
 
       // Also surface on latest so UI can show "last known + error on latest attempt"
       await db.ref(`marketSnapshots/${id}/latest/lastError`).set(errPayload);
