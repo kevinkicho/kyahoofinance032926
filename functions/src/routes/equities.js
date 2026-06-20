@@ -19,8 +19,9 @@ const INDEX_TICKERS = [
   ...INDEX_TICKERS_SECTORS,
 ];
 
-const DEFAULT_LIMIT = 240;
-const MAX_LIMIT = 500;
+const DEFAULT_PER_MARKET_LIMIT = 50;
+const MAX_PER_MARKET_LIMIT = 50;
+const MAX_TOTAL_LIMIT = 1000;
 
 function normalizeQuote(quote, originalTicker) {
   return {
@@ -52,11 +53,16 @@ function normalizeQuote(quote, originalTicker) {
   };
 }
 
-function getCanonicalUniverse(limit) {
+function getCanonicalUniverse(perMarketLimit, totalLimit = MAX_TOTAL_LIMIT) {
   const seen = new Set();
   const rows = [];
   for (const region of stockUniverseData) {
-    for (const stock of region.children || []) {
+    const ranked = [...(region.children || [])]
+      .filter(stock => stock?.name && stock.sector !== 'Crypto')
+      .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0))
+      .slice(0, perMarketLimit);
+
+    for (const stock of ranked) {
       if (!stock?.name || stock.sector === 'Crypto') continue;
       if (seen.has(stock.name)) continue;
       seen.add(stock.name);
@@ -69,8 +75,9 @@ function getCanonicalUniverse(limit) {
       });
     }
   }
-  rows.sort((a, b) => (b.staticMarketCapB || 0) - (a.staticMarketCapB || 0));
-  return rows.slice(0, limit);
+  return rows
+    .sort((a, b) => (b.staticMarketCapB || 0) - (a.staticMarketCapB || 0))
+    .slice(0, totalLimit);
 }
 
 async function fetchQuoteMap(tickers) {
@@ -103,13 +110,18 @@ async function fetchQuoteMap(tickers) {
 }
 
 router.get('/', async (req, res) => {
-  const rawLimit = Number(req.query.limit);
-  const limit = Number.isFinite(rawLimit)
-    ? Math.max(1, Math.min(MAX_LIMIT, Math.floor(rawLimit)))
-    : DEFAULT_LIMIT;
+  const rawPerMarketLimit = Number(req.query.perMarketLimit ?? req.query.limit);
+  const perMarketLimit = Number.isFinite(rawPerMarketLimit)
+    ? Math.max(1, Math.min(MAX_PER_MARKET_LIMIT, Math.floor(rawPerMarketLimit)))
+    : DEFAULT_PER_MARKET_LIMIT;
+
+  const rawTotalLimit = Number(req.query.totalLimit);
+  const totalLimit = Number.isFinite(rawTotalLimit)
+    ? Math.max(1, Math.min(MAX_TOTAL_LIMIT, Math.floor(rawTotalLimit)))
+    : MAX_TOTAL_LIMIT;
 
   try {
-    const universe = getCanonicalUniverse(limit);
+    const universe = getCanonicalUniverse(perMarketLimit, totalLimit);
     const equityTickers = universe.map(s => s.ticker);
     const [{ quotes, missing }, { quotes: indices, missing: missingIndices }] = await Promise.all([
       fetchQuoteMap(equityTickers),
@@ -134,7 +146,8 @@ router.get('/', async (req, res) => {
         version: 'stockUniverseData',
         requested: required,
         received,
-        limit,
+        perMarketLimit,
+        totalLimit,
         regions: stockUniverseData.length,
         tickers: equityTickers,
         metadata: universe,

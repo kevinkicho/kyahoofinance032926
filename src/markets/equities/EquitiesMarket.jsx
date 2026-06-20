@@ -169,7 +169,7 @@ const PORTFOLIO_LAYOUT = {
   ]
 };
 
-const REFRESH_BATCH = 80;
+const REFRESH_PER_MARKET_LIMIT = 50;
 const STATIC_DATA_TIMESTAMP = 'No fetch yet · click ▶ to refresh';
 const QUOTES_KEY = 'equities-quotes-v2';
 const LEGACY_SNAPSHOT_KEY = 'equities-snapshot-v1';
@@ -255,6 +255,24 @@ function applyQuotesToUniverse(universe, quotes) {
       };
     }),
   }));
+}
+
+function getTopTickersByMarket(universe, perMarketLimit = REFRESH_PER_MARKET_LIMIT) {
+  const seen = new Set();
+  const tickers = [];
+  for (const region of universe) {
+    const ranked = [...(region.children || [])]
+      .filter(stock => stock?.name && stock.sector !== 'Crypto')
+      .sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0))
+      .slice(0, perMarketLimit);
+
+    for (const stock of ranked) {
+      if (seen.has(stock.name)) continue;
+      seen.add(stock.name);
+      tickers.push(stock.name);
+    }
+  }
+  return tickers;
 }
 
 function migrateLegacySnapshot(map) {
@@ -441,13 +459,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     if (isRefreshing) return;
     setIsRefreshing(true);
     fetchIndexQuotes();
-    const allTickers = [];
-    stockUniverseData.forEach(region => {
-      region.children.forEach(stock => {
-        if (stock.name && stock.sector !== 'Crypto') allTickers.push(stock.name);
-      });
-    });
-    const topTickers = allTickers.slice(0, REFRESH_BATCH);
+    const topTickers = getTopTickersByMarket(stockUniverseData);
     api.post('/api/stocks', { tickers: topTickers })
       .then(quotes => {
         const now = formatTimestamp(new Date());
@@ -739,7 +751,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       sources: {
         'Yahoo Finance · /api/stocks': {
           _source: 'Yahoo Finance',
-          _description: `Live equity quotes for top ${REFRESH_BATCH} tickers (price, change %, market cap, 52w high/low). Refresh updates marketUniverse and persists to IndexedDB.`,
+          _description: `Live equity quotes for up to top ${REFRESH_PER_MARKET_LIMIT} tickers per market (price, change %, market cap, 52w high/low). Refresh updates marketUniverse and persists to IndexedDB.`,
         },
         'Stock universe (local)': {
           _source: 'src/data/stockUniverse.js',

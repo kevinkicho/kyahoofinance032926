@@ -129,17 +129,17 @@ const HeatmapView = ({
 
   const levels = useMemo(() => {
     if (groupBy === 'sectorInMarket') return [
-      { visibleMin: 100, itemStyle: { borderWidth: 3, gapWidth: 4 }, upperLabel: { show: true } },
-      { visibleMin: 200, itemStyle: { borderWidth: 2, gapWidth: 2 }, upperLabel: { show: true, height: 20, fontSize: 10 } },
-      { visibleMin: 300, itemStyle: { borderWidth: 1, gapWidth: 1 }, label: { show: true } },
+      { visibleMin: 8, itemStyle: { borderWidth: 3, gapWidth: 4 }, upperLabel: { show: true } },
+      { visibleMin: 8, itemStyle: { borderWidth: 2, gapWidth: 2 }, upperLabel: { show: true, height: 20, fontSize: 10 } },
+      { visibleMin: 4, itemStyle: { borderWidth: 1, gapWidth: 1 }, label: { show: true } },
     ];
     if (groupBy === 'sectorGlobal') return [
-      { visibleMin: 100, itemStyle: { borderWidth: 3, gapWidth: 4 }, upperLabel: { show: true } },
-      { visibleMin: 300, itemStyle: { borderWidth: 1, gapWidth: 1 }, label: { show: true } },
+      { visibleMin: 8, itemStyle: { borderWidth: 3, gapWidth: 4 }, upperLabel: { show: true } },
+      { visibleMin: 4, itemStyle: { borderWidth: 1, gapWidth: 1 }, label: { show: true } },
     ];
     return [
-      { visibleMin: 100, itemStyle: { borderWidth: 2, gapWidth: 3 }, upperLabel: { show: true } },
-      { visibleMin: 300, itemStyle: { borderWidth: 1, gapWidth: 2 }, label: { show: true } },
+      { visibleMin: 8, itemStyle: { borderWidth: 2, gapWidth: 3 }, upperLabel: { show: true } },
+      { visibleMin: 4, itemStyle: { borderWidth: 1, gapWidth: 2 }, label: { show: true } },
     ];
   }, [groupBy]);
 
@@ -159,8 +159,8 @@ const HeatmapView = ({
       type: 'treemap',
       animation: false,
       animationDurationUpdate: 0,
-      visibleMin: 300,
-      childrenVisibleMin: 600,
+      visibleMin: 4,
+      childrenVisibleMin: 12,
       squareRatio: 0.5 * (1 + Math.sqrt(5)),
       label: {
         show: true, fontSize: 11, fontWeight: 'bold', overflow: 'truncate',
