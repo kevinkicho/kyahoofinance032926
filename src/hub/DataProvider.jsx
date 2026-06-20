@@ -540,6 +540,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   const [historicalDate, setHistoricalDate] = useState(null); // e.g. '2026-06-09' to view past snapshot
   const mountedRef = useRef(true);
   const fetchingRef = useRef(false);
+  const pendingFetchRef = useRef(null);
   const marketsRef = useRef(markets);
   const historicalDateRef = useRef(historicalDate);
 
@@ -575,10 +576,20 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
   const fetchAllMarkets = useCallback(async (forceLive = false) => {
     if (fetchingRef.current) {
-      dlog('[DataProvider] Fetch already in progress — skipping duplicate');
+      pendingFetchRef.current = { forceLive: pendingFetchRef.current?.forceLive || forceLive };
+      dlog('[DataProvider] Fetch already in progress — queueing follow-up fetch');
       return;
     }
     fetchingRef.current = true;
+
+    const completeFetch = () => {
+      fetchingRef.current = false;
+      const pending = pendingFetchRef.current;
+      pendingFetchRef.current = null;
+      if (pending) {
+        setTimeout(() => fetchAllMarkets(pending.forceLive), 0);
+      }
+    };
 
     const ids = ALL_FETCH_IDS;
 
@@ -660,7 +671,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
         return next;
       });
       setGlobalLoading(false);
-      fetchingRef.current = false;
+      completeFetch();
       return;
     }
 
@@ -678,7 +689,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
     if (liveIds.length === 0) {
       setGlobalLoading(false);
-      fetchingRef.current = false;
+      completeFetch();
       dlog('[DataProvider] All markets satisfied by RTDB snapshots — no live wave needed.');
       return;
     }
@@ -706,7 +717,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       dlog(`[DataProvider] Batch ${Math.floor(i / FETCH_SETTINGS.batchConcurrency) + 1}: [${batch.join(', ')}]`);
       const results = await Promise.allSettled(batch.map(id => fetchMarket(id, forceLive)));
 
-      if (!mountedRef.current) { fetchingRef.current = false; return; }
+        if (!mountedRef.current) { completeFetch(); return; }
 
       try {
         setMarkets(prev => {
@@ -732,7 +743,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     }
 
     dlog(`[DataProvider] ✅ All fetches complete`);
-    fetchingRef.current = false;
+    completeFetch();
     setGlobalLoading(false);
   }, []);
 
