@@ -128,6 +128,7 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
           const r = await fetch(snapUrl);
           if (r.ok) {
             const snap = await r.json();
+            if (!snap?.data) throw new Error('No RTDB snapshot data');
             const data = snap?.data || {};
             const sources = data._sources || {};
             const sourceKeys = Object.keys(sources);

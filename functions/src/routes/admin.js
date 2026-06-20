@@ -24,6 +24,7 @@ const SNAPSHOT_MARKETS = [
   { id: "calendar", path: "/api/calendar" },
   { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
   { id: "analytics", path: "/api/analytics" },
+  { id: "watchlist", path: "/api/watchlist" },
   { id: "rateLimits", path: "/api/rate-limits" },
   { id: "cacheStatus", path: "/api/cache/status" },
   { id: "universeUpdates", path: "/api/universeUpdates" },
@@ -212,7 +213,7 @@ router.get('/diagnose', async (req, res) => {
       const url = `${base}${path}`;
       const response = await fetch(url, {
         headers: { 'User-Agent': 'diagnostics-prober-gcf' },
-        signal: AbortSignal.timeout(15000)
+        signal: AbortSignal.timeout(60000)
       });
       const duration = Date.now() - start;
 

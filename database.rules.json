@@ -6,6 +6,11 @@
     "marketSnapshots": {
       ".read": true,
       ".write": false
+    },
+
+    "apiHealthReport": {
+      ".read": true,
+      ".write": false
     }
   }
 }

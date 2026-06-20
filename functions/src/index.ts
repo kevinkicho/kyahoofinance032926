@@ -178,6 +178,7 @@ const SNAPSHOT_MARKETS = [
   { id: "calendar", path: "/api/calendar" },
   { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
   { id: "analytics", path: "/api/analytics" },
+  { id: "watchlist", path: "/api/watchlist" },
   { id: "rateLimits", path: "/api/rate-limits" },
   { id: "cacheStatus", path: "/api/cache/status" },
   { id: "universeUpdates", path: "/api/universeUpdates" },
@@ -268,7 +269,7 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
       const url = `${LIVE_FUNCTIONS_BASE}${path}`;
       const response = await fetch(url, {
         headers: { 'User-Agent': 'scheduled-diagnostics-refresher' },
-        signal: AbortSignal.timeout(20000)
+        signal: AbortSignal.timeout(60000)
       });
       const duration = Date.now() - start;
 
