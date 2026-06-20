@@ -516,6 +516,7 @@ export function mapToYahooTicker(ticker) {
 export function getYahooTicker(ticker, region) {
   if (!ticker || typeof ticker !== 'string') return ticker;
   if (ticker.includes('.')) return ticker;
+  if (region === 'USA (NYSE & NASDAQ)') return ticker;
   if (STATIC_TICKER_MAP[ticker]) return STATIC_TICKER_MAP[ticker];
   const suffix = REGION_SUFFIX[region];
   if (suffix) return `${ticker}.${suffix}`;

@@ -135,8 +135,12 @@ router.get('/', async (req, res) => {
     const received = Object.keys(quotes).length;
     const required = equityTickers.length;
     const indexReceived = Object.keys(indices).length;
-    const status = received >= Math.ceil(required * 0.85) && indexReceived >= Math.ceil(INDEX_TICKERS.length * 0.75)
+    const quoteCoverage = required ? received / required : 0;
+    const indexCoverageOk = indexReceived >= Math.ceil(INDEX_TICKERS.length * 0.75);
+    const status = quoteCoverage >= 0.85 && indexCoverageOk
       ? (missing.length || missingIndices.length ? 'partial' : 'ok')
+      : quoteCoverage >= 0.5 && indexCoverageOk
+        ? 'partial'
       : 'failed';
 
     res.json({
