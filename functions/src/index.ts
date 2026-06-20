@@ -146,6 +146,19 @@ if (!admin.apps || admin.apps.length === 0) {
 }
 
 const LIVE_FUNCTIONS_BASE = "https://api-4uzq3y2xva-uc.a.run.app";
+const RTDB_KEY_INVALID_CHARS = /[.#$/[\]]/g;
+
+function sanitizeForRTDB(value: any): any {
+  if (Array.isArray(value)) return value.map(sanitizeForRTDB);
+  if (!value || typeof value !== "object") return value === undefined ? null : value;
+
+  const out: Record<string, any> = {};
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    const key = String(rawKey).replace(RTDB_KEY_INVALID_CHARS, "_");
+    out[key] = sanitizeForRTDB(rawValue);
+  }
+  return out;
+}
 
 // Expanded list of things to pre-snapshot on schedule.
 // This makes RTDB the primary persistent store for market data + system/analytics state.
@@ -187,7 +200,7 @@ export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        const payload = { data, fetchedAt: now, source: "scheduled" };
+        const payload = sanitizeForRTDB({ data, fetchedAt: now, source: "scheduled" });
 
         // Historical entry — this makes the DB grow day by day instead of overwriting.
         await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(payload);

@@ -163,18 +163,19 @@ function buildSourcesFromData(d) {
 }
 
 router.get('/', async (req, res) => {
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
+  const refresh = req.query.refresh === 'true';
+  const FRED_API_KEY = (process.env.FRED_API_KEY || '').trim();
   const cache = req.app.locals.cache;
   const cacheKey = 'bonds_data';
   const today = todayStr();
 
-  const daily = readDailyCache('bonds');
+  const daily = refresh ? null : readDailyCache('bonds');
   if (daily) {
     const sources = buildSourcesFromData(daily);
     return res.json({ ...daily, fetchedOn: today, isCurrent: true, _sources: sources });
   }
 
-  const cached = cache.get(cacheKey);
+  const cached = refresh ? null : cache.get(cacheKey);
   if (cached) {
     const sources = buildSourcesFromData(cached);
     return res.json({ ...cached, fetchedOn: today, isCurrent: true, _sources: sources });
@@ -820,4 +821,3 @@ router.get('/', async (req, res) => {
 });
 
 export default router;
-

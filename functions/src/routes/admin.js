@@ -29,6 +29,20 @@ const SNAPSHOT_MARKETS = [
   { id: "universeUpdates", path: "/api/universeUpdates" },
 ];
 
+const RTDB_KEY_INVALID_CHARS = /[.#$/[\]]/g;
+
+function sanitizeForRTDB(value) {
+  if (Array.isArray(value)) return value.map(sanitizeForRTDB);
+  if (!value || typeof value !== 'object') return value === undefined ? null : value;
+
+  const out = {};
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    const key = String(rawKey).replace(RTDB_KEY_INVALID_CHARS, '_');
+    out[key] = sanitizeForRTDB(rawValue);
+  }
+  return out;
+}
+
 function deny(res, status = 403, userMessage = 'Admin account required to refresh global data.') {
   return res.status(status).json({ error: userMessage, userMessage });
 }
@@ -142,7 +156,7 @@ router.post('/refresh-all', async (req, res) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
 
-      const payload = { data, fetchedAt: now, source: 'admin-trigger' };
+      const payload = sanitizeForRTDB({ data, fetchedAt: now, source: 'admin-trigger' });
 
       // Write snapshot to RTDB
       await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(payload);
