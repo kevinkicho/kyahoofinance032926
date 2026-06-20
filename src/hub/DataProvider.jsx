@@ -341,7 +341,13 @@ export const STRUCTURAL_GUARDS = {
   commodities:    d => Array.isArray(d.cotData) ? d.cotData.length >= 2 : true,
   sentiment:      d => Array.isArray(d.currencies) ? d.currencies.length >= 4 : true,
   globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
-  credit:         d => d.spreadData?.history?.dates?.length >= 6 && d.commercialPaper?.rate != null,
+  credit:         d => {
+    const fredSpreadBranch = d.spreadData?.history?.dates?.length >= 6 && d.commercialPaper?.rate != null;
+    const emBondBranch = Array.isArray(d.emBondData?.countries) && d.emBondData.countries.length >= 5;
+    const loanBranch = Array.isArray(d.loanData?.indices) && d.loanData.indices.length >= 1;
+    const defaultBranch = Array.isArray(d.defaultData?.rates) && d.defaultData.rates.length >= 1;
+    return fredSpreadBranch || emBondBranch || loanBranch || defaultBranch;
+  },
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
   equities:      d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
   equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,

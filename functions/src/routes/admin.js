@@ -207,7 +207,7 @@ router.get('/diagnose', async (req, res) => {
   const db = admin.database();
 
   // Import validation helpers
-  const { validateMarketData } = await import('../lib/validation.js');
+  const { getValidationWarning, validateMarketData } = await import('../lib/validation.js');
 
   const targets = DIAGNOSTIC_MARKETS;
 
@@ -249,11 +249,11 @@ router.get('/diagnose', async (req, res) => {
         };
         healthyCount++;
       } else {
-        // Special warning check for USDA when api key is not configured
-        if (id === 'usda' && data && data.error && data.error.includes('USDA_NASS_API_KEY not configured')) {
+        const warning = getValidationWarning(id, data);
+        if (warning) {
           results[id] = {
             status: 'warning',
-            error: 'USDA_NASS_API_KEY not configured (falls back to stub)',
+            error: warning,
             duration,
             lastChecked: now
           };

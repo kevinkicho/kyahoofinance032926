@@ -230,7 +230,7 @@ export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
 // Run structural checks on all endpoints and save report to RTDB
 async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
   console.log(`[scheduled] running daily diagnostics at ${now}`);
-  const { validateMarketData } = await import("./lib/validation.js");
+  const { getValidationWarning, validateMarketData } = await import("./lib/validation.js");
 
   const targets = DIAGNOSTIC_MARKETS;
 
@@ -271,10 +271,11 @@ async function runDailyDiagnostics(db: any, dateKey: string, now: string) {
         };
         healthyCount++;
       } else {
-        if (id === 'usda' && data && data.error && data.error.includes('USDA_NASS_API_KEY not configured')) {
+        const warning = getValidationWarning(id, data);
+        if (warning) {
           results[id] = {
             status: 'warning',
-            error: 'USDA_NASS_API_KEY not configured (falls back to stub)',
+            error: warning,
             duration,
             lastChecked: now
           };
