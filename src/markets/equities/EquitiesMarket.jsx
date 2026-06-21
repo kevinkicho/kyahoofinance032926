@@ -116,6 +116,8 @@ const HEATMAP_LAYOUT = {
     { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
     { i: 'heatmap', x: 0, y: 3, w: 8,  h: 6 },
     { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
+    { i: 'sec-fundamentals', x: 0, y: 9, w: 6, h: 3 },
+    { i: 'universe-updates', x: 6, y: 9, w: 6, h: 3 },
   ]
 };
 
@@ -346,6 +348,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const [historyNotice, setHistoryNotice] = useState(null);
   const dataCtx = (() => { try { return useDataContext(); } catch { return null; } })();
   const globalHistoricalDate = dataCtx?.historicalDate || null;
+  const edgarCtx = dataCtx?.getMarket?.('edgar');
+  const universeCtx = dataCtx?.getMarket?.('universeUpdates');
   const centralSnapshot = centralData?.data || null;
   const centralQuotes = useMemo(() => compactQuotesFromSnapshot(centralSnapshot?.quotes), [centralSnapshot]);
 
@@ -732,6 +736,21 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   }, [marketUniverse]);
 
   const globalValCap = flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0);
+  const edgarRows = useMemo(() => {
+    return Object.entries(edgarCtx?.data?.tickers || {}).map(([ticker, row]) => {
+      const rev = row.revenues?.at?.(-1);
+      const ni = row.netIncome?.at?.(-1);
+      return {
+        ticker,
+        cik: row.cik,
+        revenue: rev?.value ?? null,
+        netIncome: ni?.value ?? null,
+        period: ni?.fy || rev?.fy || ni?.end || rev?.end || null,
+        margin: rev?.value ? ((ni?.value ?? 0) / rev.value) * 100 : null,
+      };
+    });
+  }, [edgarCtx]);
+  const universeUpdates = universeCtx?.data?.updates || [];
 
     // Synthetic fetchLog so DataFooter's click-to-open popover has something
     // to render. Without this, open() bails on `fetchLog.length === 0` and
@@ -923,6 +942,62 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     </BentoCard>
   );
 
+  const secFundamentalsCard = edgarRows.length > 0 ? (
+    <BentoCard
+      key="sec-fundamentals"
+      title="SEC Mega-Cap Fundamentals"
+      subtitle="Revenue · net income · margin from EDGAR XBRL"
+      accent="equities"
+      className="eq-bento-card"
+      contentClassName="eq-panel-content eq-panel-scroll"
+      source="SEC EDGAR XBRL"
+      timestamp={edgarCtx?.lastUpdated || dataTimestamp}
+      isLive={!!edgarCtx?.data?.isLive}
+      isCurrent={edgarCtx?.isCurrent ?? true}
+      fetchedOn={edgarCtx?.fetchedOn}
+      fetchLog={edgarCtx?.fetchLog || []}
+      error={edgarCtx?.error}
+    >
+      <div className="eq-mini-table">
+        {edgarRows.map(row => (
+          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '70px 1fr 1fr 70px', gap: 8, alignItems: 'center' }}>
+            <strong>{row.ticker}</strong>
+            <span><MetricValue value={row.revenue} seriesKey="edgarRevenue" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
+            <span><MetricValue value={row.netIncome} seriesKey="edgarNetIncome" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
+            <span style={{ color: (row.margin ?? 0) >= 20 ? '#22c55e' : '#f59e0b' }}>{row.margin != null ? `${row.margin.toFixed(1)}%` : '—'}</span>
+          </div>
+        ))}
+      </div>
+    </BentoCard>
+  ) : null;
+
+  const universeUpdatesCard = universeUpdates.length > 0 ? (
+    <BentoCard
+      key="universe-updates"
+      title="Universe Expansion Queue"
+      subtitle={`${universeUpdates.length} discovered listings · review candidates`}
+      accent="equities"
+      className="eq-bento-card"
+      contentClassName="eq-panel-content eq-panel-scroll"
+      source="Finnhub / Yahoo Finance"
+      timestamp={universeCtx?.lastUpdated || dataTimestamp}
+      isLive={!!universeCtx?.data?._sources?.universeUpdates}
+      isCurrent={universeCtx?.isCurrent ?? true}
+      fetchedOn={universeCtx?.fetchedOn}
+      fetchLog={universeCtx?.fetchLog || []}
+      error={universeCtx?.error}
+    >
+      {universeUpdates.slice(0, 10).map(row => (
+        <div key={row.name} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '90px 1fr 90px 70px', gap: 8, alignItems: 'center' }}>
+          <strong>{row.name}</strong>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.fullName || row.sector || 'New listing'}</span>
+          <span><MetricValue value={row.marketCap} seriesKey="universeMarketCap" timestamp={universeCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
+          <span>{row.pe != null ? row.pe.toFixed(1) : '—'}</span>
+        </div>
+      ))}
+    </BentoCard>
+  ) : null;
+
   return (
     <div className="eq-dashboard eq-dashboard--bento" role="region" aria-label="Equities">
       <Header
@@ -1031,6 +1106,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
             </div>
           </div>
           {sidebarPanel}
+          {secFundamentalsCard}
+          {universeUpdatesCard}
         </BentoWrapper>
       ) : viewMode === 'portfolio' ? (
         // PORTFOLIO_LAYOUT only has 'kpi' + 'portfolio' slots — sidebar

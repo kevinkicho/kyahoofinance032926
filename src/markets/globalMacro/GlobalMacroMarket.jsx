@@ -47,6 +47,9 @@ function GlobalMacroMarket({ centralData } = {}) {
   const sepCtx = useMarketData('fedSEP');
   const gdpNowCtx = useMarketData('fedGDPNow');
   const cleveCtx = useMarketData('fedInflationNowcast');
+  const beaCtx = useMarketData('bea');
+  const eurostatCtx = useMarketData('eurostat');
+  const oecdCtx = useMarketData('oecd');
   if (!centralData) return <MarketSkeleton />;
   const props = getGlobalMacroProps(centralData);
 
@@ -100,6 +103,15 @@ function GlobalMacroMarket({ centralData } = {}) {
         gdpNowLastUpdated={gdpNowCtx?.lastUpdated}
         cleveData={cleveCtx?.data}
         cleveLastUpdated={cleveCtx?.lastUpdated}
+        beaData={beaCtx?.data}
+        beaLastUpdated={beaCtx?.lastUpdated}
+        beaCtx={beaCtx}
+        eurostatData={eurostatCtx?.data}
+        eurostatLastUpdated={eurostatCtx?.lastUpdated}
+        eurostatCtx={eurostatCtx}
+        oecdData={oecdCtx?.data}
+        oecdLastUpdated={oecdCtx?.lastUpdated}
+        oecdCtx={oecdCtx}
         fetchLog={props.fetchLog}
         isLive={props.isLive}
         lastUpdated={props.lastUpdated}

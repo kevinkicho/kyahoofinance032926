@@ -17,10 +17,6 @@
   background: var(--bg-deep);
 }
 
-
-  font-weight: 500;
-}
-
 /* ── 2. Dashboard container (bento) ── */
 .mac-dashboard.mac-dashboard--bento {
   display: flex;

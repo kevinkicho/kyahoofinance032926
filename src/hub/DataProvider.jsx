@@ -67,6 +67,11 @@ export const MARKET_ENDPOINTS = {
   bls:               '/api/bls',
   eia:               '/api/eia',
   census:             '/api/census',
+  bea:               '/api/bea',
+  eurostat:          '/api/eurostat',
+  oecd:              '/api/oecd',
+  edgar:             '/api/edgar',
+  universeUpdates:   '/api/universeUpdates',
   // Tier-1 additions: consumed by Bonds (Foreign Holders, Money Market),
   // Credit (Bank Sector), and Macro (Euro Area) panels.
   nyfed:             '/api/nyfed',

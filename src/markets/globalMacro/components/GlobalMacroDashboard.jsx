@@ -120,6 +120,9 @@ const LAYOUT = {
     { i: 'gdpnow',       x: 0, y: 31, w: 6,  h: 4 },
     { i: 'fomc-sep',     x: 6, y: 31, w: 6,  h: 4 },
     { i: 'cleveland',    x: 0, y: 35, w: 12, h: 3 },
+    { i: 'bea-accounts', x: 0, y: 38, w: 6,  h: 4 },
+    { i: 'eurostat',     x: 6, y: 38, w: 6,  h: 4 },
+    { i: 'oecd-direct',  x: 0, y: 42, w: 12, h: 4 },
   ]
 };
 
@@ -133,6 +136,9 @@ function GlobalMacroDashboard({
   sepData, sepLastUpdated,
   gdpNowData, gdpNowLastUpdated,
   cleveData, cleveLastUpdated,
+  beaData, beaLastUpdated, beaCtx,
+  eurostatData, eurostatLastUpdated, eurostatCtx,
+  oecdData, oecdLastUpdated, oecdCtx,
   fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
@@ -307,6 +313,83 @@ function GlobalMacroDashboard({
       }],
     };
   }, [cfnai, colors]);
+
+  const beaSummary = useMemo(() => {
+    const latestByDesc = (rows = [], match) => {
+      const found = [...rows].reverse().find(r => (r.desc || '').toLowerCase().includes(match));
+      return found || null;
+    };
+    return {
+      gdp: latestByDesc(beaData?.gdpComponents, 'gross domestic product'),
+      consumption: latestByDesc(beaData?.gdpComponents, 'personal consumption'),
+      investment: latestByDesc(beaData?.gdpComponents, 'gross private domestic investment'),
+      income: latestByDesc(beaData?.personalIncome, 'personal income'),
+      saving: beaData?.savingRate?.at?.(-1) || null,
+    };
+  }, [beaData]);
+
+  const beaOption = useMemo(() => {
+    const rows = (beaData?.savingRate || []).slice(-48);
+    if (!rows.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', valueFormatter: v => v != null ? `${Number(v).toFixed(1)}%` : '—' },
+      grid: { top: 10, right: 12, bottom: 24, left: 42 },
+      xAxis: { type: 'category', data: rows.map(r => r.period), axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(rows.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{ type: 'line', data: rows.map(r => r.value), smooth: true, symbol: 'none', lineStyle: { color: '#22d3ee', width: 2 }, areaStyle: { color: 'rgba(34, 211, 238, 0.1)' } }],
+    };
+  }, [beaData, colors]);
+
+  const eurostatOption = useMemo(() => {
+    const rows = [
+      ...(eurostatData?.hicp || []).map(r => ({ ...r, metric: 'HICP' })),
+      ...(eurostatData?.unemployment || []).map(r => ({ ...r, metric: 'Unemployment' })),
+      ...(eurostatData?.govtDeficit || []).map(r => ({ ...r, metric: 'Govt Deficit' })),
+    ];
+    if (!rows.length) return null;
+    const latest = ['HICP', 'Unemployment', 'Govt Deficit'].map(metric => [...rows].reverse().find(r => r.metric === metric)).filter(Boolean);
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      grid: { top: 12, right: 12, bottom: 24, left: 80 },
+      xAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'category', data: latest.map(r => r.metric), axisLabel: { color: colors.textSecondary, fontSize: 10 }, axisLine: { show: false }, axisTick: { show: false } },
+      series: [{ type: 'bar', data: latest.map(r => ({ value: r.value, itemStyle: { color: r.metric === 'HICP' ? '#f59e0b' : r.metric === 'Unemployment' ? '#ef4444' : '#a78bfa' } })), barWidth: 16 }],
+    };
+  }, [eurostatData, colors]);
+
+  const oecdDirectRows = useMemo(() => {
+    return Object.entries(oecdData?.cli || {}).map(([code, rows]) => {
+      const latest = rows?.[rows.length - 1];
+      const prior = rows?.[Math.max(0, rows.length - 4)];
+      return {
+        code,
+        value: latest?.value ?? null,
+        period: latest?.period ?? null,
+        momentum: latest?.value != null && prior?.value != null ? latest.value - prior.value : null,
+      };
+    }).filter(r => r.value != null).sort((a, b) => (b.momentum ?? -99) - (a.momentum ?? -99));
+  }, [oecdData]);
+
+  const oecdDirectOption = useMemo(() => {
+    if (!oecdDirectRows.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', valueFormatter: v => v != null ? Number(v).toFixed(2) : '—' },
+      grid: { top: 12, right: 16, bottom: 24, left: 42 },
+      xAxis: { type: 'category', data: oecdDirectRows.map(r => r.code), axisLabel: { color: colors.textMuted, fontSize: 9 }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{
+        type: 'bar',
+        data: oecdDirectRows.map(r => ({ value: r.momentum, itemStyle: { color: (r.momentum ?? 0) >= 0 ? '#22c55e' : '#ef4444' } })),
+        barWidth: 18,
+      }],
+    };
+  }, [oecdDirectRows, colors]);
 
   if (!scorecardData?.length) return null;
 
@@ -689,6 +772,83 @@ function GlobalMacroDashboard({
                   </div>
                 ))}
               </div>
+            </BentoCard>
+          )}
+
+          {beaData && (beaData.gdpComponents?.length || beaData.savingRate?.length) && (
+            <BentoCard
+              key="bea-accounts"
+              title="BEA National Accounts"
+              subtitle={beaSummary.saving ? `Saving rate ${Number(beaSummary.saving.value).toFixed(1)}% · ${beaSummary.saving.period}` : 'NIPA GDP components · personal income · saving rate'}
+              accent="globalMacro"
+              className="mac-bento-card"
+              contentClassName="mac-panel-scroll"
+              source="BEA NIPA"
+              timestamp={beaLastUpdated || lastUpdated}
+              isLive={!!beaData?.isLive}
+              isCurrent={beaCtx?.isCurrent ?? isCurrent}
+              fetchedOn={beaCtx?.fetchedOn || fetchedOn}
+              fetchLog={beaCtx?.fetchLog || fetchLog}
+              error={beaCtx?.error || error}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 12, height: '100%' }}>
+                <div className="mac-mini-bars" style={{ gap: 8 }}>
+                  {[
+                    ['GDP', beaSummary.gdp],
+                    ['Consumption', beaSummary.consumption],
+                    ['Investment', beaSummary.investment],
+                    ['Personal Income', beaSummary.income],
+                  ].map(([label, row]) => (
+                    <div key={label} className="mac-metric-row">
+                      <span className="mac-metric-label">{label}</span>
+                      <span className="mac-metric-value">
+                        {row?.value != null ? Number(row.value).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ minHeight: 0 }}>
+                  {beaOption && <SafeECharts option={beaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Personal Saving Rate', source: 'BEA', endpoint: '/api/bea', series: [], updatedAt: beaLastUpdated || lastUpdated }} />}
+                </div>
+              </div>
+            </BentoCard>
+          )}
+
+          {eurostatData && (eurostatData.hicp?.length || eurostatData.unemployment?.length || eurostatData.govtDeficit?.length) && (
+            <BentoCard
+              key="eurostat"
+              title="Euro Area Macro"
+              subtitle="HICP · unemployment · government deficit"
+              accent="globalMacro"
+              className="mac-bento-card"
+              source="Eurostat"
+              timestamp={eurostatLastUpdated || lastUpdated}
+              isLive={!!eurostatData?.isLive}
+              isCurrent={eurostatCtx?.isCurrent ?? isCurrent}
+              fetchedOn={eurostatCtx?.fetchedOn || fetchedOn}
+              fetchLog={eurostatCtx?.fetchLog || fetchLog}
+              error={eurostatCtx?.error || error}
+            >
+              {eurostatOption && <SafeECharts option={eurostatOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Euro Area Macro', source: 'Eurostat', endpoint: '/api/eurostat', series: [], updatedAt: eurostatLastUpdated || lastUpdated }} />}
+            </BentoCard>
+          )}
+
+          {oecdDirectRows.length > 0 && (
+            <BentoCard
+              key="oecd-direct"
+              title="OECD CLI Momentum"
+              subtitle={`Direct OECD route · latest ${oecdDirectRows[0]?.period || ''} · 3-month change`}
+              accent="globalMacro"
+              className="mac-bento-card"
+              source="OECD SDMX"
+              timestamp={oecdLastUpdated || lastUpdated}
+              isLive={!!oecdData?.isLive}
+              isCurrent={oecdCtx?.isCurrent ?? isCurrent}
+              fetchedOn={oecdCtx?.fetchedOn || fetchedOn}
+              fetchLog={oecdCtx?.fetchLog || fetchLog}
+              error={oecdCtx?.error || error}
+            >
+              {oecdDirectOption && <SafeECharts option={oecdDirectOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'OECD CLI Momentum', source: 'OECD', endpoint: '/api/oecd', series: [], updatedAt: oecdLastUpdated || lastUpdated }} />}
             </BentoCard>
           )}
         </BentoWrapper>

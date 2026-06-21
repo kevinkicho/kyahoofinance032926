@@ -383,6 +383,11 @@ export function isRenderableMarketSnapshot(id, data) {
   if (['analytics', 'watchlist', 'usda', 'censusTrade', 'eiaPetroleum'].includes(id)) {
     return Object.keys(data).some(key => !key.startsWith('_') && data[key] != null);
   }
+  if (id === 'bea') return !!(data.gdpComponents?.length || data.personalIncome?.length || data.savingRate?.length);
+  if (id === 'eurostat') return !!(data.hicp?.length || data.unemployment?.length || data.govtDeficit?.length);
+  if (id === 'oecd') return !!(data.cli && Object.values(data.cli).some(rows => Array.isArray(rows) && rows.length));
+  if (id === 'edgar') return !!(data.tickers && Object.keys(data.tickers).length);
+  if (id === 'universeUpdates') return Array.isArray(data.updates);
   if (id === 'bls' || id === 'census') return Object.keys(data.series || {}).length > 0;
   if (id === 'calendar') {
     const n = normalizeCalendarData(data);
