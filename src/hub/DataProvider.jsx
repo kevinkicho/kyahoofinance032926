@@ -651,13 +651,14 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             isCurrent: !effectiveDate,
             isHistorical: !!effectiveDate,
             asOfDate: effectiveDate || null,
+            isLoading: false,
             error: null,
             fetchLog: [seedLog, ...(next[item.id]?.fetchLog || [])].slice(0, 20),
           };
         }
       }
       for (const id of ids) {
-        if (MARKET_ENDPOINTS[id]) next[id] = { ...next[id], isLoading: true };
+        if (MARKET_ENDPOINTS[id] && !seededIds.has(id)) next[id] = { ...next[id], isLoading: true };
       }
       return next;
     });
