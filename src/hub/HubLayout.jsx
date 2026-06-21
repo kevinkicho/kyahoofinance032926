@@ -239,6 +239,28 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
 
   const dataCtx = useDataContext();
 
+  useEffect(() => {
+    if (import.meta.env.DEV) return;
+    let cancelled = false;
+    const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : null;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${import.meta.env.BASE_URL}version.json`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const latest = await res.json();
+        if (!cancelled && currentVersion && latest?.version && latest.version !== currentVersion) {
+          addToast('New version available. Hard refresh to update.', 'info');
+        }
+      } catch {
+        // Version checks are best-effort only; never disturb the dashboard.
+      }
+    }, 5000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [addToast]);
+
   const handleRefresh = useCallback(async () => {
     try {
       let token = null;

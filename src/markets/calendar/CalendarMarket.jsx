@@ -8,11 +8,16 @@ import EconomicCalendar from './components/EconomicCalendar';
 import CentralBankSchedule from './components/CentralBankSchedule';
 import EarningsSeason from './components/EarningsSeason';
 import KeyReleases from './components/KeyReleases';
+import { normalizeCalendarData } from '../../data/marketNormalizers';
 import './CalendarMarket.css';
 
 
 function PanelEmpty({ label }) {
   return <div className="cal-empty">{label ? `No upcoming ${label} scheduled` : 'No data available'}</div>;
+}
+
+function PartialState({ children = 'Partial snapshot' }) {
+  return <span style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}>{children}</span>;
 }
 
 // Top-of-grid KPI strip is now a real bento panel (`kpi`); other panels
@@ -33,14 +38,16 @@ const LAYOUT = {
 
 function getCalendarProps(centralData) {
     const d = centralData.data || {};
+    const normalized = normalizeCalendarData(d);
     return {
-      economicEvents: d.economicEvents || [],
-      centralBanks: d.centralBanks || [],
-      earningsSeason: d.earningsSeason || [],
-      keyReleases: d.keyReleases || [],
-      treasuryAuctions: d.treasuryAuctions || [],
-      optionsExpiry: d.optionsExpiry || [],
-      dividendCalendar: d.dividendCalendar || [],
+      economicEvents: normalized.values.economicEvents,
+      centralBanks: normalized.values.centralBanks,
+      earningsSeason: normalized.values.earningsSeason,
+      keyReleases: normalized.values.keyReleases,
+      treasuryAuctions: normalized.values.treasuryAuctions,
+      optionsExpiry: normalized.values.optionsExpiry,
+      dividendCalendar: normalized.values.dividendCalendar,
+      coverage: normalized.values.coverage,
       isLive: centralData.isLive,
       lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
@@ -51,6 +58,7 @@ function getCalendarProps(centralData) {
     fetchLog: centralData.fetchLog || [],
     error: centralData.error,
     refetch: centralData.refetch,
+    normalized,
   };
 }
 
@@ -231,7 +239,7 @@ function CalendarMarket({ centralData } = {}) {
           <BentoCard
             key="economic"
             title="Economic Calendar"
-            subtitle="High-importance macro releases · next 30 days"
+            subtitle={props.coverage?.low ? <>High-importance macro releases · next 30 days · <PartialState>low coverage</PartialState></> : 'High-importance macro releases · next 30 days'}
             accent="calendar"
             className="cal-bento-card"
             contentClassName="cal-panel-scroll"

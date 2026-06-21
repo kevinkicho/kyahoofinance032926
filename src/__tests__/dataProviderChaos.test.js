@@ -84,10 +84,17 @@ describe('passesStructuralGuard', () => {
   });
 
   it('calendar passes if any of events / earnings / centralBanks is populated', () => {
-    expect(passesStructuralGuard('calendar', { economicEvents: Array(5).fill({}) })).toBe(true);
-    expect(passesStructuralGuard('calendar', { earningsSeason: Array(3).fill({}) })).toBe(true);
-    expect(passesStructuralGuard('calendar', { centralBanks: Array(2).fill({}) })).toBe(true);
+    expect(passesStructuralGuard('calendar', { economicEvents: [{}] })).toBe(true);
+    expect(passesStructuralGuard('calendar', { earningsSeason: [{}] })).toBe(true);
+    expect(passesStructuralGuard('calendar', { centralBanks: [{}] })).toBe(true);
     expect(passesStructuralGuard('calendar', {})).toBe(false);
+  });
+
+  it('accepts sparse-but-valid BLS and Census series snapshots', () => {
+    const sparseSeries = { series: { cpi: { latest: { value: 325.2 }, history: { dates: ['2026-05'], values: [325.2] } } } };
+    expect(hasNonNullData(sparseSeries, 'bls')).toBe(true);
+    expect(passesStructuralGuard('bls', sparseSeries)).toBe(true);
+    expect(passesStructuralGuard('census', sparseSeries)).toBe(true);
   });
 
   it('does not throw on a guard that errors internally', () => {

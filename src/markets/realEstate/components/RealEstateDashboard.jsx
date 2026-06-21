@@ -32,9 +32,9 @@ function latestNumber(value, keys = ['values']) {
 function getCommoditySnapshot(data) {
   if (!data || typeof data !== 'object') return null;
   const futures = data.yahoo?.futures || {};
-  const goldPrice = data.gold?.price ?? data.fred?.gold_am?.value ?? futures['GC=F']?.price ?? null;
-  const wtiPrice = data.wti?.price ?? data.eia?.wti_price?.value ?? data.fred?.wti?.value ?? futures['CL=F']?.price ?? null;
-  const natGasPrice = data.natGas?.price ?? data.eia?.henry_hub?.value ?? data.fred?.natgas?.value ?? futures['NG=F']?.price ?? null;
+  const goldPrice = data.gold?.price ?? data.gold ?? data.fred?.gold_am?.value ?? futures['GC=F']?.price ?? null;
+  const wtiPrice = data.wti?.price ?? data.wti ?? data.eia?.wti_price?.value ?? data.fred?.wti?.value ?? futures['CL=F']?.price ?? null;
+  const natGasPrice = data.natGas?.price ?? data.natGas ?? data.eia?.henry_hub?.value ?? data.eia?.natgas?.value ?? data.fred?.natgas?.value ?? futures['NG=F']?.price ?? null;
   const goldOilRatio = typeof data.goldOilRatio === 'number'
     ? data.goldOilRatio
     : goldPrice != null && wtiPrice
@@ -669,7 +669,7 @@ function RealEstateDashboard({
               {capRateData.slice(0, 8).map((c, i) => (
                 <div key={i} className="re-mini-row">
                   <span className="re-mini-name">{c.sector}</span>
-                  <span className="re-mini-value"><MetricValue value={c.impliedYield ?? c.capRate} seriesKey="capRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+                  <span className="re-mini-value"><MetricValue value={c.impliedYieldPct ?? c.impliedYield ?? c.capRate} seriesKey="capRate" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toFixed(2)}%` : '—'} /></span>
                 </div>
               ))}
             </div>

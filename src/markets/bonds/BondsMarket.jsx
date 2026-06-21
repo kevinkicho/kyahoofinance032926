@@ -2,6 +2,7 @@ import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import { useCurrency } from '../../hub/CurrencyContext';
 import BondsDashboard from './components/BondsDashboard';
+import { normalizeBondsData } from '../../data/marketNormalizers';
 import './components/BondsDashboard.css';
 
 const CREDIT_RATINGS_FALLBACK = [
@@ -28,29 +29,30 @@ const DEFAULT_DURATION = [
 
 function getBondsProps(centralData) {
   const d = centralData.data || {};
+  const normalized = normalizeBondsData(d);
   return {
     yieldCurveData: d.yieldCurveData || {},
     creditRatingsData: d.creditRatings?.countries || CREDIT_RATINGS_FALLBACK,
     creditRatingsAsOf: d.creditRatings?.asOf || null,
-    spreadData: d.spreadData || { dates: [], IG: [], HY: [], EM: [], BBB: [] },
-    spreadIndicators: d.spreadIndicators || {},
+    spreadData: normalized.values.spreadData || { dates: [], IG: [], HY: [], EM: [], BBB: [], current: {} },
     durationLadderData: d.durationLadder?.buckets || DEFAULT_DURATION,
     durationLadderMeta: d.durationLadder ? { asOf: d.durationLadder.asOf, total: d.durationLadder.total, avgRate: d.durationLadder.avgRate } : null,
-    breakevensData: d.breakevensData || { current: {}, history: { dates: [], be5y: [], be10y: [], forward5y5y: [] } },
-    fredYieldHistory: d.fredYieldHistory || { dates: [], values: [] },
-    treasuryRates: d.treasuryRates,
+    breakevensData: normalized.values.breakevensData,
+    fredYieldHistory: normalized.series.fredYieldHistory,
+    treasuryRates: normalized.values.treasuryRates,
     fedFundsFutures: d.fedFundsFutures,
     yieldHistory: d.yieldHistory,
     mortgageSpread: d.mortgageSpread,
-    tipsYields: d.tipsYields || {},
-    realYieldHistory: d.realYieldHistory || { dates: [], d5y: [], d10y: [] },
+    tipsYields: normalized.values.tipsYields,
+    realYieldHistory: normalized.series.realYieldHistory,
     macroData: d.macroData || {},
     fedBalanceSheetHistory: d.fedBalanceSheetHistory || { dates: [], values: [] },
     m2HistoryData: d.m2HistoryData || { dates: [], values: [] },
     creditIndices: d.creditIndices || {},
     auctionData: d.auctionData || [],
     nationalDebt: d.nationalDebt,
-    spreadHistory: d.spreadHistory || { dates: [], t10y2y: [], t10y3m: [], t5y30y: [], latest: {} },
+    spreadIndicators: normalized.values.spreadIndicators,
+    spreadHistory: normalized.series.spreadHistory,
     cpiComponents: d.cpiComponents || { dates: [], all: [], core: [], food: [], energy: [], latest: {} },
     debtToGdpHistory: d.debtToGdpHistory || { dates: [], values: [], latest: null },
     provenance: centralData.provenance || {},
@@ -64,6 +66,7 @@ function getBondsProps(centralData) {
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
+    normalized,
   };
 }
 

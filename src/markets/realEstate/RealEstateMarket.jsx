@@ -3,17 +3,19 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import { useMarketData } from '../../hub/DataContext';
 import { useCurrency } from '../../hub/CurrencyContext';
 import RealEstateDashboard from './components/RealEstateDashboard';
+import { normalizeRealEstateData } from '../../data/marketNormalizers';
 import './components/RealEstateDashboard.css';
 import './RealEstateMarket.css';
 import '../census/CensusMarket.css';
 
-function getRealEstateProps(centralData) {
+function getRealEstateProps(centralData, context = {}) {
   const d = centralData.data || {};
+  const normalized = normalizeRealEstateData(d, context);
   return {
     priceIndexData: d.priceIndexData,
     reitData: d.reitData,
     affordabilityData: d.affordabilityData,
-    capRateData: d.capRateData,
+    capRateData: normalized.values.capRateData,
     mortgageRates: d.mortgageRates,
     caseShillerData: d.caseShillerData,
     supplyData: d.supplyData,
@@ -29,7 +31,7 @@ function getRealEstateProps(centralData) {
     mbaApplications: d.mbaApplications,
     creDelinquencies: d.creDelinquencies,
     hudData: d.hudData,
-    commoditiesData: d.commoditiesData,
+    commoditiesData: d.commoditiesData || normalized.values.commoditiesData,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
@@ -40,6 +42,7 @@ function getRealEstateProps(centralData) {
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
+    normalized,
   };
 }
 
@@ -48,9 +51,9 @@ function RealEstateMarket({ centralData } = {}) {
   const censusCtx = useMarketData('census');
   const { convert, currentSymbol } = useCurrency();
   if (!centralData) return <MarketSkeleton />;
-  const props = getRealEstateProps(centralData);
+  const props = getRealEstateProps(centralData, { commodities: commoditiesCtx?.data });
 
-  const commoditiesData = commoditiesCtx?.data;
+  const commoditiesData = props.commoditiesData || commoditiesCtx?.data;
   const censusData = censusCtx?.data;
 
   if (props.isLoading) return <MarketSkeleton />;

@@ -4,6 +4,7 @@ import { useInterval } from '../hooks/useInterval';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { putSnapshot, todayStr } from '../utils/snapshotDB';
 import { getApiBaseUrl, getApiInfo } from '../lib/api';
+import { isRenderableMarketSnapshot } from '../data/marketNormalizers';
 
 const API_BASE = getApiBaseUrl();
 const API_INFO = getApiInfo();
@@ -287,6 +288,8 @@ async function fetchMarket(marketId, forceLive = false) {
 
 export function hasNonNullData(d, id) {
   if (!d || typeof d !== 'object') return false;
+  const renderable = isRenderableMarketSnapshot(id, d);
+  if (renderable != null) return renderable;
   // Relax for system/analytics endpoints and any *-Trade / *Petroleum endpoints
   // which frequently return metadata-heavy or sparse-but-valid responses.
   // We still want to treat them as "received" so they don't spam warnings or get dropped.
@@ -327,6 +330,8 @@ export function hasNonNullData(d, id) {
 // We still want to consider it "received" even if the sources array is empty.
 export function passesStructuralGuard(id, d) {
   if (id === 'analytics') return true; // rate-limits provenance stub is intentionally minimal
+  const renderable = isRenderableMarketSnapshot(id, d);
+  if (renderable != null) return renderable;
   const guard = STRUCTURAL_GUARDS[id];
   if (!guard) return true;
   try {
@@ -352,9 +357,9 @@ export const STRUCTURAL_GUARDS = {
   equities:      d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
   equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
   calendar:       d => {
-    const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 5;
-    const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 2;
-    const banks = Array.isArray(d.centralBanks) && d.centralBanks.length >= 2;
+    const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 1;
+    const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 1;
+    const banks = Array.isArray(d.centralBanks) && d.centralBanks.length >= 1;
     return events || earnings || banks;
   },
   derivatives:    d => d.vixTermStructure?.values?.length >= 2,
@@ -363,9 +368,9 @@ export const STRUCTURAL_GUARDS = {
   fx:             d => Array.isArray(d.fredFxRates) ? d.fredFxRates.length >= 2 : true,
   imf:            d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
   worldbank:      d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
-  bls:            d => d.series && Object.values(d.series).some(s => s._source),
+  bls:            d => d.series && Object.keys(d.series).length > 0,
   eia:            d => d.electricity?.residential != null || d.co2Emissions?.total != null,
-  census:         d => d.series && Object.values(d.series).some(s => s._source),
+  census:         d => d.series && Object.keys(d.series).length > 0,
 };
 
 export function applyResult(prev, result) {
@@ -623,9 +628,8 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     // missing commercialPaper.rate) force a live re-fetch.
     const seededIds = new Set(
       rtdbSeeds.filter(Boolean).filter(s => {
-        const guard = STRUCTURAL_GUARDS[s.id];
-        if (!guard) return true; // no guard → always accept
-        try { return guard(s.seed.data); } catch { return false; }
+        if (!hasNonNullData(s.seed.data, s.id)) return false;
+        return passesStructuralGuard(s.id, s.seed.data);
       }).map(s => s.id)
     );
 
@@ -781,9 +785,8 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
     const seededIds = new Set(
       rtdbSeeds.filter(Boolean).filter(s => {
-        const guard = STRUCTURAL_GUARDS[s.id];
-        if (!guard) return true;
-        try { return guard(s.seed.data); } catch { return false; }
+        if (!hasNonNullData(s.seed.data, s.id)) return false;
+        return passesStructuralGuard(s.id, s.seed.data);
       }).map(s => s.id)
     );
 

@@ -5,8 +5,13 @@ import https from 'https'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { execSync } from 'child_process'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const APP_VERSION = (() => {
+  try { return execSync('git rev-parse --short HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); }
+  catch { return `local-${Date.now()}`; }
+})();
 
 // Lightweight in-memory cache — no npm package needed
 function makeCache(ttlSeconds) {
@@ -175,6 +180,19 @@ function macroApiPlugin() {
   }
 }
 
+function appVersionPlugin() {
+  return {
+    name: 'app-version',
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: JSON.stringify({ version: APP_VERSION, builtAt: new Date().toISOString() }, null, 2),
+      });
+    },
+  };
+}
+
 // Read the backend port from .server-port file (written by server/index.js on startup).
 // Falls back to 3001 if file doesn't exist yet.
 function getBackendPort() {
@@ -221,8 +239,12 @@ export default defineConfig({
   plugins: [
     react(),
     macroApiPlugin(),
+    appVersionPlugin(),
     visualizer({ filename: 'dist/bundle-stats.html', gzipSize: true, brotliSize: true }),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   build: {
     chunkSizeWarningLimit: 700,
     rollupOptions: {

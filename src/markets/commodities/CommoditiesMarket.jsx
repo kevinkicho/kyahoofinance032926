@@ -3,6 +3,7 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import CommoditiesDashboard from './components/CommoditiesDashboard';
+import { normalizeCommoditiesData } from '../../data/marketNormalizers';
 import './components/CommoditiesDashboard.css';
 
 function calculateDataAge(dateString) {
@@ -234,18 +235,30 @@ function mapV2ToLegacy(d) {
 
 function getCommoditiesProps(centralData) {
   const d = centralData.data || {};
+  const normalized = normalizeCommoditiesData(d);
   const hasV2 = d.eia || d.fred || d.yahoo || d.worldBank;
   const mapped = hasV2 ? mapV2ToLegacy(d) : {};
+  const fredCommodities = d.fredCommodities || mapped.fredCommodities || {};
+  if (!fredCommodities.goldHistory?.dates?.length && normalized.series.goldHistory?.dates?.length) {
+    fredCommodities.goldHistory = normalized.series.goldHistory;
+  }
+  if (!fredCommodities.goldLatest && normalized.values.goldLatest != null) {
+    fredCommodities.goldLatest = {
+      price: normalized.values.goldLatest,
+      source: d.fred?.gold_am ? 'FRED' : 'Yahoo Finance',
+      timestamp: d.fred?.gold_am?._lastUpdated || d.yahoo?.futures?.['GC=F']?._lastUpdated || d._timestamp,
+    };
+  }
   return {
     priceDashboardData: d.priceDashboardData || mapped.priceDashboardData,
     futuresCurveData: d.futuresCurveData || mapped.futuresCurveData,
     sectorHeatmapData: d.sectorHeatmapData || mapped.sectorHeatmapData,
-    supplyDemandData: d.supplyDemandData || mapped.supplyDemandData,
+    supplyDemandData: d.supplyDemandData || mapped.supplyDemandData || normalized.values.supplyDemandData,
     cotData: d.cotData || mapped.cotData,
-    fredCommodities: d.fredCommodities || mapped.fredCommodities,
+    fredCommodities,
     goldFuturesCurve: d.goldFuturesCurve || mapped.goldFuturesCurve,
     dbcEtf: d.dbcEtf || mapped.dbcEtf,
-    goldOilRatio: d.goldOilRatio || mapped.goldOilRatio,
+    goldOilRatio: d.goldOilRatio || mapped.goldOilRatio || normalized.values.goldOilRatio,
     contangoIndicator: d.contangoIndicator || mapped.contangoIndicator,
     commodityCurrencies: d.commodityCurrencies || mapped.commodityCurrencies,
     seasonalPatterns: d.seasonalPatterns || mapped.seasonalPatterns,
@@ -267,6 +280,7 @@ function getCommoditiesProps(centralData) {
     fetchLog: centralData.fetchLog || [],
     error: centralData.error,
     refetch: centralData.refetch,
+    normalized,
   };
 }
 

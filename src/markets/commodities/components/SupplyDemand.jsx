@@ -171,29 +171,29 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
       <div className="com-kpi-strip">
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Crude Stocks</span>
-          <span className="com-kpi-value">{crudeLatest != null ? <MetricValue value={crudeLatest} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => `${v.toFixed(1)}M`} /> : '—'}</span>
+          <span className="com-kpi-value">{crudeLatest != null ? <MetricValue value={crudeLatest} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toFixed(1)}M` : '—'} /> : '—'}</span>
           <span className={`com-kpi-sub ${crudeDelta != null ? (crudeDelta >= 0 ? 'com-up' : 'com-down') : ''}`}>
-            {crudeDelta != null ? <><MetricValue value={crudeDelta} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}M`} /> vs 5yr avg</> : '—'}
+            {crudeDelta != null ? <><MetricValue value={crudeDelta} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}M` : '—'} /> vs 5yr avg</> : '—'}
           </span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Nat Gas Storage</span>
-          <span className="com-kpi-value">{gasLatest != null ? <MetricValue value={gasLatest} seriesKey="gasStorage" timestamp={lastUpdated} format={v => `${v.toLocaleString()} Bcf`} /> : '—'}</span>
+          <span className="com-kpi-value">{gasLatest != null ? <MetricValue value={gasLatest} seriesKey="gasStorage" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toLocaleString()} Bcf` : '—'} /> : '—'}</span>
           <span className={`com-kpi-sub ${gasDelta != null ? (gasDelta >= 0 ? 'com-up' : 'com-down') : ''}`}>
-            {gasDelta != null ? <><MetricValue value={gasDelta} seriesKey="gasStorage" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toLocaleString()}`} /> vs 5yr avg</> : '—'}
+            {gasDelta != null ? <><MetricValue value={gasDelta} seriesKey="gasStorage" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toLocaleString()}` : '—'} /> vs 5yr avg</> : '—'}
           </span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Crude Production</span>
           <span className="com-kpi-value">
-            {crudeProduction.values.length ? <MetricValue value={crudeProduction.values[crudeProduction.values.length - 1]} seriesKey="crudeProduction" timestamp={lastUpdated} format={v => `${v.toFixed(1)}M`} /> : '—'}
+            {crudeProduction.values.length ? <MetricValue value={crudeProduction.values[crudeProduction.values.length - 1]} seriesKey="crudeProduction" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toFixed(1)}M` : '—'} /> : '—'}
           </span>
           <span className="com-kpi-sub">bbl/day</span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Gold (FRED)</span>
           <span className="com-kpi-value" style={{ color: '#f59e0b' }}>
-            {goldLatest != null ? <MetricValue value={goldLatest} seriesKey="goldFRED" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /> : '—'}
+            {goldLatest != null ? <MetricValue value={goldLatest} seriesKey="goldFRED" timestamp={lastUpdated} format={v => typeof v === 'number' ? `$${v.toLocaleString()}` : '—'} /> : '—'}
           </span>
           <span className="com-kpi-sub">{goldSource === 'Yahoo Finance' ? 'Gold futures $/oz' : 'London Fix $/oz'}</span>
         </div>

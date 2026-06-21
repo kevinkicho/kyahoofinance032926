@@ -3,19 +3,21 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import SentimentDashboard from './components/SentimentDashboard';
+import { normalizeSentimentData } from '../../data/marketNormalizers';
 import './SentimentMarket.css';
 
 function getSentimentProps(centralData) {
   const d = centralData.data || {};
+  const normalized = normalizeSentimentData(d);
   return {
-    fearGreedData: d.fearGreedData,
-    cftcData: d.cftcData,
-    riskData: d.riskData,
-    returnsData: d.returnsData,
-    marginDebt: d.marginDebt,
-    consumerCredit: d.consumerCredit,
-    vvixHistory: d.vvixHistory,
-    fsiHistory: d.fsiHistory,
+    fearGreedData: normalized.values.fearGreedData,
+    cftcData: normalized.values.cftcData,
+    riskData: normalized.values.riskData,
+    returnsData: normalized.values.returnsData,
+    marginDebt: d.marginDebt || normalized.series.marginDebt,
+    consumerCredit: d.consumerCredit || normalized.series.consumerCredit,
+    vvixHistory: normalized.series.vvixHistory,
+    fsiHistory: normalized.series.fsiHistory,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
@@ -26,6 +28,7 @@ function getSentimentProps(centralData) {
     error: centralData.error,
     fetchLog: centralData.fetchLog || [],
     refetch: centralData.refetch,
+    normalized,
   };
 }
 
