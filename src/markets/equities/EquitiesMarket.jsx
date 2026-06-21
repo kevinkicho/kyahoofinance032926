@@ -229,7 +229,7 @@ function compactQuotesFromSnapshot(quotes) {
     if (q.price != null) compact.p = q.price;
     if (q.change != null) compact.c = q.change;
     if (q.changePct != null) compact.cp = q.changePct;
-    if (q.marketCap != null) compact.mc = q.marketCap > 1e6 ? q.marketCap / 1e9 : q.marketCap;
+    if (q.marketCapUsdB != null) compact.mc = q.marketCapUsdB;
     if (q.weekHigh52 != null) compact.wh = q.weekHigh52;
     if (q.weekLow52 != null) compact.wl = q.weekLow52;
     if (Object.keys(compact).length) out[ticker] = compact;
@@ -455,6 +455,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       .catch(err => console.warn('[EquitiesMarket] Failed to load universe updates sidecar:', err));
   }, []);
 
+  const { rates: fxRates, currentRate, currentSymbol, ratesLive } = useCurrency();
+
   const handleRefresh = useCallback(() => {
     if (isRefreshing) return;
     setIsRefreshing(true);
@@ -470,7 +472,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
             children: region.children.map(stock => {
               const q = quotes[stock.name];
               if (!q) return stock;
-              const liveCap = q.marketCap ? q.marketCap / 1e9 : stock.marketCap;
+              const fxRate = q.currency === 'USD' ? 1 : fxRates?.[q.currency];
+              const liveCap = q.marketCap && fxRate ? q.marketCap / fxRate / 1e9 : stock.marketCap;
               return {
                 ...stock,
                 marketCap: liveCap || stock.marketCap,
@@ -504,9 +507,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       })
       .catch(() => {})
       .finally(() => setIsRefreshing(false));
-  }, [isRefreshing]);
-
-  const { rates: fxRates, currentRate, currentSymbol, ratesLive } = useCurrency();
+  }, [fetchIndexQuotes, fxRates, isRefreshing]);
 
   const getMetricValue = (stock, metric) => {
     if (metric === 'revenue')    return Math.max(stock.revenue   || 0.1, 0.1);
@@ -699,7 +700,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           wk52Range: (live.weekLow52 && live.weekHigh52) ? `${sym}${live.weekLow52.toFixed(2)} – ${sym}${live.weekHigh52.toFixed(2)}` : '—',
           volume:    live.volume    != null ? live.volume.toLocaleString() : '—',
           avgVol:    live.avgVolume != null ? live.avgVolume.toLocaleString() : '—',
-          marketCapGlobal: live.marketCap ? `$${(live.marketCap / 1e9 / currentRate).toFixed(0)} B (Glob.)` : '—',
+          marketCapGlobal: live.marketCap && live.currency && fxRates?.[live.currency] ? `$${(live.marketCap / fxRates[live.currency] / 1e9).toFixed(0)} B (Glob.)` : '—',
           marketCapNative: live.marketCap ? `${sym}${(live.marketCap / 1e12).toFixed(2)} T` : '—',
           ...(!isCrypto && {
             bid:  live.bid  != null ? `${sym}${live.bid.toFixed(2)} × ${live.bidSize || ''}` : null,

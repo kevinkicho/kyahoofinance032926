@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { yf, chunkArray } from '../lib/yahoo.js';
 import { getYahooTicker, mapToYahooTicker } from '../lib/stocks.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { fetchJSON } from '../lib/fetch.js';
 import { stockUniverseData } from '../data/stockUniverse.js';
 
 const router = Router();
@@ -23,12 +24,30 @@ const DEFAULT_PER_MARKET_LIMIT = 50;
 const MAX_PER_MARKET_LIMIT = 50;
 const MAX_TOTAL_LIMIT = 1000;
 
-function normalizeQuote(quote, originalTicker) {
+async function fetchUsdRates() {
+  try {
+    trackApiCall('Frankfurter');
+    const data = await fetchJSON('https://api.frankfurter.dev/v1/latest?base=USD');
+    return data?.rates ? { USD: 1, ...data.rates } : { USD: 1 };
+  } catch (e) {
+    console.warn('[equities] FX rates unavailable:', e?.message || e);
+    return { USD: 1 };
+  }
+}
+
+function normalizeQuote(quote, originalTicker, meta, usdRates) {
+  const quoteCurrency = quote.currency || meta?.currency || null;
+  const fxRate = quoteCurrency === 'USD' ? 1 : usdRates?.[quoteCurrency];
+  const marketCapNative = quote.marketCap ?? null;
+  const marketCapUsdB = marketCapNative != null && fxRate
+    ? marketCapNative / fxRate / 1e9
+    : null;
+
   return {
     ticker: originalTicker,
     yahooSymbol: quote.symbol,
     name: quote.longName || quote.shortName || originalTicker,
-    currency: quote.currency || null,
+    currency: quoteCurrency,
     price: quote.regularMarketPrice ?? null,
     change: quote.regularMarketChange ?? null,
     changePct: quote.regularMarketChangePercent ?? null,
@@ -42,7 +61,10 @@ function normalizeQuote(quote, originalTicker) {
     askSize: quote.askSize ?? null,
     volume: quote.regularMarketVolume ?? null,
     avgVolume: quote.averageDailyVolume3Month ?? null,
-    marketCap: quote.marketCap ?? null,
+    marketCap: marketCapNative,
+    marketCapUsdB,
+    marketCapFxRate: fxRate || null,
+    marketCapSource: marketCapUsdB != null ? 'Yahoo Finance + Frankfurter FX' : 'Yahoo Finance native',
     weekHigh52: quote.fiftyTwoWeekHigh ?? null,
     weekLow52: quote.fiftyTwoWeekLow ?? null,
     pe: quote.trailingPE ?? null,
@@ -71,6 +93,7 @@ function getCanonicalUniverse(perMarketLimit, totalLimit = MAX_TOTAL_LIMIT) {
         fullName: stock.fullName || stock.name,
         region: region.name,
         sector: stock.sector || 'Other',
+        currency: region.currency || null,
         staticMarketCapB: stock.marketCap ?? null,
       });
     }
@@ -80,16 +103,18 @@ function getCanonicalUniverse(perMarketLimit, totalLimit = MAX_TOTAL_LIMIT) {
     .slice(0, totalLimit);
 }
 
-async function fetchQuoteMap(items) {
+async function fetchQuoteMap(items, usdRates = { USD: 1 }) {
   const out = {};
   const tickers = items.map(item => (typeof item === 'string' ? item : item.ticker));
   const missing = new Set(tickers);
   const yahooToOriginal = {};
+  const originalToMeta = {};
   const yahooTickers = items.map(item => {
     const ticker = typeof item === 'string' ? item : item.ticker;
     const region = typeof item === 'string' ? null : item.region;
     const y = region ? getYahooTicker(ticker, region) : mapToYahooTicker(ticker);
     yahooToOriginal[y] = ticker;
+    originalToMeta[ticker] = typeof item === 'string' ? null : item;
     return y;
   });
 
@@ -101,7 +126,7 @@ async function fetchQuoteMap(items) {
       for (const quote of arr) {
         if (!quote?.symbol) continue;
         const original = yahooToOriginal[quote.symbol] || quote.symbol;
-        out[original] = normalizeQuote(quote, original);
+        out[original] = normalizeQuote(quote, original, originalToMeta[original], usdRates);
         missing.delete(original);
       }
     } catch (e) {
@@ -126,8 +151,9 @@ router.get('/', async (req, res) => {
   try {
     const universe = getCanonicalUniverse(perMarketLimit, totalLimit);
     const equityTickers = universe.map(s => s.ticker);
+    const usdRates = await fetchUsdRates();
     const [{ quotes, missing }, { quotes: indices, missing: missingIndices }] = await Promise.all([
-      fetchQuoteMap(universe),
+      fetchQuoteMap(universe, usdRates),
       fetchQuoteMap(INDEX_TICKERS),
     ]);
 
@@ -158,6 +184,8 @@ router.get('/', async (req, res) => {
         regions: stockUniverseData.length,
         tickers: equityTickers,
         metadata: universe,
+        fxBase: 'USD',
+        fxSource: 'Frankfurter',
       },
       indices,
       quotes,
