@@ -238,6 +238,131 @@ export function normalizeCalendarData(data = {}) {
   };
 }
 
+const COUNTRY_META = {
+  US: { flag: '🇺🇸', name: 'United States' },
+  EA: { flag: '🇪🇺', name: 'Euro Area' },
+  GB: { flag: '🇬🇧', name: 'United Kingdom' },
+  JP: { flag: '🇯🇵', name: 'Japan' },
+  CA: { flag: '🇨🇦', name: 'Canada' },
+  KR: { flag: '🇰🇷', name: 'South Korea' },
+  CN: { flag: '🇨🇳', name: 'China' },
+  DE: { flag: '🇩🇪', name: 'Germany' },
+  FR: { flag: '🇫🇷', name: 'France' },
+  IT: { flag: '🇮🇹', name: 'Italy' },
+};
+
+function normalizeOecdCli(oecdCli) {
+  if (!oecdCli) return { map: {}, countries: [], asOf: null };
+  if (Array.isArray(oecdCli.countries)) {
+    return {
+      map: Object.fromEntries(oecdCli.countries.map(c => [c.code, { value: c.cli ?? c.value, date: c.date }])),
+      countries: oecdCli.countries,
+      asOf: oecdCli.asOf ?? oecdCli.countries.find(c => c.date)?.date ?? null,
+    };
+  }
+  const countries = Object.entries(oecdCli)
+    .filter(([, entry]) => entry && typeof entry === 'object')
+    .map(([code, entry]) => {
+      const value = entry.value ?? entry.cli ?? null;
+      const meta = COUNTRY_META[code] || {};
+      return {
+        code,
+        flag: meta.flag || code,
+        name: meta.name || code,
+        cli: value,
+        value,
+        date: entry.date ?? null,
+        trend: value > 100 ? 'improving' : value < 99 ? 'slowing' : 'stable',
+      };
+    });
+  return { map: oecdCli, countries, asOf: countries.find(c => c.date)?.date ?? null };
+}
+
+export function normalizeGlobalMacroData(data = {}) {
+  const cfnai = data.cfnai || null;
+  const oecd = normalizeOecdCli(data.oecdCli);
+  return {
+    values: {
+      ...data,
+      cfnai: cfnai ? {
+        ...cfnai,
+        latest: cfnai.latest ?? cfnai.values?.[cfnai.values.length - 1] ?? null,
+      } : null,
+      oecdCli: oecd.map,
+      oecdCliDetail: {
+        countries: oecd.countries,
+        asOf: oecd.asOf,
+      },
+    },
+    series: {
+      cfnai: cfnai?.dates?.length ? cfnai : null,
+      yieldSpread: data.yieldSpread || null,
+    },
+    availability: {
+      cfnai: fieldStatus(cfnai?.latest ?? cfnai?.values?.[cfnai?.values?.length - 1], data._sources?.cfnai),
+      oecdCli: fieldStatus(oecd.countries, data._sources?.oecdCli),
+      yieldSpread: fieldStatus(data.yieldSpread?.values, data._sources?.yieldSpread),
+    },
+    sources: data._sources || {},
+  };
+}
+
+function averageByKey(rows, key) {
+  const nums = (rows || []).map(row => row?.[key]).filter(isNum);
+  if (!nums.length) return null;
+  return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+}
+
+function normalizeFactorData(factorData = {}) {
+  const stocks = Array.isArray(factorData.stocks) ? factorData.stocks : [];
+  const rawInFavor = factorData.inFavor || {};
+  const derived = {
+    value: averageByKey(stocks, 'value'),
+    momentum: averageByKey(stocks, 'momentum'),
+    quality: averageByKey(stocks, 'quality'),
+    lowVol: averageByKey(stocks, 'lowVol'),
+  };
+  const hasUsableRaw = Object.values(rawInFavor).some(v => isNum(v) && v !== 0);
+  const inFavor = hasUsableRaw ? rawInFavor : derived;
+  const factorReturns = [
+    { name: 'Value', key: 'value', return: inFavor.value },
+    { name: 'Momentum', key: 'momentum', return: inFavor.momentum },
+    { name: 'Quality', key: 'quality', return: inFavor.quality },
+    { name: 'Low-Vol', key: 'lowVol', return: inFavor.lowVol },
+  ].filter(f => isNum(f.return));
+  return { ...factorData, inFavor, factorReturns, stocks };
+}
+
+export function normalizeEquityDeepDiveData(data = {}) {
+  const sectors = Array.isArray(data.sectorData?.sectors) ? data.sectorData.sectors : [];
+  const factorData = normalizeFactorData(data.factorData || {});
+  const aggregateShortPct = data.shortData?.aggregateShortPct ?? (
+    data.shortData?.mostShorted?.length ? averageByKey(data.shortData.mostShorted, 'shortFloat') : null
+  );
+  const avgSurprise = data.earningsData?.avgSurprise ?? averageByKey(data.earningsData?.beatRates, 'beatRate');
+  return {
+    values: {
+      ...data,
+      sectorData: { ...(data.sectorData || {}), sectors },
+      factorData,
+      earningsData: { ...(data.earningsData || {}), avgSurprise },
+      shortData: { ...(data.shortData || {}), aggregateShortPct },
+    },
+    series: {
+      sectors,
+      factorReturns: factorData.factorReturns,
+      factorStocks: factorData.stocks,
+    },
+    availability: {
+      sectors: fieldStatus(sectors, data._sources?.sectorData),
+      factors: fieldStatus(factorData.factorReturns, data._sources?.factorData),
+      earnings: fieldStatus(data.earningsData?.upcoming, data._sources?.earningsData),
+      short: fieldStatus(data.shortData?.mostShorted, data._sources?.shortData),
+    },
+    sources: data._sources || {},
+  };
+}
+
 export function normalizeSeriesPayload(data = {}) {
   const series = data.series || {};
   return {
@@ -262,6 +387,14 @@ export function isRenderableMarketSnapshot(id, data) {
   if (id === 'calendar') {
     const n = normalizeCalendarData(data);
     return n.values.economicEvents.length > 0 || n.values.centralBanks.length > 0 || n.values.earningsSeason.length > 0 || n.values.keyReleases.length > 0;
+  }
+  if (id === 'globalMacro') {
+    const n = normalizeGlobalMacroData(data);
+    return !!(n.values.scorecardData?.length || n.series.cfnai?.values?.length || n.values.oecdCliDetail?.countries?.length);
+  }
+  if (id === 'equityDeepDive') {
+    const n = normalizeEquityDeepDiveData(data);
+    return !!(n.values.sectorData?.sectors?.length || n.values.factorData?.stocks?.length || n.values.factorData?.factorReturns?.length);
   }
   return null;
 }

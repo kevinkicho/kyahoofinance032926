@@ -38,6 +38,8 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   const [highlighted, setHighlighted] = useState(0);
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
+  const settingsRef = useRef(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // User Auth Profile Dropdown State
   const [user, setUser] = useState(null);
@@ -150,6 +152,9 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setDropdownOpen(false);
       }
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setSettingsOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -203,11 +208,23 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
 
   const handleExportCSV = useCallback(() => {
     onExportData('csv');
+    setSettingsOpen(false);
   }, [onExportData]);
 
   const handleExportJSON = useCallback(() => {
     onExportData('json');
+    setSettingsOpen(false);
   }, [onExportData]);
+
+  const handleThemeToggle = useCallback(() => {
+    toggle();
+    setSettingsOpen(false);
+  }, [toggle]);
+
+  const handlePngExport = useCallback(() => {
+    onExport();
+    setSettingsOpen(false);
+  }, [onExport]);
 
   return (
     <div className="market-tab-bar" role="banner">
@@ -227,28 +244,33 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
           </button>
         ))}
       </nav>
-      <button
-        className="hub-theme-toggle"
-        onClick={toggle}
-        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-      >
-        {theme === 'dark' ? 'Light' : 'Dark'}
-      </button>
-      <button
-        className="hub-export-btn"
-        onClick={onExport}
-        aria-label="Export view as PNG"
-        title="Export view as PNG"
-      >
-        Export
-      </button>
-      {onExportData && (
-        <>
-          <button className="hub-export-btn" onClick={handleExportCSV} title="Download data as CSV">CSV</button>
-          <button className="hub-export-btn" onClick={handleExportJSON} title="Download data as JSON">JSON</button>
-        </>
-      )}
+      <div className="hub-settings-menu" ref={settingsRef}>
+        <button
+          className="hub-settings-btn"
+          onClick={() => setSettingsOpen(open => !open)}
+          aria-label="Settings and utilities"
+          aria-expanded={settingsOpen}
+          title="Settings and utilities"
+        >
+          ⚙
+        </button>
+        {settingsOpen && (
+          <div className="hub-settings-dropdown">
+            <button className="hub-settings-item" onClick={handleThemeToggle}>
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </button>
+            <button className="hub-settings-item" onClick={handlePngExport}>
+              Export PNG
+            </button>
+            {onExportData && (
+              <>
+                <button className="hub-settings-item" onClick={handleExportCSV}>Download CSV</button>
+                <button className="hub-settings-item" onClick={handleExportJSON}>Download JSON</button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
       <button
         className="hub-refresh-btn"
         onClick={onRefresh}

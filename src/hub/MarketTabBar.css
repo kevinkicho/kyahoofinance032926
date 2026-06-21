@@ -59,6 +59,58 @@
   line-height: 1;
 }
 .hub-export-btn:hover { background: var(--bg-card); border-color: var(--text-muted); }
+.hub-settings-menu {
+  position: relative;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+}
+.hub-settings-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s;
+}
+.hub-settings-btn:hover,
+.hub-settings-btn[aria-expanded="true"] {
+  background: var(--bg-card);
+  border-color: var(--text-muted);
+}
+.hub-settings-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 160px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 120;
+  padding: 6px 0;
+}
+.hub-settings-item {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 8px 12px;
+  text-align: left;
+}
+.hub-settings-item:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
 .hub-popout-btn {
   background: none;
   border: 1px solid var(--border-color);

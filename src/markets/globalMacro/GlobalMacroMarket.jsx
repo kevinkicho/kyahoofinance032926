@@ -4,23 +4,27 @@ import GlobalMacroDashboard from './components/GlobalMacroDashboard';
 import GlobalMacroKpiStrip from './components/GlobalMacroKpiStrip';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
+import { normalizeGlobalMacroData } from '../../data/marketNormalizers';
 import './components/GlobalMacroDashboard.css';
 
 function getGlobalMacroProps(centralData) {
   const d = centralData.data || {};
+  const normalized = normalizeGlobalMacroData(d);
+  const values = normalized.values;
   return {
-    scorecardData: d.scorecardData,
-    growthInflationData: d.growthInflationData,
-    centralBankData: d.centralBankData,
-    debtData: d.debtData,
-    m2Growth: d.m2Growth,
-    tradeBalance: d.tradeBalance,
-    industrialProd: d.industrialProd,
-    consumerSentiment: d.consumerSentiment,
-    yieldSpread: d.yieldSpread,
-    cfnai: d.cfnai,
-    oecdCli: d.oecdCli,
-    cpiBreakdown: d.cpiBreakdown,
+    scorecardData: values.scorecardData,
+    growthInflationData: values.growthInflationData,
+    centralBankData: values.centralBankData,
+    debtData: values.debtData,
+    m2Growth: values.m2Growth,
+    tradeBalance: values.tradeBalance,
+    industrialProd: values.industrialProd,
+    consumerSentiment: values.consumerSentiment,
+    yieldSpread: values.yieldSpread,
+    cfnai: values.cfnai,
+    oecdCli: values.oecdCli,
+    oecdCliDetail: values.oecdCliDetail,
+    cpiBreakdown: values.cpiBreakdown,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
@@ -82,6 +86,7 @@ function GlobalMacroMarket({ centralData } = {}) {
         yieldSpread={props.yieldSpread}
         cfnai={props.cfnai}
         oecdCli={props.oecdCli}
+        oecdCliDetail={props.oecdCliDetail}
         cpiBreakdown={props.cpiBreakdown}
         imfData={imfCtx?.data}
         wbData={wbCtx?.data}

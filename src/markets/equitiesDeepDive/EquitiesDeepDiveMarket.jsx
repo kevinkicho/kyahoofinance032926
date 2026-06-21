@@ -3,10 +3,13 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import EquitiesDeepDiveDashboard from './components/EquitiesDeepDiveDashboard';
 import EquitiesDeepDiveKpiStrip from './components/EquitiesDeepDiveKpiStrip';
 import EquitiesDeepDiveSidebar from './components/EquitiesDeepDiveSidebar';
+import { normalizeEquityDeepDiveData } from '../../data/marketNormalizers';
 import './EquitiesDeepDiveMarket.css';
 
 function getEquityDeepDiveProps(centralData, institutionalCtx) {
   const d = centralData.data || {};
+  const normalized = normalizeEquityDeepDiveData(d);
+  const values = normalized.values;
   const i = institutionalCtx?.data || {
     lastUpdated: null,
     institutions: [],
@@ -14,15 +17,15 @@ function getEquityDeepDiveProps(centralData, institutionalCtx) {
     recentChanges: { lastQuarter: null, bigBuys: [], bigSells: [], newPositions: [] },
   };
   return {
-    sectorData: d.sectorData,
-    factorData: d.factorData,
-    earningsData: d.earningsData,
-    shortData: d.shortData,
-    insiderData: d.insiderData,
-    equityRiskPremium: d.equityRiskPremium,
-    spPE: d.spPE,
-    breadthDivergence: d.breadthDivergence,
-    buffettIndicator: d.buffettIndicator,
+    sectorData: values.sectorData,
+    factorData: values.factorData,
+    earningsData: values.earningsData,
+    shortData: values.shortData,
+    insiderData: values.insiderData,
+    equityRiskPremium: values.equityRiskPremium,
+    spPE: values.spPE,
+    breadthDivergence: values.breadthDivergence,
+    buffettIndicator: values.buffettIndicator,
     institutionalData: { ...i, isLive: institutionalCtx?.isLive, lastUpdated: institutionalCtx?.lastUpdated, isLoading: institutionalCtx?.isLoading, error: institutionalCtx?.error, fetchedOn: institutionalCtx?.fetchedOn, isCurrent: institutionalCtx?.isCurrent, fetchLog: institutionalCtx?.fetchLog || [], refetch: institutionalCtx?.refetch },
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
@@ -55,7 +58,7 @@ function EquitiesDeepDiveMarket({ centralData, institutionalData: institutionalC
     const sidebarPanel = (
       <EquitiesDeepDiveSidebar
         sectorData={props.sectorData?.sectors || []}
-        factorData={props.factorData?.stocks || []}
+        factorData={props.factorData?.factorReturns || []}
         earningsData={props.earningsData}
         shortData={props.shortData}
         isLive={props.isLive}

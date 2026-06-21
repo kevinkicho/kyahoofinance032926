@@ -26,10 +26,15 @@ export default function CentralBankSchedule({ centralBanks, section }) {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const timelineEntries = [];
+  const byBank = Object.fromEntries(centralBanks.map(cb => [cb.bank, cb]));
+  const timelineEntries = centralBanks
+    .filter(cb => cb.nextMeeting)
+    .map(cb => ({ ...cb, date: cb.nextMeeting }));
   Object.entries(ALL_MEETINGS).forEach(([bank, dates]) => {
     dates.filter(d => d >= today).slice(0, 3).forEach(d => {
-      timelineEntries.push({ bank, date: d });
+      if (!timelineEntries.some(e => e.bank === bank && e.date === d)) {
+        timelineEntries.push({ ...(byBank[bank] || {}), bank, date: d });
+      }
     });
   });
   timelineEntries.sort((a, b) => a.date.localeCompare(b.date));
@@ -59,6 +64,9 @@ export default function CentralBankSchedule({ centralBanks, section }) {
             <span className={`cal-timeline-dot ${BANK_DOTS[e.bank] || ''}`} />
             <span style={{ minWidth: 80, fontFamily: 'monospace' }}>{e.date}</span>
             <span>{e.bank}</span>
+            {e.rate != null && <span className="cal-release-prev">{Number(e.rate).toFixed(2)}%</span>}
+            {e.daysUntil != null && <span className="cal-release-prev">{e.daysUntil}d</span>}
+            {decisionBadge(e.rate, e.previousRate)}
           </div>
         ))}
       </div>
@@ -89,6 +97,9 @@ export default function CentralBankSchedule({ centralBanks, section }) {
             <span className={`cal-timeline-dot ${BANK_DOTS[e.bank] || ''}`} />
             <span style={{ minWidth: 80, fontFamily: 'monospace' }}>{e.date}</span>
             <span>{e.bank}</span>
+            {e.rate != null && <span className="cal-release-prev">{Number(e.rate).toFixed(2)}%</span>}
+            {e.daysUntil != null && <span className="cal-release-prev">{e.daysUntil}d</span>}
+            {decisionBadge(e.rate, e.previousRate)}
           </div>
         ))}
       </div>

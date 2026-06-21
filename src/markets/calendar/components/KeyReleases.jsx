@@ -65,10 +65,13 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
                 {r.name}
                 <span className={`cal-cat-badge ${CAT_CSS[r.category] || ''}`}>{r.category}</span>
               </span>
-              {r.previousValue && <span className="cal-release-prev">Prev: <MetricValue value={r.previousValue} seriesKey="krPreviousValue" format={v => v != null ? `${v}` : '—'} /></span>}
+              {r.previousValue != null && <span className="cal-release-prev">Prev: <MetricValue value={r.previousValue} seriesKey="krPreviousValue" format={v => v != null ? `${v}` : '—'} /></span>}
             </div>
           ))}
         </div>
+        {keyReleases.length <= 1 && (
+          <div className="cal-panel-footer">Partial source coverage: the current calendar snapshot contains {keyReleases.length} FRED key release.</div>
+        )}
       </>
     );
   }
@@ -166,12 +169,12 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
               {r.name}
               <span className={`cal-cat-badge ${CAT_CSS[r.category] || ''}`}>{r.category}</span>
             </span>
-            {r.previousValue && <span className="cal-release-prev">Prev: <MetricValue value={r.previousValue} seriesKey="krPreviousValue" format={v => v != null ? `${v}` : '—'} /></span>}
+            {r.previousValue != null && <span className="cal-release-prev">Prev: <MetricValue value={r.previousValue} seriesKey="krPreviousValue" format={v => v != null ? `${v}` : '—'} /></span>}
             </div>
           ))}
         </div>
         <div className="cal-panel-footer">
-        Dates from FRED release schedule · Previous values shown where available · No consensus forecasts (proprietary)
+        Dates from FRED release schedule · Previous values shown where available · {keyReleases.length <= 1 ? 'Partial source coverage in current snapshot' : 'No consensus forecasts (proprietary)'}
       </div>
 
       {treasuryAuctions?.length > 0 && (

@@ -126,7 +126,7 @@ const LAYOUT = {
 function GlobalMacroDashboard({
   kpiSidebar,
   scorecardData, growthInflationData, centralBankData, debtData,
-  m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, cpiBreakdown,
+  m2Growth, tradeBalance, industrialProd, consumerSentiment, yieldSpread, cfnai, oecdCli, oecdCliDetail, cpiBreakdown,
   imfData, wbData,
   ecbData, ecbLastUpdated,
   dtsData, dtsLastUpdated,
@@ -278,6 +278,36 @@ function GlobalMacroDashboard({
     return { label: 'Above Trend', color: '#4ade80' };
   }, [cfnai, colors.textMuted]);
 
+  const cfnaiMiniOption = useMemo(() => {
+    if (!cfnai?.dates?.length || !cfnai?.values?.length) return null;
+    const dates = cfnai.dates.slice(-36);
+    const values = cfnai.values.slice(-36);
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: ps => {
+          const p = ps[0];
+          const v = p?.value;
+          return p ? `${p.axisValue}<br/>CFNAI: ${typeof v === 'number' ? v.toFixed(2) : '—'}` : '';
+        },
+      },
+      grid: { left: 36, right: 12, top: 8, bottom: 20 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(dates.length / 5)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{
+        type: 'line',
+        data: values,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { color: '#a78bfa', width: 2 },
+        areaStyle: { color: 'rgba(167, 139, 250, 0.12)' },
+        markLine: { silent: true, symbol: 'none', data: [{ yAxis: 0 }, { yAxis: -0.7 }], lineStyle: { color: colors.textDim, type: 'dashed', width: 1 } },
+      }],
+    };
+  }, [cfnai, colors]);
+
   if (!scorecardData?.length) return null;
 
   return (
@@ -413,17 +443,23 @@ function GlobalMacroDashboard({
                 </div>
               )}
             </div>
+            {cfnaiMiniOption && (
+              <div style={{ height: 120, marginTop: 8 }}>
+                <SafeECharts option={cfnaiMiniOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFNAI — Economic Activity', source: 'FRED', endpoint: '/api/globalMacro', series: [{ id: 'CFNAI' }], updatedAt: lastUpdated }} />
+              </div>
+            )}
           </BentoCard>
 
           {/* OECD CLI */}
           <BentoCard key="cli" title="OECD Leading Indicators" subtitle="Amplitude-adjusted CLI · 100 = trend" accent="globalMacro" className="mac-bento-card" source="FRED OECD CLI" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <div className="mac-cli-mini-grid">
-              {oecdCli && Object.entries(oecdCli).map(([code, entry]) => {
+              {(oecdCliDetail?.countries?.length ? oecdCliDetail.countries : Object.entries(oecdCli || {}).map(([code, entry]) => ({ code, value: entry?.value, cli: entry?.value, date: entry?.date }))).map((entry) => {
+                const code = entry.code;
                 const meta = scorecardData?.find(sc => sc.code === code);
-                const v = entry?.value;
+                const v = entry?.value ?? entry?.cli;
                 return (
                   <div key={code} className="mac-cli-mini-card">
-                    <span className="mac-cli-mini-flag">{meta?.flag || code}</span>
+                    <span className="mac-cli-mini-flag">{meta?.flag || entry.flag || code}</span>
                     <span className="mac-cli-mini-value" style={{ color: v > 100 ? '#4ade80' : v != null ? '#f87171' : '#94a3b8' }}>
                       <MetricValue value={v} seriesKey="oecdCli" timestamp={entry?.date || lastUpdated} format={x => x != null ? `${x.toFixed(1)}` : '—'} />
                     </span>
@@ -433,7 +469,7 @@ function GlobalMacroDashboard({
                   </div>
                 );
               })}
-              {(!oecdCli || Object.keys(oecdCli).length === 0) && (
+              {(!oecdCliDetail?.countries?.length && (!oecdCli || Object.keys(oecdCli).length === 0)) && (
                 <div className="mac-empty">No CLI data available — FRED OECD series unavailable</div>
               )}
             </div>

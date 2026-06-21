@@ -7,26 +7,28 @@ export default function EquitiesDeepDiveSidebar({
   sectorData, factorData, earningsData, shortData, 
   isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent 
 }) {
-  if (!sectorData || !factorData) return null;
+  if (!sectorData?.length && !factorData?.length) return null;
 
   return (
     <div className="eqd-sidebar">
       <div className="eqd-sidebar-section">
         <div className="eqd-sidebar-title">Sector Performance</div>
         <div className="eqd-sidebar-metrics">
-          {sectorData.slice(0, 11).map(s => (
+          {sectorData.slice(0, 11).map(s => {
+            const change = s.change ?? s.perf1m ?? s.perf1w ?? s.perf1d;
+            return (
             <div key={s.name} className="eqd-sidebar-metric-row">
               <span className="eqd-sidebar-label">{s.name}</span>
-              <span className="eqd-sidebar-value" style={{ color: s.change >= 0 ? '#4ade80' : '#f87171' }}>
+              <span className="eqd-sidebar-value" style={{ color: (change ?? 0) >= 0 ? '#4ade80' : '#f87171' }}>
                 <MetricValue 
-                  value={s.change} 
-                  format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} 
+                  value={change} 
+                  format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} 
                   seriesKey={`sector-${s.name}`} 
                   timestamp={lastUpdated} 
                 />
               </span>
             </div>
-          ))}
+          );})}
         </div>
       </div>
 
@@ -36,10 +38,10 @@ export default function EquitiesDeepDiveSidebar({
           {factorData.map(f => (
             <div key={f.name} className="eqd-sidebar-metric-row">
               <span className="eqd-sidebar-label">{f.name}</span>
-              <span className="eqd-sidebar-value" style={{ color: f.return >= 0 ? '#4ade80' : '#f87171' }}>
+              <span className="eqd-sidebar-value" style={{ color: (f.return ?? f.value ?? 0) >= 50 ? '#4ade80' : '#f87171' }}>
                 <MetricValue 
-                  value={f.return} 
-                  format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} 
+                  value={f.return ?? f.value} 
+                  format={v => v != null ? v.toFixed(1) : '—'} 
                   seriesKey={`factor-${f.name}`} 
                   timestamp={lastUpdated} 
                 />

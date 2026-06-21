@@ -253,6 +253,25 @@ function persistToIDB(result) {
   });
 }
 
+function needsLiveRepair(id, data) {
+  if (!data || typeof data !== 'object') return false;
+  if (id === 'globalMacro') {
+    return !data.cfnai?.values?.length || !data.oecdCli || Object.keys(data.oecdCli || {}).length === 0;
+  }
+  if (id === 'equitiesDeepDive') {
+    const factors = data.factorData?.inFavor || {};
+    const hasFactorSignal = Object.values(factors).some(v => typeof v === 'number' && Number.isFinite(v) && v !== 0);
+    return !data.sectorData?.sectors?.length || (!hasFactorSignal && !data.factorData?.stocks?.length);
+  }
+  if (id === 'sentiment') {
+    return data.fearGreedData?.score == null && data.fearGreedData?.value == null;
+  }
+  if (id === 'calendar') {
+    return !data.centralBanks?.length && !data.economicEvents?.length && !data.keyReleases?.length;
+  }
+  return false;
+}
+
 async function fetchMarket(marketId, forceLive = false) {
   let url = MARKET_ENDPOINTS[marketId];
   if (!url) {
@@ -698,7 +717,8 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     // Explicit refresh (forceLive) or lack of a seed will still trigger the live call.
     let liveIds = ids;
     if (!forceLive) {
-      liveIds = ids.filter(id => !seededIds.has(id));
+      const seedById = Object.fromEntries(rtdbSeeds.filter(Boolean).map(item => [item.id, item.seed]));
+      liveIds = ids.filter(id => !seededIds.has(id) || needsLiveRepair(id, seedById[id]?.data));
       if (liveIds.length < ids.length) {
         dlog(`[DataProvider] Skipping live fetch for ${ids.length - liveIds.length} markets that had good RTDB snapshots (realEstate etc. prefer daily snapshot).`);
       }
