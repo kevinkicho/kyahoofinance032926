@@ -1,6 +1,8 @@
-import React, { useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react';
 import SafeECharts from '../SafeECharts';
 import { useTheme } from '../../hub/ThemeContext';
+
+const LONG_PRESS_MS = 650;
 
 const METRIC_LABEL = {
   marketCap:  'Mkt Cap',
@@ -109,6 +111,8 @@ const HeatmapView = ({
   const mountedRef = useRef(false);
   const instRef = useRef(null);
   const zrRef = useRef(null);
+  const longPressRef = useRef(null);
+  const [viewPath, setViewPath] = useState(['Global Market']);
 
   // Track mounted state
   useEffect(() => {
@@ -121,10 +125,13 @@ const HeatmapView = ({
   }, []);
 
   const chartData = useMemo(() => {
-    const norm = (node) => node.children
-      ? { ...node, children: node.children.map(norm) }
-      : { ...node, value: node.metricValue || node.adjustedValue || node.value };
-    return data.map(norm);
+    const norm = (node, path = []) => {
+      const nodeId = [...path, node.name || node.ticker || 'node'].join('>');
+      return node.children
+        ? { ...node, id: node.id || nodeId, children: node.children.map(child => norm(child, [...path, node.name || 'node'])) }
+        : { ...node, id: node.id || nodeId, value: node.metricValue || node.adjustedValue || node.value };
+    };
+    return data.map(node => norm(node));
   }, [data, rankMetric]);
 
   const levels = useMemo(() => {
@@ -176,8 +183,8 @@ const HeatmapView = ({
       itemStyle: { borderColor: '#1e1e1e', borderWidth: 1, gapWidth: 2 },
       levels,
       roam: true,
-      nodeClick: 'zoomToNode',
-      breadcrumb: { show: true, left: 'center', bottom: 10, itemStyle: { textStyle: { color: '#fff' } } },
+      nodeClick: false,
+      breadcrumb: { show: false },
       data: chartData,
       width: '100%',
       height: '100%',
@@ -197,6 +204,7 @@ const HeatmapView = ({
       if (!e.target) {
         if (instRef.current && !instRef.current.isDisposed?.()) {
           instRef.current.dispatchAction({ type: 'restore' });
+          setViewPath(['Global Market']);
         }
       }
     };
@@ -221,7 +229,39 @@ const HeatmapView = ({
       }
     };
 
+    const clearLongPress = () => {
+      if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
+      longPressRef.current = null;
+    };
+
+    const handlePressStart = (e) => {
+      if (!mountedRef.current) return;
+      const treemapView = instRef.current?._chartsViews?.find(view => view?.type === 'treemap' && typeof view.findTarget === 'function');
+      const targetInfo = treemapView?.findTarget(e.offsetX, e.offsetY);
+      const node = targetInfo?.node;
+      if (!node?.children?.length) return;
+      clearLongPress();
+      longPressRef.current = {
+        node,
+        timer: setTimeout(() => {
+          const inst = instRef.current;
+          if (!mountedRef.current || !inst || inst.isDisposed?.()) return;
+          inst.dispatchAction({
+            type: 'treemapZoomToNode',
+            seriesIndex: 0,
+            targetNode: node,
+          });
+          setViewPath(['Global Market', ...node.getAncestors(true).slice(1).map(n => n.name)]);
+          longPressRef.current = null;
+        }, LONG_PRESS_MS),
+      };
+    };
+
     zr.on('click', handleBgClick);
+    zr.on('mousedown', handlePressStart);
+    zr.on('mouseup', clearLongPress);
+    zr.on('mouseout', clearLongPress);
+    zr.on('globalout', clearLongPress);
     instance.on('click', handleCellClick);
   }, [onSelect]);
 
@@ -231,12 +271,46 @@ const HeatmapView = ({
       if (zrRef.current && instRef.current && !instRef.current.isDisposed?.()) {
         try {
           zrRef.current.off('click');
+          zrRef.current.off('mousedown');
+          zrRef.current.off('mouseup');
+          zrRef.current.off('mouseout');
+          zrRef.current.off('globalout');
           instRef.current.off('click');
+          if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
         } catch {
           // Instance already disposed, ignore
         }
       }
     };
+  }, []);
+
+  const startBreadcrumbPress = useCallback((targetId, pathIndex) => {
+    if (!mountedRef.current) return;
+    if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
+    longPressRef.current = {
+      dataId: targetId || 'Global Market',
+      timer: setTimeout(() => {
+        const inst = instRef.current;
+        if (!mountedRef.current || !inst || inst.isDisposed?.()) return;
+        if (!targetId) {
+          inst.dispatchAction({ type: 'restore' });
+          setViewPath(['Global Market']);
+        } else {
+          inst.dispatchAction({
+            type: 'treemapZoomToNode',
+            seriesIndex: 0,
+            targetNodeId: targetId,
+          });
+          setViewPath(viewPath.slice(0, pathIndex + 1));
+        }
+        longPressRef.current = null;
+      }, LONG_PRESS_MS),
+    };
+  }, [viewPath]);
+
+  const clearBreadcrumbPress = useCallback(() => {
+    if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
+    longPressRef.current = null;
   }, []);
 
   return (
@@ -251,6 +325,59 @@ const HeatmapView = ({
         opts={{ renderer: 'canvas' }}
         onChartReady={handleChartReady}
       />
+      <div
+        style={{
+          position: 'absolute',
+          left: 8,
+          bottom: 6,
+          maxWidth: 'calc(100% - 16px)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '2px 6px',
+          borderRadius: 4,
+          background: 'rgba(2, 6, 23, 0.72)',
+          border: '1px solid rgba(148, 163, 184, 0.18)',
+          fontSize: 10,
+          color: '#e2e8f0',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'auto',
+        }}
+      >
+        {viewPath.map((label, index) => {
+          const targetId = index === 0 ? null : viewPath.slice(1, index + 1).join('>');
+          return (
+            <React.Fragment key={`${label}-${index}`}>
+              {index > 0 && <span style={{ color: '#64748b' }}>›</span>}
+              <button
+                type="button"
+                onMouseDown={() => startBreadcrumbPress(targetId, index)}
+                onMouseUp={clearBreadcrumbPress}
+                onMouseLeave={clearBreadcrumbPress}
+                onTouchStart={() => startBreadcrumbPress(targetId, index)}
+                onTouchEnd={clearBreadcrumbPress}
+                title="Long-click to zoom here"
+                style={{
+                  border: 0,
+                  background: 'transparent',
+                  color: index === viewPath.length - 1 ? '#fff' : '#93c5fd',
+                  font: 'inherit',
+                  fontWeight: index === viewPath.length - 1 ? 700 : 500,
+                  padding: '1px 2px',
+                  cursor: 'pointer',
+                  maxWidth: 180,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {label}
+              </button>
+            </React.Fragment>
+          );
+        })}
+      </div>
     </div>
   );
 };

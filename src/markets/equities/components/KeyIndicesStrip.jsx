@@ -43,7 +43,19 @@ function Sparkline({ closes, width = 280, height = 90 }) {
 
 // Popover that follows the pill, showing sparkline + ticker info. Anchored
 // below the pill, falls back above if it would clip the viewport.
-function PillPopover({ anchor, ticker, label, currency, history, error, loading, onClose, locked }) {
+function PillPopover({
+  anchor,
+  ticker,
+  label,
+  currency,
+  history,
+  error,
+  loading,
+  onClose,
+  onKeepAlive,
+  onSoftLeave,
+  locked
+}) {
   const ref = useRef(null);
   const [pos, setPos] = useState(null);
 
@@ -71,16 +83,18 @@ function PillPopover({ anchor, ticker, label, currency, history, error, loading,
     <div
       ref={ref}
       onClick={(e) => e.stopPropagation()}
+      onMouseEnter={onKeepAlive}
+      onMouseLeave={onSoftLeave}
       style={{
         position: 'fixed',
         left: Math.max(8, Math.min(pos.left, window.innerWidth - 320)),
         top,
-        width: 304,
+        width: 330,
         background: 'var(--bg-card)',
-        border: '1px solid var(--border-subtle)',
+        border: locked ? '1px solid rgba(96, 165, 250, 0.65)' : '1px solid rgba(148, 163, 184, 0.35)',
         borderRadius: 6,
-        padding: 10,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+        padding: 12,
+        boxShadow: '0 14px 34px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.04)',
         zIndex: 10000,
         fontSize: 11,
       }}
@@ -90,9 +104,13 @@ function PillPopover({ anchor, ticker, label, currency, history, error, loading,
           <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13 }}>{label}</span>
           <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>{ticker}{currency ? ` · ${currency}` : ''}</span>
         </div>
-        {locked && (
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 14, padding: 0 }}>×</button>
-        )}
+        <button
+          onClick={onClose}
+          title="Close"
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1 }}
+        >
+          ×
+        </button>
       </div>
       <div style={{ marginBottom: 6 }}>
         {loading
@@ -120,6 +138,9 @@ function PillPopover({ anchor, ticker, label, currency, history, error, loading,
         >
           finance.yahoo.com/quote/{ticker}
         </a>
+      </div>
+      <div style={{ marginTop: 6, color: 'var(--text-dim)', fontSize: 10 }}>
+        Hover holds this panel open · click a pill to pin it
       </div>
     </div>,
     document.body
@@ -167,6 +188,22 @@ export default function KeyIndicesStrip({
   // History cache: ticker → { history|error|loading }
   const [hist, setHist] = useState({});
   const [hover, setHover] = useState(null);   // { ticker, anchor, locked }
+  const closeTimerRef = useRef(null);
+
+  const cancelClose = useCallback(() => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
+  }, []);
+
+  const closeSoftly = useCallback(() => {
+    cancelClose();
+    closeTimerRef.current = setTimeout(() => {
+      setHover(prev => (prev?.locked ? prev : null));
+      closeTimerRef.current = null;
+    }, 260);
+  }, [cancelClose]);
+
+  useEffect(() => () => cancelClose(), [cancelClose]);
 
   const fetchHistory = useCallback(async (ticker) => {
     if (hist[ticker]?.history || hist[ticker]?.loading) return;
@@ -194,21 +231,26 @@ export default function KeyIndicesStrip({
 
   const onPillHover = useCallback((ticker, anchor) => {
     if (hover?.locked) return;                 // don't overwrite a locked popover
+    cancelClose();
     setHover({ ticker, anchor, locked: false });
     fetchHistory(ticker);
-  }, [hover, fetchHistory]);
+  }, [hover, fetchHistory, cancelClose]);
 
   const onPillLeave = useCallback(() => {
     if (hover?.locked) return;
-    setHover(null);
-  }, [hover]);
+    closeSoftly();
+  }, [hover, closeSoftly]);
 
   const onPillClick = useCallback((ticker, anchor) => {
+    cancelClose();
     setHover({ ticker, anchor, locked: true });
     fetchHistory(ticker);
-  }, [fetchHistory]);
+  }, [fetchHistory, cancelClose]);
 
-  const closePopover = useCallback(() => setHover(null), []);
+  const closePopover = useCallback(() => {
+    cancelClose();
+    setHover(null);
+  }, [cancelClose]);
 
   const allKpis = groups.flatMap(g => g.kpis);
   const hoveredKpi = hover ? allKpis.find(k => k.ticker === hover.ticker) : null;
@@ -249,6 +291,8 @@ export default function KeyIndicesStrip({
           error={hoveredEntry?.error}
           loading={hoveredEntry?.loading}
           onClose={closePopover}
+          onKeepAlive={cancelClose}
+          onSoftLeave={closeSoftly}
           locked={hover.locked}
         />
       )}
