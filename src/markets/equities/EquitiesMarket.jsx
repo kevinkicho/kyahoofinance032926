@@ -108,55 +108,46 @@ const INDEX_CURRENCY = {
   'XLK': 'USD', 'XLF': 'USD', 'XLE': 'USD', 'XLV': 'USD',
 };
 
-// rowHeight is 120px in BentoWrapper, so h:5 = 600px and h:6 = 720px.
-// h:5 was leaving ~80px of empty vertical space below the heatmap panel
-// on a typical 900px viewport once the tab bar / KPI strip / filter row /
-// panel header were accounted for. Bumping to h:6 fills that gap without
-// forcing the page to scroll.
-// KPI strip (S&P 500 / NASDAQ / Dow / Russell 2K) is now a real bento
-// child at row 0 (h:2). All view-mode layouts include it as the first
-// entry; the rest shift down 2 rows. Storage keys bumped.
-// KPI panel: bumped h:2 -> h:4 (528px) to fit 5 groups (US, International,
-// China & HK, Risk & Macro, Sectors). Each group is ~78-95px tall (label +
-// strip with pills); 5 groups + title + footer ≈ 460-540px. h:4 covers
-// that with no clipping. h:3 (392px) clipped the bottom rows.
+// rowHeight is 120px in BentoWrapper. The indices panel uses a compact
+// grouped grid, so h:3 is enough for all 5 groups without the old wide
+// empty band. The main panels start at y:3.
 const HEATMAP_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
-    { i: 'heatmap', x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
+    { i: 'heatmap', x: 0, y: 3, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
   ]
 };
 
 const RADAR_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
-    { i: 'radar',   x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
+    { i: 'radar',   x: 0, y: 3, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
   ]
 };
 
 const RACE_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
-    { i: 'race',   x: 0,  y: 4, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
+    { i: 'race',   x: 0,  y: 3, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
   ]
 };
 
 const LIST_LAYOUT = {
   lg: [
-    { i: 'kpi',            x: 0, y: 0, w: 12, h: 4 },
-    { i: 'list-main',      x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'detail-sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',            x: 0, y: 0, w: 12, h: 3 },
+    { i: 'list-main',      x: 0, y: 3, w: 8,  h: 6 },
+    { i: 'detail-sidebar', x: 8, y: 3, w: 4,  h: 6 },
   ]
 };
 
 const ML_LAYOUT = {
   lg: [
-    { i: 'kpi',         x: 0, y: 0, w: 12, h: 4 },
-    { i: 'ml-explorer', x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'sidebar',     x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',         x: 0, y: 0, w: 12, h: 3 },
+    { i: 'ml-explorer', x: 0, y: 3, w: 8,  h: 6 },
+    { i: 'sidebar',     x: 8, y: 3, w: 4,  h: 6 },
   ]
 };
 
@@ -164,8 +155,8 @@ const ML_LAYOUT = {
 // ReferenceError in the Portfolio sub-tab. Now defined alongside the KPI.
 const PORTFOLIO_LAYOUT = {
   lg: [
-    { i: 'kpi',       x: 0, y: 0, w: 12, h: 4 },
-    { i: 'portfolio', x: 0, y: 4, w: 12, h: 6 },
+    { i: 'kpi',       x: 0, y: 0, w: 12, h: 3 },
+    { i: 'portfolio', x: 0, y: 3, w: 12, h: 6 },
   ]
 };
 
@@ -954,7 +945,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           onRowClick={handleSelectTicker}
         />
       ) : viewMode === 'ml-explorer' ? (
-        <BentoWrapper layout={ML_LAYOUT} storageKey="equities-ml-layout-v6">
+        <BentoWrapper layout={ML_LAYOUT} storageKey="equities-ml-layout-v7">
           {kpiBentoCard}
           <div key="ml-explorer" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -971,7 +962,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           {sidebarPanel}
         </BentoWrapper>
       ) : viewMode === 'list' ? (
-        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v6">
+        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v7">
           {kpiBentoCard}
           <div key="list-main" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -1015,7 +1006,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           )}
         </BentoWrapper>
       ) : viewMode === 'heatmap' ? (
-        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v6">
+        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v7">
           {kpiBentoCard}
           <div key="heatmap" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -1048,14 +1039,14 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
         // default and Market Summary collapses to a 116×120 stub.
         // PortfolioTracker also brings its own title row, so we wrap it in
         // a slim shell instead of the redundant eq-panel-title chrome.
-        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v6">
+        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v7">
           {kpiBentoCard}
           <div key="portfolio" className="eq-bento-card" onMouseDown={stopDrag}>
             <PortfolioTracker indexQuotes={indexQuotes} onTickerSelect={handleSelectTicker} />
           </div>
         </BentoWrapper>
       ) : viewMode === 'radar' ? (
-        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v6">
+        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v7">
           {kpiBentoCard}
           <div key="radar" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -1076,7 +1067,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           {sidebarPanel}
         </BentoWrapper>
       ) : (
-        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v6">
+        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v7">
           {kpiBentoCard}
           <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="eq-panel-title-row bento-panel-title-row">

@@ -176,7 +176,7 @@ const HeatmapView = ({
       itemStyle: { borderColor: '#1e1e1e', borderWidth: 1, gapWidth: 2 },
       levels,
       roam: true,
-      nodeClick: false,
+      nodeClick: 'zoomToNode',
       breadcrumb: { show: true, left: 'center', bottom: 10, itemStyle: { textStyle: { color: '#fff' } } },
       data: chartData,
       width: '100%',

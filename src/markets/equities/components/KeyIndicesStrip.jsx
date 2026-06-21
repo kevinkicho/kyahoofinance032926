@@ -215,12 +215,12 @@ export default function KeyIndicesStrip({
   const hoveredEntry = hover ? hist[hover.ticker] : null;
 
   return (
-    <div className="market-kpi-panel">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="market-kpi-panel eq-indices-panel">
+      <div className="eq-indices-grid">
         {groups.map((g, gi) => (
-          <div key={gi}>
+          <div key={gi} className={`eq-index-group eq-index-group--${gi}`}>
             {g.label && (
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4, paddingLeft: 4 }}>
+              <div className="eq-index-group-label">
                 {g.label}
               </div>
             )}

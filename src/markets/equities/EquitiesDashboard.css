@@ -67,6 +67,104 @@
   color: var(--text-secondary);
 }
 
+.eq-indices-panel {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.eq-indices-grid {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 6px;
+  padding: 6px 8px 4px;
+}
+
+.eq-index-group {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.18);
+  padding: 5px;
+}
+
+.eq-index-group--0 { grid-column: span 4; }
+.eq-index-group--1 { grid-column: span 5; }
+.eq-index-group--2 { grid-column: span 3; }
+.eq-index-group--3 { grid-column: span 5; }
+.eq-index-group--4 { grid-column: span 7; }
+
+.eq-index-group-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eq-indices-panel .market-kpi-strip {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  align-content: start;
+  gap: 5px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.eq-indices-panel .market-kpi-pill {
+  min-width: 0;
+  min-height: 58px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  gap: 1px;
+}
+
+.eq-indices-panel .market-kpi-label {
+  font-size: 9px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eq-indices-panel .market-kpi-value-row {
+  gap: 4px;
+  min-width: 0;
+}
+
+.eq-indices-panel .market-kpi-value {
+  font-size: 13px;
+  line-height: 1.15;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.eq-indices-panel .market-kpi-trend {
+  font-size: 10px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.eq-indices-panel .market-kpi-sublabel {
+  font-size: 9px;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── 2. List view wrapper (no bento for list mode) ── */
 .eq-list-wrapper {
   display: flex;
@@ -426,5 +524,13 @@
 @media (max-width: 768px) {
   .eq-detail-sidebar {
     display: none;
+  }
+
+  .eq-indices-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .eq-index-group {
+    grid-column: 1 / -1;
   }
 }
