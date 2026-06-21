@@ -4,11 +4,16 @@ import { readBestFile, readLocalData, adaptCompact, periodCutoff, snapshotIndex,
 
 const router = Router();
 
-// Yahoo tickers: letters, digits, dot, dash, caret, equals; max 16 chars.
-// Leading `^` is valid for index symbols (^GSPC, ^IXIC, ^DJI, ^RUT, ^VIX, ...).
-const TICKER_RE = /^[A-Z0-9^][A-Z0-9.\-^=]{0,15}$/;
+// Yahoo tickers: allow market-local symbols used by the global heatmap
+// before region suffix translation (e.g. M&M, BT/A, MRK_DE, ^GSPC).
+const TICKER_RE = /^[A-Z0-9^][A-Z0-9._/&\-^=]{0,24}$/;
 const isValidTicker = (t) => typeof t === 'string' && TICKER_RE.test(t);
-const isValidRegion = (r) => r === '' || Object.prototype.hasOwnProperty.call(REGION_SUFFIX, r);
+const VALID_REGION_ALIASES = new Set(['USA (NYSE & NASDAQ)']);
+const isValidRegion = (r) => (
+  r === ''
+  || VALID_REGION_ALIASES.has(r)
+  || Object.prototype.hasOwnProperty.call(REGION_SUFFIX, r)
+);
 
 // GET /api/summary/:ticker
 router.get('/summary/:ticker', async (req, res) => {
