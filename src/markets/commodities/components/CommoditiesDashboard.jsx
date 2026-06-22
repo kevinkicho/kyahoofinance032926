@@ -158,6 +158,55 @@ function CommoditiesDashboard({
     return rows.filter(row => row.value != null);
   }, [eiaPetCtx]);
 
+  const physicalPressureRows = useMemo(() => {
+    const pctRead = yoy => yoy == null ? 'No YoY' : `${Number(yoy) >= 0 ? '+' : ''}${Number(yoy).toFixed(1)}% YoY`;
+    const rows = [];
+    const eia = eiaPetCtx?.data || {};
+    if (eia.crudeStocks?.latest?.value != null) {
+      rows.push({
+        market: 'Crude stocks',
+        latest: `${(Number(eia.crudeStocks.latest.value) / 1000).toFixed(0)}M bbl`,
+        pressure: eia.crudeStocks.yoyPct != null && Number(eia.crudeStocks.yoyPct) > 0 ? 'Looser' : 'Tighter',
+        read: pctRead(eia.crudeStocks.yoyPct),
+      });
+    }
+    if (eia.gasoline?.latest?.value != null) {
+      rows.push({
+        market: 'Gasoline',
+        latest: `$${Number(eia.gasoline.latest.value).toFixed(2)}/gal`,
+        pressure: eia.gasoline.yoyPct != null && Number(eia.gasoline.yoyPct) > 0 ? 'Inflationary' : 'Disinflationary',
+        read: pctRead(eia.gasoline.yoyPct),
+      });
+    }
+    if (eia.naturalGas?.latest?.value != null) {
+      rows.push({
+        market: 'Henry Hub gas',
+        latest: `$${Number(eia.naturalGas.latest.value).toFixed(2)}/MMBtu`,
+        pressure: eia.naturalGas.yoyPct != null && Number(eia.naturalGas.yoyPct) > 0 ? 'Tighter' : 'Softer',
+        read: pctRead(eia.naturalGas.yoyPct),
+      });
+    }
+    (usdaCtx?.data?.summary || []).slice(0, 4).forEach(item => {
+      if (!item.latest) return;
+      rows.push({
+        market: item.desc || item.key,
+        latest: `${Number(item.latest.value).toFixed(2)} ${item.unit || ''}`.trim(),
+        pressure: item.yoyPct != null && Number(item.yoyPct) > 0 ? 'Upward' : 'Lower',
+        read: pctRead(item.yoyPct),
+      });
+    });
+    if (tradeCtx?.data?.summary?.worldBalanceB != null) {
+      const bal = Number(tradeCtx.data.summary.worldBalanceB);
+      rows.push({
+        market: 'US trade balance',
+        latest: `${bal >= 0 ? '+' : '-'}$${Math.abs(bal).toFixed(1)}B`,
+        pressure: bal < 0 ? 'Import demand' : 'Export surplus',
+        read: tradeCtx.data.summary.latestMonth || 'latest month',
+      });
+    }
+    return rows;
+  }, [eiaPetCtx, usdaCtx, tradeCtx]);
+
   // ── US trade balance per bloc — line chart, 24 months ─────────────────
   const tradeOption = useMemo(() => {
     const blocs = tradeCtx?.data?.blocs || [];
@@ -244,12 +293,13 @@ function CommoditiesDashboard({
       { i: 'usda-ag',     x: 0, y: 11, w: 6, h: 4 },
       { i: 'eia-petrol',  x: 6, y: 11, w: 6, h: 4 },
       { i: 'us-trade',    x: 0, y: 15, w: 12, h: 4 },
+      { i: 'physical-pressure', x: 0, y: 19, w: 12, h: 3 },
     ]
   };
 
   return (
     <div className="com-dashboard">
-      <BentoWrapper layout={layout} storageKey="commodities-layout-v3">
+      <BentoWrapper layout={layout} storageKey="commodities-layout-v4">
         <BentoCard
           key="sidebar"
           title="Market Summary"
@@ -568,6 +618,47 @@ function CommoditiesDashboard({
             <SafeECharts option={tradeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Trade Balance', source: 'US Census Bureau', endpoint: '/api/census-trade', series: [], updatedAt: tradeCtx?.lastUpdated || lastUpdated }} />
           </BentoCard>
         )}
+
+        <BentoCard
+          key="physical-pressure"
+          title="Physical Supply Pressure"
+          subtitle={`${physicalPressureRows.length} physical and trade indicators from current snapshots`}
+          accent="commodities"
+          className="com-bento-card"
+          contentClassName="com-panel-content com-panel-scroll"
+          source="EIA / USDA NASS / US Census Bureau"
+          timestamp={eiaPetCtx?.lastUpdated || usdaCtx?.lastUpdated || tradeCtx?.lastUpdated || lastUpdated}
+          isLive={!!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive)}
+          isCurrent={(eiaPetCtx?.isCurrent ?? usdaCtx?.isCurrent ?? tradeCtx?.isCurrent) ?? isCurrent}
+          fetchedOn={eiaPetCtx?.fetchedOn || usdaCtx?.fetchedOn || tradeCtx?.fetchedOn || fetchedOn}
+          fetchLog={eiaPetCtx?.fetchLog || usdaCtx?.fetchLog || tradeCtx?.fetchLog || fetchLog}
+          error={eiaPetCtx?.error || usdaCtx?.error || tradeCtx?.error || error}
+        >
+          {physicalPressureRows.length > 0 ? (
+            <table className="com-table" style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', color: 'var(--text-muted)', padding: '5px 8px' }}>Indicator</th>
+                  <th style={{ textAlign: 'right', color: 'var(--text-muted)', padding: '5px 8px' }}>Latest</th>
+                  <th style={{ textAlign: 'right', color: 'var(--text-muted)', padding: '5px 8px' }}>Pressure</th>
+                  <th style={{ textAlign: 'right', color: 'var(--text-muted)', padding: '5px 8px' }}>Read</th>
+                </tr>
+              </thead>
+              <tbody>
+                {physicalPressureRows.map(row => (
+                  <tr key={row.market}>
+                    <td style={{ padding: '5px 8px', borderTop: '1px solid var(--border-subtle)' }}>{row.market}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', borderTop: '1px solid var(--border-subtle)', fontVariantNumeric: 'tabular-nums' }}>{row.latest}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', borderTop: '1px solid var(--border-subtle)', color: ['Tighter', 'Inflationary', 'Upward', 'Import demand'].includes(row.pressure) ? '#f59e0b' : '#22c55e' }}>{row.pressure}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>{row.read}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 16, textAlign: 'center' }}>No physical supply indicators available</div>
+          )}
+        </BentoCard>
 
       </BentoWrapper>
     </div>

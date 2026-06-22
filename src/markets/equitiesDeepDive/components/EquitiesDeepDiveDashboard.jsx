@@ -259,6 +259,7 @@ const LAYOUT = {
     { i: 'earnings',     x: 0, y: 8, w: 6,  h: 3 },
     { i: 'institutions', x: 6, y: 8, w: 3,  h: 2 },
     { i: 'insider',      x: 6, y: 10, w: 3, h: 3 },
+    { i: 'earnings-quality', x: 0, y: 13, w: 12, h: 3 },
   ]
 };
 
@@ -332,9 +333,42 @@ function EquitiesDeepDiveDashboard({
     return { top, avgShort, above20, total: mostShorted.length };
   }, [mostShorted]);
 
+  const earningsQuality = useMemo(() => {
+    const numeric = arr => arr.filter(v => v != null && !Number.isNaN(Number(v))).map(Number);
+    const avg = arr => {
+      const vals = numeric(arr);
+      return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+    };
+    const sortedUpcoming = [...upcoming].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    const avgBeatRate = avg((beatRates || []).map(row => row.beatRate));
+    const bestBeat = (beatRates || []).reduce((best, row) => (row.beatRate ?? -Infinity) > (best?.beatRate ?? -Infinity) ? row : best, null);
+    const factors = [
+      { name: 'Momentum', value: inFavor.momentum },
+      { name: 'Value', value: inFavor.value },
+      { name: 'Quality', value: inFavor.quality },
+      { name: 'Low-Vol', value: inFavor.lowVol },
+    ].filter(row => row.value != null);
+    const topFactor = factors.reduce((best, row) => Number(row.value) > Number(best?.value ?? -Infinity) ? row : best, null);
+    const positiveRevisions = upcoming.filter(row => row.epsEst != null && row.epsPrev != null && Number(row.epsEst) >= Number(row.epsPrev)).length;
+    const revisionRate = upcoming.length ? (positiveRevisions / upcoming.length) * 100 : null;
+    const qualityCount = stocks.filter(row => Number(row.quality ?? 0) >= 70).length;
+    const avgComposite = avg(stocks.map(row => row.composite));
+    return {
+      next: sortedUpcoming[0] || null,
+      totalUpcoming: upcoming.length,
+      avgBeatRate,
+      bestBeat,
+      topFactor,
+      revisionRate,
+      qualityCount,
+      avgComposite,
+      breadth: breadthDivergence?.signal || breadthDivergence?.status || breadthDivergence?.summary || null,
+    };
+  }, [upcoming, beatRates, inFavor, stocks, breadthDivergence]);
+
   return (
     <div className="eqd-dashboard eqd-dashboard--bento" role="region" aria-label="Equities Deep Dive Dashboard">
-      <BentoWrapper layout={LAYOUT} storageKey="equities-deepdive-layout-v2">
+      <BentoWrapper layout={LAYOUT} storageKey="equities-deepdive-layout-v3">
         {/* KPI strip + Sidebar — real bento children. KPI is row 0
             full-width; sidebar is right column. Both are passed in via
             props from the parent so they stay co-located with their data. */}
@@ -745,6 +779,65 @@ function EquitiesDeepDiveDashboard({
             />
           </BentoCard>
         )}
+
+        <BentoCard
+          key="earnings-quality"
+          title="Earnings Quality & Revision Monitor"
+          subtitle="Upcoming reports, beat-rate breadth, factor leadership"
+          accent="equitiesDeepDive"
+          className="eqd-bento-card"
+          contentClassName="eqd-panel-scroll"
+          source="Yahoo Finance / FRED"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
+            {[
+              { label: 'Next Report', value: earningsQuality.next?.ticker || '—', sub: earningsQuality.next?.date || 'schedule' },
+              { label: 'Beat Breadth', value: earningsQuality.avgBeatRate != null ? `${earningsQuality.avgBeatRate.toFixed(1)}%` : '—', sub: earningsQuality.bestBeat?.sector || earningsQuality.bestBeat?.name || 'by sector' },
+              { label: 'Positive Revisions', value: earningsQuality.revisionRate != null ? `${earningsQuality.revisionRate.toFixed(0)}%` : '—', sub: `${earningsQuality.totalUpcoming} upcoming` },
+              { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : 'rotation' },
+            ].map(item => (
+              <div key={item.label} className="eqd-metric-card" style={{ margin: 0 }}>
+                <div className="eqd-sidebar-title">{item.label}</div>
+                <div className="eqd-metric-row">
+                  <span className="eqd-metric-num" style={{ color: '#6366f1', fontSize: 14 }}>{item.value}</span>
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>{item.sub}</div>
+              </div>
+            ))}
+          </div>
+          <table className="eqd-table">
+            <thead>
+              <tr>
+                <th className="eqd-th">Metric</th>
+                <th className="eqd-th">Value</th>
+                <th className="eqd-th">Read</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="eqd-row">
+                <td className="eqd-cell">High-quality stocks</td>
+                <td className="eqd-cell eqd-num">{earningsQuality.qualityCount}/{stocks.length || 0}</td>
+                <td className="eqd-cell">Quality score 70+</td>
+              </tr>
+              <tr className="eqd-row">
+                <td className="eqd-cell">Average composite</td>
+                <td className="eqd-cell eqd-num">{earningsQuality.avgComposite != null ? earningsQuality.avgComposite.toFixed(1) : '—'}</td>
+                <td className="eqd-cell">Factor universe</td>
+              </tr>
+              <tr className="eqd-row">
+                <td className="eqd-cell">Breadth signal</td>
+                <td className="eqd-cell">{earningsQuality.breadth || '—'}</td>
+                <td className="eqd-cell">Divergence context</td>
+              </tr>
+            </tbody>
+          </table>
+        </BentoCard>
       </BentoWrapper>
     </div>
   );

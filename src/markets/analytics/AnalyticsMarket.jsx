@@ -678,10 +678,11 @@ const LAYOUT = {
     { i: 'error-log', x: 0, y: 8, w: 6, h: 3 },
     { i: 'diagnostics', x: 0, y: 11, w: 6, h: 5 },
     { i: 'mem-cache', x: 6, y: 10, w: 3, h: 3 },
-    { i: 'cache-files', x: 9, y: 15, w: 3, h: 3 },
-    { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
-  ]
-};
+      { i: 'cache-files', x: 9, y: 15, w: 3, h: 3 },
+      { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
+      { i: 'coverage-matrix', x: 0, y: 16, w: 12, h: 4 },
+    ]
+  };
 
 function formatUptime(seconds) {
   const d = Math.floor(seconds / 86400);
@@ -908,6 +909,34 @@ export default function AnalyticsMarket() {
   const up = data.uptime || {};
   const mc = data.memCache || {};
   const routes = data.routes || [];
+  const freshnessByMarket = new Map((data.dataFreshness?.markets || []).map(m => [m.market, m]));
+  const coverageRows = MARKET_ENDPOINTS.map(ep => {
+    const marketCtx = ctx?.getMarket?.(ep.id) || {};
+    const snapshot = marketCtx.data || null;
+    const sourceEntries = Object.entries(snapshot?._sources || {});
+    const okSources = sourceEntries.filter(([, value]) => !!value).length;
+    const freshness = freshnessByMarket.get(ep.id) || {};
+    const status = marketCtx.error
+      ? 'error'
+      : marketCtx.isLoading
+        ? 'loading'
+        : okSources > 0
+          ? 'ok'
+          : snapshot
+            ? 'snapshot'
+            : freshness.fetchedOn
+              ? 'cached'
+              : 'missing';
+    return {
+      ...ep,
+      status,
+      okSources,
+      totalSources: sourceEntries.length,
+      fetchedOn: marketCtx.fetchedOn || freshness.fetchedOn || snapshot?.fetchedAt || snapshot?.lastUpdated || '—',
+      keys: snapshot ? Object.keys(snapshot).filter(k => !k.startsWith('_')).length : (freshness.keyCount || 0),
+      route: ep.path,
+    };
+  });
 
     const kpis = [
       { label: 'Endpoints',  value: String(MARKET_ENDPOINTS.length), sublabel: 'Tracked'  },
@@ -944,7 +973,7 @@ export default function AnalyticsMarket() {
         {/* Audit controls (date-aware) live inside the "Provenance Audit" bento card below — supports global History picker + per-audit date select. */}
       </div>
       <div className="ana-dashboard ana-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v2">
+        <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v3">
           {/* KPI strip — real bento child at row 0. */}
           <BentoCard key="kpi" title="Analytics Key Metrics" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
             <MarketKpiStrip kpis={kpis} bare />
@@ -1181,6 +1210,24 @@ export default function AnalyticsMarket() {
                   ))}
                 </tbody>
               </table>
+          </BentoCard>
+
+          <BentoCard key="coverage-matrix" title="Endpoint Coverage Matrix" subtitle={`${coverageRows.filter(r => r.status === 'ok').length}/${coverageRows.length} markets with source coverage`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <table className="ana-table">
+              <thead><tr><th>Market</th><th>Route</th><th>Status</th><th>Sources</th><th>Keys</th><th>Fetched</th></tr></thead>
+              <tbody>
+                {coverageRows.map(row => (
+                  <tr key={row.id}>
+                    <td>{row.label}</td>
+                    <td className="ana-mono">{row.route}</td>
+                    <td style={{ color: row.status === 'ok' ? '#22c55e' : row.status === 'missing' || row.status === 'error' ? '#ef4444' : '#f59e0b' }}>{row.status}</td>
+                    <td>{row.totalSources ? `${row.okSources}/${row.totalSources}` : '—'}</td>
+                    <td>{row.keys || '—'}</td>
+                    <td className="ana-mono">{String(row.fetchedOn || '—').replace('T', ' ').slice(0, 19)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </BentoCard>
 
         </BentoWrapper>

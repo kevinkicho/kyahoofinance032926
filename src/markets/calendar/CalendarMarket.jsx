@@ -34,6 +34,7 @@ const LAYOUT = {
     { i: 'treasury', x: 9, y: 7, w: 3, h: 4 },
     { i: 'options', x: 9, y: 11, w: 3, h: 4 },
     { i: 'release-impact', x: 0, y: 15, w: 12, h: 4 },
+    { i: 'catalyst-wall', x: 0, y: 19, w: 12, h: 4 },
   ]
 };
 
@@ -141,10 +142,66 @@ function CalendarMarket({ centralData } = {}) {
       .slice(0, 14);
   }, [props.keyReleases, props.economicEvents]);
 
+  const catalystRows = useMemo(() => {
+    const rows = [];
+    (props.economicEvents || []).forEach(row => rows.push({
+      date: row.date,
+      type: 'Macro',
+      label: row.event || row.name || row.label || 'Economic event',
+      channel: row.category || row.country || 'Rates / risk',
+      detail: [row.actual != null ? `actual ${row.actual}` : null, row.forecast != null ? `forecast ${row.forecast}` : null].filter(Boolean).join(' / ') || row.source || 'calendar',
+      importance: Number(row.importance ?? 1),
+    }));
+    (props.keyReleases || []).forEach(row => rows.push({
+      date: row.date,
+      type: 'US Data',
+      label: row.name || row.label || row.event || 'Key release',
+      channel: row.category || 'Macro',
+      detail: [row.actual != null ? `actual ${row.actual}` : null, row.previous != null ? `prev ${row.previous}` : null].filter(Boolean).join(' / ') || 'scheduled release',
+      importance: 2,
+    }));
+    (props.centralBanks || []).forEach(row => rows.push({
+      date: row.date || row.meetingDate || row.nextMeeting,
+      type: 'Central Bank',
+      label: row.bank || row.name || 'Policy meeting',
+      channel: 'Rates / FX',
+      detail: [row.rate != null ? `rate ${row.rate}%` : null, row.daysUntil != null ? `${row.daysUntil}d` : null].filter(Boolean).join(' / ') || 'meeting',
+      importance: row.daysUntil != null && row.daysUntil <= 14 ? 3 : 2,
+    }));
+    (props.treasuryAuctions || []).forEach(row => rows.push({
+      date: row.date || row.auctionDate,
+      type: 'Treasury',
+      label: row.security || row.term || row.type || 'Auction',
+      channel: 'Rates / liquidity',
+      detail: [row.amount || row.offeringAmount, row.cusip].filter(Boolean).join(' / ') || 'auction',
+      importance: 2,
+    }));
+    (props.earningsSeason || []).forEach(row => rows.push({
+      date: row.date,
+      type: 'Earnings',
+      label: row.ticker || row.symbol || row.name || 'Earnings',
+      channel: row.sector || 'Equities',
+      detail: [row.epsEst != null ? `EPS est ${row.epsEst}` : null, row.marketCap ? `mcap ${row.marketCap}` : null].filter(Boolean).join(' / ') || 'report',
+      importance: 1,
+    }));
+    (props.optionsExpiry || []).forEach(row => rows.push({
+      date: row.date,
+      type: 'Options',
+      label: row.type || 'Expiry',
+      channel: 'Volatility',
+      detail: row.description || 'monthly expiry',
+      importance: 1,
+    }));
+    return rows
+      .filter(row => row.date && row.label)
+      .sort((a, b) => (b.importance - a.importance) || String(a.date).localeCompare(String(b.date)))
+      .slice(0, 18);
+  }, [props.economicEvents, props.keyReleases, props.centralBanks, props.treasuryAuctions, props.earningsSeason, props.optionsExpiry]);
+
   return (
     <div className="cal-market">
       <div className="cal-dashboard cal-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v3">
+        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v4">
           {/* KPI strip — first bento child, full-width row 0. */}
           <BentoCard
             key="kpi"
@@ -463,6 +520,53 @@ function CalendarMarket({ centralData } = {}) {
               </table>
             ) : (
               <PanelEmpty label="release impact data" />
+            )}
+          </BentoCard>
+
+          <BentoCard
+            key="catalyst-wall"
+            title="Market Catalyst Wall"
+            subtitle={`${catalystRows.length} cross-market catalysts from current calendar snapshot`}
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / Econdb / Treasury / Yahoo Finance"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {catalystRows.length > 0 ? (
+              <table className="cal-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Catalyst</th>
+                    <th>Market Channel</th>
+                    <th>Detail</th>
+                    <th style={{ textAlign: 'right' }}>Impact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {catalystRows.map((row, i) => (
+                    <tr key={`${row.date}-${row.type}-${row.label}-${i}`}>
+                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>{row.date}</td>
+                      <td>{row.type}</td>
+                      <td>{row.label}</td>
+                      <td>{row.channel}</td>
+                      <td>{row.detail}</td>
+                      <td style={{ textAlign: 'right', color: row.importance >= 3 ? '#f87171' : row.importance >= 2 ? '#f59e0b' : 'var(--text-muted)' }}>
+                        {row.importance >= 3 ? 'High' : row.importance >= 2 ? 'Medium' : 'Watch'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <PanelEmpty label="market catalysts" />
             )}
           </BentoCard>
         </BentoWrapper>

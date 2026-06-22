@@ -34,12 +34,14 @@ const LAYOUTS = {
     lg: [
       { i: 'kpi',         x: 0, y: 0, w: 12, h: 2 },
       { i: 'ticker-list', x: 0, y: 2, w: 12, h: 5 },
+      { i: 'cross-alerts', x: 0, y: 7, w: 12, h: 4 },
     ]
   },
   metrics: {
     lg: [
       { i: 'kpi',          x: 0, y: 0, w: 12, h: 2 },
       { i: 'metric-cards', x: 0, y: 2, w: 12, h: 3 },
+      { i: 'cross-alerts', x: 0, y: 5, w: 12, h: 4 },
     ]
   },
 };
@@ -235,6 +237,65 @@ function WatchlistMarket({ onNavigate }) {
     ];
   }, [derivData, fxData, bondData, cryptoData, commData, creditData, sentimentData, equityEddData]);
 
+  const crossMarketAlerts = useMemo(() => {
+    const rows = [];
+    const toNum = v => v == null || Number.isNaN(Number(v)) ? null : Number(v);
+    const push = row => rows.push(row);
+    const vix = toNum(getLiveValue({ id: 'vix' }));
+    push({
+      signal: 'Volatility',
+      value: vix != null ? vix.toFixed(2) : '—',
+      read: vix == null ? 'No VIX snapshot' : vix >= 25 ? 'Risk-off pressure' : vix >= 18 ? 'Elevated watch' : 'Contained',
+      severity: vix == null ? 'muted' : vix >= 25 ? 'high' : vix >= 18 ? 'medium' : 'low',
+      target: METRIC_SHORTCUTS.find(m => m.id === 'vix'),
+    });
+    const dxyHist = fxData?.data?.dxyHistory?.values || fxData?.data?.fredFxRates?.dollarIndex?.values || [];
+    const dxy = toNum(dxyHist.at?.(-1));
+    const dxyPrev = toNum(dxyHist.at?.(-22));
+    const dxyMo = dxy != null && dxyPrev != null ? ((dxy / dxyPrev) - 1) * 100 : null;
+    push({
+      signal: 'US Dollar',
+      value: dxy != null ? dxy.toFixed(2) : '—',
+      read: dxyMo == null ? 'No 1m read' : `${dxyMo >= 0 ? '+' : ''}${dxyMo.toFixed(1)}% 1m`,
+      severity: dxyMo == null ? 'muted' : Math.abs(dxyMo) >= 3 ? 'medium' : 'low',
+      target: METRIC_SHORTCUTS.find(m => m.id === 'dxy'),
+    });
+    const hy = toNum(creditData?.data?.spreadData?.current?.hySpread);
+    push({
+      signal: 'HY credit',
+      value: hy != null ? `${Math.round(hy)} bps` : '—',
+      read: hy == null ? 'No spread snapshot' : hy >= 500 ? 'Stress' : hy >= 350 ? 'Caution' : 'Benign',
+      severity: hy == null ? 'muted' : hy >= 500 ? 'high' : hy >= 350 ? 'medium' : 'low',
+      target: METRIC_SHORTCUTS.find(m => m.id === 'hyspread'),
+    });
+    const fg = toNum(sentimentData?.data?.fearGreedData?.score);
+    push({
+      signal: 'Fear & Greed',
+      value: fg != null ? Math.round(fg) : '—',
+      read: fg == null ? 'No sentiment snapshot' : fg >= 75 ? 'Extreme greed' : fg <= 25 ? 'Extreme fear' : 'Neutral range',
+      severity: fg == null ? 'muted' : fg >= 75 || fg <= 25 ? 'medium' : 'low',
+      target: METRIC_SHORTCUTS.find(m => m.id === 'feargreed'),
+    });
+    const btc = cryptoData?.data?.coinMarketData?.coins?.find(c => c.symbol === 'BTC');
+    const btcChange = toNum(btc?.change24h ?? btc?.percentChange24h ?? btc?.changePct24h);
+    push({
+      signal: 'Bitcoin',
+      value: btc?.price != null ? `$${Number(btc.price).toLocaleString()}` : '—',
+      read: btcChange == null ? 'No 24h read' : `${btcChange >= 0 ? '+' : ''}${btcChange.toFixed(1)}% 24h`,
+      severity: btcChange == null ? 'muted' : Math.abs(btcChange) >= 5 ? 'medium' : 'low',
+      target: METRIC_SHORTCUTS.find(m => m.id === 'btc'),
+    });
+    const gold = commData?.data?.priceDashboardData?.flatMap(s => s.commodities || [])?.find(c => c.ticker === 'GC=F');
+    push({
+      signal: 'Gold',
+      value: gold?.price != null ? `$${Number(gold.price).toLocaleString()}` : getLiveValue({ id: 'gold' }) ?? '—',
+      read: gold?.change1d != null ? `${Number(gold.change1d) >= 0 ? '+' : ''}${Number(gold.change1d).toFixed(1)}% 1d` : 'Safe-haven watch',
+      severity: gold?.change1d != null && Math.abs(Number(gold.change1d)) >= 2 ? 'medium' : 'low',
+      target: METRIC_SHORTCUTS.find(m => m.id === 'gold'),
+    });
+    return rows;
+  }, [derivData, fxData, creditData, sentimentData, cryptoData, commData]);
+
     return (
       <div className="watch-market">
         <div className="watch-sub-tabs" role="tablist" aria-label="Sub-tabs">
@@ -253,7 +314,7 @@ function WatchlistMarket({ onNavigate }) {
       </div>
 
       <div className="watch-dashboard watch-dashboard--bento">
-        <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout-v2`}>
+        <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout-v3`}>
           {/* KPI strip — full-width bento child at row 0 in both sub-tabs. */}
           <BentoCard
             key="kpi"
@@ -408,6 +469,48 @@ function WatchlistMarket({ onNavigate }) {
                 </div>
             </BentoCard>
           )}
+          <BentoCard
+            key="cross-alerts"
+            title="Cross-Market Alert Board"
+            subtitle={`${crossMarketAlerts.filter(row => row.severity !== 'low' && row.severity !== 'muted').length} active watch signals`}
+            accent="watchlist"
+            className="watch-bento-card"
+            contentClassName="watch-panel-scroll"
+            source="Internal cross-market snapshots"
+            timestamp={watchlistData?.lastUpdated}
+            isLive={effectiveIsLive}
+            isCurrent={watchlistData?.isCurrent}
+            fetchedOn={watchlistData?.fetchedOn}
+            fetchLog={watchlistData?.fetchLog || []}
+            error={watchlistData?.error}
+          >
+            <table className="watch-ticker-table">
+              <thead>
+                <tr>
+                  <th>Signal</th>
+                  <th>Value</th>
+                  <th>Read</th>
+                  <th>Severity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {crossMarketAlerts.map(row => (
+                  <tr key={row.signal} onClick={() => row.target && handleMetricClick(row.target)} style={{ cursor: row.target ? 'pointer' : 'default' }}>
+                    <td style={{ fontWeight: 600 }}>{row.signal}</td>
+                    <td>{row.value}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{row.read}</td>
+                    <td>
+                      <span
+                        className={`watch-metric-status watch-metric-status-${row.severity === 'high' ? 'error' : row.severity === 'medium' ? 'stale' : row.severity === 'muted' ? 'nodata' : 'live'}`}
+                      >
+                        {row.severity}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </BentoCard>
         </BentoWrapper>
       </div>
     </div>
