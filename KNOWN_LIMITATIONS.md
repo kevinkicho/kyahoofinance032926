@@ -199,5 +199,8 @@ widens the window it silently truncates.
   If a particular market hasn't been fetched yet (i.e. the user has not visited
   the market or clicked the play button), corresponding metrics display "—".
 - No end-to-end tests; coverage is unit/component (Vitest + RTL) only.
-- No CSP, rate limiting, or auth on the server — intended for local /
-  trusted-network use.
+- Server is intended for local / trusted-network use. Admin endpoints
+  (`/api/admin/*`) verify Firebase ID tokens and enforce per-IP rate
+  limiting; public `/api/*` routes remain open (no auth/rate-limit) by
+  design. Deploy behind Firebase Functions + App Check or an API gateway
+  for production hardening.

@@ -34,4 +34,13 @@ copyDir(path.join(srcDir, 'lib'), path.join(destDir, 'lib'));
 copyDir(path.join(__dirname, '..', '..', 'src', 'data'), path.join(destDir, 'data'));
 copyDir(path.join(__dirname, '..', '..', 'server', 'dataSources'), path.join(destDir, 'dataSources'));
 
+// Copy the canonical route list so functions/src/index.ts can require it
+// at runtime without referencing files outside the deployed functions/ dir.
+const sharedDir = path.join(__dirname, '..', '..', 'shared');
+if (fs.existsSync(sharedDir)) {
+  const destShared = path.join(destDir, 'shared');
+  if (!fs.existsSync(destShared)) fs.mkdirSync(destShared, { recursive: true });
+  fs.copyFileSync(path.join(sharedDir, 'route-list.json'), path.join(destShared, 'route-list.json'));
+}
+
 console.log('Assets copied to lib/');

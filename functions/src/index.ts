@@ -31,15 +31,17 @@ let routesLoaded = false;
 function loadRoutes() {
   if (routesLoaded) return;
   
-  const essentialRoutes = [
-    'stocks', 'equities', 'macro', 'bonds', 'derivatives', 'realEstate', 'insurance',
-    'commodities', 'globalMacro', 'equityDeepDive', 'crypto', 'credit',
-    'sentiment', 'calendar', 'fx', 'analytics', 'watchlist', 'fred',
-    'bls', 'eia', 'census', 'ticker', 'bea', 'censusTrade', 'commoditiesEnhanced',
-    'ecb', 'edgar', 'eiaPetroleum', 'eurostat', 'fdic', 'fed', 'fema',
-    'imf', 'institutional', 'msrb', 'nyfed', 'oecd', 'treasuryAuctions',
-    'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates', 'admin'
-  ];
+  // Canonical route list lives in shared/route-list.json so the server,
+  // Vite proxy, and Firebase Functions all stay in sync. See docs/API_ENDPOINTS.md.
+  // The copy-assets build script copies it into lib/shared/ at deploy time.
+  const essentialRoutes: string[] = require(
+    path.join(__dirname, "shared", "route-list.json")
+  ) as string[];
+
+  // Mark as loaded first so a mid-loop throw doesn't cause every subsequent
+  // request to re-require all modules (which would waste memory and time).
+  // Failed routes are simply skipped — the catch below logs the full stack.
+  routesLoaded = true;
 
   for (const route of essentialRoutes) {
     try {
@@ -71,11 +73,9 @@ function loadRoutes() {
         app.use(`/api/${route}`, router);
       }
     } catch (e: any) {
-      console.warn(`Route ${route} not loaded:`, e.message);
+      console.warn(`Route ${route} not loaded:`, e?.stack || e?.message || e);
     }
   }
-  
-  routesLoaded = true;
 }
 
 app.use((req, res, next) => {
@@ -146,7 +146,7 @@ if (!admin.apps || admin.apps.length === 0) {
   admin.initializeApp();
 }
 
-const LIVE_FUNCTIONS_BASE = "https://api-4uzq3y2xva-uc.a.run.app";
+const LIVE_FUNCTIONS_BASE = process.env.LIVE_FUNCTIONS_BASE || "https://api-4uzq3y2xva-uc.a.run.app";
 const RTDB_KEY_INVALID_CHARS = /[.#$/[\]]/g;
 
 function sanitizeForRTDB(value: any): any {

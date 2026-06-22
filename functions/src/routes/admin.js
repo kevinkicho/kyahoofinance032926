@@ -14,6 +14,23 @@ const ADMIN_EMAIL = 'kevinkicho@gmail.com';
 
 const RTDB_KEY_INVALID_CHARS = /[.#$/[\]]/g;
 
+// In-memory rate limiter for admin endpoints — prevents brute-force token
+// spamming from a single IP. Resets every 15 minutes.
+const adminRateMap = new Map();
+const ADMIN_RATE_WINDOW_MS = 15 * 60 * 1000;
+const ADMIN_RATE_MAX = 20;
+
+function checkAdminRateLimit(ip) {
+  const now = Date.now();
+  const entry = adminRateMap.get(ip);
+  if (!entry || now - entry.windowStart > ADMIN_RATE_WINDOW_MS) {
+    adminRateMap.set(ip, { windowStart: now, count: 1 });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= ADMIN_RATE_MAX;
+}
+
 function sanitizeForRTDB(value) {
   if (Array.isArray(value)) return value.map(sanitizeForRTDB);
   if (!value || typeof value !== 'object') return value === undefined ? null : value;
@@ -42,6 +59,12 @@ function deny(res, status = 403, userMessage = 'Admin account required to refres
 }
 
 async function verifyAdminRequest(req, res, userMessage = 'Admin account required.') {
+  const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
+  if (!checkAdminRateLimit(clientIp)) {
+    deny(res, 429, 'Too many admin requests. Please try again later.');
+    return { ok: false };
+  }
+
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -125,6 +148,25 @@ async function verifyRecaptchaEnterprise(req, expectedAction) {
   }
 }
 
+// Resolve the base URL for internal refresh calls WITHOUT trusting client-
+// controlled Host/protocol headers (SSRF protection). Cloud Run provides
+// reliable request.socket info, but env override is the safest option.
+function getInternalBaseUrl(req) {
+  if (process.env.LIVE_FUNCTIONS_BASE) {
+    return process.env.LIVE_FUNCTIONS_BASE.replace(/\/$/, '');
+  }
+  // Cloud Run: use the socket address — never req.get('host') which is
+  // attacker-controllable via Host header injection.
+  const addr = req.socket?.localAddress;
+  const port = req.socket?.localPort;
+  if (addr && port) {
+    const host = addr.includes(':') ? `[${addr}]` : addr;
+    return `http://${host}:${port}`;
+  }
+  // Fallback for local emulator
+  return `http://localhost:${process.env.PORT || 8081}`;
+}
+
 router.post('/refresh-all', async (req, res) => {
   const adminCheck = await verifyAdminRequest(req, res, 'Admin account required to refresh global data.');
   if (!adminCheck.ok) return;
@@ -136,9 +178,7 @@ router.post('/refresh-all', async (req, res) => {
   }
 
   console.log('[admin-functions] initiating global refresh & RTDB write...');
-  const protocol = req.protocol;
-  const host = req.get('host');
-  const base = `${protocol}://${host}`;
+  const base = getInternalBaseUrl(req);
 
   const now = new Date().toISOString();
   const dateKey = now.substring(0, 10);
@@ -199,9 +239,7 @@ router.get('/diagnose', async (req, res) => {
   const adminCheck = await verifyAdminRequest(req, res, 'Admin account required to run live diagnostics.');
   if (!adminCheck.ok) return;
 
-  const protocol = req.protocol;
-  const host = req.get('host');
-  const base = `${protocol}://${host}`;
+  const base = getInternalBaseUrl(req);
   const now = new Date().toISOString();
   const dateKey = now.substring(0, 10);
   const db = admin.database();

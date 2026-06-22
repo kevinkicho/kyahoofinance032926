@@ -44,3 +44,20 @@ export async function fetchFredLatest(seriesId, apiKey) {
   const valid = (data?.observations || []).filter(o => o.value !== '.');
   return valid.length ? parseFloat(valid[0].value) : null;
 }
+
+// Like fetchFredLatest but also returns the observation date so callers
+// can show "as of YYYY-MM-DD" instead of an undated value.
+export async function fetchFredLatestWithDate(seriesId, apiKey) {
+  const params = new URLSearchParams({
+    series_id: seriesId,
+    api_key: apiKey,
+    file_type: 'json',
+    sort_order: 'desc',
+    limit: '5',
+  });
+  const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
+  const data = await fetchJSON(url);
+  const valid = (data?.observations || []).filter(o => o.value !== '.');
+  if (!valid.length) return null;
+  return { value: parseFloat(valid[0].value), date: valid[0].date };
+}

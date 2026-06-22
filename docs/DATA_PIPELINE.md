@@ -2,7 +2,7 @@
 
 How a number gets from a public-data API into a panel on the Global Market Hub.
 
-This is the end-to-end picture: external APIs → server routes → caches → DataProvider →
+This is the end-to-end picture: external APIs → Firebase Functions routes → RTDB snapshots → DataProvider →
 `useMarketData` hook → market panel → DataFooter provenance. Read it once and the rest
 of the codebase becomes self-explanatory.
 
@@ -30,10 +30,10 @@ flowchart LR
         ALT["Alternative.me"]
     end
 
-    subgraph SRV["Express Server (auto-port → .server-port)"]
-        ROUTES["24 route modules<br/>/api/bonds, /api/fx, …"]
+    subgraph SRV["Firebase Functions v2<br/>Express app"]
+        ROUTES["route modules<br/>/api/bonds, /api/fx, …"]
         MEM_CACHE["NodeCache<br/>stdTTL = 15min"]
-        DAILY["Daily JSON snapshots<br/>server/datacache/&lt;market&gt;-YYYY-MM-DD.json"]
+        RTDB["RTDB snapshots<br/>marketSnapshots/{id}/latest + history"]
     end
 
     subgraph CLI["Browser (Vite dev / dist)"]
@@ -46,7 +46,7 @@ flowchart LR
 
     EXT --> ROUTES
     ROUTES <--> MEM_CACHE
-    ROUTES <--> DAILY
+    ROUTES <--> RTDB
     ROUTES -- "JSON + _sources" --> DP
     DP --> SNAP
     DP --> HOOK
@@ -54,9 +54,10 @@ flowchart LR
     PANELS --> FOOTER
 ```
 
-The whole system is **read-mostly and idempotent**. There is no DB, no auth, no
-queue — just public APIs, two cache layers on the server, two cache layers in
-the browser, and a fan-out fetcher that keeps the UI live.
+The whole system is **read-mostly and idempotent**. Production uses Firebase
+Functions for live fetches and Firebase RTDB for fast `latest` plus daily
+`history/YYYY-MM-DD` snapshots. Browser panels hydrate RTDB first and only use
+live API calls as fallback or admin-triggered refresh.
 
 ---
 
@@ -87,22 +88,28 @@ DataFooter on every panel.
 
 ---
 
-## 3. Server routes (24 modules)
+## 3. Firebase Functions routes
 
-Mounted in `server/index.js`. All read-only HTTP:
+Mounted in `functions/src/index.ts`. The current route inventory lives in
+[`API_ENDPOINTS.md`](API_ENDPOINTS.md); keep it aligned with
+`src/hub/DataProvider.jsx` and `functions/src/lib/snapshotMarkets.ts`.
+
+Common routes:
 
 ```
 /api/health                  — liveness probe (5-min Cache-Control)
 /api/cache/status            — per-market freshness map
 /api/rate-limits             — analytics dashboard data
-/api/stocks                  — 825 equities (yahoo-finance2)
+/api/equities                — global equity universe / heatmap data
+/api/stocks                  — POST batch quotes and stock helpers
 /api/macro                   — legacy macro (kept for transitional callers)
 /api/bonds                   — yield curves, spreads, breakevens, mortgage
 /api/derivatives             — VIX, SKEW, vol surface
 /api/realEstate              — REITs, house prices, housing starts, retail
 /api/insurance               — combined ratios, cat-bond proxy
 /api/commodities             — legacy commodity payload
-/api/commodities/v2          — current commodity payload (Yahoo + EIA + FRED)
+/api/commoditiesEnhanced     — current commodity payload (Yahoo + EIA + FRED)
+/api/commodities/v2          — alias for commoditiesEnhanced
 /api/globalMacro             — scorecard, central banks, OECD CLI, COFER
 /api/equityDeepDive          — sectors, factors, ERP, breadth, insiders
 /api/crypto                  — coins, BTC dom, exchanges, defi, gas
@@ -124,6 +131,10 @@ Mounted in `server/index.js`. All read-only HTTP:
 /api/snapshot                — bulk snapshot
 ```
 
+Additional satellite routes include `/api/bea`, `/api/eurostat`, `/api/oecd`,
+`/api/ecb`, `/api/nyfed`, `/api/fdic`, `/api/fed/*`, `/api/fema`, `/api/usgs`,
+`/api/usda`, `/api/censusTrade`, and `/api/eiaPetroleum`.
+
 Every route returns JSON shaped like:
 
 ```jsonc
@@ -144,36 +155,27 @@ Every route returns JSON shaped like:
 
 ---
 
-## 4. Server caching (two layers)
+## 4. Server caching and RTDB snapshots
 
 ```mermaid
 flowchart TB
     REQ["GET /api/bonds"] --> NC{"NodeCache<br/>15-min TTL"}
     NC -- hit --> OUT["JSON response"]
-    NC -- miss --> DAILY{"Daily JSON snapshot<br/>server/datacache/<br/>bonds-YYYY-MM-DD.json"}
-    DAILY -- hit (today's date) --> NC2["warm NodeCache"] --> OUT
-    DAILY -- miss --> FETCH["External API fan-out"]
-    FETCH --> WRITE["write daily JSON"]
-    WRITE --> NC2
-    FETCH -- "API failure" --> STALE{"latest non-empty cache"}
-    STALE -- found --> OUT_STALE["serve stale + isCurrent=false"]
-    STALE -- "none / too small / >85% null" --> EMPTY["503 / partial payload"]
+    NC -- miss --> FETCH["External API fan-out"]
+    FETCH --> OUT
+    SCHED["scheduled/admin refresh"] --> FETCH2["fetch registered endpoints"]
+    FETCH2 --> RTDB["write RTDB<br/>latest + history/YYYY-MM-DD"]
+    UI["DataProvider"] --> RTDB
+    UI -- "fallback/admin force live" --> REQ
 ```
 
-- **NodeCache** (in-memory, `server/index.js:89`): `stdTTL = 900` (15 min). Per-route
-  keys. Cleared on server restart.
-- **Daily JSON snapshot** (`server/lib/cache.js`): one file per market per day at
-  `server/datacache/<market>-YYYY-MM-DD.json`. Survives restarts. Files older than
-  7 days are pruned at startup (`cleanOldCaches`).
-- **Anti-poisoning checks** in `cache.js`:
-  - Refuse to read/write payloads `< 200 bytes` (likely empty/error response).
-  - Refuse if `>85%` of leaf values are null/false/empty (failed cold-fetch).
-  - These thresholds are why **deleting `server/datacache/*.json` after adding
-    keys** is a documented troubleshooting step — bad caches written before keys
-    were configured otherwise re-poison the in-memory layer.
-- **HTTP `Cache-Control`** (`server/index.js:134`): `public, max-age=900,
-  stale-while-revalidate=60` for market routes, `300` for `/api/health` and
-  `/api/cache/status`.
+- **NodeCache**: in-memory cache in the Firebase Function process, TTL 900s.
+- **RTDB snapshots**: `marketSnapshots/{id}/latest` and
+  `marketSnapshots/{id}/history/{YYYY-MM-DD}` written by scheduled/admin refresh.
+- **Frontend fast path**: DataProvider reads RTDB snapshots first so GitHub Pages
+  can render without asking every live upstream on every page load.
+- **Live fallback**: if a snapshot is missing/corrupt, DataProvider can fetch the
+  matching `/api/...` route. Admin refresh can force live fetches.
 
 ### FRED throttling and retry
 
@@ -189,8 +191,8 @@ flowchart TB
 ## 5. DataProvider — the client-side wave fetcher
 
 `src/hub/DataProvider.jsx` is the single source of truth for every panel. It
-runs once when the app mounts and again whenever the user clicks the manual
-refresh button (or every 5 min if `autoRefresh=true`).
+hydrates RTDB snapshots when the app mounts, preserves browser snapshots, and
+uses live API calls for missing/corrupt snapshots or admin-triggered refresh.
 
 ```mermaid
 sequenceDiagram
@@ -206,7 +208,7 @@ sequenceDiagram
     DP->>UI: render with snapshot (PENDING badges where empty)
     DP->>DP: didInitialFetchRef → fetchAllMarkets()
     loop batches of 4, 300ms gap
-        DP->>API: GET /api/<market>
+        DP->>API: GET /api/<market> when fallback/force-live needed
         API-->>DP: JSON + _sources
         DP->>DP: hasNonNullData? structural guard?
         DP->>UI: setMarkets({ id: { data, isLive, isCurrent } })
@@ -244,12 +246,13 @@ DataFooter.
 
 ### Federated markets
 
-Some "markets" don't have a backend route — they're computed on the client from
+Some panels or "markets" don't have a dedicated backend route — they're computed on the client from
 other markets' data:
 
 | Federated id | Inputs | Computed by |
 | --- | --- | --- |
 | `alerts` | sentiment, bonds, credit, crypto, commodities, fx | `computeAlerts()` — runs 8 rule checks (VIX spike, curve inversion, HY widening, F&G extremes, BTC large move, gold rally, DXY shift). Recomputed every time any input lands. |
+| Commodities COT/FX/materials | sentiment, fx, commodities, local strategic-material catalog | Commodities composes CFTC positioning, commodity-bloc FX, and strategic mineral metadata without duplicating backend work. |
 
 ### Persistence layers (client)
 

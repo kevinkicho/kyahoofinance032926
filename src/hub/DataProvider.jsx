@@ -581,6 +581,10 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   useEffect(() => { marketsRef.current = markets; }, [markets]);
   useEffect(() => { historicalDateRef.current = historicalDate; }, [historicalDate]);
 
+  // Cleanup on unmount so in-flight fetch waves don't call setState on an
+  // unmounted component (React 18 tolerates this but it's still a warning).
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   const fetchSingleMarket = useCallback(async (marketId, params = null) => {
     let url = MARKET_ENDPOINTS[marketId];
     if (params) {
@@ -962,7 +966,33 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   }, [markets]);
 
   useEffect(() => {
-    const handleBeforeUnload = () => { saveSnapshot(marketsRef.current); };
+    const handleBeforeUnload = () => {
+      // Use sendBeacon-style fire-and-forget to avoid blocking tab close.
+      // The debounced save (above) already persists on every state change,
+      // so this is just a final safety net. We keep the payload slim and
+      // catch quota errors silently.
+      try {
+        const slim = {};
+        let entryCount = 0;
+        for (const [id, m] of Object.entries(marketsRef.current)) {
+          if (m?.data && entryCount < 50) {
+            slim[id] = {
+              data: m.data,
+              lastUpdated: m.lastUpdated,
+              fetchedOn: m.fetchedOn,
+              isLive: m.isLive,
+              isCurrent: m.isCurrent,
+              provenance: m.provenance,
+            };
+            entryCount++;
+          }
+        }
+        localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(slim));
+      } catch {
+        // Quota exceeded or tab closing — silently drop; the IndexedDB
+        // archive (persistToIDB) already has full-fidelity data.
+      }
+    };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);

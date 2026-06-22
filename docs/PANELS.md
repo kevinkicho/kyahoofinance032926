@@ -12,7 +12,7 @@ Panel keys (e.g. `kpi`, `yield`, `metrics`) are the `key` props on bento childre
 | [Derivatives](#derivatives) | `/api/derivatives` | Yahoo Finance, CBOE |
 | [Real Estate](#real-estate) | `/api/realEstate` (+ `/api/census`) | Yahoo Finance, FRED, Census |
 | [Insurance](#insurance) | `/api/insurance` | Yahoo Finance, FRED |
-| [Commodities](#commodities) | `/api/commodities/v2` | EIA, FRED, World Bank, Yahoo Finance |
+| [Commodities](#commodities) | `/api/commoditiesEnhanced` (`/api/commodities/v2` alias) + satellite endpoints | EIA, FRED, USDA, Census Trade, World Bank, Yahoo Finance, CFTC via Sentiment |
 | [Macro](#macro) | `/api/globalMacro` (+ `/api/imf`, `/api/worldbank`) | FRED, World Bank, IMF, BIS, OECD |
 | [Equity+](#equity-plus) | `/api/equityDeepDive` | Yahoo Finance, FRED, SEC EDGAR |
 | [Crypto](#crypto) | `/api/crypto` | CoinGecko, Mempool, DefiLlama, Alternative.me, Etherscan |
@@ -149,17 +149,30 @@ Panel keys (e.g. `kpi`, `yield`, `metrics`) are the `key` props on bento childre
 
 ## Commodities
 
-**Purpose:** broad commodity pulse + futures curve + supply/demand + COT.
+**Purpose:** broad commodity pulse + futures curve + supply/demand + COT + strategic materials intelligence.
 
 | Panel `key` | What it shows | Why |
 |---|---|---|
-| `summary` (Market Summary) | Key prices (NG/Gold/WTI/Brent/Silver/Copper) · DBC ETF · Gold/Oil ratio · Contango · COT net | Single-screen pulse |
-| `prices` (Commodity Prices) | All 21 yahoo futures: WTI/Brent/Gold/Silver/Platinum/Palladium/Nat Gas/Copper/Heating Oil + 6 grains + 3 softs + 3 livestock | Full table view |
-| `curve` (Futures Curve) | WTI + Gold next-6 monthly contracts (CL_K/M/N/Q/U/V.NYM) | Contango / backwardation |
-| `heatmap` (Sector Performance) | Energy / Metals / Agriculture / Livestock heatmap with d1/w1/m1 | Sector rotation |
+| `sidebar` (Market Summary) | Key prices, DBC, gold/oil ratio, contango, COT net | Single-screen pulse |
+| `prices` (Commodity Prices) | Yahoo futures: energy, precious metals, copper, grains, softs, livestock | Full table/chart view |
+| `futures` (Futures Curve) | WTI + Gold term structure, DXY/WTI overlay, seasonality | Contango / backwardation |
+| `sector` (Sector Performance) | Energy / Metals / Agriculture / Livestock heatmap with d1/w1/m1 and PPI context | Sector rotation |
 | `supply` (Supply & Demand Monitor) | Crude stocks · Nat gas storage · Crude production · Gasoline / Distillate stocks (EIA) | Fundamentals |
 | `cot` (COT Positioning) | CFTC commodities — Gold / Crude net positioning | Speculative crowding |
-| `fx` (Commodity FX vs USD) | CAD · AUD · NOK · BRL · CLP · ZAR | Commodity-bloc currencies |
+| `comfx` (Commodity FX vs USD) | CAD · AUD · NOK · BRL · CLP · ZAR | Commodity-bloc currencies |
+| `usda-ag` (US Ag Commodity Prices) | USDA NASS ag price series | Physical ag input context |
+| `eia-petrol` (Petroleum & Natural Gas) | EIA gasoline, Henry Hub, crude stocks | Energy physical market |
+| `us-trade` (US Trade Balance) | Census trade by bloc | Commodity demand/import context |
+| `physical-pressure` | Combined EIA/USDA/Census pressure table | Physical tightness summary |
+| `materials-grid` | Strategic materials periodic grid | Critical-mineral map |
+| `criticality` | Criticality/import reliance leaderboard | Supply vulnerability ranking |
+| `battery-chain` | Lithium/graphite/nickel/cobalt/manganese/copper/vanadium | EV/grid supply chain |
+| `precious-complex` | Precious metals, PGM rows, ratios | Monetary vs industrial precious metals |
+| `regime` | Commodity regime classifier | Inflation/growth/safe-haven read |
+| `energy-stack` | Crude, Brent, gas, heating oil, crude inventory | Energy complex at a glance |
+| `curve-board` | WTI/Gold curve structure summary | Inventory tightness proxy |
+| `material-detail` | Selected strategic material facts | Drilldown from periodic grid |
+| `exposure-matrix` | Materials vs EV/grid/defense/chips/solar/nuclear | Sector dependency map |
 
 ---
 
@@ -346,6 +359,7 @@ Tickers persisted to localStorage. Adding a ticker triggers a `POST /api/watchli
 | `memCache` (Memory Cache) | In-memory cache stats |
 | `fileCache` (File Cache) | Daily cache files |
 | `expressRoutes` (Express Routes) | All registered routes |
+| `coverage-matrix` (Endpoint Coverage Matrix) | DataProvider endpoint status, source counts, keys, fetched time | Agent/debug coverage map |
 
 ---
 

@@ -46,6 +46,8 @@ That's it. Dashboards auto-fetch on first load — no need to click refresh.
 
 - [`docs/PANELS.md`](docs/PANELS.md) — every tab + every panel with purpose, data source, signal interpretation
 - [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md) — end-to-end pipeline diagram (external APIs → server routes → DataProvider → panels), caching strategy, cross-market enrichment
+- [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) — current frontend endpoint map, Firebase Functions route aliases, RTDB snapshot coverage, and cross-market bindings
+- [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — user-visible dashboard/data-contract changes by date
 
 **Troubleshooting** — if a tab still shows "PENDING" / "NO DATA" after a code change:
 ```bash
@@ -92,7 +94,7 @@ Caches survive 24h and can outlive a code change.
 | 4 | **Derivatives** | Vol Surface (SPX), VIX Term Structure, Options Flow | Purple `#a78bfa` | Yahoo (VIX term, SPY/QQQ options), FRED (VIXCLS 252d) |
 | 5 | **Real Estate** | Price Index, REIT Screen, Affordability, Cap Rates, Mortgage Rates | Orange `#f97316` | Yahoo (REITs, VNQ), FRED (Case-Shiller, HOUST, MSPUS, BIS prices) |
 | 6 | **Insurance** | Cat Bond Spreads, Combined Ratio, Reserve Adequacy, Reinsurance | Sky Blue `#0ea5e9` | Yahoo (PGR/ALL/TRV/HIG quarterlies), FRED (HY OAS 252d) † |
-| 7 | **Commodities** | Price Dashboard, Futures Curve, Sector Heatmap, Supply/Demand, COT Positioning | Gold `#ca8a04` | Yahoo (18 tickers, WTI/Gold futures), FRED (WTI, Gold, Brent, PPI), EIA, CFTC Socrata |
+| 7 | **Commodities** | Price Dashboard, Futures Curve, Sector Heatmap, Supply/Demand, COT, strategic materials, regime/energy/curve boards | Gold `#ca8a04` | Yahoo futures, FRED, EIA, USDA, Census Trade, curated USGS-style strategic-mineral metadata |
 | 8 | **Global Macro** | Unified Scorecard (12 countries), Growth/Inflation, Central Bank Rates, Debt Monitor | Teal `#14b8a6` | World Bank, FRED (policy rates) |
 | 9 | **Equity+** | Sector Rotation, Factor Rankings, Earnings Watch, Short Interest | Indigo `#6366f1` | Yahoo Finance (12 sector ETFs, quoteSummary, chart) |
 | 10 | **Crypto** | Market Overview, Fear & Greed, DeFi TVL, Funding Rates, On-Chain Metrics | Amber `#f59e0b` | CoinGecko (top 20 + global), DeFiLlama (TVL), Alternative.me (F&G), Bybit (funding), mempool.space (on-chain) |
@@ -226,17 +228,25 @@ Caches survive 24h and can outlive a code change.
 - Positioning: COT net long/short for major commodities
 
 **Main Panels:**
-- **Energy Table**: Crude, natural gas, gasoline prices
-- **Metals Table**: Gold, silver, copper prices
-- **Gold Price Chart**: 252-day history
-- **WTI Oil Chart**: 252-day history
-- **Natural Gas Chart**: 252-day history
-- **Agriculture Table**: Corn, soybeans, wheat prices
-- **Sector Performance Table**: Energy, metals, agriculture % changes
-- **COT Positioning Table**: Net long/short positions by commodity
-- **Supply/Demand Table**: Surplus/deficit by commodity
-- **Commodity FX Table**: CAD, AUD, NOK, BRL rates vs USD
-- **Gold Futures Curve**: Term structure by expiry
+- **Commodity Prices**: Yahoo futures table/chart for energy, precious metals, copper, grains, softs, and livestock
+- **Futures Curve**: WTI and gold term structure, seasonality, and DXY/WTI overlay
+- **Sector Performance**: Energy / metals / agriculture / livestock heatmap with PPI context
+- **Supply & Demand**: EIA crude stocks, gas storage, crude production, gasoline/distillate stocks, and gold fallback
+- **COT Positioning**: CFTC net speculative positioning, enriched from the Sentiment endpoint
+- **Commodity FX**: CAD, AUD, NOK, BRL, CLP, ZAR where FX context is available
+- **US Ag Commodity Prices**: USDA NASS prices for core ag commodities
+- **Petroleum & Natural Gas**: EIA gasoline, Henry Hub, crude stocks
+- **US Trade Balance**: Census trade balance by bloc
+- **Physical Supply Pressure**: Combined EIA/USDA/Census physical-market read
+- **Strategic Materials Periodic Grid**: periodic-table-style critical minerals and materials
+- **Criticality Leaderboard**: criticality and import-reliance ranking
+- **Battery Supply Chain**: lithium, graphite, nickel, cobalt, manganese, copper, vanadium
+- **Precious Metals Complex**: gold/silver/platinum/palladium and PGM context
+- **Commodity Regime Dashboard**: inflationary, disinflationary, growth-led, supply-shock, safe-haven regime read
+- **Energy Stack**: crude, Brent, natural gas, heating oil, crude inventory context
+- **Curve Structure Board**: contango/backwardation summary
+- **Strategic Material Detail**: click a periodic tile for material-specific criticality, producer/processor, proxy, and uses
+- **Material-to-Sector Exposure Matrix**: EV/grid/defense/chips/solar/nuclear exposure map
 
 ### 8. Global Macro
 **Sidebar:**
@@ -532,11 +542,11 @@ Every data point in the app is traceable to its source. Two provenance component
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, Vite 5, ECharts (`echarts-for-react`), `html2canvas`, PapaParse |
-| Backend | Express 4, `yahoo-finance2`, `node-cache` |
-| Data | Yahoo Finance, FRED API, CoinGecko, DeFiLlama, Bybit, CFTC Socrata, EIA, IMF WEO/IFS/COFER, World Bank WDI, BLS, US Census Bureau, mempool.space, Frankfurter |
+| Backend | Firebase Functions v2, Express 4, `yahoo-finance2`, `node-cache` |
+| Data | Firebase RTDB snapshots, Yahoo Finance, FRED API, CoinGecko, DeFiLlama, Bybit, CFTC Socrata, EIA, USDA NASS, IMF WEO/IFS/COFER, World Bank WDI, BLS, US Census Bureau, Treasury Fiscal Data, BEA, ECB, OECD, Eurostat, mempool.space, Frankfurter |
 | Styling | Plain CSS with CSS variables (dark/light themes), responsive breakpoints |
 | Tests | Vitest 4, @testing-library/react — ~350 tests across 60+ files |
-| Deploy | Docker (multi-stage Node 20 alpine), docker-compose |
+| Deploy | GitHub Pages frontend + Firebase Functions backend; Docker files remain for local/legacy workflows |
 
 ## Getting Started
 
@@ -549,7 +559,7 @@ cd server && npm install
 
 ### 2. Configure environment
 
-Create a `server/.env` file with the following keys (all free):
+Create a local `.env` file with the following keys (all free). Production values are configured as Firebase Function secrets and GitHub Actions variables:
 
 - `FRED_API_KEY=your_key_here` — required for most markets. Get one at [fred.stlouisfed.org/docs/api/api_key.html](https://fred.stlouisfed.org/docs/api/api_key.html).
 - `EIA_API_KEY=your_key_here` — required for the EIA (electricity, CO₂ emissions) and Commodities dashboards. Get one at [eia.gov/opendata](https://www.eia.gov/opendata/). Without it, the EIA route returns 503 and Commodities skips EIA-backed series.
@@ -564,7 +574,7 @@ npm run dev          # Frontend only
 cd server && node index.js  # Backend only
 ```
 
-Data does **not** load automatically. Click the **▶ button** in the top tab bar to fetch market data. Toggle auto-refresh (5-min polling) with the On/Off button.
+Dashboards auto-hydrate from RTDB latest snapshots on first load. The top-bar play/refresh control is admin-only and triggers a live refresh through Firebase Functions.
 
 ### 4. Run tests
 
@@ -716,4 +726,4 @@ See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for a full list of intentional 
 
 ## Recent Updates
 
-See `git log` for recent updates.
+See [`docs/CHANGELOG.md`](docs/CHANGELOG.md) for the human-readable change log and `git log` for exact commits.

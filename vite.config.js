@@ -112,9 +112,27 @@ function macroApiPlugin() {
         if (req.method !== 'POST') { res.end('{}'); return; }
         res.setHeader('Content-Type', 'application/json');
         
-        // Accumulate request body for potentially massive text pastes
+        // Accumulate request body with a hard 2MB cap to prevent unbounded
+        // memory consumption from massive pastes. The SEC text is truncated
+        // to 300k chars downstream anyway, so 2MB is plenty of headroom.
+        const MAX_BODY = 2 * 1024 * 1024;
         let body = '';
-        for await (const chunk of req) body += chunk;
+        let bodyLen = 0;
+        try {
+          for await (const chunk of req) {
+            bodyLen += chunk.length;
+            if (bodyLen > MAX_BODY) {
+              res.statusCode = 413;
+              res.end(JSON.stringify({ error: 'Request body too large (max 2MB).' }));
+              return;
+            }
+            body += chunk;
+          }
+        } catch {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: 'Failed reading request body.' }));
+          return;
+        }
         
         try {
           const { ticker, text, ollamaModel = 'llama3' } = JSON.parse(body);
@@ -200,32 +218,24 @@ function getBackendPort() {
   try { return parseInt(fs.readFileSync(portFile, 'utf8'), 10) || 3001; } catch { return 3001; }
 }
 
-const API_ROUTES = [
-  '/api/stocks', '/api/summary', '/api/history', '/api/snapshot',
-  '/api/bonds', '/api/derivatives', '/api/realEstate', '/api/insurance',
-  '/api/commodities', '/api/globalMacro', '/api/equityDeepDive',
-  '/api/cache', '/api/crypto', '/api/credit', '/api/sentiment',
-  '/api/calendar', '/api/fx', '/api/rate-limits', '/api/analytics',
-  '/api/institutional', '/api/worldbank', '/api/imf', '/api/fred', '/api/macro', '/api/bls', '/api/eia', '/api/census',
-  // Tier-1 public-data additions (NY Fed, FDIC, BEA, SEC EDGAR, ECB SDW,
-  // Eurostat, OECD, US Treasury TIC). Without entries here, Vite returns
-  // index.html for the requests and DataProvider blows up on JSON.parse.
-  '/api/nyfed', '/api/fdic', '/api/bea', '/api/edgar', '/api/ecb', '/api/eurostat', '/api/oecd', '/api/treasury',
-  '/api/treasuryTIC', '/api/treasuryAuctions', '/api/treasuryDTS',
-  // Federal Reserve sub-routes (FOMC SEP, Atlanta GDPNow, Cleveland inflation
-  // nowcast, SF news sentiment). Mounted under /api/fed/*.
-  '/api/fed',
-  // MSRB EMMA — US municipal-bond trade and primary-market activity.
-  '/api/msrb',
-  // OpenFEMA disaster declarations + USGS earthquakes — Insurance tab.
-  '/api/fema', '/api/usgs',
-  // Commodities-tab additions: USDA NASS, Census trade, EIA petroleum.
-  '/api/usda', '/api/census-trade', '/api/eia-petroleum', '/api/censusTrade', '/api/eiaPetroleum',
-  // Without these two, vite returned index.html for the requests and
-  // DataProvider blew up on JSON parse — manifesting as the entire
-  // equities/watchlist data being missing across the app.
-  '/api/equities', '/api/watchlist', '/api/health', '/api/admin',
-];
+// Proxy routes are derived from the canonical shared/route-list.json so the
+// Vite dev proxy, the Express server, and Firebase Functions all stay in sync.
+// See docs/API_ENDPOINTS.md. Additional non-standard mount paths (compatibility
+// aliases like /api/commodities/v2) are appended below.
+const SHARED_ROUTE_LIST = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'shared', 'route-list.json'), 'utf8')
+);
+const API_ROUTES = SHARED_ROUTE_LIST.filter(r => r !== 'macro').map(r => `/api/${r}`).concat([
+  '/api/summary', '/api/history', '/api/snapshot',
+  '/api/cache', '/api/rate-limits', '/api/health',
+  // Compatibility aliases — the server mounts these in addition to the
+  // canonical paths. Without proxy entries Vite returns index.html and
+  // DataProvider blows up on JSON.parse.
+  '/api/commodities/v2',
+  '/api/treasury/tic', '/api/treasury/auctions', '/api/treasury/dts',
+  '/api/treasury', '/api/fed',
+  '/api/census-trade', '/api/eia-petroleum',
+]);
 
 function buildProxyConfig() {
   const target = `http://localhost:${getBackendPort()}`;

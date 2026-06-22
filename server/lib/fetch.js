@@ -44,6 +44,9 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
     };
     const req = https.get(options, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        // Resolve to the redirect URL as a promise so the caller's retry
+        // and throttle wrappers still apply. Pass the original userAgent
+        // so the FRED UA override is re-evaluated for the redirect target.
         fetchJSON(res.headers.location, userAgent).then(resolve).catch(reject);
         return;
       }
