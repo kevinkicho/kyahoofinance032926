@@ -44,6 +44,24 @@ function materialRiskLabel(score) {
   return 'Watch';
 }
 
+function avgNumeric(values) {
+  const nums = values.map(Number).filter(v => Number.isFinite(v));
+  return nums.length ? nums.reduce((sum, v) => sum + v, 0) / nums.length : null;
+}
+
+function curveSpreadPct(curve) {
+  const prices = curve?.prices || [];
+  if (prices.length < 2 || prices[0] == null) return null;
+  return ((Number(prices[prices.length - 1]) / Number(prices[0])) - 1) * 100;
+}
+
+function curveStructure(spread) {
+  if (spread == null || !Number.isFinite(spread)) return 'Unavailable';
+  if (spread > 0.35) return 'Contango';
+  if (spread < -0.35) return 'Backwardation';
+  return 'Flat';
+}
+
 function CommoditiesDashboard({
   priceDashboardData, futuresCurveData, sectorHeatmapData, supplyDemandData, cotData,
   fredCommodities, goldFuturesCurve, dbcEtf, goldOilRatio, contangoIndicator,
@@ -54,6 +72,7 @@ function CommoditiesDashboard({
   const { colors } = useTheme();
   const [priceView, setPriceView] = usePersistedState(`${STORAGE_KEY}-priceView`, 'table');
   const [sectorView, setSectorView] = usePersistedState(`${STORAGE_KEY}-sectorView`, 'heatmap');
+  const [selectedMaterialSymbol, setSelectedMaterialSymbol] = useState('Li');
   // 2026-05-04: USDA NASS, Census trade, EIA petroleum.
   const usdaCtx = useMarketData('usda');
   const tradeCtx = useMarketData('censusTrade');
@@ -281,6 +300,108 @@ function CommoditiesDashboard({
     };
   }, [preciousRows]);
 
+  const selectedMaterial = useMemo(() => {
+    return strategicMaterials.find(row => row.symbol === selectedMaterialSymbol) || strategicMaterials[0] || null;
+  }, [strategicMaterials, selectedMaterialSymbol]);
+
+  const commodityByTicker = useMemo(() => {
+    return Object.fromEntries(allCommodities.map(item => [item.ticker, item]));
+  }, [allCommodities]);
+
+  const sectorPulseRows = useMemo(() => {
+    return (priceDashboardData || []).map(sector => {
+      const commodities = sector.commodities || [];
+      const avg1d = avgNumeric(commodities.map(row => row.change1d));
+      const advancers = commodities.filter(row => Number(row.change1d) > 0).length;
+      return {
+        sector: sector.sector,
+        count: commodities.length,
+        avg1d,
+        breadth: commodities.length ? (advancers / commodities.length) * 100 : null,
+      };
+    }).filter(row => row.count > 0);
+  }, [priceDashboardData]);
+
+  const regimeSnapshot = useMemo(() => {
+    const energy = avgNumeric((priceDashboardData || []).filter(s => s.sector === 'Energy').flatMap(s => (s.commodities || []).map(c => c.change1d)));
+    const metals = avgNumeric((priceDashboardData || []).filter(s => ['Precious Metals', 'Industrial Metals', 'Metals'].includes(s.sector)).flatMap(s => (s.commodities || []).map(c => c.change1d)));
+    const ag = avgNumeric((priceDashboardData || []).filter(s => ['Grains', 'Softs', 'Agriculture'].includes(s.sector)).flatMap(s => (s.commodities || []).map(c => c.change1d)));
+    const gold = Number(commodityByTicker['GC=F']?.change1d ?? 0);
+    const copper = Number(commodityByTicker['HG=F']?.change1d ?? 0);
+    const crude = Number(commodityByTicker['CL=F']?.change1d ?? 0);
+    const breadth = avgNumeric(sectorPulseRows.map(row => row.breadth));
+    let label = 'Mixed';
+    let read = 'Cross-commodity signals are not aligned.';
+    if ((energy ?? 0) > 1 && (metals ?? 0) > 0.5) {
+      label = 'Inflationary';
+      read = 'Energy and metals are rising together.';
+    } else if ((crude ?? 0) > 1.5 && (copper ?? 0) < 0) {
+      label = 'Supply Shock';
+      read = 'Oil strength is not confirmed by growth metals.';
+    } else if (gold > 0.75 && (copper ?? 0) < 0) {
+      label = 'Safe Haven';
+      read = 'Precious metals are leading cyclicals.';
+    } else if ((energy ?? 0) < -1 && (metals ?? 0) < -0.5 && (ag ?? 0) < 0) {
+      label = 'Disinflationary';
+      read = 'Major commodity groups are soft together.';
+    } else if ((copper ?? 0) > 0.75 && (breadth ?? 0) >= 55) {
+      label = 'Growth-Led';
+      read = 'Cyclical metals and breadth are constructive.';
+    }
+    return { label, read, energy, metals, ag, breadth };
+  }, [priceDashboardData, commodityByTicker, sectorPulseRows]);
+
+  const energyStackRows = useMemo(() => {
+    const rows = [
+      { label: 'WTI crude', ticker: 'CL=F', unit: '$/bbl' },
+      { label: 'Brent crude', ticker: 'BZ=F', unit: '$/bbl' },
+      { label: 'Natural gas', ticker: 'NG=F', unit: '$/MMBtu' },
+      { label: 'Heating oil', ticker: 'HO=F', unit: '$/gal' },
+    ].map(row => {
+      const live = commodityByTicker[row.ticker] || {};
+      return {
+        ...row,
+        price: live.price,
+        change: live.change1d,
+        read: live.change1d == null ? 'No live read' : Number(live.change1d) >= 1 ? 'Firm' : Number(live.change1d) <= -1 ? 'Soft' : 'Stable',
+      };
+    });
+    const crudeStocks = eiaPetCtx?.data?.crudeStocks;
+    if (crudeStocks?.latest?.value != null) {
+      rows.push({
+        label: 'Crude stocks',
+        unit: 'M bbl',
+        price: Number(crudeStocks.latest.value) / 1000,
+        change: crudeStocks.yoyPct,
+        read: crudeStocks.yoyPct != null && Number(crudeStocks.yoyPct) > 0 ? 'Looser YoY' : 'Tighter YoY',
+      });
+    }
+    return rows;
+  }, [commodityByTicker, eiaPetCtx]);
+
+  const curveBoardRows = useMemo(() => {
+    return [
+      { market: 'WTI crude', curve: futuresCurveData, unit: futuresCurveData?.unit || '$/bbl' },
+      { market: 'Gold', curve: goldFuturesCurve, unit: goldFuturesCurve?.unit || '$/oz' },
+    ].map(row => {
+      const spread = curveSpreadPct(row.curve);
+      return {
+        ...row,
+        spot: row.curve?.spotPrice,
+        contracts: row.curve?.labels?.length || 0,
+        spread,
+        structure: curveStructure(spread),
+      };
+    });
+  }, [futuresCurveData, goldFuturesCurve]);
+
+  const exposureRows = useMemo(() => {
+    return strategicMaterials
+      .filter(row => MATERIAL_SECTOR_EXPOSURE[row.symbol]?.length)
+      .sort((a, b) => b.criticality - a.criticality)
+      .slice(0, 18);
+  }, [strategicMaterials]);
+
   // ── US trade balance per bloc — line chart, 24 months ─────────────────
   const tradeOption = useMemo(() => {
     const blocs = tradeCtx?.data?.blocs || [];
@@ -372,12 +493,17 @@ function CommoditiesDashboard({
       { i: 'criticality', x: 8, y: 22, w: 4, h: 5 },
       { i: 'battery-chain', x: 0, y: 27, w: 6, h: 4 },
       { i: 'precious-complex', x: 6, y: 27, w: 6, h: 4 },
+      { i: 'regime', x: 0, y: 31, w: 4, h: 3 },
+      { i: 'energy-stack', x: 4, y: 31, w: 4, h: 3 },
+      { i: 'curve-board', x: 8, y: 31, w: 4, h: 3 },
+      { i: 'material-detail', x: 0, y: 34, w: 4, h: 4 },
+      { i: 'exposure-matrix', x: 4, y: 34, w: 8, h: 4 },
     ]
   };
 
   return (
     <div className="com-dashboard">
-      <BentoWrapper layout={layout} storageKey="commodities-layout-v5">
+      <BentoWrapper layout={layout} storageKey="commodities-layout-v6">
         <BentoCard
           key="sidebar"
           title="Market Summary"
@@ -767,9 +893,10 @@ function CommoditiesDashboard({
               return (
                 <div
                   key={material.symbol}
-                  className="com-periodic-tile"
+                  className={`com-periodic-tile${selectedMaterial?.symbol === material.symbol ? ' selected' : ''}`}
                   style={{ gridColumn: material.group, gridRow: material.period, borderColor: category.color }}
                   title={`${material.name}: ${material.uses.join(', ')}; top producer ${material.topProducer}`}
+                  onClick={() => setSelectedMaterialSymbol(material.symbol)}
                 >
                   <div className="com-periodic-symbol" style={{ color: category.color }}>{material.symbol}</div>
                   <div className="com-periodic-name">{material.name}</div>
@@ -895,6 +1022,185 @@ function CommoditiesDashboard({
                   <td>{row.riskLabel}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </BentoCard>
+
+        <BentoCard
+          key="regime"
+          title="Commodity Regime Dashboard"
+          subtitle="Energy, metals, agriculture, and breadth"
+          accent="commodities"
+          className="com-bento-card"
+          contentClassName="com-panel-content com-panel-scroll"
+          source="Yahoo Finance / EIA / FRED"
+          timestamp={lastUpdated}
+          isLive={!!priceDashboardData}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <div className="com-regime-hero">
+            <span>Current Regime</span>
+            <strong>{regimeSnapshot.label}</strong>
+            <em>{regimeSnapshot.read}</em>
+          </div>
+          <div className="com-regime-grid">
+            {[
+              ['Energy', regimeSnapshot.energy],
+              ['Metals', regimeSnapshot.metals],
+              ['Ags', regimeSnapshot.ag],
+              ['Breadth', regimeSnapshot.breadth],
+            ].map(([label, value]) => (
+              <div key={label} className="com-regime-cell">
+                <span>{label}</span>
+                <strong className={value == null ? '' : Number(value) >= 0 ? 'com-up' : 'com-down'}>
+                  {value == null ? '-' : label === 'Breadth' ? `${Number(value).toFixed(0)}%` : `${Number(value) >= 0 ? '+' : ''}${Number(value).toFixed(2)}%`}
+                </strong>
+              </div>
+            ))}
+          </div>
+        </BentoCard>
+
+        <BentoCard
+          key="energy-stack"
+          title="Energy Stack"
+          subtitle="Crude, products, natural gas, and inventories"
+          accent="commodities"
+          className="com-bento-card"
+          contentClassName="com-panel-content com-panel-scroll"
+          source="Yahoo Finance / EIA"
+          timestamp={eiaPetCtx?.lastUpdated || lastUpdated}
+          isLive={!!(priceDashboardData || eiaPetCtx?.data)}
+          isCurrent={eiaPetCtx?.isCurrent ?? isCurrent}
+          fetchedOn={eiaPetCtx?.fetchedOn || fetchedOn}
+          fetchLog={eiaPetCtx?.fetchLog || fetchLog}
+          error={eiaPetCtx?.error || error}
+        >
+          <table className="com-material-table">
+            <thead><tr><th>Signal</th><th>Latest</th><th>Move</th><th>Read</th></tr></thead>
+            <tbody>
+              {energyStackRows.map(row => (
+                <tr key={row.label}>
+                  <td>{row.label}</td>
+                  <td>{row.price != null ? Number(row.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-'}</td>
+                  <td className={row.change == null ? '' : Number(row.change) >= 0 ? 'com-up' : 'com-down'}>
+                    {row.change == null ? '-' : `${Number(row.change) >= 0 ? '+' : ''}${Number(row.change).toFixed(2)}%`}
+                  </td>
+                  <td>{row.read}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </BentoCard>
+
+        <BentoCard
+          key="curve-board"
+          title="Curve Structure Board"
+          subtitle="Contango/backwardation as inventory tightness proxy"
+          accent="commodities"
+          className="com-bento-card"
+          contentClassName="com-panel-content com-panel-scroll"
+          source="Yahoo Finance / CME proxies"
+          timestamp={lastUpdated}
+          isLive={!!(futuresCurveData || goldFuturesCurve)}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <div className="com-curve-board">
+            {curveBoardRows.map(row => (
+              <div key={row.market} className="com-curve-board-row">
+                <div>
+                  <strong>{row.market}</strong>
+                  <span>{row.contracts} contracts</span>
+                </div>
+                <div>
+                  <strong className={row.structure === 'Backwardation' ? 'com-up' : row.structure === 'Contango' ? 'com-down' : ''}>{row.structure}</strong>
+                  <span>{row.spread == null ? '-' : `${row.spread >= 0 ? '+' : ''}${row.spread.toFixed(1)}% front-to-back`}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </BentoCard>
+
+        <BentoCard
+          key="material-detail"
+          title="Strategic Material Detail"
+          subtitle="Click a material in the periodic grid"
+          accent="commodities"
+          className="com-bento-card"
+          contentClassName="com-panel-content com-panel-scroll"
+          source="USGS / curated supply-chain metadata"
+          timestamp={lastUpdated}
+          isLive={!!selectedMaterial}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          {selectedMaterial && (
+            <div className="com-material-detail">
+              <div className="com-material-detail-head">
+                <strong>{selectedMaterial.symbol}</strong>
+                <div>
+                  <span>{selectedMaterial.name}</span>
+                  <em>{MATERIAL_CATEGORIES[selectedMaterial.category]?.label || selectedMaterial.category}</em>
+                </div>
+              </div>
+              <div className="com-material-detail-grid">
+                <span>Criticality</span><strong>{selectedMaterial.criticality} / 100</strong>
+                <span>Import Reliance</span><strong>{selectedMaterial.importReliance}%</strong>
+                <span>Top Producer</span><strong>{selectedMaterial.topProducer}</strong>
+                <span>Top Processor</span><strong>{selectedMaterial.topProcessor}</strong>
+                <span>Price Proxy</span><strong>{selectedMaterial.proxy}</strong>
+                <span>Latest</span><strong>{formatMaterialPrice(selectedMaterial.livePrice, selectedMaterial.yahoo ? '' : '')}</strong>
+              </div>
+              <div className="com-material-use-list">
+                {selectedMaterial.uses.map(use => <span key={use}>{use}</span>)}
+              </div>
+            </div>
+          )}
+        </BentoCard>
+
+        <BentoCard
+          key="exposure-matrix"
+          title="Material-to-Sector Exposure Matrix"
+          subtitle="Which materials matter to EVs, grid, defense, chips, solar, and nuclear"
+          accent="commodities"
+          className="com-bento-card"
+          contentClassName="com-panel-content com-panel-scroll"
+          source="USGS / curated end-use metadata"
+          timestamp={lastUpdated}
+          isLive={true}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <table className="com-material-table">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Risk</th>
+                {MATERIAL_SECTOR_COLUMNS.map(col => <th key={col.key}>{col.label}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {exposureRows.map(row => {
+                const exposures = new Set(MATERIAL_SECTOR_EXPOSURE[row.symbol] || []);
+                return (
+                  <tr key={row.symbol}>
+                    <td><strong>{row.symbol}</strong> {row.name}</td>
+                    <td>{row.criticality}</td>
+                    {MATERIAL_SECTOR_COLUMNS.map(col => (
+                      <td key={col.key} className={exposures.has(col.key) ? 'com-material-hit' : ''}>{exposures.has(col.key) ? 'yes' : '-'}</td>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </BentoCard>
