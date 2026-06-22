@@ -317,7 +317,7 @@ function GlobalMacroDashboard({
 
   const beaSummary = useMemo(() => {
     const latestByDesc = (rows = [], match) => {
-      const found = [...rows].reverse().find(r => (r.desc || '').toLowerCase().includes(match));
+      const found = rows.find(r => (r.desc || '').toLowerCase().includes(match));
       return found || null;
     };
     return {
@@ -325,12 +325,16 @@ function GlobalMacroDashboard({
       consumption: latestByDesc(beaData?.gdpComponents, 'personal consumption'),
       investment: latestByDesc(beaData?.gdpComponents, 'gross private domestic investment'),
       income: latestByDesc(beaData?.personalIncome, 'personal income'),
-      saving: beaData?.savingRate?.at?.(-1) || null,
+      saving: latestByDesc(beaData?.savingRate, 'personal saving as a percentage'),
     };
   }, [beaData]);
 
   const beaOption = useMemo(() => {
-    const rows = (beaData?.savingRate || []).slice(-48);
+    const rows = (beaData?.savingRate || [])
+      .filter(r => (r.desc || '').toLowerCase().includes('personal saving as a percentage'))
+      .slice()
+      .reverse()
+      .slice(-48);
     if (!rows.length) return null;
     return {
       animation: false,
@@ -344,15 +348,19 @@ function GlobalMacroDashboard({
   }, [beaData, colors]);
 
   const beaIncomeRows = useMemo(() => {
-    const rows = beaData?.personalIncome || [];
-    const seen = new Set();
-    return [...rows].reverse()
+    const rows = beaData?.savingRate || [];
+    const latestPeriod = rows[0]?.period;
+    return rows
+      .filter(row => row.period === latestPeriod && row.value != null)
       .filter(row => {
-        const desc = row.desc || row.lineDescription || row.line || 'Personal income';
-        if (seen.has(desc) || row.value == null) return false;
-        seen.add(desc);
-        return true;
+        const desc = (row.desc || '').toLowerCase();
+        return desc.includes('personal income')
+          || desc.includes('disposable personal income')
+          || desc.includes('personal outlays')
+          || desc.includes('personal consumption')
+          || desc.includes('personal saving');
       })
+      .sort((a, b) => Number(a.line ?? 0) - Number(b.line ?? 0))
       .slice(0, 8)
       .map(row => ({
         label: row.desc || row.lineDescription || row.line || 'Personal income',
@@ -362,7 +370,11 @@ function GlobalMacroDashboard({
   }, [beaData]);
 
   const beaIncomeCycleOption = useMemo(() => {
-    const rows = (beaData?.savingRate || []).slice(-60);
+    const rows = (beaData?.savingRate || [])
+      .filter(r => (r.desc || '').toLowerCase().includes('personal saving as a percentage'))
+      .slice()
+      .reverse()
+      .slice(-60);
     if (!rows.length) return null;
     return {
       animation: false,
