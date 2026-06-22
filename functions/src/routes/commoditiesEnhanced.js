@@ -78,6 +78,12 @@ const FRED_COMMODITIES = {
 
   // Consumer prices
   gas_retail: { series: 'GASREGW', name: 'Regular Gasoline Retail', unit: '$/gal' },
+
+  // PPI Commodity Index — used by Sector Performance panel for YoY inflation
+  ppi_commodity: { series: 'WPUFD49207', name: 'PPI Commodity Index', unit: 'Index' },
+
+  // Trade-weighted dollar index — used for commodity FX context
+  dollar_index: { series: 'DTWEXBGS', name: 'Trade-Weighted Dollar Index', unit: 'Index' },
 };
 
 // World Bank Commodity Codes
@@ -452,20 +458,58 @@ router.get('/', async (req, res) => {
       const futuresQuotes = await yf.quote(futuresSymbols);
       const futuresArr = Array.isArray(futuresQuotes) ? futuresQuotes : [futuresQuotes];
 
-      yahooData.futures = {};
-      futuresArr.forEach(q => {
-        if (q?.symbol) {
-          yahooData.futures[q.symbol] = {
-            symbol: q.symbol,
-            name: q.shortName || q.longName,
-            price: q.regularMarketPrice,
-            change: q.regularMarketChangePercent,
-            _source: 'Yahoo Finance',
-            _lastUpdated: new Date().toISOString(),
-            _updateFrequency: 'Real-time (delayed)',
-          };
-        }
+      // Fetch historical closes for w1/m1 computation (last ~30 trading days)
+      trackApiCall('Yahoo Finance');
+      const histSymbols = futuresSymbols.filter(s => yahooData.futures[s]?.price != null);
+      const histPromises = histSymbols.map(async (sym) => {
+        try {
+          const chart = await yf.chart(sym, { period1: new Date(Date.now() - 35 * 86400000) });
+          const closes = (chart?.quotes || []).map(q => q.close).filter(v => v != null);
+          return { symbol: sym, closes };
+        } catch { return { symbol: sym, closes: [] }; }
       });
+      const histResults = await Promise.allSettled(histPromises);
+      const histMap = {};
+      for (const r of histResults) {
+        if (r.status === 'fulfilled' && r.value?.closes?.length) {
+          histMap[r.value.symbol] = r.value.closes;
+        }
+      }
+
+      // Build sectorHeatmapData with d1/w1/m1
+      const HEATMAP_SECTORS = {
+        'CL=F': 'Energy', 'BZ=F': 'Energy', 'NG=F': 'Energy', 'HO=F': 'Energy',
+        'GC=F': 'Metals', 'SI=F': 'Metals', 'PL=F': 'Metals', 'PA=F': 'Metals', 'HG=F': 'Metals',
+        'ZC=F': 'Agriculture', 'ZW=F': 'Agriculture', 'ZO=F': 'Agriculture', 'ZS=F': 'Agriculture',
+        'ZL=F': 'Agriculture', 'ZM=F': 'Agriculture', 'KC=F': 'Agriculture', 'CT=F': 'Agriculture', 'SB=F': 'Agriculture',
+        'LE=F': 'Livestock', 'GF=F': 'Livestock', 'HE=F': 'Livestock',
+      };
+      const HEATMAP_NAMES = {
+        'CL=F': 'WTI Crude', 'BZ=F': 'Brent Crude', 'NG=F': 'Natural Gas', 'HO=F': 'Heating Oil',
+        'GC=F': 'Gold', 'SI=F': 'Silver', 'PL=F': 'Platinum', 'PA=F': 'Palladium', 'HG=F': 'Copper',
+        'ZC=F': 'Corn', 'ZW=F': 'Wheat', 'ZO=F': 'Oats', 'ZS=F': 'Soybeans', 'ZL=F': 'Soybean Oil',
+        'ZM=F': 'Soybean Meal', 'KC=F': 'Coffee', 'CT=F': 'Cotton', 'SB=F': 'Sugar',
+        'LE=F': 'Live Cattle', 'GF=F': 'Feeder Cattle', 'HE=F': 'Lean Hogs',
+      };
+      const heatmapCommodities = [];
+      for (const sym of Object.keys(yahooData.futures)) {
+        const fut = yahooData.futures[sym];
+        if (fut.price == null) continue;
+        const sector = HEATMAP_SECTORS[sym];
+        if (!sector) continue;
+        const closes = histMap[sym] || [];
+        const len = closes.length;
+        const d1 = fut.change != null ? Math.round(fut.change * 100) / 100 : null;
+        const w1 = len >= 6 ? Math.round((closes[len-1] - closes[len-6]) / closes[len-6] * 1000) / 10 : null;
+        const m1 = len >= 22 ? Math.round((closes[len-1] - closes[len-22]) / closes[len-22] * 1000) / 10 : null;
+        heatmapCommodities.push({
+          ticker: sym, name: HEATMAP_NAMES[sym] || fut.name || sym,
+          sector, d1, w1, m1,
+        });
+      }
+      if (heatmapCommodities.length > 0) {
+        result.sectorHeatmapData = { commodities: heatmapCommodities, columns: ['d1', 'w1', 'm1'] };
+      }
     } catch (e) {
       console.warn('Yahoo Finance fetch failed:', e.message);
     }
@@ -496,12 +540,54 @@ router.get('/', async (req, res) => {
       const wtiPrices = wtiContracts.map(c => findPrice(c.symbol));
       const gcPrices  = gcContracts.map(c => findPrice(c.symbol));
       if (wtiPrices.some(p => typeof p === 'number')) {
-        result.futuresCurveData = { labels: wtiContracts.map(c => c.label), prices: wtiPrices, unit: '$/bbl' };
+        result.futuresCurveData = {
+          labels: wtiContracts.map(c => c.label),
+          prices: wtiPrices,
+          unit: '$/bbl',
+          spotPrice: typeof yahooData.futures?.['CL=F']?.price === 'number'
+            ? yahooData.futures['CL=F'].price
+            : wtiPrices.find(p => typeof p === 'number') ?? null,
+        };
       }
       if (gcPrices.some(p => typeof p === 'number')) {
-        result.goldFuturesCurve = { labels: gcContracts.map(c => c.label), prices: gcPrices, unit: '$/oz' };
+        result.goldFuturesCurve = {
+          labels: gcContracts.map(c => c.label),
+          prices: gcPrices,
+          unit: '$/oz',
+          spotPrice: typeof yahooData.futures?.['GC=F']?.price === 'number'
+            ? yahooData.futures['GC=F'].price
+            : gcPrices.find(p => typeof p === 'number') ?? null,
+        };
       }
     } catch (e) { console.warn('[Commodities] futures curve fetch failed:', e.message); }
+
+    // 4c. Commodity FX — major commodity-exporting currencies vs USD.
+    // Yahoo returns AUDUSD=X as the rate of 1 AUD in USD, etc.
+    try {
+      const fxSymbols = ['AUDUSD=X', 'USDCAD=X', 'USDBRL=X', 'USDMXN=X', 'USDZAR=X', 'USDCOP=X'];
+      trackApiCall('Yahoo Finance');
+      const fxQuotes = await yf.quote(fxSymbols).catch(() => null);
+      const fxArr = Array.isArray(fxQuotes) ? fxQuotes : (fxQuotes ? [fxQuotes] : []);
+      const commodityCurrencies = {};
+      const ccNames = { 'AUDUSD=X': 'AUD', 'USDCAD=X': 'CAD', 'USDBRL=X': 'BRL', 'USDMXN=X': 'MXN', 'USDZAR=X': 'ZAR', 'USDCOP=X': 'COP' };
+      for (const q of fxArr) {
+        if (!q?.symbol || q.regularMarketPrice == null) continue;
+        const code = ccNames[q.symbol] || q.symbol.replace('=X', '');
+        const rate = q.regularMarketPrice;
+        const change = q.regularMarketChangePercent;
+        // Yahoo returns USDXXX=X as 1 USD in foreign currency, so invert for "vs USD"
+        const isUSDBase = q.symbol.startsWith('USD');
+        commodityCurrencies[code] = {
+          rate: isUSDBase ? 1 / rate : rate,
+          changePct: isUSDBase ? -(change ?? 0) : (change ?? 0),
+          _source: 'Yahoo Finance',
+          _lastUpdated: new Date().toISOString(),
+        };
+      }
+      if (Object.keys(commodityCurrencies).length > 0) {
+        result.commodityCurrencies = commodityCurrencies;
+      }
+    } catch (e) { console.warn('[Commodities] commodity FX fetch failed:', e.message); }
 
     // 5. Data Source Registry
     result.dataSourceRegistry = {
