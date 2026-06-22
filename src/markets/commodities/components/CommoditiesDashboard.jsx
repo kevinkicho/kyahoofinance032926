@@ -124,6 +124,40 @@ function CommoditiesDashboard({
     };
   }, [eiaPetCtx, colors]);
 
+  const petroleumKpis = useMemo(() => {
+    const data = eiaPetCtx?.data || {};
+    const rows = [
+      {
+        key: 'gasoline',
+        label: 'Gasoline',
+        unit: '$/gal',
+        value: data.gasoline?.latest?.value,
+        yoy: data.gasoline?.yoyPct,
+        color: '#f59e0b',
+        format: v => `$${v.toFixed(2)}`,
+      },
+      {
+        key: 'naturalGas',
+        label: 'Henry Hub',
+        unit: '$/MMBtu',
+        value: data.naturalGas?.latest?.value,
+        yoy: data.naturalGas?.yoyPct,
+        color: '#3b82f6',
+        format: v => `$${v.toFixed(2)}`,
+      },
+      {
+        key: 'crudeStocks',
+        label: 'Crude Stocks',
+        unit: 'M bbl',
+        value: data.crudeStocks?.latest?.value,
+        yoy: data.crudeStocks?.yoyPct,
+        color: '#22c55e',
+        format: v => `${(v / 1000).toFixed(0)}M`,
+      },
+    ];
+    return rows.filter(row => row.value != null);
+  }, [eiaPetCtx]);
+
   // ── US trade balance per bloc — line chart, 24 months ─────────────────
   const tradeOption = useMemo(() => {
     const blocs = tradeCtx?.data?.blocs || [];
@@ -492,7 +526,24 @@ function CommoditiesDashboard({
             fetchLog={eiaPetCtx?.fetchLog || fetchLog}
             error={eiaPetCtx?.error || error}
           >
-            <SafeECharts option={eiaPetrolOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EIA Petroleum & Natural Gas', source: 'EIA', endpoint: '/api/eia-petroleum', series: [{ id: 'EMM_EPMR_PTE_NUS_DPG' }, { id: 'RNGWHHD' }, { id: 'WCRSTUS1' }], updatedAt: eiaPetCtx?.lastUpdated || lastUpdated }} />
+            <div style={{ display: 'grid', gridTemplateRows: petroleumKpis.length ? 'auto 1fr' : '1fr', gap: 8, height: '100%', minHeight: 0 }}>
+              {petroleumKpis.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${petroleumKpis.length}, minmax(0, 1fr))`, gap: 8 }}>
+                  {petroleumKpis.map(kpi => (
+                    <div key={kpi.key} style={{ padding: '6px 8px', minWidth: 0, background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 6 }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{kpi.label}</div>
+                      <div style={{ color: kpi.color, fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{kpi.format(Number(kpi.value))}</div>
+                      <div style={{ color: kpi.yoy == null ? 'var(--text-muted)' : kpi.yoy >= 0 ? '#22c55e' : '#f87171', fontSize: 10, fontVariantNumeric: 'tabular-nums' }}>
+                        {kpi.yoy != null ? `${kpi.yoy >= 0 ? '+' : ''}${Number(kpi.yoy).toFixed(1)}% YoY` : kpi.unit}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ minHeight: 0 }}>
+                <SafeECharts option={eiaPetrolOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EIA Petroleum & Natural Gas', source: 'EIA', endpoint: '/api/eia-petroleum', series: [{ id: 'EMM_EPMR_PTE_NUS_DPG' }, { id: 'RNGWHHD' }, { id: 'WCRSTUS1' }], updatedAt: eiaPetCtx?.lastUpdated || lastUpdated }} />
+              </div>
+            </div>
           </BentoCard>
         )}
 

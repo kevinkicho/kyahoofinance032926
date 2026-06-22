@@ -33,6 +33,7 @@ const LAYOUT = {
     { i: 'key-data', x: 5, y: 10, w: 4, h: 5 },
     { i: 'treasury', x: 9, y: 7, w: 3, h: 4 },
     { i: 'options', x: 9, y: 11, w: 3, h: 4 },
+    { i: 'release-impact', x: 0, y: 15, w: 12, h: 4 },
   ]
 };
 
@@ -108,10 +109,42 @@ function CalendarMarket({ centralData } = {}) {
     ];
   }, [sidebarStats]);
 
+  const releaseImpactRows = useMemo(() => {
+    const keyRows = (props.keyReleases || []).map(row => ({
+      date: row.date,
+      label: row.name || row.label || row.event || 'Key release',
+      category: row.category || 'macro',
+      actual: row.actual ?? null,
+      forecast: row.forecast ?? null,
+      previous: row.previous ?? row.previousValue ?? null,
+      importance: 2,
+      source: 'FRED',
+    }));
+    const eventRows = (props.economicEvents || []).map(row => ({
+      date: row.date,
+      label: row.event || row.name || row.label || 'Economic event',
+      category: row.category || row.country || 'macro',
+      actual: row.actual ?? null,
+      forecast: row.forecast ?? null,
+      previous: row.previous ?? row.previousValue ?? null,
+      importance: Number(row.importance ?? 1),
+      source: row.source || row.country || 'Calendar',
+    }));
+    const unique = new Map();
+    [...keyRows, ...eventRows].forEach(row => {
+      if (!row.date || !row.label) return;
+      const key = `${row.date}-${row.label}`;
+      if (!unique.has(key) || row.importance > unique.get(key).importance) unique.set(key, row);
+    });
+    return [...unique.values()]
+      .sort((a, b) => (b.importance - a.importance) || String(a.date).localeCompare(String(b.date)))
+      .slice(0, 14);
+  }, [props.keyReleases, props.economicEvents]);
+
   return (
     <div className="cal-market">
       <div className="cal-dashboard cal-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v2">
+        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v3">
           {/* KPI strip — first bento child, full-width row 0. */}
           <BentoCard
             key="kpi"
@@ -381,6 +414,55 @@ function CalendarMarket({ centralData } = {}) {
               </div>
             ) : (
               <div className="cal-empty">No upcoming options expiry dates</div>
+            )}
+          </BentoCard>
+
+          <BentoCard
+            key="release-impact"
+            title="Release Impact Tracker"
+            subtitle={`${releaseImpactRows.length} high-priority releases · actual / forecast / previous when available`}
+            accent="calendar"
+            className="cal-bento-card"
+            contentClassName="cal-panel-scroll"
+            source="FRED / Econdb / BLS"
+            timestamp={props.lastUpdated}
+            isLive={props.isLive}
+            isCurrent={props.isCurrent}
+            fetchedOn={props.fetchedOn}
+            fetchLog={props.fetchLog}
+            error={props.error}
+          >
+            {releaseImpactRows.length > 0 ? (
+              <table className="cal-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Release</th>
+                    <th>Category</th>
+                    <th style={{ textAlign: 'right' }}>Actual</th>
+                    <th style={{ textAlign: 'right' }}>Forecast</th>
+                    <th style={{ textAlign: 'right' }}>Previous</th>
+                    <th style={{ textAlign: 'right' }}>Impact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {releaseImpactRows.map((row, i) => (
+                    <tr key={`${row.date}-${row.label}-${i}`}>
+                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>{row.date}</td>
+                      <td>{row.label}</td>
+                      <td>{row.category}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.actual ?? '—'}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.forecast ?? '—'}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.previous ?? '—'}</td>
+                      <td style={{ textAlign: 'right', color: row.importance >= 2 ? '#f87171' : 'var(--text-muted)' }}>
+                        {row.importance >= 2 ? 'High' : 'Normal'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <PanelEmpty label="release impact data" />
             )}
           </BentoCard>
         </BentoWrapper>

@@ -274,6 +274,35 @@ function BondsDashboard({
     };
   }, [auctionCtx, colors]);
 
+  const auctionDemandSummary = useMemo(() => {
+    const rows = auctionCtx?.data?.auctions || [];
+    if (!rows.length) return null;
+    const recent = rows.slice(0, 10);
+    const summary = auctionCtx?.data?.summary || {};
+    const avg = (values) => {
+      const nums = values.map(Number).filter(Number.isFinite);
+      return nums.length ? nums.reduce((sum, v) => sum + v, 0) / nums.length : null;
+    };
+    const avgBidToCover = Number.isFinite(Number(summary.avgBidToCover)) ? Number(summary.avgBidToCover) : avg(recent.map(r => r.bidToCover));
+    const avgIndirectPct = Number.isFinite(Number(summary.avgIndirectPct)) ? Number(summary.avgIndirectPct) : avg(recent.map(r => r.indirectPct));
+    const avgDealerPct = avg(recent.map(r => r.dealerPct));
+    const demandLabel = avgBidToCover == null
+      ? 'Unknown'
+      : avgBidToCover >= 2.6 && (avgIndirectPct ?? 0) >= 60
+        ? 'Strong'
+        : avgBidToCover >= 2.2
+          ? 'Stable'
+          : 'Soft';
+    return {
+      latest: rows[0],
+      count: summary.count ?? rows.length,
+      avgBidToCover,
+      avgIndirectPct,
+      avgDealerPct,
+      demandLabel,
+    };
+  }, [auctionCtx]);
+
   return (
     <div className="bonds-dashboard bonds-dashboard--bento">
       <BentoWrapper layout={layout} storageKey="bonds-layout-v4">
@@ -569,7 +598,9 @@ function BondsDashboard({
         <BentoCard
           key="auctions"
           title="Recent Auctions"
-          subtitle="Bid-to-cover trend · indirect-bidder share = foreign demand proxy"
+          subtitle={auctionDemandSummary
+            ? `${auctionDemandSummary.demandLabel} demand · avg BTC ${auctionDemandSummary.avgBidToCover?.toFixed(2) ?? '—'} · indirect ${auctionDemandSummary.avgIndirectPct?.toFixed(0) ?? '—'}%`
+            : 'Bid-to-cover trend · indirect-bidder share = foreign demand proxy'}
           accent="bonds"
           className="bonds-bento-card"
           contentClassName="bonds-panel-scroll"
@@ -586,33 +617,52 @@ function BondsDashboard({
             // crowded the table into a narrow column with empty space below).
             // Table also bumped from 12 → 24 rows so it actually fills the
             // panel height instead of leaving a long empty tail.
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, height: '100%' }}>
-              <div style={{ minHeight: 0 }}>
-                <SafeECharts option={auctionTrendOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Auction Bid-to-Cover', source: 'US Treasury Fiscal Data', endpoint: '/api/treasury/auctions', series: [], updatedAt: auctionCtx?.lastUpdated || lastUpdated }} />
-              </div>
-              <div style={{ overflow: 'auto', minHeight: 0 }}>
-                <table className="bonds-mini-table" style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ color: colors.textMuted, textAlign: 'right', borderBottom: `1px solid ${colors.cardBg}`, position: 'sticky', top: 0, background: colors.bgCard }}>
-                      <th style={{ textAlign: 'left', padding: '4px 6px' }}>Auction</th>
-                      <th style={{ textAlign: 'left', padding: '4px 6px' }}>Term</th>
-                      <th style={{ padding: '4px 6px' }}>BTC</th>
-                      <th style={{ padding: '4px 6px' }}>Indir%</th>
-                      <th style={{ padding: '4px 6px' }}>Yield</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(auctionCtx?.data?.auctions || []).slice(0, 24).map((r, i) => (
-                      <tr key={i} style={{ color: colors.textSecondary, borderBottom: `1px solid ${colors.cardBg}` }}>
-                        <td style={{ padding: '3px 6px', fontVariantNumeric: 'tabular-nums' }}>{r.auctionDate?.slice(5)}</td>
-                        <td style={{ padding: '3px 6px' }}>{r.securityType?.[0]} · {r.securityTerm}</td>
-                        <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: r.bidToCover >= 2.5 ? '#10b981' : r.bidToCover >= 2.0 ? '#fbbf24' : '#f87171' }}>{r.bidToCover?.toFixed(2)}</td>
-                        <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.indirectPct != null ? r.indirectPct.toFixed(0) + '%' : '—'}</td>
-                        <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.stopYieldPct != null ? r.stopYieldPct.toFixed(2) + '%' : '—'}</td>
+            <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 10, height: '100%', minHeight: 0 }}>
+              {auctionDemandSummary && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+                  {[
+                    ['Demand', auctionDemandSummary.demandLabel, '#22d3ee'],
+                    ['Avg BTC', auctionDemandSummary.avgBidToCover, '#10b981', v => v.toFixed(2)],
+                    ['Indirect', auctionDemandSummary.avgIndirectPct, '#a78bfa', v => `${v.toFixed(0)}%`],
+                    ['Dealer', auctionDemandSummary.avgDealerPct, '#f59e0b', v => `${v.toFixed(0)}%`],
+                  ].map(([label, value, color, format]) => (
+                    <div key={label} className="bonds-metric-card" style={{ padding: '6px 8px', minWidth: 0 }}>
+                      <div className="bonds-metric-name">{label}</div>
+                      <div className="bonds-metric-num" style={{ color }}>
+                        {typeof format === 'function' && Number.isFinite(Number(value)) ? format(Number(value)) : value ?? '—'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, minHeight: 0 }}>
+                <div style={{ minHeight: 0 }}>
+                  <SafeECharts option={auctionTrendOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Auction Bid-to-Cover', source: 'US Treasury Fiscal Data', endpoint: '/api/treasury/auctions', series: [], updatedAt: auctionCtx?.lastUpdated || lastUpdated }} />
+                </div>
+                <div style={{ overflow: 'auto', minHeight: 0 }}>
+                  <table className="bonds-mini-table" style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ color: colors.textMuted, textAlign: 'right', borderBottom: `1px solid ${colors.cardBg}`, position: 'sticky', top: 0, background: colors.bgCard }}>
+                        <th style={{ textAlign: 'left', padding: '4px 6px' }}>Auction</th>
+                        <th style={{ textAlign: 'left', padding: '4px 6px' }}>Term</th>
+                        <th style={{ padding: '4px 6px' }}>BTC</th>
+                        <th style={{ padding: '4px 6px' }}>Indir%</th>
+                        <th style={{ padding: '4px 6px' }}>Yield</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {(auctionCtx?.data?.auctions || []).slice(0, 24).map((r, i) => (
+                        <tr key={i} style={{ color: colors.textSecondary, borderBottom: `1px solid ${colors.cardBg}` }}>
+                          <td style={{ padding: '3px 6px', fontVariantNumeric: 'tabular-nums' }}>{r.auctionDate?.slice(5)}</td>
+                          <td style={{ padding: '3px 6px' }}>{r.securityType?.[0]} · {r.securityTerm}</td>
+                          <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: r.bidToCover >= 2.5 ? '#10b981' : r.bidToCover >= 2.0 ? '#fbbf24' : '#f87171' }}>{r.bidToCover?.toFixed(2)}</td>
+                          <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.indirectPct != null ? r.indirectPct.toFixed(0) + '%' : '—'}</td>
+                          <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.stopYieldPct != null ? r.stopYieldPct.toFixed(2) + '%' : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           ) : (

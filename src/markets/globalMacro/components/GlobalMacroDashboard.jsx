@@ -123,6 +123,7 @@ const LAYOUT = {
     { i: 'bea-accounts', x: 0, y: 38, w: 6,  h: 4 },
     { i: 'eurostat',     x: 6, y: 38, w: 6,  h: 4 },
     { i: 'oecd-direct',  x: 0, y: 42, w: 12, h: 4 },
+    { i: 'bea-income',   x: 0, y: 46, w: 12, h: 4 },
   ]
 };
 
@@ -342,6 +343,46 @@ function GlobalMacroDashboard({
     };
   }, [beaData, colors]);
 
+  const beaIncomeRows = useMemo(() => {
+    const rows = beaData?.personalIncome || [];
+    const seen = new Set();
+    return [...rows].reverse()
+      .filter(row => {
+        const desc = row.desc || row.lineDescription || row.line || 'Personal income';
+        if (seen.has(desc) || row.value == null) return false;
+        seen.add(desc);
+        return true;
+      })
+      .slice(0, 8)
+      .map(row => ({
+        label: row.desc || row.lineDescription || row.line || 'Personal income',
+        period: row.period || row.timePeriod || row.year || null,
+        value: Number(row.value),
+      }));
+  }, [beaData]);
+
+  const beaIncomeCycleOption = useMemo(() => {
+    const rows = (beaData?.savingRate || []).slice(-60);
+    if (!rows.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', valueFormatter: v => v != null ? `${Number(v).toFixed(1)}%` : '—' },
+      grid: { top: 12, right: 12, bottom: 24, left: 42 },
+      xAxis: { type: 'category', data: rows.map(r => r.period), axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(rows.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [{
+        name: 'Personal saving rate',
+        type: 'line',
+        data: rows.map(r => Number(r.value)),
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { color: '#10b981', width: 2 },
+        areaStyle: { color: 'rgba(16, 185, 129, 0.1)' },
+      }],
+    };
+  }, [beaData, colors]);
+
   const eurostatOption = useMemo(() => {
     const rows = [
       ...(eurostatData?.hicp || []).map(r => ({ ...r, metric: 'HICP' })),
@@ -397,7 +438,7 @@ function GlobalMacroDashboard({
     <div className="mac-dashboard mac-dashboard--bento">
       {/* GlobalKpiStrip is rendered in GlobalMacroMarket above this component to avoid duplication */}
 
-      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v8">
+      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v9">
         {/* KPI strip — real bento child rendered at row 0. The strip body
             is provided by the parent (GlobalMacroKpiStrip) so it can wire
             up the right data and seriesKeys. */}
@@ -849,6 +890,53 @@ function GlobalMacroDashboard({
               error={oecdCtx?.error || error}
             >
               {oecdDirectOption && <SafeECharts option={oecdDirectOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'OECD CLI Momentum', source: 'OECD', endpoint: '/api/oecd', series: [], updatedAt: oecdLastUpdated || lastUpdated }} />}
+            </BentoCard>
+          )}
+
+          {(beaIncomeRows.length > 0 || beaIncomeCycleOption) && (
+            <BentoCard
+              key="bea-income"
+              title="BEA Income & Savings Cycle"
+              subtitle={beaSummary.saving ? `Latest saving rate ${Number(beaSummary.saving.value).toFixed(1)}% · ${beaSummary.saving.period}` : 'Personal income detail · saving-rate cycle'}
+              accent="globalMacro"
+              className="mac-bento-card"
+              contentClassName="mac-panel-scroll"
+              source="BEA NIPA"
+              timestamp={beaLastUpdated || lastUpdated}
+              isLive={!!beaData?.isLive}
+              isCurrent={beaCtx?.isCurrent ?? isCurrent}
+              fetchedOn={beaCtx?.fetchedOn || fetchedOn}
+              fetchLog={beaCtx?.fetchLog || fetchLog}
+              error={beaCtx?.error || error}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 12, height: '100%', minHeight: 0 }}>
+                <div style={{ minHeight: 0 }}>
+                  {beaIncomeCycleOption && <SafeECharts option={beaIncomeCycleOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'BEA Income & Savings Cycle', source: 'BEA', endpoint: '/api/bea', series: [], updatedAt: beaLastUpdated || lastUpdated }} />}
+                </div>
+                <div style={{ overflow: 'auto', minHeight: 0 }}>
+                  <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
+                        <th style={{ textAlign: 'left', padding: '5px 6px' }}>Line</th>
+                        <th style={{ textAlign: 'right', padding: '5px 6px' }}>Latest</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {beaIncomeRows.map((row, i) => (
+                        <tr key={`${row.label}-${i}`} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                          <td style={{ padding: '5px 6px', color: colors.textSecondary }}>
+                            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 190 }}>{row.label}</div>
+                            <div style={{ color: colors.textMuted, fontSize: 9 }}>{row.period || 'latest'}</div>
+                          </td>
+                          <td style={{ padding: '5px 6px', textAlign: 'right', color: colors.textPrimary, fontVariantNumeric: 'tabular-nums' }}>
+                            {Number.isFinite(row.value) ? row.value.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </BentoCard>
           )}
         </BentoWrapper>

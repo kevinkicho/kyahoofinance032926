@@ -737,19 +737,33 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
 
   const globalValCap = flatData.reduce((acc, curr) => acc + (curr.adjustedValue || curr.value), 0);
   const edgarRows = useMemo(() => {
+    const toNum = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : null;
+    };
     return Object.entries(edgarCtx?.data?.tickers || {}).map(([ticker, row]) => {
       const rev = row.revenues?.at?.(-1);
       const ni = row.netIncome?.at?.(-1);
+      const revenue = toNum(rev?.value);
+      const netIncome = toNum(ni?.value);
+      const margin = revenue ? ((netIncome ?? 0) / revenue) * 100 : null;
       return {
         ticker,
         cik: row.cik,
-        revenue: rev?.value ?? null,
-        netIncome: ni?.value ?? null,
+        revenue,
+        netIncome,
         period: ni?.fy || rev?.fy || ni?.end || rev?.end || null,
-        margin: rev?.value ? ((ni?.value ?? 0) / rev.value) * 100 : null,
+        margin,
+        quality: margin == null ? '—' : margin >= 25 ? 'High' : margin >= 15 ? 'Solid' : margin >= 5 ? 'Watch' : 'Thin',
       };
-    });
+    }).sort((a, b) => (b.margin ?? -Infinity) - (a.margin ?? -Infinity));
   }, [edgarCtx]);
+  const edgarSummary = useMemo(() => {
+    const margins = edgarRows.map(row => row.margin).filter(Number.isFinite);
+    const avgMargin = margins.length ? margins.reduce((sum, v) => sum + v, 0) / margins.length : null;
+    const profitable = edgarRows.filter(row => (row.netIncome ?? 0) > 0).length;
+    return { avgMargin, profitable, count: edgarRows.length };
+  }, [edgarRows]);
   const universeUpdates = universeCtx?.data?.updates || [];
 
     // Synthetic fetchLog so DataFooter's click-to-open popover has something
@@ -946,7 +960,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     <BentoCard
       key="sec-fundamentals"
       title="SEC Mega-Cap Fundamentals"
-      subtitle="Revenue · net income · margin from EDGAR XBRL"
+      subtitle={`Revenue · net income · margin · ${edgarSummary.profitable}/${edgarSummary.count} profitable${edgarSummary.avgMargin != null ? ` · avg margin ${edgarSummary.avgMargin.toFixed(1)}%` : ''}`}
       accent="equities"
       className="eq-bento-card"
       contentClassName="eq-panel-content eq-panel-scroll"
@@ -960,11 +974,12 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     >
       <div className="eq-mini-table">
         {edgarRows.map(row => (
-          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '70px 1fr 1fr 70px', gap: 8, alignItems: 'center' }}>
+          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 64px 58px', gap: 8, alignItems: 'center' }}>
             <strong>{row.ticker}</strong>
             <span><MetricValue value={row.revenue} seriesKey="edgarRevenue" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
             <span><MetricValue value={row.netIncome} seriesKey="edgarNetIncome" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
             <span style={{ color: (row.margin ?? 0) >= 20 ? '#22c55e' : '#f59e0b' }}>{row.margin != null ? `${row.margin.toFixed(1)}%` : '—'}</span>
+            <span style={{ color: row.quality === 'High' ? '#22c55e' : row.quality === 'Solid' ? '#60a5fa' : row.quality === 'Watch' ? '#f59e0b' : 'var(--text-muted)', fontSize: 11 }}>{row.quality}</span>
           </div>
         ))}
       </div>
