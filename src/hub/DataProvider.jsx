@@ -274,6 +274,18 @@ function needsLiveRepair(id, data) {
   if (id === 'calendar') {
     return !data.centralBanks?.length && !data.economicEvents?.length && !data.keyReleases?.length;
   }
+  // Bonds: the structural guard only checks yieldCurveData, but many panels
+  // (spreadHistory, fedBalanceSheet, M2, CPI, breakevens, durationLadder,
+  // macroData) can be null if FRED/Akamai blocked them on the snapshot day.
+  // Force a live repair when any of these critical panel fields are missing.
+  if (id === 'bonds') {
+    const criticalFields = [
+      'spreadHistory', 'fedBalanceSheetHistory', 'm2HistoryData',
+      'cpiComponents', 'debtToGdpHistory', 'breakevensData',
+      'durationLadder', 'macroData',
+    ];
+    return criticalFields.some(f => data[f] == null);
+  }
   return false;
 }
 
