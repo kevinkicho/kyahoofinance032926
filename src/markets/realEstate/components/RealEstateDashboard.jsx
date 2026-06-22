@@ -332,6 +332,29 @@ function RealEstateDashboard({
   const housingStartsLatest = latestNumber(housingStarts, ['starts', 'values']) ?? latestNumber(supplyData?.housingStarts);
   const existingHomeSalesLatest = latestNumber(existingHomeSales);
   const commoditySnapshot = getCommoditySnapshot(commoditiesData);
+  const affordabilityStack = useMemo(() => {
+    const price = medianHomePriceLatest;
+    const rate = mortgageRates?.rate30y;
+    const hudMedianIncome = Array.isArray(hudData) && hudData.length
+      ? hudData.map(d => d.income).filter(v => typeof v === 'number').sort((a, b) => a - b)[Math.floor(hudData.filter(d => typeof d.income === 'number').length / 2)]
+      : null;
+    if (typeof price !== 'number' && typeof rate !== 'number' && typeof hudMedianIncome !== 'number') return null;
+    const downPayment = typeof price === 'number' ? price * 0.2 : null;
+    const principal = typeof price === 'number' ? price * 0.8 : null;
+    const monthlyRate = typeof rate === 'number' ? rate / 100 / 12 : null;
+    const payment = principal && monthlyRate
+      ? principal * (monthlyRate * ((1 + monthlyRate) ** 360)) / (((1 + monthlyRate) ** 360) - 1)
+      : null;
+    const annualBurden = payment && hudMedianIncome ? (payment * 12 / hudMedianIncome) * 100 : null;
+    const stressLabel = annualBurden == null
+      ? 'Partial'
+      : annualBurden >= 40
+        ? 'Stretched'
+        : annualBurden >= 30
+          ? 'Tight'
+          : 'Manageable';
+    return { price, rate, payment, hudMedianIncome, annualBurden, downPayment, stressLabel };
+  }, [medianHomePriceLatest, mortgageRates, hudData]);
 
   // Conditionally include optional panels
   const layoutItems = [{ i: 'metrics', x: 0, y: 0, w: 3, h: 5 }];
@@ -350,7 +373,9 @@ function RealEstateDashboard({
   if (hudData?.length > 0) { layoutItems.push({ i: 'hud-afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
 
   // Census panels (merged from former Census tab) — placed below RE panels.
-  const censusY = chartH * 2;
+  if (affordabilityStack) layoutItems.push({ i: 'afford-stack', x: 0, y: chartH * 2, w: 12, h: 3 });
+
+  const censusY = chartH * 3;
   if (hasCensusHousingKpi) layoutItems.push({ i: 'census-housing', x: 0, y: censusY, w: 6, h: 3 });
   if (hasCensusEcoKpi)     layoutItems.push({ i: 'census-trade',   x: 6, y: censusY, w: 6, h: 3 });
   if (hasCensusHousingTrends) layoutItems.push({ i: 'census-trends-housing', x: 0, y: censusY + 3, w: 6, h: 4 });
@@ -360,7 +385,7 @@ function RealEstateDashboard({
 
   return (
     <div className="re-dashboard re-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v3">
+      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v4">
         {/* Key Metrics */}
         <BentoCard
           key="metrics"
@@ -524,6 +549,44 @@ function RealEstateDashboard({
              )}
            </>
         </BentoCard>
+
+        {affordabilityStack && (
+          <BentoCard
+            key="afford-stack"
+            title="Housing Affordability Stack"
+            subtitle={`${affordabilityStack.stressLabel} payment burden · 80% LTV / 30Y fixed estimate`}
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-scroll"
+            source="FRED / HUD / Census"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
+              {[
+                ['Median Home', affordabilityStack.price, '#60a5fa', v => `$${(v / 1000).toFixed(0)}K`],
+                ['30Y Mortgage', affordabilityStack.rate, affordabilityStack.rate >= 7 ? '#f87171' : '#fbbf24', v => `${v.toFixed(2)}%`],
+                ['Est. Payment', affordabilityStack.payment, '#a78bfa', v => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo`],
+                ['Median Income', affordabilityStack.hudMedianIncome, '#22c55e', v => `$${(v / 1000).toFixed(0)}K`],
+                ['Payment Burden', affordabilityStack.annualBurden, affordabilityStack.annualBurden >= 40 ? '#f87171' : affordabilityStack.annualBurden >= 30 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(1)}%`],
+              ].map(([label, value, color, format]) => (
+                <div key={label} className="re-metric-card" style={{ minWidth: 0 }}>
+                  <div className="re-metric-label">{label}</div>
+                  <div className="re-metric-value" style={{ color, fontSize: 16 }}>
+                    {typeof value === 'number' && Number.isFinite(value) ? format(value) : '—'}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 10, color: colors.textMuted, fontSize: 11 }}>
+              Estimate uses national median home price, 20% down, latest 30Y mortgage rate, and median income from HUD city sample.
+            </div>
+          </BentoCard>
+        )}
 
         {/* Case-Shiller */}
         {shillerOption && (

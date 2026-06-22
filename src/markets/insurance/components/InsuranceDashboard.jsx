@@ -217,12 +217,34 @@ function InsuranceDashboard({
   if (insRatiosCtx?.data?.issuers && Object.values(insRatiosCtx.data.issuers).some(v => v?.latest)) {
     layoutItems.push({ i: 'combined-ratios', x: 0, y: 12, w: 12, h: 3 });
   }
+  if (femaCtx?.data?.summary || usgsCtx?.data?.biggest || catLosses?.values?.length) {
+    layoutItems.push({ i: 'cat-exposure', x: 0, y: 15, w: 12, h: 3 });
+  }
 
   const dynamicLayout = { lg: layoutItems };
 
+  const catExposure = useMemo(() => {
+    const femaRecent = femaCtx?.data?.summary?.totalRecent;
+    const quakeCount = usgsCtx?.data?.eventsCount;
+    const biggestQuake = usgsCtx?.data?.biggest?.mag;
+    const latestCatLoss = catLosses?.values?.at?.(-1);
+    const hyOasPct = fredHyOasHistory?.values?.at?.(-1);
+    const hyOasBps = typeof hyOasPct === 'number' ? hyOasPct * 100 : null;
+    const combined = industryAvgCombinedRatio;
+    const score = [
+      typeof femaRecent === 'number' ? Math.min(25, femaRecent / 2) : 0,
+      typeof biggestQuake === 'number' ? Math.max(0, (biggestQuake - 5) * 8) : 0,
+      typeof latestCatLoss === 'number' ? Math.min(25, latestCatLoss / 4) : 0,
+      typeof hyOasBps === 'number' ? Math.max(0, Math.min(15, (hyOasBps - 250) / 12)) : 0,
+      typeof combined === 'number' ? Math.max(0, Math.min(20, (combined - 95) * 2)) : 0,
+    ].reduce((sum, v) => sum + v, 0);
+    const label = score >= 55 ? 'Elevated' : score >= 30 ? 'Watch' : 'Contained';
+    return { femaRecent, quakeCount, biggestQuake, latestCatLoss, hyOasBps, combined, score, label };
+  }, [femaCtx, usgsCtx, catLosses, fredHyOasHistory, industryAvgCombinedRatio]);
+
   return (
     <div className="ins-dashboard ins-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v2">
+      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v3">
         {/* KPI Strip — bento card with title row drag handle. */}
         <BentoCard
           key="kpi"
@@ -554,6 +576,40 @@ function InsuranceDashboard({
             <SafeECharts option={insurerRatiosOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US P&C Combined Ratios', source: 'SEC EDGAR XBRL', endpoint: '/api/edgar/insurer-ratios', series: [], updatedAt: insRatiosCtx?.lastUpdated || lastUpdated }} />
           </BentoCard>
         )}
+
+        <BentoCard
+          key="cat-exposure"
+          title="Catastrophe Exposure Monitor"
+          subtitle={`${catExposure.label} risk · FEMA, USGS, insured-loss, spread, and underwriting signals`}
+          accent="insurance"
+          className="ins-bento-card"
+          contentClassName="ins-panel-scroll"
+          source="OpenFEMA / USGS / FRED / SEC EDGAR"
+          timestamp={femaCtx?.lastUpdated || usgsCtx?.lastUpdated || lastUpdated}
+          isLive={!!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive || catLosses?.values?.length)}
+          isCurrent={femaCtx?.isCurrent ?? isCurrent}
+          fetchedOn={femaCtx?.fetchedOn || fetchedOn}
+          fetchLog={femaCtx?.fetchLog || fetchLog}
+          error={femaCtx?.error || error}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 8 }}>
+            {[
+              ['Exposure Score', catExposure.score, catExposure.score >= 55 ? '#f87171' : catExposure.score >= 30 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(0)}/100`],
+              ['FEMA Recent', catExposure.femaRecent, '#ef4444', v => `${v}`],
+              ['M4.5+ Quakes', catExposure.quakeCount, '#f59e0b', v => `${v}`],
+              ['Largest Quake', catExposure.biggestQuake, catExposure.biggestQuake >= 6 ? '#f87171' : '#f59e0b', v => `M${v.toFixed(1)}`],
+              ['Cat Loss', catExposure.latestCatLoss, '#a78bfa', v => `$${v.toFixed(1)}B`],
+              ['Combined', catExposure.combined, catExposure.combined >= 100 ? '#f87171' : '#22c55e', v => `${v.toFixed(1)}%`],
+            ].map(([label, value, color, format]) => (
+              <div key={label} style={{ background: colors.cardBg, borderRadius: 6, padding: '8px 10px', minWidth: 0 }}>
+                <div style={{ color: colors.textMuted, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                <div style={{ color, fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                  {typeof value === 'number' && Number.isFinite(value) ? format(value) : '—'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </BentoCard>
       </BentoWrapper>
     </div>
   );

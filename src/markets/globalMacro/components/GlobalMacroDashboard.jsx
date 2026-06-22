@@ -124,6 +124,7 @@ const LAYOUT = {
     { i: 'eurostat',     x: 6, y: 38, w: 6,  h: 4 },
     { i: 'oecd-direct',  x: 0, y: 42, w: 12, h: 4 },
     { i: 'bea-income',   x: 0, y: 46, w: 12, h: 4 },
+    { i: 'global-liquidity', x: 0, y: 50, w: 12, h: 3 },
   ]
 };
 
@@ -395,6 +396,23 @@ function GlobalMacroDashboard({
     };
   }, [beaData, colors]);
 
+  const globalLiquidity = useMemo(() => {
+    const tgaLatest = dtsData?.latest || dtsData?.series?.at?.(-1);
+    const tgaPrior = dtsData?.series?.at?.(-6);
+    const tgaChange5d = tgaLatest?.closeB != null && tgaPrior?.closeB != null ? tgaLatest.closeB - tgaPrior.closeB : null;
+    const m3Latest = ecbData?.m3Growth?.at?.(-1);
+    const saving = beaSummary.saving;
+    const gdpNow = gdpNowData?.latest?.gdp ?? gdpNowData?.evolution?.at?.(-1)?.gdp;
+    const drainScore = [
+      tgaChange5d != null ? Math.max(-25, Math.min(25, -tgaChange5d / 10)) : 0,
+      m3Latest?.value != null ? Math.max(-20, Math.min(20, (m3Latest.value - 3) * 4)) : 0,
+      saving?.value != null ? Math.max(-15, Math.min(15, (Number(saving.value) - 4) * -3)) : 0,
+      gdpNow != null ? Math.max(-20, Math.min(20, (gdpNow - 2) * 4)) : 0,
+    ].reduce((sum, v) => sum + v, 0);
+    const label = drainScore >= 15 ? 'Supportive' : drainScore <= -15 ? 'Tightening' : 'Neutral';
+    return { tgaLatest, tgaChange5d, m3Latest, saving, gdpNow, drainScore, label };
+  }, [dtsData, ecbData, beaSummary, gdpNowData]);
+
   const eurostatOption = useMemo(() => {
     const rows = [
       ...(eurostatData?.hicp || []).map(r => ({ ...r, metric: 'HICP' })),
@@ -450,7 +468,7 @@ function GlobalMacroDashboard({
     <div className="mac-dashboard mac-dashboard--bento">
       {/* GlobalKpiStrip is rendered in GlobalMacroMarket above this component to avoid duplication */}
 
-      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v9">
+      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v10">
         {/* KPI strip — real bento child rendered at row 0. The strip body
             is provided by the parent (GlobalMacroKpiStrip) so it can wire
             up the right data and seriesKeys. */}
@@ -951,6 +969,39 @@ function GlobalMacroDashboard({
               </div>
             </BentoCard>
           )}
+
+          <BentoCard
+            key="global-liquidity"
+            title="Global Liquidity Dashboard"
+            subtitle={`${globalLiquidity.label} backdrop · TGA, ECB M3, saving rate, GDPNow`}
+            accent="globalMacro"
+            className="mac-bento-card"
+            contentClassName="mac-panel-scroll"
+            source="US Treasury / ECB / BEA / Atlanta Fed"
+            timestamp={dtsLastUpdated || ecbLastUpdated || beaLastUpdated || gdpNowLastUpdated || lastUpdated}
+            isLive={!!(dtsData?.series?.length || ecbData?.m3Growth?.length || beaData?.savingRate?.length)}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 8 }}>
+              {[
+                ['Liquidity Score', globalLiquidity.drainScore, globalLiquidity.drainScore >= 15 ? '#22c55e' : globalLiquidity.drainScore <= -15 ? '#f87171' : '#f59e0b', v => `${v >= 0 ? '+' : ''}${v.toFixed(0)}`],
+                ['TGA Close', globalLiquidity.tgaLatest?.closeB, '#22d3ee', v => `$${v.toFixed(0)}B`],
+                ['TGA 5D Flow', globalLiquidity.tgaChange5d, globalLiquidity.tgaChange5d <= 0 ? '#22c55e' : '#f87171', v => `${v >= 0 ? '+' : ''}$${v.toFixed(0)}B`],
+                ['ECB M3 YoY', globalLiquidity.m3Latest?.value, '#3b82f6', v => `${v.toFixed(1)}%`],
+                ['GDPNow', globalLiquidity.gdpNow, '#a78bfa', v => `${v.toFixed(1)}%`],
+              ].map(([label, value, color, format]) => (
+                <div key={label} className="mac-metric-row" style={{ display: 'block', padding: '8px 10px', background: colors.cardBg, borderRadius: 6 }}>
+                  <div className="mac-metric-label">{label}</div>
+                  <div className="mac-metric-value" style={{ color, fontSize: 16 }}>
+                    {typeof value === 'number' && Number.isFinite(value) ? format(value) : '—'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </BentoCard>
         </BentoWrapper>
 
         {selectedCountry && (

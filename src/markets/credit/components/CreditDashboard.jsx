@@ -28,6 +28,7 @@ const LAYOUT = {
     // and MSRB EMMA municipal-bond market activity (HTML scrape).
     { i: 'credit-quality', x: 0, y: 12, w: 6, h: 4 },
     { i: 'muni-market',    x: 6, y: 12, w: 6, h: 4 },
+    { i: 'bank-stress',    x: 0, y: 16, w: 12, h: 3 },
   ]
 };
 
@@ -107,6 +108,31 @@ function CreditDashboard({
     return Array.isArray(spreadData) ? spreadData.slice(0, 6) : [];
   }, [spreadData]);
 
+  const bankStress = useMemo(() => {
+    const aggregate = fdicCtx?.data?.aggregate || [];
+    const latest = aggregate[0] || null;
+    const prior = aggregate[1] || null;
+    const depositChange = latest?.depositsB != null && prior?.depositsB
+      ? ((latest.depositsB - prior.depositsB) / Math.abs(prior.depositsB)) * 100
+      : null;
+    const failures = fdicCtx?.data?.failures || [];
+    const currentYear = new Date().getFullYear();
+    const failuresYtd = failures.filter(f => String(f.date || '').includes(String(currentYear))).length;
+    const hy = Number(hySpread);
+    const ig = Number(igSpread);
+    const cp = commercialPaper?.rate;
+    const def = defaultRate;
+    const score = [
+      Number.isFinite(hy) ? Math.min(35, Math.max(0, (hy - 250) / 8)) : 0,
+      Number.isFinite(ig) ? Math.min(20, Math.max(0, (ig - 90) / 5)) : 0,
+      Number.isFinite(def) ? Math.min(20, Math.max(0, (def - 2) * 7)) : 0,
+      Number.isFinite(cp) ? Math.min(15, Math.max(0, (cp - 4.5) * 6)) : 0,
+      failuresYtd ? Math.min(10, failuresYtd * 3) : 0,
+    ].reduce((sum, v) => sum + v, 0);
+    const regime = score >= 55 ? 'Elevated' : score >= 30 ? 'Watch' : 'Contained';
+    return { latest, depositChange, failuresYtd, hy, ig, cp, def, score, regime };
+  }, [fdicCtx, hySpread, igSpread, commercialPaper, defaultRate]);
+
   // ── Moody's Aaa vs Baa credit-quality spread (FRED DAAA/DBAA) ──────────
   // Two stacked panels in one chart: Aaa + Baa yields on the top axis,
   // Baa-Aaa spread (bps) on the bottom axis with a shaded band for the
@@ -164,7 +190,7 @@ function CreditDashboard({
 
   return (
     <div className="credit-dashboard credit-dashboard--bento">
-      <BentoWrapper layout={LAYOUT} storageKey="credit-layout-v3">
+      <BentoWrapper layout={LAYOUT} storageKey="credit-layout-v4">
         {/* KPI strip — real bento child at row 0. Provided by parent so
             the credit-specific KPI builder lives there. */}
         {kpiPanel && (
@@ -263,6 +289,40 @@ function CreditDashboard({
               </div>
             )}
           </>
+        </BentoCard>
+
+        <BentoCard
+          key="bank-stress"
+          title="Bank Stress Monitor"
+          subtitle={`${bankStress.regime} credit cycle · spread, default, funding, and FDIC signals`}
+          accent="credit"
+          className="credit-bento-card"
+          contentClassName="bento-panel-scroll"
+          source="FDIC / FRED"
+          timestamp={fdicCtx?.lastUpdated || lastUpdated}
+          isLive={!!(fdicCtx?.data?.aggregate?.length || spreadData)}
+          isCurrent={fdicCtx?.isCurrent ?? isCurrent}
+          fetchedOn={fdicCtx?.fetchedOn || fetchedOn}
+          fetchLog={fdicCtx?.fetchLog || fetchLog}
+          error={fdicCtx?.error || error}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 8 }}>
+            {[
+              ['Stress Score', bankStress.score, bankStress.score >= 55 ? '#f87171' : bankStress.score >= 30 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(0)}/100`],
+              ['HY OAS', bankStress.hy, bankStress.hy >= 400 ? '#f87171' : bankStress.hy >= 275 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(0)} bps`],
+              ['Default Rate', bankStress.def, bankStress.def >= 4 ? '#f87171' : bankStress.def >= 2.5 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(2)}%`],
+              ['CP Rate', bankStress.cp, bankStress.cp >= 5 ? '#f87171' : '#60a5fa', v => `${v.toFixed(2)}%`],
+              ['Deposit YoY', bankStress.depositChange, bankStress.depositChange < 0 ? '#f87171' : '#22c55e', v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`],
+              ['Failures YTD', bankStress.failuresYtd, bankStress.failuresYtd > 0 ? '#f59e0b' : '#22c55e', v => `${v}`],
+            ].map(([label, value, color, format]) => (
+              <div key={label} className="credit-metric-card" style={{ minWidth: 0 }}>
+                <div className="credit-metric-label">{label}</div>
+                <div className="credit-metric-value" style={{ color, fontSize: 15 }}>
+                  {typeof value === 'number' && Number.isFinite(value) ? format(value) : '—'}
+                </div>
+              </div>
+            ))}
+          </div>
         </BentoCard>
 
         {/* Credit Spreads Chart */}

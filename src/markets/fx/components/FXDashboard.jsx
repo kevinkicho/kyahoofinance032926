@@ -43,6 +43,7 @@ const LAYOUT = {
     { i: 'corr',     x: 4, y: 6,  w: 4,  h: 3 },
     { i: 'ratediff', x: 8, y: 6,  w: 4,  h: 3 },
     { i: 'carry',    x: 0, y: 9,  w: 12, h: 5 },
+    { i: 'rate-dashboard', x: 0, y: 14, w: 12, h: 3 },
   ]
 };
 
@@ -109,6 +110,25 @@ function FXDashboard({
     return Object.entries(rateDifferentials).filter(([, v]) => v != null).slice(0, 8);
   }, [rateDifferentials]);
 
+  const rateDiffRows = useMemo(() => {
+    if (!rateDifferentials) return [];
+    const policyMap = {
+      EUR: rateDifferentials.usFed_ecb,
+      GBP: rateDifferentials.usFed_boe,
+      JPY: rateDifferentials.usFed_boj,
+    };
+    return Object.entries(policyMap)
+      .filter(([, diff]) => typeof diff === 'number')
+      .map(([code, diff]) => ({
+        code,
+        diff,
+        spotChange: changes?.[code],
+        monthChange: changes1m?.[code],
+        signal: diff > 1 && (changes?.[code] ?? 0) >= 0 ? 'USD carry winning' : diff < -1 ? `${code} carry winning` : 'Balanced',
+      }))
+      .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  }, [rateDifferentials, changes, changes1m]);
+
   const dxyOption = useMemo(() => {
     if (!dxyHistory?.dates?.length) return null;
     return {
@@ -139,7 +159,7 @@ function FXDashboard({
  
   return (
     <div className="fx-dashboard fx-dashboard--bento">
-      <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v5">
+      <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v6">
         <BentoCard key="kpi" title="FX Key Metrics" subtitle="Spot rates · DXY · G10 average" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter / FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
           <MarketKpiStrip kpis={kpiItems} bare />
         </BentoCard>
@@ -226,6 +246,44 @@ function FXDashboard({
         >
           <CarryMap rateDifferentials={rateDifferentials} />
         </BentoCard>
+
+        {rateDiffRows.length > 0 && (
+          <BentoCard
+            key="rate-dashboard"
+            title="Rate Differential Dashboard"
+            subtitle="Policy-rate support versus recent spot performance"
+            accent="fx"
+            className="fx-bento-card"
+            contentClassName="fx-panel-content fx-panel-scroll"
+            source="FRED / Central Banks / Frankfurter"
+            timestamp={lastUpdated}
+            isLive={!!rateDiffRows.length}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+              {rateDiffRows.map(row => (
+                <div key={row.code} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '8px 10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <strong style={{ color: colors.textPrimary }}>{row.code}/USD</strong>
+                    <span style={{ color: row.diff >= 0 ? '#22c55e' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>
+                      {row.diff >= 0 ? '+' : ''}{row.diff.toFixed(2)}%
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8, fontSize: 11 }}>
+                    <span style={{ color: colors.textMuted }}>1D</span>
+                    <span style={{ textAlign: 'right', color: (row.spotChange ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>{row.spotChange != null ? `${row.spotChange >= 0 ? '+' : ''}${row.spotChange.toFixed(2)}%` : '—'}</span>
+                    <span style={{ color: colors.textMuted }}>1M</span>
+                    <span style={{ textAlign: 'right', color: (row.monthChange ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>{row.monthChange != null ? `${row.monthChange >= 0 ? '+' : ''}${row.monthChange.toFixed(2)}%` : '—'}</span>
+                  </div>
+                  <div style={{ marginTop: 8, color: colors.textSecondary, fontSize: 11 }}>{row.signal}</div>
+                </div>
+              ))}
+            </div>
+          </BentoCard>
+        )}
       </BentoWrapper>
     </div>
   );

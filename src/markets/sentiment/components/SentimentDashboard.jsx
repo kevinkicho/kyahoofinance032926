@@ -20,6 +20,7 @@ const LAYOUT = {
     { i: 'leverage', x: 0, y: 5, w: 12, h: 2 },
     // SF Fed Daily News Sentiment Index — full-width line below leverage.
     { i: 'news-sentiment', x: 0, y: 7, w: 12, h: 3 },
+    { i: 'fed-risk-mood', x: 0, y: 10, w: 12, h: 3 },
   ]
 };
 
@@ -143,9 +144,23 @@ function SentimentDashboard({
     return { latest, avg30 };
   }, [newsSentimentData]);
 
+  const fedRiskMood = useMemo(() => {
+    const fsiLatest = fsiHistory?.values?.at?.(-1);
+    const newsLatest = newsSentimentSummary?.latest?.sentiment;
+    const scoreParts = [
+      typeof fgiValue === 'number' ? (fgiValue - 50) / 2 : 0,
+      typeof riskData?.overallScore === 'number' ? (riskData.overallScore - 50) / 2 : 0,
+      typeof newsLatest === 'number' ? newsLatest * 60 : 0,
+      typeof fsiLatest === 'number' ? -fsiLatest * 10 : 0,
+    ];
+    const composite = Math.max(-100, Math.min(100, scoreParts.reduce((s, v) => s + v, 0)));
+    const label = composite >= 20 ? 'Risk-On' : composite <= -20 ? 'Risk-Off' : 'Mixed';
+    return { fsiLatest, newsLatest, composite, label };
+  }, [fsiHistory, newsSentimentSummary, fgiValue, riskData]);
+
     return (
       <div className="sent-dashboard sent-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="sentiment-layout">
+        <BentoWrapper layout={LAYOUT} storageKey="sentiment-layout-v2">
           {/* Sidebar */}
           <BentoCard
             key="sidebar"
@@ -485,6 +500,39 @@ function SentimentDashboard({
             {newsSentimentOption && <SafeECharts option={newsSentimentOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Daily News Sentiment Index', source: 'SF Fed', endpoint: '/api/fed/news-sentiment', series: [], updatedAt: newsSentimentCtx?.lastUpdated || lastUpdated }} />}
           </BentoCard>
         )}
+
+        <BentoCard
+          key="fed-risk-mood"
+          title="Fed Narrative & Risk Mood"
+          subtitle={`${fedRiskMood.label} · composite ${fedRiskMood.composite >= 0 ? '+' : ''}${fedRiskMood.composite.toFixed(0)}`}
+          accent="sentiment"
+          className="sent-bento-card"
+          contentClassName="bento-panel-scroll"
+          source="SF Fed / FRED / Yahoo Finance"
+          timestamp={newsSentimentCtx?.lastUpdated || lastUpdated}
+          isLive={!!(newsSentimentData?.series?.length || riskData)}
+          isCurrent={newsSentimentCtx?.isCurrent ?? isCurrent}
+          fetchedOn={newsSentimentCtx?.fetchedOn || fetchedOn}
+          fetchLog={newsSentimentCtx?.fetchLog || fetchLog}
+          error={newsSentimentCtx?.error || error}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 8 }}>
+            {[
+              ['Composite', fedRiskMood.composite, fedRiskMood.composite >= 25 ? '#22c55e' : fedRiskMood.composite <= -25 ? '#f87171' : '#f59e0b', v => `${v >= 0 ? '+' : ''}${v.toFixed(0)}`],
+              ['Fed News Tone', fedRiskMood.newsLatest, fedRiskMood.newsLatest >= 0 ? '#22c55e' : '#f87171', v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}`],
+              ['Fear & Greed', fgiValue, fgiValue >= 60 ? '#22c55e' : fgiValue >= 40 ? '#f59e0b' : '#f87171', v => `${v}/100`],
+              ['Risk Score', riskData?.overallScore, riskData?.overallScore >= 60 ? '#22c55e' : riskData?.overallScore >= 40 ? '#f59e0b' : '#f87171', v => `${v}/100`],
+              ['FSI', fedRiskMood.fsiLatest, fedRiskMood.fsiLatest > 0 ? '#f87171' : '#22c55e', v => v.toFixed(2)],
+            ].map(([label, value, color, format]) => (
+              <div key={label} className="sent-metric-card" style={{ minWidth: 0 }}>
+                <div className="sent-metric-name">{label}</div>
+                <div className="sent-metric-num" style={{ color, fontSize: 16 }}>
+                  {typeof value === 'number' && Number.isFinite(value) ? format(value) : '—'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </BentoCard>
         </BentoWrapper>
       </div>
     );
