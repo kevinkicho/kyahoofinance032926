@@ -246,6 +246,129 @@
 .com-chart-item { border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px; display: flex; flex-direction: column; }
 .com-chart-item-header { display: flex; justify-content: space-between; align-items: center; }
 
+/* Strategic materials panels */
+.com-material-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  flex-shrink: 0;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.com-material-legend-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.com-material-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+.com-periodic-grid {
+  display: grid;
+  grid-template-columns: repeat(18, minmax(34px, 1fr));
+  grid-template-rows: repeat(8, minmax(38px, 1fr));
+  gap: 4px;
+  min-height: 0;
+  flex: 1;
+}
+
+.com-periodic-tile {
+  min-width: 0;
+  min-height: 0;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.7);
+  overflow: hidden;
+}
+
+.com-periodic-symbol {
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.com-periodic-name {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 8px;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.com-periodic-risk {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 7px;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.com-critical-list { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.com-critical-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px;
+  gap: 4px 8px;
+  padding: 5px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+}
+
+.com-critical-main { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.com-critical-symbol { color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Cascadia Code', monospace; }
+.com-critical-name { color: var(--text-secondary); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.com-critical-score { display: flex; align-items: center; gap: 5px; color: var(--text-primary); font-size: 10px; font-weight: 700; }
+.com-critical-bar { flex: 1; height: 4px; background: var(--bg-card); border-radius: 99px; overflow: hidden; }
+.com-critical-bar span { display: block; height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); }
+.com-critical-meta { grid-column: 1 / -1; color: var(--text-muted); font-size: 9px; }
+
+.com-material-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.com-material-table th {
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: left;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.com-material-table td {
+  color: var(--text-secondary);
+  padding: 5px 6px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  font-variant-numeric: tabular-nums;
+}
+
+.com-material-hit { color: #22c55e !important; font-weight: 700; }
+
+.com-ratio-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.com-ratio-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.com-ratio-card span { color: var(--text-muted); font-size: 9px; }
+.com-ratio-card strong { color: #f59e0b; font-size: 14px; font-family: 'SF Mono', 'Cascadia Code', monospace; }
+
 /* ── 11. COT ── */
 .cot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; min-height: 0; }
 .cot-commodity { background: var(--bg-primary); border-radius: 6px; padding: 6px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
