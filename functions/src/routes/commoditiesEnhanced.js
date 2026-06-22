@@ -458,15 +458,33 @@ router.get('/', async (req, res) => {
       const futuresQuotes = await yf.quote(futuresSymbols);
       const futuresArr = Array.isArray(futuresQuotes) ? futuresQuotes : [futuresQuotes];
 
-      // Fetch historical closes for w1/m1 computation (last ~30 trading days)
+      yahooData.futures = {};
+      futuresArr.forEach(q => {
+        if (q?.symbol) {
+          yahooData.futures[q.symbol] = {
+            symbol: q.symbol,
+            name: q.shortName || q.longName,
+            price: q.regularMarketPrice,
+            change: q.regularMarketChangePercent,
+            _source: 'Yahoo Finance',
+            _lastUpdated: new Date().toISOString(),
+            _updateFrequency: 'Real-time (delayed)',
+          };
+        }
+      });
+
+      // Fetch historical closes for w1/m1 computation (last ~30 trading days).
+      // Only fetch for symbols that have a valid current price.
       trackApiCall('Yahoo Finance');
       const histSymbols = futuresSymbols.filter(s => yahooData.futures[s]?.price != null);
       const histPromises = histSymbols.map(async (sym) => {
         try {
-          const chart = await yf.chart(sym, { period1: new Date(Date.now() - 35 * 86400000) });
+          const histStart = new Date(Date.now() - 35 * 86400000);
+          const histEnd = new Date();
+          const chart = await yf.chart(sym, { period1: histStart, period2: histEnd, interval: '1d' });
           const closes = (chart?.quotes || []).map(q => q.close).filter(v => v != null);
           return { symbol: sym, closes };
-        } catch { return { symbol: sym, closes: [] }; }
+        } catch (e) { return { symbol: sym, closes: [], error: e.message }; }
       });
       const histResults = await Promise.allSettled(histPromises);
       const histMap = {};
@@ -501,7 +519,7 @@ router.get('/', async (req, res) => {
         const len = closes.length;
         const d1 = fut.change != null ? Math.round(fut.change * 100) / 100 : null;
         const w1 = len >= 6 ? Math.round((closes[len-1] - closes[len-6]) / closes[len-6] * 1000) / 10 : null;
-        const m1 = len >= 22 ? Math.round((closes[len-1] - closes[len-22]) / closes[len-22] * 1000) / 10 : null;
+        const m1 = len >= 2 ? Math.round((closes[len-1] - closes[0]) / closes[0] * 1000) / 10 : null;
         heatmapCommodities.push({
           ticker: sym, name: HEATMAP_NAMES[sym] || fut.name || sym,
           sector, d1, w1, m1,
