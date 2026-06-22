@@ -308,4 +308,127 @@ router.post('/reset-counters', (req, res) => {
   res.json({ message: 'Counters reset daily at midnight. Force a restart to reset immediately.' });
 });
 
+// GET /api/analytics/panel-trace/:market — trace each panel's data pipeline
+// Fetches the live API response for the market, inspects each field, and
+// returns a structured trace showing field presence, data shape, _sources
+// flags, and error info. Used by the Analytics Panel Trace Inspector.
+router.get('/panel-trace/:market', async (req, res) => {
+  const { market } = req.params;
+  const MARKET_ENDPOINTS = {
+    bonds: '/api/bonds', fx: '/api/fx', crypto: '/api/crypto',
+    equities: '/api/equities', derivatives: '/api/derivatives',
+    realEstate: '/api/realEstate', insurance: '/api/insurance',
+    commodities: '/api/commoditiesEnhanced', globalMacro: '/api/globalMacro',
+    credit: '/api/credit', sentiment: '/api/sentiment', calendar: '/api/calendar',
+    equityDeepDive: '/api/equityDeepDive',
+  };
+  const endpoint = MARKET_ENDPOINTS[market];
+  if (!endpoint) {
+    return res.status(400).json({ error: `No endpoint for market "${market}"` });
+  }
+
+  // Resolve the base URL from socket (not Host header — SSRF-safe)
+  const addr = req.socket?.localAddress;
+  const port = req.socket?.localPort;
+  const base = (addr && port)
+    ? `http://${addr.includes(':') ? `[${addr}]` : addr}:${port}`
+    : `http://localhost:${process.env.PORT || 3001}`;
+
+  const traceStart = Date.now();
+  try {
+    const url = `${base}${endpoint}`;
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'panel-trace-prober' },
+      signal: AbortSignal.timeout(60000),
+    });
+    const fetchMs = Date.now() - traceStart;
+    const status = r.status;
+    const data = await r.json().catch(() => null);
+
+    if (!data) {
+      return res.json({
+        market, endpoint, status, fetchMs,
+        error: `Failed to parse JSON response (HTTP ${status})`,
+        panels: [],
+      });
+    }
+
+    // Inspect each top-level field and return a structured trace
+    const sources = data._sources || {};
+    const fields = Object.keys(data).filter(k => !k.startsWith('_'));
+    const panels = fields.map(field => {
+      const value = data[field];
+      let shape = 'null';
+      let count = 0;
+      let sample = null;
+
+      if (value === null) {
+        shape = 'null';
+      } else if (Array.isArray(value)) {
+        shape = 'array';
+        count = value.length;
+        sample = value[0] ? JSON.stringify(value[0]).substring(0, 120) : null;
+      } else if (typeof value === 'object') {
+        const keys = Object.keys(value);
+        shape = 'object';
+        count = keys.length;
+        // Check for nested arrays (typical chart data: { dates: [...], values: [...] })
+        const nestedArrays = keys.filter(k => Array.isArray(value[k]));
+        if (nestedArrays.length > 0) {
+          shape = 'object_with_arrays';
+          sample = nestedArrays.map(k => `${k}[${value[k].length}]`).join(', ');
+        } else {
+          sample = keys.slice(0, 6).join(', ');
+        }
+      } else {
+        shape = typeof value;
+        count = 1;
+        sample = String(value).substring(0, 120);
+      }
+
+      // Find matching _sources key (fuzzy match)
+      const sourceKey = Object.keys(sources).find(k =>
+        k.toLowerCase().includes(field.toLowerCase().replace('History','').replace('Data','')) ||
+        field.toLowerCase().includes(k.toLowerCase().replace(/\s*\(.*\)/,'').split(' ')[0].toLowerCase())
+      );
+      const sourceValue = sourceKey ? sources[sourceKey] : undefined;
+
+      return {
+        field,
+        shape,
+        count,
+        sample,
+        sourceKey: sourceKey || null,
+        sourceValue: sourceValue !== undefined ? sourceValue : null,
+        isNull: value === null,
+        hasData: value !== null && (shape === 'array' ? count > 0 : shape === 'object' || shape === 'object_with_arrays' ? count > 0 : true),
+      };
+    });
+
+    res.json({
+      market,
+      endpoint,
+      status,
+      fetchMs,
+      isLive: data.isLive,
+      isCurrent: data.isCurrent,
+      fetchedOn: data.fetchedOn,
+      lastUpdated: data.lastUpdated,
+      totalFields: fields.length,
+      nullFields: panels.filter(p => p.isNull).map(p => p.field),
+      populatedFields: panels.filter(p => !p.isNull).length,
+      sources,
+      panels,
+    });
+  } catch (e) {
+    res.json({
+      market, endpoint,
+      status: 0,
+      fetchMs: Date.now() - traceStart,
+      error: e.message,
+      panels: [],
+    });
+  }
+});
+
 export default router;

@@ -5,6 +5,7 @@ import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import { useMarketData, useDataContext } from '../../hub/DataContext';
 import { auth } from '../../lib/firebase';
+import PanelTraceInspector from './PanelTraceInspector';
 import './AnalyticsDashboard.css';
 
 // Helper to load analytics snapshot from RTDB (written by daily scheduled refresher).
@@ -678,11 +679,12 @@ const LAYOUT = {
     { i: 'error-log', x: 0, y: 8, w: 6, h: 3 },
     { i: 'diagnostics', x: 0, y: 11, w: 6, h: 5 },
     { i: 'mem-cache', x: 6, y: 10, w: 3, h: 3 },
-      { i: 'cache-files', x: 9, y: 15, w: 3, h: 3 },
-      { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
-      { i: 'coverage-matrix', x: 0, y: 16, w: 12, h: 4 },
-    ]
-  };
+    { i: 'cache-files', x: 9, y: 15, w: 3, h: 3 },
+    { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
+    { i: 'panel-trace', x: 0, y: 16, w: 12, h: 8 },
+    { i: 'coverage-matrix', x: 0, y: 24, w: 12, h: 4 },
+  ]
+};
 
 function formatUptime(seconds) {
   const d = Math.floor(seconds / 86400);
@@ -1210,6 +1212,10 @@ export default function AnalyticsMarket() {
                   ))}
                 </tbody>
               </table>
+          </BentoCard>
+
+          <BentoCard key="panel-trace" title="Panel Trace Inspector" subtitle="Trace data flow: frontend panel → backend field → external API" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <PanelTraceInspector />
           </BentoCard>
 
           <BentoCard key="coverage-matrix" title="Endpoint Coverage Matrix" subtitle={`${coverageRows.filter(r => r.status === 'ok').length}/${coverageRows.length} markets with source coverage`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>

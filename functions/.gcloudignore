@@ -1,0 +1,30 @@
+.gcloudignore
+.git
+.gitignore
+
+node_modules
+# Do NOT include .gitignore here — it would exclude lib/*.js which we need
+# to deploy. We explicitly list what to ignore instead.
+
+# Source files (not needed at runtime — lib/ has the compiled output)
+src/
+scripts/
+scratch/
+*.ts
+tsconfig*.json
+.eslintrc.js
+
+# Tests and docs
+__tests__/
+*.test.js
+*.test.jsx
+*.spec.js
+
+# Local files
+*.local
+.env
+.env.local
+
+# Misc
+*.tgz
+*.tsbuildinfo

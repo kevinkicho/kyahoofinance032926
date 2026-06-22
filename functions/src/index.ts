@@ -31,12 +31,27 @@ let routesLoaded = false;
 function loadRoutes() {
   if (routesLoaded) return;
   
-  // Canonical route list lives in shared/route-list.json so the server,
-  // Vite proxy, and Firebase Functions all stay in sync. See docs/API_ENDPOINTS.md.
-  // The copy-assets build script copies it into lib/shared/ at deploy time.
-  const essentialRoutes: string[] = require(
-    path.join(__dirname, "shared", "route-list.json")
-  ) as string[];
+  // Canonical route list lives in shared/route-list.json (single source of
+  // truth for server, Vite proxy, and Functions). The copy-assets build
+  // script copies it into lib/shared/ at build time. We try the external
+  // file first, then fall back to an inline list so the deployer's source
+  // analysis doesn't fail if the file isn't present yet.
+  let essentialRoutes: string[];
+  try {
+    essentialRoutes = require(
+      path.join(__dirname, "shared", "route-list.json")
+    ) as string[];
+  } catch {
+    essentialRoutes = [
+      'stocks', 'equities', 'macro', 'bonds', 'derivatives', 'realEstate', 'insurance',
+      'commodities', 'globalMacro', 'equityDeepDive', 'crypto', 'credit',
+      'sentiment', 'calendar', 'fx', 'analytics', 'watchlist', 'fred',
+      'bls', 'eia', 'census', 'ticker', 'bea', 'censusTrade', 'commoditiesEnhanced',
+      'ecb', 'edgar', 'eiaPetroleum', 'eurostat', 'fdic', 'fed', 'fema',
+      'imf', 'institutional', 'msrb', 'nyfed', 'oecd', 'treasuryAuctions',
+      'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates', 'admin'
+    ];
+  }
 
   // Mark as loaded first so a mid-loop throw doesn't cause every subsequent
   // request to re-require all modules (which would waste memory and time).

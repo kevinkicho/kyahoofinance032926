@@ -1,0 +1,242 @@
+.panel-trace-inspector {
+  font-size: 11px;
+  color: var(--text-primary, #e0e0e0);
+}
+
+.pti-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.pti-market-select {
+  background: var(--card-bg, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  color: var(--text-primary, #e0e0e0);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.pti-run-btn {
+  background: var(--accent-color, #3b82f6);
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pti-run-btn:hover { opacity: 0.85; }
+.pti-run-btn:disabled { opacity: 0.5; cursor: default; }
+
+.pti-summary {
+  font-size: 10px;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+.pti-error-msg {
+  color: #ef4444;
+  font-size: 10px;
+}
+
+.pti-null-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  font-size: 10px;
+  color: #f87171;
+}
+
+.pti-table-wrap {
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.pti-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pti-table th {
+  text-align: left;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  border-bottom: 1px solid var(--border-color, #333);
+  position: sticky;
+  top: 0;
+  background: var(--card-bg, #1a1a2e);
+  z-index: 1;
+}
+
+.pti-row {
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.pti-row:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.pti-row-expanded {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.pti-toggle {
+  width: 16px;
+  text-align: center;
+  font-size: 9px;
+  opacity: 0.6;
+}
+
+.pti-panel-title {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pti-field-name {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text-secondary, #888);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pti-cell {
+  font-size: 10px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pti-shape {
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.pti-shape-null { color: #ef4444; }
+.pti-shape-array { color: #22c55e; }
+.pti-shape-object { color: #22c55e; }
+.pti-shape-object_with_arrays { color: #22c55e; }
+.pti-shape-number { color: #60a5fa; }
+.pti-shape-string { color: #f59e0b; }
+
+.pti-cross-market {
+  font-style: italic;
+  color: #a78bfa;
+  font-size: 9px;
+}
+
+.pti-src-ok { color: #22c55e; font-size: 10px; }
+.pti-src-false { color: #ef4444; font-size: 10px; }
+.pti-src-none { opacity: 0.3; }
+
+.pti-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.pti-ok { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.pti-null { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+.pti-missing { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.pti-error { background: rgba(239, 68, 68, 0.3); color: #ef4444; }
+.pti-warn { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+
+.pti-detail-row > td {
+  padding: 0;
+  border-bottom: 2px solid var(--border-color, #333);
+}
+
+.pti-detail {
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.2);
+  font-size: 10px;
+}
+
+.pti-detail-section {
+  margin-bottom: 4px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.pti-detail-label {
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.pti-code {
+  font-family: monospace;
+  font-size: 10px;
+  color: #60a5fa;
+}
+
+.pti-pre {
+  font-family: monospace;
+  font-size: 9px;
+  color: var(--text-secondary, #aaa);
+  background: rgba(0,0,0,0.3);
+  padding: 4px 6px;
+  border-radius: 3px;
+  max-height: 150px;
+  overflow: auto;
+  flex: 1;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.pti-notes {
+  color: #f59e0b;
+}
+
+.pti-verdict {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.pti-verdict-ok {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.pti-verdict-bad {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.pti-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.pti-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  opacity: 0.7;
+}
