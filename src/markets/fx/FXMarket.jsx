@@ -14,6 +14,35 @@ function getFXProps(centralData) {
     acc[code] = prev ? -((spotRates[code] - prev) / prev * 100) : 0;
     return acc;
   }, {});
+
+  // The Frankfurter API returns history as { "2026-05-22": { CAD: 1.39, ... }, ... }
+  // keyed by date. The CurrencyCorrelationMatrix component expects history keyed by
+  // currency code with array values: { EUR: [rate1, rate2, ...], GBP: [...], ... }.
+  // Transform the date→currency structure into currency→array so the correlation
+  // panel can compute 30-day correlations correctly.
+  const rawHistory = d.history || {};
+  let history = rawHistory;
+  if (rawHistory && typeof rawHistory === 'object' && !Array.isArray(rawHistory)) {
+    const sampleKey = Object.keys(rawHistory)[0];
+    const sampleVal = sampleKey ? rawHistory[sampleKey] : null;
+    // Detect date-keyed structure: keys look like dates and values are currency→rate objects
+    const isDateKeyed = sampleKey && /^\d{4}-\d{2}-\d{2}$/.test(sampleKey)
+      && sampleVal && typeof sampleVal === 'object' && !Array.isArray(sampleVal);
+    if (isDateKeyed) {
+      const sortedDates = Object.keys(rawHistory).sort();
+      const currencySet = new Set();
+      for (const dt of sortedDates) {
+        if (rawHistory[dt] && typeof rawHistory[dt] === 'object') {
+          Object.keys(rawHistory[dt]).forEach(c => currencySet.add(c));
+        }
+      }
+      history = {};
+      for (const ccy of currencySet) {
+        history[ccy] = sortedDates.map(dt => rawHistory[dt]?.[ccy] ?? null).filter(v => v != null);
+      }
+    }
+  }
+
   return {
     spotRates,
     prevRates,
@@ -21,7 +50,7 @@ function getFXProps(centralData) {
     changes1w: d.changes1w || {},
     changes1m: d.changes1m || {},
     sparklines: d.sparklines || {},
-    history: d.history || {},
+    history,
     fredFxRates: d.fredFxRates,
     reer: d.reer,
     rateDifferentials: d.rateDifferentials,

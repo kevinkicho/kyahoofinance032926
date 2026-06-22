@@ -2,12 +2,68 @@
 // backend source, external API dependencies, and frontend render condition.
 // This is the "trace spec" used by the Panel Trace Inspector in Analytics.
 //
-// Each entry: { id, title, field, fieldPath, source, external, renderCheck }
+// Each entry: { id, title, field, fieldPath, source, external, renderCheck, shapeCheck }
 // - field: top-level key in the API response (e.g. "spreadHistory")
 // - fieldPath: dotted path for nested fields (e.g. "durationLadder.buckets")
 // - source: backend route file + approximate line (for reference)
 // - external: array of { name, seriesIds } for upstream API dependencies
 // - renderCheck: description of the frontend condition that gates rendering
+// - shapeCheck: optional function (value) => { ok, detail } that validates
+//   the internal data shape the component expects — catches cases where the
+//   field is present but structured wrong (e.g. history keyed by date instead
+//   of currency code).
+
+function hasArrayValues(obj, minKeys = 2) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+  const arrKeys = Object.keys(obj).filter(k => Array.isArray(obj[k]) && obj[k].length > 0);
+  return arrKeys.length >= minKeys;
+}
+
+const SHAPE_CHECKS = {
+  // FX history must be keyed by currency code with array values, not by date
+  fxHistory: (val) => {
+    if (!val || typeof val !== 'object') return { ok: false, detail: 'null or not object' };
+    const keys = Object.keys(val);
+    if (keys.length === 0) return { ok: false, detail: 'empty object' };
+    // Check if keyed by dates (wrong shape)
+    const looksLikeDates = keys.every(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+    if (looksLikeDates) {
+      return { ok: false, detail: `WRONG SHAPE: keyed by date (${keys.length} dates), component expects currency→array` };
+    }
+    // Check if keyed by currency with array values
+    const hasArrays = hasArrayValues(val, 3);
+    if (hasArrays) return { ok: true, detail: `${keys.length} currencies with array data` };
+    return { ok: false, detail: `no currency→array structure found (keys: ${keys.slice(0, 4).join(',')})` };
+  },
+  // spreadHistory must have dates + t10y2y + t10y3m arrays
+  spreadHistory: (val) => {
+    if (!val || typeof val !== 'object') return { ok: false, detail: 'null' };
+    if (!Array.isArray(val.dates) || val.dates.length === 0) return { ok: false, detail: 'no dates array' };
+    if (!Array.isArray(val.t10y2y) || val.t10y2y.length === 0) return { ok: false, detail: 'no t10y2y array' };
+    return { ok: true, detail: `${val.dates.length} dates` };
+  },
+  // breakevensData must have current.be5y (non-null)
+  breakevens: (val) => {
+    if (!val || typeof val !== 'object') return { ok: false, detail: 'null' };
+    if (!val.current || val.current.be5y == null) return { ok: false, detail: 'current.be5y is null' };
+    return { ok: true, detail: `be5y=${val.current.be5y}` };
+  },
+  // macroData must have >0 keys with non-null values
+  macroData: (val) => {
+    if (!val || typeof val !== 'object') return { ok: false, detail: 'null' };
+    const nonNull = Object.entries(val).filter(([,v]) => v != null);
+    if (nonNull.length === 0) return { ok: false, detail: 'all values null' };
+    return { ok: true, detail: `${nonNull.length}/${Object.keys(val).length} non-null` };
+  },
+  // durationLadder must have buckets array with non-null amounts
+  durationLadder: (val) => {
+    if (!val || typeof val !== 'object') return { ok: false, detail: 'null' };
+    if (!Array.isArray(val.buckets)) return { ok: false, detail: 'no buckets array' };
+    const hasAmounts = val.buckets.some(b => b?.amount != null);
+    if (!hasAmounts) return { ok: false, detail: `${val.buckets.length} buckets but all amounts null` };
+    return { ok: true, detail: `${val.buckets.length} buckets with data` };
+  },
+};
 
 export const PANEL_REGISTRY = {
   bonds: [
@@ -41,6 +97,7 @@ export const PANEL_REGISTRY = {
       source: 'bonds.js:324-367', external: [{ name: 'FRED', seriesIds: ['T10Y2Y','T10Y3M'] }],
       renderCheck: 'spreadHistory?.dates?.length > 0 → spreadHistoryOption memo',
       renderType: 'SafeECharts',
+      shapeCheck: SHAPE_CHECKS.spreadHistory,
     },
     {
       id: 'fed', title: 'Fed Balance Sheet',
@@ -78,6 +135,7 @@ export const PANEL_REGISTRY = {
       source: 'bonds.js:443-479', external: [{ name: 'FRED', seriesIds: ['T5YIE','T10YIE','T5YIFR','DFII5','DFII10'] }],
       renderCheck: '!!breakevensData?.current?.be5y',
       renderType: 'BreakevenMonitor component',
+      shapeCheck: SHAPE_CHECKS.breakevens,
       notes: 'All-or-nothing Promise.all — if any of 5 FRED series fails, entire field is null',
     },
     {
@@ -86,6 +144,7 @@ export const PANEL_REGISTRY = {
       source: 'bonds.js:597-677', external: [{ name: 'Treasury Fiscal Data', seriesIds: [] }],
       renderCheck: '!!durationLadderMeta → hasData = buckets.some(b => b.amount != null)',
       renderType: 'DurationLadder component',
+      shapeCheck: SHAPE_CHECKS.durationLadder,
     },
     {
       id: 'macro', title: 'Macro Indicators',
@@ -93,6 +152,7 @@ export const PANEL_REGISTRY = {
       source: 'bonds.js:519-526', external: [{ name: 'FRED', seriesIds: ['WALCL','M2SL','GFDEBTN','FYFSD','UNRATE','CIVPART','GDP','PCEPI','TB3MS'] }],
       renderCheck: 'macroData && Object.keys(macroData).length > 0',
       renderType: 'Object.entries map → MetricValue',
+      shapeCheck: SHAPE_CHECKS.macroData,
     },
     {
       id: 'foreign-holders', title: 'Foreign Holders',
@@ -125,7 +185,7 @@ export const PANEL_REGISTRY = {
     { id: 'top-movers', title: 'Top Movers', field: 'changes1d', fieldPath: 'changes1d', source: 'fx.js', external: [{ name: 'Frankfurter', seriesIds: [] }], renderCheck: 'changes1d && Object.keys(changes1d).length > 0' },
     { id: 'dxy', title: 'DXY Tracker', field: 'dxyHistory', fieldPath: 'dxyHistory', source: 'fx.js', external: [{ name: 'FRED', seriesIds: ['DTWEXBGS'] }], renderCheck: 'dxyHistory?.dates?.length > 0', renderType: 'SafeECharts' },
     { id: 'carry', title: 'Carry Map', field: 'carryData', fieldPath: 'carryData', source: 'fx.js', external: [{ name: 'FRED / ECB', seriesIds: ['FEDFUNDS','ECBMRRFR'] }], renderCheck: 'carryData && Object.keys(carryData).length > 0' },
-    { id: 'correlation', title: 'Correlation Matrix', field: 'correlationMatrix', fieldPath: 'correlationMatrix', source: 'fx.js', external: [{ name: 'Computed from spotRates', seriesIds: [] }], renderCheck: 'correlationMatrix && Object.keys(correlationMatrix).length > 0' },
+    { id: 'correlation', title: 'Correlation Matrix', field: 'history', fieldPath: 'history', source: 'fx.js:33 (Frankfurter)', external: [{ name: 'Frankfurter', seriesIds: [] }], renderCheck: '!!history && Object.keys(history).length > 0', renderType: 'CurrencyCorrelationMatrix', shapeCheck: SHAPE_CHECKS.fxHistory, notes: 'Component expects history keyed by currency code with array values (e.g. { EUR: [...rates] }), NOT date→currency. If shape is wrong, panel shows "No history available for correlation".' },
     { id: 'reer', title: 'REER Chart', field: 'reerData', fieldPath: 'reerData', source: 'fx.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'reerData?.dates?.length > 0', renderType: 'SafeECharts' },
   ],
 

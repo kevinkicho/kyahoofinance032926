@@ -30,8 +30,8 @@ function describeValue(val) {
 }
 
 function StatusBadge({ status }) {
-  const cls = status === 'ok' ? 'pti-ok' : status === 'null' ? 'pti-null' : status === 'missing' ? 'pti-missing' : status === 'error' ? 'pti-error' : 'pti-warn';
-  const label = status === 'ok' ? 'OK' : status === 'null' ? 'NULL' : status === 'missing' ? 'MISSING' : status === 'error' ? 'ERROR' : 'WARN';
+  const cls = status === 'ok' ? 'pti-ok' : status === 'null' ? 'pti-null' : status === 'missing' ? 'pti-missing' : status === 'shape-error' ? 'pti-shape-error-badge' : status === 'error' ? 'pti-error' : 'pti-warn';
+  const label = status === 'ok' ? 'OK' : status === 'null' ? 'NULL' : status === 'missing' ? 'MISSING' : status === 'shape-error' ? 'SHAPE' : status === 'error' ? 'ERROR' : 'WARN';
   return <span className={`pti-badge ${cls}`}>{label}</span>;
 }
 
@@ -55,6 +55,16 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
     frontendDesc = describeValue(frontendVal);
   }
 
+  // Run shape check if the panel has one — catches wrong data structure
+  let shapeResult = null;
+  if (panel.shapeCheck && backendVal !== undefined && !isCrossMarket) {
+    try {
+      shapeResult = panel.shapeCheck(backendVal);
+    } catch (e) {
+      shapeResult = { ok: false, detail: `shapeCheck error: ${e.message}` };
+    }
+  }
+
   // Check _sources
   const sources = apiData?._sources || {};
   const sourceKey = Object.keys(sources).find(k =>
@@ -71,6 +81,8 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
     status = 'null';
   } else if (backendDesc.count === 0) {
     status = 'missing';
+  } else if (shapeResult && !shapeResult.ok) {
+    status = 'shape-error';
   } else if (sourceKey !== undefined && sourceValue === false) {
     status = 'warn';
   }
@@ -86,7 +98,11 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
             <span className={`pti-shape pti-shape-${backendDesc.shape}`}>{backendDesc.detail}</span>}
         </td>
         <td className="pti-cell">
-          {sourceKey !== undefined ? (
+          {shapeResult ? (
+            <span className={shapeResult.ok ? 'pti-src-ok' : 'pti-shape-error'}>
+              {shapeResult.ok ? '✓ shape' : '✗ shape'} {shapeResult.detail.substring(0, 40)}
+            </span>
+          ) : sourceKey !== undefined ? (
             <span className={sourceValue ? 'pti-src-ok' : 'pti-src-false'}>
               {sourceValue ? '✓' : '✗'} {sourceKey.substring(0, 25)}
             </span>
@@ -107,6 +123,14 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
                 <span className="pti-detail-label">Frontend render check:</span>
                 <code className="pti-code">{panel.renderCheck}</code>
               </div>
+              {shapeResult && (
+                <div className="pti-detail-section">
+                  <span className="pti-detail-label">Shape check:</span>
+                  <span className={shapeResult.ok ? 'pti-src-ok' : 'pti-shape-error'}>
+                    {shapeResult.ok ? '✓' : '✗'} {shapeResult.detail}
+                  </span>
+                </div>
+              )}
               <div className="pti-detail-section">
                 <span className="pti-detail-label">Backend source:</span>
                 <code className="pti-code">{panel.source}</code>
@@ -138,9 +162,10 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
                 <pre className="pti-pre">{JSON.stringify(frontendVal, null, 2).substring(0, 500)}</pre>
               </div>
               <div className={`pti-verdict ${status === 'ok' ? 'pti-verdict-ok' : 'pti-verdict-bad'}`}>
-                {status === 'ok' && '✓ Data pipeline intact — if panel renders empty, check SafeECharts hasDimensions (container offsetWidth/Height > 0) or stale localStorage layout (bonds-layout-v4).'}
+                {status === 'ok' && '✓ Data pipeline intact — if panel renders empty, check SafeECharts hasDimensions (container offsetWidth/Height > 0) or stale localStorage layout.'}
                 {status === 'null' && '✗ Backend field is null — upstream API call failed and was silently caught. Check server logs for the FRED/external fetch error.'}
                 {status === 'missing' && '✗ Backend field has 0 items — upstream API returned empty data. Check if API key is configured or rate limit exhausted.'}
+                {status === 'shape-error' && `✗ WRONG DATA SHAPE — field is present but structured incorrectly: ${shapeResult?.detail}. The component expects a different format. Check the normalizer or backend route.`}
                 {status === 'warn' && '⚠ _sources flag is false — backend marked this source as not received. Panel may show partial/stale data.'}
                 {isCrossMarket && status === 'missing' && '✗ Cross-market data not loaded — the DataProvider has not fetched the source market yet, or it failed the structural guard.'}
               </div>
@@ -255,9 +280,10 @@ export default function PanelTraceInspector() {
       </div>
 
       <div className="pti-legend">
-        <span className="pti-legend-item"><StatusBadge status="ok" /> Data present in API response</span>
+        <span className="pti-legend-item"><StatusBadge status="ok" /> Data present and correct shape</span>
         <span className="pti-legend-item"><StatusBadge status="null" /> Field is null (API call failed)</span>
         <span className="pti-legend-item"><StatusBadge status="missing" /> Field has 0 items (empty response)</span>
+        <span className="pti-legend-item"><StatusBadge status="shape-error" /> Wrong data structure (field present but shape mismatch)</span>
         <span className="pti-legend-item"><StatusBadge status="warn" /> _sources flag is false</span>
       </div>
     </div>
