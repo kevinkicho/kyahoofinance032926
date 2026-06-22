@@ -17,11 +17,14 @@ export const STRUCTURAL_GUARDS: Record<string, (d: any) => boolean> = {
   },
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
   equities:       d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
-  equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
+  equitiesDeepDive: d => {
+    const sectors = d.sectorData?.sectors || d.sectors;
+    return Array.isArray(sectors) ? sectors.length >= 8 : true;
+  },
   calendar:       d => {
-    const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 5;
-    const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 2;
-    const banks = Array.isArray(d.centralBanks) && d.centralBanks.length >= 2;
+    const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 1;
+    const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 1;
+    const banks = Array.isArray(d.centralBanks) && d.centralBanks.length >= 1;
     return events || earnings || banks;
   },
   derivatives:    d => d.vixTermStructure?.values?.length >= 2,
@@ -30,13 +33,41 @@ export const STRUCTURAL_GUARDS: Record<string, (d: any) => boolean> = {
   fx:             d => Array.isArray(d.fredFxRates) ? d.fredFxRates.length >= 2 : true,
   imf:            d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
   worldbank:      d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
-  bls:            d => d.series && Object.values(d.series).some((s: any) => s._source),
+  bls:            d => d.series && Object.keys(d.series).length > 0,
   eia:            d => d.electricity?.residential != null || d.co2Emissions?.total != null,
-  census:         d => d.series && Object.values(d.series).some((s: any) => s._source),
+  census:         d => d.series && Object.keys(d.series).length > 0,
 };
+
+function isRenderableMarketSnapshot(id: string, data: any): boolean | null {
+  if (!data || typeof data !== 'object') return false;
+  if (['analytics', 'watchlist', 'usda', 'censusTrade', 'eiaPetroleum'].includes(id)) {
+    return Object.keys(data).some(key => !key.startsWith('_') && data[key] != null);
+  }
+  if (id === 'bea') return !!(data.gdpComponents?.length || data.personalIncome?.length || data.savingRate?.length);
+  if (id === 'eurostat') return !!(data.hicp?.length || data.unemployment?.length || data.govtDeficit?.length);
+  if (id === 'oecd') return !!(data.cli && Object.values(data.cli).some((rows: any) => Array.isArray(rows) && rows.length));
+  if (id === 'edgar') return !!(data.tickers && Object.keys(data.tickers).length);
+  if (id === 'universeUpdates') return Array.isArray(data.updates);
+  if (id === 'bls' || id === 'census') return Object.keys(data.series || {}).length > 0;
+  if (id === 'calendar') {
+    const events = Array.isArray(data.economicEvents) && data.economicEvents.length > 0;
+    const earnings = Array.isArray(data.earningsSeason) && data.earningsSeason.length > 0;
+    const banks = Array.isArray(data.centralBanks) && data.centralBanks.length > 0;
+    const releases = Array.isArray(data.keyReleases) && data.keyReleases.length > 0;
+    return events || earnings || banks || releases;
+  }
+  if (id === 'equitiesDeepDive') {
+    const sectors = data.sectorData?.sectors || data.sectors;
+    const stocks = data.factorData?.stocks;
+    return !!((Array.isArray(sectors) && sectors.length) || (Array.isArray(stocks) && stocks.length));
+  }
+  return null;
+}
 
 export function hasNonNullData(d: any, id: string): boolean {
   if (!d || typeof d !== 'object') return false;
+  const renderable = isRenderableMarketSnapshot(id, d);
+  if (renderable != null) return renderable;
   let nonNull = 0;
   for (const [k, v] of Object.entries(d)) {
     if (k.startsWith('_') || k === 'lastUpdated' || k === 'fetchedOn' || k === 'isCurrent' || k === 'isLive' || k === 'countryCount') continue;

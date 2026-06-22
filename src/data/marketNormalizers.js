@@ -397,7 +397,7 @@ export function isRenderableMarketSnapshot(id, data) {
     const n = normalizeGlobalMacroData(data);
     return !!(n.values.scorecardData?.length || n.series.cfnai?.values?.length || n.values.oecdCliDetail?.countries?.length);
   }
-  if (id === 'equityDeepDive') {
+  if (id === 'equitiesDeepDive') {
     const n = normalizeEquityDeepDiveData(data);
     return !!(n.values.sectorData?.sectors?.length || n.values.factorData?.stocks?.length || n.values.factorData?.factorReturns?.length);
   }
