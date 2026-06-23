@@ -16,6 +16,54 @@
   flex: 1;
   gap: 0;
 }
+.market-tab-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.market-tab-caret {
+  font-size: 9px;
+  opacity: 0.6;
+  margin-left: 2px;
+}
+.market-panel-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 220px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--bg-card, #1a1a2e);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 10000;
+  padding: 4px 0;
+}
+.market-panel-dropdown-header {
+  font-size: 10px;
+  color: var(--text-dim, #666);
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border-subtle, #222);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.market-panel-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-primary, #e0e0e0);
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.market-panel-dropdown-item:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
 .market-tab {
   display: flex;
   align-items: center;

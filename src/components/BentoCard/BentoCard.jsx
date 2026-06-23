@@ -68,6 +68,7 @@ const BentoCard = React.forwardRef(function BentoCard({
   noFooter = false,
   footer,
   children,
+  panelKey,
   // react-grid-layout-injected props (style, onMouseDown, onTouchEnd…)
   // get spread onto the root element so its absolute-positioning &
   // drag listeners attach correctly.
@@ -88,6 +89,7 @@ const BentoCard = React.forwardRef(function BentoCard({
     <div
       ref={ref}
       {...rest}
+      data-panel-key={panelKey}
       style={inlineStyle}
       className={`bento-card ${accentClass} ${className} ${rest.className || ''}`.trim().replace(/\s+/g, ' ')}
     >

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { auth, googleProvider, signInWithPopup, signOut } from '../lib/firebase';
 import { MARKETS, SEARCH_INDEX } from './markets.config';
+import { MARKET_PANELS } from '../data/marketPanels';
 import { currencySymbols } from '../utils/constants';
 import { useTheme } from './ThemeContext';
 import { useCurrency } from './CurrencyContext';
@@ -40,6 +41,8 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   const inputRef = useRef(null);
   const settingsRef = useRef(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [panelDropdownMarket, setPanelDropdownMarket] = useState(null);
+  const panelDropdownRef = useRef(null);
 
   // User Auth Profile Dropdown State
   const [user, setUser] = useState(null);
@@ -155,6 +158,9 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       if (settingsRef.current && !settingsRef.current.contains(e.target)) {
         setSettingsOpen(false);
       }
+      if (panelDropdownRef.current && !panelDropdownRef.current.contains(e.target)) {
+        setPanelDropdownMarket(null);
+      }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -203,8 +209,57 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
 
   const handleMarketClick = useCallback((e) => {
     const marketId = e.currentTarget.dataset.market;
-    if (marketId) setActiveMarket(marketId);
-  }, [setActiveMarket]);
+    if (!marketId) return;
+    // If clicking the already-active tab, toggle the panel dropdown
+    if (marketId === activeMarket && panelDropdownMarket === marketId) {
+      setPanelDropdownMarket(null);
+    } else if (marketId === activeMarket) {
+      setPanelDropdownMarket(marketId);
+    } else {
+      // Switching to a new tab — close any open dropdown
+      setPanelDropdownMarket(null);
+      setActiveMarket(marketId);
+    }
+  }, [setActiveMarket, activeMarket, panelDropdownMarket]);
+
+  const handlePanelJump = useCallback((panelId) => {
+    // Try multiple strategies to find and scroll to the panel:
+    // 1. data-panel-key attribute (if BentoCard has panelKey prop)
+    // 2. BentoCard title text matching the panel title
+    // 3. Any element with the panel id in its class
+    const panels = MARKET_PANELS[activeMarket] || [];
+    const panelInfo = panels.find(p => p.id === panelId);
+    const titleText = panelInfo?.title;
+
+    // Strategy 1: data-panel-key
+    let el = document.querySelector(`[data-panel-key="${panelId}"]`);
+
+    // Strategy 2: find by title text in .bento-panel-title
+    if (!el && titleText) {
+      const titles = document.querySelectorAll('.bento-panel-title');
+      for (const t of titles) {
+        if (t.textContent === titleText || t.textContent.includes(titleText)) {
+          el = t.closest('.bento-card, .react-grid-item');
+          break;
+        }
+      }
+    }
+
+    // Strategy 3: class-based fallback
+    if (!el) {
+      el = document.querySelector(`div[class*="${panelId}"]`);
+    }
+
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Flash highlight
+      el.style.transition = 'box-shadow 0.3s';
+      const orig = el.style.boxShadow;
+      el.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.5)';
+      setTimeout(() => { el.style.boxShadow = orig; }, 1200);
+    }
+    setPanelDropdownMarket(null);
+  }, [activeMarket]);
 
   const handleExportCSV = useCallback(() => {
     onExportData('csv');
@@ -231,17 +286,42 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       <a href="#main-content" className="sr-only sr-only-focusable">Skip to content</a>
       <nav className="market-tabs" role="tablist" aria-label="Market tabs">
         {MARKETS.map((m, i) => (
-          <button
+          <div
             key={m.id}
-            role="tab"
-            aria-selected={activeMarket === m.id}
-            aria-label={`${m.label} market (${i + 1})`}
-            className={`market-tab${activeMarket === m.id ? ' active' : ''}`}
-            data-market={m.id}
-            onClick={handleMarketClick}
+            className="market-tab-wrapper"
+            ref={panelDropdownMarket === m.id ? panelDropdownRef : null}
           >
-            <span className="market-tab-label">{m.label}</span>
-          </button>
+            <button
+              role="tab"
+              aria-selected={activeMarket === m.id}
+              aria-label={`${m.label} market (${i + 1})`}
+              className={`market-tab${activeMarket === m.id ? ' active' : ''}`}
+              data-market={m.id}
+              onClick={handleMarketClick}
+              title={activeMarket === m.id ? 'Click to see panel list' : `Switch to ${m.label}`}
+            >
+              <span className="market-tab-label">{m.label}</span>
+              {activeMarket === m.id && MARKET_PANELS[m.id] && (
+                <span className="market-tab-caret">▾</span>
+              )}
+            </button>
+            {panelDropdownMarket === m.id && MARKET_PANELS[m.id] && (
+              <div className="market-panel-dropdown">
+                <div className="market-panel-dropdown-header">
+                  {MARKET_PANELS[m.id].length} panels
+                </div>
+                {MARKET_PANELS[m.id].map(p => (
+                  <button
+                    key={p.id}
+                    className="market-panel-dropdown-item"
+                    onClick={() => handlePanelJump(p.id)}
+                  >
+                    {p.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </nav>
       <div className="hub-settings-menu" ref={settingsRef}>

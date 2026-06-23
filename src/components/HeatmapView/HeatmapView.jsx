@@ -200,11 +200,37 @@ const HeatmapView = ({
 
     const handleBgClick = (e) => {
       if (!mountedRef.current) return;
-      // Only restore if clicking on empty background (no target)
-      if (!e.target) {
-        if (instRef.current && !instRef.current.isDisposed?.()) {
-          instRef.current.dispatchAction({ type: 'restore' });
-          setViewPath(['Global Market']);
+      // On a treemap that fills 100% of the canvas, there is no "empty
+      // background" — every pixel is a cell target. Instead, detect clicks
+      // on the root-level group (the outermost ring of cells) and treat
+      // those as "zoom to fit" by dispatching restore.
+      const treemapView = instRef.current?._chartsViews?.find(view => view?.type === 'treemap' && typeof view.findTarget === 'function');
+      if (treemapView) {
+        const targetInfo = treemapView.findTarget(e.offsetX, e.offsetY);
+        const node = targetInfo?.node;
+        // If click landed on a root-level child (depth 1, not a leaf),
+        // treat it as background click → zoom-to-fit
+        if (node && node.depth === 1) {
+          if (instRef.current && !instRef.current.isDisposed?.()) {
+            instRef.current.dispatchAction({ type: 'restore' });
+            setViewPath(['Global Market']);
+          }
+          return;
+        }
+        // Also handle truly empty clicks (no target at all)
+        if (!targetInfo || !node) {
+          if (instRef.current && !instRef.current.isDisposed?.()) {
+            instRef.current.dispatchAction({ type: 'restore' });
+            setViewPath(['Global Market']);
+          }
+        }
+      } else {
+        // Fallback: original behavior for non-treemap or when findTarget unavailable
+        if (!e.target) {
+          if (instRef.current && !instRef.current.isDisposed?.()) {
+            instRef.current.dispatchAction({ type: 'restore' });
+            setViewPath(['Global Market']);
+          }
         }
       }
     };
