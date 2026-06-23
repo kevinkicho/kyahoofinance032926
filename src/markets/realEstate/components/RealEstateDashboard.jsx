@@ -368,8 +368,15 @@ function RealEstateDashboard({
   if (mbaOption) { layoutItems.push({ i: 'mba', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
   if (creOption) { layoutItems.push({ i: 'cre', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
   if (capRateData?.length > 0) { layoutItems.push({ i: 'caprate', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
-  if (affordabilityData?.length > 0) { layoutItems.push({ i: 'afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
-  if (supplyData?.length > 0) { layoutItems.push({ i: 'supply', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
+  // affordabilityData is an object { current, history }, not an array —
+  // check for presence of current or history data instead of .length
+  if (affordabilityData && (affordabilityData.current != null || affordabilityData.history?.length > 0)) {
+    layoutItems.push({ i: 'afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3;
+  }
+  // supplyData is an object { housingStarts, permits, monthsSupply, activeListings }
+  if (supplyData && (supplyData.housingStarts?.values?.length > 0 || supplyData.permits?.values?.length > 0 || supplyData.monthsSupply != null)) {
+    layoutItems.push({ i: 'supply', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3;
+  }
   if (hudData?.length > 0) { layoutItems.push({ i: 'hud-afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
 
   // Census panels (merged from former Census tab) — placed below RE panels.
@@ -385,7 +392,7 @@ function RealEstateDashboard({
 
   return (
     <div className="re-dashboard re-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v4">
+      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v5">
         {/* Key Metrics */}
         <BentoCard
           key="metrics"
@@ -740,7 +747,7 @@ function RealEstateDashboard({
         )}
 
         {/* Affordability */}
-        {affordabilityData?.length > 0 && (
+        {affordabilityData && (affordabilityData.current || affordabilityData.history?.length > 0) && (
           <BentoCard
             key="afford"
             title="Affordability Index"
@@ -756,20 +763,42 @@ function RealEstateDashboard({
             error={error}
           >
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
-              {affordabilityData.slice(0, 8).map((a, i) => (
-                <div key={i} className="re-mini-row">
-                  <span className="re-mini-name">{a.region}</span>
-                  <span className="re-mini-value" style={{ color: a.index > 100 ? '#4ade80' : a.index > 80 ? '#fbbf24' : '#f87171' }}>
-                    <MetricValue value={a.index} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={v => v != null ? v.toFixed(0) : '—'} />
-                  </span>
-                </div>
-              ))}
+              {(() => {
+                const cur = affordabilityData.current;
+                if (!cur) {
+                  // Fallback: show history-derived rows
+                  return (affordabilityData.history || []).slice(-8).map((h, i) => (
+                    <div key={i} className="re-mini-row">
+                      <span className="re-mini-name">{h.date?.slice(0, 7) || `Period ${i+1}`}</span>
+                      <span className="re-mini-value" style={{ color: h.priceToIncome > 5 ? '#f87171' : h.priceToIncome > 3.5 ? '#fbbf24' : '#4ade80' }}>
+                        <MetricValue value={h.priceToIncome} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}x` : '—'} />
+                      </span>
+                    </div>
+                  ));
+                }
+                const rows = [
+                  { label: 'Median Price', value: cur.medianPrice, fmt: v => `$${(v / 1000).toFixed(0)}K`, color: '#60a5fa' },
+                  { label: 'Median Income', value: cur.medianIncome, fmt: v => `$${(v / 1000).toFixed(0)}K`, color: '#22c55e' },
+                  { label: 'Price/Income', value: cur.priceToIncome, fmt: v => `${v.toFixed(1)}x`, color: cur.priceToIncome > 5 ? '#f87171' : cur.priceToIncome > 3.5 ? '#fbbf24' : '#4ade80' },
+                  { label: 'Mortgage/Income', value: cur.mortgageToIncome, fmt: v => `${v.toFixed(1)}%`, color: cur.mortgageToIncome > 30 ? '#f87171' : cur.mortgageToIncome > 20 ? '#fbbf24' : '#4ade80' },
+                  { label: '30Y Rate', value: cur.rate30y, fmt: v => `${v.toFixed(2)}%`, color: '#fbbf24' },
+                  { label: 'YoY Change', value: cur.yoyChange, fmt: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, color: v >= 0 ? '#f87171' : '#4ade80' },
+                ];
+                return rows.map((r, i) => (
+                  <div key={i} className="re-mini-row">
+                    <span className="re-mini-name">{r.label}</span>
+                    <span className="re-mini-value" style={{ color: r.color }}>
+                      <MetricValue value={r.value} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={r.fmt} />
+                    </span>
+                  </div>
+                ));
+              })()}
             </div>
           </BentoCard>
         )}
 
         {/* Supply/Demand */}
-        {supplyData?.length > 0 && (
+        {supplyData && (supplyData.housingStarts?.values?.length > 0 || supplyData.permits?.values?.length > 0 || supplyData.monthsSupply != null) && (
           <BentoCard
             key="supply"
             title="Supply & Demand"
@@ -785,14 +814,37 @@ function RealEstateDashboard({
             error={error}
           >
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
-              {supplyData.slice(0, 8).map((s, i) => (
-                <div key={i} className="re-mini-row">
-                  <span className="re-mini-name">{s.metric}</span>
-                  <span className="re-mini-value" style={{ color: s.trend === 'up' ? '#4ade80' : s.trend === 'down' ? '#f87171' : '#fbbf24' }}>
-                    <MetricValue value={s.value} seriesKey="supplyDemand" timestamp={lastUpdated} format={v => v != null ? `${v}` : '—'} />
-                  </span>
-                </div>
-              ))}
+              {(() => {
+                const rows = [];
+                const startsVals = supplyData.housingStarts?.values || [];
+                const permitsVals = supplyData.permits?.values || [];
+                if (startsVals.length > 0) {
+                  const latest = startsVals.at(-1);
+                  const prev = startsVals.at(-2);
+                  const trend = prev != null ? (latest > prev ? 'up' : latest < prev ? 'down' : 'flat') : 'flat';
+                  rows.push({ metric: 'Housing Starts', value: latest, trend, fmt: v => `${v != null ? v.toLocaleString() : '—'}` });
+                }
+                if (permitsVals.length > 0) {
+                  const latest = permitsVals.at(-2);
+                  const prev = permitsVals.at(-3);
+                  const trend = prev != null ? (latest > prev ? 'up' : latest < prev ? 'down' : 'flat') : 'flat';
+                  rows.push({ metric: 'Building Permits', value: latest, trend, fmt: v => `${v != null ? v.toLocaleString() : '—'}` });
+                }
+                if (supplyData.monthsSupply != null) {
+                  rows.push({ metric: "Months' Supply", value: supplyData.monthsSupply, trend: 'flat', fmt: v => `${v.toFixed(1)} mo` });
+                }
+                if (supplyData.activeListings != null) {
+                  rows.push({ metric: 'Active Listings', value: supplyData.activeListings, trend: 'flat', fmt: v => `${v.toLocaleString()}` });
+                }
+                return rows.slice(0, 8).map((s, i) => (
+                  <div key={i} className="re-mini-row">
+                    <span className="re-mini-name">{s.metric}</span>
+                    <span className="re-mini-value" style={{ color: s.trend === 'up' ? '#4ade80' : s.trend === 'down' ? '#f87171' : '#fbbf24' }}>
+                      <MetricValue value={s.value} seriesKey="supplyDemand" timestamp={lastUpdated} format={s.fmt} />
+                    </span>
+                  </div>
+                ));
+              })()}
             </div>
           </BentoCard>
         )}

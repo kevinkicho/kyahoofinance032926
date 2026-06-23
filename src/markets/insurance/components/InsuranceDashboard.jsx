@@ -201,11 +201,11 @@ function InsuranceDashboard({
   if (catLossesOption) { layoutItems.push({ i: 'catloss', x, y: 2, w: 4, h: 3 }); x += 4; }
   if (combinedRatioOption) { layoutItems.push({ i: 'crhist', x, y: 2, w: 4, h: 3 }); }
   let x2 = 0;
-  if (combinedRatioData?.byLine?.length > 0) { layoutItems.push({ i: 'crline', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (reinsurancePricing?.byCategory?.length > 0) { layoutItems.push({ i: 'reinsrates', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (reserveAdequacyData?.length > 0) { layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (combinedRatioData?.lines?.length > 0 || combinedRatioData?.byLine?.length > 0) { layoutItems.push({ i: 'crline', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (reinsurancePricing?.byCategory?.length > 0 || (Array.isArray(reinsurancePricing) && reinsurancePricing.length > 0)) { layoutItems.push({ i: 'reinsrates', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (reserveAdequacyData && (Array.isArray(reserveAdequacyData) ? reserveAdequacyData.length > 0 : Object.keys(reserveAdequacyData).length > 0)) { layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   if (catBondSpreads?.length > 0) { layoutItems.push({ i: 'catbonds', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (sectorETF?.length > 0) { layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (sectorETF && (Array.isArray(sectorETF) ? sectorETF.length > 0 : sectorETF.price != null)) { layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   // 2026-05-04 additions: catastrophes (FEMA + USGS), penetration (WB),
   // insurer combined ratios (EDGAR XBRL).
   if (femaCtx?.data?.declarations?.length || usgsCtx?.data?.events?.length) {
@@ -244,7 +244,7 @@ function InsuranceDashboard({
 
   return (
     <div className="ins-dashboard ins-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v3">
+      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v4">
         {/* KPI Strip — bento card with title row drag handle. */}
         <BentoCard
           key="kpi"
@@ -314,7 +314,7 @@ function InsuranceDashboard({
         )}
 
         {/* Combined Ratio by Line */}
-        {combinedRatioData?.byLine?.length > 0 && (
+        {(combinedRatioData?.lines?.length > 0 || combinedRatioData?.byLine?.length > 0) && (
           <BentoCard
             key="crline"
             title="Combined Ratio by Line"
@@ -374,7 +374,7 @@ function InsuranceDashboard({
         )}
 
         {/* Reserve Adequacy */}
-        {reserveAdequacyData?.length > 0 && (
+        {reserveAdequacyData && (Array.isArray(reserveAdequacyData) ? reserveAdequacyData.length > 0 : Object.keys(reserveAdequacyData).length > 0) && (
           <BentoCard
             key="reserves"
             title="Reserve Adequacy"
@@ -432,7 +432,7 @@ function InsuranceDashboard({
         )}
 
         {/* Sector ETFs */}
-        {sectorETF?.length > 0 && (
+        {sectorETF && (Array.isArray(sectorETF) ? sectorETF.length > 0 : sectorETF.price != null) && (
           <BentoCard
             key="etfs"
             title="Sector ETFs"

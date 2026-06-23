@@ -404,7 +404,21 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
 
   React.useEffect(() => {
     if (centralSnapshot?.indices && Object.keys(centralSnapshot.indices).length) {
-      setIndexQuotes(centralSnapshot.indices);
+      // Merge: prefer live-fetched quotes (which may have tickers missing
+      // from the RTDB snapshot, e.g. Asian indices that fail during the
+      // midnight UTC scheduled refresh). Only fill in from RTDB what we
+      // don't already have from the live call.
+      setIndexQuotes(prev => {
+        const merged = { ...(centralSnapshot.indices) };
+        if (prev) {
+          for (const [tk, q] of Object.entries(prev)) {
+            if (q?.price != null && (!merged[tk] || merged[tk]?.price == null)) {
+              merged[tk] = q;
+            }
+          }
+        }
+        return merged;
+      });
     }
   }, [centralSnapshot]);
 
