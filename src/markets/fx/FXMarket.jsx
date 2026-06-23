@@ -6,8 +6,16 @@ import { exchangeRates } from '../../utils/constants';
 function getFXProps(centralData) {
   const d = centralData.data || {};
   const fallback = { USD: 1, ...exchangeRates };
-  const spotRates = d.spotRates || d.frankfurterLatest || fallback;
-  const prevRates = d.prevRates || d.frankfurterPrev || fallback;
+  const liveSpotRates = d.spotRates || d.frankfurterLatest;
+  const livePrevRates = d.prevRates || d.frankfurterPrev;
+  // Detect when we're falling back to static rates — this is the most
+  // insidious failure mode: the dashboard looks fully populated but all
+  // changes are 0% because prev == current (both from the same static table).
+  // We surface this as a prop so the dashboard can show a warning banner
+  // instead of silently rendering stale data as if it were live.
+  const isUsingFallbackRates = !liveSpotRates;
+  const spotRates = liveSpotRates || fallback;
+  const prevRates = livePrevRates || fallback;
   const changes = Object.keys(spotRates).reduce((acc, code) => {
     if (code === 'USD') return { ...acc, [code]: 0 };
     const prev = prevRates[code] || spotRates[code];
@@ -58,6 +66,7 @@ function getFXProps(centralData) {
     cotData: d.cotData || {},
     cotHistory: d.cotHistory,
     isLive: centralData.isLive,
+    isUsingFallbackRates,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
     fetchedOn: centralData.fetchedOn,
@@ -97,6 +106,7 @@ function FXMarket({ centralData } = {}) {
           cotData={props.cotData}
           cotHistory={props.cotHistory}
           isLive={props.isLive}
+          isUsingFallbackRates={props.isUsingFallbackRates}
           lastUpdated={props.lastUpdated}
           fetchLog={props.fetchLog}
           error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}

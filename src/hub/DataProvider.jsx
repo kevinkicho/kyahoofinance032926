@@ -260,32 +260,67 @@ function persistToIDB(result) {
 
 function needsLiveRepair(id, data) {
   if (!data || typeof data !== 'object') return false;
-  if (id === 'globalMacro') {
-    return !data.cfnai?.values?.length || !data.oecdCli || Object.keys(data.oecdCli || {}).length === 0;
-  }
-  if (id === 'equitiesDeepDive') {
-    const factors = data.factorData?.inFavor || {};
-    const hasFactorSignal = Object.values(factors).some(v => typeof v === 'number' && Number.isFinite(v) && v !== 0);
-    return !data.sectorData?.sectors?.length || (!hasFactorSignal && !data.factorData?.stocks?.length);
-  }
-  if (id === 'sentiment') {
-    return data.fearGreedData?.score == null && data.fearGreedData?.value == null;
-  }
-  if (id === 'calendar') {
-    return !data.centralBanks?.length && !data.economicEvents?.length && !data.keyReleases?.length;
-  }
-  // Bonds: the structural guard only checks yieldCurveData, but many panels
-  // (spreadHistory, fedBalanceSheet, M2, CPI, breakevens, durationLadder,
-  // macroData) can be null if FRED/Akamai blocked them on the snapshot day.
-  // Force a live repair when any of these critical panel fields are missing.
-  if (id === 'bonds') {
-    const criticalFields = [
+
+  // Markets with critical field lists — if any field is null in the RTDB
+  // snapshot, force a live fetch to fill the gaps. This catches stale
+  // snapshots where upstream APIs (FRED/Akamai, IMF, BIS, etc.) failed
+  // on the snapshot day but the structural guard still passed.
+  const CRITICAL_FIELDS = {
+    bonds: [
       'spreadHistory', 'fedBalanceSheetHistory', 'm2HistoryData',
       'cpiComponents', 'debtToGdpHistory', 'breakevensData',
       'durationLadder', 'macroData',
-    ];
-    return criticalFields.some(f => data[f] == null);
+    ],
+    realEstate: [
+      'foreclosureData', 'mbaApplications', 'creDelinquencies',
+      'existingHomeSales', 'rentalVacancy', 'treasury10y',
+    ],
+    fx: ['fredFxRates', 'dxyHistory', 'rateDifferentials'],
+    derivatives: ['volPremium', 'skewHistory', 'vixPercentile'],
+    insurance: ['industryAvgCombinedRatio', 'catLosses', 'reinsurancePricing'],
+    globalMacro: ['imfWEO', 'bisCreditToGDP'],
+    commodities: ['sectorHeatmapData', 'commodityCurrencies'],
+    crypto: ['ethGas', 'fundingData', 'onChainData'],
+    credit: ['delinquencyRates', 'commercialPaper'],
+    sentiment: ['riskData', 'returnsData', 'cftcData'],
+  };
+
+  if (CRITICAL_FIELDS[id]) {
+    return CRITICAL_FIELDS[id].some(f => data[f] == null);
   }
+
+  // Markets with custom repair logic (more nuanced than field-presence check)
+
+  if (id === 'equitiesDeepDive') {
+    const factors = data.factorData?.inFavor || {};
+    const hasFactorSignal = Object.values(factors).some(v => typeof v === 'number' && Number.isFinite(v) && v !== 0);
+    const primaryFail = !data.sectorData?.sectors?.length || (!hasFactorSignal && !data.factorData?.stocks?.length);
+    // Also check critical fields that were previously in a dead-code branch
+    // due to a casing mismatch ('equityDeepDive' vs 'equitiesDeepDive').
+    const criticalFields = ['equityRiskPremium', 'spPE', 'buffettIndicator'];
+    return primaryFail || criticalFields.some(f => data[f] == null);
+  }
+
+  if (id === 'globalMacro') {
+    // The critical-fields check above handles imfWEO/bisCreditToGDP.
+    // Also keep the original oecdCli/cfnai checks.
+    return !data.cfnai?.values?.length || !data.oecdCli || Object.keys(data.oecdCli || {}).length === 0;
+  }
+
+  if (id === 'sentiment') {
+    // The critical-fields check above handles riskData/returnsData/cftcData.
+    // Also keep the original fearGreedData check.
+    return data.fearGreedData?.score == null && data.fearGreedData?.value == null;
+  }
+
+  if (id === 'calendar') {
+    return !data.centralBanks?.length && !data.economicEvents?.length && !data.keyReleases?.length;
+  }
+
+  // Markets with no critical fields to check — always accept the snapshot.
+  // These are either system endpoints (analytics, watchlist) or markets
+  // where the structural guard is already strict enough (eia, bls, census,
+  // imf, worldbank, equities).
   return false;
 }
 
@@ -379,9 +414,9 @@ export function passesStructuralGuard(id, d) {
 
 export const STRUCTURAL_GUARDS = {
   bonds:          d => { const yd = d.yieldCurveData; if (!yd || typeof yd !== 'object') return false; return Object.values(yd).filter(v => v && typeof v === 'object' && Object.values(v).some(x => x != null)).length >= 3; },
-  commodities:    d => Array.isArray(d.cotData) ? d.cotData.length >= 2 : true,
-  sentiment:      d => Array.isArray(d.currencies) ? d.currencies.length >= 4 : true,
-  globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
+  commodities:    d => (d.priceDashboardData?.length > 0) || (d.sectorHeatmapData?.commodities?.length > 0) || (Array.isArray(d.cotData) && d.cotData.length >= 2),
+  sentiment:      d => (d.fearGreedData != null && Object.keys(d.fearGreedData).length > 0) || (d.riskData != null && Object.keys(d.riskData).length > 0) || (Array.isArray(d.cftcData) && d.cftcData.length > 0),
+  globalMacro:    d => (Array.isArray(d.scorecardData) && d.scorecardData.length >= 8) || (Array.isArray(d.growthInflationData) && d.growthInflationData.length > 0) || (d.centralBankData?.length > 0),
   credit:         d => {
     const fredSpreadBranch = d.spreadData?.history?.dates?.length >= 6 && d.commercialPaper?.rate != null;
     const emBondBranch = Array.isArray(d.emBondData?.countries) && d.emBondData.countries.length >= 5;
@@ -389,9 +424,9 @@ export const STRUCTURAL_GUARDS = {
     const defaultBranch = Array.isArray(d.defaultData?.rates) && d.defaultData.rates.length >= 1;
     return fredSpreadBranch || emBondBranch || loanBranch || defaultBranch;
   },
-  crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
+  crypto:         d => d.coinMarketData?.coins?.length >= 5,
   equities:      d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
-  equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
+  equitiesDeepDive: d => (Array.isArray(d.sectorData?.sectors) && d.sectorData.sectors.length >= 5) || (Array.isArray(d.sectors) && d.sectors.length >= 5),
   calendar:       d => {
     const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 1;
     const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 1;
@@ -399,11 +434,11 @@ export const STRUCTURAL_GUARDS = {
     return events || earnings || banks;
   },
   derivatives:    d => d.vixTermStructure?.values?.length >= 2,
-  insurance:      d => Array.isArray(d.combinedRatioData) ? d.combinedRatioData.length >= 2 : true,
-  realEstate:     d => Array.isArray(d.reitData) ? d.reitData.length >= 2 : true,
-  fx:             d => Array.isArray(d.fredFxRates) ? d.fredFxRates.length >= 2 : true,
-  imf:            d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
-  worldbank:      d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
+  insurance:      d => (Array.isArray(d.combinedRatioData) && d.combinedRatioData.length >= 2) || d.hyOAS != null || d.igOAS != null,
+  realEstate:     d => (Array.isArray(d.reitData) && d.reitData.length >= 2) || (d.caseShillerData?.dates?.length > 0) || (d.mortgageRates?.rate30y != null),
+  fx:             d => d.spotRates != null && Object.keys(d.spotRates).length >= 3,
+  imf:            d => (Array.isArray(d.countries) && d.countries.length >= 5) || d.reserves != null,
+  worldbank:      d => (Array.isArray(d.countries) && d.countries.length >= 5) || d.indicators?.length > 0,
   bls:            d => d.series && Object.keys(d.series).length > 0,
   eia:            d => d.electricity?.residential != null || d.co2Emissions?.total != null,
   census:         d => d.series && Object.keys(d.series).length > 0,

@@ -158,7 +158,9 @@ export const api = onRequest(
 //   (RTDB must be enabled; rules should allow public .read on marketSnapshots)
 
 if (!admin.apps || admin.apps.length === 0) {
-  admin.initializeApp();
+  admin.initializeApp({
+    databaseURL: process.env.FIREBASE_DATABASE_URL || "https://kfinance032926-default-rtdb.firebaseio.com",
+  });
 }
 
 const LIVE_FUNCTIONS_BASE = process.env.LIVE_FUNCTIONS_BASE || "https://api-4uzq3y2xva-uc.a.run.app";

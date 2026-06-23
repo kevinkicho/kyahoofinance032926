@@ -64,7 +64,7 @@ const FX_KPI_SERIES = {
 function FXDashboard({
   spotRates, changes, changes1w, changes1m, sparklines,
   history, reer, rateDifferentials, dxyHistory, cotData, cotHistory,
-  isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
+  isLive, isUsingFallbackRates, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
 }) {
   // Top-of-grid KPI metrics. Each pill is clickable (MetricValue popover
   // exposes the FRED ID + source). Values are formatted to 4 decimals for
@@ -159,6 +159,11 @@ function FXDashboard({
  
   return (
     <div className="fx-dashboard fx-dashboard--bento">
+      {isUsingFallbackRates && (
+        <div style={{ padding: '6px 12px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: 6, marginBottom: 6, fontSize: 11, color: '#f59e0b' }}>
+          Live FX rates unavailable — showing static fallback rates. All changes will be 0%.
+        </div>
+      )}
       <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v6">
         <BentoCard key="kpi" title="FX Key Metrics" subtitle="Spot rates · DXY · G10 average" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter / FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
           <MarketKpiStrip kpis={kpiItems} bare />
