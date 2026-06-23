@@ -117,7 +117,7 @@ const HEATMAP_LAYOUT = {
     { i: 'heatmap', x: 0, y: 3, w: 8,  h: 6 },
     { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
     { i: 'sec-fundamentals', x: 0, y: 9, w: 6, h: 3 },
-    { i: 'universe-updates', x: 6, y: 9, w: 6, h: 3 },
+    { i: 'universe-updates', x: 0, y: 9, w: 12, h: 4 },
   ]
 };
 
@@ -1003,6 +1003,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const universeUpdatesCard = universeUpdates.length > 0 ? (
     <BentoCard
       key="universe-updates"
+      panelKey="universe-updates"
       title="Universe Expansion Queue"
       subtitle={`${universeUpdates.length} discovered listings · review candidates`}
       accent="equities"
@@ -1016,14 +1017,70 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       fetchLog={universeCtx?.fetchLog || []}
       error={universeCtx?.error}
     >
-      {universeUpdates.slice(0, 10).map(row => (
-        <div key={row.name} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '90px 1fr 90px 70px', gap: 8, alignItems: 'center' }}>
-          <strong>{row.name}</strong>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.fullName || row.sector || 'New listing'}</span>
-          <span><MetricValue value={row.marketCap} seriesKey="universeMarketCap" timestamp={universeCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
-          <span>{row.pe != null ? row.pe.toFixed(1) : '—'}</span>
-        </div>
-      ))}
+      <table className="eq-table" style={{ width: '100%', fontSize: 10, borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <th style={{ padding: '2px 4px' }}>Ticker</th>
+            <th style={{ padding: '2px 4px' }}>Company</th>
+            <th style={{ padding: '2px 4px' }}>Sector</th>
+            <th style={{ padding: '2px 4px' }}>Industry</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Mkt Cap</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Price</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Chg%</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>P/E</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Rev ($B)</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Net Inc ($B)</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Margin</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Beta</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>Div Yld</th>
+            <th style={{ padding: '2px 4px', textAlign: 'right' }}>52W H/L</th>
+            <th style={{ padding: '2px 4px' }}>Exch</th>
+          </tr>
+        </thead>
+        <tbody>
+          {universeUpdates.slice(0, 15).map(row => (
+            <tr key={row.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <td style={{ padding: '3px 4px', fontWeight: 600 }}>{row.name}</td>
+              <td style={{ padding: '3px 4px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.fullName || '—'}</td>
+              <td style={{ padding: '3px 4px', color: 'var(--text-muted)' }}>{row.sector || '—'}</td>
+              <td style={{ padding: '3px 4px', color: 'var(--text-muted)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.industry || '—'}</td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                <MetricValue value={row.marketCap} seriesKey="universeMarketCap" timestamp={universeCtx?.lastUpdated} format={v => v != null ? `$${v.toFixed(1)}B` : '—'} />
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.price != null ? `$${row.price.toFixed(2)}` : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: row.changePct != null ? (row.changePct >= 0 ? '#4ade80' : '#f87171') : 'var(--text-muted)' }}>
+                {row.changePct != null ? `${row.changePct >= 0 ? '+' : ''}${row.changePct.toFixed(2)}%` : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.pe != null && row.pe < 999 ? row.pe.toFixed(1) : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.revenue != null ? `$${row.revenue.toFixed(2)}` : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.netIncome != null ? `$${row.netIncome.toFixed(2)}` : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.profitMargins != null ? `${row.profitMargins.toFixed(1)}%` : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.beta != null ? row.beta.toFixed(2) : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                {row.divYield != null ? `${row.divYield.toFixed(2)}%` : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted)' }}>
+                {row.weekHigh52 != null || row.weekLow52 != null
+                  ? `${row.weekHigh52 != null ? row.weekHigh52.toFixed(0) : '—'}/${row.weekLow52 != null ? row.weekLow52.toFixed(0) : '—'}`
+                  : '—'}
+              </td>
+              <td style={{ padding: '3px 4px', color: 'var(--text-muted)', fontSize: 9 }}>{row.exchange || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </BentoCard>
   ) : null;
 
