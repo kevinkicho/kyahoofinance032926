@@ -121,8 +121,8 @@ Panel keys (e.g. `kpi`, `yield`, `metrics`) are the `key` props on bento childre
 | `mba` (Mortgage Rates / "MBA Applications" proxy) | 30Y + 15Y mortgage rate (real MBA index needs paid feed) | Demand proxy |
 | `cre` (CRE Delinquencies) | Commercial RE delinquency rate (DRCLACBS) | CRE stress |
 | `caprate` (Cap Rates by Sector) | Implied cap rate per sector | Valuation by property type |
-| `afford` (Affordability Index) | Regional affordability scores | Where buying makes sense |
-| `supply` (Supply & Demand) | Housing-market metrics with trend arrows | Market balance |
+| `afford` (Affordability Index) | Median price · median income · price/income · mortgage/income · 30Y rate · YoY change (FRED MSPUS / MEHOINUSA672N) | Where buying makes sense |
+| `supply` (Supply & Demand) | Housing starts · building permits · months' supply · active listings (FRED HOUST / PERMIT / MSACSR / ACTLISCOUUS) | Market balance |
 | `census-housing` | Housing Starts · Building Permits · New Home Sales · Construction Spending KPI grid | Census release |
 | `census-trade` | Retail Sales · Durable Goods · Trade Balance KPI grid | Consumer & trade pulse |
 | `census-trends-housing` | 4 sparklines for housing-side series | Long-trend view |

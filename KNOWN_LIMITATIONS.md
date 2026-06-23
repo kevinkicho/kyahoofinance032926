@@ -200,7 +200,28 @@ widens the window it silently truncates.
   the market or clicked the play button), corresponding metrics display "—".
 - No end-to-end tests; coverage is unit/component (Vitest + RTL) only.
 - Server is intended for local / trusted-network use. Admin endpoints
-  (`/api/admin/*`) verify Firebase ID tokens and enforce per-IP rate
-  limiting; public `/api/*` routes remain open (no auth/rate-limit) by
-  design. Deploy behind Firebase Functions + App Check or an API gateway
-  for production hardening.
+  (`/api/admin/*`) verify Firebase ID tokens via Google's identity toolkit
+  REST API and enforce per-IP rate limiting (20 req / 15 min). Public
+  `/api/*` routes remain open (no auth/rate-limit) by design. Deploy behind
+  Firebase Functions + App Check or an API gateway for production hardening.
+- **Conditional layout panels**: Real Estate and Insurance dashboards use
+  dynamic layouts where panels are only added if their data passes a
+  truthiness check. If data is missing, the panel is **hidden entirely**
+  (not shown as empty). The `needsLiveRepair` function catches stale RTDB
+  snapshots, but type-mismatch bugs (e.g. `Object.length` on a dict) can
+  still hide panels with valid data. Use the Panel Trace Inspector in the
+  Analytics tab to diagnose.
+- **FX static fallback**: When live Frankfurter/FRED rates are unavailable,
+  the FX dashboard falls back to hardcoded static rates from `constants.js`
+  with a visible warning banner. All changes will show 0% in this mode.
+- **needsLiveRepair coverage**: 10 of 21 markets have critical-field
+  lists that force a live fetch when fields are null in the RTDB snapshot.
+  Markets without critical fields (equities, analytics, watchlist, eia, bls,
+  census, imf, worldbank) rely on their structural guard alone. See
+  `docs/plans/panel-diagnostics-expansion.md` for the full audit.
+- **Silent null-on-catch**: All 124 panel fields across 44 routes silently
+  become `null` inside try/catch blocks with `console.warn`. The HTTP
+  response stays `200 OK` with `field: null`. The Panel Trace Inspector
+  shows which fields are null, but does not yet surface the actual upstream
+  error message. A planned `_errors` object in route responses (Phase 2.4)
+  will address this.

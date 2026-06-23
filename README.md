@@ -202,8 +202,8 @@ Caches survive 24h and can outlive a code change.
 - **MBA Applications Chart**: Purchase vs refi index
 - **CRE Delinquencies Chart**: Commercial RE loan delinquencies
 - **REIT Screen Table**: Top REITs with sector, dividend yield, P/FFO, YTD return
-- **Affordability**: Median price, price-to-income, mortgage-to-income
-- **Housing Supply**: Housing starts, permits, months supply, active listings
+- **Affordability Index**: Median home price, median income, price-to-income ratio, mortgage-to-income ratio, 30Y mortgage rate, YoY price change (FRED MSPUS / MEHOINUSA672N)
+- **Housing Supply**: Housing starts, building permits, months' supply, active listings (FRED HOUST / PERMIT / MSACSR / ACTLISCOUUS)
 
 ### 6. Insurance
 **Sidebar:**
@@ -369,6 +369,9 @@ Caches survive 24h and can outlive a code change.
 - **Data Freshness**: Last-fetch timestamps for all 20 market endpoints
 - **Rate Limits**: Daily request counts vs caps for 13 free API sources
 - **Cache Inventory**: List of cached files in `server/datacache/` with dates and sizes
+- **Panel Trace Inspector**: Traces data flow from frontend panel → backend field → external API for every panel in 13 markets. Shows field presence, shape, `_sources` flags, and verdict (OK / NULL / MISSING / SHAPE / WARN). Includes `shapeCheck` validation that catches data-structure mismatches (e.g. history keyed by date instead of currency code). Select a market, expand any panel to see the full pipeline: render condition, backend source, external API dependencies, JSON samples, and a diagnostic verdict.
+- **Provenance Audit**: Cross-references `_sources` with FRED series for all endpoints. Date-aware: audit a specific historical RTDB snapshot or latest. Click "Verify" on individual FRED series to confirm data exists and matches.
+- **API Health Diagnostics**: Probes structural integrity and latency of all endpoints. Admin can run live diagnostics that write a report to RTDB.
 
 ### 17. IMF
 **Main Panels:**
