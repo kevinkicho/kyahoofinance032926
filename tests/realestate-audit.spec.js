@@ -5,8 +5,16 @@ const BASE = 'https://kevinkicho.github.io/kyahoofinance032926/';
 test.setTimeout(120000);
 
 test('real estate panel audit', async ({ page }) => {
+  const consoleMsgs = [];
+  page.on('console', msg => consoleMsgs.push(`[${msg.type()}] ${msg.text()}`));
+  page.on('pageerror', err => consoleMsgs.push(`[pageerror] ${err.message}`));
+
   await page.goto(`${BASE}?market=realEstate`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.waitForTimeout(40000);
+  await page.waitForTimeout(60000);
+
+  // Print first 20 console messages for debugging
+  console.log('=== Console messages (first 20) ===');
+  consoleMsgs.slice(0, 20).forEach(m => console.log(`  ${m}`));
 
   // Get all BentoCard titles
   const cards = await page.locator('.bento-card-title, [class*="bento-card-title"]').allTextContents();

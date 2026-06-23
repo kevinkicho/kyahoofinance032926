@@ -782,7 +782,7 @@ function RealEstateDashboard({
                   { label: 'Price/Income', value: cur.priceToIncome, fmt: v => `${v.toFixed(1)}x`, color: cur.priceToIncome > 5 ? '#f87171' : cur.priceToIncome > 3.5 ? '#fbbf24' : '#4ade80' },
                   { label: 'Mortgage/Income', value: cur.mortgageToIncome, fmt: v => `${v.toFixed(1)}%`, color: cur.mortgageToIncome > 30 ? '#f87171' : cur.mortgageToIncome > 20 ? '#fbbf24' : '#4ade80' },
                   { label: '30Y Rate', value: cur.rate30y, fmt: v => `${v.toFixed(2)}%`, color: '#fbbf24' },
-                  { label: 'YoY Change', value: cur.yoyChange, fmt: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, color: v >= 0 ? '#f87171' : '#4ade80' },
+                  { label: 'YoY Change', value: cur.yoyChange, fmt: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, color: cur.yoyChange >= 0 ? '#f87171' : '#4ade80' },
                 ];
                 return rows.map((r, i) => (
                   <div key={i} className="re-mini-row">
