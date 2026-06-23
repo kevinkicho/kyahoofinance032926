@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useMarketData, useDataContext } from '../../hub/DataContext';
+import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
 import { apiUrl } from '../../lib/api';
 import { PANEL_REGISTRY, TRACEABLE_MARKETS } from '../../data/panelRegistry';
 import './PanelTraceInspector.css';
@@ -30,19 +31,31 @@ function describeValue(val) {
 }
 
 function StatusBadge({ status }) {
-  const cls = status === 'ok' ? 'pti-ok' : status === 'null' ? 'pti-null' : status === 'missing' ? 'pti-missing' : status === 'shape-error' ? 'pti-shape-error-badge' : status === 'error' ? 'pti-error' : 'pti-warn';
-  const label = status === 'ok' ? 'OK' : status === 'null' ? 'NULL' : status === 'missing' ? 'MISSING' : status === 'shape-error' ? 'SHAPE' : status === 'error' ? 'ERROR' : 'WARN';
-  return <span className={`pti-badge ${cls}`}>{label}</span>;
+  const map = {
+    ok: { cls: 'pti-ok', label: 'OK' },
+    null: { cls: 'pti-null', label: 'NULL' },
+    missing: { cls: 'pti-missing', label: 'MISSING' },
+    'shape-error': { cls: 'pti-shape-error-badge', label: 'SHAPE' },
+    'subfield-null': { cls: 'pti-subfield-badge', label: 'SUBFIELD' },
+    error: { cls: 'pti-error', label: 'ERROR' },
+    warn: { cls: 'pti-warn', label: 'WARN' },
+  };
+  const m = map[status] || map.warn;
+  return <span className={`pti-badge ${m.cls}`}>{m.label}</span>;
 }
 
-function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
-  const isCrossMarket = panel.field.startsWith('(cross-market');
-  const fieldName = panel.field.replace(/^\(cross-market:?\s*[^)]*\)/, '').trim() || panel.field;
+function PanelRow({ panel, apiData, ctxData, crossMarketData, expanded, onToggle }) {
+  const isCrossMarket = !!panel.crossMarket;
 
   // Check backend field
   let backendVal = null;
   let backendDesc = { shape: 'null', count: 0, detail: 'not in response' };
-  if (apiData && !isCrossMarket) {
+  if (isCrossMarket) {
+    // For cross-market panels, the data comes from a different endpoint.
+    // crossMarketData is fetched by the parent and passed in.
+    backendVal = crossMarketData ? getFieldByPath(crossMarketData, panel.fieldPath) : undefined;
+    if (backendVal !== undefined) backendDesc = describeValue(backendVal);
+  } else if (apiData) {
     backendVal = getFieldByPath(apiData, panel.fieldPath);
     backendDesc = describeValue(backendVal);
   }
@@ -55,13 +68,24 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
     frontendDesc = describeValue(frontendVal);
   }
 
-  // Run shape check if the panel has one — catches wrong data structure
+  // Run shape check if the panel has one
   let shapeResult = null;
-  if (panel.shapeCheck && backendVal !== undefined && !isCrossMarket) {
+  const checkVal = isCrossMarket ? backendVal : backendVal;
+  if (panel.shapeCheck && checkVal !== undefined && checkVal !== null) {
     try {
-      shapeResult = panel.shapeCheck(backendVal);
+      shapeResult = panel.shapeCheck(checkVal);
     } catch (e) {
       shapeResult = { ok: false, detail: `shapeCheck error: ${e.message}` };
+    }
+  }
+
+  // Run sub-field check (inspects array elements for null fields)
+  let subFieldResult = null;
+  if (panel.subFieldCheck && backendVal != null) {
+    try {
+      subFieldResult = panel.subFieldCheck(backendVal);
+    } catch (e) {
+      subFieldResult = { ok: false, detail: `subFieldCheck error: ${e.message}` };
     }
   }
 
@@ -75,14 +99,16 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
 
   // Determine overall status
   let status = 'ok';
-  if (isCrossMarket) {
-    status = ctxData ? 'ok' : 'missing';
+  if (isCrossMarket && !crossMarketData) {
+    status = 'missing';
   } else if (backendDesc.shape === 'null') {
     status = 'null';
   } else if (backendDesc.count === 0) {
     status = 'missing';
   } else if (shapeResult && !shapeResult.ok) {
     status = 'shape-error';
+  } else if (subFieldResult && !subFieldResult.ok) {
+    status = 'subfield-null';
   } else if (sourceKey !== undefined && sourceValue === false) {
     status = 'warn';
   }
@@ -94,11 +120,15 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
         <td className="pti-panel-title">{panel.title}</td>
         <td className="pti-field-name">{panel.field}</td>
         <td className="pti-cell">
-          {isCrossMarket ? <span className="pti-cross-market">cross-market</span> :
+          {isCrossMarket ? <span className="pti-cross-market">→ {panel.crossMarket}</span> :
             <span className={`pti-shape pti-shape-${backendDesc.shape}`}>{backendDesc.detail}</span>}
         </td>
         <td className="pti-cell">
-          {shapeResult ? (
+          {subFieldResult ? (
+            <span className={subFieldResult.ok ? 'pti-src-ok' : 'pti-subfield-text'}>
+              {subFieldResult.ok ? '✓ subfields' : '✗ subfields'} {subFieldResult.detail.substring(0, 50)}
+            </span>
+          ) : shapeResult ? (
             <span className={shapeResult.ok ? 'pti-src-ok' : 'pti-shape-error'}>
               {shapeResult.ok ? '✓ shape' : '✗ shape'} {shapeResult.detail.substring(0, 40)}
             </span>
@@ -129,6 +159,20 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
                   <span className={shapeResult.ok ? 'pti-src-ok' : 'pti-shape-error'}>
                     {shapeResult.ok ? '✓' : '✗'} {shapeResult.detail}
                   </span>
+                </div>
+              )}
+              {subFieldResult && (
+                <div className="pti-detail-section">
+                  <span className="pti-detail-label">Sub-field check:</span>
+                  <span className={subFieldResult.ok ? 'pti-src-ok' : 'pti-subfield-text'}>
+                    {subFieldResult.ok ? '✓' : '✗'} {subFieldResult.detail}
+                  </span>
+                </div>
+              )}
+              {isCrossMarket && (
+                <div className="pti-detail-section">
+                  <span className="pti-detail-label">Cross-market dep:</span>
+                  <code className="pti-code">useMarketData("{panel.crossMarket}")</code>
                 </div>
               )}
               <div className="pti-detail-section">
@@ -164,10 +208,12 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
               <div className={`pti-verdict ${status === 'ok' ? 'pti-verdict-ok' : 'pti-verdict-bad'}`}>
                 {status === 'ok' && '✓ Data pipeline intact — if panel renders empty, check SafeECharts hasDimensions (container offsetWidth/Height > 0) or stale localStorage layout.'}
                 {status === 'null' && '✗ Backend field is null — upstream API call failed and was silently caught. Check server logs for the FRED/external fetch error.'}
-                {status === 'missing' && '✗ Backend field has 0 items — upstream API returned empty data. Check if API key is configured or rate limit exhausted.'}
+                {status === 'missing' && (isCrossMarket
+                  ? '✗ Cross-market data not loaded — the DataProvider has not fetched the source market yet, or it failed the structural guard.'
+                  : '✗ Backend field has 0 items — upstream API returned empty data. Check if API key is configured or rate limit exhausted.')}
                 {status === 'shape-error' && `✗ WRONG DATA SHAPE — field is present but structured incorrectly: ${shapeResult?.detail}. The component expects a different format. Check the normalizer or backend route.`}
+                {status === 'subfield-null' && `⚠ SUB-FIELD NULLS — data array has ${subFieldResult?.detail}. The panel will show "—" in those columns. This may be expected (e.g. Yahoo doesn't return fundamentals for recent IPOs) or may indicate the backend isn't fetching all available fields.`}
                 {status === 'warn' && '⚠ _sources flag is false — backend marked this source as not received. Panel may show partial/stale data.'}
-                {isCrossMarket && status === 'missing' && '✗ Cross-market data not loaded — the DataProvider has not fetched the source market yet, or it failed the structural guard.'}
               </div>
             </div>
           </td>
@@ -180,35 +226,57 @@ function PanelRow({ panel, apiData, ctxData, expanded, onToggle }) {
 export default function PanelTraceInspector() {
   const [selectedMarket, setSelectedMarket] = useState('bonds');
   const [apiTrace, setApiTrace] = useState(null);
+  const [crossMarketData, setCrossMarketData] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedPanel, setExpandedPanel] = useState(null);
-  const [useLive, setUseLive] = useState(false);
 
   const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
   const marketCtx = useMarketData(selectedMarket);
+
+  const panels = PANEL_REGISTRY[selectedMarket] || [];
+
+  // Collect all cross-market dependencies for this market
+  const crossMarketDeps = panels.filter(p => p.crossMarket).map(p => p.crossMarket);
 
   const runTrace = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      // 1. Trace the primary market endpoint
       const url = apiUrl(`/api/analytics/panel-trace/${selectedMarket}`);
-      const r = await fetch(url, { timeout: 60000 });
+      const r = await fetch(url);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json();
       setApiTrace(data);
+
+      // 2. Fetch cross-market data for panels that depend on other endpoints
+      const crossData = {};
+      for (const dep of crossMarketDeps) {
+        try {
+          const depEndpoint = MARKET_ENDPOINTS_MAP[dep];
+          if (depEndpoint) {
+            const depRes = await fetch(apiUrl(depEndpoint));
+            if (depRes.ok) {
+              crossData[dep] = await depRes.json();
+            }
+          }
+        } catch (e) {
+          console.warn(`[PanelTrace] cross-market fetch failed for ${dep}:`, e.message);
+        }
+      }
+      setCrossMarketData(crossData);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [selectedMarket]);
+  }, [selectedMarket, crossMarketDeps.join(',')]);
 
   useEffect(() => {
     runTrace();
   }, [runTrace]);
 
-  const panels = PANEL_REGISTRY[selectedMarket] || [];
   const apiData = apiTrace;
   const ctxData = marketCtx?.data || null;
 
@@ -271,6 +339,7 @@ export default function PanelTraceInspector() {
                 panel={panel}
                 apiData={apiData}
                 ctxData={ctxData}
+                crossMarketData={panel.crossMarket ? crossMarketData[panel.crossMarket] : undefined}
                 expanded={expandedPanel === panel.id}
                 onToggle={() => setExpandedPanel(expandedPanel === panel.id ? null : panel.id)}
               />
@@ -280,10 +349,11 @@ export default function PanelTraceInspector() {
       </div>
 
       <div className="pti-legend">
-        <span className="pti-legend-item"><StatusBadge status="ok" /> Data present and correct shape</span>
+        <span className="pti-legend-item"><StatusBadge status="ok" /> Data present and correct</span>
         <span className="pti-legend-item"><StatusBadge status="null" /> Field is null (API call failed)</span>
-        <span className="pti-legend-item"><StatusBadge status="missing" /> Field has 0 items (empty response)</span>
-        <span className="pti-legend-item"><StatusBadge status="shape-error" /> Wrong data structure (field present but shape mismatch)</span>
+        <span className="pti-legend-item"><StatusBadge status="missing" /> Field has 0 items</span>
+        <span className="pti-legend-item"><StatusBadge status="shape-error" /> Wrong data structure</span>
+        <span className="pti-legend-item"><StatusBadge status="subfield-null" /> Array items have null sub-fields</span>
         <span className="pti-legend-item"><StatusBadge status="warn" /> _sources flag is false</span>
       </div>
     </div>

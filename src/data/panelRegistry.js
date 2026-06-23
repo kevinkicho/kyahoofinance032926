@@ -203,6 +203,33 @@ export const PANEL_REGISTRY = {
     { id: 'bar-race', title: 'Bar Race', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'BarRaceView' },
     { id: 'list', title: 'List View', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'ListView' },
     { id: 'portfolio', title: 'Portfolio Tracker', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0' },
+    {
+      id: 'universe-updates', title: 'Universe Expansion Queue',
+      field: 'updates', fieldPath: 'updates',
+      crossMarket: 'universeUpdates',
+      source: 'universeUpdates.js (Finnhub IPO calendar + Yahoo quotes)',
+      external: [{ name: 'Finnhub', seriesIds: [] }, { name: 'Yahoo Finance', seriesIds: [] }],
+      renderCheck: 'universeUpdates.length > 0',
+      renderType: 'Custom table (15 columns)',
+      subFieldCheck: (arr) => {
+        if (!Array.isArray(arr) || arr.length === 0) return { ok: false, detail: 'no updates array' };
+        const expectedFields = ['name', 'fullName', 'sector', 'industry', 'marketCap', 'price', 'changePct', 'pe', 'revenue', 'netIncome', 'profitMargins', 'beta', 'divYield', 'weekHigh52', 'weekLow52', 'exchange'];
+        const nullCounts = {};
+        for (const f of expectedFields) {
+          const nullCount = arr.filter(item => item?.[f] == null).length;
+          if (nullCount > 0) nullCounts[f] = `${nullCount}/${arr.length} null`;
+        }
+        const nullKeys = Object.keys(nullCounts);
+        if (nullKeys.length === 0) return { ok: true, detail: `${arr.length} entries, all fields populated` };
+        // Distinguish partial nulls (some entries missing) from total nulls (all entries missing)
+        const totalNulls = nullKeys.filter(f => nullCounts[f].startsWith(`${arr.length}/`));
+        if (totalNulls.length > 0) {
+          return { ok: false, detail: `${arr.length} entries but ${totalNulls.length} fields ALL null: ${totalNulls.join(', ')}` };
+        }
+        return { ok: false, detail: `${arr.length} entries, ${nullKeys.length} fields with partial nulls: ${nullKeys.map(f => `${f}(${nullCounts[f]})`).join(', ')}` };
+      },
+      notes: 'Cross-market: uses useMarketData("universeUpdates"), not /api/equities. Yahoo may not return sector/industry/fundamentals for recent IPOs.',
+    },
   ],
 
   derivatives: [
