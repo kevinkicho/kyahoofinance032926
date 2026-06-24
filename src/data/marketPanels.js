@@ -97,6 +97,8 @@ export const MARKET_PANELS = {
     { id: 'ins-penetration', title: 'Insurance Penetration' },
     { id: 'combined-ratios', title: 'Insurer Combined Ratios (EDGAR)' },
     { id: 'cat-exposure', title: 'Cat Exposure' },
+    { id: 'usgs-minerals', title: 'USGS Earthquake Activity (30d)' },
+    { id: 'ecb-supervisory', title: 'ECB Policy Rates' },
   ],
   commodities: [
     { id: 'sidebar', title: 'Market Summary' },

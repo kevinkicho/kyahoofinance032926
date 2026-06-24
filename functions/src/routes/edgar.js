@@ -168,6 +168,55 @@ router.get('/', async (_req, res) => {
   res.json(result);
 });
 
+// Filing activity — aggregate filing counts by type across a broad set of
+// tickers. Returns { byType: { '10-K': 42, '10-Q': 128, ... }, total, tickerCount }.
+// Used by the Equities tab's "SEC Filing Activity" panel.
+const FILING_ACTIVITY_TICKERS = ['AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','JPM','JNJ','V','PG','XOM','UNH','HD','BAC','MA','DIS','ADBE','CRM','NFLX'];
+router.get('/filing-activity', async (_req, res) => {
+  const cacheKey = 'edgar_filing_activity';
+  const cached = readDailyCache(cacheKey);
+  if (cached) return res.json(cached);
+
+  const ua = (process.env.EDGAR_USER_AGENT || '').trim() || 'kyahoofinance-researcher (Educational Sandbox)';
+  const today = todayStr();
+  let cikMap;
+  try { cikMap = await getTickerCikMap(ua); }
+  catch (e) {
+    const fb = readLatestCache(cacheKey);
+    if (fb) return res.json({ ...fb.data, isCurrent: false, fetchedOn: fb.fetchedOn });
+    return res.status(503).json({ error: `EDGAR unavailable: ${e.message}` });
+  }
+
+  const byType = {};
+  let total = 0;
+  let tickerCount = 0;
+  for (const t of FILING_ACTIVITY_TICKERS) {
+    const cik = cikMap[t];
+    if (!cik) continue;
+    try {
+      trackApiCall('SEC EDGAR');
+      const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
+      const data = await fetchJSON(url, ua);
+      const forms = data?.filings?.recent?.form || [];
+      for (const f of forms) {
+        byType[f] = (byType[f] || 0) + 1;
+        total++;
+      }
+      tickerCount++;
+    } catch (e) { /* skip ticker on error */ }
+  }
+
+  const _sources = { secEdgarFilingActivity: tickerCount > 0 };
+  const isLive = _sources.secEdgarFilingActivity;
+  const result = { byType, total, tickerCount, _sources, isLive, isCurrent: true, fetchedOn: today, lastUpdated: today };
+  if (isLive) writeDailyCache(cacheKey, result);
+  else {
+    const fb = readLatestCache(cacheKey);
+    if (fb) return res.json({ ...fb.data, isCurrent: false, fetchedOn: fb.fetchedOn });
+  }
+  res.json(result);
+});
+
 // Combined-ratio extraction for a fixed panel of US P&C insurers. Returns
 // per-issuer annual time series of premiums earned, incurred losses,
 // underwriting expense, and the derived combined ratio. The Insurance

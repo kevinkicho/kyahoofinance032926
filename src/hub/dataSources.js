@@ -98,6 +98,21 @@ const DATA_SOURCES = {
   eia: [
     { name: 'EIA',             url: 'https://www.eia.gov/opendata',                 items: 'Electricity retail sales & prices (residential/commercial/industrial), CO₂ emissions by sector, petroleum spot prices (WTI, Brent, gasoline, diesel, heating oil), natural gas Henry Hub spot price' },
   ],
+  cftcTFF: [
+    { name: 'CFTC Socrata',    url: 'https://www.cftc.gov/MarketReports/CommitmentsofTraders/FinancialFutures', items: 'Traders in Financial Futures (TFF) — positioning by contract (e-mini S&P, 10Y, VIX, gold, crude, euro FX, yen, etc.)' },
+  ],
+  bisOTC: [
+    { name: 'BIS',             url: 'https://stats.bis.org/statix/srs/OTC',          items: 'OTC derivatives notional outstanding by category (FX, interest rate, equity, commodity, credit) and counterparty (dealers, other fin, non-fin)' },
+  ],
+  fao: [
+    { name: 'FAO',             url: 'https://www.fao.org/faostat/en/#data/FP',       items: 'Food Price Index (overall, meat, dairy, cereals, oils, sugar) monthly time series' },
+  ],
+  usgs: [
+    { name: 'USGS Earthquake Hazards', url: 'https://earthquake.usgs.gov/fdsnws/event/1/', items: 'M4.5+ earthquake events globally (30d), magnitude buckets, largest quake details' },
+  ],
+  fema: [
+    { name: 'OpenFEMA',        url: 'https://www.fema.gov/openfema',                items: 'Disaster declarations (30d), summary stats, most common disaster type' },
+  ],
 };
 
 export default DATA_SOURCES;

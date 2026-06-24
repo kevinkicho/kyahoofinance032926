@@ -41,6 +41,7 @@ router.get('/', async (_req, res) => {
     let lendingStandards = null;
     let commercialPaper  = null;
     let excessReserves   = null;
+    let tedSpread        = null;
 
     if (FRED_API_KEY) {
       trackApiCall('FRED');
@@ -177,6 +178,21 @@ router.get('/', async (_req, res) => {
       } : null;
     }
 
+    // TED Spread (LIBOR - T-bill) — classic credit stress indicator.
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const tedRaw = await fetchFredHistory('TEDRATE', FRED_API_KEY, 252);
+        if (tedRaw?.length > 0) {
+          tedSpread = {
+            dates:  tedRaw.map(p => p.date),
+            values: tedRaw.map(p => Math.round(p.value * 100) / 100),
+            latest: tedRaw[tedRaw.length - 1]?.value != null ? Math.round(tedRaw[tedRaw.length - 1].value * 100) / 100 : null,
+          };
+        }
+      } catch (e) { console.warn('[Credit] TEDRATE:', e.message || e); }
+    }
+
     // Moody's seasoned Aaa vs Baa corporate bond yields, plus the derived
     // Baa-Aaa spread. The spread is a classic credit-cycle gauge: it
     // widens in stress (investors demand more compensation for lower
@@ -295,13 +311,9 @@ let emBondCountries = [];
           ? etfQuote.trailingAnnualDividendYield * 100
           : null;
 
-        let yld10y = null;
-        if (emSpread != null && etfYield != null) {
-          const us10yProxy = spreadData?.current?.igSpread != null
-            ? (etfYield - emSpread / 100 * 0.5)
-            : null;
-          yld10y = us10yProxy;
-        }
+        // Use ETF trailing yield as the best freely-available EM yield proxy.
+        // A true 10Y government yield requires paid data (Bloomberg/Refinitiv).
+        const yld10y = etfYield ?? null;
 
         const country = {
           country:   info.country,
@@ -388,13 +400,26 @@ let emBondCountries = [];
       ],
     };
 
+    // Build defaultData.rates from real FRED charge-off data already fetched above,
+    // supplemented with HY/CCC spread-derived indicators.
+    const coCommLatest = chargeoffData?.commercial?.at(-1) ?? null;
+    const coConsLatest = chargeoffData?.consumer?.at(-1) ?? null;
+    // CCC-spread proxy: CCC/HY spread ratio gives a rough distressed-ratio proxy.
+    const cccSpread = spreadData?.current?.cccSpread ?? null;
+    const hySpread  = spreadData?.current?.hySpread  ?? null;
+    const distressedProxy = (cccSpread != null && hySpread != null && hySpread > 0)
+      ? Math.round((cccSpread / hySpread) * 100 * 10) / 10
+      : null;
     const defaultData = {
       rates: [
-        { category: 'HY Default Rate (TTM)',      value: null, prev: null, peak: null, unit: '%' },
+        // Charge-off rates from FRED (quarterly, all FDIC-insured banks)
+        { category: 'Commercial Charge-Off Rate', value: coCommLatest, prev: chargeoffData?.commercial?.at(-2) ?? null, peak: null, unit: '%' },
+        { category: 'Consumer Charge-Off Rate',   value: coConsLatest, prev: chargeoffData?.consumer?.at(-2)   ?? null, peak: null, unit: '%' },
+        // Spread-derived proxy: CCC-rated share of HY index (higher = more distress)
+        { category: 'CCC/HY Distress Proxy',      value: distressedProxy, prev: null, peak: null, unit: '%' },
+        // Placeholder rows — require proprietary Moody's/LCD data not freely available
+        { category: 'HY Default Rate (TTM)',       value: null, prev: null, peak: null, unit: '%' },
         { category: 'Loan Default Rate (TTM)',     value: null, prev: null, peak: null, unit: '%' },
-        { category: 'HY Distressed Ratio',        value: null, prev: null, peak: null, unit: '%' },
-        { category: 'Loans Trading <80c',         value: null, prev: null, peak: null, unit: '%' },
-        { category: 'CCC/Split-B % of HY Index',  value: null, prev: null, peak: null, unit: '%' },
       ],
       chargeoffs: chargeoffData || null,
       defaultHistory: null,
@@ -417,6 +442,7 @@ let emBondCountries = [];
       lendingStandards:  lendingStandards != null,
       commercialPaper:  commercialPaper != null,
       excessReserves:   excessReserves != null,
+      tedSpread:        tedSpread != null,
     };
 
     const finalSpreadData = spreadData ?? {
@@ -451,6 +477,7 @@ let emBondCountries = [];
       commercialPaper,
       excessReserves,
       creditQuality,
+      tedSpread,
       isLive,
       lastUpdated: today,
     };
