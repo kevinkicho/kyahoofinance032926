@@ -49,7 +49,8 @@ function loadRoutes() {
       'bls', 'eia', 'census', 'ticker', 'bea', 'censusTrade', 'commoditiesEnhanced',
       'ecb', 'edgar', 'eiaPetroleum', 'eurostat', 'fdic', 'fed', 'fema',
       'imf', 'institutional', 'msrb', 'nyfed', 'oecd', 'treasuryAuctions',
-      'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates', 'admin'
+      'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates', 'admin',
+      'cftcTFF', 'bisOTC', 'treasuryCost', 'fao'
     ];
   }
 
