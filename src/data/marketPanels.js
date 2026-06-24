@@ -180,7 +180,7 @@ export const MARKET_PANELS = {
     { id: 'default-rates', title: 'Default Rates' },
     { id: 'delinquency', title: 'Delinquency Rates' },
     { id: 'bank-sector', title: 'US Banking Sector (FDIC)' },
-    { id: 'credit-quality', title: 'Credit Quality Premium (Moody\\'s)' },
+    { id: 'credit-quality', title: "Credit Quality Premium (Moody's)" },
     { id: 'muni-market', title: 'US Municipal Bond Market (MSRB)' },
     { id: 'bank-stress', title: 'Bank Stress Monitor' },
   ],
