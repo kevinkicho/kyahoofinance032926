@@ -342,16 +342,24 @@ export const PANEL_REGISTRY = {
   ],
 
   eia: [
-    { id: 'kpi', title: 'Energy Overview', field: 'electricity', fieldPath: 'electricity', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['elecResidential','elecCommercial','elecIndustrial'] }], renderCheck: 'electricity && (electricity.residential || electricity.commercial || electricity.industrial)' },
-    { id: 'electricity', title: 'Electricity', field: 'electricity', fieldPath: 'electricity', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['elecResidential','elecCommercial','elecIndustrial'] }], renderCheck: 'electricity && Object.keys(electricity).length > 0' },
-    { id: 'emissions', title: 'CO₂ Emissions', field: 'co2Emissions', fieldPath: 'co2Emissions', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['co2Total','co2BySector'] }], renderCheck: 'co2Emissions && (co2Emissions.total || co2Emissions.bySector)' },
+    { id: 'prices', title: 'US Electricity Retail Prices', field: 'electricity', fieldPath: 'electricity', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['elecResidential','elecCommercial','elecIndustrial'] }], renderCheck: 'electricity && (electricity.residential || electricity.commercial || electricity.industrial)' },
+    { id: 'consumption', title: 'Electricity Consumption', field: 'electricity', fieldPath: 'electricity', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['elecResidential','elecCommercial','elecIndustrial'] }], renderCheck: 'electricity && Object.keys(electricity).length > 0' },
+    { id: 'trends', title: 'Price Trends (3-Year Monthly)', field: 'electricity', fieldPath: 'electricity', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['elecResidential','elecCommercial','elecIndustrial'] }], renderCheck: 'electricity && Object.keys(electricity).length > 0' },
+    { id: 'co2', title: 'CO₂ Emissions by Sector (US)', field: 'co2Emissions', fieldPath: 'co2Emissions', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['co2Total','co2BySector'] }], renderCheck: 'co2Emissions && (co2Emissions.total || co2Emissions.bySector)' },
     { id: 'petroleum', title: 'Petroleum', field: 'petroleum', fieldPath: 'petroleum', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['RWTC','RBRTE','EER_EPMRU_PF4_RGC_DPG','EER_EPD2DXL0_PF4_RGC_DPG','EER_EPD2F_PF4_Y35NY_DPG'] }], renderCheck: 'petroleum && (petroleum.wti || petroleum.brent)' },
     { id: 'natural-gas', title: 'Natural Gas', field: 'naturalGas', fieldPath: 'naturalGas', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['RNGWHHD'] }], renderCheck: 'naturalGas && naturalGas.henryHub' },
   ],
 
   bls: [
     { id: 'kpi', title: 'Key Labor Market Indicators', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['UNRATE','CIVPART','PAYEMS','CPIAUCSL'] }], renderCheck: 'series && Object.keys(series).length > 0' },
-    { id: 'trends', title: 'Trends (3-Year)', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['UNRATE','CIVPART','PAYEMS','CPIAUCSL','PPIFIS'] }], renderCheck: 'series && Object.keys(series).length > 0' },
+    { id: 'trends-top', title: 'Trends (3-Year) — Top', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['UNRATE','CIVPART','PAYEMS','CPIAUCSL','PPIFIS'] }], renderCheck: 'series && Object.keys(series).length > 0' },
+    { id: 'trends-bottom', title: 'Trends (3-Year) — Bottom', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['UNRATE','CIVPART','PAYEMS','CPIAUCSL','PPIFIS'] }], renderCheck: 'series && Object.keys(series).length > 0' },
+    { id: 'jolts', title: 'JOLTS', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['JTSJOL','JTSQUR','JTSHIR','JTSLDL'] }], renderCheck: 'series?.jolts?.latest?.value != null' },
+    { id: 'productivity', title: 'Productivity', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['OPHNFB','ULCNFB'] }], renderCheck: 'series?.productivity?.latest?.value != null' },
+    { id: 'cpi-components', title: 'CPI Components', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['CPIAUCSL','CPILFESL','CPIAPPSL','CPITRNSL','CPIMEDSL'] }], renderCheck: 'series?.cpiComponents?.latest?.value != null' },
+    { id: 'ppi-by-industry', title: 'PPI by Industry', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['PPIFIS','PPIACO','WPUFD49207'] }], renderCheck: 'series?.ppiByIndustry?.latest?.value != null' },
+    { id: 'eci', title: 'Employment Cost Index', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['ECIWAG','ECIBEN','ECICOMP'] }], renderCheck: 'series?.eci?.latest?.value != null' },
+    { id: 'unemployment-duration', title: 'Unemployment Duration', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['UEMPMEAN','UEMPMED'] }], renderCheck: 'series?.unemploymentDuration?.latest?.value != null' },
   ],
 };
 
