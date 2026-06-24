@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'https://kevinkicho.github.io/kyahoofinance032926/';
+const BASE = '/kyahoofinance032926/';
 const API_BASE = 'https://api-4uzq3y2xva-uc.a.run.app';
 
 test.setTimeout(120000);
@@ -13,7 +13,7 @@ test.describe('Equities market — live deployment', () => {
     });
     page.on('pageerror', err => errors.push(err.message));
 
-    await page.goto(`${BASE}?market=equities`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}?market=equities`, { waitUntil: 'domcontentloaded' });
 
     // App container should be visible
     await expect(page.locator('#root')).toBeVisible();
@@ -43,7 +43,7 @@ test.describe('Equities market — live deployment', () => {
   });
 
   test('equities heatmap or key indices visible', async ({ page }) => {
-    await page.goto(`${BASE}?market=equities`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}?market=equities`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(10000);
 
     // Look for key equities UI elements
@@ -63,7 +63,7 @@ test.describe('Equities market — live deployment', () => {
 
 test.describe('Analytics market — API endpoint validation', () => {
   test('analytics page shows endpoint usage', async ({ page }) => {
-    await page.goto(`${BASE}?market=analytics`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}?market=analytics`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(8000);
 
     const text = await page.textContent('body');

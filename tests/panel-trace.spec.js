@@ -5,7 +5,7 @@ const BASE = '/kyahoofinance032926/';
 test.setTimeout(60000);
 
 test('Panel Trace Inspector renders in Analytics tab', async ({ page }) => {
-  await page.goto(`${BASE}?market=analytics`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}?market=analytics`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(10000);
 
   // Check for Panel Trace Inspector title

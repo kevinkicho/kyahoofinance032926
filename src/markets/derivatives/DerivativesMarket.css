@@ -15,3 +15,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+.deriv-market-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

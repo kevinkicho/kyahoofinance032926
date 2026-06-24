@@ -223,6 +223,8 @@ router.get('/', async (req, res) => {
     }
   }, ROUTE_TIMEOUT);
 
+  const _errors = {};
+
   try {
     let reitData = null;
     try {
@@ -259,7 +261,7 @@ router.get('/', async (req, res) => {
           };
         });
       if (!reitData.length) reitData = null;
-    } catch (e) { console.warn('[RealEstate]', e.message || e); }
+    } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.reitData = e.message; }
 
     let priceIndexData = null;
     if (FRED_API_KEY) {
@@ -295,7 +297,7 @@ router.get('/', async (req, res) => {
             };
           }
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.priceIndexData = e.message; }
     }
 
     let mortgageRates = null;
@@ -325,7 +327,7 @@ router.get('/', async (req, res) => {
             rate15y: rate15hist.length > 0 ? rate15hist.map(p => Math.round(p.value * 100) / 100) : null,
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.mortgageRates = e.message; }
     }
 
     let affordabilityData = null;
@@ -368,7 +370,7 @@ router.get('/', async (req, res) => {
             history,
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.housingAffordability = e.message; _errors.affordabilityData = e.message; }
     }
 
     let capRateData = null;
@@ -427,7 +429,7 @@ router.get('/', async (req, res) => {
             metros,
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.caseShiller = e.message; _errors.caseShillerData = e.message; }
     }
 
     let supplyData = null;
@@ -448,7 +450,7 @@ router.get('/', async (req, res) => {
             activeListings: listingsVal != null ? Math.round(listingsVal) : null,
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.supplyData = e.message; }
     }
 
     let homeownershipRate = null;
@@ -467,7 +469,7 @@ router.get('/', async (req, res) => {
             values: rentHist.map(p => Math.round(p.value * 10) / 10),
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.homeownershipRate = e.message; _errors.rentCpi = e.message; }
     }
 
     let reitEtf = null;
@@ -498,11 +500,11 @@ router.get('/', async (req, res) => {
           history: vnqHistory,
         };
       }
-    } catch (e) { console.warn('[RealEstate]', e.message || e); }
+    } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.reitEtf = e.message; }
 
     let treasury10y = null;
     if (FRED_API_KEY) {
-      try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.treasury10y = e.message; }
     }
 
     let existingHomeSales = null;
@@ -533,7 +535,7 @@ router.get('/', async (req, res) => {
             latest: fhfaResult.value.length ? { value: parseFloat(fhfaResult.value[fhfaResult.value.length - 1].value), date: fhfaResult.value[fhfaResult.value.length - 1].date.slice(0, 7) } : null,
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.existingHomeSales = e.message; _errors.rentalVacancy = e.message; _errors.fhfaHpi = e.message; }
     }
 
     const housingStarts = supplyData
@@ -575,7 +577,7 @@ router.get('/', async (req, res) => {
             } : null,
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.foreclosureData = e.message; }
     }
 
     // MBA Applications data — MBA's mortgage application indices aren't
@@ -601,7 +603,7 @@ router.get('/', async (req, res) => {
             } : null,
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.mbaApplications = e.message; }
     }
 
     // CRE Delinquencies — DRCLACBS = Delinquency Rate on Commercial Real
@@ -618,7 +620,7 @@ router.get('/', async (req, res) => {
             values: creHist.map(p => Math.round(p.value * 100) / 100),
           };
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); }
+      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.creDelinquencies = e.message; }
     }
 
     let hudData = null;
@@ -626,6 +628,7 @@ router.get('/', async (req, res) => {
       hudData = await fetchHudAffordabilityData(HUD_API_KEY, CENSUS_API_KEY);
     } catch (e) {
       console.warn('[RealEstate] HUD/Census fetch failed:', e.message || e);
+      _errors.hudData = e.message;
     }
 
     const _sources = {
@@ -655,7 +658,7 @@ router.get('/', async (req, res) => {
     writeDailyCache('realEstate', result);
     cache.set(cacheKey, result, 900);
     clearTimeout(routeTimer);
-    if (!res.headersSent) res.json({ ...result, fetchedOn: today, isCurrent: true });
+    if (!res.headersSent) res.json({ ...result, fetchedOn: today, isCurrent: true, _errors });
   } catch (error) {
     clearTimeout(routeTimer);
     if (res.headersSent) return;

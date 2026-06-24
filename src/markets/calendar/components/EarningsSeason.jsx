@@ -5,17 +5,24 @@ import MetricValue from '../../../components/MetricValue/MetricValue';
 import '../CalendarMarket.css';
 
 function weekLabel(dateStr) {
+  if (!dateStr) return 'Unknown Week';
   const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return 'Unknown Week';
   const day = d.getDay();
   const mon = new Date(d); mon.setDate(d.getDate() - ((day + 6) % 7));
   const fri = new Date(mon); fri.setDate(mon.getDate() + 4);
-  const fmt = d2 => `${d2.toLocaleString('en-US', { month: 'short' })} ${d2.getDate()}`;
+  const fmt = d2 => {
+    if (isNaN(d2.getTime())) return 'N/A';
+    return `${d2.toLocaleString('en-US', { month: 'short' })} ${d2.getDate()}`;
+  };
   return `${fmt(mon)}–${fmt(fri)}`;
 }
 
 function isCurrentWeek(dateStr) {
+  if (!dateStr) return false;
   const now = new Date();
   const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return false;
   const nowMon = new Date(now); nowMon.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   const dMon = new Date(d); dMon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
   return nowMon.toISOString().split('T')[0] === dMon.toISOString().split('T')[0];

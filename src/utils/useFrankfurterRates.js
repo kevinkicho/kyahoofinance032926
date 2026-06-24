@@ -13,10 +13,10 @@ export function useFrankfurterRates() {
   useEffect(() => {
     let cancelled = false;
     fetchWithRetry(apiUrl('/api/fx'), {
-      retries: 2,
-      timeout: 8000,
+      retries: 1,
+      timeout: 10000,
       backoff: 1000,
-      totalTimeout: 20000,
+      totalTimeout: 15000,
     })
       .then(r => r.json())
       .then(data => {

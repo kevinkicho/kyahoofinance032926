@@ -450,6 +450,7 @@ export const STRUCTURAL_GUARDS = {
 };
 
 export function applyResult(prev, result) {
+  console.log('DEBUG applyResult marketId:', result.marketId, 'ok:', result.ok);
   const id = result.marketId;
   if (result.ok) {
     const d = result.data;
@@ -643,7 +644,10 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
   // Cleanup on unmount so in-flight fetch waves don't call setState on an
   // unmounted component (React 18 tolerates this but it's still a warning).
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchSingleMarket = useCallback(async (marketId, params = null) => {
     let url = MARKET_ENDPOINTS[marketId];

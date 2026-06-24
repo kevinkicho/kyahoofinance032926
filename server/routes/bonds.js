@@ -182,6 +182,8 @@ router.get('/', async (req, res) => {
 
   if (!FRED_API_KEY) return res.status(503).json({ error: 'FRED_API_KEY not configured' });
 
+  const _errors = {};
+
   try {
     // ═══════════════════════════════════════════════════════════════════════
     // US TREASURY YIELD CURVE (Full Tenors)
@@ -191,7 +193,7 @@ router.get('/', async (req, res) => {
     const usEntries = await Promise.allSettled(
       Object.entries(TENOR_SERIES).map(async ([tenor, sid]) => {
         try { const v = await fetchFredLatest(sid, FRED_API_KEY); return [tenor, v]; }
-        catch (e) { console.warn('[Bonds] FRED', sid, 'failed:', e.message); return [tenor, null]; }
+        catch (e) { console.warn('[Bonds] FRED', sid, 'failed:', e.message); _errors.yieldCurveData = e.message; return [tenor, null]; }
       })
     );
     const usYields = {};
@@ -210,8 +212,8 @@ router.get('/', async (req, res) => {
     // Get TIPS history for charting
     trackApiCall('FRED');
     const tipsHistory = await Promise.all([
-      fetchFredHistory('DFII5', FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
-      fetchFredHistory('DFII10', FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
+      fetchFredHistory('DFII5', FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); _errors.realYieldHistory = e.message; return null; }),
+      fetchFredHistory('DFII10', FRED_API_KEY, 252).catch(e => { console.warn('[Bonds]', e.message || e); _errors.realYieldHistory = e.message; return null; }),
     ]);
     let realYieldHistory = null;
     if (tipsHistory[1]?.length > 0) {
@@ -531,7 +533,7 @@ router.get('/', async (req, res) => {
     // most recent one that actually has the field. Without the per-field
     // walkback, today's failed cache shadows yesterday's good cache.
     trackApiCall('FRED');
-    const fedBalanceHistory = await fetchFredHistory('WALCL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] WALCL:', e.message || e); return null; });
+    const fedBalanceHistory = await fetchFredHistory('WALCL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] WALCL:', e.message || e); _errors.fedBalanceSheetHistory = e.message; return null; });
     let fedBalanceSheetHistory = null;
     if (fedBalanceHistory?.length > 0) {
       fedBalanceSheetHistory = {
@@ -548,7 +550,7 @@ router.get('/', async (req, res) => {
 
     // M2 History (for charting)
     trackApiCall('FRED');
-    const m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] M2SL:', e.message || e); return null; });
+    const m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] M2SL:', e.message || e); _errors.m2HistoryData = e.message; return null; });
     let m2HistoryData = null;
     if (m2History?.length > 0) {
       m2HistoryData = {
@@ -674,7 +676,7 @@ router.get('/', async (req, res) => {
           avgRate: rateMap['Total Marketable'] || null,
         };
       }
-    } catch (e) { console.warn('[Bonds] Duration ladder:', e.message || e); }
+    } catch (e) { console.warn('[Bonds] Duration ladder:', e.message || e); _errors.durationLadder = e.message; }
 
     // ═══════════════════════════════════════════════════════════════════════
     // NATIONAL DEBT (from FRED GFDEBTN)
@@ -686,7 +688,7 @@ router.get('/', async (req, res) => {
       if (debtData != null) {
         nationalDebt = debtData / 1e6; // GFDEBTN is in millions, convert to trillions
       }
-    } catch (e) { console.warn('[Bonds]', e.message || e); }
+    } catch (e) { console.warn('[Bonds]', e.message || e); _errors.nationalDebt = e.message; }
 
     // ═══════════════════════════════════════════════════════════════════════
     // TREASURY RATES (from FRED — average interest rates)
@@ -725,7 +727,7 @@ router.get('/', async (req, res) => {
           bonds: tbonds,
         };
       }
-    } catch (e) { console.warn('[Bonds]', e.message || e); }
+    } catch (e) { console.warn('[Bonds]', e.message || e); _errors.treasuryRates = e.message; }
 
     // ═══════════════════════════════════════════════════════════════════════
     // ECB YIELD CURVE (Euro area sovereign yields)
@@ -734,7 +736,7 @@ router.get('/', async (req, res) => {
     try {
       trackApiCall('ECB');
       ecbYieldCurve = await fetchECBYieldCurve();
-    } catch (e) { console.warn('[Bonds]', e.message || e); }
+    } catch (e) { console.warn('[Bonds]', e.message || e); _errors.ecbYieldCurve = e.message; }
 
     // ═══════════════════════════════════════════════════════════════════════
     // BUILD RESULT
@@ -810,7 +812,7 @@ router.get('/', async (req, res) => {
       'Duration Ladder': durationLadder != null,
     };
 
-    res.json({ ...result, fetchedOn: today, isLive: true, _sources: sources });
+    res.json({ ...result, fetchedOn: today, isLive: true, _sources: sources, _errors });
   } catch (error) {
     console.error('Bonds API error:', error);
     const fallback = readLatestCache('bonds');

@@ -165,6 +165,39 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
     document.title = `${marketLabel} — Global Market Hub`;
   }, [activeMarket]);
 
+  useEffect(() => {
+    window.__panelVisibility = window.__panelVisibility || {};
+
+    const scanDOM = () => {
+      const elements = document.querySelectorAll('[data-panel-key]');
+      const foundKeys = new Set();
+      elements.forEach(el => {
+        const key = el.getAttribute('data-panel-key');
+        if (key) {
+          foundKeys.add(key);
+        }
+      });
+      window.__panelVisibility[activeMarket] = Array.from(foundKeys);
+    };
+
+    scanDOM();
+
+    const observer = new MutationObserver(() => {
+      scanDOM();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-panel-key']
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeMarket]);
+
   // Sync market from browser back/forward navigation
   useEffect(() => {
     function handlePopState() {

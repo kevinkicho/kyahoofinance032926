@@ -134,7 +134,22 @@ export default function BentoWrapper({ children, layout, className = "", storage
         useCSSTransforms={true}
         onLayoutChange={handleLayoutChange}
       >
-        {children}
+        {React.Children.map(children, child => {
+          if (!React.isValidElement(child)) return child;
+          const key = child.key;
+          if (key) {
+            const cleanedKey = String(key).replace(/^\.\$/, '');
+            const isDomElement = typeof child.type === 'string';
+            const extraProps = {};
+            if (isDomElement) {
+              extraProps['data-panel-key'] = child.props['data-panel-key'] || child.props.panelKey || cleanedKey;
+            } else {
+              extraProps.panelKey = child.props.panelKey || cleanedKey;
+            }
+            return React.cloneElement(child, extraProps);
+          }
+          return child;
+        })}
       </ResponsiveGridLayout>
     </div>
   );

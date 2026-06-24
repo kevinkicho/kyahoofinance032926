@@ -86,9 +86,11 @@ router.get('/', async (req, res) => {
   const cached = cache.get(cacheKey);
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
+  const _errors = {};
+
   try {
     trackApiCall('Yahoo Finance');
-    const vixQuotes = await yf.quote(VIX_TICKERS).catch(e => { console.warn('[Derivatives]', e.message || e); return []; });
+    const vixQuotes = await yf.quote(VIX_TICKERS).catch(e => { console.warn('[Derivatives]', e.message || e); _errors.vixTermStructure = e.message; return []; });
     const vixArr = Array.isArray(vixQuotes) ? vixQuotes : [vixQuotes];
     const vixTermStructure = VIX_LABELS.length === vixArr.length && vixArr.every(q => q?.regularMarketPrice) ? {
       dates:      VIX_LABELS,
@@ -121,7 +123,7 @@ router.get('/', async (req, res) => {
       if (vvix != null || vixPercentile != null) {
         vixEnrichment = { vvix, vixPercentile };
       }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.vixEnrichment = e.message; }
 
     let optionsFlow = null;
     try {
@@ -150,7 +152,7 @@ router.get('/', async (req, res) => {
       if (rows.length >= 4) {
         optionsFlow = rows.sort((a, b) => b.volume - a.volume).slice(0, 12);
       }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.optionsFlow = e.message; }
 
     let volSurfaceData = null;
     let gammaExposure = null;
@@ -163,7 +165,7 @@ router.get('/', async (req, res) => {
         volSurfaceData = result.volSurfaceData;
         gammaExposure = result.gammaExposure;
       }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.volSurfaceData = e.message; }
 
     let volPremium = null;
     try {
@@ -184,7 +186,7 @@ router.get('/', async (req, res) => {
         const premium = Math.round((atm1mIV - realizedVol30d) * 10) / 10;
         volPremium = { atm1mIV, realizedVol30d, premium };
       }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.volPremium = e.message; }
 
     let fredVixHistory = null;
     if (FRED_API_KEY) {
@@ -197,7 +199,7 @@ router.get('/', async (req, res) => {
             values: vixHist.map(p => Math.round(p.value * 10) / 10),
           };
         }
-      } catch (e) { console.warn('[Derivatives]', e.message || e); }
+      } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.putCallRatio = e.message; }
     }
 
     let putCallRatio = null;
@@ -216,7 +218,7 @@ router.get('/', async (req, res) => {
           if (callVol > 0) putCallRatio = Math.round((putVol / callVol) * 1000) / 1000;
         }
       }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.optionsFlow = e.message; }
 
     let skewIndex = null;
     try {
@@ -227,7 +229,7 @@ router.get('/', async (req, res) => {
         const interpretation = val < 120 ? 'Low tail risk' : val <= 140 ? 'Moderate' : 'Elevated tail risk';
         skewIndex = { value: val, interpretation };
       }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); }
+    } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.skewIndex = e.message; }
 
     // SKEW history from FRED
     let skewHistory = null;
@@ -241,7 +243,7 @@ router.get('/', async (req, res) => {
             values: skewHist.map(p => Math.round(p.value * 10) / 10),
           };
         }
-      } catch (e) { console.warn('[Derivatives]', e.message || e); }
+      } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.skewHistory = e.message; }
     }
 
     const vixPercentile = vixEnrichment?.vixPercentile ?? null;
@@ -291,7 +293,7 @@ router.get('/', async (req, res) => {
 
     writeDailyCache('derivatives', result);
     cache.set(cacheKey, result, 900);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
+    res.json({ ...result, fetchedOn: today, isCurrent: true, _errors });
   } catch (error) {
     console.error('Derivatives API error:', error);
     const fallback = readLatestCache('derivatives');

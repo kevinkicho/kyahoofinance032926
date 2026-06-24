@@ -43,5 +43,9 @@
   "usgs",
   "worldbank",
   "universeUpdates",
-  "admin"
+  "admin",
+  "cftcTFF",
+  "bisOTC",
+  "fao",
+  "treasuryCost"
 ]

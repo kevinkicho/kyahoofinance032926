@@ -21,6 +21,8 @@ router.get('/', async (req, res) => {
   const cached = cache.get(cacheKey);
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
+  const _errors = {};
+
   function formatQuarter(unixTs) {
     const d = new Date(unixTs * 1000);
     const month = d.getUTCMonth() + 1;
@@ -41,6 +43,13 @@ router.get('/', async (req, res) => {
   const successfulSummaries = summaryResults
     .filter(r => r.status === 'fulfilled')
     .map(r => r.value);
+
+  summaryResults.forEach(r => {
+    if (r.status === 'rejected') {
+      _errors.combinedRatioData = r.reason?.message || 'Insurer financial fetch failed';
+      _errors.reserveAdequacyData = r.reason?.message || 'Insurer financial fetch failed';
+    }
+  });
 
   if (successfulSummaries.length === 0) {
     return res.status(500).json({ error: 'Failed to fetch insurer financial data' });
@@ -149,6 +158,7 @@ router.get('/', async (req, res) => {
       }));
   } catch (e) {
     console.warn('Reinsurer quote fetch failed:', e.message);
+    _errors.reinsurers = e.message;
   }
 
   let hyOAS = null;
@@ -159,12 +169,14 @@ router.get('/', async (req, res) => {
       hyOAS = await fetchFredLatest('BAMLH0A0HYM2', FRED_API_KEY);
     } catch (e) {
       console.warn('FRED HY OAS fetch failed:', e.message);
+      _errors.hyOAS = e.message;
     }
     try {
       trackApiCall('FRED');
       igOAS = await fetchFredLatest('BAMLC0A0CM', FRED_API_KEY);
     } catch (e) {
       console.warn('FRED IG OAS fetch failed:', e.message);
+      _errors.igOAS = e.message;
     }
   }
 
@@ -179,7 +191,7 @@ router.get('/', async (req, res) => {
           values: hyHist.map(p => Math.round(p.value * 100) / 100),
         };
       }
-    } catch (e) { console.warn('[Insurance]', e.message || e); }
+    } catch (e) { console.warn('[Insurance]', e.message || e); _errors.fredHyOasHistory = e.message; }
   }
 
   let sectorETF = null;
@@ -201,7 +213,7 @@ router.get('/', async (req, res) => {
         sma50:     kq.fiftyDayAverage   != null ? Math.round(kq.fiftyDayAverage   * 100) / 100 : null,
       };
     }
-  } catch (e) { console.warn('[Insurance]', e.message || e); }
+  } catch (e) { console.warn('[Insurance]', e.message || e); _errors.sectorETF = e.message; }
 
   let catBondProxy = null;
   try {
@@ -216,7 +228,7 @@ router.get('/', async (req, res) => {
         changePct: Math.round((sq.regularMarketChangePercent ?? 0) * 100) / 100,
       };
     }
-  } catch (e) { console.warn('[Insurance]', e.message || e); }
+  } catch (e) { console.warn('[Insurance]', e.message || e); _errors.catBondProxy = e.message; }
 
   if (!catBondProxy) {
     try {
@@ -231,7 +243,7 @@ router.get('/', async (req, res) => {
           changePct: Math.round((iq.regularMarketChangePercent ?? 0) * 100) / 100,
         };
       }
-    } catch (e) { console.warn('[Insurance]', e.message || e); }
+    } catch (e) { console.warn('[Insurance]', e.message || e); _errors.catBondProxy = e.message; }
   }
 
   let industryAvgCombinedRatio = null;
@@ -248,11 +260,11 @@ router.get('/', async (req, res) => {
       const avg = latestRatios.reduce((s, v) => s + v, 0) / latestRatios.length;
       industryAvgCombinedRatio = Math.round(avg * 10) / 10;
     }
-  } catch (e) { console.warn('[Insurance]', e.message || e); }
+  } catch (e) { console.warn('[Insurance]', e.message || e); _errors.industryAvgCombinedRatio = e.message; }
 
   let treasury10y = null;
   if (FRED_API_KEY) {
-    try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch (e) { console.warn('[Insurance]', e.message || e); }
+    try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch (e) { console.warn('[Insurance]', e.message || e); _errors.treasury10y = e.message; }
   }
 
   // Natural Catastrophe Losses (FRED NPORCT)
@@ -267,7 +279,7 @@ router.get('/', async (req, res) => {
           values: catHist.map(p => Math.round(p.value * 10) / 10),
         };
       }
-    } catch (e) { console.warn('[Insurance]', e.message || e); }
+    } catch (e) { console.warn('[Insurance]', e.message || e); _errors.catLosses = e.message; }
   }
 
   // Combined Ratio History (calculated from existing data)
@@ -348,7 +360,7 @@ router.get('/', async (req, res) => {
 
   writeDailyCache('insurance', result);
   cache.set(cacheKey, result, 900);
-  res.json({ ...result, fetchedOn: today, isCurrent: true });
+  res.json({ ...result, fetchedOn: today, isLive: true, _errors });
 });
 
 export default router;

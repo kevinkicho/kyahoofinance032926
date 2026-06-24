@@ -20,46 +20,46 @@ async function fetchFrankfurterData() {
   const yesterday = getDateStr(1);
   const dxyStart = getDateStr(HISTORY_DAYS);
   const sevenAgo = getDateStr(7);
-  try {
-    const [latest, prev, dxyHist, weekHist, month30] = await Promise.all([
-      fetchJSON(`https://api.frankfurter.dev/v1/latest?base=USD`),
-      fetchJSON(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`),
-      fetchJSON(`https://api.frankfurter.dev/v1/${dxyStart}..${today}?base=USD&symbols=${DXY_SYMBOLS}`),
-      fetchJSON(`https://api.frankfurter.dev/v1/${sevenAgo}..${today}?base=USD&symbols=${MOVER_SYMBOLS}`),
-      fetchJSON(`https://api.frankfurter.dev/v1/${getDateStr(HISTORY_DAYS)}?base=USD&symbols=${MOVER_SYMBOLS}`),
-    ]);
-    const spotRates = latest?.rates ? { USD: 1, ...latest.rates } : null;
-    const prevRates = prev?.rates ? { USD: 1, ...prev.rates } : null;
-    const history = dxyHist?.rates || null;
-    const spot = spotRates || { USD: 1 };
-    const changes1w = {};
-    const sparklines = {};
-    if (weekHist?.rates) {
-      const sortedDates = Object.keys(weekHist.rates).sort();
-      if (sortedDates.length > 0) {
-        const firstRates = weekHist.rates[sortedDates[0]];
-        const lastRates = weekHist.rates[sortedDates[sortedDates.length - 1]];
-        Object.keys(lastRates).forEach(code => {
-          const base = firstRates[code];
-          if (!base) return;
-          changes1w[code] = -((lastRates[code] - base) / base * 100);
-          sparklines[code] = sortedDates.map(d => {
-            const rate = weekHist.rates[d]?.[code];
-            return rate != null ? (-((rate - base) / base * 100) || 0) : null;
-          }).filter(v => v != null);
-        });
-      }
-    }
-    const changes1m = {};
-    if (month30?.rates) {
-      Object.keys(spot).forEach(code => {
-        if (code === 'USD') return;
-        const prev30 = month30.rates[code] || spot[code];
-        if (prev30) changes1m[code] = -((spot[code] - prev30) / prev30 * 100);
+  const results = await Promise.allSettled([
+    fetchJSON(`https://api.frankfurter.dev/v1/latest?base=USD`, undefined, {}, 5000),
+    fetchJSON(`https://api.frankfurter.dev/v1/${yesterday}?base=USD`, undefined, {}, 5000),
+    fetchJSON(`https://api.frankfurter.dev/v1/${dxyStart}..${today}?base=USD&symbols=${DXY_SYMBOLS}`, undefined, {}, 5000),
+    fetchJSON(`https://api.frankfurter.dev/v1/${sevenAgo}..${today}?base=USD&symbols=${MOVER_SYMBOLS}`, undefined, {}, 5000),
+    fetchJSON(`https://api.frankfurter.dev/v1/${getDateStr(HISTORY_DAYS)}?base=USD&symbols=${MOVER_SYMBOLS}`, undefined, {}, 5000),
+  ]);
+  const settled = results.map(r => r.status === 'fulfilled' ? r.value : null);
+  const [latest, prev, dxyHist, weekHist, month30] = settled;
+  const spotRates = latest?.rates ? { USD: 1, ...latest.rates } : null;
+  const prevRates = prev?.rates ? { USD: 1, ...prev.rates } : null;
+  const history = dxyHist?.rates || null;
+  const spot = spotRates || { USD: 1 };
+  const changes1w = {};
+  const sparklines = {};
+  if (weekHist?.rates) {
+    const sortedDates = Object.keys(weekHist.rates).sort();
+    if (sortedDates.length > 0) {
+      const firstRates = weekHist.rates[sortedDates[0]];
+      const lastRates = weekHist.rates[sortedDates[sortedDates.length - 1]];
+      Object.keys(lastRates).forEach(code => {
+        const base = firstRates[code];
+        if (!base) return;
+        changes1w[code] = -((lastRates[code] - base) / base * 100);
+        sparklines[code] = sortedDates.map(d => {
+          const rate = weekHist.rates[d]?.[code];
+          return rate != null ? (-((rate - base) / base * 100) || 0) : null;
+        }).filter(v => v != null);
       });
     }
-    return { spotRates, prevRates, history, changes1w, changes1m, sparklines };
-  } catch (e) { console.warn('[FX-Frankfurter]', e.message || e); return null; }
+  }
+  const changes1m = {};
+  if (month30?.rates) {
+    Object.keys(spot).forEach(code => {
+      if (code === 'USD') return;
+      const prev30 = month30.rates[code] || spot[code];
+      if (prev30) changes1m[code] = -((spot[code] - prev30) / prev30 * 100);
+    });
+  }
+  return { spotRates, prevRates, history, changes1w, changes1m, sparklines };
 }
 
 async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {

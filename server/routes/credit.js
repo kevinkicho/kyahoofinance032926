@@ -22,6 +22,8 @@ router.get('/', async (_req, res) => {
   const cached = cache.get(cacheKey);
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
+  const _errors = {};
+
   try {
     const CREDIT_SPREAD_SERIES = {
       IG:  'BAMLC0A0CM',
@@ -70,7 +72,10 @@ router.get('/', async (_req, res) => {
       ]);
 
       const raw = {};
-      spreadResults.forEach(r => { if (r.status === 'fulfilled') raw[r.value[0]] = r.value[1]; });
+      spreadResults.forEach(r => {
+        if (r.status === 'fulfilled') raw[r.value[0]] = r.value[1];
+        else if (r.status === 'rejected') _errors.spreadData = r.reason?.message || 'FRED spread fetch failed';
+      });
 
       const igArr  = (raw.IG  || []).slice(-12);
       const hyArr  = (raw.HY  || []).slice(-12);
@@ -190,7 +195,7 @@ router.get('/', async (_req, res) => {
             latest: tedRaw[tedRaw.length - 1]?.value != null ? Math.round(tedRaw[tedRaw.length - 1].value * 100) / 100 : null,
           };
         }
-      } catch (e) { console.warn('[Credit] TEDRATE:', e.message || e); }
+      } catch (e) { console.warn('[Credit] TEDRATE:', e.message || e); _errors.tedSpread = e.message; }
     }
 
     // Moody's seasoned Aaa vs Baa corporate bond yields, plus the derived
@@ -229,7 +234,7 @@ router.get('/', async (_req, res) => {
             };
           }
         }
-      } catch (e) { console.warn('[Credit] DAAA/DBAA:', e.message || e); }
+      } catch (e) { console.warn('[Credit] DAAA/DBAA:', e.message || e); _errors.creditQuality = e.message; }
     }
 
     const ETF_TICKERS = ['LQD','HYG','EMB','JNK','BKLN','MUB'];
@@ -258,7 +263,7 @@ router.get('/', async (_req, res) => {
           durationYr: meta.durationYr,
         };
       });
-    } catch (e) { console.warn('[Credit]', e.message || e); }
+    } catch (e) { console.warn('[Credit]', e.message || e); _errors.spreadData = e.message; }
 
     if (spreadData) spreadData.etfs = etfs;
 
@@ -349,6 +354,7 @@ let emBondCountries = [];
       emYieldDataFetched = true;
     } catch (e) {
       console.warn('[Credit] EM bond yield fetch failed:', e.message || e);
+      _errors.emBondData = e.message;
     }
 
     const emBondData = {
@@ -484,7 +490,7 @@ let emBondCountries = [];
 
     writeDailyCache('credit', result);
     cache.set(cacheKey, result, 300);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
+    res.json({ ...result, fetchedOn: today, isCurrent: true, _errors });
   } catch (error) {
     console.error('Credit API error:', error);
     const fallback = readLatestCache('credit');

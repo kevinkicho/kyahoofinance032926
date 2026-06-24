@@ -7,6 +7,8 @@ import { useMarketData, useDataContext } from '../../hub/DataContext';
 import { auth } from '../../lib/firebase';
 import PanelTraceInspector from './PanelTraceInspector';
 import DataFooter from '../../components/DataFooter/DataFooter';
+import { PANEL_REGISTRY, TRACEABLE_MARKETS } from '../../data/panelRegistry';
+import { MARKETS } from '../../hub/markets.config';
 import './AnalyticsDashboard.css';
 
 // Helper to load analytics snapshot from RTDB (written by daily scheduled refresher).
@@ -600,6 +602,7 @@ const LAYOUT = {
     { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
     { i: 'panel-trace', x: 0, y: 16, w: 12, h: 8 },
     { i: 'coverage-matrix', x: 0, y: 24, w: 12, h: 4 },
+    { i: 'visibility-audit', x: 0, y: 28, w: 12, h: 6 },
   ]
 };
 
@@ -737,7 +740,110 @@ function ApiDiagnosticsCard() {
   );
 }
 
-export default function AnalyticsMarket() {
+function PanelVisibilityAudit({ onNavigate }) {
+  const [selectedMarket, setSelectedMarket] = useState('bonds');
+  const marketCtx = useMarketData(selectedMarket);
+  const marketData = marketCtx?.data || null;
+  const routeErrors = marketData?._errors || {};
+
+  const panels = PANEL_REGISTRY[selectedMarket] || [];
+  
+  const getFieldValueByPath = (obj, path) => {
+    if (!obj || !path) return undefined;
+    const parts = path.split('.');
+    let current = obj;
+    for (const part of parts) {
+      if (current == null) return undefined;
+      current = current[part];
+    }
+    return current;
+  };
+
+  const visibilityCache = typeof window !== 'undefined' ? window.__panelVisibility : null;
+  const renderedKeys = visibilityCache?.[selectedMarket];
+  const hasBeenScanned = Array.isArray(renderedKeys);
+
+  const marketLabel = MARKETS.find(m => m.id === selectedMarket)?.label || selectedMarket;
+
+  const handleSwitchTab = () => {
+    if (onNavigate) {
+      onNavigate(selectedMarket);
+    }
+  };
+
+  return (
+    <div className="ana-vis-audit">
+      <div className="ana-vis-header">
+        <span className="ana-vis-summary">
+          Audit rendering state of grid components (cards) against expected panels.
+        </span>
+        <select
+          className="ana-vis-select"
+          value={selectedMarket}
+          onChange={(e) => setSelectedMarket(e.target.value)}
+        >
+          {TRACEABLE_MARKETS.map(mId => (
+            <option key={mId} value={mId}>
+              {MARKETS.find(m => m.id === mId)?.label || mId}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {!hasBeenScanned ? (
+        <div className="ana-vis-prompt">
+          <span>No DOM visibility data cached for {marketLabel} tab.</span>
+          <button className="ana-vis-switch-btn" onClick={handleSwitchTab}>
+            Switch to {marketLabel} Tab to Scan
+          </button>
+        </div>
+      ) : (
+        <div className="ana-vis-grid">
+          {panels.map(p => {
+            const isRendered = renderedKeys.includes(p.id);
+            const val = marketData ? getFieldValueByPath(marketData, p.fieldPath || p.field) : undefined;
+            const hasData = val != null && (Array.isArray(val) ? val.length > 0 : typeof val === 'object' ? Object.keys(val).length > 0 : true);
+            const errMessage = routeErrors[p.field] || null;
+
+            let status = 'hidden';
+            let statusText = 'Hidden';
+            let reason = '';
+
+            if (isRendered) {
+              status = 'rendered';
+              statusText = 'Rendered';
+            } else if (errMessage) {
+              reason = `Upstream error: ${errMessage}`;
+            } else if (!hasData) {
+              reason = `API response field "${p.field}" is null or empty`;
+            } else {
+              reason = 'Tab unmounted (React unmounts non-active dashboards)';
+            }
+
+            return (
+              <div key={p.id} className="ana-vis-card">
+                <div className="ana-vis-card-header">
+                  <span className="ana-vis-card-title">{p.title}</span>
+                  <span className={`ana-vis-badge ${status}`}>{statusText}</span>
+                </div>
+                <div className="ana-vis-field">
+                  Field: <code>{p.fieldPath || p.field}</code>
+                </div>
+                {reason && (
+                  <div className="ana-vis-reason">
+                    <strong>Reason:</strong> {reason}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function AnalyticsMarket({ onNavigate }) {
   const isAdmin = useIsAdminUser();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1151,6 +1257,10 @@ export default function AnalyticsMarket() {
                 ))}
               </tbody>
             </table>
+          </BentoCard>
+
+          <BentoCard key="visibility-audit" title="Panel Visibility Audit" subtitle="Audit DOM visibility of grid panels" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <PanelVisibilityAudit onNavigate={onNavigate} />
           </BentoCard>
 
         </BentoWrapper>

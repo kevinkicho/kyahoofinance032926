@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'https://kevinkicho.github.io/kyahoofinance032926/';
+const BASE = '/kyahoofinance032926/';
 
 test.setTimeout(120000);
 
@@ -10,7 +10,7 @@ test('bonds panels show data after needsLiveRepair fix', async ({ page }) => {
     if (msg.type() === 'error') consoleErrors.push(msg.text());
   });
 
-  await page.goto(`${BASE}?market=bonds`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}?market=bonds`, { waitUntil: 'domcontentloaded' });
 
   // Wait for data to load — the needsLiveRepair fix will trigger a live fetch
   // for bonds, which takes ~15-20s on cold Cloud Run

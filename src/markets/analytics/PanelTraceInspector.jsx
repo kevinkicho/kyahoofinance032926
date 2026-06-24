@@ -207,7 +207,16 @@ function PanelRow({ panel, apiData, ctxData, crossMarketData, expanded, onToggle
               </div>
               <div className={`pti-verdict ${status === 'ok' ? 'pti-verdict-ok' : 'pti-verdict-bad'}`}>
                 {status === 'ok' && '✓ Data pipeline intact — if panel renders empty, check SafeECharts hasDimensions (container offsetWidth/Height > 0) or stale localStorage layout.'}
-                {status === 'null' && '✗ Backend field is null — upstream API call failed and was silently caught. Check server logs for the FRED/external fetch error.'}
+                {status === 'null' && (
+                  <span>
+                    ✗ Backend field is null — upstream API call failed.
+                    {apiData?._errors?.[panel.field] && (
+                      <strong style={{ display: 'block', marginTop: 4, color: '#f87171' }}>
+                        Error: {apiData._errors[panel.field]}
+                      </strong>
+                    )}
+                  </span>
+                )}
                 {status === 'missing' && (isCrossMarket
                   ? '✗ Cross-market data not loaded — the DataProvider has not fetched the source market yet, or it failed the structural guard.'
                   : '✗ Backend field has 0 items — upstream API returned empty data. Check if API key is configured or rate limit exhausted.')}

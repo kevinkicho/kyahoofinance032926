@@ -49,6 +49,9 @@ const cannedCryptoResponse = {
     coins: [
       { id: 'bitcoin',  symbol: 'BTC', name: 'Bitcoin',  current_price: 67890.12, market_cap: 1_350_000_000_000, price_change_percentage_24h: 1.23 },
       { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', current_price:  3456.78, market_cap:   415_000_000_000, price_change_percentage_24h: 0.87 },
+      { id: 'solana',   symbol: 'SOL', name: 'Solana',   current_price: 150.00,  market_cap:    60_000_000_000, price_change_percentage_24h: 5.20 },
+      { id: 'ripple',   symbol: 'XRP', name: 'Ripple',   current_price: 0.50,    market_cap:    25_000_000_000, price_change_percentage_24h: 0.50 },
+      { id: 'cardano',  symbol: 'ADA', name: 'Cardano',  current_price: 0.45,    market_cap:    15_000_000_000, price_change_percentage_24h: -1.20 }
     ],
   },
   fearGreedData: { value: 73, label: 'Greed' },
@@ -101,7 +104,7 @@ test.describe('Mocked-API data correctness', () => {
   test('Bonds KPI strip renders treasury rates from /api/bonds', async ({ page }) => {
     await mockApi(page, '/api/bonds', cannedBondsResponse);
 
-    await page.goto('/?market=bonds');
+    await page.goto('/kyahoofinance032926/?market=bonds');
     await page.getByRole('button', { name: 'Refresh data now' }).click();
 
     // Wait for the panel to leave skeleton state (FETCHED badge appears in
@@ -118,7 +121,7 @@ test.describe('Mocked-API data correctness', () => {
   test('Crypto sidebar shows BTC dominance from /api/crypto', async ({ page }) => {
     await mockApi(page, '/api/crypto', cannedCryptoResponse);
 
-    await page.goto('/?market=crypto');
+    await page.goto('/kyahoofinance032926/?market=crypto');
     await page.getByRole('button', { name: 'Refresh data now' }).click();
 
     await expect(page.getByText('FETCHED').first()).toBeVisible({ timeout: 15_000 });
@@ -136,7 +139,7 @@ test.describe('Mocked-API data correctness', () => {
     const pageErrors = [];
     page.on('pageerror', (e) => pageErrors.push(e.message));
 
-    await page.goto('/?market=bonds');
+    await page.goto('/kyahoofinance032926/?market=bonds');
     await page.getByRole('button', { name: 'Refresh data now' }).click();
 
     // App must still render the Bonds region and stay interactive — no
