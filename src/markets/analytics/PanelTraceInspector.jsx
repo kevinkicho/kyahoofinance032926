@@ -5,7 +5,7 @@ import { apiUrl } from '../../lib/api';
 import { PANEL_REGISTRY, TRACEABLE_MARKETS } from '../../data/panelRegistry';
 import './PanelTraceInspector.css';
 
-function getFieldByPath(obj, path) {
+export function getFieldByPath(obj, path) {
   if (!path || !obj) return undefined;
   const parts = path.split('.');
   let cur = obj;
@@ -16,7 +16,7 @@ function getFieldByPath(obj, path) {
   return cur;
 }
 
-function describeValue(val) {
+export function describeValue(val) {
   if (val === null || val === undefined) return { shape: 'null', count: 0, detail: 'null' };
   if (Array.isArray(val)) return { shape: 'array', count: val.length, detail: `array[${val.length}]` };
   if (typeof val === 'object') {

@@ -269,6 +269,15 @@ const SERIES_MAP = {
   eiaIndustrialPrice: { id: 'EIA/electricity/retail-sales/IND', source: 'EIA', name: 'Industrial Electricity Price', url: '/api/eia' },
   eiaCo2Total: { id: 'EIA/co2-emissions/TO/TT', source: 'EIA', name: 'CO₂ Emissions (Total)', url: '/api/eia' },
   eiaCo2BySector: { id: 'EIA/co2-emissions/TO/all', source: 'EIA', name: 'CO₂ Emissions by Sector', url: '/api/eia' },
+  stockPrice: { id: 'Yahoo Finance', source: 'Yahoo Finance', name: 'Equity Price Quote', url: '/api/stocks' },
+  stockFundamental: { id: 'yf.quoteSummary', source: 'Yahoo Finance', name: 'Company Financial Fundamentals', url: '/api/summary' },
+  stockValuation: { id: 'yf.quoteSummary', source: 'Yahoo Finance', name: 'Company Valuation Metrics', url: '/api/summary' },
+  stockOwnership: { id: 'yf.quoteSummary', source: 'Yahoo Finance', name: 'Company Share Ownership', url: '/api/summary' },
+  analystTarget: { id: 'yf.quoteSummary', source: 'Yahoo Finance', name: 'Analyst Target Price', url: '/api/summary' },
+  fairValue: { id: 'Model Estimate', source: 'Internal Model', name: 'Probabilistic Fair Value Model', url: '/api/summary' },
+  eiaResidentialSales: { id: 'EIA/electricity/retail-sales/RES/sales', source: 'EIA', name: 'Residential Electricity Sales', url: '/api/eia' },
+  eiaCommercialSales: { id: 'EIA/electricity/retail-sales/COM/sales', source: 'EIA', name: 'Commercial Electricity Sales', url: '/api/eia' },
+  eiaIndustrialSales: { id: 'EIA/electricity/retail-sales/IND/sales', source: 'EIA', name: 'Industrial Electricity Sales', url: '/api/eia' },
 };
 
 export function getSeriesInfo(key) {

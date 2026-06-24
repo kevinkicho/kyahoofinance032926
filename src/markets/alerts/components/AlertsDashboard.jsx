@@ -200,13 +200,13 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
 
             <div className="alerts-legend">
               <div className="alerts-legend-item">
-                <span className="alerts-legend-dot high" /> High severity
+                <i className="alerts-legend-dot high" /> High severity
               </div>
               <div className="alerts-legend-item">
-                <span className="alerts-legend-dot medium" /> Medium severity
+                <i className="alerts-legend-dot medium" /> Medium severity
               </div>
               <div className="alerts-legend-item">
-                <span className="alerts-legend-dot low" /> Low severity
+                <i className="alerts-legend-dot low" /> Low severity
               </div>
             </div>
           </>

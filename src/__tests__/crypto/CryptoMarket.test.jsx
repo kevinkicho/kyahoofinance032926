@@ -47,7 +47,7 @@ describe('CryptoMarket', () => {
   });
 
   it('renders unavailable message when not live', () => {
-    const notLive = { ...mockCentralData, isLive: false };
+    const notLive = { ...mockCentralData, isLive: false, fetchedOn: null };
     render(<CryptoMarket centralData={notLive} />);
     expect(screen.getAllByText(/PENDING/).length).toBeGreaterThan(0);
   });

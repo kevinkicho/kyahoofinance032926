@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import './ListView.css';
 import { useTheme } from '../../hub/ThemeContext';
+import MetricValue from '../MetricValue/MetricValue';
 
 const SECTOR_COLORS = {
   'Technology':  '#3b82f6',
@@ -47,6 +48,7 @@ const ListView = ({
   rankMetric = 'marketCap',
   groupBy    = 'market',
   snapshotDate,
+  dataTimestamp,
 }) => {
   const { colors } = useTheme();
   const metricMeta = METRIC_META[rankMetric] || METRIC_META.marketCap;
@@ -220,10 +222,31 @@ const ListView = ({
                       {item.region}
                     </span>
                   </td>
-                  <td className="text-right lv-metric">{metricStr}</td>
+                  <td className="text-right lv-metric">
+                    <MetricValue
+                      value={item.adjustedValue || item.value}
+                      seriesKey={
+                        rankMetric === 'marketCap' ? 'universeMarketCap' :
+                        rankMetric === 'revenue' ? 'edgarRevenue' :
+                        rankMetric === 'netIncome' ? 'edgarNetIncome' :
+                        rankMetric === 'pe' ? 'stockValuation' :
+                        rankMetric === 'divYield' ? 'stockFundamental' :
+                        'universeMarketCap'
+                      }
+                      timestamp={snapshotDate || dataTimestamp}
+                      format={() => metricStr}
+                    />
+                  </td>
                   {showChange && (
                     <td className={`text-right lv-change ${changePct === null ? '' : changePct >= 0 ? 'text-green' : 'text-red'}`}>
-                      {changePct !== null ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(1)}%` : '—'}
+                      {changePct !== null ? (
+                        <MetricValue
+                          value={changePct}
+                          seriesKey="stockPrice"
+                          timestamp={snapshotDate || dataTimestamp}
+                          format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`}
+                        />
+                      ) : '—'}
                     </td>
                   )}
                 </tr>

@@ -419,7 +419,7 @@ export function passesStructuralGuard(id, d) {
 
 export const STRUCTURAL_GUARDS = {
   bonds:          d => { const yd = d.yieldCurveData; if (!yd || typeof yd !== 'object') return false; return Object.values(yd).filter(v => v && typeof v === 'object' && Object.values(v).some(x => x != null)).length >= 3; },
-  commodities:    d => (d.priceDashboardData?.length > 0) || (d.sectorHeatmapData?.commodities?.length > 0) || (Array.isArray(d.cotData) && d.cotData.length >= 2),
+  commodities:    d => (d.priceDashboardData?.length > 0) || (d.sectorHeatmapData?.commodities?.length > 0) || (d.yahoo?.futures && Object.keys(d.yahoo.futures).length > 0) || (d.cotData === null || d.cotData === undefined || !Array.isArray(d.cotData) || d.cotData.length >= 2),
   sentiment:      d => (d.fearGreedData != null && Object.keys(d.fearGreedData).length > 0) || (d.riskData != null && Object.keys(d.riskData).length > 0) || (Array.isArray(d.cftcData) && d.cftcData.length > 0),
   globalMacro:    d => (Array.isArray(d.scorecardData) && d.scorecardData.length >= 8) || (Array.isArray(d.growthInflationData) && d.growthInflationData.length > 0) || (d.centralBankData?.length > 0),
   credit:         d => {
@@ -429,7 +429,7 @@ export const STRUCTURAL_GUARDS = {
     const defaultBranch = Array.isArray(d.defaultData?.rates) && d.defaultData.rates.length >= 1;
     return fredSpreadBranch || emBondBranch || loanBranch || defaultBranch;
   },
-  crypto:         d => d.coinMarketData?.coins?.length >= 5,
+  crypto:         d => (d.coinMarketData?.coins?.length >= 5) || (d.coins?.length >= 5),
   equities:      d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
   equitiesDeepDive: d => (Array.isArray(d.sectorData?.sectors) && d.sectorData.sectors.length >= 5) || (Array.isArray(d.sectors) && d.sectors.length >= 5),
   calendar:       d => {
@@ -607,11 +607,19 @@ function maybeComputeFederated(prev, next) {
     const allReady = missing.length === 0;
     if (allReady) dlog(`[DataProvider] ✓ Federated "${fedId}" complete — ${triggered} alert(s) triggered`);
     else dlog(`[DataProvider] ◐ Federated "${fedId}" partial (${ready.length}/${config.endpoints.length}) — ${triggered} alert(s); still waiting on: [${missing.join(', ')}]`);
+    let latestFetchedOn = null;
+    for (const ep of config.endpoints) {
+      const mkt = next[ep];
+      if (mkt?.fetchedOn) {
+        if (!latestFetchedOn || mkt.fetchedOn > latestFetchedOn) latestFetchedOn = mkt.fetchedOn;
+      }
+    }
     next[fedId] = {
       ...prev[fedId],
       data: { ...alertResult, _partial: !allReady, _missing: missing },
       isLoading: false,
       isLive: true,
+      fetchedOn: latestFetchedOn,
       lastUpdated: tsNow(),
       fetchLog: [{ time: tsNow(), url: `federated:${fedId}`, status: 200, duration: 0, partial: !allReady, missing }, ...(prev[fedId]?.fetchLog || [])].slice(0, 20),
     };
@@ -744,7 +752,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       for (const id of ids) {
         if (MARKET_ENDPOINTS[id] && !seededIds.has(id)) next[id] = { ...next[id], isLoading: true };
       }
-      return next;
+      return maybeComputeFederated(prev, next);
     });
 
     if (effectiveDate && !forceLive) {
@@ -765,7 +773,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             };
           }
         }
-        return next;
+        return maybeComputeFederated(prev, next);
       });
       setGlobalLoading(false);
       completeFetch();
@@ -1065,8 +1073,8 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   const getMarket = useCallback((marketId) => {
     const m = markets[marketId];
     const base = !m
-      ? { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, isHistorical: !!historicalDate, asOfDate: historicalDate, error: null, fetchLog: [], refetch: () => refetchSingle(marketId), provenance: {} }
-      : { ...m, refetch: () => refetchSingle(marketId) };
+      ? { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, isHistorical: !!historicalDate, asOfDate: historicalDate, error: null, fetchLog: [], refetch: (params) => refetchSingle(marketId, params), provenance: {} }
+      : { ...m, refetch: (params) => refetchSingle(marketId, params) };
     // Always surface the app-wide historical mode so cards/footers can render "📜 as-of date" state even if this market wasn't (re)seeded this time.
     if (historicalDate) {
       base.isHistorical = base.isHistorical ?? true;

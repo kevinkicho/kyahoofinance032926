@@ -158,7 +158,7 @@ function RealEstateDashboard({
   caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y,
   housingStarts, existingHomeSales, rentalVacancy, medianHomePrice,
   foreclosureData, mbaApplications, creDelinquencies, commoditiesData, censusData,
-  hudData, fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
+  hudData, fhfaHpi, fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
   const [hudView, setHudView] = React.useState('chart');
@@ -389,7 +389,7 @@ function RealEstateDashboard({
   if (hasCensusEcoTrends)     layoutItems.push({ i: 'census-trends-trade',   x: 6, y: censusY + 3, w: 6, h: 4 });
 
   // FHFA HPI panel
-  const fhfaHpi = data?.fhfaHpi;
+  // fhfaHpi is now received as a direct prop
   if (fhfaHpi?.values?.length > 0) {
     layoutItems.push({ i: 'fhfa-hpi', x: 0, y: censusY + 7, w: 6, h: 3 });
   }

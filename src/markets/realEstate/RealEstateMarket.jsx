@@ -31,6 +31,7 @@ function getRealEstateProps(centralData, context = {}) {
     mbaApplications: d.mbaApplications,
     creDelinquencies: d.creDelinquencies,
     hudData: d.hudData,
+    fhfaHpi: d.fhfaHpi,
     commoditiesData: d.commoditiesData || normalized.values.commoditiesData,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
@@ -86,6 +87,7 @@ function RealEstateMarket({ centralData } = {}) {
           mbaApplications={props.mbaApplications}
           creDelinquencies={props.creDelinquencies}
           hudData={props.hudData}
+          fhfaHpi={props.fhfaHpi}
           commoditiesData={commoditiesData}
           censusData={censusData}
           error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent}

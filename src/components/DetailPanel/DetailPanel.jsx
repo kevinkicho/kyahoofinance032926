@@ -4,6 +4,8 @@ import './DetailPanel.css';
 import { useTheme } from '../../hub/ThemeContext';
 import { fetchWithRetry } from '../../utils/fetchWithRetry';
 import { apiUrl } from '../../lib/api';
+import DataFooter from '../DataFooter/DataFooter';
+import MetricValue from '../MetricValue/MetricValue';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -205,14 +207,25 @@ const ChartTab = ({ historyData, sym }) => {
 // ─── Fundamentals Tab ────────────────────────────────────────────────────────
 
 // Compact 2-column grid cell
-const G = ({ label, value, color }) => (
+const G = ({ label, value, rawValue, seriesKey, timestamp, format, color }) => (
   <div className="fg-cell">
     <span className="fg-label">{label}</span>
-    <strong className={`fg-value${color ? ` text-${color}` : ''}`}>{value ?? '—'}</strong>
+    <strong className={`fg-value${color ? ` text-${color}` : ''}`}>
+      {seriesKey ? (
+        <MetricValue
+          value={rawValue}
+          seriesKey={seriesKey}
+          timestamp={timestamp}
+          format={format || (() => value ?? '—')}
+        />
+      ) : (
+        value ?? '—'
+      )}
+    </strong>
   </div>
 );
 
-const FundamentalsTab = ({ summaryData, sym }) => {
+const FundamentalsTab = ({ summaryData, sym, timestamp }) => {
   if (!summaryData?.financialData) {
     return (
       <div className="no-live-data">
@@ -232,50 +245,50 @@ const FundamentalsTab = ({ summaryData, sym }) => {
 
       <div className="fg-section-hdr">Income &amp; Growth</div>
       <div className="fg-grid">
-        <G label="Total Revenue"    value={fmtNum(fd.totalRevenue, sym)} />
-        <G label="Revenue Growth"   value={fmtPct(fd.revenueGrowth)}    color={gPct(fd.revenueGrowth)} />
-        <G label="Gross Margin"     value={fmtPct(fd.grossMargins)} />
-        <G label="Operating Margin" value={fmtPct(fd.operatingMargins)} color={gPct(fd.operatingMargins)} />
-        <G label="Profit Margin"    value={fmtPct(fd.profitMargins)}    color={gPct(fd.profitMargins)} />
-        <G label="Earnings Growth"  value={fmtPct(fd.earningsGrowth)}   color={gPct(fd.earningsGrowth)} />
-        <G label="EBITDA Margin"    value={fmtPct(fd.ebitdaMargins)} />
-        <G label="EBITDA"           value={fmtNum(fd.ebitda, sym)} />
+        <G label="Total Revenue"    rawValue={fd.totalRevenue} seriesKey="stockFundamental" timestamp={timestamp} format={v => fmtNum(v, sym)} />
+        <G label="Revenue Growth"   rawValue={fd.revenueGrowth} seriesKey="stockFundamental" timestamp={timestamp} format={fmtPct} color={gPct(fd.revenueGrowth)} />
+        <G label="Gross Margin"     rawValue={fd.grossMargins} seriesKey="stockFundamental" timestamp={timestamp} format={fmtPct} />
+        <G label="Operating Margin" rawValue={fd.operatingMargins} seriesKey="stockFundamental" timestamp={timestamp} format={fmtPct} color={gPct(fd.operatingMargins)} />
+        <G label="Profit Margin"    rawValue={fd.profitMargins} seriesKey="stockFundamental" timestamp={timestamp} format={fmtPct} color={gPct(fd.profitMargins)} />
+        <G label="Earnings Growth"  rawValue={fd.earningsGrowth} seriesKey="stockFundamental" timestamp={timestamp} format={fmtPct} color={gPct(fd.earningsGrowth)} />
+        <G label="EBITDA Margin"    rawValue={fd.ebitdaMargins} seriesKey="stockFundamental" timestamp={timestamp} format={fmtPct} />
+        <G label="EBITDA"           rawValue={fd.ebitda} seriesKey="stockFundamental" timestamp={timestamp} format={v => fmtNum(v, sym)} />
       </div>
 
       <div className="fg-section-hdr">Cash Flow &amp; Debt</div>
       <div className="fg-grid">
-        <G label="Op. Cash Flow" value={fmtNum(fd.operatingCashflow, sym)} />
-        <G label="Free Cash Flow" value={fmtNum(fd.freeCashflow, sym)}   color={gPct(fd.freeCashflow)} />
-        <G label="Total Cash"     value={fmtNum(fd.totalCash, sym)} />
-        <G label="Total Debt"     value={fmtNum(fd.totalDebt, sym)} />
-        <G label="Debt / Equity"  value={fd.debtToEquity?.toFixed(2)}    color={fd.debtToEquity != null ? (fd.debtToEquity < 100 ? 'green' : 'red') : ''} />
-        <G label="Current Ratio"  value={fd.currentRatio?.toFixed(2)}    color={g(fd.currentRatio, 1)} />
-        <G label="Quick Ratio"    value={fd.quickRatio?.toFixed(2)}      color={g(fd.quickRatio, 1)} />
-        <G label="Rev / Share"    value={fd.revenuePerShare != null ? `${sym}${fd.revenuePerShare.toFixed(2)}` : null} />
+        <G label="Op. Cash Flow" rawValue={fd.operatingCashflow} seriesKey="stockFundamental" timestamp={timestamp} format={v => fmtNum(v, sym)} />
+        <G label="Free Cash Flow" rawValue={fd.freeCashflow} seriesKey="stockFundamental" timestamp={timestamp} format={v => fmtNum(v, sym)} color={gPct(fd.freeCashflow)} />
+        <G label="Total Cash"     rawValue={fd.totalCash} seriesKey="stockFundamental" timestamp={timestamp} format={v => fmtNum(v, sym)} />
+        <G label="Total Debt"     rawValue={fd.totalDebt} seriesKey="stockFundamental" timestamp={timestamp} format={v => fmtNum(v, sym)} />
+        <G label="Debt / Equity"  rawValue={fd.debtToEquity} seriesKey="stockValuation" timestamp={timestamp} format={v => v?.toFixed(2)} color={fd.debtToEquity != null ? (fd.debtToEquity < 100 ? 'green' : 'red') : ''} />
+        <G label="Current Ratio"  rawValue={fd.currentRatio} seriesKey="stockValuation" timestamp={timestamp} format={v => v?.toFixed(2)} color={g(fd.currentRatio, 1)} />
+        <G label="Quick Ratio"    rawValue={fd.quickRatio} seriesKey="stockValuation" timestamp={timestamp} format={v => v?.toFixed(2)} color={g(fd.quickRatio, 1)} />
+        <G label="Rev / Share"    rawValue={fd.revenuePerShare} seriesKey="stockFundamental" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : null} />
       </div>
 
       <div className="fg-section-hdr">Valuation</div>
       <div className="fg-grid">
-        <G label="Enterprise Value" value={fmtNum(ks.enterpriseValue, '$')} />
-        <G label="EV / Revenue"     value={ks.enterpriseToRevenue != null ? `${ks.enterpriseToRevenue.toFixed(2)}×` : null} />
-        <G label="EV / EBITDA"      value={ks.enterpriseToEbitda  != null ? `${ks.enterpriseToEbitda.toFixed(2)}×`  : null} />
-        <G label="Price / Book"     value={ks.priceToBook != null ? `${ks.priceToBook.toFixed(2)}×` : null} />
-        <G label="Book Val / Share" value={ks.bookValue != null ? `${sym}${ks.bookValue.toFixed(2)}` : null} />
-        <G label="Forward EPS"      value={ks.forwardEps != null ? `${sym}${ks.forwardEps.toFixed(2)}` : null} />
-        <G label="Forward P/E"      value={ks.forwardPE != null ? `${ks.forwardPE.toFixed(2)}×` : null} />
-        <G label="52-Wk Δ"          value={fmtPct(ks['52WeekChange'])} color={gPct(ks['52WeekChange'])} />
+        <G label="Enterprise Value" rawValue={ks.enterpriseValue} seriesKey="stockValuation" timestamp={timestamp} format={v => fmtNum(v, '$')} />
+        <G label="EV / Revenue"     rawValue={ks.enterpriseToRevenue} seriesKey="stockValuation" timestamp={timestamp} format={v => v != null ? `${v.toFixed(2)}×` : null} />
+        <G label="EV / EBITDA"      rawValue={ks.enterpriseToEbitda} seriesKey="stockValuation" timestamp={timestamp} format={v => v != null ? `${v.toFixed(2)}×` : null} />
+        <G label="Price / Book"     rawValue={ks.priceToBook} seriesKey="stockValuation" timestamp={timestamp} format={v => v != null ? `${v.toFixed(2)}×` : null} />
+        <G label="Book Val / Share" rawValue={ks.bookValue} seriesKey="stockValuation" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : null} />
+        <G label="Forward EPS"      rawValue={ks.forwardEps} seriesKey="stockValuation" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : null} />
+        <G label="Forward P/E"      rawValue={ks.forwardPE} seriesKey="stockValuation" timestamp={timestamp} format={v => v != null ? `${v.toFixed(2)}×` : null} />
+        <G label="52-Wk Δ"          rawValue={ks['52WeekChange']} seriesKey="stockPrice" timestamp={timestamp} format={fmtPct} color={gPct(ks['52WeekChange'])} />
       </div>
 
       <div className="fg-section-hdr">Returns &amp; Ownership</div>
       <div className="fg-grid">
-        <G label="ROE"          value={fmtPct(fd.returnOnEquity)}  color={gPct(fd.returnOnEquity)} />
-        <G label="ROA"          value={fmtPct(fd.returnOnAssets)} />
-        <G label="Shares Out."  value={fmtNum(ks.sharesOutstanding)} />
-        <G label="Float"        value={fmtNum(ks.floatShares)} />
-        <G label="Insiders"     value={fmtPct(ks.heldPercentInsiders)} />
-        <G label="Institutions" value={fmtPct(ks.heldPercentInstitutions)} />
-        <G label="Short Ratio"  value={ks.shortRatio?.toFixed(2)} />
-        <G label="Short % Float" value={fmtPct(ks.shortPercentOfFloat)} />
+        <G label="ROE"          rawValue={fd.returnOnEquity} seriesKey="stockOwnership" timestamp={timestamp} format={fmtPct} color={gPct(fd.returnOnEquity)} />
+        <G label="ROA"          rawValue={fd.returnOnAssets} seriesKey="stockOwnership" timestamp={timestamp} format={fmtPct} />
+        <G label="Shares Out."  rawValue={ks.sharesOutstanding} seriesKey="stockOwnership" timestamp={timestamp} format={fmtNum} />
+        <G label="Float"        rawValue={ks.floatShares} seriesKey="stockOwnership" timestamp={timestamp} format={fmtNum} />
+        <G label="Insiders"     rawValue={ks.heldPercentInsiders} seriesKey="stockOwnership" timestamp={timestamp} format={fmtPct} />
+        <G label="Institutions" rawValue={ks.heldPercentInstitutions} seriesKey="stockOwnership" timestamp={timestamp} format={fmtPct} />
+        <G label="Short Ratio"  rawValue={ks.shortRatio} seriesKey="stockOwnership" timestamp={timestamp} format={v => v?.toFixed(2)} />
+        <G label="Short % Float" rawValue={ks.shortPercentOfFloat} seriesKey="stockOwnership" timestamp={timestamp} format={fmtPct} />
       </div>
 
     </div>
@@ -299,7 +312,7 @@ const PERIOD_LABELS = {
   '+1y': 'Next Year',
 };
 
-const AnalystsTab = ({ summaryData, sym }) => {
+const AnalystsTab = ({ summaryData, sym, timestamp }) => {
   const { colors: tabColors } = useTheme();
   if (!summaryData?.financialData) {
     return (
@@ -333,17 +346,19 @@ const AnalystsTab = ({ summaryData, sym }) => {
         <span className="consensus-pill" style={{ color: meta.color, borderColor: meta.color }}>
           {meta.label || '—'}
         </span>
-        <span className="consensus-count">{fd.numberOfAnalystOpinions || '—'} analysts</span>
+        <span className="consensus-count">
+          <MetricValue value={fd.numberOfAnalystOpinions} seriesKey="analystTarget" timestamp={timestamp} format={v => v != null ? String(v) : '—'} /> analysts
+        </span>
       </div>
 
       {/* Price targets */}
       <div className="pt-section">
         <div className="section-label">12-Month Price Targets</div>
         <div className="pt-grid">
-          <div className="pt-stat"><span>Mean</span>   <strong style={{ color: '#60a5fa' }}>{sym}{fd.targetMeanPrice?.toFixed(2)   ?? '—'}</strong></div>
-          <div className="pt-stat"><span>Median</span> <strong>{sym}{fd.targetMedianPrice?.toFixed(2) ?? '—'}</strong></div>
-          <div className="pt-stat"><span>High</span>   <strong className="text-green">{sym}{fd.targetHighPrice?.toFixed(2)   ?? '—'}</strong></div>
-          <div className="pt-stat"><span>Low</span>    <strong className="text-red">{sym}{fd.targetLowPrice?.toFixed(2)    ?? '—'}</strong></div>
+          <div className="pt-stat"><span>Mean</span>   <strong style={{ color: '#60a5fa' }}><MetricValue value={fd.targetMeanPrice} seriesKey="analystTarget" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : '—'} /></strong></div>
+          <div className="pt-stat"><span>Median</span> <strong><MetricValue value={fd.targetMedianPrice} seriesKey="analystTarget" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : '—'} /></strong></div>
+          <div className="pt-stat"><span>High</span>   <strong className="text-green"><MetricValue value={fd.targetHighPrice} seriesKey="analystTarget" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : '—'} /></strong></div>
+          <div className="pt-stat"><span>Low</span>    <strong className="text-red"><MetricValue value={fd.targetLowPrice} seriesKey="analystTarget" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : '—'} /></strong></div>
         </div>
       </div>
 
@@ -384,7 +399,9 @@ const AnalystsTab = ({ summaryData, sym }) => {
               <div key={t.period} className="eps-row">
                 <span className="eps-period">{PERIOD_LABELS[t.period] || t.period}</span>
                 <div className="eps-vals">
-                  <strong>{avg != null ? `${sym}${avg.toFixed(2)}` : '—'}</strong>
+                  <strong>
+                    <MetricValue value={avg} seriesKey="analystTarget" timestamp={timestamp} format={v => v != null ? `${sym}${v.toFixed(2)}` : '—'} />
+                  </strong>
                   <span className="eps-range">
                     {(lo != null && hi != null) ? `[${sym}${lo.toFixed(2)} – ${sym}${hi.toFixed(2)}]` : ''}
                   </span>
@@ -395,136 +412,6 @@ const AnalystsTab = ({ summaryData, sym }) => {
         </div>
       )}
     </div>
-  );
-};
-
-// ─── Data Source Footer + Modal ───────────────────────────────────────────────
-
-const fmtFlexibleDate = (ts) => {
-  if (ts == null || ts === '') return null;
-  let d;
-  if (typeof ts === 'number') d = new Date(ts < 1e12 ? ts * 1000 : ts);
-  else if (typeof ts === 'string') d = new Date(ts);
-  else if (typeof ts === 'object' && ts.raw != null) {
-    const n = Number(ts.raw);
-    d = new Date(n < 1e12 ? n * 1000 : n);
-  } else return null;
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-};
-const fmtISODate = (str) => {
-  if (!str) return null;
-  const d = new Date(str);
-  if (isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-};
-
-const SUMMARY_MODULES = [
-  { id: 'financialData',             desc: 'Price targets, margins, cash flow, debt ratios' },
-  { id: 'defaultKeyStatistics',      desc: 'Valuation multiples, shares, ownership, most recent quarter' },
-  { id: 'earningsTrend',             desc: 'EPS estimates (current/next Q, current/next Y)' },
-  { id: 'recommendationTrend',       desc: 'Buy/hold/sell analyst counts' },
-  { id: 'majorHoldersBreakdown',     desc: 'Insider and institutional ownership breakdown' },
-  { id: 'incomeStatementHistory',    desc: 'Revenue / income (annual, 4 periods)' },
-  { id: 'cashflowStatementHistory',  desc: 'Operating / investing / financing cash flows' },
-  { id: 'balanceSheetHistory',       desc: 'Assets, liabilities, equity (annual)' },
-];
-
-const SourceInfoModal = ({ ticker, region, summaryData, historyData, isLive, onClose }) => {
-  const quarterDate  = fmtFlexibleDate(summaryData?.defaultKeyStatistics?.mostRecentQuarter);
-  const firstPrice   = historyData?.length ? fmtISODate(historyData[0].date) : null;
-  const lastPrice    = historyData?.length ? fmtISODate(historyData[historyData.length - 1].date) : null;
-  const barsCount    = historyData?.length || 0;
-  const enc          = encodeURIComponent(ticker);
-  const regionQS     = region ? `?region=${encodeURIComponent(region)}` : '';
-  const yahooLink    = `https://finance.yahoo.com/quote/${enc}`;
-
-  return (
-    <div className="source-modal-overlay" onClick={onClose}>
-      <div className="source-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="source-modal-header">
-          <h3>Data Sources · {ticker}</h3>
-          <button className="source-modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        <div className="source-modal-body">
-          <div className="source-section">
-            <div className="source-section-title">Provider</div>
-            <div className="source-row">
-              <span className="source-label">Yahoo Finance</span>
-              <span className={`source-badge ${isLive ? 'live' : 'cached'}`}>{isLive ? '● LIVE' : '○ CACHED'}</span>
-            </div>
-            <a className="source-link" href={yahooLink} target="_blank" rel="noreferrer">View on finance.yahoo.com ↗</a>
-          </div>
-
-          <div className="source-section">
-            <div className="source-section-title">Endpoints Hit</div>
-            <div className="endpoint-row">
-              <code>POST /api/stocks</code>
-              <span className="endpoint-desc">Real-time quote: price, change, OHLC, bid/ask, 52w range, PE, EPS, beta</span>
-            </div>
-            <div className="endpoint-row">
-              <code>GET /api/summary/{enc}{regionQS}</code>
-              <span className="endpoint-desc">Fundamentals via <em>yf.quoteSummary</em> (8 modules below)</span>
-            </div>
-            <div className="endpoint-row">
-              <code>GET /api/history/{enc}?period=5y{region ? `&region=${encodeURIComponent(region)}` : ''}</code>
-              <span className="endpoint-desc">Daily OHLCV bars via <em>yf.historical</em></span>
-            </div>
-          </div>
-
-          <div className="source-section">
-            <div className="source-section-title">Summary Modules</div>
-            <div className="module-list">
-              {SUMMARY_MODULES.map(m => {
-                const present = summaryData && summaryData[m.id] != null;
-                return (
-                  <div key={m.id} className="module-row">
-                    <span className={`module-dot ${present ? 'ok' : 'missing'}`} />
-                    <code>{m.id}</code>
-                    <span className="module-desc">{m.desc}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="source-section">
-            <div className="source-section-title">Coverage &amp; Freshness</div>
-            <div className="coverage-grid">
-              <div><span>Fundamentals as-of</span><strong>{quarterDate || '—'}</strong></div>
-              <div><span>Price range</span><strong>{firstPrice && lastPrice ? `${firstPrice} – ${lastPrice}` : '—'}</strong></div>
-              <div><span>Daily bars</span><strong>{barsCount.toLocaleString()}</strong></div>
-              <div><span>Summary cache TTL</span><strong>30 min</strong></div>
-              <div><span>History cache TTL</span><strong>60 min</strong></div>
-              <div><span>Auto-refresh</span><strong>Manual (▶ button)</strong></div>
-            </div>
-          </div>
-
-          <div className="source-footer-note">
-            Data fetched via the Express backend. When local cache is ≥2 days stale, a delta fetch from Yahoo fills the gap on request.
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DataFooter = ({ summaryData, historyData, isLive, onOpenModal }) => {
-  const quarterDate = fmtFlexibleDate(summaryData?.defaultKeyStatistics?.mostRecentQuarter);
-  const firstPrice  = historyData?.length ? fmtISODate(historyData[0].date) : null;
-  const lastPrice   = historyData?.length ? fmtISODate(historyData[historyData.length - 1].date) : null;
-
-  return (
-    <button type="button" className="data-footer data-footer-btn" onClick={onOpenModal} title="View data source details">
-      <span className="data-footer-source">Yahoo Finance{isLive ? ' · LIVE' : ''}</span>
-      {quarterDate && <span className="data-footer-sep">·</span>}
-      {quarterDate && <span>Fundamentals: {quarterDate}</span>}
-      {firstPrice && lastPrice && <span className="data-footer-sep">·</span>}
-      {firstPrice && lastPrice && <span>Prices: {firstPrice}–{lastPrice}</span>}
-      <span className="data-footer-sep">·</span>
-      <span className="data-footer-cta">sources ↗</span>
-    </button>
   );
 };
 
@@ -602,7 +489,6 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
   const { details, summaryData, historyData } = selectedTicker;
   const isCrypto = selectedTicker.sector === 'Crypto';
   const [activeTab, setActiveTab] = useState('summary');
-  const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const [macroData, setMacroData] = useState(null);
   useEffect(() => {
     let cancelled = false;
@@ -651,9 +537,21 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
       </div>
 
       <div className="detail-price-section">
-        <span className="large-price">{details.price}</span>
+        <span className="large-price">
+          <MetricValue
+            value={parseFloat(String(details.price).replace(/[^\d.-]/g, ''))}
+            seriesKey="stockPrice"
+            timestamp={selectedTicker.timestamp}
+            format={() => details.price}
+          />
+        </span>
         <span className={`detail-change ${details.changeAmt?.includes('+') ? 'text-green' : 'text-red'}`}>
-          {details.changeAmt} ({details.changePct})
+          <MetricValue
+            value={parseFloat(String(details.changeAmt).replace(/[^\d.-]/g, ''))}
+            seriesKey="stockPrice"
+            timestamp={selectedTicker.timestamp}
+            format={() => `${details.changeAmt} (${details.changePct})`}
+          />
         </span>
       </div>
 
@@ -671,27 +569,27 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
 
       {activeTab === 'summary' && (
         <div className="data-metrics">
-          <div className="metric-row"><span>{isCrypto ? '24h Open' : 'Previous Close'}</span><strong>{details.prevClose}</strong></div>
-          <div className="metric-row"><span>Open</span><strong>{details.open}</strong></div>
-          {details.bid  != null && <div className="metric-row"><span>Bid</span><strong>{details.bid}</strong></div>}
-          {details.ask  != null && <div className="metric-row"><span>Ask</span><strong>{details.ask}</strong></div>}
-          <div className="metric-row"><span>{isCrypto ? '24h Range' : "Day's Range"}</span><strong>{details.dayRange}</strong></div>
-          <div className="metric-row"><span>{isCrypto ? '52-Week Range' : '52 Week Range'}</span><strong>{details.wk52Range}</strong></div>
-          <div className="metric-row"><span>{isCrypto ? '24h Volume' : 'Volume'}</span><strong>{details.volume}</strong></div>
-          <div className="metric-row"><span>Avg. Volume</span><strong>{details.avgVol}</strong></div>
-          <div className="metric-row"><span>Market Cap</span><strong style={{ color: '#93c5fd' }}>{details.marketCapGlobal}</strong></div>
-          {details.beta         != null && <div className="metric-row"><span>Beta (5Y Monthly)</span><strong>{details.beta}</strong></div>}
-          {details.pe           != null && <div className="metric-row"><span>PE Ratio (TTM)</span><strong>{details.pe}</strong></div>}
-          {details.eps          != null && <div className="metric-row"><span>EPS (TTM)</span><strong>{details.eps}</strong></div>}
+          <div className="metric-row"><span>{isCrypto ? '24h Open' : 'Previous Close'}</span><strong><MetricValue value={parseFloat(String(details.prevClose).replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.prevClose} /></strong></div>
+          <div className="metric-row"><span>Open</span><strong><MetricValue value={parseFloat(String(details.open).replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.open} /></strong></div>
+          {details.bid  != null && <div className="metric-row"><span>Bid</span><strong><MetricValue value={parseFloat(String(details.bid).replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.bid} /></strong></div>}
+          {details.ask  != null && <div className="metric-row"><span>Ask</span><strong><MetricValue value={parseFloat(String(details.ask).replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.ask} /></strong></div>}
+          <div className="metric-row"><span>{isCrypto ? '24h Range' : "Day's Range"}</span><strong><MetricValue value={parseFloat(String(details.dayRange).split('-')[0].replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.dayRange} /></strong></div>
+          <div className="metric-row"><span>{isCrypto ? '52-Week Range' : '52 Week Range'}</span><strong><MetricValue value={parseFloat(String(details.wk52Range).split('-')[0].replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.wk52Range} /></strong></div>
+          <div className="metric-row"><span>{isCrypto ? '24h Volume' : 'Volume'}</span><strong><MetricValue value={parseFloat(String(details.volume).replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.volume} /></strong></div>
+          <div className="metric-row"><span>Avg. Volume</span><strong><MetricValue value={parseFloat(String(details.avgVol).replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.avgVol} /></strong></div>
+          <div className="metric-row"><span>Market Cap</span><strong style={{ color: '#93c5fd' }}><MetricValue value={parseFloat(String(details.marketCapGlobal).replace(/[^\d.-]/g, ''))} seriesKey="universeMarketCap" timestamp={selectedTicker.timestamp} format={() => details.marketCapGlobal} /></strong></div>
+          {details.beta         != null && <div className="metric-row"><span>Beta (5Y Monthly)</span><strong><MetricValue value={parseFloat(String(details.beta).replace(/[^\d.-]/g, ''))} seriesKey="stockValuation" timestamp={selectedTicker.timestamp} format={() => details.beta} /></strong></div>}
+          {details.pe           != null && <div className="metric-row"><span>PE Ratio (TTM)</span><strong><MetricValue value={parseFloat(String(details.pe).replace(/[^\d.-]/g, ''))} seriesKey="stockValuation" timestamp={selectedTicker.timestamp} format={() => details.pe} /></strong></div>}
+          {details.eps          != null && <div className="metric-row"><span>EPS (TTM)</span><strong><MetricValue value={parseFloat(String(details.eps).replace(/[^\d.-]/g, ''))} seriesKey="stockValuation" timestamp={selectedTicker.timestamp} format={() => details.eps} /></strong></div>}
           {details.earningsDate != null && <div className="metric-row"><span>Earnings Date</span><strong>{details.earningsDate}</strong></div>}
-          {details.dividend     != null && <div className="metric-row"><span>Forward Dividend</span><strong>{details.dividend}</strong></div>}
+          {details.dividend     != null && <div className="metric-row"><span>Forward Dividend</span><strong><MetricValue value={parseFloat(String(details.dividend).replace(/[^\d.-]/g, ''))} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={() => details.dividend} /></strong></div>}
           {isCrypto && <div className="metric-row"><span>Currency</span><strong>USD (always)</strong></div>}
         </div>
       )}
 
       {activeTab === 'chart'        && <ChartTab        historyData={historyData} sym={sym} />}
-      {activeTab === 'fundamentals' && <FundamentalsTab summaryData={summaryData} sym={sym} />}
-      {activeTab === 'analysts'     && <AnalystsTab     summaryData={summaryData} sym={sym} />}
+      {activeTab === 'fundamentals' && <FundamentalsTab summaryData={summaryData} sym={sym} timestamp={selectedTicker.timestamp} />}
+      {activeTab === 'analysts'     && <AnalystsTab     summaryData={summaryData} sym={sym} timestamp={selectedTicker.timestamp} />}
 
       {activeTab === 'fairvalue' && (
         <div className="fv-panel">
@@ -702,15 +600,21 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
           <div className="fv-grid">
             <div className="fv-stat">
               <span className="fv-stat-label">Current Price</span>
-              <span className="fv-stat-value">{sym}{fv.rawPrice.toFixed(2)}</span>
+              <span className="fv-stat-value">
+                <MetricValue value={fv.rawPrice} seriesKey="stockPrice" timestamp={selectedTicker.timestamp} format={v => `${sym}${v.toFixed(2)}`} />
+              </span>
             </div>
             <div className="fv-stat">
               <span className="fv-stat-label">Model Fair Value</span>
-              <span className={`fv-stat-value ${fv.upside ? 'text-green' : 'text-red'}`}>{sym}{fv.fairPrice.toFixed(2)}</span>
+              <span className={`fv-stat-value ${fv.upside ? 'text-green' : 'text-red'}`}>
+                <MetricValue value={fv.fairPrice} seriesKey="fairValue" timestamp={selectedTicker.timestamp} format={v => `${sym}${v.toFixed(2)}`} />
+              </span>
             </div>
             <div className="fv-stat">
               <span className="fv-stat-label">Adj. P/E Used</span>
-              <span className="fv-stat-value">{fv.adjustedPE.toFixed(1)}x</span>
+              <span className="fv-stat-value">
+                <MetricValue value={fv.adjustedPE} seriesKey="fairValue" timestamp={selectedTicker.timestamp} format={v => `${v.toFixed(1)}x`} />
+              </span>
             </div>
             <div className="fv-stat">
               <span className="fv-stat-label">Sector</span>
@@ -729,22 +633,35 @@ const DetailPanel = ({ selectedTicker, setSelectedTicker, rates, currency }) => 
       )}
 
       <DataFooter
-        summaryData={summaryData}
-        historyData={historyData}
+        source="Yahoo Finance"
+        timestamp={selectedTicker.timestamp || new Date().toISOString()}
         isLive={selectedTicker.isLive}
-        onOpenModal={() => setSourceModalOpen(true)}
+        isCurrent={true}
+        fetchLog={[
+          {
+            time: selectedTicker.timestamp || new Date().toISOString(),
+            url: `/api/summary/${selectedTicker.ticker}`,
+            status: 200,
+            sources: {
+              'Yahoo Finance (quoteSummary)': {
+                _source: 'Yahoo Finance',
+                _description: `Fundamentals, statistics, earnings trends and recommendation trends for ${selectedTicker.ticker}.`,
+              }
+            }
+          },
+          {
+            time: selectedTicker.timestamp || new Date().toISOString(),
+            url: `/api/history/${selectedTicker.ticker}`,
+            status: 200,
+            sources: {
+              'Yahoo Finance (historical)': {
+                _source: 'Yahoo Finance',
+                _description: `Historical daily price and volume data for ${selectedTicker.ticker}.`,
+              }
+            }
+          }
+        ]}
       />
-
-      {sourceModalOpen && (
-        <SourceInfoModal
-          ticker={selectedTicker.ticker}
-          region={selectedTicker.region}
-          summaryData={summaryData}
-          historyData={historyData}
-          isLive={selectedTicker.isLive}
-          onClose={() => setSourceModalOpen(false)}
-        />
-      )}
     </div>
   );
 };

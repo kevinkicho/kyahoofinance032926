@@ -27,7 +27,7 @@ router.get('/', async (_req, res) => {
       try {
         trackApiCall('BIS');
         const url = `${BIS_OTC_URL}/Q.N.${cat.series}..LE.US+GB+JP+DE+FR+IT+CA+CH+AU+SE+NL+ES._T.N?startPeriod=2020&format=json`;
-        const data = await fetchJSON(url);
+        const data = await fetchJSON(url, undefined, { 'Accept': 'application/vnd.sdmx.data+json;version=1.0.0-wd' });
         const obs = data?.dataSets?.[0]?.observations;
         if (!obs) continue;
         const series = Object.entries(obs).map(([key, val]) => {

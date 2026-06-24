@@ -350,6 +350,7 @@ const HeatmapView = ({
         style={{ height: '100%', width: '100%' }}
         opts={{ renderer: 'canvas' }}
         onChartReady={handleChartReady}
+        sourceInfo={{ title: 'Equity Heatmap', source: 'Yahoo Finance', endpoint: '/api/stocks', series: [] }}
       />
       <div
         style={{

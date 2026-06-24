@@ -6,6 +6,7 @@ import MarketKpiStrip from '../../components/MarketKpiStrip';
 import { useMarketData, useDataContext } from '../../hub/DataContext';
 import { auth } from '../../lib/firebase';
 import PanelTraceInspector from './PanelTraceInspector';
+import DataFooter from '../../components/DataFooter/DataFooter';
 import './AnalyticsDashboard.css';
 
 // Helper to load analytics snapshot from RTDB (written by daily scheduled refresher).
@@ -69,7 +70,8 @@ function useIsAdminUser() {
     return auth.onAuthStateChanged(setUser);
   }, []);
 
-  return user?.email === ADMIN_EMAIL;
+  const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  return isLocalhost || user?.email === ADMIN_EMAIL;
 }
 
 // Persist audit history so it can be inspected later (we keep the last
@@ -117,7 +119,7 @@ const OPTIONAL_PROVENANCE_KEYS = new Set([
   'yahooFinance',
 ]);
 
-function getSourceAuditState(endpointPath, sourceKey, value) {
+export function getSourceAuditState(endpointPath, sourceKey, value) {
   if (value) {
     return {
       kind: 'ok',
@@ -162,7 +164,7 @@ function getSourceAuditState(endpointPath, sourceKey, value) {
   };
 }
 
-function countSourcesByState(row, kind) {
+export function countSourcesByState(row, kind) {
   return row.sourceKeys.filter(k => getSourceAuditState(row.path, k, row.sources[k]).kind === kind).length;
 }
 
@@ -417,91 +419,6 @@ function ProvenanceAudit({ defaultDate = null, availableDates = null, onDateChan
         </div>
       ))}
 
-      {/* Trend chart example wired to the same historical/RTDB system */}
-      <HistoricalTrendExample />
-    </div>
-  );
-}
-
-/**
- * Minimal trend chart example using the new RTDB-backed historical wiring.
- * - Uses listSnapshotDates + loadHistorical from DataContext (exposed by DataProvider).
- * - Loads a handful of recent snapshot dates for a sample market (sentiment).
- * - Extracts a simple scalar if available (e.g. fear/greed score) and renders a tiny SVG bar chart.
- * This demonstrates how any panel can now drive cross-date analysis cheaply from the growing history.
- */
-function HistoricalTrendExample() {
-  const ctx = (() => { try { return useDataContext(); } catch { return null; } })();
-  const loadHistorical = ctx?.loadHistorical;
-  const listSnapshotDates = ctx?.listSnapshotDates;
-  const [points, setPoints] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState(null);
-
-  const runDemo = useCallback(async () => {
-    if (!listSnapshotDates || !loadHistorical) { setErr('Context not available'); return; }
-    setLoading(true); setErr(null);
-    try {
-      const dates = (await listSnapshotDates('sentiment')).slice(0, 8); // up to 8 recent
-      if (!dates.length) { setPoints([]); setErr('No RTDB history yet for demo market'); setLoading(false); return; }
-      const seeds = await Promise.all(dates.map(async (d) => {
-        const h = await loadHistorical(d);
-        const s = h?.sentiment?.data || h?.sentiment || {};
-        // Try common locations for a scalar we can trend (fear/greed or similar risk score).
-        const fg = s?.fearGreedData?.score ?? s?.fearGreedData?.value ?? s?.riskData?.score;
-        const val = (typeof fg === 'number') ? fg : (Array.isArray(s?.currencies) ? s.currencies.length : null);
-        return { date: d, val: val != null ? Number(val) : null };
-      }));
-      const cleaned = seeds.filter(p => p.val != null);
-      setPoints(cleaned.length ? cleaned : seeds.map(p => ({ date: p.date, val: 50 }))); // fallback placeholder bars
-    } catch (e) {
-      setErr(e?.message || 'Failed to load historical');
-    } finally {
-      setLoading(false);
-    }
-  }, [listSnapshotDates, loadHistorical]);
-
-  const maxVal = Math.max(1, ...points.map(p => p.val || 0));
-  const minVal = Math.min(0, ...points.map(p => p.val || 0));
-  const range = Math.max(1, maxVal - minVal);
-
-  return (
-    <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border-color, #333)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>Trend demo (sentiment history)</span>
-        <button className="ana-refresh-btn" onClick={runDemo} disabled={loading} style={{ padding: '1px 6px', fontSize: 10 }}>
-          {loading ? 'Loading…' : (points.length ? 'Reload' : 'Load trend')}
-        </button>
-        {points.length > 0 && <span style={{ fontSize: 10, opacity: 0.7 }}>{points.length} snapshots</span>}
-      </div>
-      {err && <div style={{ fontSize: 10, color: '#f87171' }}>{err}</div>}
-      {!err && points.length > 0 && (
-        <svg width="100%" height="52" viewBox={`0 0 ${Math.max(120, points.length * 22)} 52`} preserveAspectRatio="none" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 3 }}>
-          {points.map((p, i) => {
-            const x = 4 + i * 22;
-            const h = 8 + Math.round(((p.val - minVal) / range) * 36);
-            const y = 46 - h;
-            const isRecent = i === points.length - 1;
-            return (
-              <g key={p.date}>
-                <rect x={x} y={y} width="16" height={h} rx="2" fill={isRecent ? '#22c55e' : '#3b82f6'} opacity={isRecent ? 0.95 : 0.75} />
-                <title>{p.date}: {p.val}</title>
-              </g>
-            );
-          })}
-          {/* baseline */}
-          <line x1="2" y1="46" x2={Math.max(118, points.length * 22)} y2="46" stroke="#555" strokeWidth="1" />
-        </svg>
-      )}
-      {points.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, opacity: 0.6, marginTop: 2 }}>
-          <span>{points[0]?.date}</span>
-          <span style={{ color: '#22c55e' }}>{points[points.length-1]?.date} (latest in set)</span>
-        </div>
-      )}
-      <div style={{ fontSize: 9, opacity: 0.55, marginTop: 2 }}>
-        Example: pulls via loadHistorical() from RTDB /history entries. Values are illustrative (fear/greed or proxy). Real panels can do richer math/comparisons.
-      </div>
     </div>
   );
 }
@@ -1238,6 +1155,12 @@ export default function AnalyticsMarket() {
 
         </BentoWrapper>
       </div>
+      <DataFooter
+        source="Internal Diagnostics / RTDB"
+        timestamp={data.dataFreshness?.lastFetch || new Date().toISOString()}
+        isLive={true}
+        fetchLog={[{ method: 'GET', url: '/api/analytics', status: 200, duration: 0 }]}
+      />
     </div>
   );
 }

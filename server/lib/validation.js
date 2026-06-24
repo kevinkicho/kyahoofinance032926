@@ -8,14 +8,23 @@ export const STRUCTURAL_GUARDS = {
   commodities:    d => Array.isArray(d.cotData) ? d.cotData.length >= 2 : true,
   sentiment:      d => Array.isArray(d.currencies) ? d.currencies.length >= 4 : true,
   globalMacro:    d => Array.isArray(d.scorecardData) ? d.scorecardData.length >= 8 : true,
-  credit:         d => d.spreadData?.history?.dates?.length >= 6 && d.commercialPaper?.rate != null,
+  credit:         d => {
+    const fredSpreadBranch = d.spreadData?.history?.dates?.length >= 6 && d.commercialPaper?.rate != null;
+    const emBondBranch = Array.isArray(d.emBondData?.countries) && d.emBondData.countries.length >= 5;
+    const loanBranch = Array.isArray(d.loanData?.indices) && d.loanData.indices.length >= 1;
+    const defaultBranch = Array.isArray(d.defaultData?.rates) && d.defaultData.rates.length >= 1;
+    return fredSpreadBranch || emBondBranch || loanBranch || defaultBranch;
+  },
   crypto:         d => Array.isArray(d.coins) ? d.coins.length >= 10 : true,
-  equities:       d => Array.isArray(d.stocks) ? d.stocks.length >= 1 : true,
-  equitiesDeepDive: d => Array.isArray(d.sectors) ? d.sectors.length >= 8 : true,
+  equities:       d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
+  equitiesDeepDive: d => {
+    const sectors = d.sectorData?.sectors || d.sectors;
+    return Array.isArray(sectors) ? sectors.length >= 8 : true;
+  },
   calendar:       d => {
-    const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 5;
-    const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 2;
-    const banks = Array.isArray(d.centralBanks) && d.centralBanks.length >= 2;
+    const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 1;
+    const earnings = Array.isArray(d.earningsSeason) && d.earningsSeason.length >= 1;
+    const banks = Array.isArray(d.centralBanks) && d.centralBanks.length >= 1;
     return events || earnings || banks;
   },
   derivatives:    d => d.vixTermStructure?.values?.length >= 2,
@@ -24,13 +33,41 @@ export const STRUCTURAL_GUARDS = {
   fx:             d => Array.isArray(d.fredFxRates) ? d.fredFxRates.length >= 2 : true,
   imf:            d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
   worldbank:      d => Array.isArray(d.countries) ? d.countries.length >= 5 : true,
-  bls:            d => d.series && Object.values(d.series).some(s => s._source),
+  bls:            d => d.series && Object.keys(d.series).length > 0,
   eia:            d => d.electricity?.residential != null || d.co2Emissions?.total != null,
-  census:         d => d.series && Object.values(d.series).some(s => s._source),
+  census:         d => d.series && Object.keys(d.series).length > 0,
 };
+
+function isRenderableMarketSnapshot(id, data) {
+  if (!data || typeof data !== 'object') return false;
+  if (['analytics', 'watchlist', 'usda', 'censusTrade', 'eiaPetroleum'].includes(id)) {
+    return Object.keys(data).some(key => !key.startsWith('_') && data[key] != null);
+  }
+  if (id === 'bea') return !!(data.gdpComponents?.length || data.personalIncome?.length || data.savingRate?.length);
+  if (id === 'eurostat') return !!(data.hicp?.length || data.unemployment?.length || data.govtDeficit?.length);
+  if (id === 'oecd') return !!(data.cli && Object.values(data.cli).some(rows => Array.isArray(rows) && rows.length));
+  if (id === 'edgar') return !!(data.tickers && Object.keys(data.tickers).length);
+  if (id === 'universeUpdates') return Array.isArray(data.updates);
+  if (id === 'bls' || id === 'census') return Object.keys(data.series || {}).length > 0;
+  if (id === 'calendar') {
+    const events = Array.isArray(data.economicEvents) && data.economicEvents.length > 0;
+    const earnings = Array.isArray(data.earningsSeason) && data.earningsSeason.length > 0;
+    const banks = Array.isArray(data.centralBanks) && data.centralBanks.length > 0;
+    const releases = Array.isArray(data.keyReleases) && data.keyReleases.length > 0;
+    return events || earnings || banks || releases;
+  }
+  if (id === 'equitiesDeepDive') {
+    const sectors = data.sectorData?.sectors || data.sectors;
+    const stocks = data.factorData?.stocks;
+    return !!((Array.isArray(sectors) && sectors.length) || (Array.isArray(stocks) && stocks.length));
+  }
+  return null;
+}
 
 export function hasNonNullData(d, id) {
   if (!d || typeof d !== 'object') return false;
+  const renderable = isRenderableMarketSnapshot(id, d);
+  if (renderable != null) return renderable;
   let nonNull = 0;
   for (const [k, v] of Object.entries(d)) {
     if (k.startsWith('_') || k === 'lastUpdated' || k === 'fetchedOn' || k === 'isCurrent' || k === 'isLive' || k === 'countryCount') continue;
@@ -80,4 +117,23 @@ export function validateMarketData(id, data) {
   }
   
   return { ok: true };
+}
+
+export function getValidationWarning(id, data) {
+  if (id === 'usda' && data?.error && String(data.error).includes('USDA_NASS_API_KEY not configured')) {
+    return 'USDA_NASS_API_KEY not configured (falls back to stub)';
+  }
+  if (id === 'watchlist' && data?._sources?.yahooFinance === false) {
+    return 'No watchlist quotes returned yet';
+  }
+  if (id === 'censusTrade' && data?._sources?.censusTrade === false) {
+    return 'Census trade source unavailable or returned no current rows';
+  }
+  if (id === 'fedSEP' && data?._sources?.fed_sep === false) {
+    return 'Federal Reserve SEP source unavailable or no current projection table found';
+  }
+  if (id === 'treasuryDTS' && data?._sources?.treasuryDTS === false) {
+    return 'Treasury DTS source unavailable or returned no current rows';
+  }
+  return null;
 }

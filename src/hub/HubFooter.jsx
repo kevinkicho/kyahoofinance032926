@@ -10,7 +10,7 @@ const MARKET_LABELS = {
   derivatives:    'Derivatives',
   realEstate:     'Real Estate',
   insurance:      'Insurance',
-  commodities:    'Commodities',
+  commodities_enhanced: 'Commodities',
   globalMacro:    'Global Macro',
   equityDeepDive: 'Equity+',
 };
@@ -74,7 +74,8 @@ export default function HubFooter({ activeMarket }) {
               : info.fetchedOn
                 ? `${label} · stale`
                 : `${label} · no cache`;
-            return <span key={id} className={cls}>{text}</span>;
+            const titleText = `Data Provenance\nStatus: ${info.isCurrent ? 'Current' : 'Stale / Missing'}\nFetched: ${info.fetchedOn || 'Never'}\nSource: /api/cache/status`;
+            return <span key={id} className={cls} title={titleText}>{text}</span>;
           })}
         </div>
       )}

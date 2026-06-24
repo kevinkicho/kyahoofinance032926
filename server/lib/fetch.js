@@ -25,7 +25,7 @@ async function throttleFRED() {
   fredCallTimestamps.push(Date.now());
 }
 
-export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
+export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT, extraHeaders = {}, timeoutMs = 10000) {
   const isFRED = url.includes('api.stlouisfed.org');
   // Override only when the caller didn't explicitly pass a UA (i.e. used the
   // default). Routes that already pass a custom UA — e.g. EDGAR's required
@@ -40,6 +40,7 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
       headers: {
         'User-Agent': effectiveUA,
         'Accept': 'application/json',
+        ...extraHeaders
       },
     };
     const req = https.get(options, (res) => {
@@ -47,7 +48,7 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
         // Resolve to the redirect URL as a promise so the caller's retry
         // and throttle wrappers still apply. Pass the original userAgent
         // so the FRED UA override is re-evaluated for the redirect target.
-        fetchJSON(res.headers.location, userAgent).then(resolve).catch(reject);
+        fetchJSON(res.headers.location, userAgent, extraHeaders, timeoutMs).then(resolve).catch(reject);
         return;
       }
       if (res.statusCode >= 400) {
@@ -66,7 +67,6 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT) {
       });
     }).on('error', reject);
 
-    const timeoutMs = 10000;
     req.setTimeout(timeoutMs, () => {
       req.destroy(new Error(`fetchJSON timeout (${timeoutMs}ms) for ${urlObj.hostname}${urlObj.pathname}`));
     });

@@ -41,6 +41,7 @@ import worldbankRouter from './routes/worldbank.js';
 import blsRouter from './routes/bls.js';
 import eiaRouter from './routes/eia.js';
 import censusRouter from './routes/census.js';
+import equitiesRouter from './routes/equities.js';
 // Tier-1 additional public-data sources (added 2026-05-03). Server-only —
 // not yet wired to UI panels; consumed via direct /api/<source> fetches
 // or future cross-market reads.
@@ -63,6 +64,10 @@ import censusTradeRouter from './routes/censusTrade.js';
 import eiaPetroleumRouter from './routes/eiaPetroleum.js';
 import universeUpdatesRouter from './routes/universeUpdates.js';
 import adminRouter from './routes/admin.js';
+import cftcTFFRouter from './routes/cftcTFF.js';
+import bisOTCRouter from './routes/bisOTC.js';
+import faoRouter from './routes/fao.js';
+import treasuryCostRouter from './routes/treasuryCost.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -235,6 +240,7 @@ app.get('/api/rate-limits', (_req, res) => {
 
 // ── Mount route modules ───────────────────────────────────────────────────────
 app.use('/api/stocks', stocksRouter);
+app.use('/api/equities', equitiesRouter);
 app.use('/api/macro', macroRouter);
 app.use('/api/bonds', bondsRouter);
 app.use('/api/derivatives', derivativesRouter);
@@ -242,6 +248,7 @@ app.use('/api/realEstate', realEstateRouter);
 app.use('/api/insurance', insuranceRouter);
 app.use('/api/commodities', commoditiesRouter);
 app.use('/api/commodities/v2', commoditiesEnhancedRouter);
+app.use('/api/commoditiesEnhanced', commoditiesEnhancedRouter);
 app.use('/api/globalMacro', globalMacroRouter);
 app.use('/api/equityDeepDive', equityDeepDiveRouter);
 app.use('/api/crypto', cryptoRouter);
@@ -283,6 +290,10 @@ app.use('/api/eia-petroleum', eiaPetroleumRouter);
 app.use('/api/eiaPetroleum', eiaPetroleumRouter);
 app.use('/api/universeUpdates', universeUpdatesRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/cftcTFF', cftcTFFRouter);
+app.use('/api/bisOTC', bisOTCRouter);
+app.use('/api/fao', faoRouter);
+app.use('/api/treasuryCost', treasuryCostRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

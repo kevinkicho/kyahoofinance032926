@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE = 'https://kevinkicho.github.io/kyahoofinance032926/';
+const BASE = '/kyahoofinance032926/';
 
 test.setTimeout(60000);
 

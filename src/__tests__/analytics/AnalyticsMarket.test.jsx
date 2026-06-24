@@ -124,8 +124,8 @@ describe('AnalyticsMarket', () => {
     }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
-      expect(screen.getByText(/api\/fx/)).toBeInTheDocument();
-      expect(screen.getByText(/api\/bonds/)).toBeInTheDocument();
+      expect(screen.getAllByText(/api\/fx/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/api\/bonds/).length).toBeGreaterThan(0);
     });
   });
 

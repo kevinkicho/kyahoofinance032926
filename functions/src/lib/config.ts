@@ -15,7 +15,7 @@ export function getConfig() {
 
 export function getApiKey(key: string): string {
   const config = getConfig();
-  return config?.api?.[key] || process.env[key] || '';
+  return config?.api?.[key] || process.env[key] || process.env[key.toUpperCase()] || '';
 }
 
 export const FRED_API_KEY = () => getApiKey('fred_api_key');

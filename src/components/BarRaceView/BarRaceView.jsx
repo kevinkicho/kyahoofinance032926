@@ -184,6 +184,7 @@ const BarRaceView = ({ flatData, currentRate, currentSymbol, currency, snapshotD
           lazyUpdate={false}
           style={{ height: '100%', width: '100%', minHeight: '400px' }}
           opts={{ renderer: 'canvas' }}
+          sourceInfo={{ title: 'Bar Race', source: 'Yahoo Finance', endpoint: '/api/stocks', series: [] }}
         />
       </div>
     </div>

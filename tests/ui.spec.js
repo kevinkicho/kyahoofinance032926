@@ -36,7 +36,10 @@ test.describe('App shell', () => {
 
   test('theme toggle flips data-theme on <html> and persists to localStorage', async ({ page }) => {
     const initial = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
-    await page.getByRole('button', { name: /Switch to (light|dark) mode/i }).click();
+    // Open settings dropdown first
+    await page.getByRole('button', { name: 'Settings and utilities' }).click();
+    // Click the theme mode toggle button inside the dropdown
+    await page.getByRole('button', { name: /(Light|Dark) mode/i }).click();
     const flipped = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
     expect(flipped).not.toBe(initial);
     const stored = await page.evaluate(() => localStorage.getItem('hub-theme'));

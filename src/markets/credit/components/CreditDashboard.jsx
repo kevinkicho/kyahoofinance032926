@@ -44,6 +44,7 @@ function CreditDashboard({
   commercialPaper,
   excessReserves,
   creditQuality,
+  tedSpread,
   isLive,
   lastUpdated,
   fetchLog,

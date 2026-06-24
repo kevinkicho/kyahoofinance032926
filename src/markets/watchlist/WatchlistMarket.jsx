@@ -5,6 +5,7 @@ import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import { useMarketData } from '../../hub/DataContext';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
+import MetricValue from '../../components/MetricValue/MetricValue';
 import './WatchlistMarket.css';
 
 const MAX_TICKERS = 20;
@@ -12,14 +13,14 @@ const LS_TICKERS = 'hub-watchlist-tickers';
 const LS_METRICS = 'hub-watchlist-metrics';
 
 const METRIC_SHORTCUTS = [
-  { id: 'vix',       label: 'VIX',              market: 'derivatives', tab: 'vixterm'    },
-  { id: 'dxy',       label: 'US Dollar (DXY)',   market: 'fx',         tab: 'dxy'        },
-  { id: 'ust10y',    label: '10Y Treasury',      market: 'bonds',      tab: 'yieldcurve' },
-  { id: 'btc',       label: 'Bitcoin',           market: 'crypto',     tab: 'overview'   },
-  { id: 'gold',      label: 'Gold',              market: 'commodities',tab: 'price'      },
-  { id: 'spx',       label: 'S&P 500',           market: 'equities',   tab: null          },
-  { id: 'hyspread',  label: 'HY Spread',         market: 'credit',     tab: 'ighy'       },
-  { id: 'feargreed', label: 'Fear & Greed',      market: 'sentiment',  tab: 'feargreed'  },
+  { id: 'vix',       label: 'VIX',              market: 'derivatives', tab: 'vixterm',    seriesKey: 'vix' },
+  { id: 'dxy',       label: 'US Dollar (DXY)',   market: 'fx',         tab: 'dxy',        seriesKey: 'dxy' },
+  { id: 'ust10y',    label: '10Y Treasury',      market: 'bonds',      tab: 'yieldcurve', seriesKey: '10y' },
+  { id: 'btc',       label: 'Bitcoin',           market: 'crypto',     tab: 'overview',   seriesKey: 'cryptoPrice' },
+  { id: 'gold',      label: 'Gold',              market: 'commodities',tab: 'price',      seriesKey: 'gold' },
+  { id: 'spx',       label: 'S&P 500',           market: 'equities',   tab: null,         seriesKey: 'sp500' },
+  { id: 'hyspread',  label: 'HY Spread',         market: 'credit',     tab: 'ighy',       seriesKey: 'hyOAS' },
+  { id: 'feargreed', label: 'Fear & Greed',      market: 'sentiment',  tab: 'feargreed',  seriesKey: 'fearGreed' },
 ];
 
 const SUB_TABS = [
@@ -79,15 +80,16 @@ function WatchlistMarket({ onNavigate }) {
     localStorage.setItem(LS_METRICS, JSON.stringify(favMetrics));
   }, [favMetrics]);
 
-  const refetchWatchlist = useCallback(() => {
-    if (watchlistData?.refetch) {
-        watchlistData.refetch({ tickers: tickers.join(',') });
-    }
-  }, [watchlistData, tickers]);
+  const refetchRef = useRef();
+  refetchRef.current = watchlistData?.refetch;
+
+  const tickersStr = tickers.join(',');
 
   useEffect(() => {
-    refetchWatchlist();
-  }, [tickers, refetchWatchlist]);
+    if (tickers.length > 0 && refetchRef.current) {
+      refetchRef.current({ tickers: tickersStr });
+    }
+  }, [tickersStr]);
 
   const addTicker = useCallback(() => {
     const sym = input.trim().toUpperCase();
@@ -397,13 +399,44 @@ function WatchlistMarket({ onNavigate }) {
                               {isLoading ? <span className="watch-ticker-loading" /> : err ? '' : name}
                             </td>
                             <td>
-                              {isLoading ? <span className="watch-ticker-loading" /> : err ? <span className="watch-ticker-error">{err}</span> : price != null ? Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '--'}
+                              {isLoading ? (
+                                <span className="watch-ticker-loading" />
+                              ) : err ? (
+                                <span className="watch-ticker-error">{err}</span>
+                              ) : price != null ? (
+                                <MetricValue
+                                  value={price}
+                                  seriesKey="watchlistPrice"
+                                  timestamp={watchlistData?.lastUpdated}
+                                  format={() => Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                />
+                              ) : (
+                                '--'
+                              )}
                             </td>
                             <td className={changeClass(change)}>
-                              {isLoading ? '' : err ? '' : formatChange(change) ?? '--'}
+                              {isLoading ? '' : err ? '' : change != null ? (
+                                <MetricValue
+                                  value={change}
+                                  seriesKey="watchlistPrice"
+                                  timestamp={watchlistData?.lastUpdated}
+                                  format={() => formatChange(change) ?? '--'}
+                                />
+                              ) : (
+                                '--'
+                              )}
                             </td>
                             <td className={changeClass(changePct)}>
-                              {isLoading ? '' : err ? '' : formatPct(changePct) ?? '--'}
+                              {isLoading ? '' : err ? '' : changePct != null ? (
+                                <MetricValue
+                                  value={changePct}
+                                  seriesKey="watchlistPrice"
+                                  timestamp={watchlistData?.lastUpdated}
+                                  format={() => formatPct(changePct) ?? '--'}
+                                />
+                              ) : (
+                                '--'
+                              )}
                             </td>
                             <td>
                               <button className="watch-remove-btn" title="Remove" onClick={() => removeTicker(sym)}>
@@ -450,7 +483,16 @@ function WatchlistMarket({ onNavigate }) {
                         <div className="watch-metric-main">
                           <span className="watch-metric-label">{m.label}</span>
                           <span className={`watch-metric-value ${statusClass}`} title={status === 'error' ? (MARKET_CONTEXTS[m.id]?.error || 'Fetch error') : ''}>
-                            {status === 'loading' ? <span className="watch-ticker-loading" /> : getLiveValue(m) ?? '—'}
+                            {status === 'loading' ? (
+                              <span className="watch-ticker-loading" />
+                            ) : (
+                              <MetricValue
+                                value={getLiveValue(m)}
+                                seriesKey={m.seriesKey}
+                                timestamp={MARKET_CONTEXTS[m.id]?.lastUpdated}
+                                format={v => v ?? '—'}
+                              />
+                            )}
                           </span>
                         </div>
                         <div className="watch-metric-right">
@@ -497,7 +539,14 @@ function WatchlistMarket({ onNavigate }) {
                 {crossMarketAlerts.map(row => (
                   <tr key={row.signal} onClick={() => row.target && handleMetricClick(row.target)} style={{ cursor: row.target ? 'pointer' : 'default' }}>
                     <td style={{ fontWeight: 600 }}>{row.signal}</td>
-                    <td>{row.value}</td>
+                    <td>
+                      <MetricValue
+                        value={row.value}
+                        seriesKey={row.target?.seriesKey}
+                        timestamp={MARKET_CONTEXTS[row.target?.id]?.lastUpdated || watchlistData?.lastUpdated}
+                        format={v => v ?? '—'}
+                      />
+                    </td>
                     <td style={{ color: 'var(--text-muted)' }}>{row.read}</td>
                     <td>
                       <span

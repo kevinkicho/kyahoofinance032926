@@ -14,12 +14,12 @@ router.get('/', async (_req, res) => {
   const today = todayStr();
   try {
     trackApiCall('Treasury Fiscal Data');
-    const url = `${BASE}?page[size]=120&sort=-record_date&fields=record_date,security_desc,security_type,avg_interest_rate_amt`;
+    const url = `${BASE}?page[size]=120&sort=-record_date&fields=record_date,security_desc,security_type_desc,avg_interest_rate_amt`;
     const data = await fetchJSON(url);
     const rows = (data?.data || []).filter(r => r.avg_interest_rate_amt != null);
     const byType = {};
     for (const r of rows) {
-      const type = r.security_type || 'Other';
+      const type = r.security_type_desc || 'Other';
       if (!byType[type]) byType[type] = [];
       byType[type].push({ date: r.record_date, rate: parseFloat(r.avg_interest_rate_amt), desc: r.security_desc });
     }

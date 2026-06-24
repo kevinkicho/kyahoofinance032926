@@ -54,6 +54,11 @@ export const SNAPSHOT_MARKETS: SnapshotMarket[] = [
   { id: "usda", path: "/api/usda" },
   { id: "censusTrade", path: "/api/censusTrade" },
   { id: "eiaPetroleum", path: "/api/eiaPetroleum" },
+  { id: "treasuryCost", path: "/api/treasuryCost" },
+  { id: "edgarFilingActivity", path: "/api/edgar/filing-activity" },
+  { id: "cftcTFF", path: "/api/cftcTFF" },
+  { id: "bisOTC", path: "/api/bisOTC" },
+  { id: "fao", path: "/api/fao" },
 ];
 
 export const DIAGNOSTIC_MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS.filter(
