@@ -13,18 +13,22 @@ const BLS_LAYOUT = {
     { i: 'kpi', x: 0, y: 0, w: 12, h: 5 },
     { i: 'trends-top', x: 0, y: 5, w: 6, h: 3 },
     { i: 'trends-bottom', x: 6, y: 5, w: 6, h: 3 },
+    { i: 'jolts', x: 0, y: 8, w: 6, h: 4 },
+    { i: 'productivity', x: 6, y: 8, w: 6, h: 4 },
+    { i: 'cpi-components', x: 0, y: 12, w: 6, h: 4 },
+    { i: 'ppi-by-industry', x: 6, y: 12, w: 6, h: 4 },
+    { i: 'eci', x: 0, y: 16, w: 6, h: 3 },
+    { i: 'unemployment-duration', x: 6, y: 16, w: 6, h: 3 },
   ]
 };
 
-const SERIES_ORDER = ['unemployment', 'laborParticipation', 'employmentPop', 'nonfarmPayrolls', 'avgHourlyEarnings', 'avgWeeklyHours', 'cpi', 'ppi', 'jobOpenings', 'unemployedPersons'];
+const SERIES_ORDER = ['unemployment', 'laborParticipation', 'employmentPop', 'nonfarmPayrolls', 'cpi', 'ppi', 'jobOpenings', 'unemployedPersons'];
 
 const FORMAT = {
   unemployment: v => v?.toFixed(1),
   laborParticipation: v => v?.toFixed(1),
   employmentPop: v => v?.toFixed(1),
   nonfarmPayrolls: v => v != null ? (v >= 1000 ? `${(v / 1000).toFixed(1)}M` : v.toLocaleString()) : '—',
-  avgHourlyEarnings: v => v != null ? `$${v.toFixed(2)}` : '—',
-  avgWeeklyHours: v => v?.toFixed(1),
   cpi: v => v?.toFixed(1),
   ppi: v => v?.toFixed(1),
   jobOpenings: v => v != null ? `${(v / 1000).toFixed(1)}M` : '—',
@@ -36,8 +40,6 @@ const CHANGE_COLORS = {
   laborParticipation: v => v > 0 ? 'positive' : 'negative',
   employmentPop: v => v > 0 ? 'positive' : 'negative',
   nonfarmPayrolls: v => v > 0 ? 'positive' : 'negative',
-  avgHourlyEarnings: v => v > 0 ? 'negative' : 'positive',
-  avgWeeklyHours: v => v > 0 ? 'positive' : 'negative',
   cpi: v => v > 0 ? 'negative' : 'positive',
   ppi: v => v > 0 ? 'negative' : 'positive',
   jobOpenings: v => v > 0 ? 'positive' : 'negative',
@@ -139,8 +141,6 @@ const BLS_SERIES_KEY = {
   laborParticipation: 'blsLaborParticipation',
   employmentPop: 'blsEmploymentPop',
   nonfarmPayrolls: 'blsNonfarmPayrolls',
-  avgHourlyEarnings: 'blsAvgHourlyEarnings',
-  avgWeeklyHours: 'blsAvgWeeklyHours',
   cpi: 'blsCpi',
   ppi: 'blsPpi',
   jobOpenings: 'blsJobOpenings',
@@ -278,6 +278,176 @@ export default function BlsDashboard({ series, isLive, lastUpdated, fetchLog, er
               </div>
             </div>
           ))}
+        </div>
+      </BentoCard>
+
+      <BentoCard key="jolts" title="JOLTS — Job Openings, Hires, Quits & Layoffs" accent="bls" noFooter>
+        <div className="bls-chart-row">
+          {[
+            { key: 'jobOpenings', label: 'Job Openings', color: '#42a5f5' },
+            { key: 'joltsHires', label: 'Hires', color: '#66bb6a' },
+            { key: 'joltsQuits', label: 'Quits Rate', color: '#ffa726' },
+            { key: 'joltsLayoffs', label: 'Layoffs & Discharges', color: '#ef5350' },
+          ].map(({ key, label, color }) => {
+            const s = series[key];
+            if (!s?.history?.values?.length) return null;
+            const opt = buildSparklineOption(s.history, { color, unit: s.unit, label });
+            return opt ? (
+              <div key={key} className="bls-mini-chart">
+                <h4>{label} ({s.unit})</h4>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    <MetricValue value={s.latest?.value} seriesKey={`bls${key.charAt(0).toUpperCase() + key.slice(1)}`} timestamp={`${s.latest?.period || ''} ${s.latest?.year || ''}`.trim() || undefined} format={v => v != null ? (v >= 1000 ? `${(v / 1000).toFixed(1)}M` : v.toFixed(1)) : '—'} />
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{s.latest?.period} {s.latest?.year}</span>
+                </div>
+                <div className="bls-mini-chart-body">
+                  <SafeECharts option={opt} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+                </div>
+              </div>
+            ) : null;
+          })}
+        </div>
+      </BentoCard>
+
+      <BentoCard key="productivity" title="Productivity & Unit Labor Costs" accent="bls" noFooter>
+        <div className="bls-chart-row">
+          {[
+            { key: 'outputPerHour', label: 'Output per Hour', color: '#42a5f5' },
+            { key: 'unitLaborCosts', label: 'Unit Labor Costs', color: '#ef5350' },
+          ].map(({ key, label, color }) => {
+            const s = series[key];
+            if (!s?.history?.values?.length) return null;
+            const opt = buildSparklineOption(s.history, { color, unit: s.unit, label });
+            return opt ? (
+              <div key={key} className="bls-mini-chart" style={{ gridColumn: 'span 1' }}>
+                <h4>{label} ({s.unit})</h4>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    <MetricValue value={s.latest?.value} seriesKey={`bls${key.charAt(0).toUpperCase() + key.slice(1)}`} timestamp={`${s.latest?.period || ''} ${s.latest?.year || ''}`.trim() || undefined} format={v => v?.toFixed(1)} />
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{s.unit} · {s.latest?.period} {s.latest?.year}</span>
+                </div>
+                <div className="bls-mini-chart-body">
+                  <SafeECharts option={opt} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+                </div>
+              </div>
+            ) : null;
+          })}
+        </div>
+      </BentoCard>
+
+      <BentoCard key="cpi-components" title="CPI Components — Food, Energy, Shelter" accent="bls" noFooter>
+        <div className="bls-chart-row">
+          {[
+            { key: 'cpi', label: 'CPI · All Items', color: '#42a5f5' },
+            { key: 'cpiFood', label: 'CPI · Food', color: '#66bb6a' },
+            { key: 'cpiEnergy', label: 'CPI · Energy', color: '#ffa726' },
+            { key: 'cpiShelter', label: 'CPI · Shelter', color: '#ef5350' },
+          ].map(({ key, label, color }) => {
+            const s = series[key];
+            if (!s?.history?.values?.length) return null;
+            const opt = buildSparklineOption(s.history, { color, unit: s.unit, label });
+            return opt ? (
+              <div key={key} className="bls-mini-chart">
+                <h4>{label} ({s.unit})</h4>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    <MetricValue value={s.latest?.value} seriesKey={`bls${key.charAt(0).toUpperCase() + key.slice(1)}`} timestamp={`${s.latest?.period || ''} ${s.latest?.year || ''}`.trim() || undefined} format={v => v?.toFixed(1)} />
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{s.latest?.period} {s.latest?.year}</span>
+                </div>
+                <div className="bls-mini-chart-body">
+                  <SafeECharts option={opt} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+                </div>
+              </div>
+            ) : null;
+          })}
+        </div>
+      </BentoCard>
+
+      <BentoCard key="ppi-by-industry" title="PPI by Industry — Final, Intermediate, Services" accent="bls" noFooter>
+        <div className="bls-chart-row">
+          {[
+            { key: 'ppi', label: 'PPI · Final Demand', color: '#42a5f5' },
+            { key: 'ppiIntermediate', label: 'PPI · Intermediate Demand', color: '#ffa726' },
+            { key: 'ppiServices', label: 'PPI · Services', color: '#66bb6a' },
+          ].map(({ key, label, color }) => {
+            const s = series[key];
+            if (!s?.history?.values?.length) return null;
+            const opt = buildSparklineOption(s.history, { color, unit: s.unit, label });
+            return opt ? (
+              <div key={key} className="bls-mini-chart">
+                <h4>{label} ({s.unit})</h4>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    <MetricValue value={s.latest?.value} seriesKey={`bls${key.charAt(0).toUpperCase() + key.slice(1)}`} timestamp={`${s.latest?.period || ''} ${s.latest?.year || ''}`.trim() || undefined} format={v => v?.toFixed(1)} />
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{s.latest?.period} {s.latest?.year}</span>
+                </div>
+                <div className="bls-mini-chart-body">
+                  <SafeECharts option={opt} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+                </div>
+              </div>
+            ) : null;
+          })}
+        </div>
+      </BentoCard>
+
+      <BentoCard key="eci" title="Employment Cost Index" accent="bls" noFooter>
+        <div className="bls-chart-row">
+          {[
+            { key: 'eciTotal', label: 'Total Compensation', color: '#42a5f5' },
+            { key: 'eciWages', label: 'Wages & Salaries', color: '#66bb6a' },
+            { key: 'eciBenefits', label: 'Benefits', color: '#ffa726' },
+          ].map(({ key, label, color }) => {
+            const s = series[key];
+            if (!s?.history?.values?.length) return null;
+            const opt = buildSparklineOption(s.history, { color, unit: s.unit, label });
+            return opt ? (
+              <div key={key} className="bls-mini-chart">
+                <h4>{label} ({s.unit})</h4>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    <MetricValue value={s.latest?.value} seriesKey={`bls${key.charAt(0).toUpperCase() + key.slice(1)}`} timestamp={`${s.latest?.period || ''} ${s.latest?.year || ''}`.trim() || undefined} format={v => v?.toFixed(1)} />
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{s.unit} · {s.latest?.period} {s.latest?.year}</span>
+                </div>
+                <div className="bls-mini-chart-body">
+                  <SafeECharts option={opt} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+                </div>
+              </div>
+            ) : null;
+          })}
+        </div>
+      </BentoCard>
+
+      <BentoCard key="unemployment-duration" title="Unemployment by Duration" accent="bls" noFooter>
+        <div className="bls-chart-row">
+          {[
+            { key: 'unempLess5Weeks', label: '< 5 Weeks', color: '#66bb6a' },
+            { key: 'unemp5To14Weeks', label: '5-14 Weeks', color: '#42a5f5' },
+            { key: 'unemp15To26Weeks', label: '15-26 Weeks', color: '#ffa726' },
+            { key: 'unemp27PlusWeeks', label: '27+ Weeks', color: '#ef5350' },
+          ].map(({ key, label, color }) => {
+            const s = series[key];
+            if (!s?.history?.values?.length) return null;
+            const opt = buildSparklineOption(s.history, { color, unit: s.unit, label });
+            return opt ? (
+              <div key={key} className="bls-mini-chart">
+                <h4>{label} ({s.unit})</h4>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    <MetricValue value={s.latest?.value} seriesKey={`bls${key.charAt(0).toUpperCase() + key.slice(1)}`} timestamp={`${s.latest?.period || ''} ${s.latest?.year || ''}`.trim() || undefined} format={v => v != null ? `${(v / 1000).toFixed(1)}M` : '—'} />
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{s.latest?.period} {s.latest?.year}</span>
+                </div>
+                <div className="bls-mini-chart-body">
+                  <SafeECharts option={opt} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: label, source: 'BLS', endpoint: '/api/bls', series: [] }} />
+                </div>
+              </div>
+            ) : null;
+          })}
         </div>
       </BentoCard>
     </BentoWrapper>

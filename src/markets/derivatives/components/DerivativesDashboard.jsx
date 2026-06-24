@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { useMarketData } from '../../../hub/DataContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
@@ -21,6 +22,8 @@ const LAYOUT = {
     { i: 'flow',    x: 9, y: 5, w: 3,  h: 3 },
     { i: 'gamma',   x: 0, y: 7, w: 3,  h: 4 },
     { i: 'volprem', x: 3, y: 8, w: 3,  h: 3 },
+    { i: 'cftc-tff', x: 6, y: 7, w: 6, h: 4 },
+    { i: 'bis-otc', x: 0, y: 11, w: 12, h: 4 },
   ]
 };
 
@@ -31,6 +34,8 @@ function DerivativesDashboard({
   gammaExposure, vixPercentile, termSpread, fetchLog, isLive, lastUpdated, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
+  const cftcTFFCtx = useMarketData('cftcTFF');
+  const bisOTCCtx = useMarketData('bisOTC');
 
   const vixOption = useMemo(() => {
     if (!vixTermStructure?.dates?.length) return null;
@@ -362,6 +367,58 @@ function DerivativesDashboard({
             </>
           </BentoCard>
         )}
+
+        <BentoCard key="cftc-tff" title="CFTC Financial Futures Positioning" accent="derivatives" className="deriv-bento-card" contentClassName="deriv-panel-content" source="CFTC Traders in Financial Futures" timestamp={cftcTFFCtx?.lastUpdated || lastUpdated} isLive={!!cftcTFFCtx?.data?.contracts} isCurrent={cftcTFFCtx?.isCurrent ?? isCurrent} fetchedOn={cftcTFFCtx?.fetchedOn || fetchedOn} fetchLog={cftcTFFCtx?.fetchLog || fetchLog} error={cftcTFFCtx?.error || error}>
+          {cftcTFFCtx?.data?.contracts ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, height: '100%', overflow: 'auto' }}>
+              {Object.entries(cftcTFFCtx.data.contracts).filter(([, v]) => v?.series?.length).map(([key, contract]) => {
+                const latest = contract.series[0];
+                const netNonComm = (latest.nonCommLong || 0) - (latest.nonCommShort || 0);
+                return (
+                  <div key={key} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: 8 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>{contract.name}</div>
+                    <div style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ color: netNonComm > 0 ? '#22c55e' : '#f87171' }}>
+                        Net NonComm: {netNonComm > 0 ? '+' : ''}{netNonComm.toLocaleString()}
+                      </div>
+                      <div style={{ color: colors.textMuted, fontSize: 10 }}>
+                        Long {latest.nonCommLong?.toLocaleString()} · Short {latest.nonCommShort?.toLocaleString()}
+                      </div>
+                      <div style={{ color: colors.textMuted, fontSize: 9, marginTop: 2 }}>
+                        OI: {latest.openInterest?.toLocaleString()} · {latest.date?.slice(0, 10)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="deriv-empty">CFTC TFF data unavailable</div>
+          )}
+        </BentoCard>
+
+        <BentoCard key="bis-otc" title="BIS OTC Derivatives — Global Notional Outstanding" accent="derivatives" className="deriv-bento-card" contentClassName="deriv-panel-content" source="BIS OTC Derivatives Statistics" timestamp={bisOTCCtx?.lastUpdated || lastUpdated} isLive={!!bisOTCCtx?.data?.categories} isCurrent={bisOTCCtx?.isCurrent ?? isCurrent} fetchedOn={bisOTCCtx?.fetchedOn || fetchedOn} fetchLog={bisOTCCtx?.fetchLog || fetchLog} error={bisOTCCtx?.error || error}>
+          {bisOTCCtx?.data?.categories ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, height: '100%', overflow: 'auto' }}>
+              {Object.entries(bisOTCCtx.data.categories).filter(([, v]) => v?.series?.length).map(([key, cat]) => {
+                const latest = cat.series[cat.series.length - 1];
+                return (
+                  <div key={key} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: 8 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>{cat.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#a78bfa' }}>
+                      {latest?.value != null ? `$${(latest.value / 1e6).toFixed(1)}T` : '—'}
+                    </div>
+                    <div style={{ fontSize: 9, color: colors.textMuted, marginTop: 2 }}>
+                      {latest?.period || ''}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="deriv-empty">BIS OTC data unavailable</div>
+          )}
+        </BentoCard>
       </BentoWrapper>
     </div>
   );

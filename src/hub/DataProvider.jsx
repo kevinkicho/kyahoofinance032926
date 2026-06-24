@@ -82,6 +82,7 @@ export const MARKET_ENDPOINTS = {
   // Bonds Recent Auctions and Macro TGA Cash Balance panels.
   treasuryAuctions:  '/api/treasuryAuctions',
   treasuryDTS:       '/api/treasuryDTS',
+  treasuryCost:      '/api/treasuryCost',
   // Federal Reserve System: FOMC SEP, Atlanta GDPNow, Cleveland inflation
   // nowcast, SF news sentiment. Consumed by Macro and Sentiment panels.
   fedSEP:              '/api/fed/sep',
@@ -96,11 +97,15 @@ export const MARKET_ENDPOINTS = {
   fema:                '/api/fema',
   usgs:                '/api/usgs',
   edgarInsurerRatios:  '/api/edgar/insurer-ratios',
+  edgarFilingActivity: '/api/edgar/filing-activity',
   // Commodities-tab additions: USDA NASS ag prices, Census trade flows,
   // EIA petroleum & natural gas. USDA gracefully degrades without a key.
   usda:                '/api/usda',
   censusTrade:         '/api/censusTrade',
   eiaPetroleum:        '/api/eiaPetroleum',
+  cftcTFF:             '/api/cftcTFF',
+  bisOTC:              '/api/bisOTC',
+  fao:                 '/api/fao',
 };
 
 const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);

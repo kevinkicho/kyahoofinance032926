@@ -507,12 +507,14 @@ router.get('/', async (req, res) => {
 
     let existingHomeSales = null;
     let rentalVacancy = null;
+    let fhfaHpi = null;
     if (FRED_API_KEY) {
       try {
         trackApiCall('FRED');
-        const [exhoHist, rrvResult] = await Promise.all([
+        const [exhoHist, rrvResult, fhfaResult] = await Promise.all([
           fetchFredHistory('EXHOSLUSM495S', FRED_API_KEY, 24),
           fetchFredLatest('RRVRUSQ156N', FRED_API_KEY),
+          fetchFredHistory('USSTHPI', FRED_API_KEY, 20),
         ]);
         if (exhoHist.status === 'fulfilled' && exhoHist.value.length > 0) {
           existingHomeSales = {
@@ -522,6 +524,14 @@ router.get('/', async (req, res) => {
         }
         if (rrvResult.status === 'fulfilled' && rrvResult.value != null) {
           rentalVacancy = Math.round(rrvResult.value * 100) / 100;
+        }
+        if (fhfaResult.status === 'fulfilled' && fhfaResult.value.length > 0) {
+          const base = parseFloat(fhfaResult.value[0].value);
+          fhfaHpi = {
+            dates:  fhfaResult.value.map(p => p.date.slice(0, 7)),
+            values: fhfaResult.value.map(p => base ? Math.round((parseFloat(p.value) / base) * 1000) / 10 : 0),
+            latest: fhfaResult.value.length ? { value: parseFloat(fhfaResult.value[fhfaResult.value.length - 1].value), date: fhfaResult.value[fhfaResult.value.length - 1].date.slice(0, 7) } : null,
+          };
         }
       } catch (e) { console.warn('[RealEstate]', e.message || e); }
     }
@@ -627,6 +637,7 @@ router.get('/', async (req, res) => {
       supplyData:         supplyData != null,
       homeownershipRate:  homeownershipRate != null,
       rentCpi:            rentCpi != null,
+      fhfaHpi:            fhfaHpi != null,
       reitEtf:            reitEtf != null,
       treasury10y:        treasury10y != null,
       existingHomeSales:  existingHomeSales != null,

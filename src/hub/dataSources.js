@@ -91,6 +91,13 @@ const DATA_SOURCES = {
   treasuryTIC: [
     { name: 'Treasury TIC',    url: 'https://fiscaldata.treasury.gov/datasets/treasury-international-capital-tic-system/', items: 'Major Foreign Holders of US Treasuries (monthly, by country)' },
   ],
+  bls: [
+    { name: 'Bureau of Labor Statistics', url: 'https://www.bls.gov/developers/', items: 'Unemployment rate, labor force participation, nonfarm payrolls, avg hourly earnings, CPI, PPI, job openings, avg weekly hours' },
+    { name: 'FRED (BLS mirror)', url: 'https://fred.stlouisfed.org', items: 'BLS series mirrored via FRED when BLS API key is unavailable' },
+  ],
+  eia: [
+    { name: 'EIA',             url: 'https://www.eia.gov/opendata',                 items: 'Electricity retail sales & prices (residential/commercial/industrial), CO₂ emissions by sector, petroleum spot prices (WTI, Brent, gasoline, diesel, heating oil), natural gas Henry Hub spot price' },
+  ],
 };
 
 export default DATA_SOURCES;

@@ -117,7 +117,8 @@ const HEATMAP_LAYOUT = {
     { i: 'heatmap', x: 0, y: 3, w: 8,  h: 6 },
     { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
     { i: 'sec-fundamentals', x: 0, y: 9, w: 6, h: 3 },
-    { i: 'universe-updates', x: 0, y: 9, w: 12, h: 4 },
+    { i: 'universe-updates', x: 0, y: 12, w: 12, h: 4 },
+    { i: 'sec-filings', x: 6, y: 9, w: 6, h: 3 },
   ]
 };
 
@@ -349,6 +350,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const dataCtx = (() => { try { return useDataContext(); } catch { return null; } })();
   const globalHistoricalDate = dataCtx?.historicalDate || null;
   const edgarCtx = dataCtx?.getMarket?.('edgar');
+  const filingActivityCtx = dataCtx?.getMarket?.('edgarFilingActivity');
   const universeCtx = dataCtx?.getMarket?.('universeUpdates');
   const centralSnapshot = centralData?.data || null;
   const centralQuotes = useMemo(() => compactQuotesFromSnapshot(centralSnapshot?.quotes), [centralSnapshot]);
@@ -1000,6 +1002,37 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     </BentoCard>
   ) : null;
 
+  const filingActivityData = filingActivityCtx?.data?.byType || {};
+  const filingActivityTotal = filingActivityCtx?.data?.total || 0;
+  const filingActivityTickers = filingActivityCtx?.data?.tickerCount || 0;
+  const FILING_TYPES = ['10-K', '10-Q', '8-K', '4', '144', 'DEF 14A', 'SD', 'SC 13G/A', 'DEFA14A', 'FWP', '424B2', 'PX14A6G', '3', 'NO ACT'];
+  const secFilingsCard = filingActivityTotal > 0 ? (
+    <BentoCard
+      key="sec-filings"
+      title="SEC Filing Activity"
+      subtitle={`${filingActivityTotal} filings · ${filingActivityTickers} tickers`}
+      accent="equities"
+      className="eq-bento-card"
+      contentClassName="eq-panel-content eq-panel-scroll"
+      source="SEC EDGAR"
+      timestamp={filingActivityCtx?.lastUpdated || dataTimestamp}
+      isLive={!!filingActivityCtx?.data?.isLive}
+      isCurrent={filingActivityCtx?.isCurrent ?? true}
+      fetchedOn={filingActivityCtx?.fetchedOn}
+      fetchLog={filingActivityCtx?.fetchLog || []}
+      error={filingActivityCtx?.error}
+    >
+      <div className="eq-mini-table">
+        {FILING_TYPES.filter(t => filingActivityData[t]).map(type => (
+          <div key={type} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', padding: '4px 0' }}>
+            <span style={{ fontSize: 12, fontWeight: 500 }}>{type}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{filingActivityData[type].toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </BentoCard>
+  ) : null;
+
   const universeUpdatesCard = universeUpdates.length > 0 ? (
     <BentoCard
       key="universe-updates"
@@ -1143,6 +1176,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
                 setSearchQuery={setSearchQuery}
                 rankMetric={rankMetric}
                 groupBy={groupBy}
+                dataTimestamp={dataTimestamp}
+                snapshotDate={snapshotDate}
               />
             </div>
             <div className="eq-panel-footer">
@@ -1193,6 +1228,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           </div>
           {sidebarPanel}
           {secFundamentalsCard}
+          {secFilingsCard}
           {universeUpdatesCard}
         </BentoWrapper>
       ) : viewMode === 'portfolio' ? (

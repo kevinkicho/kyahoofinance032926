@@ -15,12 +15,33 @@ const BLS_SERIES = {
   laborParticipation:{ id: 'LNS11300000',   fred: 'CIVPART',   label: 'Labor Force Participation',  unit: '%' },
   employmentPop:     { id: 'LNS12300000',   fred: 'EMRATIO',   label: 'Employment-Population Ratio', unit: '%' },
   nonfarmPayrolls:   { id: 'CES0000000001', fred: 'PAYEMS',    label: 'Nonfarm Payrolls (thousands)', unit: 'K' },
-  avgHourlyEarnings: { id: 'CES0500000008', fred: 'CES0500000003', label: 'Avg Hourly Earnings',    unit: '$' },
   cpi:               { id: 'CUUR0000SA0',   fred: 'CPIAUCSL',  label: 'CPI (All Urban)',            unit: 'index' },
   ppi:               { id: 'WPSFD4111',     fred: 'PPIFIS',    label: 'PPI (Final Demand)',          unit: 'index' },
   jobOpenings:       { id: 'LNS17200000',   fred: 'JTSJOL',    label: 'Job Openings (thousands)',    unit: 'K' },
   unemployedPersons: { id: 'LNS13000000',   fred: 'UNEMPLOY',  label: 'Unemployed Persons (thousands)', unit: 'K' },
-  avgWeeklyHours:    { id: 'CES0500000002', fred: 'AWHAEMAN',  label: 'Avg Weekly Hours',            unit: 'hrs' },
+  // JOLTS detail
+  joltsQuits:        { id: 'JTS000000000000000QUR', fred: 'JTSQUR', label: 'Quits Rate',              unit: '%' },
+  joltsHires:        { id: 'JTS000000000000000HIL', fred: 'JTSHIL', label: 'Hires (thousands)',       unit: 'K' },
+  joltsLayoffs:      { id: 'JTS000000000000000LDL', fred: 'JTSLDL', label: 'Layoffs & Discharges',    unit: 'K' },
+  // Productivity
+  outputPerHour:     { id: 'PRS85006092',   fred: 'OPHNFB',    label: 'Output per Hour (Nonfarm)',   unit: '%' },
+  unitLaborCosts:    { id: 'PRS85006112',   fred: 'ULCNFB',    label: 'Unit Labor Costs (Nonfarm)',  unit: '%' },
+  // CPI components
+  cpiFood:           { id: 'CUUR0000SAF1',  fred: 'CPIUFDNS',  label: 'CPI · Food',                 unit: 'index' },
+  cpiEnergy:         { id: 'CUUR0000SAE1',  fred: 'CPIENGSL',  label: 'CPI · Energy',               unit: 'index' },
+  cpiShelter:        { id: 'CUUR0000SAH1',  fred: 'CPIHOSNS',  label: 'CPI · Shelter',              unit: 'index' },
+  // PPI by industry
+  ppiIntermediate:   { id: 'WPUFD4121',     fred: 'PPIIDC',    label: 'PPI · Intermediate Demand',  unit: 'index' },
+  ppiServices:       { id: 'WPUFD4131',     fred: 'PPITSS',    label: 'PPI · Services',             unit: 'index' },
+  // ECI
+  eciWages:          { id: 'CIS2020000000000I', fred: 'ECIWAG', label: 'ECI · Wages & Salaries',    unit: '%' },
+  eciBenefits:       { id: 'CIS2030000000000I', fred: 'ECIBEN', label: 'ECI · Benefits',            unit: '%' },
+  eciTotal:          { id: 'CIS2010000000000I', fred: 'ECICOM', label: 'ECI · Total Compensation',  unit: '%' },
+  // Unemployment duration
+  unempLess5Weeks:   { id: 'LNS13008396',   fred: 'UEMPLT5',   label: 'Unemployed < 5 Weeks',        unit: 'K' },
+  unemp5To14Weeks:   { id: 'LNS13008397',   fred: 'UEMP5TO14', label: 'Unemployed 5-14 Weeks',       unit: 'K' },
+  unemp15To26Weeks:  { id: 'LNS13008398',   fred: 'UEMP15T26', label: 'Unemployed 15-26 Weeks',      unit: 'K' },
+  unemp27PlusWeeks:  { id: 'LNS13008585',   fred: 'UEMP27OV',  label: 'Unemployed 27+ Weeks',        unit: 'K' },
 };
 
 async function fetchFromFred(FRED_API_KEY) {

@@ -29,6 +29,7 @@ const LAYOUT = {
     { i: 'credit-quality', x: 0, y: 12, w: 6, h: 4 },
     { i: 'muni-market',    x: 6, y: 12, w: 6, h: 4 },
     { i: 'bank-stress',    x: 0, y: 16, w: 12, h: 3 },
+    { i: 'ted-spread',     x: 0, y: 19, w: 6, h: 3 },
   ]
 };
 
@@ -663,6 +664,33 @@ function CreditDashboard({
                 <div style={{ flex: 1, minHeight: 0 }}>
                   {msrbPrimaryOption && <SafeECharts option={msrbPrimaryOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Muni Primary Market', source: 'MSRB EMMA', endpoint: '/api/msrb', series: [], updatedAt: msrbCtx?.lastUpdated || lastUpdated }} />}
                 </div>
+              </div>
+            </div>
+          </BentoCard>
+        )}
+
+        {tedSpread?.values?.length > 0 && (
+          <BentoCard key="ted-spread" title="TED Spread (LIBOR − T-Bill)" accent="credit" className="credit-bento-card" contentClassName="credit-panel-content" source="FRED (TEDRATE)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <div style={{ height: '100%', minHeight: 0, padding: 4 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 6 }}>
+                <span style={{ fontSize: '1.3rem', fontWeight: 700, color: (tedSpread.latest ?? 0) > 0.5 ? '#f87171' : '#22c55e' }}>
+                  {tedSpread.latest != null ? `${tedSpread.latest.toFixed(2)}%` : '—'}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>bps · {tedSpread.dates?.[tedSpread.dates.length - 1]}</span>
+              </div>
+              <div style={{ height: 'calc(100% - 30px)', minHeight: 0 }}>
+                <SafeECharts
+                  option={{
+                    animation: false, backgroundColor: 'transparent',
+                    grid: { left: 40, right: 8, top: 8, bottom: 20 },
+                    xAxis: { type: 'category', data: tedSpread.dates, axisLabel: { fontSize: 9, color: '#888', interval: Math.floor(tedSpread.dates.length / 5) } },
+                    yAxis: { type: 'value', axisLabel: { fontSize: 9, color: '#888' }, splitLine: { lineStyle: { color: '#222' } } },
+                    tooltip: { trigger: 'axis' },
+                    series: [{ type: 'line', data: tedSpread.values, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#f59e0b40' }, { offset: 1, color: '#f59e0b05' }] } } }],
+                  }}
+                  style={{ height: '100%', width: '100%' }}
+                  sourceInfo={{ title: 'TED Spread', source: 'FRED', endpoint: '/api/credit', series: [] }}
+                />
               </div>
             </div>
           </BentoCard>

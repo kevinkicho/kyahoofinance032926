@@ -41,6 +41,7 @@ router.get('/', async (_req, res) => {
     let lendingStandards = null;
     let commercialPaper  = null;
     let excessReserves   = null;
+    let tedSpread        = null;
 
     if (FRED_API_KEY) {
       trackApiCall('FRED');
@@ -175,6 +176,21 @@ router.get('/', async (_req, res) => {
         dates:  excessRaw.map(p => p.date),
         values: excessRaw.map(p => Math.round(p.value * 10) / 10),
       } : null;
+    }
+
+    // TED Spread (LIBOR - T-bill) — classic credit stress indicator.
+    if (FRED_API_KEY) {
+      try {
+        trackApiCall('FRED');
+        const tedRaw = await fetchFredHistory('TEDRATE', FRED_API_KEY, 252);
+        if (tedRaw?.length > 0) {
+          tedSpread = {
+            dates:  tedRaw.map(p => p.date),
+            values: tedRaw.map(p => Math.round(p.value * 100) / 100),
+            latest: tedRaw[tedRaw.length - 1]?.value != null ? Math.round(tedRaw[tedRaw.length - 1].value * 100) / 100 : null,
+          };
+        }
+      } catch (e) { console.warn('[Credit] TEDRATE:', e.message || e); }
     }
 
     // Moody's seasoned Aaa vs Baa corporate bond yields, plus the derived
@@ -426,6 +442,7 @@ let emBondCountries = [];
       lendingStandards:  lendingStandards != null,
       commercialPaper:  commercialPaper != null,
       excessReserves:   excessReserves != null,
+      tedSpread:        tedSpread != null,
     };
 
     const finalSpreadData = spreadData ?? {
@@ -460,6 +477,7 @@ let emBondCountries = [];
       commercialPaper,
       excessReserves,
       creditQuality,
+      tedSpread,
       isLive,
       lastUpdated: today,
     };

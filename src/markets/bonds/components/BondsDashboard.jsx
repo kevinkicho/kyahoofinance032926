@@ -29,6 +29,8 @@ function BondsDashboard({
   const ticCtx = useMarketData('treasuryTIC');
   const nyfedCtx = useMarketData('nyfed');
   const auctionCtx = useMarketData('treasuryAuctions');
+  const ecbCtx = useMarketData('ecb');
+  const treasuryCostCtx = useMarketData('treasuryCost');
 
   // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
   // panels shifted down by 2 rows. Storage key bumped to avoid stale
@@ -58,6 +60,10 @@ function BondsDashboard({
       // history + indirect-bidder share table. Sourced from
       // /api/treasury/auctions via useMarketData('treasuryAuctions').
       { i: 'auctions',        x: 0, y: 23, w: 12, h: 5 },
+      // Phase 4 additions: ECB yield curves, global policy rates, Treasury avg interest cost
+      { i: 'ecb-yields',      x: 0, y: 28, w: 6, h: 4 },
+      { i: 'global-rates',    x: 6, y: 28, w: 6, h: 4 },
+      { i: 'treasury-cost',   x: 0, y: 32, w: 6, h: 3 },
     ]
   };
 
@@ -680,6 +686,63 @@ function BondsDashboard({
               })}
             </div>
           ) : <div className="bonds-empty">No macro data available</div>}
+        </BentoCard>
+
+        <BentoCard key="ecb-yields" title="ECB Policy Rates" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="ECB SDW" timestamp={ecbCtx?.lastUpdated || lastUpdated} isLive={!!ecbCtx?.data?.policyRates} isCurrent={ecbCtx?.isCurrent ?? isCurrent} fetchedOn={ecbCtx?.fetchedOn || fetchedOn} fetchLog={ecbCtx?.fetchLog || fetchLog} error={ecbCtx?.error || error}>
+          {ecbCtx?.data?.policyRates ? (
+            <div className="bonds-metrics-grid">
+              {[
+                ['Main Refinancing', ecbCtx.data.policyRates.mainRefinancing?.value, '#42a5f5'],
+                ['Deposit Facility', ecbCtx.data.policyRates.depositFacility?.value, '#66bb6a'],
+                ['Marginal Lending', ecbCtx.data.policyRates.marginalLending?.value, '#ef5350'],
+              ].map(([label, value, color]) => (
+                <div key={label} className="bonds-metric-row">
+                  <span className="bonds-metric-name">{label}</span>
+                  <span className="bonds-metric-num" style={{ color }}>{value != null ? `${value.toFixed(2)}%` : '—'}</span>
+                </div>
+              ))}
+              <div className="bonds-metric-row">
+                <span className="bonds-metric-name">M3 Growth (YoY)</span>
+                <span className="bonds-metric-num">{ecbCtx.data.m3Growth?.length ? `${ecbCtx.data.m3Growth[ecbCtx.data.m3Growth.length - 1].value.toFixed(1)}%` : '—'}</span>
+              </div>
+              <div className="bonds-metric-row">
+                <span className="bonds-metric-name">HICP (YoY)</span>
+                <span className="bonds-metric-num">{ecbCtx.data.hicpDetail?.length ? `${ecbCtx.data.hicpDetail[ecbCtx.data.hicpDetail.length - 1].value.toFixed(1)}%` : '—'}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="bonds-empty">ECB data unavailable</div>
+          )}
+        </BentoCard>
+
+        <BentoCard key="global-rates" title="Global Central Bank Policy Rates" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED / ECB / BOE / BOJ" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          {macroData?.centralBankRates ? (
+            <div className="bonds-metrics-grid">
+              {Object.entries(macroData.centralBankRates).map(([country, rate]) => (
+                <div key={country} className="bonds-metric-row">
+                  <span className="bonds-metric-name">{country}</span>
+                  <span className="bonds-metric-num">{rate != null ? `${rate.toFixed(2)}%` : '—'}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bonds-empty">Global rate data unavailable</div>
+          )}
+        </BentoCard>
+
+        <BentoCard key="treasury-cost" title="Treasury Avg Interest Cost" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="US Treasury Fiscal Data" timestamp={treasuryCostCtx?.lastUpdated || lastUpdated} isLive={!!treasuryCostCtx?.data?.latest} isCurrent={treasuryCostCtx?.isCurrent ?? isCurrent} fetchedOn={treasuryCostCtx?.fetchedOn || fetchedOn} fetchLog={treasuryCostCtx?.fetchLog || fetchLog} error={treasuryCostCtx?.error || error}>
+          {treasuryCostCtx?.data?.latest ? (
+            <div className="bonds-metrics-grid">
+              {Object.entries(treasuryCostCtx.data.latest).map(([type, val]) => (
+                <div key={type} className="bonds-metric-row">
+                  <span className="bonds-metric-name">{type}</span>
+                  <span className="bonds-metric-num">{val?.rate != null ? `${val.rate.toFixed(2)}%` : '—'}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bonds-empty">Treasury cost data unavailable</div>
+          )}
         </BentoCard>
       </BentoWrapper>
     </div>

@@ -23,12 +23,41 @@ function InsuranceDashboard({
   currency, currentSymbol, convert,
 }) {
   const { colors } = useTheme();
+
+  const normalizedReserves = useMemo(() => {
+    if (!reserveAdequacyData) return [];
+    if (Array.isArray(reserveAdequacyData)) return reserveAdequacyData;
+    const { lines = [], adequacy = [] } = reserveAdequacyData;
+    return lines.map((name, idx) => ({
+      insurer: name,
+      ratio: adequacy[idx] != null ? adequacy[idx] / 100 : null,
+    }));
+  }, [reserveAdequacyData]);
+
+  const hasReserves = normalizedReserves.length > 0;
+
+  const normalizedSectorETF = useMemo(() => {
+    if (!sectorETF) return [];
+    if (Array.isArray(sectorETF)) return sectorETF;
+    if (sectorETF.price != null || sectorETF.symbol) {
+      return [{
+        symbol: sectorETF.symbol || 'KIE',
+        price: sectorETF.price,
+        changePct: sectorETF.changePct ?? sectorETF.change ?? 0,
+      }];
+    }
+    return [];
+  }, [sectorETF]);
+
+  const hasSectorETF = normalizedSectorETF.length > 0;
+
   // 2026-05-04: Catastrophe data (FEMA + USGS), insurance penetration
   // (World Bank), and EDGAR-derived insurer combined ratios.
   const femaCtx = useMarketData('fema');
   const usgsCtx = useMarketData('usgs');
   const wbCtx   = useMarketData('worldbank');
   const insRatiosCtx = useMarketData('edgarInsurerRatios');
+  const ecbCtx = useMarketData('ecb');
 
   const hyOasOption = useMemo(() => {
     if (!fredHyOasHistory?.dates?.length) return null;
@@ -110,22 +139,19 @@ function InsuranceDashboard({
         sublabel: 'High Yield Spread',
       });
     }
-    if (sectorETF?.price != null) {
-      // Server emits the change as `changePct`; the older `change` field
-      // never existed, so `etfChange` was always undefined and the trend
-      // line silently dropped. Read both for safety in case the API contract
-      // changes again.
-      const etfChange = sectorETF.changePct ?? sectorETF.change;
+    const firstEtf = normalizedSectorETF[0];
+    if (firstEtf?.price != null) {
+      const etfChange = firstEtf.changePct;
       items.push({
-        label: 'KIE ETF',
-        value: `$${Number(sectorETF.price).toFixed(2)}`,
+        label: `${firstEtf.symbol} ETF`,
+        value: `$${Number(firstEtf.price).toFixed(2)}`,
         color: etfChange >= 0 ? '#4ade80' : '#f87171',
         trend: etfChange != null ? `${etfChange >= 0 ? '+' : ''}${Number(etfChange).toFixed(2)}%` : null,
         sublabel: 'Insurance Sector',
       });
     }
     return items;
-  }, [industryAvgCombinedRatio, reinsurers, fredHyOasHistory, sectorETF, convert, currentSymbol]);
+  }, [industryAvgCombinedRatio, reinsurers, fredHyOasHistory, normalizedSectorETF, convert, currentSymbol]);
 
   // ── FEMA disaster type bar chart ───────────────────────────────────────
   const femaTypeOption = useMemo(() => {
@@ -203,9 +229,9 @@ function InsuranceDashboard({
   let x2 = 0;
   if (combinedRatioData?.lines?.length > 0 || combinedRatioData?.byLine?.length > 0) { layoutItems.push({ i: 'crline', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   if (reinsurancePricing?.byCategory?.length > 0 || (Array.isArray(reinsurancePricing) && reinsurancePricing.length > 0)) { layoutItems.push({ i: 'reinsrates', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (reserveAdequacyData && (Array.isArray(reserveAdequacyData) ? reserveAdequacyData.length > 0 : Object.keys(reserveAdequacyData).length > 0)) { layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (hasReserves) { layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   if (catBondSpreads?.length > 0) { layoutItems.push({ i: 'catbonds', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (sectorETF && (Array.isArray(sectorETF) ? sectorETF.length > 0 : sectorETF.price != null)) { layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  if (hasSectorETF) { layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   // 2026-05-04 additions: catastrophes (FEMA + USGS), penetration (WB),
   // insurer combined ratios (EDGAR XBRL).
   if (femaCtx?.data?.declarations?.length || usgsCtx?.data?.events?.length) {
@@ -219,6 +245,13 @@ function InsuranceDashboard({
   }
   if (femaCtx?.data?.summary || usgsCtx?.data?.biggest || catLosses?.values?.length) {
     layoutItems.push({ i: 'cat-exposure', x: 0, y: 15, w: 12, h: 3 });
+  }
+  // USGS mineral commodities panel
+  if (usgsCtx?.data?.eventsCount > 0) {
+    layoutItems.push({ i: 'usgs-minerals', x: 0, y: 18, w: 6, h: 3 });
+  }
+  if (ecbCtx?.data?.policyRates) {
+    layoutItems.push({ i: 'ecb-supervisory', x: 6, y: 18, w: 6, h: 3 });
   }
 
   const dynamicLayout = { lg: layoutItems };
@@ -374,7 +407,7 @@ function InsuranceDashboard({
         )}
 
         {/* Reserve Adequacy */}
-        {reserveAdequacyData && (Array.isArray(reserveAdequacyData) ? reserveAdequacyData.length > 0 : Object.keys(reserveAdequacyData).length > 0) && (
+        {hasReserves && (
           <BentoCard
             key="reserves"
             title="Reserve Adequacy"
@@ -390,7 +423,7 @@ function InsuranceDashboard({
             error={error}
           >
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {reserveAdequacyData.slice(0, 8).map((r) => (
+              {normalizedReserves.slice(0, 8).map((r) => (
                 <div key={r.insurer} className="ins-mini-row">
                   <span className="ins-mini-name">{r.insurer}</span>
                   <span className="ins-mini-value" style={{ color: r.ratio > 1.1 ? '#4ade80' : r.ratio < 1 ? '#f87171' : '#fbbf24' }}>
@@ -432,7 +465,7 @@ function InsuranceDashboard({
         )}
 
         {/* Sector ETFs */}
-        {sectorETF && (Array.isArray(sectorETF) ? sectorETF.length > 0 : sectorETF.price != null) && (
+        {hasSectorETF && (
           <BentoCard
             key="etfs"
             title="Sector ETFs"
@@ -448,7 +481,7 @@ function InsuranceDashboard({
             error={error}
           >
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {sectorETF.slice(0, 8).map((e) => (
+              {normalizedSectorETF.slice(0, 8).map((e) => (
                 <div key={e.symbol} className="ins-mini-row">
                   <span className="ins-mini-name">{e.symbol}</span>
                   <span className="ins-mini-value" style={{ color: (e.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
@@ -610,6 +643,46 @@ function InsuranceDashboard({
             ))}
           </div>
         </BentoCard>
+
+        {usgsCtx?.data?.eventsCount > 0 && (
+          <BentoCard key="usgs-minerals" title="USGS Earthquake Activity (30d)" accent="insurance" className="ins-bento-card" contentClassName="ins-panel-scroll" source="USGS Earthquake Hazards Program" timestamp={usgsCtx?.lastUpdated || lastUpdated} isLive={!!usgsCtx?.data?.isLive} isCurrent={usgsCtx?.isCurrent ?? isCurrent} fetchedOn={usgsCtx?.fetchedOn || fetchedOn} fetchLog={usgsCtx?.fetchLog || fetchLog} error={usgsCtx?.error || error}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 8 }}>
+                {usgsCtx.data.magBuckets?.map(b => (
+                  <div key={b.range} style={{ background: colors.cardBg, borderRadius: 6, padding: '6px 8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 9, color: colors.textMuted }}>{b.range}</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: b.range.startsWith('7') ? '#f87171' : b.range.startsWith('6') ? '#f59e0b' : '#22c55e' }}>{b.count}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+                {usgsCtx.data.events?.slice(0, 8).map(e => (
+                  <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: `1px solid ${colors.cardBg}`, fontSize: 11 }}>
+                    <span style={{ color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{e.place}</span>
+                    <span style={{ fontWeight: 600, color: (e.mag || 0) >= 6 ? '#f87171' : (e.mag || 0) >= 5 ? '#f59e0b' : '#22c55e', marginLeft: 8 }}>M{e.mag?.toFixed(1)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </BentoCard>
+        )}
+
+        {ecbCtx?.data?.policyRates && (
+          <BentoCard key="ecb-supervisory" title="ECB Policy Rates" accent="insurance" className="ins-bento-card" contentClassName="ins-panel-scroll" source="ECB SDW" timestamp={ecbCtx?.lastUpdated || lastUpdated} isLive={!!ecbCtx?.data?.isLive} isCurrent={ecbCtx?.isCurrent ?? isCurrent} fetchedOn={ecbCtx?.fetchedOn || fetchedOn} fetchLog={ecbCtx?.fetchLog || fetchLog} error={ecbCtx?.error || error}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, height: '100%' }}>
+              {[
+                ['Main Refinancing', ecbCtx.data.policyRates.mainRefinancing?.value, '#42a5f5'],
+                ['Deposit Facility', ecbCtx.data.policyRates.depositFacility?.value, '#66bb6a'],
+                ['Marginal Lending', ecbCtx.data.policyRates.marginalLending?.value, '#ef5350'],
+              ].map(([label, value, color]) => (
+                <div key={label} style={{ background: colors.cardBg, borderRadius: 6, padding: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color }}>{value != null ? `${value.toFixed(2)}%` : '—'}</div>
+                </div>
+              ))}
+            </div>
+          </BentoCard>
+        )}
       </BentoWrapper>
     </div>
   );

@@ -77,6 +77,7 @@ function CommoditiesDashboard({
   const usdaCtx = useMarketData('usda');
   const tradeCtx = useMarketData('censusTrade');
   const eiaPetCtx = useMarketData('eiaPetroleum');
+  const faoCtx = useMarketData('fao');
 
   const allCommodities = useMemo(() => {
     return priceDashboardData?.flatMap(s => s.commodities || []) || [];
@@ -498,6 +499,7 @@ function CommoditiesDashboard({
       { i: 'curve-board', x: 8, y: 31, w: 4, h: 3 },
       { i: 'material-detail', x: 0, y: 34, w: 4, h: 4 },
       { i: 'exposure-matrix', x: 4, y: 34, w: 8, h: 4 },
+      { i: 'fao-prices', x: 0, y: 38, w: 6, h: 3 },
     ]
   };
 
@@ -1205,6 +1207,32 @@ function CommoditiesDashboard({
           </table>
         </BentoCard>
 
+        {faoCtx?.data?.series?.length > 0 && (
+          <BentoCard key="fao-prices" title="FAO Food Price Index" accent="commodities" className="com-bento-card" contentClassName="com-panel-content" source="FAO" timestamp={faoCtx?.lastUpdated || lastUpdated} isLive={!!faoCtx?.data?.isLive} isCurrent={faoCtx?.isCurrent ?? isCurrent} fetchedOn={faoCtx?.fetchedOn || fetchedOn} fetchLog={faoCtx?.fetchLog || fetchLog} error={faoCtx?.error || error}>
+            <div style={{ height: '100%', minHeight: 0, padding: 4 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 6 }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
+                  {faoCtx.data.series[faoCtx.data.series.length - 1]?.value?.toFixed(1)}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>index · {faoCtx.data.series[faoCtx.data.series.length - 1]?.date}</span>
+              </div>
+              <div style={{ height: 'calc(100% - 30px)', minHeight: 0 }}>
+                <SafeECharts
+                  option={{
+                    animation: false, backgroundColor: 'transparent',
+                    grid: { left: 40, right: 8, top: 8, bottom: 20 },
+                    xAxis: { type: 'category', data: faoCtx.data.series.map(s => s.date), axisLabel: { fontSize: 9, color: '#888', interval: Math.floor(faoCtx.data.series.length / 5) } },
+                    yAxis: { type: 'value', axisLabel: { fontSize: 9, color: '#888' }, splitLine: { lineStyle: { color: '#222' } } },
+                    tooltip: { trigger: 'axis' },
+                    series: [{ type: 'line', data: faoCtx.data.series.map(s => s.value), smooth: true, symbol: 'none', lineStyle: { color: '#22c55e', width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#22c55e40' }, { offset: 1, color: '#22c55e05' }] } } }],
+                  }}
+                  style={{ height: '100%', width: '100%' }}
+                  sourceInfo={{ title: 'FAO Food Price Index', source: 'FAO', endpoint: '/api/fao', series: [] }}
+                />
+              </div>
+            </div>
+          </BentoCard>
+        )}
       </BentoWrapper>
     </div>
   );

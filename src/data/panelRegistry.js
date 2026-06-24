@@ -230,6 +230,15 @@ export const PANEL_REGISTRY = {
       },
       notes: 'Cross-market: uses useMarketData("universeUpdates"), not /api/equities. Yahoo may not return sector/industry/fundamentals for recent IPOs.',
     },
+    {
+      id: 'sec-filings', title: 'SEC Filing Activity',
+      field: 'byType', fieldPath: 'byType',
+      crossMarket: 'edgarFilingActivity',
+      source: 'edgar.js (SEC EDGAR submissions API)',
+      external: [{ name: 'SEC EDGAR', seriesIds: [] }],
+      renderCheck: 'filingActivityData && Object.keys(filingActivityData).length > 0',
+      notes: 'Cross-market: uses useMarketData("edgarFilingActivity"), not /api/equities. Aggregates filing counts across 20 mega-cap tickers.',
+    },
   ],
 
   derivatives: [
@@ -237,6 +246,8 @@ export const PANEL_REGISTRY = {
     { id: 'vol-surface', title: 'Vol Surface', field: 'volSurfaceData', fieldPath: 'volSurfaceData', source: 'derivatives.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'volSurfaceData && Object.keys(volSurfaceData).length > 0' },
     { id: 'options-flow', title: 'Options Flow', field: 'optionsFlow', fieldPath: 'optionsFlow', source: 'derivatives.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'optionsFlow && Object.keys(optionsFlow).length > 0' },
     { id: 'gamma', title: 'Gamma Exposure', field: 'gammaExposure', fieldPath: 'gammaExposure', source: 'derivatives.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'gammaExposure && Object.keys(gammaExposure).length > 0' },
+    { id: 'cftc-tff', title: 'CFTC Financial Futures', field: 'contracts', fieldPath: 'contracts', crossMarket: 'cftcTFF', source: 'cftcTFF.js', external: [{ name: 'CFTC Socrata', seriesIds: [] }], renderCheck: 'cftcTFFCtx?.data?.contracts && Object.keys(cftcTFFCtx.data.contracts).length > 0' },
+    { id: 'bis-otc', title: 'BIS OTC Derivatives', field: 'categories', fieldPath: 'categories', crossMarket: 'bisOTC', source: 'bisOTC.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'bisOTCCtx?.data?.categories && Object.keys(bisOTCCtx.data.categories).length > 0' },
   ],
 
   realEstate: [
@@ -244,6 +255,7 @@ export const PANEL_REGISTRY = {
     { id: 'reit', title: 'REIT Screen', field: 'reitData', fieldPath: 'reitData', source: 'realEstate.js', external: [{ name: 'Yahoo Finance', seriesIds: ['VNQ','O','SPG'] }], renderCheck: 'reitData && reitData.length > 0' },
     { id: 'affordability', title: 'Affordability Map', field: 'housingAffordability', fieldPath: 'housingAffordability', source: 'realEstate.js', external: [{ name: 'FRED / NAR', seriesIds: ['MEHOINUSA672N'] }], renderCheck: 'housingAffordability && Object.keys(housingAffordability).length > 0' },
     { id: 'cap-rate', title: 'Cap Rate Monitor', field: 'capRateData', fieldPath: 'capRateData', source: 'realEstate.js', external: [{ name: 'FRED', seriesIds: ['MORTGAGE30US','DGS10'] }], renderCheck: 'capRateData && Object.keys(capRateData).length > 0' },
+    { id: 'fhfa-hpi', title: 'FHFA House Price Index', field: 'fhfaHpi', fieldPath: 'fhfaHpi', source: 'realEstate.js', external: [{ name: 'FRED', seriesIds: ['USSTHPI'] }], renderCheck: 'fhfaHpi?.values?.length > 0' },
   ],
 
   insurance: [
@@ -290,6 +302,9 @@ export const PANEL_REGISTRY = {
     { id: 'debt-monitor', title: 'Debt Monitor', field: 'debtData', fieldPath: 'debtData', source: 'globalMacro.js', external: [{ name: 'IMF / World Bank', seriesIds: [] }], renderCheck: 'debtData && debtData.length > 0' },
     { id: 'growth-inflation', title: 'Growth & Inflation', field: 'growthInflationData', fieldPath: 'growthInflationData', source: 'globalMacro.js', external: [{ name: 'World Bank / FRED', seriesIds: ['GDP','CPIAUCSL'] }], renderCheck: 'growthInflationData && growthInflationData.length > 0' },
     { id: 'economic-activity', title: 'Economic Activity', field: 'economicActivityData', fieldPath: 'economicActivityData', source: 'globalMacro.js', external: [{ name: 'OECD / FRED', seriesIds: ['UNRATE'] }], renderCheck: 'economicActivityData && Object.keys(economicActivityData).length > 0' },
+    { id: 'imf-weo', title: 'IMF World Economic Outlook', field: 'imfWEO', fieldPath: 'imfWEO', crossMarket: 'imf', source: 'imf.js', external: [{ name: 'IMF', seriesIds: [] }], renderCheck: 'imfCtx?.data?.countries?.length > 0' },
+    { id: 'oecd-indicators', title: 'OECD Leading Indicators', field: 'oecdCli', fieldPath: 'oecdCli', source: 'globalMacro.js', external: [{ name: 'OECD (via FRED)', seriesIds: ['USALOLITOAASTSAM'] }], renderCheck: 'oecdCli && Object.keys(oecdCli).length > 0' },
+    { id: 'bis-liquidity', title: 'BIS Global Liquidity', field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', source: 'globalMacro.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'bisCreditToGDP && Object.keys(bisCreditToGDP).length > 0' },
   ],
 
   credit: [
@@ -297,6 +312,9 @@ export const PANEL_REGISTRY = {
     { id: 'em-bonds', title: 'EM Bonds', field: 'emBondData', fieldPath: 'emBondData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['BAMLEMCBPIOAS'] }], renderCheck: 'emBondData && Object.keys(emBondData).length > 0' },
     { id: 'loan-market', title: 'Loan Market', field: 'loanData', fieldPath: 'loanData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: [] }], renderCheck: 'loanData && Object.keys(loanData).length > 0' },
     { id: 'default-watch', title: 'Default Watch', field: 'defaultData', fieldPath: 'defaultData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['DRSFRWBS'] }], renderCheck: 'defaultData && Object.keys(defaultData).length > 0' },
+    { id: 'bis-total-credit', title: 'BIS Total Credit', field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', crossMarket: 'globalMacro', source: 'globalMacro.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'macroCtx?.data?.bisCreditToGDP && Object.keys(macroCtx.data.bisCreditToGDP).length > 0' },
+    { id: 'fdic-summary', title: 'FDIC Banking Summary', field: 'summary', fieldPath: 'summary', crossMarket: 'fdic', source: 'fdic.js', external: [{ name: 'FDIC', seriesIds: [] }], renderCheck: 'fdicCtx?.data?.summary' },
+    { id: 'ted-spread', title: 'TED Spread', field: 'tedSpread', fieldPath: 'tedSpread', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['TEDRATE'] }], renderCheck: 'tedSpread && tedSpread.values?.length > 0' },
   ],
 
   sentiment: [
@@ -304,6 +322,8 @@ export const PANEL_REGISTRY = {
     { id: 'cftc', title: 'CFTC Positioning', field: 'cftcData', fieldPath: 'cftcData', source: 'sentiment.js', external: [{ name: 'CFTC Socrata', seriesIds: [] }], renderCheck: 'cftcData && cftcData.length > 0' },
     { id: 'risk-dashboard', title: 'Risk Dashboard', field: 'riskData', fieldPath: 'riskData', source: 'sentiment.js', external: [{ name: 'FRED', seriesIds: ['BAMLH0A0HYM2','T10Y2Y'] }], renderCheck: 'riskData && Object.keys(riskData).length > 0' },
     { id: 'cross-asset', title: 'Cross-Asset Returns', field: 'returnsData', fieldPath: 'returnsData', source: 'sentiment.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'returnsData && Object.keys(returnsData).length > 0' },
+    { id: 'eurostat-confidence', title: 'Eurostat Confidence', field: 'eurostatConfidence', fieldPath: 'eurostatConfidence', crossMarket: 'eurostat', source: 'eurostat.js', external: [{ name: 'Eurostat', seriesIds: [] }], renderCheck: 'eurostatCtx?.data?.confidence' },
+    { id: 'oecd-leading', title: 'OECD Leading Indicators', field: 'oecdCli', fieldPath: 'oecdCli', crossMarket: 'globalMacro', source: 'globalMacro.js', external: [{ name: 'OECD (via FRED)', seriesIds: ['USALOLITOAASTSAM'] }], renderCheck: 'macroCtx?.data?.oecdCli && Object.keys(macroCtx.data.oecdCli).length > 0' },
   ],
 
   calendar: [
@@ -318,6 +338,20 @@ export const PANEL_REGISTRY = {
     { id: 'earnings-watch', title: 'Earnings Watch', field: 'earningsData', fieldPath: 'earningsData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'earningsData && earningsData.length > 0' },
     { id: 'short-interest', title: 'Short Interest', field: 'shortData', fieldPath: 'shortData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'shortData && shortData.length > 0' },
     { id: 'insider', title: 'Insider Trading', field: 'insiderData', fieldPath: 'insiderData', source: 'equityDeepDive.js', external: [{ name: 'SEC EDGAR', seriesIds: [] }], renderCheck: 'insiderData && insiderData.length > 0' },
+    { id: 'sec-13f', title: 'SEC 13F Holdings', field: 'holdings', fieldPath: 'holdings', crossMarket: 'institutional', source: 'institutional.js', external: [{ name: 'SEC 13F', seriesIds: [] }], renderCheck: 'instCtx?.data?.holdings?.length > 0' },
+  ],
+
+  eia: [
+    { id: 'kpi', title: 'Energy Overview', field: 'electricity', fieldPath: 'electricity', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['elecResidential','elecCommercial','elecIndustrial'] }], renderCheck: 'electricity && (electricity.residential || electricity.commercial || electricity.industrial)' },
+    { id: 'electricity', title: 'Electricity', field: 'electricity', fieldPath: 'electricity', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['elecResidential','elecCommercial','elecIndustrial'] }], renderCheck: 'electricity && Object.keys(electricity).length > 0' },
+    { id: 'emissions', title: 'CO₂ Emissions', field: 'co2Emissions', fieldPath: 'co2Emissions', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['co2Total','co2BySector'] }], renderCheck: 'co2Emissions && (co2Emissions.total || co2Emissions.bySector)' },
+    { id: 'petroleum', title: 'Petroleum', field: 'petroleum', fieldPath: 'petroleum', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['RWTC','RBRTE','EER_EPMRU_PF4_RGC_DPG','EER_EPD2DXL0_PF4_RGC_DPG','EER_EPD2F_PF4_Y35NY_DPG'] }], renderCheck: 'petroleum && (petroleum.wti || petroleum.brent)' },
+    { id: 'natural-gas', title: 'Natural Gas', field: 'naturalGas', fieldPath: 'naturalGas', source: 'eia.js', external: [{ name: 'EIA', seriesIds: ['RNGWHHD'] }], renderCheck: 'naturalGas && naturalGas.henryHub' },
+  ],
+
+  bls: [
+    { id: 'kpi', title: 'Key Labor Market Indicators', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['UNRATE','CIVPART','PAYEMS','CPIAUCSL'] }], renderCheck: 'series && Object.keys(series).length > 0' },
+    { id: 'trends', title: 'Trends (3-Year)', field: 'series', fieldPath: 'series', source: 'bls.js', external: [{ name: 'BLS/FRED', seriesIds: ['UNRATE','CIVPART','PAYEMS','CPIAUCSL','PPIFIS'] }], renderCheck: 'series && Object.keys(series).length > 0' },
   ],
 };
 

@@ -4,6 +4,7 @@ import MetricValue from '../../components/MetricValue/MetricValue';
 import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import DataFooter from '../../components/DataFooter/DataFooter';
+import SafeECharts from '../../components/SafeECharts';
 import './EiaMarket.css';
 
 const EIA_LAYOUT = {
@@ -12,6 +13,8 @@ const EIA_LAYOUT = {
     { i: 'consumption', x: 6, y: 0, w: 6, h: 3 },
     { i: 'trends', x: 0, y: 3, w: 6, h: 3 },
     { i: 'co2', x: 6, y: 3, w: 6, h: 4 },
+    { i: 'petroleum', x: 0, y: 7, w: 6, h: 4 },
+    { i: 'natural-gas', x: 6, y: 7, w: 6, h: 4 },
   ]
 };
 
@@ -50,19 +53,35 @@ function SalesCard({ label, data, seriesKey }) {
   );
 }
 
-function MiniSparkline({ values, width = 200, height = 60, color = '#ffa726' }) {
-  if (!values?.length || values.length < 2) return null;
-  const vals = values.filter(v => v != null);
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const range = max - min || 1;
-  const step = width / (vals.length - 1);
-  const points = vals.map((v, i) => `${i * step},${height - ((v - min) / range) * (height - 4) - 2}`).join(' ');
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
-      <polyline fill="none" stroke={color} strokeWidth="1.5" points={points} />
-    </svg>
-  );
+function buildSparklineOption(data, { color = '#ffa726', unit = '', label = '' } = {}) {
+  if (!data?.values?.length) return null;
+  const vals = data.values.filter(v => v != null);
+  if (vals.length < 2) return null;
+  const dates = data.dates || [];
+  return {
+    grid: { left: 2, right: 2, top: 4, bottom: 2, containLabel: false },
+    xAxis: { type: 'category', show: false, data: dates.length === vals.length ? dates : vals.map((_, i) => i), boundaryGap: false },
+    yAxis: { type: 'value', show: false, min: 'dataMin', max: 'dataMax' },
+    tooltip: {
+      trigger: 'axis',
+      confine: true,
+      formatter: (params) => {
+        const p = Array.isArray(params) ? params[0] : params;
+        const dateStr = dates.length === vals.length ? p.axisValue : '';
+        return `<div style="font-size:11px"><b>${label || p.seriesName || ''}</b>${dateStr ? '<br/>' + dateStr : ''}<br/>${p.marker} ${p.value?.toFixed != null ? p.value.toFixed(2) : p.value}${unit ? ' ' + unit : ''}</div>`;
+      },
+    },
+    dataZoom: [{ type: 'inside', zoomLock: false }],
+    series: [{
+      type: 'line',
+      data: vals,
+      smooth: 0.3,
+      symbol: 'none',
+      lineStyle: { color, width: 1.5 },
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: color + '40' }, { offset: 1, color: color + '05' }] } },
+    }],
+    animation: false,
+  };
 }
 
 const ELEC_SECTORS = [
@@ -77,6 +96,8 @@ function getEiaProps(centralData) {
   return {
     electricity: d.electricity || {},
     co2Emissions: d.co2Emissions || {},
+    petroleum: d.petroleum || {},
+    naturalGas: d.naturalGas || {},
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
@@ -96,7 +117,7 @@ function EiaMarket({ centralData } = {}) {
 
   if (props.isLoading) return <MarketSkeleton />;
 
-  const hasData = props.electricity.residential || props.electricity.commercial || props.electricity.industrial || props.co2Emissions.total || props.co2Emissions.bySector;
+  const hasData = props.electricity.residential || props.electricity.commercial || props.electricity.industrial || props.co2Emissions.total || props.co2Emissions.bySector || props.petroleum?.wti || props.petroleum?.brent || props.naturalGas?.henryHub;
 
   if (!props.isLive && !hasData) {
     return (
@@ -116,28 +137,39 @@ function EiaMarket({ centralData } = {}) {
       <BentoWrapper layout={EIA_LAYOUT} storageKey="eia-layout">
         <BentoCard key="prices" title="US Electricity Retail Prices" accent="eia" noFooter>
           <div className="eia-kpi-grid">
-            {ELEC_SECTORS.map(({ key, label }) => (
-              <SectorCard key={key} label={label} data={props.electricity[key]} />
-            ))}
+            {ELEC_SECTORS.map(({ key, label }) => {
+              const seriesKey = `eia${key.charAt(0).toUpperCase() + key.slice(1)}Price`;
+              return <SectorCard key={key} label={label} data={props.electricity[key]} seriesKey={seriesKey} />;
+            })}
           </div>
         </BentoCard>
 
         <BentoCard key="consumption" title="Electricity Consumption" accent="eia" noFooter>
           <div className="eia-kpi-grid">
-            {ELEC_SECTORS.map(({ key, label }) => (
-              <SalesCard key={`sales-${key}`} label={label} data={props.electricity[key]} />
-            ))}
+            {ELEC_SECTORS.map(({ key, label }) => {
+              const seriesKey = `eia${key.charAt(0).toUpperCase() + key.slice(1)}Sales`;
+              return <SalesCard key={`sales-${key}`} label={label} data={props.electricity[key]} seriesKey={seriesKey} />;
+            })}
           </div>
         </BentoCard>
 
         <BentoCard key="trends" title="Price Trends (3-Year Monthly)" accent="eia" noFooter>
           <div className="eia-chart-row">
-            {ELEC_SECTORS.filter(({ key }) => props.electricity[key]?.price?.values?.length >= 3).map(({ key, label }) => (
-              <div key={`chart-${key}`} className="eia-mini-chart">
-                <h4>{label} Price (¢/kWh)</h4>
-                <MiniSparkline values={props.electricity[key].price.values} color="#ffa726" />
-              </div>
-            ))}
+            {ELEC_SECTORS.filter(({ key }) => props.electricity[key]?.price?.values?.length >= 3).map(({ key, label }) => {
+              const opt = buildSparklineOption(props.electricity[key].price, { color: '#ffa726', unit: '¢/kWh', label: `${label} Price` });
+              return opt ? (
+                <div key={`chart-${key}`} className="eia-mini-chart" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <h4>{label} Price (¢/kWh)</h4>
+                  <div style={{ flex: 1, minHeight: 0 }}>
+                    <SafeECharts
+                      option={opt}
+                      style={{ height: '100%', width: '100%', minHeight: '60px' }}
+                      sourceInfo={{ title: `${label} Price`, source: 'EIA', endpoint: '/api/eia', series: [] }}
+                    />
+                  </div>
+                </div>
+              ) : null;
+            })}
           </div>
         </BentoCard>
 
@@ -148,7 +180,14 @@ function EiaMarket({ centralData } = {}) {
                 <div key={s.name} className="eia-co2-row">
                   <span className="eia-co2-sector">{s.name}</span>
                   <span>
-                    <span className="eia-co2-value">{s.latest.toFixed(1)}</span>
+                    <span className="eia-co2-value">
+                      <MetricValue
+                        value={s.latest}
+                        seriesKey="eiaCo2BySector"
+                        timestamp={s.period}
+                        format={v => v.toFixed(1)}
+                      />
+                    </span>
                     <span className="eia-co2-unit">{s.unit} ({s.period})</span>
                   </span>
                 </div>
@@ -156,6 +195,58 @@ function EiaMarket({ centralData } = {}) {
             </div>
           </BentoCard>
         )}
+
+        <BentoCard key="petroleum" title="Petroleum Prices" accent="eia" noFooter>
+          <div className="eia-chart-row">
+            {[
+              { key: 'wti', label: 'WTI Crude', color: '#f97316', unit: '$/bbl' },
+              { key: 'brent', label: 'Brent Crude', color: '#3b82f6', unit: '$/bbl' },
+              { key: 'gasoline', label: 'Gasoline', color: '#22c55e', unit: '$/gal' },
+              { key: 'diesel', label: 'Diesel', color: '#a855f7', unit: '$/gal' },
+              { key: 'heatingOil', label: 'Heating Oil', color: '#ef4444', unit: '$/gal' },
+            ].map(({ key, label, color, unit }) => {
+              const data = props.petroleum?.[key];
+              if (!data?.values?.length) return null;
+              const opt = buildSparklineOption(data, { color, unit, label });
+              return opt ? (
+                <div key={key} className="eia-mini-chart">
+                  <h4>{label}</h4>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
+                      <MetricValue value={data.latest?.value} seriesKey={`eiaPetroleum${key.charAt(0).toUpperCase() + key.slice(1)}`} timestamp={data.latest?.period} format={v => v.toFixed(2)} />
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{unit} · {data.latest?.period}</span>
+                  </div>
+                  <div style={{ flex: 1, minHeight: 0 }}>
+                    <SafeECharts option={opt} style={{ height: '100%', width: '100%', minHeight: '60px' }} sourceInfo={{ title: label, source: 'EIA', endpoint: '/api/eia', series: [] }} />
+                  </div>
+                </div>
+              ) : null;
+            })}
+          </div>
+        </BentoCard>
+
+        <BentoCard key="natural-gas" title="Natural Gas — Henry Hub Spot" accent="eia" noFooter>
+          {props.naturalGas?.henryHub?.values?.length > 0 ? (() => {
+            const data = props.naturalGas.henryHub;
+            const opt = buildSparklineOption(data, { color: '#06b6d4', unit: '$/MMBTU', label: 'Henry Hub' });
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '8px 12px 0' }}>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
+                    <MetricValue value={data.latest?.value} seriesKey="eiaNaturalGasHenryHub" timestamp={data.latest?.period} format={v => v.toFixed(2)} />
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)' }}>$/MMBTU · {data.latest?.period}</span>
+                </div>
+                <div style={{ flex: 1, minHeight: 0, padding: '0 12px 8px' }}>
+                  {opt && <SafeECharts option={opt} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Henry Hub Natural Gas', source: 'EIA', endpoint: '/api/eia', series: [] }} />}
+                </div>
+              </div>
+            );
+          })() : (
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted, #888)' }}>Natural gas price data unavailable</div>
+          )}
+        </BentoCard>
       </BentoWrapper>
       <DataFooter source="EIA (US Energy Information Administration)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} isHistorical={props.isHistorical} asOfDate={props.asOfDate} />
     </div>
