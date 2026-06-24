@@ -16,6 +16,7 @@ function buildCurveOption(labels, prices, accentColor, unit, colors) {
       textStyle: { color: colors.text, fontSize: 12 },
       formatter: (params) => {
         const p = params[0];
+        if (!p || p.value == null) return '';
         return `${p.name}<br/><span style="color:${accentColor}">$${p.value.toFixed(2)}</span>`;
       },
     },

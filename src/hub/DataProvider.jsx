@@ -370,6 +370,7 @@ export function hasNonNullData(d, id) {
   // which frequently return metadata-heavy or sparse-but-valid responses.
   // We still want to treat them as "received" so they don't spam warnings or get dropped.
   const isSystemLike = id === 'analytics' || id === 'watchlist' || id === 'censusTrade' || id === 'eiaPetroleum' ||
+                       id === 'cftcTFF' || id === 'bisOTC' || id === 'fao' ||
                        (id && (id.includes('Trade') || id.includes('Petroleum') || id.startsWith('treasury')));
   if (isSystemLike) {
     return Object.keys(d).some(k => !k.startsWith('_') && d[k] != null);

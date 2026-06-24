@@ -27,7 +27,7 @@ export function describeValue(val) {
     }
     return { shape: 'object', count: keys.length, detail: `{${keys.slice(0, 6).join(', ')}${keys.length > 6 ? '...' : ''}}` };
   }
-  return { shape: typeof val, count: 1, detail: String(val).substring(0, 80) };
+  return { shape: typeof val, count: 1, detail: String(val ?? '').substring(0, 80) };
 }
 
 function StatusBadge({ status }) {
@@ -124,17 +124,17 @@ function PanelRow({ panel, apiData, ctxData, crossMarketData, expanded, onToggle
             <span className={`pti-shape pti-shape-${backendDesc.shape}`}>{backendDesc.detail}</span>}
         </td>
         <td className="pti-cell">
-          {subFieldResult ? (
+              {subFieldResult ? (
             <span className={subFieldResult.ok ? 'pti-src-ok' : 'pti-subfield-text'}>
-              {subFieldResult.ok ? '✓ subfields' : '✗ subfields'} {subFieldResult.detail.substring(0, 50)}
+              {subFieldResult.ok ? '✓ subfields' : '✗ subfields'} {(subFieldResult.detail || '').substring(0, 50)}
             </span>
           ) : shapeResult ? (
             <span className={shapeResult.ok ? 'pti-src-ok' : 'pti-shape-error'}>
-              {shapeResult.ok ? '✓ shape' : '✗ shape'} {shapeResult.detail.substring(0, 40)}
+              {shapeResult.ok ? '✓ shape' : '✗ shape'} {(shapeResult.detail || '').substring(0, 40)}
             </span>
           ) : sourceKey !== undefined ? (
             <span className={sourceValue ? 'pti-src-ok' : 'pti-src-false'}>
-              {sourceValue ? '✓' : '✗'} {sourceKey.substring(0, 25)}
+              {sourceValue ? '✓' : '✗'} {(sourceKey || '').substring(0, 25)}
             </span>
           ) : <span className="pti-src-none">—</span>}
         </td>
@@ -198,12 +198,12 @@ function PanelRow({ panel, apiData, ctxData, crossMarketData, expanded, onToggle
               {!isCrossMarket && (
                 <div className="pti-detail-section">
                   <span className="pti-detail-label">Backend value sample:</span>
-                  <pre className="pti-pre">{JSON.stringify(backendVal, null, 2).substring(0, 500)}</pre>
+                  <pre className="pti-pre">{(JSON.stringify(backendVal, null, 2) || '').substring(0, 500)}</pre>
                 </div>
               )}
               <div className="pti-detail-section">
                 <span className="pti-detail-label">Frontend context value:</span>
-                <pre className="pti-pre">{JSON.stringify(frontendVal, null, 2).substring(0, 500)}</pre>
+                <pre className="pti-pre">{(JSON.stringify(frontendVal, null, 2) || '').substring(0, 500)}</pre>
               </div>
               <div className={`pti-verdict ${status === 'ok' ? 'pti-verdict-ok' : 'pti-verdict-bad'}`}>
                 {status === 'ok' && '✓ Data pipeline intact — if panel renders empty, check SafeECharts hasDimensions (container offsetWidth/Height > 0) or stale localStorage layout.'}

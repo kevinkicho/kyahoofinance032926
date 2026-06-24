@@ -903,6 +903,7 @@ export default function AnalyticsMarket({ onNavigate }) {
   }, [fetchData, isAdmin]);
 
   const fetchEpDetail = useCallback(async (epPath) => {
+    if (!epPath) return;
     const encoded = encodeURIComponent(epPath.substring(1));
     try {
       const res = await fetch(apiUrl(`/api/analytics/endpoint/${encoded}`));
