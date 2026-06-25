@@ -96,10 +96,12 @@
 }
 
 .eq-index-group--0 { grid-column: span 4; }
-.eq-index-group--1 { grid-column: span 5; }
-.eq-index-group--2 { grid-column: span 3; }
-.eq-index-group--3 { grid-column: span 5; }
-.eq-index-group--4 { grid-column: span 7; }
+.eq-index-group--1 { grid-column: span 4; }
+.eq-index-group--2 { grid-column: span 4; }
+.eq-index-group--3 { grid-column: span 4; }
+.eq-index-group--4 { grid-column: span 4; }
+.eq-index-group--5 { grid-column: span 4; }
+.eq-index-group--6 { grid-column: span 12; }
 
 .eq-index-group-label {
   font-size: 9px;

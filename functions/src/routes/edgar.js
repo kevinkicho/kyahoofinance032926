@@ -168,8 +168,8 @@ router.get('/', async (_req, res) => {
   res.json(result);
 });
 
-// Filing activity — aggregate filing counts by type across a broad set of
-// tickers. Returns { byType: { '10-K': 42, '10-Q': 128, ... }, total, tickerCount }.
+// Filing activity — per-ticker filing lists with dates, descriptions, and
+// EDGAR links. Returns { byTicker: { AAPL: [...], MSFT: [...] }, byType, total, tickerCount }.
 // Used by the Equities tab's "SEC Filing Activity" panel.
 const FILING_ACTIVITY_TICKERS = ['AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','JPM','JNJ','V','PG','XOM','UNH','HD','BAC','MA','DIS','ADBE','CRM','NFLX'];
 router.get('/filing-activity', async (_req, res) => {
@@ -188,6 +188,7 @@ router.get('/filing-activity', async (_req, res) => {
   }
 
   const byType = {};
+  const byTicker = {};
   let total = 0;
   let tickerCount = 0;
   for (const t of FILING_ACTIVITY_TICKERS) {
@@ -197,18 +198,43 @@ router.get('/filing-activity', async (_req, res) => {
       trackApiCall('SEC EDGAR');
       const url = `https://data.sec.gov/submissions/CIK${cik}.json`;
       const data = await fetchJSON(url, ua);
-      const forms = data?.filings?.recent?.form || [];
-      for (const f of forms) {
-        byType[f] = (byType[f] || 0) + 1;
+      const recent = data?.filings?.recent || {};
+      const forms = recent.form || [];
+      const dates = recent.filingDate || [];
+      const accessions = recent.accessionNumber || [];
+      const primaryDocs = recent.primaryDoc || [];
+      const descriptions = recent.primaryDocDescription || [];
+      const filings = [];
+      const limit = Math.min(forms.length, 30);
+      for (let i = 0; i < limit; i++) {
+        const form = forms[i];
+        const filingDate = dates[i] || '';
+        const accession = accessions[i] || '';
+        const doc = primaryDocs[i] || '';
+        const desc = descriptions[i] || '';
+        byType[form] = (byType[form] || 0) + 1;
         total++;
+        filings.push({
+          form,
+          date: filingDate,
+          description: desc,
+          accession,
+          doc,
+          url: `https://www.sec.gov/Archives/edgar/data/${cik.replace(/^0+/, '')}/${accession.replace(/-/g, '')}/${doc}`,
+        });
       }
+      byTicker[t] = filings;
       tickerCount++;
     } catch (e) { /* skip ticker on error */ }
   }
 
+  // Find date range across all filings
+  const allDates = Object.values(byTicker).flat().map(f => f.date).filter(Boolean).sort();
+  const dateRange = allDates.length ? { earliest: allDates[0], latest: allDates[allDates.length - 1] } : null;
+
   const _sources = { secEdgarFilingActivity: tickerCount > 0 };
   const isLive = _sources.secEdgarFilingActivity;
-  const result = { byType, total, tickerCount, _sources, isLive, isCurrent: true, fetchedOn: today, lastUpdated: today };
+  const result = { byTicker, byType, total, tickerCount, dateRange, _sources, isLive, isCurrent: true, fetchedOn: today, lastUpdated: today };
   if (isLive) writeDailyCache(cacheKey, result);
   else {
     const fb = readLatestCache(cacheKey);

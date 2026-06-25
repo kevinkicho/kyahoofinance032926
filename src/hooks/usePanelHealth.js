@@ -1,8 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useDataContext } from '../hub/DataContext';
 import { MARKET_PANELS } from '../data/marketPanels';
-import { logPanelHealth } from '../lib/logger';
 
+// Scan DOM for [data-panel-key] elements and return { panelKey: status }.
+// This only finds panels that are CURRENTLY RENDERED in the DOM — i.e.
+// the active market tab's panels.
 function scanDom() {
   if (typeof document === 'undefined') return {};
   const els = document.querySelectorAll('[data-panel-key]');
@@ -15,7 +17,7 @@ function scanDom() {
     const footerText = footer?.textContent || '';
     if (/stale/i.test(footerText)) {
       map[key] = 'stale';
-    } else if (/unavailable|no data/i.test(text)) {
+    } else if (/\bno data\b/i.test(text) && text.length < 80) {
       map[key] = 'null';
     } else {
       map[key] = 'ok';
@@ -24,14 +26,24 @@ function scanDom() {
   return map;
 }
 
-export function usePanelHealth(marketId) {
+// Determine per-panel health from market data context (no DOM needed).
+// Returns 'ok' | 'null' | 'loading' | 'unknown' for each panel.
+function healthFromMarketData(marketCtx) {
+  if (!marketCtx) return 'unknown';
+  if (marketCtx.isLoading) return 'loading';
+  if (marketCtx.error) return 'null';
+  if (marketCtx.data) return 'ok';
+  return 'unknown';
+}
+
+export function usePanelHealth(marketId, activeMarketId) {
   const ctx = useDataContext();
   const allMarkets = ctx?.markets;
 
   const cacheRef = useRef({});
   const [, forceUpdate] = useState(0);
 
-  // DOM observer — triggers re-render when panels change
+  // DOM observer — triggers re-render when panels change in the DOM
   useEffect(() => {
     const obs = new MutationObserver(() => forceUpdate(n => n + 1));
     obs.observe(document.body || document.documentElement, {
@@ -42,56 +54,49 @@ export function usePanelHealth(marketId) {
   }, []);
 
   return useMemo(() => {
-    // ── Live DOM scan (synchronous, always fresh) ──
-    const domMap = scanDom();
-
-    // ── Populate cache from market data + update from DOM ──
-    if (allMarkets) {
-      for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
-        const m = allMarkets[mktId];
-        if (!m) continue;
-        cacheRef.current[mktId] = cacheRef.current[mktId] || {};
-
-        // First: DOM scan overwrites with accurate per-panel status
-        for (const p of panels) {
-          if (domMap[p.id]) {
-            cacheRef.current[mktId][p.id] = domMap[p.id];
-          }
-        }
-
-        // Second: market data fills in panels not found in DOM
-        for (const p of panels) {
-          if (!cacheRef.current[mktId][p.id]) {
-            if (m.isLoading) {
-              cacheRef.current[mktId][p.id] = 'unknown';
-            } else {
-              // Market fetched — panel will likely render when navigated to
-              cacheRef.current[mktId][p.id] = 'ok';
-            }
-          }
-        }
-      }
-    }
-
-    // ── Build health from cache + live DOM ──
     const panels = MARKET_PANELS[marketId] || [];
     const health = {};
-    const cached = cacheRef.current[marketId] || {};
 
-    for (const p of panels) {
-      const domStatus = domMap[p.id];
-      if (domStatus) {
-        health[p.id] = domStatus;
-      } else if (cached[p.id]) {
-        health[p.id] = cached[p.id];
+    // Is the hovered market the same as the active (rendered) one?
+    const isDomScanValid = marketId === activeMarketId;
+
+    if (isDomScanValid) {
+      // ── Active market: scan DOM for per-panel status ──
+      const domMap = scanDom();
+      for (const p of panels) {
+        if (domMap[p.id]) {
+          health[p.id] = domMap[p.id];
+          // Also cache for when user moves away
+          cacheRef.current[marketId] = cacheRef.current[marketId] || {};
+          cacheRef.current[marketId][p.id] = domMap[p.id];
+        } else {
+          // Panel not in DOM — might be conditionally hidden
+          const cached = cacheRef.current[marketId]?.[p.id];
+          health[p.id] = cached || 'unknown';
+        }
+      }
+    } else {
+      // ── Non-active market: derive health from DataContext ──
+      const marketCtx = allMarkets?.[marketId];
+      const overallStatus = healthFromMarketData(marketCtx);
+
+      if (overallStatus === 'loading') {
+        for (const p of panels) health[p.id] = 'loading';
+      } else if (overallStatus === 'null') {
+        for (const p of panels) health[p.id] = 'null';
+      } else if (overallStatus === 'ok') {
+        // Market data exists — panels are likely ok, but we can't verify
+        // per-panel without rendering. Use cached DOM status if available,
+        // otherwise mark as 'ok' (data was fetched successfully).
+        for (const p of panels) {
+          const cached = cacheRef.current[marketId]?.[p.id];
+          health[p.id] = cached || 'ok';
+        }
       } else {
-        health[p.id] = 'unknown';
+        for (const p of panels) health[p.id] = 'unknown';
       }
     }
 
-    // Log panel health for AI agent visibility
-    logPanelHealth(marketId, health);
-
     return health;
-  }, [marketId, allMarkets]);
+  }, [marketId, activeMarketId, allMarkets]);
 }

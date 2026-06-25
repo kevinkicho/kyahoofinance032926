@@ -53,8 +53,16 @@ function stockTooltip(d, currentRate, currentSymbol, currency, metricKey, themeC
 
   const mc = Number(d.marketCap ?? d.metricValue ?? d.value);
   if (Number.isFinite(mc) && mc > 0) {
-    const converted = (mc * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
-    body += `<div style="font-size:0.82rem;margin-bottom:2px">${metricKey}: <strong>${currentSymbol}${converted} B</strong> (${currency})</div>`;
+    if (metricKey === 'P/E') {
+      const peVal = Number(d.metricValue ?? d.pe);
+      body += `<div style="font-size:0.82rem;margin-bottom:2px">${metricKey}: <strong>${Number.isFinite(peVal) ? peVal.toFixed(1) + 'x' : '—'}</strong></div>`;
+    } else if (metricKey === 'Div Yield') {
+      const dyVal = Number(d.metricValue ?? d.divYield);
+      body += `<div style="font-size:0.82rem;margin-bottom:2px">${metricKey}: <strong>${Number.isFinite(dyVal) ? dyVal.toFixed(2) + '%' : '—'}</strong></div>`;
+    } else {
+      const converted = (mc * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      body += `<div style="font-size:0.82rem;margin-bottom:2px">${metricKey}: <strong>${currentSymbol}${converted} B</strong> (${currency})</div>`;
+    }
   }
 
   if (d.sector) {
@@ -66,12 +74,18 @@ function stockTooltip(d, currentRate, currentSymbol, currency, metricKey, themeC
 
 function groupTooltip(d, currentRate, currentSymbol, currency, metricKey, themeColors) {
   const total = sumLeaves(d);
-  const converted = (total * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
   const count = countLeaves(d);
   const textSecondary = themeColors?.textSecondary || '#94a3b8';
   let body = `<div style="font-weight:700;font-size:1rem;margin-bottom:4px">${d.name}</div>`;
   body += `<div style="color:${textSecondary};font-size:0.78rem;margin-bottom:6px">${count} companies</div>`;
-  body += `<div style="margin-bottom:4px">${metricKey}: <strong>${currentSymbol}${converted} B</strong> (${currency})</div>`;
+  if (metricKey === 'P/E') {
+    body += `<div style="margin-bottom:4px">${metricKey}: <strong>${total.toFixed(1)}x avg</strong></div>`;
+  } else if (metricKey === 'Div Yield') {
+    body += `<div style="margin-bottom:4px">${metricKey}: <strong>${total.toFixed(2)}% avg</strong></div>`;
+  } else {
+    const converted = (total * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    body += `<div style="margin-bottom:4px">${metricKey}: <strong>${currentSymbol}${converted} B</strong> (${currency})</div>`;
+  }
   if (!d.isSectorGroup) {
     const sectors = getSectors(d.children || []).slice(0, 4);
     if (sectors.length) {
@@ -90,7 +104,9 @@ function groupTooltip(d, currentRate, currentSymbol, currency, metricKey, themeC
       stocks.forEach(st => {
         const isNum = /^\d/.test(st.name);
         const label = isNum ? (st.fullName || st.name) : `${st.name}${st.regionName ? ` · ${st.regionName}` : ''}`;
-        const v = ((st.metricValue || st.value || 0) * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 });
+        const v = metricKey === 'P/E' ? `${(st.metricValue || st.value || 0).toFixed(1)}x` :
+                  metricKey === 'Div Yield' ? `${(st.metricValue || st.value || 0).toFixed(2)}%` :
+                  `${currentSymbol}${((st.metricValue || st.value || 0) * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 })}B`;
         body += `<div style="font-size:0.78rem">· ${label} <span style="color:#60a5fa">${currentSymbol}${v}B</span></div>`;
       });
     }
@@ -127,9 +143,12 @@ const HeatmapView = ({
   const chartData = useMemo(() => {
     const norm = (node, path = []) => {
       const nodeId = [...path, node.name || node.ticker || 'node'].join('>');
-      return node.children
-        ? { ...node, id: node.id || nodeId, children: node.children.map(child => norm(child, [...path, node.name || 'node'])) }
-        : { ...node, id: node.id || nodeId, value: node.metricValue || node.adjustedValue || node.value };
+      if (node.children?.length > 0) {
+        return { ...node, id: node.id || nodeId, children: node.children.map(child => norm(child, [...path, node.name || 'node'])) };
+      }
+      // For P/E and divYield, use metricValue directly so cells size by that metric
+      const useMetric = rankMetric === 'pe' || rankMetric === 'divYield';
+      return { ...node, id: node.id || nodeId, value: useMetric ? (node.metricValue || node.adjustedValue || node.value) : (node.metricValue || node.adjustedValue || node.value) };
     };
     return data.map(node => norm(node));
   }, [data, rankMetric]);

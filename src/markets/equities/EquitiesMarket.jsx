@@ -63,94 +63,106 @@ function usePersistedState(key, defaultValue) {
 const STORAGE_KEY = 'equities-view';
 
 const INDEX_TICKERS_US = ['^GSPC', '^IXIC', '^DJI', '^RUT'];
-// International — Europe + Japan + India + Australia. Combined into one
-// strip so the panel doesn't blow out vertically with too many groups.
-const INDEX_TICKERS_INTL = ['^STOXX50E', '^GDAXI', '^FTSE', '^FCHI', '^N225', '^NSEI', '^AXJO'];
-// China & HK strip: 4 native indices + 3 US-listed China ETFs that trade
+// Global developed markets — Europe + Japan + India + Australia + Canada.
+const INDEX_TICKERS_DEV = ['^STOXX50E', '^GDAXI', '^FTSE', '^FCHI', '^N225', '^NSEI', '^AXJO', '^GSPTSE'];
+// Emerging markets — broad EM + key country ETFs + single-country indices.
+const INDEX_TICKERS_EM = ['EEM', 'VWO', 'FM', '^JKSE', '^BVSP', '^KS11', '^TWII'];
+// China & HK strip: 3 native indices + 3 US-listed China ETFs that trade
 // during NY hours, so we have something live while the mainland is closed.
-// Note: STAR 50 (000688.SS) is requested as KSTR (KraneShares ETF tracker)
-// because Yahoo's chart endpoint returns only 1 day of history for the
-// native index — KSTR is the same exposure with a usable history series.
-const INDEX_TICKERS_CN = ['^HSI', '000300.SS', '000001.SS', '399001.SZ', 'KSTR', 'ASHR', 'FXI'];
+const INDEX_TICKERS_CN = ['^HSI', '000300.SS', '000001.SS', 'ASHR', 'FXI', 'KWEB'];
 // Risk & macro — VIX (vol), 10Y Treasury yield (rates), DX=F (DXY dollar
-// futures since DX-Y.NYB is unreliable on Yahoo), and Gold (safe haven).
-// These four together capture most regime shifts that move equities.
-const INDEX_TICKERS_RISK = ['^VIX', '^TNX', 'DX=F', 'GC=F'];
-// Sector rotation — the four SPDR sectors that diverge most by cycle.
-const INDEX_TICKERS_SECTORS = ['XLK', 'XLF', 'XLE', 'XLV'];
+// futures), Gold (safe haven), Crude Oil (energy/global growth proxy).
+const INDEX_TICKERS_RISK = ['^VIX', '^TNX', 'DX=F', 'GC=F', 'CL=F'];
+// Commodities — precious metals + energy + agriculture benchmark.
+const INDEX_TICKERS_COMM = ['SI=F', 'NG=F', 'DBC'];
+// Sectors — broad SPDR sector rotation + semiconductors + defensive.
+const INDEX_TICKERS_SECTORS = ['XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'XLI', 'XLB', 'XLRE', 'XLC', 'XLU', 'XLP', 'SMH'];
 const INDEX_TICKERS = [
   ...INDEX_TICKERS_US,
-  ...INDEX_TICKERS_INTL,
+  ...INDEX_TICKERS_DEV,
+  ...INDEX_TICKERS_EM,
   ...INDEX_TICKERS_CN,
   ...INDEX_TICKERS_RISK,
+  ...INDEX_TICKERS_COMM,
   ...INDEX_TICKERS_SECTORS,
 ];
 const INDEX_LABELS = {
   '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', '^DJI': 'Dow Jones', '^RUT': 'Russell 2K',
   '^STOXX50E': 'Euro STOXX 50', '^GDAXI': 'DAX 40', '^FTSE': 'FTSE 100', '^FCHI': 'CAC 40',
-  '^N225': 'Nikkei 225', '^NSEI': 'NIFTY 50', '^AXJO': 'ASX 200',
+  '^N225': 'Nikkei 225', '^NSEI': 'NIFTY 50', '^AXJO': 'ASX 200', '^GSPTSE': 'S&P/TSX',
+  'EEM': 'MSCI EM', 'VWO': 'FTSE EM', 'FM': 'Frontier Mkts',
+  '^JKSE': 'Jakarta', '^BVSP': 'Bovespa', '^KS11': 'KOSPI', '^TWII': 'TAIEX',
   '^HSI': 'Hang Seng', '000300.SS': 'CSI 300', '000001.SS': 'Shanghai',
-  '399001.SZ': 'Shenzhen',
-  'KSTR': 'STAR 50 (KSTR ETF)', 'ASHR': 'ASHR (CSI 300 ETF)', 'FXI': 'FXI (China L-Cap ETF)',
-  '^VIX': 'VIX', '^TNX': '10Y Yield', 'DX=F': 'Dollar Index', 'GC=F': 'Gold',
+  'ASHR': 'ASHR (CSI 300)', 'FXI': 'FXI (China LgCap)', 'KWEB': 'KWEB (China Internet)',
+  '^VIX': 'VIX', '^TNX': '10Y Yield', 'DX=F': 'Dollar Index',
+  'GC=F': 'Gold', 'CL=F': 'WTI Crude',
+  'SI=F': 'Silver', 'NG=F': 'Nat Gas', 'DBC': 'Commodity Index',
   'XLK': 'XLK · Tech', 'XLF': 'XLF · Financials', 'XLE': 'XLE · Energy', 'XLV': 'XLV · Healthcare',
+  'XLY': 'XLY · Consumer Disc', 'XLI': 'XLI · Industrials', 'XLB': 'XLB · Materials',
+  'XLRE': 'XLRE · Real Estate', 'XLC': 'XLC · Comms', 'XLU': 'XLU · Utilities', 'XLP': 'XLP · Consumer Staples',
+  'SMH': 'SMH · Semis',
 };
-// Currency hint per ticker — used to suffix the price formatter so an
-// HKD or CNY index doesn't get read as USD. VIX/^TNX have no currency
+// Currency hint per ticker — used to suffix the price formatter so a
+// JPY or INR index doesn't get read as USD. VIX/^TNX have no currency
 // (they're index points / yield %) so leave blank.
 const INDEX_CURRENCY = {
   '^GSPC': '', '^IXIC': '', '^DJI': '', '^RUT': '',
   '^STOXX50E': 'EUR', '^GDAXI': 'EUR', '^FTSE': 'GBP', '^FCHI': 'EUR',
-  '^N225': 'JPY', '^NSEI': 'INR', '^AXJO': 'AUD',
-  '^HSI': 'HKD', '000300.SS': 'CNY', '000001.SS': 'CNY', '399001.SZ': 'CNY',
-  'KSTR': 'USD', 'ASHR': 'USD', 'FXI': 'USD',
-  '^VIX': '', '^TNX': '%', 'DX=F': '', 'GC=F': 'USD',
+  '^N225': 'JPY', '^NSEI': 'INR', '^AXJO': 'AUD', '^GSPTSE': 'CAD',
+  'EEM': 'USD', 'VWO': 'USD', 'FM': 'USD',
+  '^JKSE': 'IDR', '^BVSP': 'BRL', '^KS11': 'KRW', '^TWII': 'TWD',
+  '^HSI': 'HKD', '000300.SS': 'CNY', '000001.SS': 'CNY',
+  'ASHR': 'USD', 'FXI': 'USD', 'KWEB': 'USD',
+  '^VIX': '', '^TNX': '%', 'DX=F': '', 'GC=F': 'USD', 'CL=F': 'USD',
+  'SI=F': 'USD', 'NG=F': 'USD', 'DBC': 'USD',
   'XLK': 'USD', 'XLF': 'USD', 'XLE': 'USD', 'XLV': 'USD',
+  'XLY': 'USD', 'XLI': 'USD', 'XLB': 'USD', 'XLRE': 'USD',
+  'XLC': 'USD', 'XLU': 'USD', 'XLP': 'USD', 'SMH': 'USD',
 };
 
 // rowHeight is 120px in BentoWrapper. The indices panel uses a compact
-// grouped grid, so h:3 is enough for all 5 groups without the old wide
-// empty band. The main panels start at y:3.
+// grouped grid, so h:4 is enough for all 7 groups without the old wide
+// empty band. The main panels start at y:4.
 const HEATMAP_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
-    { i: 'heatmap', x: 0, y: 3, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
-    { i: 'sec-fundamentals', x: 0, y: 9, w: 6, h: 3 },
-    { i: 'universe-updates', x: 0, y: 12, w: 12, h: 4 },
-    { i: 'sec-filings', x: 6, y: 9, w: 6, h: 3 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
+    { i: 'heatmap', x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'sec-fundamentals', x: 0, y: 10, w: 6, h: 3 },
+    { i: 'universe-updates', x: 0, y: 13, w: 12, h: 4 },
+    { i: 'sec-filings', x: 6, y: 10, w: 6, h: 3 },
   ]
 };
 
 const RADAR_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
-    { i: 'radar',   x: 0, y: 3, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
+    { i: 'radar',   x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
 const RACE_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
-    { i: 'race',   x: 0,  y: 3, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 3, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
+    { i: 'race',   x: 0,  y: 4, w: 8,  h: 6 },
+    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
 const LIST_LAYOUT = {
   lg: [
-    { i: 'kpi',            x: 0, y: 0, w: 12, h: 3 },
-    { i: 'list-main',      x: 0, y: 3, w: 8,  h: 6 },
-    { i: 'detail-sidebar', x: 8, y: 3, w: 4,  h: 6 },
+    { i: 'kpi',            x: 0, y: 0, w: 12, h: 4 },
+    { i: 'list-main',      x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'detail-sidebar', x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
 const ML_LAYOUT = {
   lg: [
-    { i: 'kpi',         x: 0, y: 0, w: 12, h: 3 },
-    { i: 'ml-explorer', x: 0, y: 3, w: 8,  h: 6 },
-    { i: 'sidebar',     x: 8, y: 3, w: 4,  h: 6 },
+    { i: 'kpi',         x: 0, y: 0, w: 12, h: 4 },
+    { i: 'ml-explorer', x: 0, y: 4, w: 8,  h: 6 },
+    { i: 'sidebar',     x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
@@ -158,8 +170,8 @@ const ML_LAYOUT = {
 // ReferenceError in the Portfolio sub-tab. Now defined alongside the KPI.
 const PORTFOLIO_LAYOUT = {
   lg: [
-    { i: 'kpi',       x: 0, y: 0, w: 12, h: 3 },
-    { i: 'portfolio', x: 0, y: 3, w: 12, h: 6 },
+    { i: 'kpi',       x: 0, y: 0, w: 12, h: 4 },
+    { i: 'portfolio', x: 0, y: 4, w: 12, h: 6 },
   ]
 };
 
@@ -206,6 +218,8 @@ function quotesFromUniverse(universe) {
       if (stock.change != null)    q.c = stock.change;
       if (stock.changePct != null) q.cp = stock.changePct;
       if (stock.marketCap != null) q.mc = stock.marketCap;
+      if (stock.pe != null)        q.pe = stock.pe;
+      if (stock.divYield != null)  q.dy = stock.divYield;
       if (stock.weekHigh52 != null) q.wh = stock.weekHigh52;
       if (stock.weekLow52 != null) q.wl = stock.weekLow52;
       if (Object.keys(q).length) out[stock.name] = q;
@@ -224,6 +238,8 @@ function compactQuotesFromSnapshot(quotes) {
     if (q.change != null) compact.c = q.change;
     if (q.changePct != null) compact.cp = q.changePct;
     if (q.marketCapUsdB != null) compact.mc = q.marketCapUsdB;
+    if (q.pe != null) compact.pe = q.pe;
+    if (q.divYield != null) compact.dy = q.divYield;
     if (q.weekHigh52 != null) compact.wh = q.weekHigh52;
     if (q.weekLow52 != null) compact.wl = q.weekLow52;
     if (Object.keys(compact).length) out[ticker] = compact;
@@ -241,6 +257,8 @@ function applyQuotesToUniverse(universe, quotes) {
       return {
         ...stock,
         ...(q.mc != null && { marketCap: q.mc, value: q.mc }),
+        ...(q.pe != null && { pe: q.pe }),
+        ...(q.dy != null && { divYield: q.dy }),
         ...(q.p  != null && { price: q.p }),
         ...(q.c  != null && { change: q.c }),
         ...(q.cp != null && { changePct: q.cp }),
@@ -311,12 +329,12 @@ function formatTimestamp(d) {
 // stale saved layout. Wiping the older keys guarantees v4 starts clean
 // for every user, regardless of browser cache state.
 const STALE_LAYOUT_KEYS = [
-  'equities-heatmap-layout',   'equities-heatmap-layout-v2',   'equities-heatmap-layout-v3',   'equities-heatmap-layout-v4',   'equities-heatmap-layout-v5',
-  'equities-list-layout',      'equities-list-layout-v2',      'equities-list-layout-v3',      'equities-list-layout-v4',      'equities-list-layout-v5',
-  'equities-radar-layout',     'equities-radar-layout-v2',     'equities-radar-layout-v3',     'equities-radar-layout-v4',     'equities-radar-layout-v5',
-  'equities-race-layout',      'equities-race-layout-v2',      'equities-race-layout-v3',      'equities-race-layout-v4',      'equities-race-layout-v5',
-  'equities-portfolio-layout', 'equities-portfolio-layout-v2', 'equities-portfolio-layout-v3', 'equities-portfolio-layout-v4', 'equities-portfolio-layout-v5',
-  'equities-ml-layout',        'equities-ml-layout-v2',        'equities-ml-layout-v3',        'equities-ml-layout-v4',        'equities-ml-layout-v5',
+  'equities-heatmap-layout',   'equities-heatmap-layout-v2',   'equities-heatmap-layout-v3',   'equities-heatmap-layout-v4',   'equities-heatmap-layout-v5',   'equities-heatmap-layout-v6',   'equities-heatmap-layout-v7',
+  'equities-list-layout',      'equities-list-layout-v2',      'equities-list-layout-v3',      'equities-list-layout-v4',      'equities-list-layout-v5',      'equities-list-layout-v6',      'equities-list-layout-v7',
+  'equities-radar-layout',     'equities-radar-layout-v2',     'equities-radar-layout-v3',     'equities-radar-layout-v4',     'equities-radar-layout-v5',     'equities-radar-layout-v6',     'equities-radar-layout-v7',
+  'equities-race-layout',      'equities-race-layout-v2',      'equities-race-layout-v3',      'equities-race-layout-v4',      'equities-race-layout-v5',      'equities-race-layout-v6',      'equities-race-layout-v7',
+  'equities-portfolio-layout', 'equities-portfolio-layout-v2', 'equities-portfolio-layout-v3', 'equities-portfolio-layout-v4', 'equities-portfolio-layout-v5', 'equities-portfolio-layout-v6', 'equities-portfolio-layout-v7',
+  'equities-ml-layout',        'equities-ml-layout-v2',        'equities-ml-layout-v3',        'equities-ml-layout-v4',        'equities-ml-layout-v5',        'equities-ml-layout-v6',        'equities-ml-layout-v7',
 ];
 let __equitiesLayoutCleanupRan = false;
 function purgeStaleLayoutKeys() {
@@ -494,6 +512,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
                 ...(q.change != null && { change: q.change }),
                 ...(q.weekHigh52 != null && { weekHigh52: q.weekHigh52 }),
                 ...(q.weekLow52 != null && { weekLow52: q.weekLow52 }),
+                ...(q.pe != null && { pe: q.pe }),
+                ...(q.divYield != null && { divYield: q.divYield }),
               };
             }),
           }));
@@ -523,8 +543,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const getMetricValue = (stock, metric) => {
     if (metric === 'revenue')    return Math.max(stock.revenue   || 0.1, 0.1);
     if (metric === 'netIncome')  return Math.max(stock.netIncome || 0.1, 0.1);
-    if (metric === 'pe')         return stock.marketCap || stock.value || 1;
-    if (metric === 'divYield')   return stock.marketCap || stock.value || 1;
+    if (metric === 'pe')         return Math.max(stock.pe || 0.1, 0.1);
+    if (metric === 'divYield')   return Math.max(stock.divYield || 0.1, 0.1);
     return stock.marketCap || stock.value || 1;
   };
 
@@ -546,7 +566,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const adjustedTreemapData = useMemo(() => {
     return displayUniverse.map(region => {
       const withAdjusted = region.children.map(stock => {
-        const metricValue = (rankMetric === 'revenue' || rankMetric === 'netIncome')
+        const metricValue = (rankMetric === 'revenue' || rankMetric === 'netIncome' || rankMetric === 'pe' || rankMetric === 'divYield')
           ? getMetricValue(stock, rankMetric)
           : stock.marketCap || stock.value || 1;
         return {
@@ -760,16 +780,31 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     return Object.entries(edgarCtx?.data?.tickers || {}).map(([ticker, row]) => {
       const rev = row.revenues?.at?.(-1);
       const ni = row.netIncome?.at?.(-1);
+      const ast = row.assets?.at?.(-1);
+      const eq = row.equity?.at?.(-1);
+      const liab = row.liabilities?.at?.(-1);
       const revenue = toNum(rev?.value);
       const netIncome = toNum(ni?.value);
+      const assets = toNum(ast?.value);
+      const equity = toNum(eq?.value);
+      const liabilities = toNum(liab?.value);
       const margin = revenue ? ((netIncome ?? 0) / revenue) * 100 : null;
+      const roa = assets && netIncome ? (netIncome / assets) * 100 : null;
+      const roe = equity && netIncome ? (netIncome / equity) * 100 : null;
+      const debtToEquity = liabilities && equity ? liabilities / equity : null;
       return {
         ticker,
         cik: row.cik,
         revenue,
         netIncome,
+        assets,
+        equity,
+        liabilities,
         period: ni?.fy || rev?.fy || ni?.end || rev?.end || null,
         margin,
+        roa,
+        roe,
+        debtToEquity,
         quality: margin == null ? '—' : margin >= 25 ? 'High' : margin >= 15 ? 'Solid' : margin >= 5 ? 'Watch' : 'Thin',
       };
     }).sort((a, b) => (b.margin ?? -Infinity) - (a.margin ?? -Infinity));
@@ -778,7 +813,9 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     const margins = edgarRows.map(row => row.margin).filter(Number.isFinite);
     const avgMargin = margins.length ? margins.reduce((sum, v) => sum + v, 0) / margins.length : null;
     const profitable = edgarRows.filter(row => (row.netIncome ?? 0) > 0).length;
-    return { avgMargin, profitable, count: edgarRows.length };
+    const avgRoa = edgarRows.filter(r => Number.isFinite(r.roa)).reduce((s, r) => s + r.roa, 0) / edgarRows.filter(r => Number.isFinite(r.roa)).length || null;
+    const avgRoe = edgarRows.filter(r => Number.isFinite(r.roe)).reduce((s, r) => s + r.roe, 0) / edgarRows.filter(r => Number.isFinite(r.roe)).length || null;
+    return { avgMargin, profitable, count: edgarRows.length, avgRoa, avgRoe };
   }, [edgarRows]);
   const universeUpdates = universeCtx?.data?.updates || [];
 
@@ -962,11 +999,13 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     >
       <KeyIndicesStrip
         groups={[
-          { label: 'US',                                                kpis: INDEX_TICKERS_US.map(buildPill) },
-          { label: 'International · Europe + Japan + India + Aus',      kpis: INDEX_TICKERS_INTL.map(buildPill) },
-          { label: 'China & HK · native + USD-listed ETFs',             kpis: INDEX_TICKERS_CN.map(buildPill) },
-          { label: 'Risk & Macro · VIX, 10Y, DXY, Gold',                kpis: INDEX_TICKERS_RISK.map(buildPill) },
-          { label: 'Sectors · cycle-driven SPDRs',                      kpis: INDEX_TICKERS_SECTORS.map(buildPill) },
+          { label: 'US · major indices',                                        kpis: INDEX_TICKERS_US.map(buildPill) },
+          { label: 'Global Developed · Europe + Japan + India + Aus + Canada',   kpis: INDEX_TICKERS_DEV.map(buildPill) },
+          { label: 'Emerging Markets · EM ETFs + country indices',              kpis: INDEX_TICKERS_EM.map(buildPill) },
+          { label: 'China & HK · native + USD-listed ETFs',                     kpis: INDEX_TICKERS_CN.map(buildPill) },
+          { label: 'Risk & Macro · vol, rates, dollar, gold, crude',            kpis: INDEX_TICKERS_RISK.map(buildPill) },
+          { label: 'Commodities · silver, nat gas, broad index',                kpis: INDEX_TICKERS_COMM.map(buildPill) },
+          { label: 'Sectors · growth + defensive + semis',                      kpis: INDEX_TICKERS_SECTORS.map(buildPill) },
         ]}
       />
     </BentoCard>
@@ -976,7 +1015,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     <BentoCard
       key="sec-fundamentals"
       title="SEC Mega-Cap Fundamentals"
-      subtitle={`Revenue · net income · margin · ${edgarSummary.profitable}/${edgarSummary.count} profitable${edgarSummary.avgMargin != null ? ` · avg margin ${edgarSummary.avgMargin.toFixed(1)}%` : ''}`}
+      subtitle={`Revenue · net income · margin · ROA · ROE · ${edgarSummary.profitable}/${edgarSummary.count} profitable${edgarSummary.avgMargin != null ? ` · avg margin ${edgarSummary.avgMargin.toFixed(1)}%` : ''}${edgarSummary.avgRoa != null ? ` · avg ROA ${edgarSummary.avgRoa.toFixed(1)}%` : ''}${edgarSummary.avgRoe != null ? ` · avg ROE ${edgarSummary.avgRoe.toFixed(1)}%` : ''}`}
       accent="equities"
       className="eq-bento-card"
       contentClassName="eq-panel-content eq-panel-scroll"
@@ -989,13 +1028,26 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       error={edgarCtx?.error}
     >
       <div className="eq-mini-table">
+        <div style={{ display: 'grid', gridTemplateColumns: '52px 72px 1fr 1fr 64px 58px 58px 58px', gap: 8, alignItems: 'center', padding: '0 0 4px', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span>Ticker</span>
+          <span style={{ textAlign: 'right' }}>Period</span>
+          <span style={{ textAlign: 'right' }}>Revenue</span>
+          <span style={{ textAlign: 'right' }}>Net Inc</span>
+          <span style={{ textAlign: 'right' }}>Margin</span>
+          <span style={{ textAlign: 'right' }}>ROA</span>
+          <span style={{ textAlign: 'right' }}>ROE</span>
+          <span style={{ textAlign: 'right' }}>Quality</span>
+        </div>
         {edgarRows.map(row => (
-          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '64px 1fr 1fr 64px 58px', gap: 8, alignItems: 'center' }}>
-            <strong>{row.ticker}</strong>
+          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '52px 72px 1fr 1fr 64px 58px 58px 58px', gap: 8, alignItems: 'center' }}>
+            <strong style={{ fontSize: 12 }}>{row.ticker}</strong>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right' }}>{row.period || '—'}</span>
             <span><MetricValue value={row.revenue} seriesKey="edgarRevenue" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
             <span><MetricValue value={row.netIncome} seriesKey="edgarNetIncome" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
-            <span style={{ color: (row.margin ?? 0) >= 20 ? '#22c55e' : '#f59e0b' }}>{row.margin != null ? `${row.margin.toFixed(1)}%` : '—'}</span>
-            <span style={{ color: row.quality === 'High' ? '#22c55e' : row.quality === 'Solid' ? '#60a5fa' : row.quality === 'Watch' ? '#f59e0b' : 'var(--text-muted)', fontSize: 11 }}>{row.quality}</span>
+            <span style={{ color: (row.margin ?? 0) >= 20 ? '#22c55e' : '#f59e0b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.margin != null ? `${row.margin.toFixed(1)}%` : '—'}</span>
+            <span style={{ color: (row.roa ?? 0) >= 15 ? '#22c55e' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.roa != null ? `${row.roa.toFixed(1)}%` : '—'}</span>
+            <span style={{ color: (row.roe ?? 0) >= 20 ? '#22c55e' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.roe != null ? `${row.roe.toFixed(1)}%` : '—'}</span>
+            <span style={{ color: row.quality === 'High' ? '#22c55e' : row.quality === 'Solid' ? '#60a5fa' : row.quality === 'Watch' ? '#f59e0b' : 'var(--text-muted)', fontSize: 11, textAlign: 'right' }}>{row.quality}</span>
           </div>
         ))}
       </div>
@@ -1003,14 +1055,16 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   ) : null;
 
   const filingActivityData = filingActivityCtx?.data?.byType || {};
+  const filingActivityByTicker = filingActivityCtx?.data?.byTicker || {};
   const filingActivityTotal = filingActivityCtx?.data?.total || 0;
   const filingActivityTickers = filingActivityCtx?.data?.tickerCount || 0;
+  const filingDateRange = filingActivityCtx?.data?.dateRange || null;
   const FILING_TYPES = ['10-K', '10-Q', '8-K', '4', '144', 'DEF 14A', 'SD', 'SC 13G/A', 'DEFA14A', 'FWP', '424B2', 'PX14A6G', '3', 'NO ACT'];
   const secFilingsCard = filingActivityTotal > 0 ? (
     <BentoCard
       key="sec-filings"
       title="SEC Filing Activity"
-      subtitle={`${filingActivityTotal} filings · ${filingActivityTickers} tickers`}
+      subtitle={`${filingActivityTotal} filings · ${filingActivityTickers} tickers${filingDateRange?.latest ? ` · latest ${filingDateRange.latest}` : ''}`}
       accent="equities"
       className="eq-bento-card"
       contentClassName="eq-panel-content eq-panel-scroll"
@@ -1022,13 +1076,33 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       fetchLog={filingActivityCtx?.fetchLog || []}
       error={filingActivityCtx?.error}
     >
-      <div className="eq-mini-table">
-        {FILING_TYPES.filter(t => filingActivityData[t]).map(type => (
-          <div key={type} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', padding: '4px 0' }}>
-            <span style={{ fontSize: 12, fontWeight: 500 }}>{type}</span>
-            <span style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{filingActivityData[type].toLocaleString()}</span>
-          </div>
+      <div style={{ marginBottom: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {FILING_TYPES.filter(t => filingActivityData[t]).slice(0, 8).map(type => (
+          <span key={type} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ color: 'var(--text-muted)' }}>{type}</span>{' '}
+            <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{filingActivityData[type]}</strong>
+          </span>
         ))}
+      </div>
+      <div className="eq-mini-table">
+        <div style={{ display: 'grid', gridTemplateColumns: '48px 52px 64px 1fr 48px', gap: 6, alignItems: 'center', padding: '0 0 4px', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span>Ticker</span>
+          <span>Type</span>
+          <span>Date</span>
+          <span>Description</span>
+          <span style={{ textAlign: 'right' }}>Link</span>
+        </div>
+        {Object.entries(filingActivityByTicker).flatMap(([ticker, filings]) =>
+          filings.slice(0, 5).map((f, i) => (
+            <div key={`${ticker}-${i}`} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '48px 52px 64px 1fr 48px', gap: 6, alignItems: 'center', fontSize: 11 }}>
+              <strong style={{ fontSize: 11 }}>{ticker}</strong>
+              <span style={{ color: f.form === '10-K' ? '#22c55e' : f.form === '10-Q' ? '#60a5fa' : f.form === '8-K' ? '#f59e0b' : 'var(--text-primary)' }}>{f.form}</span>
+              <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{f.date}</span>
+              <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description || '—'}</span>
+              <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textAlign: 'right', textDecoration: 'none' }} title={`View ${f.form} filing on SEC EDGAR`}>↗</a>
+            </div>
+          ))
+        )}
       </div>
     </BentoCard>
   ) : null;
