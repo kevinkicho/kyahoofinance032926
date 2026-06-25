@@ -28,20 +28,39 @@ export function usePanelHealth(marketId) {
   const allMarkets = ctx?.markets;
 
   const [domMap, setDomMap] = useState(() => scanDom());
-  // Per-market cache of last-known panel status
   const cacheRef = useRef({});
 
-  // Update cache from current DOM state
+  // Populate cache from market data at initialization
+  // (gives immediate status for all markets without needing DOM)
+  useEffect(() => {
+    if (!allMarkets) return;
+    for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
+      const m = allMarkets[mktId];
+      if (!m) continue;
+      cacheRef.current[mktId] = cacheRef.current[mktId] || {};
+      for (const p of panels) {
+        // Don't overwrite existing DOM-based cache entries
+        if (cacheRef.current[mktId][p.id]) continue;
+        if (m.isLoading) {
+          cacheRef.current[mktId][p.id] = 'unknown';
+        } else if (m.data) {
+          cacheRef.current[mktId][p.id] = 'ok';
+        } else {
+          cacheRef.current[mktId][p.id] = 'null';
+        }
+      }
+    }
+  }, [allMarkets]);
+
+  // Update cache from DOM scans (more accurate than market data)
   const refreshCache = () => {
     const snap = scanDom();
     setDomMap(snap);
-    // Find which market owns each rendered panel by checking which market's
-    // panels are in the DOM
-    for (const [marketId, panels] of Object.entries(MARKET_PANELS)) {
+    for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
       for (const p of panels) {
         if (snap[p.id]) {
-          cacheRef.current[marketId] = cacheRef.current[marketId] || {};
-          cacheRef.current[marketId][p.id] = snap[p.id];
+          cacheRef.current[mktId] = cacheRef.current[mktId] || {};
+          cacheRef.current[mktId][p.id] = snap[p.id];
         }
       }
     }
@@ -63,19 +82,16 @@ export function usePanelHealth(marketId) {
     const cached = cacheRef.current[marketId] || {};
 
     for (const p of panels) {
-      // 1. Check live DOM first (most accurate for active market)
       const domStatus = domMap[p.id];
       if (domStatus) {
+        // Live DOM — most accurate
         health[p.id] = domStatus;
-        continue;
-      }
-      // 2. Check cache (from when this market was last active)
-      if (cached[p.id]) {
+      } else if (cached[p.id]) {
+        // Cached from previous visit or initialization
         health[p.id] = cached[p.id];
-        continue;
+      } else {
+        health[p.id] = 'unknown';
       }
-      // 3. Never visited — unknown
-      health[p.id] = 'unknown';
     }
     return health;
   }, [marketId, domMap]);
