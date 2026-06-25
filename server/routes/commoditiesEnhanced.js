@@ -404,11 +404,9 @@ router.get('/', async (req, res) => {
     // 4. Yahoo Finance Data (futures + ETFs)
     const yahooData = {};
     try {
-      // Fetch DBC (commodity ETF) for broad exposure
       trackApiCall('Yahoo Finance');
       const dbcQuote = await yf.quote(['DBC']);
       const dbc = Array.isArray(dbcQuote) ? dbcQuote[0] : dbcQuote;
-
       if (dbc?.regularMarketPrice) {
         yahooData.dbc = {
           symbol: 'DBC',
@@ -422,35 +420,20 @@ router.get('/', async (req, res) => {
           _dataAge: 'Live',
         };
       }
+    } catch (e) {
+      console.warn('Yahoo DBC fetch failed:', e.message);
+    }
 
-      // Fetch major commodity futures - expanded coverage
-      const futuresSymbols = [
-        'CL=F',   // Crude Oil
-        'BZ=F',   // Brent Crude
-        'GC=F',   // Gold
-        'SI=F',   // Silver
-        'PL=F',   // Platinum
-        'PA=F',   // Palladium
-        'NG=F',   // Natural Gas
-        'ZC=F',   // Corn
-        'ZW=F',   // Wheat
-        'ZO=F',   // Oats
-        'ZS=F',   // Soybeans
-        'ZL=F',   // Soybean Oil
-        'ZM=F',   // Soybean Meal
-        'KC=F',   // Coffee
-        'CT=F',   // Cotton
-        'SB=F',   // Sugar
-        'LE=F',   // Live Cattle
-        'GF=F',   // Feeder Cattle
-        'HE=F',   // Lean Hogs
-        'HG=F',   // Copper
-        'HO=F',   // Heating Oil
-      ];
+    // Fetch major commodity futures - split from DBC so one failure doesn't kill the other
+    const futuresSymbols = [
+      'CL=F', 'BZ=F', 'GC=F', 'SI=F', 'PL=F', 'PA=F', 'NG=F',
+      'ZC=F', 'ZW=F', 'ZO=F', 'ZS=F', 'ZL=F', 'ZM=F',
+      'KC=F', 'CT=F', 'SB=F', 'LE=F', 'GF=F', 'HE=F', 'HG=F', 'HO=F',
+    ];
+    try {
       trackApiCall('Yahoo Finance');
       const futuresQuotes = await yf.quote(futuresSymbols);
       const futuresArr = Array.isArray(futuresQuotes) ? futuresQuotes : [futuresQuotes];
-
       yahooData.futures = {};
       futuresArr.forEach(q => {
         if (q?.symbol) {
@@ -466,7 +449,7 @@ router.get('/', async (req, res) => {
         }
       });
     } catch (e) {
-      console.warn('Yahoo Finance fetch failed:', e.message);
+      console.warn('Yahoo futures fetch failed:', e.message);
     }
     result.yahoo = yahooData;
 

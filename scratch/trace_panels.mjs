@@ -17,9 +17,15 @@ console.log(`Navigating to ${URL}...`);
 await page.goto(URL, { waitUntil: 'networkidle', timeout: 60000 });
 await page.waitForTimeout(5000);
 
-// Navigate to Analytics tab via URL hash
+// Navigate to Analytics tab
 await page.evaluate(() => {
-  window.location.hash = '#/market/analytics';
+  const buttons = document.querySelectorAll('button.market-tab');
+  for (const btn of buttons) {
+    if (btn.textContent?.toLowerCase().includes('analytics')) {
+      btn.click();
+      return;
+    }
+  }
 });
 await page.waitForTimeout(5000);
 
