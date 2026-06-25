@@ -2,6 +2,8 @@
 
 A comprehensive multi-market financial dashboard built with React 18 + Vite 5. Covers 21 market views (17 financial dashboards + IMF + World Bank + BLS + EIA + Census) with unified "one-look" dashboards, live data from Yahoo Finance, FRED, CoinGecko, and more. Includes a 350+ stock global equity heatmap with historical playback.
 
+![Market Hub Tour](screenshots/market_hub_tour.gif)
+
 ## 🚀 Quick Start
 
 ```bash
@@ -419,6 +421,8 @@ This consolidation reduces cognitive load and enables instant cross-comparison a
 
 ## App-Level Features
 
+- **Panel Health Indicators** — each market tab's dropdown shows real-time status dots: green (data loaded), red (no data/unavailable), orange (stale), grey (not yet visited). Status is cached from DOM scans and market data at initialization, so hovering shows accurate status without clicking first.
+- **AppLogger** — structured event logging for AI agent consumption. Captures data fetches, panel health, user interactions, and errors. Stored in `localStorage` (key: `app-log`) and exposed via `window.__APP_LOG` for Playwright access.
 - **Dark / Light Theme** — toggle in the tab bar, persisted to localStorage
 - **PNG Export** — capture any market view as a high-res PNG screenshot
 - **CSV / JSON Export** — download raw market data in either format
@@ -552,6 +556,17 @@ Every data point in the app is traceable to its source. Two provenance component
 | Deploy | GitHub Pages frontend + Firebase Functions backend; Docker files remain for local/legacy workflows |
 
 ## Getting Started
+
+### Panel Health Initialization
+
+The panel health status dots in the market tab dropdown are pre-populated during app initialization:
+
+1. **Market data fetch**: DataProvider fetches all 20 market endpoints on mount. As each fetch completes, `usePanelHealth` populates the cache with "ok" for all panels in that market.
+2. **DOM scan**: When a market becomes active (tab clicked), its panels render. A `MutationObserver` watches for `[data-panel-key]` attributes and captures the actual panel status (ok/null/stale) from the DOM content.
+3. **Cache merge**: DOM-based status always takes precedence over market-data status. The cache is updated synchronously inside `useMemo`, so there's no timing gap between data load and status display.
+4. **Hover access**: When hovering any tab, the dropdown reads from the cache — showing accurate status for visited markets and market-data status for unvisited ones.
+
+This means hovering shows useful status dots **without needing to click each tab first**.
 
 ### 1. Install dependencies
 
