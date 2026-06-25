@@ -39,8 +39,6 @@ export function usePanelHealth(marketId) {
       if (!m) continue;
       cacheRef.current[mktId] = cacheRef.current[mktId] || {};
       for (const p of panels) {
-        // Don't overwrite existing DOM-based cache entries
-        if (cacheRef.current[mktId][p.id]) continue;
         if (m.isLoading) {
           cacheRef.current[mktId][p.id] = 'unknown';
         } else if (m.data) {
@@ -52,16 +50,20 @@ export function usePanelHealth(marketId) {
     }
   }, [allMarkets]);
 
-  // Update cache from DOM scans (more accurate than market data)
+  // Update cache from DOM scans (replaces market-data entries with accurate DOM status)
   const refreshCache = () => {
     const snap = scanDom();
     setDomMap(snap);
     for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
+      // Clear old cache for this market, then re-populate from DOM
+      const newCache = {};
       for (const p of panels) {
         if (snap[p.id]) {
-          cacheRef.current[mktId] = cacheRef.current[mktId] || {};
-          cacheRef.current[mktId][p.id] = snap[p.id];
+          newCache[p.id] = snap[p.id];
         }
+      }
+      if (Object.keys(newCache).length > 0) {
+        cacheRef.current[mktId] = newCache;
       }
     }
   };
