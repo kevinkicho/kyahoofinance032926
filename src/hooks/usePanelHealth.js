@@ -1,9 +1,6 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useDataContext } from '../hub/DataContext';
 import { MARKET_PANELS } from '../data/marketPanels';
-
-// Per-market cache of DOM panel status. Persists across market switches.
-const marketCache = {};
 
 function scanDom() {
   if (typeof document === 'undefined') return {};
@@ -26,39 +23,15 @@ function scanDom() {
   return map;
 }
 
-// Update cache for ALL markets whose panels are currently in the DOM
-function updateCache() {
-  const snap = scanDom();
-  for (const [marketId, panels] of Object.entries(MARKET_PANELS)) {
-    const marketHealth = {};
-    let found = false;
-    for (const p of panels) {
-      if (snap[p.id]) {
-        found = true;
-        marketHealth[p.id] = snap[p.id];
-      }
-    }
-    if (found) {
-      // Merge with existing cache (keep old data for panels not currently rendered)
-      marketCache[marketId] = { ...marketCache[marketId], ...marketHealth };
-    }
-  }
-}
-
 export function usePanelHealth(marketId) {
   const ctx = useDataContext();
   const allMarkets = ctx?.markets;
 
-  const [cache, setCache] = useState({});
+  const [domMap, setDomMap] = useState(() => scanDom());
 
   useEffect(() => {
-    updateCache();
-    setCache({ ...marketCache });
-
-    const obs = new MutationObserver(() => {
-      updateCache();
-      setCache({ ...marketCache });
-    });
+    const update = () => setDomMap(scanDom());
+    const obs = new MutationObserver(update);
     obs.observe(document.body || document.documentElement, {
       childList: true, subtree: true, attributes: true,
       attributeFilter: ['data-panel-key'], characterData: true,
@@ -69,18 +42,19 @@ export function usePanelHealth(marketId) {
   return useMemo(() => {
     const panels = MARKET_PANELS[marketId] || [];
     const health = {};
-    const cached = cache[marketId] || {};
 
     for (const p of panels) {
-      if (cached[p.id]) {
-        // Use cached DOM status (from when this market was last active)
-        health[p.id] = cached[p.id];
+      const domStatus = domMap[p.id];
+      if (domStatus) {
+        // Panel is in the DOM — use accurate DOM status
+        health[p.id] = domStatus;
       } else {
-        // No cached status — use market-level data
+        // Panel not in DOM — use market-level data as best guess
         const m = allMarkets?.[marketId];
         if (!m || m.isLoading) {
           health[p.id] = 'unknown';
         } else if (m.data) {
+          // Market loaded — panel likely available (will show accurate status when clicked)
           health[p.id] = 'ok';
         } else {
           health[p.id] = 'null';
@@ -88,5 +62,5 @@ export function usePanelHealth(marketId) {
       }
     }
     return health;
-  }, [marketId, allMarkets, cache]);
+  }, [marketId, allMarkets, domMap]);
 }
