@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useDataContext } from '../hub/DataContext';
 import { MARKET_PANELS } from '../data/marketPanels';
-import { PANEL_REGISTRY } from '../data/panelRegistry';
 
 function scanDom() {
   if (typeof document === 'undefined') return {};
@@ -24,17 +23,6 @@ function scanDom() {
   return map;
 }
 
-function getFieldByPath(obj, path) {
-  if (!path || !obj) return undefined;
-  const parts = path.split('.');
-  let cur = obj;
-  for (const p of parts) {
-    if (cur == null) return undefined;
-    cur = cur[p];
-  }
-  return cur;
-}
-
 export function usePanelHealth(marketId, isActive) {
   const ctx = useDataContext();
   const allMarkets = ctx?.markets;
@@ -55,7 +43,6 @@ export function usePanelHealth(marketId, isActive) {
   return useMemo(() => {
     const panels = MARKET_PANELS[marketId] || [];
     const health = {};
-    const registry = PANEL_REGISTRY[marketId] || [];
 
     for (const p of panels) {
       const domStatus = domMap[p.id];
@@ -66,27 +53,12 @@ export function usePanelHealth(marketId, isActive) {
         // Active market but panel not in DOM — it's not rendered
         health[p.id] = 'not-rendered';
       } else {
-        // Non-active market — use API data check
+        // Non-active market — use market-level data
         const m = allMarkets?.[marketId];
         if (!m || m.isLoading) {
           health[p.id] = 'unknown';
         } else if (m.data) {
-          // Market loaded — check if this panel has data via registry
-          const entry = registry.find(e => e.id === p.id);
-          if (entry?.crossMarket) {
-            const src = allMarkets?.[entry.crossMarket];
-            if (src?.data) {
-              const val = getFieldByPath(src.data, entry.fieldPath);
-              health[p.id] = (val != null && !(Array.isArray(val) && val.length === 0)) ? 'ok' : 'null';
-            } else {
-              health[p.id] = 'null';
-            }
-          } else if (entry) {
-            const val = getFieldByPath(m.data, entry.fieldPath);
-            health[p.id] = (val != null && !(Array.isArray(val) && val.length === 0)) ? 'ok' : 'null';
-          } else {
-            health[p.id] = 'ok';
-          }
+          health[p.id] = 'ok';
         } else {
           health[p.id] = 'null';
         }

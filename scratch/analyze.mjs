@@ -9,7 +9,7 @@ const context = await browser.newContext({ viewport: { width: 1920, height: 1080
 const page = await context.newPage();
 
 console.log(`Navigating to ${URL}...`);
-await page.goto(URL, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
 await page.waitForTimeout(5000);
 
 const markets = ['equities', 'bonds', 'fx', 'derivatives', 'realEstate', 'insurance', 'commodities', 'globalMacro', 'crypto', 'credit', 'sentiment', 'calendar', 'bls', 'eia'];
