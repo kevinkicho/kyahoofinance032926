@@ -23,13 +23,23 @@ function checkPanelHealth(marketId, panelId, marketData) {
   const data = marketData?.data;
   if (!data) return 'loading';
 
-  // Cross-market panels check their source market
   if (entry.crossMarket) {
     return 'cross-market';
   }
 
   const val = getFieldByPath(data, entry.fieldPath);
-  if (val === null || val === undefined) return 'null';
+  if (val === null || val === undefined) {
+    // Field not in raw API data — may be derived client-side (e.g.
+    // sectorHeatmapData is built from yahoo.futures by mapV2ToLegacy).
+    // Check _sources: if any source was received, the panel likely has
+    // enough data to render, even if the specific field path is absent.
+    const sources = data._sources;
+    if (sources && typeof sources === 'object') {
+      const anyTrue = Object.values(sources).some(v => v === true);
+      if (anyTrue) return 'ok';
+    }
+    return 'null';
+  }
   if (Array.isArray(val) && val.length === 0) return 'empty';
   if (typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) return 'empty';
   return 'ok';
