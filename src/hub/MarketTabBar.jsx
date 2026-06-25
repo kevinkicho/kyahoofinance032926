@@ -289,7 +289,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
     setHoveredMarket(null);
   }, []);
 
-  const panelHealth = usePanelHealth(hoveredMarket);
+  const panelHealth = usePanelHealth(hoveredMarket, hoveredMarket === activeMarket);
 
   function PanelDropdownItems({ marketId, onJump }) {
     const panels = MARKET_PANELS[marketId] || [];
