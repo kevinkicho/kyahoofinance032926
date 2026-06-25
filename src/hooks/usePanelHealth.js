@@ -107,7 +107,6 @@ export function usePanelHealth(marketId, isActive) {
 
   return useMemo(() => {
     const panels = MARKET_PANELS[marketId] || [];
-    const isActive = marketId === activeMarket;
     const health = {};
 
     for (const p of panels) {
@@ -127,5 +126,5 @@ export function usePanelHealth(marketId, isActive) {
       }
     }
     return health;
-  }, [marketId, marketData, allMarkets, domPanels, activeMarket]);
+  }, [marketId, marketData, allMarkets, domPanels, isActive]);
 }
