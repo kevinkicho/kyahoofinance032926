@@ -1,71 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useDataContext } from '../hub/DataContext';
-import { PANEL_REGISTRY } from '../data/panelRegistry';
 import { MARKET_PANELS } from '../data/marketPanels';
-
-function getFieldByPath(obj, path) {
-  if (!path || !obj) return undefined;
-  const parts = path.split('.');
-  let cur = obj;
-  for (const p of parts) {
-    if (cur == null) return undefined;
-    cur = cur[p];
-  }
-  return cur;
-}
-
-function checkApiHealth(marketId, panelId, marketData, allMarkets) {
-  const data = marketData?.data;
-  const isLoading = marketData?.isLoading;
-
-  if (!data && isLoading === false) {
-    const registry = PANEL_REGISTRY[marketId];
-    const entry = registry?.find(p => p.id === panelId);
-    if (entry?.crossMarket) {
-      const sourceMarket = allMarkets?.[entry.crossMarket];
-      const sourceData = sourceMarket?.data;
-      if (!sourceData) return 'null';
-      const sourceVal = getFieldByPath(sourceData, entry.fieldPath);
-      if (sourceVal === null || sourceVal === undefined) return 'null';
-      if (Array.isArray(sourceVal) && sourceVal.length === 0) return 'empty';
-      if (typeof sourceVal === 'object' && !Array.isArray(sourceVal) && Object.keys(sourceVal).length === 0) return 'empty';
-      return 'ok';
-    }
-    return 'null';
-  }
-  if (!data) return 'loading';
-
-  const registry = PANEL_REGISTRY[marketId];
-  const entry = registry?.find(p => p.id === panelId);
-  if (!entry) {
-    const nonMetaKeys = Object.keys(data).filter(k => !k.startsWith('_') && k !== 'lastUpdated' && k !== 'fetchedOn' && k !== 'isCurrent' && k !== 'isLive');
-    return nonMetaKeys.length > 0 ? 'ok' : 'null';
-  }
-
-  if (entry.crossMarket) {
-    const sourceMarket = allMarkets?.[entry.crossMarket];
-    const sourceData = sourceMarket?.data;
-    if (!sourceData) return 'null';
-    const sourceVal = getFieldByPath(sourceData, entry.fieldPath);
-    if (sourceVal === null || sourceVal === undefined) return 'null';
-    if (Array.isArray(sourceVal) && sourceVal.length === 0) return 'empty';
-    if (typeof sourceVal === 'object' && !Array.isArray(sourceVal) && Object.keys(sourceVal).length === 0) return 'empty';
-    return 'ok';
-  }
-
-  const val = getFieldByPath(data, entry.fieldPath);
-  if (val === null || val === undefined) {
-    const sources = data._sources;
-    if (sources && typeof sources === 'object') {
-      const anyTrue = Object.values(sources).some(v => v === true);
-      if (anyTrue) return 'ok';
-    }
-    return 'null';
-  }
-  if (Array.isArray(val) && val.length === 0) return 'empty';
-  if (typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length === 0) return 'empty';
-  return 'ok';
-}
 
 function scanDomPanels() {
   if (typeof document === 'undefined') return {};
@@ -87,7 +22,6 @@ function scanDomPanels() {
 export function usePanelHealth(marketId, isActive) {
   const ctx = useDataContext();
   const marketData = ctx?.markets?.[marketId];
-  const allMarkets = ctx?.markets;
 
   const [domPanels, setDomPanels] = useState({});
 
@@ -111,6 +45,7 @@ export function usePanelHealth(marketId, isActive) {
 
     for (const p of panels) {
       if (isActive) {
+        // Active market: read actual DOM state
         const dom = domPanels[p.id];
         if (!dom) {
           health[p.id] = 'not-rendered';
@@ -122,9 +57,11 @@ export function usePanelHealth(marketId, isActive) {
           health[p.id] = 'ok';
         }
       } else {
-        health[p.id] = checkApiHealth(marketId, p.id, marketData, allMarkets);
+        // Hovered market (not visible): report based on whether the
+        // market data loaded. If data is null, panels are unavailable.
+        health[p.id] = marketData?.data ? 'ok' : 'null';
       }
     }
     return health;
-  }, [marketId, marketData, allMarkets, domPanels, isActive]);
+  }, [marketId, marketData, domPanels, isActive]);
 }
