@@ -15,13 +15,17 @@ function getFieldByPath(obj, path) {
 }
 
 function checkPanelHealth(marketId, panelId, marketData, allMarkets) {
-  const registry = PANEL_REGISTRY[marketId];
-  if (!registry) return 'unknown';
-  const entry = registry.find(p => p.id === panelId);
-  if (!entry) return 'unknown';
-
   const data = marketData?.data;
   if (!data) return 'loading';
+
+  const registry = PANEL_REGISTRY[marketId];
+  const entry = registry?.find(p => p.id === panelId);
+
+  // If panel has no registry entry, check if the market has any data at all
+  if (!entry) {
+    const nonMetaKeys = Object.keys(data).filter(k => !k.startsWith('_') && k !== 'lastUpdated' && k !== 'fetchedOn' && k !== 'isCurrent' && k !== 'isLive');
+    return nonMetaKeys.length > 0 ? 'ok' : 'null';
+  }
 
   // Cross-market panels: verify the source market actually has data
   if (entry.crossMarket) {
@@ -37,10 +41,6 @@ function checkPanelHealth(marketId, panelId, marketData, allMarkets) {
 
   const val = getFieldByPath(data, entry.fieldPath);
   if (val === null || val === undefined) {
-    // Field not in raw API data — may be derived client-side (e.g.
-    // sectorHeatmapData is built from yahoo.futures by mapV2ToLegacy).
-    // Check _sources: if any source was received, the panel likely has
-    // enough data to render, even if the specific field path is absent.
     const sources = data._sources;
     if (sources && typeof sources === 'object') {
       const anyTrue = Object.values(sources).some(v => v === true);
