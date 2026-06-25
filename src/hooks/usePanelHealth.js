@@ -14,7 +14,7 @@ function getFieldByPath(obj, path) {
   return cur;
 }
 
-function checkPanelHealth(marketId, panelId, marketData) {
+function checkPanelHealth(marketId, panelId, marketData, allMarkets) {
   const registry = PANEL_REGISTRY[marketId];
   if (!registry) return 'unknown';
   const entry = registry.find(p => p.id === panelId);
@@ -23,8 +23,16 @@ function checkPanelHealth(marketId, panelId, marketData) {
   const data = marketData?.data;
   if (!data) return 'loading';
 
+  // Cross-market panels: verify the source market actually has data
   if (entry.crossMarket) {
-    return 'cross-market';
+    const sourceMarket = allMarkets?.[entry.crossMarket];
+    const sourceData = sourceMarket?.data;
+    if (!sourceData) return 'null';
+    const sourceVal = getFieldByPath(sourceData, entry.fieldPath);
+    if (sourceVal === null || sourceVal === undefined) return 'null';
+    if (Array.isArray(sourceVal) && sourceVal.length === 0) return 'empty';
+    if (typeof sourceVal === 'object' && !Array.isArray(sourceVal) && Object.keys(sourceVal).length === 0) return 'empty';
+    return 'ok';
   }
 
   const val = getFieldByPath(data, entry.fieldPath);
@@ -48,13 +56,14 @@ function checkPanelHealth(marketId, panelId, marketData) {
 export function usePanelHealth(marketId) {
   const ctx = useDataContext();
   const marketData = ctx?.markets?.[marketId];
+  const allMarkets = ctx?.markets;
 
   return useMemo(() => {
     const panels = MARKET_PANELS[marketId] || [];
     const health = {};
     for (const p of panels) {
-      health[p.id] = checkPanelHealth(marketId, p.id, marketData);
+      health[p.id] = checkPanelHealth(marketId, p.id, marketData, allMarkets);
     }
     return health;
-  }, [marketId, marketData]);
+  }, [marketId, marketData, allMarkets]);
 }
