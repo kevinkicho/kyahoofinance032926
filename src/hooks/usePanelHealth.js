@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useDataContext } from '../hub/DataContext';
 import { MARKET_PANELS } from '../data/marketPanels';
 
@@ -28,10 +28,28 @@ export function usePanelHealth(marketId) {
   const allMarkets = ctx?.markets;
 
   const [domMap, setDomMap] = useState(() => scanDom());
+  // Per-market cache of last-known panel status
+  const cacheRef = useRef({});
+
+  // Update cache from current DOM state
+  const refreshCache = () => {
+    const snap = scanDom();
+    setDomMap(snap);
+    // Find which market owns each rendered panel by checking which market's
+    // panels are in the DOM
+    for (const [marketId, panels] of Object.entries(MARKET_PANELS)) {
+      for (const p of panels) {
+        if (snap[p.id]) {
+          cacheRef.current[marketId] = cacheRef.current[marketId] || {};
+          cacheRef.current[marketId][p.id] = snap[p.id];
+        }
+      }
+    }
+  };
 
   useEffect(() => {
-    const update = () => setDomMap(scanDom());
-    const obs = new MutationObserver(update);
+    refreshCache();
+    const obs = new MutationObserver(refreshCache);
     obs.observe(document.body || document.documentElement, {
       childList: true, subtree: true, attributes: true,
       attributeFilter: ['data-panel-key'], characterData: true,
@@ -42,23 +60,23 @@ export function usePanelHealth(marketId) {
   return useMemo(() => {
     const panels = MARKET_PANELS[marketId] || [];
     const health = {};
+    const cached = cacheRef.current[marketId] || {};
 
     for (const p of panels) {
+      // 1. Check live DOM first (most accurate for active market)
       const domStatus = domMap[p.id];
       if (domStatus) {
-        // Panel is in the DOM — use accurate DOM status
         health[p.id] = domStatus;
-      } else {
-        // Panel NOT in DOM — we can't determine its actual status
-        const m = allMarkets?.[marketId];
-        if (!m || m.isLoading) {
-          health[p.id] = 'unknown';
-        } else {
-          // Market loaded but panel not rendered — unknown status
-          health[p.id] = 'unknown';
-        }
+        continue;
       }
+      // 2. Check cache (from when this market was last active)
+      if (cached[p.id]) {
+        health[p.id] = cached[p.id];
+        continue;
+      }
+      // 3. Never visited — unknown
+      health[p.id] = 'unknown';
     }
     return health;
-  }, [marketId, allMarkets, domMap]);
+  }, [marketId, domMap]);
 }
