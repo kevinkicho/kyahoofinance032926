@@ -27,50 +27,12 @@ export function usePanelHealth(marketId) {
   const ctx = useDataContext();
   const allMarkets = ctx?.markets;
 
-  const [domMap, setDomMap] = useState(() => scanDom());
   const cacheRef = useRef({});
+  const [, forceUpdate] = useState(0);
 
-  // Populate cache from market data at initialization
-  // (gives immediate status for all markets without needing DOM)
+  // DOM observer — triggers re-render when panels change
   useEffect(() => {
-    if (!allMarkets) return;
-    for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
-      const m = allMarkets[mktId];
-      if (!m) continue;
-      cacheRef.current[mktId] = cacheRef.current[mktId] || {};
-      for (const p of panels) {
-        if (m.isLoading) {
-          cacheRef.current[mktId][p.id] = 'unknown';
-        } else if (m.data) {
-          cacheRef.current[mktId][p.id] = 'ok';
-        } else {
-          cacheRef.current[mktId][p.id] = 'null';
-        }
-      }
-    }
-  }, [allMarkets]);
-
-  // Update cache from DOM scans (replaces market-data entries with accurate DOM status)
-  const refreshCache = () => {
-    const snap = scanDom();
-    setDomMap(snap);
-    for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
-      // Clear old cache for this market, then re-populate from DOM
-      const newCache = {};
-      for (const p of panels) {
-        if (snap[p.id]) {
-          newCache[p.id] = snap[p.id];
-        }
-      }
-      if (Object.keys(newCache).length > 0) {
-        cacheRef.current[mktId] = newCache;
-      }
-    }
-  };
-
-  useEffect(() => {
-    refreshCache();
-    const obs = new MutationObserver(refreshCache);
+    const obs = new MutationObserver(() => forceUpdate(n => n + 1));
     obs.observe(document.body || document.documentElement, {
       childList: true, subtree: true, attributes: true,
       attributeFilter: ['data-panel-key'], characterData: true,
@@ -79,6 +41,38 @@ export function usePanelHealth(marketId) {
   }, []);
 
   return useMemo(() => {
+    // ── Live DOM scan (synchronous, always fresh) ──
+    const domMap = scanDom();
+
+    // ── Populate cache from market data + update from DOM ──
+    if (allMarkets) {
+      for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
+        const m = allMarkets[mktId];
+        if (!m) continue;
+        cacheRef.current[mktId] = cacheRef.current[mktId] || {};
+
+        // First: DOM scan overwrites with accurate per-panel status
+        for (const p of panels) {
+          if (domMap[p.id]) {
+            cacheRef.current[mktId][p.id] = domMap[p.id];
+          }
+        }
+
+        // Second: market data fills in panels not found in DOM
+        for (const p of panels) {
+          if (!cacheRef.current[mktId][p.id]) {
+            if (m.isLoading) {
+              cacheRef.current[mktId][p.id] = 'unknown';
+            } else {
+              // Market fetched — panel will likely render when navigated to
+              cacheRef.current[mktId][p.id] = 'ok';
+            }
+          }
+        }
+      }
+    }
+
+    // ── Build health from cache + live DOM ──
     const panels = MARKET_PANELS[marketId] || [];
     const health = {};
     const cached = cacheRef.current[marketId] || {};
@@ -86,15 +80,13 @@ export function usePanelHealth(marketId) {
     for (const p of panels) {
       const domStatus = domMap[p.id];
       if (domStatus) {
-        // Live DOM — most accurate
         health[p.id] = domStatus;
       } else if (cached[p.id]) {
-        // Cached from previous visit or initialization
         health[p.id] = cached[p.id];
       } else {
         health[p.id] = 'unknown';
       }
     }
     return health;
-  }, [marketId, domMap]);
+  }, [marketId, allMarkets]);
 }
