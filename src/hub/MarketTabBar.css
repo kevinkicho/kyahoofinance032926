@@ -463,6 +463,9 @@
 .panel-dropdown-status-dot[data-status="loading"] {
   background: #f59e0b;
 }
+.panel-dropdown-status-dot[data-status="unknown"] {
+  background: #6b7280;
+}
 .panel-dropdown-title {
   flex: 1;
   min-width: 0;

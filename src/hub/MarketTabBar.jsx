@@ -289,7 +289,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
     setHoveredMarket(null);
   }, []);
 
-  const panelHealth = usePanelHealth(hoveredMarket, hoveredMarket === activeMarket);
+  const panelHealth = usePanelHealth(hoveredMarket);
 
   function PanelDropdownItems({ marketId, onJump }) {
     const panels = MARKET_PANELS[marketId] || [];
@@ -298,15 +298,16 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       const isOk = status === 'ok';
       const isStale = status === 'stale';
       const isBad = status === 'null' || status === 'empty' || status === 'not-rendered';
-      const tooltip = isOk ? 'Data loaded' : isStale ? 'Data is stale' : isBad ? 'No data available' : 'Loading...';
+      const isUnknown = status === 'unknown' || status === 'loading';
+      const tooltip = isOk ? 'Data loaded' : isStale ? 'Data is stale' : isBad ? 'No data available' : isUnknown ? 'Market not yet loaded' : 'Loading...';
       return (
         <button
           key={p.id}
-          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}`}
+          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isUnknown ? ' panel-status-unknown' : ''}`}
           onClick={() => onJump(marketId, p.id)}
           title={`${p.title} — ${tooltip}`}
         >
-          <span className="panel-dropdown-status-dot" data-status={isOk ? 'ok' : isStale ? 'stale' : isBad ? 'null' : 'loading'} />
+          <span className="panel-dropdown-status-dot" data-status={isOk ? 'ok' : isStale ? 'stale' : isBad ? 'null' : 'unknown'} />
           <span className="panel-dropdown-title">{p.title}</span>
           {isBad && <span className="panel-dropdown-badge">unavailable</span>}
           {isStale && <span className="panel-dropdown-badge panel-badge-stale">stale</span>}
