@@ -49,15 +49,13 @@ export function usePanelHealth(marketId) {
         // Panel is in the DOM — use accurate DOM status
         health[p.id] = domStatus;
       } else {
-        // Panel not in DOM — use market-level data as best guess
+        // Panel NOT in DOM — we can't determine its actual status
         const m = allMarkets?.[marketId];
         if (!m || m.isLoading) {
           health[p.id] = 'unknown';
-        } else if (m.data) {
-          // Market loaded — panel likely available (will show accurate status when clicked)
-          health[p.id] = 'ok';
         } else {
-          health[p.id] = 'null';
+          // Market loaded but panel not rendered — unknown status
+          health[p.id] = 'unknown';
         }
       }
     }
