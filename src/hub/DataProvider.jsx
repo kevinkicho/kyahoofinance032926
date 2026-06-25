@@ -5,6 +5,7 @@ import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { putSnapshot, todayStr } from '../utils/snapshotDB';
 import { getApiBaseUrl, getApiInfo } from '../lib/api';
 import { isRenderableMarketSnapshot } from '../data/marketNormalizers';
+import { logDataFetch, logDataReceived, logError } from '../lib/logger';
 
 const API_BASE = getApiBaseUrl();
 const API_INFO = getApiInfo();
@@ -347,17 +348,19 @@ async function fetchMarket(marketId, forceLive = false) {
     const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;
     const summary = summarizeData(data);
     dlog(`[DataProvider] ✓ ${marketId} ${r.status} ${dur}ms — ${summary}`, data._sources || '');
+    logDataFetch(marketId, url, r.status, dur);
+    logDataReceived(marketId, Object.keys(data).filter(k => !k.startsWith('_')));
     return { marketId, data, ok: true, status: r.status, duration: dur, requestId };
   } catch (err) {
     const dur = Math.round(performance.now() - t0);
-    // Downgrade to warn when this is a known-slow endpoint that likely has a recent RTDB snapshot.
-    // The live call is now skipped in most cases; a failure here is usually just "snapshot is what we have".
     const msg = `[DataProvider] ✗ ${marketId} failed (${dur}ms): ${err?.message || err}`;
     if (['realEstate', 'insurance', 'globalMacro'].includes(marketId)) {
       console.warn(msg);
     } else {
       console.error(msg);
     }
+    logDataFetch(marketId, url, 0, dur);
+    logError('fetchMarket', msg, err?.stack);
     return { marketId, data: null, ok: false, status: 0, duration: dur, error: err?.message || 'Fetch failed' };
   }
 }

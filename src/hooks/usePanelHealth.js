@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useDataContext } from '../hub/DataContext';
 import { MARKET_PANELS } from '../data/marketPanels';
+import { logPanelHealth } from '../lib/logger';
 
 function scanDom() {
   if (typeof document === 'undefined') return {};
@@ -87,6 +88,10 @@ export function usePanelHealth(marketId) {
         health[p.id] = 'unknown';
       }
     }
+
+    // Log panel health for AI agent visibility
+    logPanelHealth(marketId, health);
+
     return health;
   }, [marketId, allMarkets]);
 }

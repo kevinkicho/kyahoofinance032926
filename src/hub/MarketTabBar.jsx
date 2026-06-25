@@ -8,6 +8,7 @@ import { useCurrency } from './CurrencyContext';
 import { useDataContext } from './DataContext';
 import { useToast } from './ToastContext';
 import { usePanelHealth } from '../hooks/usePanelHealth';
+import { logUserAction } from '../lib/logger';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
@@ -214,12 +215,14 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
     const marketId = e.currentTarget.dataset.market;
     if (!marketId) return;
     if (marketId !== activeMarket) {
+      logUserAction('tab-click', { from: activeMarket, to: marketId });
       setActiveMarket(marketId);
     }
     setHoveredMarket(null);
   }, [setActiveMarket, activeMarket]);
 
   const handlePanelJump = useCallback((marketId, panelId) => {
+    logUserAction('panel-jump', { market: marketId, panel: panelId });
     setHoveredMarket(null);
     const doScroll = () => {
       const panels = MARKET_PANELS[marketId] || [];
@@ -259,6 +262,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
+    logUserAction('tab-hover', { market: marketId });
     setHoveredMarket(marketId);
     
     const rect = e.currentTarget.getBoundingClientRect();
