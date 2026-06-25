@@ -441,3 +441,49 @@
   width: 16px;
   height: 16px;
 }
+
+/* ── Panel status indicators in dropdown ── */
+.panel-dropdown-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.panel-dropdown-status-dot[data-status="ok"] {
+  background: #22c55e;
+}
+.panel-dropdown-status-dot[data-status="cross"] {
+  background: #60a5fa;
+}
+.panel-dropdown-status-dot[data-status="null"] {
+  background: #ef4444;
+}
+.panel-dropdown-status-dot[data-status="loading"] {
+  background: #f59e0b;
+}
+.panel-dropdown-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-dropdown-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.market-panel-dropdown-item.panel-status-null {
+  opacity: 0.55;
+}
+.market-panel-dropdown-item.panel-status-null:hover {
+  opacity: 0.85;
+}
+.market-panel-dropdown-item.panel-status-cross {
+  opacity: 0.75;
+}

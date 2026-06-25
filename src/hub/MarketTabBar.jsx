@@ -7,6 +7,7 @@ import { useTheme } from './ThemeContext';
 import { useCurrency } from './CurrencyContext';
 import { useDataContext } from './DataContext';
 import { useToast } from './ToastContext';
+import { usePanelHealth } from '../hooks/usePanelHealth';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
@@ -288,6 +289,31 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
     setHoveredMarket(null);
   }, []);
 
+  const panelHealth = usePanelHealth(hoveredMarket);
+
+  function PanelDropdownItems({ marketId, onJump }) {
+    const panels = MARKET_PANELS[marketId] || [];
+    return panels.map(p => {
+      const status = panelHealth?.[p.id];
+      const isOk = status === 'ok';
+      const isCross = status === 'cross-market';
+      const isBad = status === 'null' || status === 'empty';
+      const tooltip = isOk ? 'Data loaded' : isCross ? 'Cross-market data' : isBad ? 'No data available' : 'Loading...';
+      return (
+        <button
+          key={p.id}
+          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isCross ? ' panel-status-cross' : ''}`}
+          onClick={() => onJump(marketId, p.id)}
+          title={`${p.title} — ${tooltip}`}
+        >
+          <span className="panel-dropdown-status-dot" data-status={isOk ? 'ok' : isCross ? 'cross' : isBad ? 'null' : 'loading'} />
+          <span className="panel-dropdown-title">{p.title}</span>
+          {isBad && <span className="panel-dropdown-badge">unavailable</span>}
+        </button>
+      );
+    });
+  }
+
   const handleExportCSV = useCallback(() => {
     onExportData('csv');
     setSettingsOpen(false);
@@ -347,15 +373,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
           onMouseEnter={handleDropdownMouseEnter}
           onMouseLeave={handleDropdownMouseLeave}
         >
-          {MARKET_PANELS[hoveredMarket].map(p => (
-            <button
-              key={p.id}
-              className="market-panel-dropdown-item"
-              onClick={() => handlePanelJump(hoveredMarket, p.id)}
-            >
-              {p.title}
-            </button>
-          ))}
+          <PanelDropdownItems marketId={hoveredMarket} onJump={handlePanelJump} />
         </div>
       )}
       <div className="hub-settings-menu" ref={settingsRef}>
