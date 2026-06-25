@@ -430,7 +430,7 @@ export const STRUCTURAL_GUARDS = {
     const defaultBranch = Array.isArray(d.defaultData?.rates) && d.defaultData.rates.length >= 1;
     return fredSpreadBranch || emBondBranch || loanBranch || defaultBranch;
   },
-  crypto:         d => (d.coinMarketData?.coins?.length >= 5) || (d.coins?.length >= 5),
+  crypto:         d => (d.coinMarketData?.coins?.length >= 2) || (d.coins?.length >= 2) || (d.fearGreedData != null),
   equities:      d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
   equitiesDeepDive: d => (Array.isArray(d.sectorData?.sectors) && d.sectorData.sectors.length >= 5) || (Array.isArray(d.sectors) && d.sectors.length >= 5),
   calendar:       d => {
@@ -440,7 +440,7 @@ export const STRUCTURAL_GUARDS = {
     return events || earnings || banks;
   },
   derivatives:    d => d.vixTermStructure?.values?.length >= 2,
-  insurance:      d => (Array.isArray(d.combinedRatioData) && d.combinedRatioData.length >= 2) || d.hyOAS != null || d.igOAS != null,
+  insurance:      d => (Array.isArray(d.combinedRatioData) && d.combinedRatioData.length >= 1) || d.hyOAS != null || d.igOAS != null || d.catLosses != null,
   realEstate:     d => (Array.isArray(d.reitData) && d.reitData.length >= 2) || (d.caseShillerData?.dates?.length > 0) || (d.mortgageRates?.rate30y != null),
   fx:             d => d.spotRates != null && Object.keys(d.spotRates).length >= 3,
   imf:            d => (Array.isArray(d.countries) && d.countries.length >= 5) || d.reserves != null,
