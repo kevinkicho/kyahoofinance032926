@@ -14,7 +14,6 @@ import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import './Skeleton.css';
 import './responsive.css';
 import SplashScreen from './SplashScreen';
-import { setPanelCache } from '../hooks/usePanelHealth';
 
 function flattenForCSV(obj, prefix = '') {
   const rows = [];
@@ -405,8 +404,7 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeMarket, handleExport, setActiveMarket]);
 
-  const handleSplashReady = useCallback((cache) => {
-    setPanelCache(cache);
+  const handleSplashReady = useCallback(() => {
     setSplashDone(true);
     try { sessionStorage.setItem('hub-splash-seen', '1'); } catch {}
   }, []);

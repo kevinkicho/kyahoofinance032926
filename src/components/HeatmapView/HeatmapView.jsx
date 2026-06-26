@@ -380,6 +380,7 @@ const HeatmapView = ({
           overflow: 'hidden',
           whiteSpace: 'nowrap',
           pointerEvents: 'auto',
+          zIndex: 10,
         }}
       >
         {viewPath.map((label, index) => {
