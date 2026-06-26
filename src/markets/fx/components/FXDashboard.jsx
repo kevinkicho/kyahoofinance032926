@@ -165,12 +165,12 @@ function FXDashboard({
         </div>
       )}
       <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v6">
-        <BentoCard key="kpi" title="FX Key Metrics" subtitle="Spot rates · DXY · G10 average" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter / FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        <BentoCard key="kpi" panelKey="kpi" title="FX Key Metrics" subtitle="Spot rates · DXY · G10 average" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter / FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
           <MarketKpiStrip kpis={kpiItems} bare />
         </BentoCard>
 
         {/* FX Dashboard sidebar — FXSidebar manages its own footer; pass noFooter. */}
-        <BentoCard key="sidebar" title="FX Dashboard" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content bento-panel-scroll" noFooter>
+        <BentoCard key="sidebar" panelKey="sidebar" title="FX Dashboard" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content bento-panel-scroll" noFooter>
           <FXSidebar
             spotRates={spotRates}
             changes={changes}
@@ -204,7 +204,7 @@ function FXDashboard({
           {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'DXY Dollar Index', source: 'FRED', endpoint: '/api/fx', series: [{ id: 'DTWEXBGS' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No DXY data</div>}
         </BentoCard>
 
-        <BentoCard key="cot" title="CFTC COT Positioning" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        <BentoCard key="cot" panelKey="cot" title="CFTC COT Positioning" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
           {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFTC COT Positioning', source: 'CFTC', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No COT data</div>}
         </BentoCard>
 

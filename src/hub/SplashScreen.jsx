@@ -57,6 +57,7 @@ function SplashScreenInner({ onReady }) {
     Object.fromEntries(MARKETS.map(m => [m.id, 'pending']))
   );
   const startTimeRef = useRef(Date.now());
+  const cacheRef = useRef({});
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -95,28 +96,51 @@ function SplashScreenInner({ onReady }) {
     [marketStatus]
   );
 
-  // Poll DOM until we find panels from multiple markets, then scan and dismiss
+  // Continuously scan DOM and update cache while splash is visible
   useEffect(() => {
     if (!allLoaded) return;
-    const id = setInterval(() => {
+    let dismissed = false;
+    let marketsSeen = new Set();
+
+    const scanInterval = setInterval(() => {
+      if (dismissed) return;
       const panelEls = document.querySelectorAll('[data-panel-key]');
-      const marketsFound = new Set();
+      const currentMarkets = new Set();
       panelEls.forEach(el => {
         const key = el.getAttribute('data-panel-key');
         const mkt = PANEL_TO_MARKET[key];
-        if (mkt) marketsFound.add(mkt);
+        if (mkt) currentMarkets.add(mkt);
       });
-      // Wait until we see panels from at least 3 markets (lazy chunks loaded)
-      if (marketsFound.size >= 3) {
-        clearInterval(id);
-        // 3-second grace period after all checks pass
-        setTimeout(() => {
-          const cache = scanAllPanels();
-          onReady(cache);
-        }, 3000);
+      // Merge new markets seen
+      currentMarkets.forEach(m => marketsSeen.add(m));
+
+      // Scan and update cache on every tick
+      const scan = scanAllPanels();
+      const merged = { ...(cacheRef.current || {}) };
+      for (const [mkt, panels] of Object.entries(scan)) {
+        merged[mkt] = { ...(merged[mkt] || {}), ...panels };
       }
-    }, 500);
-    return () => clearInterval(id);
+      cacheRef.current = merged;
+    }, 1000);
+
+    // Dismiss after 5 seconds of data loaded (gives lazy chunks time)
+    const dismissTimer = setTimeout(() => {
+      dismissed = true;
+      clearInterval(scanInterval);
+      // Final scan
+      const finalScan = scanAllPanels();
+      const merged = { ...(cacheRef.current || {}) };
+      for (const [mkt, panels] of Object.entries(finalScan)) {
+        merged[mkt] = { ...(merged[mkt] || {}), ...panels };
+      }
+      onReady(merged);
+    }, 5000);
+
+    return () => {
+      dismissed = true;
+      clearInterval(scanInterval);
+      clearTimeout(dismissTimer);
+    };
   }, [allLoaded, onReady]);
 
   const okCount = Object.values(marketStatus).filter(s => s === 'ok').length;
