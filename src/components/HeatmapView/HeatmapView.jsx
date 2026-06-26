@@ -221,28 +221,9 @@ const HeatmapView = ({
       if (!mountedRef.current) return;
       const inst = instRef.current;
       if (!inst || inst.isDisposed?.()) return;
-
-      // Try to find what was clicked via ECharts internal API
-      let clickedOnLeaf = false;
-      try {
-        const treemapView = inst._chartsViews?.find(v => v?.type === 'treemap' && typeof v.findTarget === 'function');
-        if (treemapView) {
-          const targetInfo = treemapView.findTarget(e.offsetX, e.offsetY);
-          const node = targetInfo?.node;
-          // Leaf nodes have no children — don't restore on leaf click
-          if (node && node.children && node.children.length > 0) {
-            clickedOnLeaf = false;
-          } else if (node) {
-            clickedOnLeaf = true;
-          }
-        }
-      } catch { /* findTarget unavailable — treat as background */ }
-
-      // If not clicked on a leaf node, restore zoom
-      if (!clickedOnLeaf) {
-        inst.dispatchAction({ type: 'restore' });
-        setViewPath(['Global Market']);
-      }
+      // Simple approach: always restore on background/root click
+      inst.dispatchAction({ type: 'restore' });
+      setViewPath(['Global Market']);
     };
 
     const handleCellClick = (params) => {
@@ -398,20 +379,11 @@ const HeatmapView = ({
                     inst.dispatchAction({ type: 'restore' });
                     setViewPath(['Global Market']);
                   } else {
-                    inst.dispatchAction({
-                      type: 'treemapZoomToNode',
-                      seriesIndex: 0,
-                      targetNodeId: targetId,
-                    });
-                    setViewPath(viewPath.slice(0, index + 1));
+                    inst.dispatchAction({ type: 'restore' });
+                    setViewPath(['Global Market']);
                   }
                 }}
-                onMouseDown={() => startBreadcrumbPress(targetId, index)}
-                onMouseUp={clearBreadcrumbPress}
-                onMouseLeave={clearBreadcrumbPress}
-                onTouchStart={() => startBreadcrumbPress(targetId, index)}
-                onTouchEnd={clearBreadcrumbPress}
-                title="Click to zoom here"
+                title="Click to zoom to fit"
                 style={{
                   border: 0,
                   background: 'transparent',

@@ -1210,16 +1210,41 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   ) : null;
 
   const filingActivityData = filingActivityCtx?.data?.byType || {};
-  const filingActivityByTicker = filingActivityCtx?.data?.byTicker || {};
   const filingActivityTotal = filingActivityCtx?.data?.total || 0;
   const filingActivityTickers = filingActivityCtx?.data?.tickerCount || 0;
-  const filingDateRange = filingActivityCtx?.data?.dateRange || null;
-  const FILING_TYPES = ['10-K', '10-Q', '8-K', '4', '144', 'DEF 14A', 'SD', 'SC 13G/A', 'DEFA14A', 'FWP', '424B2', 'PX14A6G', '3', 'NO ACT'];
+  const materialFilings = filingActivityCtx?.data?.material || [];
+  const insiderFilings = filingActivityCtx?.data?.insider || [];
+  const earningsFilings = filingActivityCtx?.data?.earnings || [];
+  const activistFilings = filingActivityCtx?.data?.activist || [];
+
+  const CategorySection = ({ title, icon, color, filings, maxRows = 5 }) => {
+    if (!filings || filings.length === 0) return null;
+    return (
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 600, color, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>{icon}</span> {title} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({filings.length})</span>
+        </div>
+        {filings.slice(0, maxRows).map((f, i) => (
+          <div key={`${f.ticker}-${f.date}-${i}`} style={{ display: 'grid', gridTemplateColumns: '44px 48px 60px 1fr 36px', gap: 6, alignItems: 'center', padding: '2px 0', fontSize: 11, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <strong style={{ fontSize: 11 }}>{f.ticker}</strong>
+            <span style={{ color, fontSize: 10 }}>{f.form}</span>
+            <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{f.date}</span>
+            <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10 }}>{f.description || '—'}</span>
+            <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textAlign: 'right', textDecoration: 'none', fontSize: 10 }} title={`View on SEC EDGAR`}>↗</a>
+          </div>
+        ))}
+        {filings.length > maxRows && (
+          <div style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>+{filings.length - maxRows} more</div>
+        )}
+      </div>
+    );
+  };
+
   const secFilingsCard = filingActivityTotal > 0 ? (
     <BentoCard
       key="sec-filings"
       title="SEC Filing Activity"
-      subtitle={`${filingActivityTotal} filings · ${filingActivityTickers} tickers${filingDateRange?.latest ? ` · latest ${filingDateRange.latest}` : ''}`}
+      subtitle={`${filingActivityTotal} filings · ${filingActivityTickers} tickers · ${materialFilings.length} material events · ${insiderFilings.length} insider trades`}
       accent="equities"
       className="eq-bento-card"
       contentClassName="eq-panel-content eq-panel-scroll"
@@ -1231,34 +1256,32 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       fetchLog={filingActivityCtx?.fetchLog || []}
       error={filingActivityCtx?.error}
     >
-      <div style={{ marginBottom: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {FILING_TYPES.filter(t => filingActivityData[t]).slice(0, 8).map(type => (
-          <span key={type} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ color: 'var(--text-muted)' }}>{type}</span>{' '}
-            <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{filingActivityData[type]}</strong>
+      {/* Summary pills */}
+      <div style={{ marginBottom: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {[
+          { label: '8-K Material', count: materialFilings.length, color: '#f59e0b' },
+          { label: 'Form 4 Insider', count: insiderFilings.length, color: '#a78bfa' },
+          { label: '10-K/Q Earnings', count: earningsFilings.length, color: '#22c55e' },
+          { label: '13G/D Activist', count: activistFilings.length, color: '#ec4899' },
+        ].filter(s => s.count > 0).map(s => (
+          <span key={s.label} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: `${s.color}15`, border: `1px solid ${s.color}30` }}>
+            <span style={{ color: s.color }}>{s.label}</span>{' '}
+            <strong style={{ color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.count}</strong>
           </span>
         ))}
       </div>
-      <div className="eq-mini-table">
-        <div style={{ display: 'grid', gridTemplateColumns: '48px 52px 64px 1fr 48px', gap: 6, alignItems: 'center', padding: '0 0 4px', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          <span>Ticker</span>
-          <span>Type</span>
-          <span>Date</span>
-          <span>Description</span>
-          <span style={{ textAlign: 'right' }}>Link</span>
-        </div>
-        {Object.entries(filingActivityByTicker).flatMap(([ticker, filings]) =>
-          filings.slice(0, 5).map((f, i) => (
-            <div key={`${ticker}-${i}`} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '48px 52px 64px 1fr 48px', gap: 6, alignItems: 'center', fontSize: 11 }}>
-              <strong style={{ fontSize: 11 }}>{ticker}</strong>
-              <span style={{ color: f.form === '10-K' ? '#22c55e' : f.form === '10-Q' ? '#60a5fa' : f.form === '8-K' ? '#f59e0b' : 'var(--text-primary)' }}>{f.form}</span>
-              <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{f.date}</span>
-              <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description || '—'}</span>
-              <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textAlign: 'right', textDecoration: 'none' }} title={`View ${f.form} filing on SEC EDGAR`}>↗</a>
-            </div>
-          ))
-        )}
-      </div>
+
+      {/* Material events (8-K) */}
+      <CategorySection title="Material Events (8-K)" icon="⚡" color="#f59e0b" filings={materialFilings} maxRows={4} />
+
+      {/* Insider trading (Form 4) */}
+      <CategorySection title="Insider Transactions (Form 4)" icon="👤" color="#a78bfa" filings={insiderFilings} maxRows={4} />
+
+      {/* Earnings filings (10-K/Q) */}
+      <CategorySection title="Earnings Filings (10-K/Q)" icon="📊" color="#22c55e" filings={earningsFilings} maxRows={3} />
+
+      {/* Activist filings (13G/D) */}
+      <CategorySection title="Activist / Institutional (13G/D)" icon="🏦" color="#ec4899" filings={activistFilings} maxRows={3} />
     </BentoCard>
   ) : null;
 

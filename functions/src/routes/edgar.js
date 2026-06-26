@@ -195,9 +195,23 @@ router.get('/', async (_req, res) => {
 });
 
 // Filing activity — per-ticker filing lists with dates, descriptions, and
-// EDGAR links. Returns { byTicker: { AAPL: [...], MSFT: [...] }, byType, total, tickerCount }.
-// Used by the Equities tab's "SEC Filing Activity" panel.
+// EDGAR links. Returns categorized filings: material events, insider trades,
+// earnings, and recent filings.
 const FILING_ACTIVITY_TICKERS = ['AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','JPM','JNJ','V','PG','XOM','UNH','HD','BAC','MA','DIS','ADBE','CRM','NFLX'];
+
+// Classify filing types by significance
+function classifyFiling(form) {
+  const f = form.toUpperCase().trim();
+  if (['8-K', '8-K/A'].includes(f)) return 'material';
+  if (['10-K', '10-K/A', '10-Q', '10-Q/A'].includes(f)) return 'earnings';
+  if (f === '4' || f === '5') return 'insider';
+  if (['SC 13G', 'SC 13G/A', 'SC 13D', 'SC 13D/A'].includes(f)) return 'activist';
+  if (['DEF 14A', 'DEFA14A', 'DEF 14C'].includes(f)) return 'proxy';
+  if (['S-1', 'S-1/A', 'F-1', 'F-1/A'].includes(f)) return 'ipo';
+  if (['424B2', '424B3', '424B5', 'FWP'].includes(f)) return 'offering';
+  return 'other';
+}
+
 router.get('/filing-activity', async (_req, res) => {
   const cacheKey = 'edgar_filing_activity';
   const cached = readDailyCache(cacheKey);
@@ -215,8 +229,13 @@ router.get('/filing-activity', async (_req, res) => {
 
   const byType = {};
   const byTicker = {};
+  const material = [];  // Recent 8-K filings
+  const insider = [];   // Recent Form 4 filings
+  const earnings = [];  // Recent 10-K/10-Q filings
+  const activist = [];  // Recent 13G/13D filings
   let total = 0;
   let tickerCount = 0;
+
   for (const t of FILING_ACTIVITY_TICKERS) {
     const cik = cikMap[t];
     if (!cik) continue;
@@ -231,27 +250,68 @@ router.get('/filing-activity', async (_req, res) => {
       const primaryDocs = recent.primaryDoc || [];
       const descriptions = recent.primaryDocDescription || [];
       const filings = [];
-      const limit = Math.min(forms.length, 30);
+      const limit = Math.min(forms.length, 40);
+
       for (let i = 0; i < limit; i++) {
         const form = forms[i];
         const filingDate = dates[i] || '';
         const accession = accessions[i] || '';
         const doc = primaryDocs[i] || '';
         const desc = descriptions[i] || '';
+        const category = classifyFiling(form);
         byType[form] = (byType[form] || 0) + 1;
         total++;
-        filings.push({
+
+        const filing = {
+          ticker: t,
           form,
           date: filingDate,
           description: desc,
           accession,
           doc,
+          category,
           url: `https://www.sec.gov/Archives/edgar/data/${cik.replace(/^0+/, '')}/${accession.replace(/-/g, '')}/${doc}`,
-        });
+        };
+        filings.push(filing);
+
+        // Collect recent significant filings (last 90 days)
+        const daysAgo = filingDate ? (Date.now() - new Date(filingDate).getTime()) / (1000 * 60 * 60 * 24) : 999;
+        if (daysAgo <= 90) {
+          if (category === 'material') material.push(filing);
+          if (category === 'insider') insider.push(filing);
+          if (category === 'earnings') earnings.push(filing);
+          if (category === 'activist') activist.push(filing);
+        }
       }
       byTicker[t] = filings;
       tickerCount++;
     } catch (e) { /* skip ticker on error */ }
+  }
+
+  // Sort each category by date (most recent first)
+  const sortByDate = (a, b) => (b.date || '').localeCompare(a.date || '');
+  material.sort(sortByDate);
+  insider.sort(sortByDate);
+  earnings.sort(sortByDate);
+  activist.sort(sortByDate);
+
+  const _sources = { secEdgarFilingActivity: tickerCount > 0 };
+  const isLive = _sources.secEdgarFilingActivity;
+  const result = {
+    byTicker, byType, total, tickerCount,
+    material: material.slice(0, 20),
+    insider: insider.slice(0, 20),
+    earnings: earnings.slice(0, 20),
+    activist: activist.slice(0, 20),
+    _sources, isLive, isCurrent: true, fetchedOn: today, lastUpdated: today,
+  };
+  if (isLive) writeDailyCache(cacheKey, result);
+  else {
+    const fb = readLatestCache(cacheKey);
+    if (fb) return res.json({ ...fb.data, isCurrent: false, fetchedOn: fb.fetchedOn });
+  }
+  res.json(result);
+});
   }
 
   // Find date range across all filings
