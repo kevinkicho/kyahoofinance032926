@@ -13,6 +13,7 @@ import { getRecaptchaEnterpriseToken } from '../lib/recaptchaEnterprise';
 import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import './Skeleton.css';
 import './responsive.css';
+import SplashScreen from './SplashScreen';
 
 function flattenForCSV(obj, prefix = '') {
   const rows = [];
@@ -144,6 +145,10 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
     if (fromUrl && MARKETS.some(m => m.id === fromUrl)) return fromUrl;
     const saved = localStorage.getItem('hub-active-market');
     return saved && MARKETS.some(m => m.id === saved) ? saved : DEFAULT_MARKET;
+  });
+  const [splashDone, setSplashDone] = useState(() => {
+    // Skip splash if user has visited before (has cached panel health)
+    try { return sessionStorage.getItem('hub-splash-seen') === '1'; } catch { return false; }
   });
   const { currency, setCurrency } = useCurrency();
   const [snapshotDate, setSnapshotDate] = useState(null);
@@ -400,8 +405,20 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeMarket, handleExport, setActiveMarket]);
 
+  const handleSplashReady = useCallback(() => {
+    setSplashDone(true);
+    try { sessionStorage.setItem('hub-splash-seen', '1'); } catch {}
+  }, []);
+
   return (
       <div className="hub-layout">
+        {!splashDone && dataCtx && (
+          <SplashScreen
+            onReady={handleSplashReady}
+            getMarket={dataCtx.getMarket}
+            allMarkets={dataCtx.markets}
+          />
+        )}
         <a href='#main-content' className='skip-link'>Skip to content</a>
          <MarketTabBar
            activeMarket={activeMarket}
