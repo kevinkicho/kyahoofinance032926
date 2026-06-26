@@ -356,7 +356,7 @@ export default function DataFooter({ source, timestamp, isLive, fetchLog, error,
 
   const badge = isHistorical
     ? <span className="df-snapshot">SNAPSHOT</span>
-    : (isLive
+    : (isLive || isCurrent
         ? <span className="df-fetched">FETCHED</span>
         : (fetchedOn
             ? <span className="df-snapshot">STALE</span>
@@ -378,7 +378,6 @@ export default function DataFooter({ source, timestamp, isLive, fetchLog, error,
         {badge}
         <span className="df-label">{source}{timestamp ? ` \u00b7 ${timestamp}` : ''}{histSuffix}</span>
         {!isLive && error && <span className="df-error-text">\u25cb {error}</span>}
-        {isCurrent === false && fetchedOn && <span className="df-stale">Stale \u00b7 fetched {fetchedOn}</span>}
         {isHistorical && <span className="df-hist-pill">historical RTDB</span>}
       </div>
       {show && pos && fetchLog?.length > 0 && createPortal(

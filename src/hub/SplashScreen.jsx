@@ -109,11 +109,11 @@ function SplashScreenInner({ onReady }) {
       // Wait until we see panels from at least 3 markets (lazy chunks loaded)
       if (marketsFound.size >= 3) {
         clearInterval(id);
-        // Give remaining chunks a moment to finish
+        // 3-second grace period after all checks pass
         setTimeout(() => {
           const cache = scanAllPanels();
           onReady(cache);
-        }, 2000);
+        }, 3000);
       }
     }, 500);
     return () => clearInterval(id);

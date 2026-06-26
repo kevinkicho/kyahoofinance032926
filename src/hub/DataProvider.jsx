@@ -224,7 +224,7 @@ function createInitialMarketState() {
       isLive: snap?.isLive || false,
       lastUpdated: snap?.lastUpdated || null,
       fetchedOn: snap?.fetchedOn || null,
-      isCurrent: snap?.isCurrent || false,
+      isCurrent: snap?.isCurrent != null ? !!snap.isCurrent : !!snap?.isLive,
       error: null,
       fetchLog: initialFetchLog,
       refetch: null,
