@@ -66,6 +66,13 @@ const NET_INCOME_CONCEPTS = ['NetIncomeLoss'];
 const ASSETS_CONCEPTS = ['Assets'];
 const LIABILITIES_CONCEPTS = ['Liabilities'];
 const EQUITY_CONCEPTS = ['StockholdersEquity', 'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest'];
+const OPERATING_INCOME_CONCEPTS = ['OperatingIncomeLoss'];
+const CASH_FLOW_CONCEPTS = ['NetCashProvidedByUsedInOperatingActivities'];
+const CAPEX_CONCEPTS = ['PaymentsToAcquirePropertyPlantAndEquipment'];
+const RD_CONCEPTS = ['ResearchAndDevelopmentExpense'];
+const INTEREST_EXPENSE_CONCEPTS = ['InterestExpense'];
+const CURRENT_ASSETS_CONCEPTS = ['AssetsCurrent'];
+const CURRENT_LIABILITIES_CONCEPTS = ['LiabilitiesCurrent'];
 
 // P&C insurance concept chains (combined ratio = (incurred losses + UW
 // expense) / net premiums earned). XBRL concept names vary across insurers
@@ -108,6 +115,13 @@ router.get('/concepts/:ticker', async (req, res) => {
     ['assets', ASSETS_CONCEPTS],
     ['liabilities', LIABILITIES_CONCEPTS],
     ['equity', EQUITY_CONCEPTS],
+    ['operatingIncome', OPERATING_INCOME_CONCEPTS],
+    ['cashFlow', CASH_FLOW_CONCEPTS],
+    ['capex', CAPEX_CONCEPTS],
+    ['rdExpense', RD_CONCEPTS],
+    ['interestExpense', INTEREST_EXPENSE_CONCEPTS],
+    ['currentAssets', CURRENT_ASSETS_CONCEPTS],
+    ['currentLiabilities', CURRENT_LIABILITIES_CONCEPTS],
   ];
   const out = {};
   for (const [key, chain] of want) {
@@ -152,9 +166,21 @@ router.get('/', async (_req, res) => {
     const cik = cikMap[t];
     if (!cik) continue;
     try {
-      const rev = await fetchConcept(cik, REVENUE_CONCEPTS, ua);
-      const ni = await fetchConcept(cik, NET_INCOME_CONCEPTS, ua);
-      out[t] = { cik, revenues: rev, netIncome: ni };
+      const [rev, ni, ast, liab, eq, oi, cf, capex, rd, intExp, ca, cl] = await Promise.all([
+        fetchConcept(cik, REVENUE_CONCEPTS, ua),
+        fetchConcept(cik, NET_INCOME_CONCEPTS, ua),
+        fetchConcept(cik, ASSETS_CONCEPTS, ua),
+        fetchConcept(cik, LIABILITIES_CONCEPTS, ua),
+        fetchConcept(cik, EQUITY_CONCEPTS, ua),
+        fetchConcept(cik, OPERATING_INCOME_CONCEPTS, ua),
+        fetchConcept(cik, CASH_FLOW_CONCEPTS, ua),
+        fetchConcept(cik, CAPEX_CONCEPTS, ua),
+        fetchConcept(cik, RD_CONCEPTS, ua),
+        fetchConcept(cik, INTEREST_EXPENSE_CONCEPTS, ua),
+        fetchConcept(cik, CURRENT_ASSETS_CONCEPTS, ua),
+        fetchConcept(cik, CURRENT_LIABILITIES_CONCEPTS, ua),
+      ]);
+      out[t] = { cik, revenues: rev, netIncome: ni, assets: ast, liabilities: liab, equity: eq, operatingIncome: oi, cashFlow: cf, capex, rdExpense: rd, interestExpense: intExp, currentAssets: ca, currentLiabilities: cl };
     } catch (e) { console.warn(`[EDGAR] ${t}:`, e.message); out[t] = null; }
   }
   const _sources = { secEdgarXbrl: !!Object.keys(out).length };

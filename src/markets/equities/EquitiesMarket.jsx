@@ -776,45 +776,114 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       const num = Number(value);
       return Number.isFinite(num) ? num : null;
     };
+    const latest = (arr) => arr?.at?.(-1);
+    const prev = (arr) => arr?.at?.(-2);
+    const yoyGrowth = (curr, prev) => {
+      if (curr == null || prev == null || prev === 0) return null;
+      return ((curr - prev) / Math.abs(prev)) * 100;
+    };
+
     return Object.entries(edgarCtx?.data?.tickers || {}).map(([ticker, row]) => {
-      const rev = row.revenues?.at?.(-1);
-      const ni = row.netIncome?.at?.(-1);
-      const ast = row.assets?.at?.(-1);
-      const eq = row.equity?.at?.(-1);
-      const liab = row.liabilities?.at?.(-1);
-      const revenue = toNum(rev?.value);
-      const netIncome = toNum(ni?.value);
-      const assets = toNum(ast?.value);
-      const equity = toNum(eq?.value);
-      const liabilities = toNum(liab?.value);
+      const revLatest = latest(row.revenues);
+      const revPrev = prev(row.revenues);
+      const niLatest = latest(row.netIncome);
+      const niPrev = prev(row.netIncome);
+      const oiLatest = latest(row.operatingIncome);
+      const cfLatest = latest(row.cashFlow);
+      const capexLatest = latest(row.capex);
+      const rdLatest = latest(row.rdExpense);
+      const intExpLatest = latest(row.interestExpense);
+      const caLatest = latest(row.currentAssets);
+      const clLatest = latest(row.currentLiabilities);
+
+      const revenue = toNum(revLatest?.value);
+      const prevRevenue = toNum(revPrev?.value);
+      const netIncome = toNum(niLatest?.value);
+      const prevNetIncome = toNum(niPrev?.value);
+      const operatingIncome = toNum(oiLatest?.value);
+      const cashFlow = toNum(cfLatest?.value);
+      const capex = toNum(capexLatest?.value);
+      const rdExpense = toNum(rdLatest?.value);
+      const interestExpense = toNum(intExpLatest?.value);
+      const currentAssets = toNum(caLatest?.value);
+      const currentLiabilities = toNum(clLatest?.value);
+      const assets = toNum(latest(row.assets)?.value);
+      const equity = toNum(latest(row.equity)?.value);
+      const liabilities = toNum(latest(row.liabilities)?.value);
+
+      // Core ratios
       const margin = revenue ? ((netIncome ?? 0) / revenue) * 100 : null;
+      const operatingMargin = revenue && operatingIncome ? (operatingIncome / revenue) * 100 : null;
       const roa = assets && netIncome ? (netIncome / assets) * 100 : null;
       const roe = equity && netIncome ? (netIncome / equity) * 100 : null;
       const debtToEquity = liabilities && equity ? liabilities / equity : null;
+      const currentRatio = currentAssets && currentLiabilities ? currentAssets / currentLiabilities : null;
+
+      // Growth rates
+      const revGrowth = yoyGrowth(revenue, prevRevenue);
+      const niGrowth = yoyGrowth(netIncome, prevNetIncome);
+
+      // Efficiency
+      const fcf = cashFlow != null && capex != null ? cashFlow - Math.abs(capex) : null;
+      const fcfMargin = revenue && fcf != null ? (fcf / revenue) * 100 : null;
+      const rdIntensity = revenue && rdExpense != null ? (rdExpense / revenue) * 100 : null;
+      const assetTurnover = assets && revenue ? revenue / assets : null;
+
+      // Market data from stock universe
+      const stock = flatData.find(s => s.ticker === ticker || s.name === ticker);
+      const pe = stock?.pe || null;
+      const marketCap = stock?.marketCap || null;
+
+      // Valuation
+      const pbRatio = equity && marketCap ? (marketCap * 1e9) / equity : null;
+      const evEbitda = operatingIncome && marketCap ? (marketCap * 1e9) / operatingIncome : null;
+
+      // Period
+      const period = niLatest?.fy || revLatest?.fy || niLatest?.end || revLatest?.end || null;
+
+      // Quality score (composite)
+      let qualityScore = 0;
+      if (margin != null && margin >= 20) qualityScore++;
+      if (roe != null && roe >= 15) qualityScore++;
+      if (revGrowth != null && revGrowth > 5) qualityScore++;
+      if (fcf != null && fcf > 0) qualityScore++;
+      if (debtToEquity != null && debtToEquity < 2) qualityScore++;
+      const quality = qualityScore >= 4 ? 'A' : qualityScore >= 3 ? 'B' : qualityScore >= 2 ? 'C' : qualityScore >= 1 ? 'D' : 'F';
+
       return {
         ticker,
         cik: row.cik,
-        revenue,
-        netIncome,
-        assets,
-        equity,
-        liabilities,
-        period: ni?.fy || rev?.fy || ni?.end || rev?.end || null,
-        margin,
-        roa,
-        roe,
-        debtToEquity,
-        quality: margin == null ? '—' : margin >= 25 ? 'High' : margin >= 15 ? 'Solid' : margin >= 5 ? 'Watch' : 'Thin',
+        period,
+        // Income statement
+        revenue, prevRevenue, revGrowth,
+        netIncome, prevNetIncome, niGrowth,
+        operatingIncome, operatingMargin,
+        // Balance sheet
+        assets, liabilities, equity,
+        debtToEquity, currentRatio,
+        // Cash flow
+        cashFlow, capex, fcf, fcfMargin,
+        // Efficiency
+        rdExpense, rdIntensity, interestExpense, assetTurnover,
+        // Margins
+        margin, roa, roe,
+        // Market
+        pe, marketCap, pbRatio, evEbitda,
+        // Quality
+        quality, qualityScore,
       };
-    }).sort((a, b) => (b.margin ?? -Infinity) - (a.margin ?? -Infinity));
-  }, [edgarCtx]);
+    }).sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0));
+  }, [edgarCtx, flatData]);
   const edgarSummary = useMemo(() => {
     const margins = edgarRows.map(row => row.margin).filter(Number.isFinite);
     const avgMargin = margins.length ? margins.reduce((sum, v) => sum + v, 0) / margins.length : null;
     const profitable = edgarRows.filter(row => (row.netIncome ?? 0) > 0).length;
     const avgRoa = edgarRows.filter(r => Number.isFinite(r.roa)).reduce((s, r) => s + r.roa, 0) / edgarRows.filter(r => Number.isFinite(r.roa)).length || null;
     const avgRoe = edgarRows.filter(r => Number.isFinite(r.roe)).reduce((s, r) => s + r.roe, 0) / edgarRows.filter(r => Number.isFinite(r.roe)).length || null;
-    return { avgMargin, profitable, count: edgarRows.length, avgRoa, avgRoe };
+    const avgRevGrowth = edgarRows.filter(r => Number.isFinite(r.revGrowth)).reduce((s, r) => s + r.revGrowth, 0) / edgarRows.filter(r => Number.isFinite(r.revGrowth)).length || null;
+    const avgDe = edgarRows.filter(r => Number.isFinite(r.debtToEquity)).reduce((s, r) => s + r.debtToEquity, 0) / edgarRows.filter(r => Number.isFinite(r.debtToEquity)).length || null;
+    const gradeA = edgarRows.filter(r => r.quality === 'A').length;
+    return { avgMargin, profitable, count: edgarRows.length, avgRoa, avgRoe, avgRevGrowth, avgDe, gradeA };
   }, [edgarRows]);
   const universeUpdates = universeCtx?.data?.updates || [];
 
@@ -1014,7 +1083,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     <BentoCard
       key="sec-fundamentals"
       title="SEC Mega-Cap Fundamentals"
-      subtitle={`Revenue · net income · margin · ROA · ROE · ${edgarSummary.profitable}/${edgarSummary.count} profitable${edgarSummary.avgMargin != null ? ` · avg margin ${edgarSummary.avgMargin.toFixed(1)}%` : ''}${edgarSummary.avgRoa != null ? ` · avg ROA ${edgarSummary.avgRoa.toFixed(1)}%` : ''}${edgarSummary.avgRoe != null ? ` · avg ROE ${edgarSummary.avgRoe.toFixed(1)}%` : ''}`}
+      subtitle={`${edgarSummary.count} companies · ${edgarSummary.profitable}/${edgarSummary.count} profitable · avg margin ${edgarSummary.avgMargin?.toFixed(1) || '—'}% · avg ROE ${edgarSummary.avgRoe?.toFixed(1) || '—'}% · avg D/E ${edgarSummary.avgDe?.toFixed(1) || '—'} · ${edgarSummary.gradeA || 0} grade A`}
       accent="equities"
       className="eq-bento-card"
       contentClassName="eq-panel-content eq-panel-scroll"
@@ -1026,27 +1095,114 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       fetchLog={edgarCtx?.fetchLog || []}
       error={edgarCtx?.error}
     >
+      {/* Summary KPI strip */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, padding: '0 2px' }}>
+        {[
+          { label: 'Avg Margin', value: edgarSummary.avgMargin != null ? `${edgarSummary.avgMargin.toFixed(1)}%` : '—', color: '#60a5fa' },
+          { label: 'Avg ROE', value: edgarSummary.avgRoe != null ? `${edgarSummary.avgRoe.toFixed(1)}%` : '—', color: '#22c55e' },
+          { label: 'Avg ROA', value: edgarSummary.avgRoa != null ? `${edgarSummary.avgRoa.toFixed(1)}%` : '—', color: '#a78bfa' },
+          { label: 'Avg Rev Growth', value: edgarSummary.avgRevGrowth != null ? `${edgarSummary.avgRevGrowth >= 0 ? '+' : ''}${edgarSummary.avgRevGrowth.toFixed(1)}%` : '—', color: edgarSummary.avgRevGrowth >= 0 ? '#22c55e' : '#f87171' },
+          { label: 'Avg D/E', value: edgarSummary.avgDe != null ? `${edgarSummary.avgDe.toFixed(1)}x` : '—', color: '#f59e0b' },
+        ].map(kpi => (
+          <span key={kpi.label} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <span style={{ color: 'var(--text-muted)' }}>{kpi.label}</span>{' '}
+            <strong style={{ color: kpi.color, fontVariantNumeric: 'tabular-nums' }}>{kpi.value}</strong>
+          </span>
+        ))}
+      </div>
+
+      {/* Main table */}
       <div className="eq-mini-table">
-        <div style={{ display: 'grid', gridTemplateColumns: '52px 72px 1fr 1fr 64px 58px 58px 58px', gap: 8, alignItems: 'center', padding: '0 0 4px', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '48px 52px 60px 60px 52px 52px 48px 42px', gap: 6, alignItems: 'center', padding: '0 0 4px', fontSize: 8, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           <span>Ticker</span>
-          <span style={{ textAlign: 'right' }}>Period</span>
+          <span style={{ textAlign: 'right' }}>FY</span>
           <span style={{ textAlign: 'right' }}>Revenue</span>
           <span style={{ textAlign: 'right' }}>Net Inc</span>
           <span style={{ textAlign: 'right' }}>Margin</span>
-          <span style={{ textAlign: 'right' }}>ROA</span>
           <span style={{ textAlign: 'right' }}>ROE</span>
-          <span style={{ textAlign: 'right' }}>Quality</span>
+          <span style={{ textAlign: 'right' }}>D/E</span>
+          <span style={{ textAlign: 'right' }}>Grd</span>
         </div>
         {edgarRows.map(row => (
-          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '52px 72px 1fr 1fr 64px 58px 58px 58px', gap: 8, alignItems: 'center' }}>
-            <strong style={{ fontSize: 12 }}>{row.ticker}</strong>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right' }}>{row.period || '—'}</span>
-            <span><MetricValue value={row.revenue} seriesKey="edgarRevenue" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
-            <span><MetricValue value={row.netIncome} seriesKey="edgarNetIncome" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(1)}B` : '—'} /></span>
-            <span style={{ color: (row.margin ?? 0) >= 20 ? '#22c55e' : '#f59e0b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.margin != null ? `${row.margin.toFixed(1)}%` : '—'}</span>
-            <span style={{ color: (row.roa ?? 0) >= 15 ? '#22c55e' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.roa != null ? `${row.roa.toFixed(1)}%` : '—'}</span>
-            <span style={{ color: (row.roe ?? 0) >= 20 ? '#22c55e' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.roe != null ? `${row.roe.toFixed(1)}%` : '—'}</span>
-            <span style={{ color: row.quality === 'High' ? '#22c55e' : row.quality === 'Solid' ? '#60a5fa' : row.quality === 'Watch' ? '#f59e0b' : 'var(--text-muted)', fontSize: 11, textAlign: 'right' }}>{row.quality}</span>
+          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '48px 52px 60px 60px 52px 52px 48px 42px', gap: 6, alignItems: 'center', fontSize: 11 }}>
+            <strong style={{ fontSize: 11 }}>{row.ticker}</strong>
+            <span style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.period || '—'}</span>
+            <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <MetricValue value={row.revenue} seriesKey="edgarRevenue" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(0)}B` : '—'} />
+            </span>
+            <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <MetricValue value={row.netIncome} seriesKey="edgarNetIncome" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(0)}B` : '—'} />
+            </span>
+            <span style={{ color: (row.margin ?? 0) >= 20 ? '#22c55e' : (row.margin ?? 0) >= 10 ? '#f59e0b' : '#f87171', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>
+              {row.margin != null ? `${row.margin.toFixed(0)}%` : '—'}
+            </span>
+            <span style={{ color: (row.roe ?? 0) >= 20 ? '#22c55e' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>
+              {row.roe != null ? `${row.roe.toFixed(0)}%` : '—'}
+            </span>
+            <span style={{ color: (row.debtToEquity ?? 0) > 3 ? '#f87171' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>
+              {row.debtToEquity != null ? `${row.debtToEquity.toFixed(1)}x` : '—'}
+            </span>
+            <span style={{
+              color: row.quality === 'A' ? '#22c55e' : row.quality === 'B' ? '#60a5fa' : row.quality === 'C' ? '#f59e0b' : '#f87171',
+              fontWeight: 700, textAlign: 'right', fontSize: 11
+            }}>{row.quality}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Detailed breakdown per ticker */}
+      <div style={{ marginTop: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
+        <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, padding: '0 2px' }}>Detailed Breakdown</div>
+        {edgarRows.slice(0, 6).map(row => (
+          <div key={row.ticker} style={{ marginBottom: 6, padding: '4px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <strong style={{ fontSize: 11 }}>{row.ticker}</strong>
+              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>FY{row.period}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 4, fontSize: 9 }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Op Margin </span>
+                <strong style={{ color: (row.operatingMargin ?? 0) >= 20 ? '#22c55e' : '#94a3b8' }}>
+                  {row.operatingMargin != null ? `${row.operatingMargin.toFixed(1)}%` : '—'}
+                </strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>FCF </span>
+                <strong style={{ color: (row.fcf ?? 0) > 0 ? '#22c55e' : '#f87171' }}>
+                  {row.fcf != null ? `$${(row.fcf / 1e9).toFixed(1)}B` : '—'}
+                </strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Rev Growth </span>
+                <strong style={{ color: (row.revGrowth ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                  {row.revGrowth != null ? `${row.revGrowth >= 0 ? '+' : ''}${row.revGrowth.toFixed(1)}%` : '—'}
+                </strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>NI Growth </span>
+                <strong style={{ color: (row.niGrowth ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>
+                  {row.niGrowth != null ? `${row.niGrowth >= 0 ? '+' : ''}${row.niGrowth.toFixed(1)}%` : '—'}
+                </strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Current Ratio </span>
+                <strong style={{ color: (row.currentRatio ?? 0) >= 1.5 ? '#22c55e' : '#f59e0b' }}>
+                  {row.currentRatio != null ? `${row.currentRatio.toFixed(2)}x` : '—'}
+                </strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>R&D Intensity </span>
+                <strong>{row.rdIntensity != null ? `${row.rdIntensity.toFixed(1)}%` : '—'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>P/E </span>
+                <strong>{row.pe != null ? `${row.pe.toFixed(1)}x` : '—'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>P/B </span>
+                <strong>{row.pbRatio != null ? `${row.pbRatio.toFixed(1)}x` : '—'}</strong>
+              </div>
+            </div>
           </div>
         ))}
       </div>
