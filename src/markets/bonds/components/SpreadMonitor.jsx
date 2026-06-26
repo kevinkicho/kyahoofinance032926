@@ -13,6 +13,18 @@ const SERIES_CONFIG = [
 export default function SpreadMonitor({ spreadData, mortgageSpread }) {
   const { colors } = useTheme();
 
+  if (!spreadData || !spreadData.dates || spreadData.dates.length === 0) {
+    return (
+      <div className="bonds-panel">
+        <div className="bonds-panel-header">
+          <span className="bonds-panel-title">Credit Spread Monitor</span>
+          <span className="bonds-panel-subtitle">IG · HY · EM · BBB spreads over Treasuries</span>
+        </div>
+        <div className="bonds-empty">No spread data available — FRED credit spread series may be temporarily unavailable</div>
+      </div>
+    );
+  }
+
   const option = useMemo(() => ({
     animation: false,
     backgroundColor: 'transparent',

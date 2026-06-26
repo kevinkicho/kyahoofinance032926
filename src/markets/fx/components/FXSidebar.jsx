@@ -67,6 +67,18 @@ export default function FXSidebar({
   const fmt = (v, suffix = '%') => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}${suffix}`;
   const color = (v) => v == null ? 'var(--text-muted)' : v >= 0 ? '#4ade80' : '#f87171';
 
+  if (!spotRates || Object.keys(spotRates).length === 0) {
+    return (
+      <div className="fx-sidebar fx-sidebar--in-bento">
+        <div className="fx-panel-header">
+          <span className="fx-panel-title">FX Dashboard</span>
+          <span className="fx-panel-subtitle">Key pairs · rate differentials · COT</span>
+        </div>
+        <div className="fx-empty">No FX spot rate data available — Frankfurter API may be temporarily unavailable</div>
+      </div>
+    );
+  }
+
   return (
     <div className="fx-sidebar fx-sidebar--in-bento">
       <div className="fx-sidebar-section">

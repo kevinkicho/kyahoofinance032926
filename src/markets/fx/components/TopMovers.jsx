@@ -57,6 +57,18 @@ export default function TopMovers({
 
   const maxAbs = movers.length > 0 ? Math.max(...movers.map(m => Math.abs(m.changePct))) : 1;
 
+  if (movers.length === 0) {
+    return (
+      <div className="fx-panel">
+        <div className="fx-panel-header">
+          <span className="fx-panel-title">Top Movers</span>
+          <span className="fx-panel-subtitle">vs USD · sorted by 24h magnitude</span>
+        </div>
+        <div className="fx-empty">No FX rate data available — Frankfurter API may be temporarily unavailable</div>
+      </div>
+    );
+  }
+
   // KPI computations
   const strongest = movers.length ? movers.reduce((best, m) => m.changePct > best.changePct ? m : best, movers[0]) : null;
   const weakest   = movers.length ? movers.reduce((worst, m) => m.changePct < worst.changePct ? m : worst, movers[0]) : null;

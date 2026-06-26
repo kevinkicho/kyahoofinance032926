@@ -17,6 +17,18 @@ const REER_KEYS = ['US', 'EU', 'JP', 'GB', 'CN'];
 export default function RateMatrix({ spotRates, prevRates, changes = {}, reer }) {
   const { colors } = useTheme();
 
+  if (!spotRates || Object.keys(spotRates).length === 0) {
+    return (
+      <div className="fx-panel">
+        <div className="fx-panel-header">
+          <span className="fx-panel-title">Currency Heatmap</span>
+          <span className="fx-panel-subtitle">Cross-rate matrix · REER</span>
+        </div>
+        <div className="fx-empty">No spot rate data available — Frankfurter API may be temporarily unavailable</div>
+      </div>
+    );
+  }
+
   const reerOption = useMemo(() => {
     if (!reer?.dates?.length) return null;
     const series = REER_KEYS

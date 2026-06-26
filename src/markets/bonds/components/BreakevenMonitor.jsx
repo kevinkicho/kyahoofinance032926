@@ -52,7 +52,17 @@ function buildBreakevenOption(history, colors) {
 
 export default function BreakevenMonitor({ breakevensData }) {
   const { colors } = useTheme();
-  if (!breakevensData) return null;
+  if (!breakevensData) {
+    return (
+      <div className="bonds-panel">
+        <div className="bonds-panel-header">
+          <span className="bonds-panel-title">TIPS Breakevens & Real Yields</span>
+          <span className="bonds-panel-subtitle">Market-implied inflation expectations · FRED</span>
+        </div>
+        <div className="bonds-empty">No breakeven data available — FRED TIPS series may be temporarily unavailable</div>
+      </div>
+    );
+  }
   const { current, history } = breakevensData;
 
   return (

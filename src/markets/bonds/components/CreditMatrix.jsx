@@ -33,6 +33,18 @@ function ratingStyle(rating) {
 function getTier(rating) { return RATING_TIER[rating] ?? 99; }
 
 export default function CreditMatrix({ creditRatingsData, creditRatingsAsOf, lastUpdated }) {
+  if (!creditRatingsData || creditRatingsData.length === 0) {
+    return (
+      <div className="bonds-panel">
+        <div className="bonds-panel-header">
+          <span className="bonds-panel-title">Sovereign Credit Ratings</span>
+          <span className="bonds-panel-subtitle">S&P · Moody's · Fitch</span>
+        </div>
+        <div className="bonds-empty">No credit rating data available</div>
+      </div>
+    );
+  }
+
   const kpis = useMemo(() => {
     const aaaAa = creditRatingsData.filter(r =>
       getTier(r.sp) <= 1 && getTier(r.moodys) <= 1 && getTier(r.fitch) <= 1
