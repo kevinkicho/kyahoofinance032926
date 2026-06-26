@@ -45,8 +45,10 @@ function SplashScreenInner({ onReady }) {
     Object.fromEntries(MARKETS.map(m => [m.id, 'pending']))
   );
   const [panelsFound, setPanelsFound] = useState(0);
+  const [fading, setFading] = useState(false);
   const startTimeRef = useRef(Date.now());
   const cacheRef = useRef({});
+  const dismissedRef = useRef(false);
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
 
@@ -58,6 +60,13 @@ function SplashScreenInner({ onReady }) {
     return () => clearInterval(id);
   }, []);
 
+  const dismiss = (cache) => {
+    if (dismissedRef.current) return;
+    dismissedRef.current = true;
+    setFading(true);
+    setTimeout(() => onReadyRef.current(cache), 600);
+  };
+
   // Timeout — force dismiss after 60s
   useEffect(() => {
     const id = setTimeout(() => {
@@ -65,7 +74,7 @@ function SplashScreenInner({ onReady }) {
       for (const [m, panels] of Object.entries(finalScan)) {
         cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
       }
-      onReadyRef.current(cacheRef.current);
+      dismiss(cacheRef.current);
     }, 60000);
     return () => clearTimeout(id);
   }, []);
@@ -93,9 +102,10 @@ function SplashScreenInner({ onReady }) {
     [marketStatus]
   );
 
-  // Continuously scan DOM while splash is visible
+  // Continuously scan DOM every 1s while splash is visible
   useEffect(() => {
     const id = setInterval(() => {
+      if (dismissedRef.current) return;
       const scan = scanAllPanels();
       for (const [m, panels] of Object.entries(scan)) {
         cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
@@ -106,16 +116,23 @@ function SplashScreenInner({ onReady }) {
     return () => clearInterval(id);
   }, []);
 
-  // Dismiss after all loaded + 5s grace period for DOM rendering
+  // Dismiss after all loaded + 5s grace for DOM rendering
   useEffect(() => {
-    if (!allLoaded) return;
+    if (!allLoaded || dismissedRef.current) return;
     const id = setTimeout(() => {
-      // Final comprehensive scan
-      const finalScan = scanAllPanels();
-      for (const [m, panels] of Object.entries(finalScan)) {
+      if (dismissedRef.current) return;
+      // Final scan — multiple passes to catch late renderers
+      const scan1 = scanAllPanels();
+      for (const [m, panels] of Object.entries(scan1)) {
         cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
       }
-      onReadyRef.current(cacheRef.current);
+      setTimeout(() => {
+        const scan2 = scanAllPanels();
+        for (const [m, panels] of Object.entries(scan2)) {
+          cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
+        }
+        dismiss(cacheRef.current);
+      }, 1000);
     }, 5000);
     return () => clearTimeout(id);
   }, [allLoaded]);
@@ -126,14 +143,14 @@ function SplashScreenInner({ onReady }) {
 
   return (
     <div className="splash-screen">
-      {/* All markets render here — hidden but fully mounted for DOM scanning */}
-      <div style={{ position: 'fixed', left: 0, top: 0, width: 1920, height: 1200, overflow: 'auto', zIndex: -1, pointerEvents: 'none' }}>
+      {/* Markets render at full size behind frosted backdrop — DOM is fully painted */}
+      <div className="splash-backdrop">
         {MARKETS.map(m => {
           const Component = MARKET_COMPONENTS[m.id];
           const ctx = getMarket?.(m.id);
           if (!Component || !ctx) return null;
           return (
-            <div key={m.id} data-splash-market={m.id} style={{ minHeight: 800 }}>
+            <div key={m.id} data-splash-market={m.id}>
               <Suspense fallback={null}>
                 <Component centralData={ctx} currency={currency} setCurrency={setCurrency} onNavigate={() => {}} />
               </Suspense>
@@ -142,66 +159,68 @@ function SplashScreenInner({ onReady }) {
         })}
       </div>
 
-      {/* Splash overlay */}
-      <div className="splash-content">
-        <div className="splash-header">
-          <div className="splash-logo">📊</div>
-          <h1 className="splash-title">Global Market Hub</h1>
-          <p className="splash-subtitle">
-            Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {panelsFound} scanned
-          </p>
-        </div>
-
-        <div className="splash-progress-bar">
-          <div className="splash-progress-fill" style={{ width: `${((okCount + errorCount) / MARKETS.length) * 100}%` }} />
-        </div>
-
-        <div className="splash-stats">
-          <span className="splash-stat splash-stat-ok">{okCount} loaded</span>
-          {loadingCount > 0 && <span className="splash-stat splash-stat-loading">{loadingCount} fetching</span>}
-          {errorCount > 0 && <span className="splash-stat splash-stat-error">{errorCount} failed</span>}
-          <span className="splash-stat splash-stat-time">{elapsed}s</span>
-        </div>
-
-        <div className="splash-grid">
-          {MARKETS.map(m => {
-            const status = marketStatus[m.id];
-            const panels = MARKET_PANELS[m.id] || [];
-            const scanned = cacheRef.current[m.id] ? Object.keys(cacheRef.current[m.id]).length : 0;
-            return (
-              <div key={m.id} className={`splash-market splash-market--${status}`}>
-                <div className="splash-market-header">
-                  <span className="splash-market-icon">
-                    {status === 'ok' ? '✅' : status === 'error' ? '❌' : '⏳'}
-                  </span>
-                  <span className="splash-market-name">{m.label}</span>
-                  <span className="splash-market-count">{scanned}/{panels.length}</span>
-                </div>
-                <div className="splash-panels">
-                  {panels.map(p => {
-                    const panelStatus = cacheRef.current[m.id]?.[p.id];
-                    return (
-                      <span
-                        key={p.id}
-                        className={`splash-panel-dot splash-panel-dot--${panelStatus || status}`}
-                        title={`${p.title}${panelStatus ? ` (${panelStatus})` : ''}`}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {allLoaded && (
-          <div className="splash-done">
-            {panelsFound >= TOTAL_PANELS
-              ? `All ${TOTAL_PANELS} panels verified — opening dashboard`
-              : `Data loaded — waiting for ${TOTAL_PANELS - panelsFound} remaining panels…`
-            }
+      {/* Frosted glass overlay */}
+      <div className={`splash-overlay ${fading ? 'splash-fade-out' : ''}`}>
+        <div className="splash-content">
+          <div className="splash-header">
+            <div className="splash-logo">📊</div>
+            <h1 className="splash-title">Global Market Hub</h1>
+            <p className="splash-subtitle">
+              Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {panelsFound} scanned
+            </p>
           </div>
-        )}
+
+          <div className="splash-progress-bar">
+            <div className="splash-progress-fill" style={{ width: `${((okCount + errorCount) / MARKETS.length) * 100}%` }} />
+          </div>
+
+          <div className="splash-stats">
+            <span className="splash-stat splash-stat-ok">{okCount} loaded</span>
+            {loadingCount > 0 && <span className="splash-stat splash-stat-loading">{loadingCount} fetching</span>}
+            {errorCount > 0 && <span className="splash-stat splash-stat-error">{errorCount} failed</span>}
+            <span className="splash-stat splash-stat-time">{elapsed}s</span>
+          </div>
+
+          <div className="splash-grid">
+            {MARKETS.map(m => {
+              const status = marketStatus[m.id];
+              const panels = MARKET_PANELS[m.id] || [];
+              const scanned = cacheRef.current[m.id] ? Object.keys(cacheRef.current[m.id]).length : 0;
+              return (
+                <div key={m.id} className={`splash-market splash-market--${status}`}>
+                  <div className="splash-market-header">
+                    <span className="splash-market-icon">
+                      {status === 'ok' ? '✅' : status === 'error' ? '❌' : '⏳'}
+                    </span>
+                    <span className="splash-market-name">{m.label}</span>
+                    <span className="splash-market-count">{scanned}/{panels.length}</span>
+                  </div>
+                  <div className="splash-panels">
+                    {panels.map(p => {
+                      const panelStatus = cacheRef.current[m.id]?.[p.id];
+                      return (
+                        <span
+                          key={p.id}
+                          className={`splash-panel-dot splash-panel-dot--${panelStatus || status}`}
+                          title={`${p.title}${panelStatus ? ` (${panelStatus})` : ''}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {allLoaded && (
+            <div className="splash-done">
+              {panelsFound >= TOTAL_PANELS
+                ? `All ${TOTAL_PANELS} panels verified — opening dashboard`
+                : `Data loaded — scanning remaining panels…`
+              }
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

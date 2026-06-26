@@ -1,19 +1,38 @@
 /* ═══════════════════════════════════════════════════════════════
-   SplashScreen — initialization overlay with per-market status
+   SplashScreen — frosted glass overlay with per-market status
    ═══════════════════════════════════════════════════════════════ */
 
 .splash-screen {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: #0a0e1a;
+}
+
+/* Markets render at full size behind the backdrop — fully painted for DOM scanning */
+.splash-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  z-index: 0;
+}
+
+/* Frosted glass overlay — blocks interaction, blurs content behind */
+.splash-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(10, 14, 26, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow-y: auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding: 40px 20px;
   transition: opacity 0.5s ease;
 }
 
-.splash-screen.splash-fade-out {
+.splash-overlay.splash-fade-out {
   opacity: 0;
   pointer-events: none;
 }
@@ -21,7 +40,6 @@
 .splash-content {
   width: 100%;
   max-width: 900px;
-  padding: 32px;
 }
 
 .splash-header {
@@ -81,7 +99,6 @@
 
 .splash-stat-ok { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
 .splash-stat-loading { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-.splash-stat-pending { color: #64748b; background: rgba(100, 116, 139, 0.1); }
 .splash-stat-error { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
 .splash-stat-time { color: #94a3b8; background: rgba(148, 163, 184, 0.08); }
 
@@ -160,6 +177,8 @@
 .splash-panel-dot--loading { background: #f59e0b; animation: splash-pulse 1s ease-in-out infinite; }
 .splash-panel-dot--ok { background: #22c55e; }
 .splash-panel-dot--error { background: #ef4444; }
+.splash-panel-dot--stale { background: #f59e0b; }
+.splash-panel-dot--null { background: #ef4444; }
 
 @keyframes splash-pulse {
   0%, 100% { opacity: 0.5; }
