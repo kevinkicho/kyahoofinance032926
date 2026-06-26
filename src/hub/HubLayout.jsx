@@ -345,7 +345,6 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
       }
 
       const resData = await res.json();
-      console.log('[HubLayout] Global refresh completed:', resData);
 
       // 4. Reload data in frontend
       if (dataCtx && dataCtx.refetchLatestSnapshots) {

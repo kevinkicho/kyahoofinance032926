@@ -131,9 +131,9 @@ router.get('/concepts/:ticker', async (req, res) => {
   res.json(result);
 });
 
-// Default landing endpoint: surface aggregate stats for a small fixed panel
-// (so /api/edgar without params returns something testable).
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA'];
+// Default landing endpoint: surface aggregate stats for a broader set of
+// mega-cap tickers (so /api/edgar without params returns something useful).
+const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'BRK-B', 'JPM', 'V', 'UNH', 'XOM', 'JNJ', 'WMT', 'PG'];
 router.get('/', async (_req, res) => {
   const cached = readDailyCache('edgar');
   if (cached) return res.json(cached);

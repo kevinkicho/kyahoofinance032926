@@ -72,12 +72,6 @@ function getBondsProps(centralData) {
 
 function BondsMarket({ centralData } = {}) {
   const { currency, currentSymbol, convert } = useCurrency();
-  console.log('DEBUG BondsMarket centralData:', {
-    hasData: !!centralData?.data,
-    isLoading: centralData?.isLoading,
-    isLive: centralData?.isLive,
-    error: centralData?.error
-  });
   if (!centralData) return <MarketSkeleton />;
   const props = getBondsProps(centralData);
   if (props.isLoading) return <MarketSkeleton />;

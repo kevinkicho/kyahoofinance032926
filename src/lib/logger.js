@@ -38,8 +38,6 @@ function addEntry(type, data) {
   logEntries.push(entry);
   if (logEntries.length > MAX_LOG_ENTRIES) logEntries.shift();
   saveLog();
-  // Console output for AI agent visibility
-  console.log(`[LOG:${type}]`, JSON.stringify(data).slice(0, 300));
 }
 
 // ── Public API ──

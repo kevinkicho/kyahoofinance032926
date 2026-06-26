@@ -17,14 +17,6 @@ const API_INFO = getApiInfo();
 // The scheduled refresher populates both. Frontend prefers RTDB; live API is fallback.
 const RTDB_BASE = 'https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots';
 
-// One-time visibility into which backend the bundle is talking to.
-// Extremely useful after a Pages deploy when debugging "why is nothing loading?"
-if (!import.meta.env.DEV) {
-  console.info('[DataProvider] API backend:', API_INFO);
-} else {
-  console.info('[DataProvider] dev mode – using Vite proxy for /api');
-}
-
 // Verbose fetch progress is helpful in dev but noisy in production.
 // Gate behind import.meta.env.DEV so prod builds stay clean.
 const dlog = import.meta.env.DEV ? console.log.bind(console) : () => {};
@@ -454,7 +446,6 @@ export const STRUCTURAL_GUARDS = {
 };
 
 export function applyResult(prev, result) {
-  console.log('DEBUG applyResult marketId:', result.marketId, 'ok:', result.ok);
   const id = result.marketId;
   if (result.ok) {
     const d = result.data;

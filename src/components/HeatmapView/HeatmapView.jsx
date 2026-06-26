@@ -219,38 +219,29 @@ const HeatmapView = ({
 
     const handleBgClick = (e) => {
       if (!mountedRef.current) return;
-      // On a treemap that fills 100% of the canvas, there is no "empty
-      // background" — every pixel is a cell target. Instead, detect clicks
-      // on the root-level group (the outermost ring of cells) and treat
-      // those as "zoom to fit" by dispatching restore.
-      const treemapView = instRef.current?._chartsViews?.find(view => view?.type === 'treemap' && typeof view.findTarget === 'function');
-      if (treemapView) {
-        const targetInfo = treemapView.findTarget(e.offsetX, e.offsetY);
-        const node = targetInfo?.node;
-        // If click landed on a root-level child (depth 1, not a leaf),
-        // treat it as background click → zoom-to-fit
-        if (node && node.depth === 1) {
-          if (instRef.current && !instRef.current.isDisposed?.()) {
-            instRef.current.dispatchAction({ type: 'restore' });
-            setViewPath(['Global Market']);
-          }
-          return;
-        }
-        // Also handle truly empty clicks (no target at all)
-        if (!targetInfo || !node) {
-          if (instRef.current && !instRef.current.isDisposed?.()) {
-            instRef.current.dispatchAction({ type: 'restore' });
-            setViewPath(['Global Market']);
+      const inst = instRef.current;
+      if (!inst || inst.isDisposed?.()) return;
+
+      // Try to find what was clicked via ECharts internal API
+      let clickedOnLeaf = false;
+      try {
+        const treemapView = inst._chartsViews?.find(v => v?.type === 'treemap' && typeof v.findTarget === 'function');
+        if (treemapView) {
+          const targetInfo = treemapView.findTarget(e.offsetX, e.offsetY);
+          const node = targetInfo?.node;
+          // Leaf nodes have no children — don't restore on leaf click
+          if (node && node.children && node.children.length > 0) {
+            clickedOnLeaf = false;
+          } else if (node) {
+            clickedOnLeaf = true;
           }
         }
-      } else {
-        // Fallback: original behavior for non-treemap or when findTarget unavailable
-        if (!e.target) {
-          if (instRef.current && !instRef.current.isDisposed?.()) {
-            instRef.current.dispatchAction({ type: 'restore' });
-            setViewPath(['Global Market']);
-          }
-        }
+      } catch { /* findTarget unavailable — treat as background */ }
+
+      // If not clicked on a leaf node, restore zoom
+      if (!clickedOnLeaf) {
+        inst.dispatchAction({ type: 'restore' });
+        setViewPath(['Global Market']);
       }
     };
 
@@ -398,12 +389,28 @@ const HeatmapView = ({
               {index > 0 && <span style={{ color: '#64748b' }}>›</span>}
               <button
                 type="button"
+                onClick={() => {
+                  if (!mountedRef.current) return;
+                  const inst = instRef.current;
+                  if (!inst || inst.isDisposed?.()) return;
+                  if (!targetId) {
+                    inst.dispatchAction({ type: 'restore' });
+                    setViewPath(['Global Market']);
+                  } else {
+                    inst.dispatchAction({
+                      type: 'treemapZoomToNode',
+                      seriesIndex: 0,
+                      targetNodeId: targetId,
+                    });
+                    setViewPath(viewPath.slice(0, index + 1));
+                  }
+                }}
                 onMouseDown={() => startBreadcrumbPress(targetId, index)}
                 onMouseUp={clearBreadcrumbPress}
                 onMouseLeave={clearBreadcrumbPress}
                 onTouchStart={() => startBreadcrumbPress(targetId, index)}
                 onTouchEnd={clearBreadcrumbPress}
-                title="Long-click to zoom here"
+                title="Click to zoom here"
                 style={{
                   border: 0,
                   background: 'transparent',
