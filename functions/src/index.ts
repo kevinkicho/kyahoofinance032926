@@ -28,7 +28,7 @@ app.use(express.json({ limit: "256kb" }));
 
 let routesLoaded = false;
 
-function loadRoutes() {
+async function loadRoutes() {
   if (routesLoaded) return;
   
   // Canonical route list lives in shared/route-list.json (single source of
@@ -94,8 +94,8 @@ function loadRoutes() {
   }
 }
 
-app.use((req, res, next) => {
-  loadRoutes();
+app.use(async (req, res, next) => {
+  await loadRoutes();
   next();
 });
 
