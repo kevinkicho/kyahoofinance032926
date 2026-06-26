@@ -19,7 +19,6 @@ import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import KeyIndicesStrip from './components/KeyIndicesStrip';
 import PortfolioTracker from './components/PortfolioTracker';
-import MLExplorer from './components/MLExplorer';
 import RadarView from './components/RadarView';
 import MetricValue from '../../components/MetricValue/MetricValue';
 
@@ -155,14 +154,6 @@ const LIST_LAYOUT = {
     { i: 'kpi',            x: 0, y: 0, w: 12, h: 4 },
     { i: 'list-main',      x: 0, y: 4, w: 8,  h: 6 },
     { i: 'detail-sidebar', x: 8, y: 4, w: 4,  h: 6 },
-  ]
-};
-
-const ML_LAYOUT = {
-  lg: [
-    { i: 'kpi',         x: 0, y: 0, w: 12, h: 4 },
-    { i: 'ml-explorer', x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'sidebar',     x: 8, y: 4, w: 4,  h: 6 },
   ]
 };
 
@@ -830,7 +821,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       const assetTurnover = assets && revenue ? revenue / assets : null;
 
       // Market data from stock universe
-      const stock = flatData.find(s => s.ticker === ticker || s.name === ticker);
+      const stock = (Array.isArray(flatData) ? flatData : []).find(s => s.ticker === ticker || s.name === ticker);
       const pe = stock?.pe || null;
       const marketCap = stock?.marketCap || null;
 
@@ -1390,23 +1381,6 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           currency={currency}
           onRowClick={handleSelectTicker}
         />
-      ) : viewMode === 'ml-explorer' ? (
-        <BentoWrapper layout={ML_LAYOUT} storageKey="equities-ml-layout-v7">
-          {kpiBentoCard}
-          <div key="ml-explorer" className="eq-bento-card">
-            <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">ML Explorer</span>
-              <span className="eq-panel-subtitle">AI-driven factor analysis</span>
-            </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <MLExplorer
-                flatData={flatData}
-                onTickerSelect={handleSelectTicker}
-              />
-            </div>
-          </div>
-          {sidebarPanel}
-        </BentoWrapper>
       ) : viewMode === 'list' ? (
         <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v7">
           {kpiBentoCard}

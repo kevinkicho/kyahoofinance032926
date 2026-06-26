@@ -309,6 +309,9 @@ router.post('/reset-counters', (req, res) => {
 });
 
 // GET /api/analytics/panel-trace/:market — trace each panel's data pipeline
+// Fetches the live API response for the market, inspects each field, and
+// returns a structured trace showing field presence, data shape, _sources
+// flags, and error info. Used by the Analytics Panel Trace Inspector.
 router.get('/panel-trace/:market', async (req, res) => {
   const { market } = req.params;
   const MARKET_ENDPOINTS = {
@@ -324,13 +327,12 @@ router.get('/panel-trace/:market', async (req, res) => {
     return res.status(400).json({ error: `No endpoint for market "${market}"` });
   }
 
+  // Resolve the base URL from socket (not Host header — SSRF-safe)
   const addr = req.socket?.localAddress;
   const port = req.socket?.localPort;
-  const base = process.env.LIVE_FUNCTIONS_BASE
-    ? process.env.LIVE_FUNCTIONS_BASE.replace(/\/$/, '')
-    : (addr && port)
-      ? `http://${addr.includes(':') ? `[${addr}]` : addr}:${port}`
-      : `http://localhost:${process.env.PORT || 8081}`;
+  const base = (addr && port)
+    ? `http://${addr.includes(':') ? `[${addr}]` : addr}:${port}`
+    : `http://localhost:${process.env.PORT || 3001}`;
 
   const traceStart = Date.now();
   try {
@@ -351,6 +353,7 @@ router.get('/panel-trace/:market', async (req, res) => {
       });
     }
 
+    // Inspect each top-level field and return a structured trace
     const sources = data._sources || {};
     const fields = Object.keys(data).filter(k => !k.startsWith('_'));
     const panels = fields.map(field => {
@@ -369,6 +372,7 @@ router.get('/panel-trace/:market', async (req, res) => {
         const keys = Object.keys(value);
         shape = 'object';
         count = keys.length;
+        // Check for nested arrays (typical chart data: { dates: [...], values: [...] })
         const nestedArrays = keys.filter(k => Array.isArray(value[k]));
         if (nestedArrays.length > 0) {
           shape = 'object_with_arrays';
@@ -382,6 +386,7 @@ router.get('/panel-trace/:market', async (req, res) => {
         sample = String(value).substring(0, 120);
       }
 
+      // Find matching _sources key (fuzzy match)
       const sourceKey = Object.keys(sources).find(k =>
         k.toLowerCase().includes(field.toLowerCase().replace('History','').replace('Data','')) ||
         field.toLowerCase().includes(k.toLowerCase().replace(/\s*\(.*\)/,'').split(' ')[0].toLowerCase())
@@ -389,7 +394,10 @@ router.get('/panel-trace/:market', async (req, res) => {
       const sourceValue = sourceKey ? sources[sourceKey] : undefined;
 
       return {
-        field, shape, count, sample,
+        field,
+        shape,
+        count,
+        sample,
         sourceKey: sourceKey || null,
         sourceValue: sourceValue !== undefined ? sourceValue : null,
         isNull: value === null,
@@ -398,18 +406,27 @@ router.get('/panel-trace/:market', async (req, res) => {
     });
 
     res.json({
-      market, endpoint, status, fetchMs,
-      isLive: data.isLive, isCurrent: data.isCurrent,
-      fetchedOn: data.fetchedOn, lastUpdated: data.lastUpdated,
+      market,
+      endpoint,
+      status,
+      fetchMs,
+      isLive: data.isLive,
+      isCurrent: data.isCurrent,
+      fetchedOn: data.fetchedOn,
+      lastUpdated: data.lastUpdated,
       totalFields: fields.length,
       nullFields: panels.filter(p => p.isNull).map(p => p.field),
       populatedFields: panels.filter(p => !p.isNull).length,
-      sources, panels,
+      sources,
+      panels,
     });
   } catch (e) {
     res.json({
-      market, endpoint, status: 0, fetchMs: Date.now() - traceStart,
-      error: e.message, panels: [],
+      market, endpoint,
+      status: 0,
+      fetchMs: Date.now() - traceStart,
+      error: e.message,
+      panels: [],
     });
   }
 });

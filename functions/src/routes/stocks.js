@@ -6,8 +6,8 @@ import { mapToYahooTicker } from '../lib/stocks.js';
 const router = Router();
 
 // Leading `^` is valid for Yahoo index tickers (^GSPC, ^IXIC, ^DJI, ^RUT, ^VIX, ...).
-const TICKER_RE = /^[A-Z0-9^][A-Z0-9._/&\-^=]{0,24}$/;
-const MAX_TICKERS = 1000;
+const TICKER_RE = /^[A-Z0-9^][A-Z0-9.\-^=]{0,15}$/;
+const MAX_TICKERS = 500;
 
 router.post('/', async (req, res) => {
   const { tickers } = req.body;
@@ -32,9 +32,9 @@ router.post('/', async (req, res) => {
     if (missingTickers.length > 0) {
       const yahooToOriginal = {};
       const yahooTickers = missingTickers.map(t => {
-        const y = mapToYahooTicker(t);
-        yahooToOriginal[y] = t;
-        return y;
+         const y = mapToYahooTicker(t);
+         yahooToOriginal[y] = t;
+         return y;
       });
       const chunks = chunkArray(yahooTickers, 100);
       for (const chunk of chunks) {

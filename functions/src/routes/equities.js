@@ -3,7 +3,7 @@ import { yf, chunkArray } from '../lib/yahoo.js';
 import { getYahooTicker, mapToYahooTicker } from '../lib/stocks.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchJSON } from '../lib/fetch.js';
-import { stockUniverseData } from '../data/stockUniverse.js';
+import { stockUniverseData } from '../../src/data/stockUniverse.js';
 
 const router = Router();
 

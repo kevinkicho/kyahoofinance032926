@@ -111,8 +111,8 @@ const MLExplorer = ({ flatData, onTickerSelect }) => {
 
   const { colors } = useTheme();
   const edd = useMarketData('equitiesDeepDive');
-  const sectorETFs = edd?.data?.sectorData || [];
-  const factorData = edd?.data?.factorData || [];
+  const sectorETFs = Array.isArray(edd?.data?.sectorData) ? edd.data.sectorData : [];
+  const factorData = Array.isArray(edd?.data?.factorData) ? edd.data.factorData : [];
   const eddIsLive = edd?.isLive || false;
   const eddLastUpdated = edd?.lastUpdated || null;
   const eddFetchLog = edd?.fetchLog || [];

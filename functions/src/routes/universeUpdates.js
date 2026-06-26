@@ -76,37 +76,19 @@ router.get('/', async (req, res) => {
           
           // 5. Filter by Market Cap > $2B
           if (quote.marketCap && quote.marketCap >= MIN_MARKET_CAP) {
-            const mc = quote.marketCap / 1e9; // Convert to Billions
+            
+            // Format into the structure the frontend ECharts expects
             const stockEntry = {
               name: quote.symbol,
               fullName: quote.longName || quote.shortName || quote.symbol,
-              marketCap: mc,
-              // Yahoo Finance may not have fundamentals for recent IPOs,
-              // but include them when available so the panel can show real data.
-              revenue: quote.totalRevenue ? quote.totalRevenue / 1e9 : null, // in $B
-              netIncome: quote.netIncomeToCo ? quote.netIncomeToCo / 1e9 : null, // in $B
-              pe: quote.trailingPE || null,
-              forwardPE: quote.forwardPE || null,
-              divYield: quote.dividendYield != null ? quote.dividendYield * 100 : null, // as %
-              beta: quote.beta || null,
-              profitMargins: quote.profitMargins != null ? quote.profitMargins * 100 : null, // as %
-              returnOnEquity: quote.returnOnEquity != null ? quote.returnOnEquity * 100 : null, // as %
-              // Use Yahoo's sector/industry when available (not hardcoded)
-              sector: quote.gicsSector || quote.sector || '—',
-              industry: quote.gicsIndustry || quote.industry || '—',
-              exchange: quote.exchange || quote.fullExchangeName || '—',
-              // Live quote data
-              price: quote.regularMarketPrice ?? null,
-              changePct: quote.regularMarketChangePercent != null ? Math.round(quote.regularMarketChangePercent * 100) / 100 : null,
-              dayHigh: quote.regularMarketDayHigh ?? null,
-              dayLow: quote.regularMarketDayLow ?? null,
-              weekHigh52: quote.fiftyTwoWeekHigh ?? null,
-              weekLow52: quote.fiftyTwoWeekLow ?? null,
-              volume: quote.regularMarketVolume ?? null,
-              avgVolume: quote.averageDailyVolume10Day ?? quote.averageVolume ?? null,
-              // ECharts treemap fields
-              value: mc,
-              isDiscovered: true,
+              marketCap: quote.marketCap / 1e9, // Convert to Billions
+              revenue: 0.1, // Default minimum since quote might not have it
+              netIncome: 0.1,
+              pe: quote.trailingPE || 999,
+              divYield: quote.dividendYield || 0,
+              sector: 'Industrials', // Default sector, could be mapped or enhanced later
+              value: quote.marketCap / 1e9,
+              isDiscovered: true, // Tag to identify dynamically added stocks
               discoveryDate: today.toISOString()
             };
             
