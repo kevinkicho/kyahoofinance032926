@@ -164,7 +164,7 @@ function FXDashboard({
           Live FX rates unavailable — showing static fallback rates. All changes will be 0%.
         </div>
       )}
-      <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v6">
+      <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v7">
         <BentoCard key="kpi" panelKey="kpi" title="FX Key Metrics" subtitle="Spot rates · DXY · G10 average" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter / FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
           <MarketKpiStrip kpis={kpiItems} bare />
         </BentoCard>

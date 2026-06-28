@@ -316,7 +316,7 @@ function WatchlistMarket({ onNavigate }) {
       </div>
 
       <div className="watch-dashboard watch-dashboard--bento">
-        <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout-v3`}>
+        <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout-v4`}>
           {/* KPI strip — full-width bento child at row 0 in both sub-tabs. */}
           <BentoCard
             key="kpi"

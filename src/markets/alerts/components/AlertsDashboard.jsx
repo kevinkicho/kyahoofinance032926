@@ -126,7 +126,7 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
 
     return (
       <div className="alerts-dashboard alerts-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="alerts-layout">
+        <BentoWrapper layout={LAYOUT} storageKey="alerts-layout-v2">
 
         {/* Sidebar — Status Summary + Rule Health */}
         <BentoCard

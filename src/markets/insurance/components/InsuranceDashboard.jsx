@@ -277,7 +277,7 @@ function InsuranceDashboard({
 
   return (
     <div className="ins-dashboard ins-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v4">
+      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v5">
         {/* KPI Strip — bento card with title row drag handle. */}
         <BentoCard
           key="kpi"

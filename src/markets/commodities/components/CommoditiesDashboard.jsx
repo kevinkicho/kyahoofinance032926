@@ -505,7 +505,7 @@ function CommoditiesDashboard({
 
   return (
     <div className="com-dashboard">
-      <BentoWrapper layout={layout} storageKey="commodities-layout-v6">
+      <BentoWrapper layout={layout} storageKey="commodities-layout-v7">
         <BentoCard
           key="sidebar"
           title="Market Summary"

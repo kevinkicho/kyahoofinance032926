@@ -180,6 +180,64 @@ router.post('/refresh-all', async (req, res) => {
   res.json({ success: true, timestamp: new Date().toISOString(), reports });
 });
 
+// GET /api/admin/diagnostics-report — alias for /api/admin/diagnose
+router.get('/diagnostics-report', async (req, res) => {
+  const adminCheck = await verifyAdminRequest(req, res, 'Admin account required.');
+  if (!adminCheck.ok) return;
+  const base = getInternalBaseUrl(req);
+  const now = new Date().toISOString();
+  const { validateMarketData } = await import('../lib/validation.js');
+  const targets = [
+    { id: "realEstate", path: "/api/realEstate" },
+    { id: "insurance", path: "/api/insurance" },
+    { id: "globalMacro", path: "/api/globalMacro" },
+    { id: "commodities", path: "/api/commodities/v2" },
+    { id: "bonds", path: "/api/bonds" },
+    { id: "fx", path: "/api/fx" },
+    { id: "derivatives", path: "/api/derivatives" },
+    { id: "crypto", path: "/api/crypto" },
+    { id: "credit", path: "/api/credit" },
+    { id: "sentiment", path: "/api/sentiment" },
+    { id: "calendar", path: "/api/calendar" },
+    { id: "equitiesDeepDive", path: "/api/equityDeepDive" },
+    { id: "usda", path: "/api/usda" }
+  ];
+  const results = {};
+  let healthyCount = 0, warningCount = 0, unhealthyCount = 0;
+  for (const { id, path } of targets) {
+    const start = Date.now();
+    try {
+      const response = await fetch(`${base}${path}`, {
+        headers: { 'User-Agent': 'diagnostics-prober' },
+        signal: AbortSignal.timeout(15000)
+      });
+      const duration = Date.now() - start;
+      if (!response.ok) {
+        results[id] = { status: 'unhealthy', error: `HTTP ${response.status}`, duration, lastChecked: now };
+        unhealthyCount++; continue;
+      }
+      const data = await response.json();
+      const validation = validateMarketData(id, data);
+      if (validation.ok) {
+        results[id] = { status: 'healthy', duration, lastChecked: now };
+        healthyCount++;
+      } else {
+        results[id] = { status: 'unhealthy', error: validation.error, duration, lastChecked: now };
+        unhealthyCount++;
+      }
+    } catch (e) {
+      results[id] = { status: 'unhealthy', error: e.message, duration: Date.now() - start, lastChecked: now };
+      unhealthyCount++;
+    }
+  }
+  res.json({
+    timestamp: now,
+    overallStatus: unhealthyCount > 0 ? 'unhealthy' : (warningCount > 0 ? 'warning' : 'healthy'),
+    summary: { total: targets.length, healthy: healthyCount, warning: warningCount, unhealthy: unhealthyCount },
+    markets: results
+  });
+});
+
 // GET /api/admin/diagnose — run active diagnostics on all endpoints
 router.get('/diagnose', async (req, res) => {
   const adminCheck = await verifyAdminRequest(req, res, 'Admin account required to run live diagnostics.');

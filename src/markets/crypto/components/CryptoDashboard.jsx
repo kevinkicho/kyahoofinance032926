@@ -118,7 +118,7 @@ function CryptoDashboard({
 
   return (
     <div className="crypto-dashboard-layout">
-      <BentoWrapper layout={LAYOUT} storageKey="crypto-layout-v3">
+      <BentoWrapper layout={LAYOUT} storageKey="crypto-layout-v4">
         {/* Crypto sidebar — first bento panel (left column). Sidebar manages
             its own footer; pass noFooter. */}
         <BentoCard

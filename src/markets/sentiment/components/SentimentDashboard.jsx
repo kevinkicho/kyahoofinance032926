@@ -160,7 +160,7 @@ function SentimentDashboard({
 
     return (
       <div className="sent-dashboard sent-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="sentiment-layout-v2">
+        <BentoWrapper layout={LAYOUT} storageKey="sentiment-layout-v3">
           {/* Sidebar */}
           <BentoCard
             key="sidebar"

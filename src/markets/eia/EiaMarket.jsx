@@ -134,7 +134,7 @@ function EiaMarket({ centralData } = {}) {
 
   return (
     <div className="eia-market">
-      <BentoWrapper layout={EIA_LAYOUT} storageKey="eia-layout">
+      <BentoWrapper layout={EIA_LAYOUT} storageKey="eia-layout-v2">
         <BentoCard key="prices" title="US Electricity Retail Prices" accent="eia" noFooter>
           <div className="eia-kpi-grid">
             {ELEC_SECTORS.map(({ key, label }) => {

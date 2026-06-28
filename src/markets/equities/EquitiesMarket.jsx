@@ -1382,7 +1382,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           onRowClick={handleSelectTicker}
         />
       ) : viewMode === 'list' ? (
-        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v7">
+        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v8">
           {kpiBentoCard}
           <div key="list-main" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -1428,7 +1428,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           )}
         </BentoWrapper>
       ) : viewMode === 'heatmap' ? (
-        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v7">
+        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v8">
           {kpiBentoCard}
           <div key="heatmap" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -1464,14 +1464,14 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
         // default and Market Summary collapses to a 116×120 stub.
         // PortfolioTracker also brings its own title row, so we wrap it in
         // a slim shell instead of the redundant eq-panel-title chrome.
-        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v7">
+        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v8">
           {kpiBentoCard}
           <div key="portfolio" className="eq-bento-card" onMouseDown={stopDrag}>
             <PortfolioTracker indexQuotes={indexQuotes} onTickerSelect={handleSelectTicker} />
           </div>
         </BentoWrapper>
       ) : viewMode === 'radar' ? (
-        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v7">
+        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v8">
           {kpiBentoCard}
           <div key="radar" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -1492,7 +1492,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           {sidebarPanel}
         </BentoWrapper>
       ) : (
-        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v7">
+        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v8">
           {kpiBentoCard}
           <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="eq-panel-title-row bento-panel-title-row">

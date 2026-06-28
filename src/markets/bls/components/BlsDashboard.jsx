@@ -188,7 +188,7 @@ export default function BlsDashboard({ series, isLive, lastUpdated, fetchLog, er
   }
 
   return (
-    <BentoWrapper layout={BLS_LAYOUT} storageKey="bls-layout-v3">
+    <BentoWrapper layout={BLS_LAYOUT} storageKey="bls-layout-v4">
       <BentoCard
         key="kpi"
         title="Key Labor Market Indicators"

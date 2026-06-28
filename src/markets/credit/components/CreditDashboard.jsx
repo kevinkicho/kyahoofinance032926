@@ -192,7 +192,7 @@ function CreditDashboard({
 
   return (
     <div className="credit-dashboard credit-dashboard--bento">
-      <BentoWrapper layout={LAYOUT} storageKey="credit-layout-v4">
+      <BentoWrapper layout={LAYOUT} storageKey="credit-layout-v5">
         {/* KPI strip — real bento child at row 0. Provided by parent so
             the credit-specific KPI builder lives there. */}
         {kpiPanel && (

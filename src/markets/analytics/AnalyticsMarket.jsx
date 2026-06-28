@@ -999,7 +999,7 @@ export default function AnalyticsMarket({ onNavigate }) {
         {/* Audit controls (date-aware) live inside the "Provenance Audit" bento card below — supports global History picker + per-audit date select. */}
       </div>
       <div className="ana-dashboard ana-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v3">
+        <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v4">
           {/* KPI strip — real bento child at row 0. */}
           <BentoCard key="kpi" title="Analytics Key Metrics" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
             <MarketKpiStrip kpis={kpis} bare />

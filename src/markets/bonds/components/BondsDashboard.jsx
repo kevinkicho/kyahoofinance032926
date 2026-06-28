@@ -311,7 +311,7 @@ function BondsDashboard({
 
   return (
     <div className="bonds-dashboard bonds-dashboard--bento">
-      <BentoWrapper layout={layout} storageKey="bonds-layout-v4">
+      <BentoWrapper layout={layout} storageKey="bonds-layout-v5">
         {/* KPI strip — first bento child, full-width across row 0. Each
             pill is clickable (MetricValue popover with FRED series ID). */}
         <BentoCard

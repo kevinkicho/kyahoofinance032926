@@ -201,7 +201,7 @@ function CalendarMarket({ centralData } = {}) {
   return (
     <div className="cal-market">
       <div className="cal-dashboard cal-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v4">
+        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v5">
           {/* KPI strip — first bento child, full-width row 0. */}
           <BentoCard
             key="kpi"

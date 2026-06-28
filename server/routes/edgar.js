@@ -312,22 +312,6 @@ router.get('/filing-activity', async (_req, res) => {
   }
   res.json(result);
 });
-  }
-
-  // Find date range across all filings
-  const allDates = Object.values(byTicker).flat().map(f => f.date).filter(Boolean).sort();
-  const dateRange = allDates.length ? { earliest: allDates[0], latest: allDates[allDates.length - 1] } : null;
-
-  const _sources = { secEdgarFilingActivity: tickerCount > 0 };
-  const isLive = _sources.secEdgarFilingActivity;
-  const result = { byTicker, byType, total, tickerCount, dateRange, _sources, isLive, isCurrent: true, fetchedOn: today, lastUpdated: today };
-  if (isLive) writeDailyCache(cacheKey, result);
-  else {
-    const fb = readLatestCache(cacheKey);
-    if (fb) return res.json({ ...fb.data, isCurrent: false, fetchedOn: fb.fetchedOn });
-  }
-  res.json(result);
-});
 
 // Combined-ratio extraction for a fixed panel of US P&C insurers. Returns
 // per-issuer annual time series of premiums earned, incurred losses,

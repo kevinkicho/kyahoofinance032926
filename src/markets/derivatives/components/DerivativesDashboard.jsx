@@ -112,7 +112,7 @@ function DerivativesDashboard({
 
   return (
     <div className="deriv-dashboard deriv-dashboard--bento">
-      <BentoWrapper layout={LAYOUT} storageKey="derivatives-layout-v2">
+      <BentoWrapper layout={LAYOUT} storageKey="derivatives-layout-v3">
         {/* KPI strip — full-width row 0, real bento panel. */}
         <BentoCard
           key="kpi"

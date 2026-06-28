@@ -368,7 +368,7 @@ function EquitiesDeepDiveDashboard({
 
   return (
     <div className="eqd-dashboard eqd-dashboard--bento" role="region" aria-label="Equities Deep Dive Dashboard">
-      <BentoWrapper layout={LAYOUT} storageKey="equities-deepdive-layout-v3">
+      <BentoWrapper layout={LAYOUT} storageKey="equities-deepdive-layout-v4">
         {/* KPI strip + Sidebar — real bento children. KPI is row 0
             full-width; sidebar is right column. Both are passed in via
             props from the parent so they stay co-located with their data. */}

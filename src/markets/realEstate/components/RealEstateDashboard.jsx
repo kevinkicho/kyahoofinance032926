@@ -398,7 +398,7 @@ function RealEstateDashboard({
 
   return (
     <div className="re-dashboard re-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v5">
+      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v6">
         {/* Key Metrics */}
         <BentoCard
           key="metrics"
