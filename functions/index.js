@@ -105,3 +105,6 @@ exports.api = onRequest({
   minInstances: 0,
   maxInstances: 10
 }, app);
+exports.fetchStocks = onRequest({ cors: true }, (req, res) => {
+  res.json({ stocks: ['AAPL', 'GOOGL', 'MSFT'] });
+});
