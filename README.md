@@ -4,7 +4,7 @@ A comprehensive multi-market financial dashboard built with React 18 + Vite 5. C
 
 ![Market Hub Tour](screenshots/market_hub_tour.gif)
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
 ```bash
 # 1. install
@@ -43,6 +43,10 @@ That's it. Dashboards auto-fetch on first load — no need to click refresh.
 | `npm run test:coverage` | Strict per-panel coverage — registry-driven; **fails** when any registered panel goes empty or an unregistered panel appears. Source of truth: `tests/panel-registry.js`. |
 | `npm run test:persist` | Drag → reload → verify layout persisted |
 | `npm test` | Vitest unit suite (~380 tests) |
+
+### Feature Roadmap
+
+- **Stock Search** — Search and filter stocks by name, ticker, sector, and market cap. (Milestone 1)
 
 **Documentation**
 
