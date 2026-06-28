@@ -1,4 +1,4 @@
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/demo-project/us-central1';
 
 export async function fetchStocks() {
   const response = await fetch(`${BASE_URL}/fetchStocks`);
