@@ -63,17 +63,21 @@ function CryptoDashboard({
   }, [coinMarketData]);
 
   const fgiOption = useMemo(() => {
-    if (!fearGreedData?.history?.dates?.length) return null;
+    const hist = fearGreedData?.history;
+    if (!hist) return null;
+    const dates = Array.isArray(hist) ? hist.map((_, i) => `${i + 1}d`) : hist.dates;
+    const values = Array.isArray(hist) ? hist : hist.values;
+    if (!values?.length) return null;
     return {
       animation: false,
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
       grid: { top: 20, right: 16, bottom: 24, left: 44 },
-      xAxis: { type: 'category', data: fearGreedData.history.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(fearGreedData.history.dates.length / 5) } },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 5) } },
       yAxis: { type: 'value', min: 0, max: 100, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
       series: [{
         type: 'line',
-        data: fearGreedData.history.values,
+        data: values,
         smooth: true,
         symbol: 'none',
         lineStyle: { color: '#a78bfa', width: 2 },

@@ -33,9 +33,12 @@ export function usePanelHealth(marketId) {
     const health = {};
 
     for (const p of panels) {
-      if (hasCache && cached[p.id]) {
-        // Have a DOM-scanned result from splash
-        health[p.id] = cached[p.id];
+      if (hasCache) {
+        if (cached[p.id]) {
+          health[p.id] = cached[p.id];
+        } else {
+          health[p.id] = 'null';
+        }
       } else if (!marketCtx) {
         health[p.id] = 'unknown';
       } else if (marketCtx.isLoading) {
@@ -43,7 +46,6 @@ export function usePanelHealth(marketId) {
       } else if (marketCtx.error && !marketCtx.data) {
         health[p.id] = 'null';
       } else if (marketCtx.data) {
-        // Market has data but panel wasn't scanned — infer ok
         health[p.id] = 'ok';
       } else {
         health[p.id] = 'unknown';
