@@ -37,7 +37,21 @@ export function usePanelHealth(marketId) {
         if (cached[p.id]) {
           health[p.id] = cached[p.id];
         } else {
-          health[p.id] = 'null';
+          const el = document.querySelector(`[data-panel-key="${p.id}"]`);
+          if (el) {
+            const text = el.textContent || '';
+            const footer = el.querySelector('.bento-footer, [class*="footer"]');
+            const footerText = footer?.textContent || '';
+            if (/stale/i.test(footerText)) {
+              health[p.id] = 'stale';
+            } else if (/\bno data\b|\bunavailable\b|\bnot available\b/i.test(text) && text.length < 200) {
+              health[p.id] = 'null';
+            } else {
+              health[p.id] = 'ok';
+            }
+          } else {
+            health[p.id] = 'null';
+          }
         }
       } else if (!marketCtx) {
         health[p.id] = 'unknown';
