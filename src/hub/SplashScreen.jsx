@@ -116,7 +116,23 @@ function SplashScreenInner({ onReady }) {
     return () => clearInterval(id);
   }, []);
 
-  // Dismiss after all loaded AND all panels scanned (with 30s max wait)
+  // ───────────────────────────────────────────────────────────────────────────
+  // Dismiss after all markets loaded AND every panel in every market has been
+  // found in the DOM. This ensures the panel-health cache (used by the tab
+  // dropdown dots) is complete before the user sees the dashboard.
+  //
+  // WHY per-market completeness (not just total count):
+  //   A global total-count check can pass even when some markets have zero
+  //   panels scanned (others over-scanned). The dropdown for that market would
+  //   then show stale/wrong status because the cache is missing its entries.
+  //
+  // WHY a 30s max wait:
+  //   Some conditional panels never render (no data source). Without a timeout
+  //   the splash would hang forever. 30s is generous — data loads in ~5-10s.
+  //
+  // DO NOT REMOVE OR SIMPLIFY this logic without verifying that every market's
+  // panel-health cache is complete after dismiss. See usePanelHealth.js.
+  // ───────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!allLoaded || dismissedRef.current) return;
     const startedAt = Date.now();
@@ -127,8 +143,12 @@ function SplashScreenInner({ onReady }) {
       for (const [m, panels] of Object.entries(scan)) {
         cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
       }
-      const totalScanned = Object.values(cacheRef.current).reduce((s, m) => s + Object.keys(m).length, 0);
-      if (totalScanned >= TOTAL_PANELS || Date.now() - startedAt > MAX_WAIT) {
+      const allComplete = MARKETS.every(m => {
+        const marketPanels = MARKET_PANELS[m.id] || [];
+        const scanned = cacheRef.current[m.id] || {};
+        return marketPanels.every(p => scanned[p.id] != null);
+      });
+      if (allComplete || Date.now() - startedAt > MAX_WAIT) {
         dismiss(cacheRef.current);
         return;
       }
