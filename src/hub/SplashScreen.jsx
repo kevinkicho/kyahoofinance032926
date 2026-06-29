@@ -116,24 +116,23 @@ function SplashScreenInner({ onReady }) {
     return () => clearInterval(id);
   }, []);
 
-  // Dismiss after all loaded + 5s grace for DOM rendering
+  // Dismiss after all loaded AND all panels scanned
   useEffect(() => {
     if (!allLoaded || dismissedRef.current) return;
-    const id = setTimeout(() => {
+    const check = () => {
       if (dismissedRef.current) return;
-      // Final scan — multiple passes to catch late renderers
-      const scan1 = scanAllPanels();
-      for (const [m, panels] of Object.entries(scan1)) {
+      const scan = scanAllPanels();
+      for (const [m, panels] of Object.entries(scan)) {
         cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
       }
-      setTimeout(() => {
-        const scan2 = scanAllPanels();
-        for (const [m, panels] of Object.entries(scan2)) {
-          cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
-        }
+      const totalScanned = Object.values(cacheRef.current).reduce((s, m) => s + Object.keys(m).length, 0);
+      if (totalScanned >= TOTAL_PANELS) {
         dismiss(cacheRef.current);
-      }, 1000);
-    }, 5000);
+        return;
+      }
+      setTimeout(check, 1000);
+    };
+    const id = setTimeout(check, 5000);
     return () => clearTimeout(id);
   }, [allLoaded]);
 
