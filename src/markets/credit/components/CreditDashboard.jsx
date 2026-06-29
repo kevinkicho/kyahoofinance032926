@@ -58,16 +58,16 @@ function CreditDashboard({
   // 2026-05-04: MSRB EMMA municipal market activity.
   const msrbCtx = useMarketData('msrb');
 
-  const igSpread = spreadData?.current?.igSpread ?? spreadData?.find?.(s => s.name?.includes('IG'))?.spread;
-  const hySpread = spreadData?.current?.hySpread ?? spreadData?.find?.(s => s.name?.includes('HY'))?.spread;
-  const emSpread = spreadData?.current?.emSpread ?? emBondData?.countries?.[0]?.spread;
+  const igSpread = spreadData?.current?.igSpread;
+  const hySpread = spreadData?.current?.hySpread;
+  const emSpread = spreadData?.current?.emSpread;
   const defaultRate = defaultData?.rates?.[0]?.value ?? defaultData?.defaultRate;
 
   const spreadOption = useMemo(() => {
     const history = spreadData?.history;
-    const dates = history?.dates || spreadData?.[0]?.history?.dates;
-    const igValues = history?.IG || spreadData?.find?.(s => s.name?.includes('IG'))?.history?.values;
-    const hyValues = history?.HY || spreadData?.find?.(s => s.name?.includes('HY'))?.history?.values;
+    const dates = history?.dates;
+    const igValues = history?.IG;
+    const hyValues = history?.HY;
 
     if (!dates?.length) return null;
     return {
@@ -86,17 +86,18 @@ function CreditDashboard({
   }, [spreadData, colors]);
 
   const emOption = useMemo(() => {
-    if (!emBondData?.history?.dates?.length) return null;
+    const hist = spreadData?.history;
+    if (!hist?.EM?.length) return null;
     return {
       animation: false,
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
       grid: { top: 20, right: 30, bottom: 30, left: 50 },
-      xAxis: { type: 'category', data: emBondData.history.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(emBondData.history.dates.length / 6) } },
+      xAxis: { type: 'category', data: hist.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(hist.dates.length / 6) } },
       yAxis: { type: 'value', name: 'bps', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{ type: 'line', data: emBondData.history.values, smooth: true, symbol: 'none', lineStyle: { color: '#a78bfa', width: 2 } }],
+      series: [{ type: 'line', data: hist.EM, smooth: true, symbol: 'none', lineStyle: { color: '#a78bfa', width: 2 } }],
     };
-  }, [emBondData, colors]);
+  }, [spreadData, colors]);
 
   const spreadSummary = useMemo(() => {
     if (spreadData?.current) {
@@ -107,7 +108,7 @@ function CreditDashboard({
         { name: 'BBB OAS', spread: spreadData.current.bbbSpread },
       ].filter(s => s.spread != null);
     }
-    return Array.isArray(spreadData) ? spreadData.slice(0, 6) : [];
+    return [];
   }, [spreadData]);
 
   const bankStress = useMemo(() => {

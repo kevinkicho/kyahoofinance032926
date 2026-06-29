@@ -527,6 +527,26 @@ router.get('/', async (req, res) => {
       if (r.status === 'fulfilled' && r.value[1] != null) macroData[r.value[0]] = r.value[1];
     });
 
+    macroData.centralBankRates = {
+      US: fedFundsFutures?.m1 ?? null,
+      EU: null,
+      UK: null,
+      JP: null,
+    };
+
+    if (FRED_API_KEY) {
+      try {
+        const [ecbRate, boeRate, bojRate] = await Promise.all([
+          fetchFredLatest('ECBMRRFR', FRED_API_KEY).catch(() => null),
+          fetchFredLatest('BOERUKM', FRED_API_KEY).catch(() => null),
+          fetchFredLatest('INTDSRJPM193N', FRED_API_KEY).catch(() => null),
+        ]);
+        if (ecbRate != null) macroData.centralBankRates.EU = ecbRate;
+        if (boeRate != null) macroData.centralBankRates.UK = boeRate;
+        if (bojRate != null) macroData.centralBankRates.JP = bojRate;
+      } catch (e) { console.warn('[Bonds] central bank rates:', e.message || e); }
+    }
+
     // Fed Balance Sheet History (for charting). WALCL and M2SL are the two
     // FRED series Akamai's WAF blocks most often from this network — if the
     // live fetch fails, walk back through historical caches and pick the

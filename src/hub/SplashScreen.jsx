@@ -116,9 +116,11 @@ function SplashScreenInner({ onReady }) {
     return () => clearInterval(id);
   }, []);
 
-  // Dismiss after all loaded AND all panels scanned
+  // Dismiss after all loaded AND all panels scanned (with 30s max wait)
   useEffect(() => {
     if (!allLoaded || dismissedRef.current) return;
+    const startedAt = Date.now();
+    const MAX_WAIT = 30000;
     const check = () => {
       if (dismissedRef.current) return;
       const scan = scanAllPanels();
@@ -126,13 +128,13 @@ function SplashScreenInner({ onReady }) {
         cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
       }
       const totalScanned = Object.values(cacheRef.current).reduce((s, m) => s + Object.keys(m).length, 0);
-      if (totalScanned >= TOTAL_PANELS) {
+      if (totalScanned >= TOTAL_PANELS || Date.now() - startedAt > MAX_WAIT) {
         dismiss(cacheRef.current);
         return;
       }
       setTimeout(check, 1000);
     };
-    const id = setTimeout(check, 5000);
+    const id = setTimeout(check, 3000);
     return () => clearTimeout(id);
   }, [allLoaded]);
 

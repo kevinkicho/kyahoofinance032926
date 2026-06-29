@@ -270,7 +270,12 @@ function DerivativesDashboard({
           </BentoCard>
         )}
       {/* Gamma Exposure */}
-        {gammaExposure?.total != null && (
+        {gammaExposure?.length > 0 && (() => {
+          const gexTotal = gammaExposure.reduce((s, g) => s + Math.abs(g.value), 0);
+          const gexCall = gammaExposure.filter(g => g.value > 0).reduce((s, g) => s + g.value, 0);
+          const gexPut = gammaExposure.filter(g => g.value < 0).reduce((s, g) => s + Math.abs(g.value), 0);
+          const gexNet = gexCall - gexPut;
+          return (
           <BentoCard
             key="gamma"
             title="Gamma Exposure (GEX)"
@@ -279,7 +284,7 @@ function DerivativesDashboard({
             contentClassName="deriv-panel-scroll"
             source="Yahoo Finance / SpotGamma"
             timestamp={lastUpdated}
-            isLive={!!gammaExposure}
+            isLive={true}
             isCurrent={isCurrent}
             fetchedOn={fetchedOn}
             fetchLog={fetchLog}
@@ -290,7 +295,7 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">Total</span>
                     <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>
-                      <MetricValue value={gammaExposure.total} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+                      <MetricValue value={gexTotal} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
                     </span>
                   </div>
                 </div>
@@ -298,7 +303,7 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name" style={{ color: '#4ade80' }}>Call GEX</span>
                     <span className="deriv-metric-num" style={{ color: '#4ade80' }}>
-                      <MetricValue value={gammaExposure.callGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+                      <MetricValue value={gexCall} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
                     </span>
                   </div>
                 </div>
@@ -306,21 +311,22 @@ function DerivativesDashboard({
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name" style={{ color: '#f87171' }}>Put GEX</span>
                     <span className="deriv-metric-num" style={{ color: '#f87171' }}>
-                      <MetricValue value={gammaExposure.putGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+                      <MetricValue value={gexPut} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
                     </span>
                   </div>
                 </div>
                 <div className="deriv-metric-card">
                   <div className="deriv-metric-row">
                     <span className="deriv-metric-name">Net GEX</span>
-                    <span className="deriv-metric-num" style={{ color: gammaExposure.netGamma >= 0 ? '#4ade80' : '#f87171' }}>
-                      <MetricValue value={gammaExposure.netGamma} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}$${Math.abs(v).toFixed(1)}B`} />
+                    <span className="deriv-metric-num" style={{ color: gexNet >= 0 ? '#4ade80' : '#f87171' }}>
+                      <MetricValue value={gexNet} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}$${Math.abs(v).toFixed(1)}B`} />
                     </span>
                   </div>
                 </div>
               </div>
           </BentoCard>
-        )}
+          );
+        })()}
 
         {/* Vol Premium — only render the panel when we actually have data,
             so the bento doesn't stay populated with an empty placeholder. */}

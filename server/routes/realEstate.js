@@ -514,25 +514,25 @@ router.get('/', async (req, res) => {
       try {
         trackApiCall('FRED');
         const [exhoHist, rrvResult, fhfaResult] = await Promise.all([
-          fetchFredHistory('EXHOSLUSM495S', FRED_API_KEY, 24),
-          fetchFredLatest('RRVRUSQ156N', FRED_API_KEY),
-          fetchFredHistory('USSTHPI', FRED_API_KEY, 20),
+          fetchFredHistory('EXHOSLUSM495S', FRED_API_KEY, 24).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
+          fetchFredLatest('RRVRUSQ156N', FRED_API_KEY).catch(e => { console.warn('[RealEstate]', e.message || e); return null; }),
+          fetchFredHistory('USSTHPI', FRED_API_KEY, 20).catch(e => { console.warn('[RealEstate]', e.message || e); return []; }),
         ]);
-        if (exhoHist.status === 'fulfilled' && exhoHist.value.length > 0) {
+        if (exhoHist?.length > 0) {
           existingHomeSales = {
-            dates:  exhoHist.value.map(p => p.date.slice(0, 7)),
-            values: exhoHist.value.map(p => Math.round(p.value * 100) / 100),
+            dates:  exhoHist.map(p => p.date.slice(0, 7)),
+            values: exhoHist.map(p => Math.round(p.value * 100) / 100),
           };
         }
-        if (rrvResult.status === 'fulfilled' && rrvResult.value != null) {
-          rentalVacancy = Math.round(rrvResult.value * 100) / 100;
+        if (rrvResult != null) {
+          rentalVacancy = Math.round(rrvResult * 100) / 100;
         }
-        if (fhfaResult.status === 'fulfilled' && fhfaResult.value.length > 0) {
-          const base = parseFloat(fhfaResult.value[0].value);
+        if (fhfaResult?.length > 0) {
+          const base = parseFloat(fhfaResult[0].value);
           fhfaHpi = {
-            dates:  fhfaResult.value.map(p => p.date.slice(0, 7)),
-            values: fhfaResult.value.map(p => base ? Math.round((parseFloat(p.value) / base) * 1000) / 10 : 0),
-            latest: fhfaResult.value.length ? { value: parseFloat(fhfaResult.value[fhfaResult.value.length - 1].value), date: fhfaResult.value[fhfaResult.value.length - 1].date.slice(0, 7) } : null,
+            dates:  fhfaResult.map(p => p.date.slice(0, 7)),
+            values: fhfaResult.map(p => base ? Math.round((parseFloat(p.value) / base) * 1000) / 10 : 0),
+            latest: fhfaResult.length ? { value: parseFloat(fhfaResult[fhfaResult.length - 1].value), date: fhfaResult[fhfaResult.length - 1].date.slice(0, 7) } : null,
           };
         }
       } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.existingHomeSales = e.message; _errors.rentalVacancy = e.message; _errors.fhfaHpi = e.message; }

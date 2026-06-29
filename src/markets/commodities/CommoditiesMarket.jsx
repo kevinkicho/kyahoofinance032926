@@ -85,7 +85,7 @@ function mapV2ToLegacy(d) {
         sd.crudeStocks = {
           periods: (cs.history || []).map(h => h.date),
           values: (cs.history || []).map(h => h.value),
-          avg5yr: cs._avg5yr ?? null,
+          avg5yr: cs.avg ?? null,
         };
         sd.crudeStocksLatest = cs.value;
       }
@@ -94,7 +94,7 @@ function mapV2ToLegacy(d) {
         sd.natGasStorage = {
           periods: (ns.history || []).map(h => h.date),
           values: (ns.history || []).map(h => h.value),
-          avg5yr: ns._avg5yr ?? null,
+          avg5yr: ns.avg ?? null,
         };
         sd.natGasLatest = ns.value;
       }
@@ -110,7 +110,7 @@ function mapV2ToLegacy(d) {
         sd.gasolineStocks = {
           periods: (gs.history || []).map(h => h.date),
           values: (gs.history || []).map(h => h.value),
-          avg5yr: gs._avg5yr ?? null,
+          avg5yr: gs.avg ?? null,
         };
       }
       if (d.eia.distillate_stocks) {
@@ -118,7 +118,7 @@ function mapV2ToLegacy(d) {
         sd.distillateStocks = {
           periods: (ds.history || []).map(h => h.date),
           values: (ds.history || []).map(h => h.value),
-          avg5yr: ds._avg5yr ?? null,
+          avg5yr: ds.avg ?? null,
         };
       }
       result.supplyDemandData = sd;

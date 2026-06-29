@@ -268,14 +268,14 @@ function RealEstateDashboard({
   }, [caseShillerData, colors]);
 
   const reitOption = useMemo(() => {
-    if (!reitEtf?.dates?.length) return null;
+    if (!reitEtf?.history?.dates?.length) return null;
     return {
       animation: false, backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
       grid: { top: 20, right: 30, bottom: 30, left: 50 },
-      xAxis: { type: 'category', data: reitEtf.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(reitEtf.dates.length / 6) } },
+      xAxis: { type: 'category', data: reitEtf.history.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(reitEtf.history.dates.length / 6) } },
       yAxis: { type: 'value', axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{ type: 'line', data: reitEtf.values, smooth: true, symbol: 'none', lineStyle: { color: '#14b8a6', width: 2 }, areaStyle: { color: 'rgba(20,184,166,0.1)' } }],
+      series: [{ type: 'line', data: reitEtf.history.closes, smooth: true, symbol: 'none', lineStyle: { color: '#14b8a6', width: 2 }, areaStyle: { color: 'rgba(20,184,166,0.1)' } }],
     };
   }, [reitEtf, colors]);
 

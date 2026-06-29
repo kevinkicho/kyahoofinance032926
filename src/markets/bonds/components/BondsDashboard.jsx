@@ -78,7 +78,7 @@ function BondsDashboard({
     return [
       { label: 'US 10Y',      rawValue: treasuryRates?.US10Y,           value: fmtPct(treasuryRates?.US10Y),           format: fmtPct, seriesKey: '10y',      sublabel: 'Treasury' },
       { label: 'US 2Y',       rawValue: treasuryRates?.US2Y,            value: fmtPct(treasuryRates?.US2Y),            format: fmtPct, seriesKey: '2y',       sublabel: 'Treasury' },
-      { label: 'Fed Funds',   rawValue: fedFundsFutures?.effectiveRate, value: fmtPct(fedFundsFutures?.effectiveRate), format: fmtPct, seriesKey: 'fedFunds', sublabel: 'Policy rate' },
+      { label: 'Fed Funds',   rawValue: fedFundsFutures?.m1,            value: fmtPct(fedFundsFutures?.m1),            format: fmtPct, seriesKey: 'fedFunds', sublabel: 'Policy rate' },
       { label: '10Y-2Y',      rawValue: spreadIndicators?.t10y2y,       value: fmtPct(spreadIndicators?.t10y2y),       format: fmtPct, seriesKey: 't10y2y',   color: spreadIndicators?.t10y2y < 0 ? '#f87171' : '#4ade80', sublabel: 'Curve' },
       { label: 'IG OAS',      rawValue: spreadData?.current?.igSpread,  value: fmtBps(spreadData?.current?.igSpread),  format: fmtBps, seriesKey: 'igOAS',    sublabel: 'Investment Grade' },
       { label: 'HY OAS',      rawValue: spreadData?.current?.hySpread,  value: fmtBps(spreadData?.current?.hySpread),  format: fmtBps, seriesKey: 'hyOAS',    sublabel: 'High Yield' },
@@ -463,9 +463,9 @@ function BondsDashboard({
                <div className="bonds-sidebar-section">
                  <div className="bonds-sidebar-title">Credit Spreads</div>
                  <div className="bonds-metric-card">
-                   {spreadData.current?.ig != null && <div className="bonds-metric-row"><span className="bonds-metric-name">IG</span><span className="bonds-metric-num"><MetricValue value={spreadData.current.ig} format={v => `${v.toFixed(0)}bp`} seriesKey="igSpread" timestamp={lastUpdated} /></span></div>}
-                   {spreadData.current?.hy != null && <div className="bonds-metric-row"><span className="bonds-metric-name">HY</span><span className="bonds-metric-num"><MetricValue value={spreadData.current.hy} format={v => `${v.toFixed(0)}bp`} seriesKey="hySpread" timestamp={lastUpdated} /></span></div>}
-                   {spreadData.current?.em != null && <div className="bonds-metric-row"><span className="bonds-metric-name">EM</span><span className="bonds-metric-num"><MetricValue value={spreadData.current.em} format={v => `${v.toFixed(0)}bp`} seriesKey="emSpread" timestamp={lastUpdated} /></span></div>}
+                    {spreadData.current?.igSpread != null && <div className="bonds-metric-row"><span className="bonds-metric-name">IG</span><span className="bonds-metric-num"><MetricValue value={spreadData.current.igSpread} format={v => `${v.toFixed(0)}bp`} seriesKey="igSpread" timestamp={lastUpdated} /></span></div>}
+                    {spreadData.current?.hySpread != null && <div className="bonds-metric-row"><span className="bonds-metric-name">HY</span><span className="bonds-metric-num"><MetricValue value={spreadData.current.hySpread} format={v => `${v.toFixed(0)}bp`} seriesKey="hySpread" timestamp={lastUpdated} /></span></div>}
+                    {spreadData.current?.emSpread != null && <div className="bonds-metric-row"><span className="bonds-metric-name">EM</span><span className="bonds-metric-num"><MetricValue value={spreadData.current.emSpread} format={v => `${v.toFixed(0)}bp`} seriesKey="emSpread" timestamp={lastUpdated} /></span></div>}
                  </div>
                </div>
              )}
