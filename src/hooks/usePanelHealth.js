@@ -69,20 +69,22 @@ export function usePanelHealth(marketId) {
       const live = scanPanelInDOM(p.id);
       if (live) {
         health[p.id] = live;
-      } else if (cached[p.id]) {
-        health[p.id] = cached[p.id];
-      } else if (Object.keys(cached).length > 0) {
-        health[p.id] = 'null';
-      } else if (!marketCtx) {
-        health[p.id] = 'unknown';
-      } else if (marketCtx.isLoading) {
-        health[p.id] = 'loading';
-      } else if (marketCtx.error && !marketCtx.data) {
-        health[p.id] = 'null';
-      } else if (marketCtx.data) {
-        health[p.id] = 'ok';
+      } else if (document.querySelector(`[data-panel-key="${p.id}"]`)) {
+        if (cached[p.id]) {
+          health[p.id] = cached[p.id];
+        } else if (!marketCtx) {
+          health[p.id] = 'unknown';
+        } else if (marketCtx.isLoading) {
+          health[p.id] = 'loading';
+        } else if (marketCtx.error && !marketCtx.data) {
+          health[p.id] = 'null';
+        } else if (marketCtx.data) {
+          health[p.id] = 'ok';
+        } else {
+          health[p.id] = 'unknown';
+        }
       } else {
-        health[p.id] = 'unknown';
+        health[p.id] = 'null';
       }
     }
     return health;
