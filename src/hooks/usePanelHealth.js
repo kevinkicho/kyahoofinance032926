@@ -66,15 +66,13 @@ export function usePanelHealth(marketId) {
     const health = {};
 
     for (const p of panels) {
-      // 1. Live DOM check — most accurate, works even after splash dismissed
       const live = scanPanelInDOM(p.id);
       if (live) {
         health[p.id] = live;
-      // 2. Fall back to splash cache if panel not currently in DOM
-      //    (e.g. user is hovering a different tab than the active one)
       } else if (cached[p.id]) {
         health[p.id] = cached[p.id];
-      // 3. Infer from market context if no cache entry exists
+      } else if (Object.keys(cached).length > 0) {
+        health[p.id] = 'null';
       } else if (!marketCtx) {
         health[p.id] = 'unknown';
       } else if (marketCtx.isLoading) {

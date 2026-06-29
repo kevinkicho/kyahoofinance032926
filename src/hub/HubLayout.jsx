@@ -434,12 +434,16 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
            onRefresh={handleRefresh}
          />
         <HistoricalModeBanner />
-        <main id="main-content" ref={contentRef} role="tabpanel" aria-label={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
-          <MarketErrorBoundary key={activeMarket} name={MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}>
-            <Suspense fallback={<MarketFallback />}>
-              <ActiveMarketWrapper activeMarket={activeMarket} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} onNavigate={setActiveMarket} />
-            </Suspense>
-          </MarketErrorBoundary>
+        <main id="main-content" ref={contentRef} role="tabpanel" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+          {MARKETS.map(m => (
+            <div key={m.id} style={{ display: m.id === activeMarket ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <MarketErrorBoundary name={m.label}>
+                <Suspense fallback={<MarketFallback />}>
+                  <ActiveMarketWrapper activeMarket={m.id} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} onNavigate={setActiveMarket} />
+                </Suspense>
+              </MarketErrorBoundary>
+            </div>
+          ))}
         </main>
         <HubFooter activeMarket={activeMarket} />
       </div>
