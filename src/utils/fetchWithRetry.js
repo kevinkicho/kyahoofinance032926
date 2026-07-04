@@ -4,18 +4,16 @@
  * @param {{ retries?: number, timeout?: number, backoff?: number, totalTimeout?: number }} opts
  * @returns {Promise<Response>}
  */
-if (typeof AbortSignal !== 'undefined' && !AbortSignal.any) {
-  AbortSignal.any = function any(signals) {
-    const controller = new AbortController();
-    for (const signal of signals) {
-      if (signal.aborted) {
-        controller.abort(signal.reason);
-        return controller.signal;
-      }
-      signal.addEventListener('abort', () => controller.abort(signal.reason), { signal: controller.signal });
+function anySignal(signals) {
+  const controller = new AbortController();
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return controller.signal;
     }
-    return controller.signal;
-  };
+    signal.addEventListener('abort', () => controller.abort(signal.reason), { signal: controller.signal });
+  }
+  return controller.signal;
 }
 
 const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
@@ -31,7 +29,7 @@ export async function fetchWithRetry(url, { retries = 2, timeout = 10000, backof
       const attemptController = new AbortController();
       const timer = setTimeout(() => attemptController.abort(), timeout);
       const signal = totalController
-        ? AbortSignal.any([attemptController.signal, totalController.signal])
+        ? anySignal([attemptController.signal, totalController.signal])
         : attemptController.signal;
       try {
         const res = await fetch(url, { signal, cache: 'no-store' });

@@ -13,7 +13,6 @@ import {
   hasNonNullData,
   passesStructuralGuard,
   STRUCTURAL_GUARDS,
-  applyResult,
   computeAlerts,
   computeFreshnessReport,
   MARKET_ENDPOINTS,
@@ -111,55 +110,6 @@ describe('passesStructuralGuard', () => {
       // Just assert the call never throws.
       expect(() => passesStructuralGuard(id, {})).not.toThrow();
     }
-  });
-});
-
-describe('applyResult', () => {
-  const baseEntry = { data: null, isLoading: true, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, error: null, fetchLog: [], provenance: {} };
-  const initialState = { bonds: { ...baseEntry } };
-
-  it('marks isLive=true and stores data when payload passes guards', () => {
-    const result = {
-      marketId: 'bonds', ok: true, status: 200, duration: 50,
-      data: {
-        // hasNonNullData requires ≥2 real (non-meta) keys; supply both.
-        yieldCurveData: { US: { '10y': 4.2 }, DE: { '10y': 2.1 }, JP: { '10y': 0.7 } },
-        spreadIndicators: { '10y2y': -0.4 },
-        lastUpdated: '2026-01-01 00:00:00',
-        _sources: ['FRED'],
-      },
-    };
-    const next = applyResult(initialState, result);
-    expect(next.bonds.isLive).toBe(true);
-    expect(next.bonds.data).toBe(result.data);
-    expect(next.bonds.error).toBeNull();
-    expect(next.bonds.provenance.sources).toEqual(['FRED']);
-  });
-
-  it('marks isLive=false and drops data when guard fails', () => {
-    const result = {
-      marketId: 'bonds', ok: true, status: 200, duration: 50,
-      data: { yieldCurveData: {}, lastUpdated: '2026-01-01 00:00:00' },
-    };
-    const next = applyResult(initialState, result);
-    expect(next.bonds.isLive).toBe(false);
-    expect(next.bonds.data).toBeNull();
-    expect(next.bonds.error).toMatch(/insufficient|empty/);
-  });
-
-  it('records the fetch error on failed requests', () => {
-    const result = { marketId: 'bonds', ok: false, status: 0, duration: 10, error: 'timeout' };
-    const next = applyResult(initialState, result);
-    expect(next.bonds.error).toBe('timeout');
-    expect(next.bonds.fetchLog[0].error).toBe('timeout');
-  });
-
-  it('caps fetchLog at 20 entries', () => {
-    let state = initialState;
-    for (let i = 0; i < 25; i++) {
-      state = applyResult(state, { marketId: 'bonds', ok: false, status: 0, duration: 1, error: `e${i}` });
-    }
-    expect(state.bonds.fetchLog.length).toBe(20);
   });
 });
 

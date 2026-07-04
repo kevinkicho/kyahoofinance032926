@@ -126,7 +126,7 @@ export const api = onRequest(
     invoker: "public",
     memory: "512MiB",
     timeoutSeconds: 540,
-    minInstances: 0,
+    minInstances: 1,
     maxInstances: 10,
     secrets: ["FINNHUB_API_KEY", "HUD_API_KEY", "CENSUS_API_KEY", "API_DATA_GOV_KEY", "FRED_API_KEY", "BLS_API_KEY", "EIA_API_KEY", "BEA_API_KEY", "USDA_NASS_API_KEY", "EDGAR_USER_AGENT"],
   },
@@ -194,18 +194,35 @@ async function mapWithConcurrency<T>(
   await Promise.allSettled(runners);
 }
 
-export const refreshMarketSnapshots = onSchedule("0 0 * * *", async (event) => {
+export const refreshMarketSnapshots = onSchedule(
+  {
+    schedule: "0 0 * * *",
+    timeoutSeconds: 540,
+    memory: "512MiB",
+  },
+  async (event) => {
   const db = admin.database();
   const now = new Date().toISOString();
   const dateKey = now.substring(0, 10); // YYYY-MM-DD for history keys
   console.log(`[scheduled] refreshMarketSnapshots starting at ${now} (dateKey=${dateKey})`);
+
+  // Pre-warm: trigger a lightweight request to ensure the Cloud Run service is not cold.
+  // With minInstances: 1 this should be fast, but the extra safety net costs ~100ms.
+  try {
+    const warmupRes = await fetch(`${LIVE_FUNCTIONS_BASE}/api/health`, {
+      signal: AbortSignal.timeout(30000),
+    });
+    console.log(`[scheduled] pre-warm health check: ${warmupRes.status}`);
+  } catch (e: any) {
+    console.warn(`[scheduled] pre-warm health check failed (non-fatal):`, e?.message || e);
+  }
 
   await mapWithConcurrency(SNAPSHOT_MARKETS, 5, async ({ id, path }) => {
     try {
       const url = `${LIVE_FUNCTIONS_BASE}${path}`;
       const res = await fetch(url, {
         headers: { "User-Agent": "scheduled-snapshot-refresher" },
-        signal: AbortSignal.timeout(45000) // generous but bounded
+        signal: AbortSignal.timeout(120000) // 120s — generous for cold starts
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
