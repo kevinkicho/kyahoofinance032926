@@ -15,6 +15,7 @@ import './Skeleton.css';
 import './responsive.css';
 import SplashScreen from './SplashScreen';
 import { setPanelCache } from '../hooks/usePanelHealth';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 function flattenForCSV(obj, prefix = '') {
   const rows = [];
@@ -37,44 +38,7 @@ function flattenForCSV(obj, prefix = '') {
   return rows;
 }
 
-class MarketErrorBoundary extends Component {
-  state = { error: null, componentStack: null };
-  static getDerivedStateFromError(error) { return { error }; }
-  componentDidCatch(err, info) {
-    console.error(`[${this.props.name}] crashed:`, err, info);
-    this.setState({ componentStack: info?.componentStack || null });
-  }
-  componentDidUpdate(prev) {
-    if (this.state.error && prev.name !== this.props.name) this.setState({ error: null, componentStack: null });
-  }
-  render() {
-    if (this.state.error) {
-      const stackLines = (this.state.componentStack || '').split('\n').filter(l => l.trim()).slice(0, 3);
-      const fullStack = this.state.componentStack || '';
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: 'var(--text-muted)', fontSize: 13, padding: 16 }}>
-          <span style={{ fontSize: 28 }}>&#9888;</span>
-          <span><strong>{this.props.name}</strong> failed to load.</span>
-          <span style={{ fontSize: 10, color: 'var(--text-dim)', maxWidth: 400, textAlign: 'center', wordBreak: 'break-word' }}>{this.state.error.message}</span>
-          {stackLines.length > 0 && (
-            <pre style={{ fontSize: 9, color: 'var(--text-dim)', background: 'rgba(0,0,0,0.15)', padding: '6px 10px', borderRadius: 4, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0, lineHeight: 1.4 }}>{stackLines.join('\n')}</pre>
-          )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => this.setState({ error: null, componentStack: null })} style={{ padding: '4px 14px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12 }}>
-              Retry
-            </button>
-            {fullStack && (
-              <button onClick={() => { navigator.clipboard.writeText(`${this.state.error?.stack || this.state.error?.message}\n\nComponent stack:\n${fullStack}`); }} style={{ padding: '4px 14px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 11 }}>
-                Copy Stack
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
+// Consolidated ErrorBoundary is imported from components/ErrorBoundary.jsx
 
 
 
@@ -147,6 +111,14 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
     const saved = localStorage.getItem('hub-active-market');
     return saved && MARKETS.some(m => m.id === saved) ? saved : DEFAULT_MARKET;
   });
+  const [visitedMarkets, setVisitedMarkets] = useState([activeMarket]);
+
+  useEffect(() => {
+    if (!visitedMarkets.includes(activeMarket)) {
+      setVisitedMarkets(prev => [...prev, activeMarket]);
+    }
+  }, [activeMarket, visitedMarkets]);
+
   const [splashDone, setSplashDone] = useState(() => {
     // Skip splash if user has visited before (has cached panel health)
     try { return sessionStorage.getItem('hub-splash-seen') === '1'; } catch { return false; }
@@ -224,10 +196,9 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
   const ActiveMarket = MARKET_COMPONENTS[activeMarket];
 
   const handlePopout = useCallback(() => {
-    const url = new URL(window.location.origin);
-    url.searchParams.set('popout', 'true');
-    url.searchParams.set('market', activeMarket);
-    window.open(url.toString(), `popout-${activeMarket}`, 'width=1200,height=800');
+    const url = new URL(window.location.href);
+    url.searchParams.set('popout', activeMarket);
+    window.open(url.toString(), `popout-${activeMarket}`, 'width=1200,height=800,menubar=no,toolbar=no');
     addToast(`Popped out ${MARKETS.find(m => m.id === activeMarket)?.label ?? activeMarket}`, 'success');
   }, [activeMarket, addToast]);
 
@@ -316,12 +287,6 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
         token = await user.getIdToken();
       } else {
         addToast('Admin sign-in is not available in this build.', 'error');
-        return;
-      }
-
-      // 2. Email verification
-      if (email !== 'kevinkicho@gmail.com') {
-        addToast('Admin account required to refresh global data.', 'error');
         return;
       }
 
@@ -435,15 +400,19 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
          />
         <HistoricalModeBanner />
         <main id="main-content" ref={contentRef} role="tabpanel" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
-          {MARKETS.map(m => (
-            <div key={m.id} style={{ display: m.id === activeMarket ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-              <MarketErrorBoundary name={m.label}>
-                <Suspense fallback={<MarketFallback />}>
-                  <ActiveMarketWrapper activeMarket={m.id} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} onNavigate={setActiveMarket} />
-                </Suspense>
-              </MarketErrorBoundary>
-            </div>
-          ))}
+          {MARKETS.map(m => {
+            const isVisited = visitedMarkets.includes(m.id);
+            if (!isVisited) return null;
+            return (
+              <div key={m.id} style={{ display: m.id === activeMarket ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                <ErrorBoundary type="tab" name={m.label}>
+                  <Suspense fallback={<MarketFallback />}>
+                    <ActiveMarketWrapper activeMarket={m.id} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} onNavigate={setActiveMarket} />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            );
+          })}
         </main>
         <HubFooter activeMarket={activeMarket} />
       </div>

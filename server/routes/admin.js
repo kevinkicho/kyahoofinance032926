@@ -2,7 +2,7 @@ import { Router } from 'express';
 
 const router = Router();
 
-const ADMIN_EMAIL = 'kevinkicho@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kevinkicho@gmail.com';
 
 // Firebase project ID — used to verify ID tokens via Google's public API.
 // No firebase-admin SDK required; we call the tokenVerification endpoint
@@ -346,6 +346,11 @@ router.get('/diagnose', async (req, res) => {
   };
 
   res.json(report);
+});
+
+// GET /api/admin/config — expose the configured admin email dynamically to the client
+router.get('/config', (req, res) => {
+  res.json({ adminEmail: ADMIN_EMAIL });
 });
 
 export default router;

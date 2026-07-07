@@ -41,7 +41,6 @@ async function loadDiagnosticsReport(date = null) {
 
 
 const FRED_API_BASE = apiUrl('/api/fred/observations');
-const ADMIN_EMAIL = 'kevinkicho@gmail.com';
 
 import { MARKET_ENDPOINTS as MARKET_ENDPOINTS_MAP } from '../../hub/DataProvider';
 
@@ -66,6 +65,14 @@ function isFRED(id) {
 
 function useIsAdminUser() {
   const [user, setUser] = useState(() => auth?.currentUser || null);
+  const [adminEmail, setAdminEmail] = useState('');
+
+  useEffect(() => {
+    fetch('/api/admin/config')
+      .then(res => res.json())
+      .then(data => setAdminEmail(data.adminEmail || ''))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!auth) return undefined;
@@ -73,7 +80,7 @@ function useIsAdminUser() {
   }, []);
 
   const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  return isLocalhost || user?.email === ADMIN_EMAIL;
+  return isLocalhost || (user?.email && adminEmail && user.email === adminEmail);
 }
 
 // Persist audit history so it can be inspected later (we keep the last

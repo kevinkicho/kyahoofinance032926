@@ -270,26 +270,38 @@ function DerivativesDashboard({
           </BentoCard>
         )}
       {/* Gamma Exposure */}
-        {gammaExposure?.length > 0 && (() => {
-          const gexTotal = gammaExposure.reduce((s, g) => s + Math.abs(g.value), 0);
-          const gexCall = gammaExposure.filter(g => g.value > 0).reduce((s, g) => s + g.value, 0);
-          const gexPut = gammaExposure.filter(g => g.value < 0).reduce((s, g) => s + Math.abs(g.value), 0);
-          const gexNet = gexCall - gexPut;
+        {(() => {
+          let gexTotal, gexCall, gexPut, gexNet;
+          let hasGex = false;
+          if (Array.isArray(gammaExposure) && gammaExposure.length > 0) {
+            gexTotal = gammaExposure.reduce((s, g) => s + Math.abs(g.value || 0), 0);
+            gexCall = gammaExposure.filter(g => g.value > 0).reduce((s, g) => s + (g.value || 0), 0);
+            gexPut = gammaExposure.filter(g => g.value < 0).reduce((s, g) => s + Math.abs(g.value || 0), 0);
+            gexNet = gexCall - gexPut;
+            hasGex = true;
+          } else if (gammaExposure && typeof gammaExposure === 'object' && gammaExposure.total != null) {
+            gexTotal = gammaExposure.total;
+            gexCall = gammaExposure.callGamma;
+            gexPut = gammaExposure.putGamma;
+            gexNet = gammaExposure.netGamma ?? (gexCall - gexPut);
+            hasGex = true;
+          }
+          if (!hasGex) return null;
           return (
-          <BentoCard
-            key="gamma"
-            title="Gamma Exposure (GEX)"
-            accent="derivatives"
-            className="deriv-bento-card"
-            contentClassName="deriv-panel-scroll"
-            source="Yahoo Finance / SpotGamma"
-            timestamp={lastUpdated}
-            isLive={true}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+            <BentoCard
+              key="gamma"
+              title="Gamma Exposure (GEX)"
+              accent="derivatives"
+              className="deriv-bento-card"
+              contentClassName="deriv-panel-scroll"
+              source="Yahoo Finance / SpotGamma"
+              timestamp={lastUpdated}
+              isLive={true}
+              isCurrent={isCurrent}
+              fetchedOn={fetchedOn}
+              fetchLog={fetchLog}
+              error={error}
+            >
               <div className="deriv-sidebar-section" style={{ borderBottom: 'none' }}>
                 <div className="deriv-metric-card">
                   <div className="deriv-metric-row">
@@ -324,7 +336,7 @@ function DerivativesDashboard({
                   </div>
                 </div>
               </div>
-          </BentoCard>
+            </BentoCard>
           );
         })()}
 

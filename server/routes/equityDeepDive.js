@@ -390,16 +390,32 @@ router.get('/', async (req, res) => {
         const ih = s.insiderHolders || {};
         const it = s.insiderTransactions || {};
         (ih.holders || []).forEach(h => {
+          let dateStr = '';
+          if (h.latestTransDate) {
+            if (h.latestTransDate instanceof Date) {
+              dateStr = h.latestTransDate.toISOString().split('T')[0];
+            } else {
+              dateStr = h.latestTransDate.fmt || String(h.latestTransDate);
+            }
+          }
           holders.push({
             ticker,
             name: h.name || h.fullName || '',
             title: h.positionTitle || h.title || '',
             shares: h.numberOfSharesHeld?.raw ?? h.numberOfSharesHeld ?? null,
-            date: h.latestTransDate?.fmt || h.latestTransDate || '',
+            date: dateStr,
             relation: h.relation || '',
           });
         });
         (it.transactions || []).forEach(t => {
+          let dateStr = '';
+          if (t.startDate) {
+            if (t.startDate instanceof Date) {
+              dateStr = t.startDate.toISOString().split('T')[0];
+            } else {
+              dateStr = t.startDate.fmt || String(t.startDate);
+            }
+          }
           transactions.push({
             ticker,
             name: t.insiderName || t.name || '',
@@ -407,7 +423,7 @@ router.get('/', async (req, res) => {
             relation: t.relation || '',
             shares: t.shares?.raw ?? t.shares ?? null,
             value: t.value?.raw ?? t.value ?? null,
-            date: t.startDate?.fmt || t.startDate || '',
+            date: dateStr,
             type: t.transactionType || t.type || '',
           });
         });
@@ -416,7 +432,11 @@ router.get('/', async (req, res) => {
         const va = a.shares ?? 0; const vb = b.shares ?? 0;
         return vb - va;
       });
-      transactions.sort((a, b) => b.date.localeCompare(a.date));
+      transactions.sort((a, b) => {
+        const da = a.date ? String(a.date) : '';
+        const db = b.date ? String(b.date) : '';
+        return db.localeCompare(da);
+      });
       insiderData = { holders: holders.slice(0, 30), transactions: transactions.slice(0, 40) };
     } catch (e) {
       console.warn('Insider trading fetch failed:', e.message);

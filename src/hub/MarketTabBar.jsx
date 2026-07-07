@@ -12,7 +12,6 @@ import { logUserAction } from '../lib/logger';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
-const ADMIN_EMAIL = 'kevinkicho@gmail.com';
 
 function highlightMatch(text, query) {
   if (!query) return text;
@@ -27,13 +26,44 @@ function highlightMatch(text, query) {
   );
 }
 
-export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, autoRefresh, onToggleRefresh, onRefresh }) {
+function PanelDropdownItems({ marketId, onJump, panelHealth }) {
+  const panels = MARKET_PANELS[marketId] || [];
+  return panels.map(p => {
+    const status = panelHealth?.[p.id];
+    const isOk = status === 'ok';
+    const isStale = status === 'stale';
+    const isBad = status === 'null' || status === 'empty' || status === 'not-rendered';
+    const isUnknown = status === 'unknown' || status === 'loading';
+    const tooltip = isOk ? 'Data loaded' : isStale ? 'Data is stale' : isBad ? 'No data available' : isUnknown ? 'Market not yet loaded' : 'Loading...';
+    return (
+      <button
+        key={p.id}
+        className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isUnknown ? ' panel-status-unknown' : ''}`}
+        onClick={() => onJump(marketId, p.id)}
+        title={`${p.title} — ${tooltip}`}
+      >
+        <span className="panel-dropdown-status-dot" data-status={isOk ? 'ok' : isStale ? 'stale' : isBad ? 'null' : 'unknown'} />
+        <span className="panel-dropdown-title">{p.title}</span>
+        {isBad && <span className="panel-dropdown-badge">unavailable</span>}
+        {isStale && <span className="panel-dropdown-badge panel-badge-stale">stale</span>}
+      </button>
+    );
+  });
+}
+
+export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, onPopout, autoRefresh, onToggleRefresh, onRefresh }) {
   const { currency, setCurrency } = useCurrency();
   const dataCtx = useDataContext();
   const { addToast } = useToast();
   const { historicalDate, setHistoricalDate, listSnapshotDates } = dataCtx || { historicalDate: null, setHistoricalDate: () => {}, listSnapshotDates: async () => [] };
   function handlePopout() {
-    window.open('/?popout=' + activeMarket, '_blank', 'width=1200,height=800,menubar=no,toolbar=no');
+    if (onPopout) {
+      onPopout();
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('popout', activeMarket);
+    window.open(url.toString(), `popout-${activeMarket}`, 'width=1200,height=800,menubar=no,toolbar=no');
   }
   const { theme, toggle } = useTheme();
   const [query, setQuery] = useState('');
@@ -49,10 +79,18 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   const panelDropdownRef = useRef(null);
 
   const [user, setUser] = useState(null);
+  const [adminEmail, setAdminEmail] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const profileRef = useRef(null);
   const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const isAdmin = isLocalhost || user?.email === ADMIN_EMAIL;
+  const isAdmin = isLocalhost || (user?.email && adminEmail && user.email === adminEmail);
+
+  useEffect(() => {
+    fetch('/api/admin/config')
+      .then(res => res.json())
+      .then(data => setAdminEmail(data.adminEmail || ''))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (auth) {
@@ -63,8 +101,9 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   }, []);
 
   useEffect(() => {
+    if (!adminEmail && !isLocalhost && user) return;
     if (autoRefresh && !isAdmin) onToggleRefresh();
-  }, [autoRefresh, isAdmin, onToggleRefresh]);
+  }, [autoRefresh, isAdmin, isLocalhost, user, adminEmail, onToggleRefresh]);
 
   const handleSignOut = useCallback(async () => {
     if (auth) {
@@ -177,8 +216,8 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
 
   function handleSelect(marketId, subTab) {
     setActiveMarket(marketId);
-    if (subTab && window.setHubSubTab) {
-      window.setHubSubTab(subTab);
+    if (subTab) {
+      window.dispatchEvent(new CustomEvent('set-hub-subtab', { detail: { marketId, subTab } }));
     }
     setQuery('');
     setOpen(false);
@@ -295,30 +334,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
 
   const panelHealth = usePanelHealth(hoveredMarket);
 
-  function PanelDropdownItems({ marketId, onJump }) {
-    const panels = MARKET_PANELS[marketId] || [];
-    return panels.map(p => {
-      const status = panelHealth?.[p.id];
-      const isOk = status === 'ok';
-      const isStale = status === 'stale';
-      const isBad = status === 'null' || status === 'empty' || status === 'not-rendered';
-      const isUnknown = status === 'unknown' || status === 'loading';
-      const tooltip = isOk ? 'Data loaded' : isStale ? 'Data is stale' : isBad ? 'No data available' : isUnknown ? 'Market not yet loaded' : 'Loading...';
-      return (
-        <button
-          key={p.id}
-          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isUnknown ? ' panel-status-unknown' : ''}`}
-          onClick={() => onJump(marketId, p.id)}
-          title={`${p.title} — ${tooltip}`}
-        >
-          <span className="panel-dropdown-status-dot" data-status={isOk ? 'ok' : isStale ? 'stale' : isBad ? 'null' : 'unknown'} />
-          <span className="panel-dropdown-title">{p.title}</span>
-          {isBad && <span className="panel-dropdown-badge">unavailable</span>}
-          {isStale && <span className="panel-dropdown-badge panel-badge-stale">stale</span>}
-        </button>
-      );
-    });
-  }
+
 
   const handleExportCSV = useCallback(() => {
     onExportData('csv');
@@ -379,7 +395,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
           onMouseEnter={handleDropdownMouseEnter}
           onMouseLeave={handleDropdownMouseLeave}
         >
-          <PanelDropdownItems marketId={hoveredMarket} onJump={handlePanelJump} />
+          <PanelDropdownItems marketId={hoveredMarket} onJump={handlePanelJump} panelHealth={panelHealth} />
         </div>
       )}
       <div className="hub-settings-menu" ref={settingsRef}>

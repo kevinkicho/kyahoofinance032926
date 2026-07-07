@@ -28,7 +28,7 @@ describe('BreakevenMonitor', () => {
   });
 
   it('renders empty when no data provided', () => {
-    const { container } = render(<BreakevenMonitor breakevensData={null} />);
-    expect(container.firstChild).toBeNull();
+    render(<BreakevenMonitor breakevensData={null} />);
+    expect(screen.getByText(/No breakeven data available/)).toBeInTheDocument();
   });
 });

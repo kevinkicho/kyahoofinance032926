@@ -49,7 +49,18 @@ function DerivativesMarket({ centralData } = {}) {
     // out before formatting so the KPI builder doesn't blow up if upstream
     // returns the object form.
     const skewVal = typeof d.skewIndex === 'number' ? d.skewIndex : d.skewIndex?.value;
-    const gexVal = typeof d.gammaExposure === 'number' ? d.gammaExposure : d.gammaExposure?.total;
+    let gexVal = undefined;
+    if (d.gammaExposure != null) {
+      if (typeof d.gammaExposure === 'number') {
+        gexVal = d.gammaExposure;
+      } else if (typeof d.gammaExposure === 'object') {
+        if (d.gammaExposure.total != null) {
+          gexVal = d.gammaExposure.total;
+        } else if (Array.isArray(d.gammaExposure)) {
+          gexVal = d.gammaExposure.reduce((s, g) => s + Math.abs(g?.value || 0), 0);
+        }
+      }
+    }
     const fmt = (v, digits = 2) => (typeof v === 'number' ? v.toFixed(digits) : '—');
     return [
       { label: 'VIX', value: fmt(d.vixValue), color: d.vixChange >= 0 ? '#f87171' : '#4ade80', trend: typeof d.vixChange === 'number' ? `${fmt(d.vixChange)}%` : null, sublabel: 'Volatility' },

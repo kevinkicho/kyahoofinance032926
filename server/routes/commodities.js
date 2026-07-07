@@ -5,7 +5,7 @@
 // also retargeting those links to v2.
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { makeCachedRouteHandler } from '../lib/routeFactory.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 
@@ -144,20 +144,13 @@ async function fetchFredLatest(seriesId, FRED_API_KEY) {
   return valid.length ? parseFloat(valid[0].value) : null;
 }
 
-router.get('/', async (req, res) => {
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
-  const EIA_API_KEY = process.env.EIA_API_KEY || '';
-  const cache = req.app.locals.cache;
-  const cacheKey = 'commodities_data';
-  const today = todayStr();
-
-  const daily = readDailyCache('commodities');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
-
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
-
-  try {
+router.get('/', makeCachedRouteHandler({
+  marketName: 'commodities',
+  cacheKey: 'commodities_data',
+  cacheTtl: 900,
+  fetchDataFn: async (req, _errors) => {
+    const FRED_API_KEY = process.env.FRED_API_KEY || '';
+    const EIA_API_KEY = process.env.EIA_API_KEY || '';
     let quotesMap = {};
     try {
       trackApiCall('Yahoo Finance');
@@ -517,18 +510,8 @@ router.get('/', async (req, res) => {
       commodityCurrencies: commodityCurrencies ?? null,
       seasonalPatterns:    seasonalPatterns    ?? null,
       _sources,
-      lastUpdated: today,
     };
-
-    writeDailyCache('commodities', result);
-    cache.set(cacheKey, result, 900);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
-  } catch (error) {
-    console.error('Commodities API error:', error);
-    const fallback = readLatestCache('commodities');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 export default router;

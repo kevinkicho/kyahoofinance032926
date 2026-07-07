@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { makeCachedRouteHandler } from '../lib/routeFactory.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
@@ -195,37 +195,15 @@ async function fetchHudAffordabilityData(hudApiKey, censusApiKey) {
   return hudData;
 }
 
-router.get('/', async (req, res) => {
-  const HUD_API_KEY = process.env.HUD_API_KEY || '';
-  const CENSUS_API_KEY = process.env.CENSUS_API_KEY || '';
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
-  const cache = req.app.locals.cache;
-  const cacheKey = 'realestate_data';
-  const today = todayStr();
-
-  const daily = readDailyCache('realEstate');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
-
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
-
-  // 22+ FRED calls in this route — without a route-level timeout a single
-  // slow upstream stalls the client wave for >60s. Bail out at 25s with
-  // whatever partial data we already gathered so the UI binds quickly.
-  let routeTimer;
-  const ROUTE_TIMEOUT = 25000;
-  routeTimer = setTimeout(() => {
-    if (!res.headersSent) {
-      console.warn('[RealEstate] Route timeout — responding with cached fallback');
-      const fallback = readLatestCache('realEstate');
-      if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-      return res.status(504).json({ error: 'Real estate upstream timeout', isCurrent: false });
-    }
-  }, ROUTE_TIMEOUT);
-
-  const _errors = {};
-
-  try {
+router.get('/', makeCachedRouteHandler({
+  marketName: 'realEstate',
+  cacheKey: 'realestate_data',
+  cacheTtl: 900,
+  timeoutMs: 25000,
+  fetchDataFn: async (req, _errors) => {
+    const HUD_API_KEY = process.env.HUD_API_KEY || '';
+    const CENSUS_API_KEY = process.env.CENSUS_API_KEY || '';
+    const FRED_API_KEY = process.env.FRED_API_KEY || '';
     let reitData = null;
     try {
       trackApiCall('Yahoo Finance');
@@ -654,19 +632,8 @@ router.get('/', async (req, res) => {
       hudData:            hudData != null && hudData.length > 0,
     };
 
-    const result = { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, hudData, _sources, lastUpdated: today };
-    writeDailyCache('realEstate', result);
-    cache.set(cacheKey, result, 900);
-    clearTimeout(routeTimer);
-    if (!res.headersSent) res.json({ ...result, fetchedOn: today, isCurrent: true, _errors });
-  } catch (error) {
-    clearTimeout(routeTimer);
-    if (res.headersSent) return;
-    console.error('Real Estate API error:', error);
-    const fallback = readLatestCache('realEstate');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, hudData, _sources };
   }
-});
+}));
 
 export default router;

@@ -19,6 +19,15 @@ function DerivativesSidebar({
   fetchedOn,
   isCurrent,
 }) {
+  const gexTotal = React.useMemo(() => {
+    if (!gammaExposure) return null;
+    if (typeof gammaExposure.total === 'number') return gammaExposure.total;
+    if (Array.isArray(gammaExposure)) {
+      return gammaExposure.reduce((s, g) => s + Math.abs(g.value || 0), 0);
+    }
+    return null;
+  }, [gammaExposure]);
+
   return (
     <div className="deriv-sidebar-section">
       <div className="deriv-sidebar-title">VIX & Volatility</div>
@@ -87,11 +96,11 @@ function DerivativesSidebar({
             </span>
           </div>
         )}
-        {gammaExposure?.total != null && (
+        {gexTotal != null && (
           <div className="deriv-metric-row">
             <span className="deriv-metric-name">Gamma Exp</span>
             <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>
-              <MetricValue value={gammaExposure.total} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+              <MetricValue value={gexTotal} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
             </span>
           </div>
         )}

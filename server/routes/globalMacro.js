@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { makeCachedRouteHandler } from '../lib/routeFactory.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 
 const router = Router();
@@ -418,20 +418,13 @@ async function fetchFredHistory(seriesId, FRED_API_KEY, limit = 13) {
     .reverse();
 }
 
-router.get('/', async (req, res) => {
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
-  const BLS_API_KEY = process.env.BLS_API_KEY || '';
-  const cache = req.app.locals.cache;
-  const cacheKey = 'globalMacro_data';
-  const today = todayStr();
-
-  const daily = readDailyCache('globalMacro');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
-
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
-
-  try {
+router.get('/', makeCachedRouteHandler({
+  marketName: 'globalMacro',
+  cacheKey: 'globalMacro_data',
+  cacheTtl: 3600,
+  fetchDataFn: async (req, _errors) => {
+    const FRED_API_KEY = process.env.FRED_API_KEY || '';
+    const BLS_API_KEY = process.env.BLS_API_KEY || '';
     trackApiCall('World Bank');
     const [gdpRes, cpiRes, unempRes, debtRes, caRes] = await Promise.all([
       fetchWBIndicator('NY.GDP.MKTP.KD.ZG').catch(() => ({ values: {}, year: null })),
@@ -699,18 +692,8 @@ router.get('/', async (req, res) => {
         imfWEO: imfWEO != null && Object.keys(imfWEO).length > 0,
         bisCreditToGDP: bisCreditToGDP != null && Object.keys(bisCreditToGDP).length > 0,
       },
-      lastUpdated: today,
     };
-
-    writeDailyCache('globalMacro', result);
-    cache.set(cacheKey, result, 3600);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
-  } catch (error) {
-    console.error('GlobalMacro API error:', error);
-    const fallback = readLatestCache('globalMacro');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 export default router;

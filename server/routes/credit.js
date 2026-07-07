@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { makeCachedRouteHandler } from '../lib/routeFactory.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
@@ -12,19 +12,12 @@ function dateToMonthLabel(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }).replace(' ', '-');
 }
 
-router.get('/', async (_req, res) => {
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
-  const cache = _req.app.locals.cache;
-  const today = todayStr();
-  const daily = readDailyCache('credit');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
-  const cacheKey = 'credit_data';
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
-
-  const _errors = {};
-
-  try {
+router.get('/', makeCachedRouteHandler({
+  marketName: 'credit',
+  cacheKey: 'credit_data',
+  cacheTtl: 300,
+  fetchDataFn: async (req, _errors) => {
+    const FRED_API_KEY = process.env.FRED_API_KEY || '';
     const CREDIT_SPREAD_SERIES = {
       IG:  'BAMLC0A0CM',
       HY:  'BAMLH0A0HYM2',
@@ -485,18 +478,8 @@ let emBondCountries = [];
       creditQuality,
       tedSpread,
       isLive,
-      lastUpdated: today,
     };
-
-    writeDailyCache('credit', result);
-    cache.set(cacheKey, result, 300);
-    res.json({ ...result, fetchedOn: today, isCurrent: true, _errors });
-  } catch (error) {
-    console.error('Credit API error:', error);
-    const fallback = readLatestCache('credit');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 export default router;

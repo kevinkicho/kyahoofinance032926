@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, readLatestCacheWithField, todayStr } from '../lib/cache.js';
+import { readLatestCacheWithFieldAsync } from '../lib/cache.js';
+import { makeCachedRouteHandler } from '../lib/routeFactory.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { SOVEREIGN_RATINGS } from '../dataSources/sovereignRatings.js';
 import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
@@ -162,29 +163,17 @@ function buildSourcesFromData(d) {
   };
 }
 
-router.get('/', async (req, res) => {
-  const FRED_API_KEY = process.env.FRED_API_KEY || '';
-  const cache = req.app.locals.cache;
-  const cacheKey = 'bonds_data';
-  const today = todayStr();
-
-  const daily = readDailyCache('bonds');
-  if (daily) {
-    const sources = buildSourcesFromData(daily);
-    return res.json({ ...daily, fetchedOn: today, isCurrent: true, _sources: sources });
-  }
-
-  const cached = cache.get(cacheKey);
-  if (cached) {
-    const sources = buildSourcesFromData(cached);
-    return res.json({ ...cached, fetchedOn: today, isCurrent: true, _sources: sources });
-  }
-
-  if (!FRED_API_KEY) return res.status(503).json({ error: 'FRED_API_KEY not configured' });
-
-  const _errors = {};
-
-  try {
+router.get('/', makeCachedRouteHandler({
+  marketName: 'bonds',
+  cacheKey: 'bonds_data',
+  buildSourcesFn: buildSourcesFromData,
+  fetchDataFn: async (req, _errors) => {
+    const FRED_API_KEY = process.env.FRED_API_KEY || '';
+    if (!FRED_API_KEY) {
+      const err = new Error('FRED_API_KEY not configured');
+      err.statusCode = 503;
+      throw err;
+    }
     // ═══════════════════════════════════════════════════════════════════════
     // US TREASURY YIELD CURVE (Full Tenors)
     // ═══════════════════════════════════════════════════════════════════════
@@ -561,7 +550,7 @@ router.get('/', async (req, res) => {
         values: fedBalanceHistory.map(p => p.value / 1000), // Convert to trillions
       };
     } else {
-      const fb = readLatestCacheWithField('bonds', 'fedBalanceSheetHistory.dates');
+      const fb = await readLatestCacheWithFieldAsync('bonds', 'fedBalanceSheetHistory.dates');
       if (fb?.data?.fedBalanceSheetHistory?.dates?.length) {
         fedBalanceSheetHistory = fb.data.fedBalanceSheetHistory;
         console.warn(`[Bonds] WALCL fallback to cache fetched ${fb.fetchedOn}`);
@@ -578,7 +567,7 @@ router.get('/', async (req, res) => {
         values: m2History.map(p => p.value / 1000), // Convert to trillions
       };
     } else {
-      const fb = readLatestCacheWithField('bonds', 'm2HistoryData.dates');
+      const fb = await readLatestCacheWithFieldAsync('bonds', 'm2HistoryData.dates');
       if (fb?.data?.m2HistoryData?.dates?.length) {
         m2HistoryData = fb.data.m2HistoryData;
         console.warn(`[Bonds] M2SL fallback to cache fetched ${fb.fetchedOn}`);
@@ -798,48 +787,10 @@ router.get('/', async (req, res) => {
 
       // Duration ladder
       durationLadder,
-
-      // Metadata
-      lastUpdated: today,
       countryCount: Object.keys(yieldCurveData).length,
     };
-
-    writeDailyCache('bonds', result);
-    cache.set(cacheKey, result, 900);
-
-    const sources = {
-      'US Treasury Yields': usYields && Object.keys(usYields).length > 0,
-      'International 10Y Yields': Object.keys(yieldCurveData).length > 1,
-      'TIPS Real Yields': tipsYields && Object.keys(tipsYields).length > 0,
-      'Credit Spreads (IG/HY/EM/BBB)': spreadData && spreadData.dates && spreadData.dates.length > 0,
-      'Spread Indicators': spreadIndicators && Object.keys(spreadIndicators).length > 0,
-      'Fed Funds Futures': fedFundsFutures && Object.keys(fedFundsFutures).length > 0,
-      'Yield Curve History': yieldHistory && yieldHistory.dates && yieldHistory.dates.length > 0,
-      'Breakevens': breakevensData && breakevensData.history && breakevensData.history.dates && breakevensData.history.dates.length > 0,
-      'Macro Indicators (Fed BS, M2, Debt, Unemp, GDP)': macroData && Object.keys(macroData).length > 0,
-      'Fed Balance Sheet History': fedBalanceSheetHistory && fedBalanceSheetHistory.dates && fedBalanceSheetHistory.dates.length > 0,
-      'M2 Money Supply History': m2HistoryData && m2HistoryData.dates && m2HistoryData.dates.length > 0,
-      'CPI Components': cpiComponents && cpiComponents.dates && cpiComponents.dates.length > 0,
-      'Debt-to-GDP History': debtToGdpHistory && debtToGdpHistory.dates && debtToGdpHistory.dates.length > 0,
-      'Curve Spread History': spreadHistory && spreadHistory.dates && spreadHistory.dates.length > 0,
-      'Treasury Auctions': auctionData && auctionData.length > 0,
-      'National Debt': nationalDebt != null,
-      'Treasury Rates': treasuryRates != null,
-      'Mortgage Spread': mortgageSpread != null,
-      'Credit Indices (AAA/BAA)': creditIndices && Object.keys(creditIndices).length > 0,
-      'ECB Yield Curve': ecbYieldCurve != null && Object.keys(ecbYieldCurve).length > 0,
-      'Sovereign Credit Ratings': true,
-      'Duration Ladder': durationLadder != null,
-    };
-
-    res.json({ ...result, fetchedOn: today, isLive: true, _sources: sources, _errors });
-  } catch (error) {
-    console.error('Bonds API error:', error);
-    const fallback = readLatestCache('bonds');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isLive: false });
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+}));
 
 export default router;
 

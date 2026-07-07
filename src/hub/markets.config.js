@@ -42,3 +42,4 @@ export const SEARCH_INDEX = [
   { marketId: 'watchlist',        label: 'Watchlist',   subTabs: ['My Tickers', 'My Metrics'], keywords: ['Watchlist', 'Favorites'] },
   { marketId: 'analytics',        label: 'Analytics',   subTabs: ['API Usage', 'Endpoints', 'Data Freshness', 'Rate Limits', 'Cache'], keywords: ['API', 'Endpoints', 'Freshness'] },
 ];
+

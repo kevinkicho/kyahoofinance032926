@@ -2,6 +2,31 @@
 
 This file tracks user-visible dashboard and data-contract changes. For exact diffs, use `git log`.
 
+## 2026-07-07
+
+### Performance & Reliability Optimizations (Phase 1)
+- **Lazy Tab Mounting**: Implemented dynamic tab rendering in `HubLayout.jsx` that defers mounting of market components until their first click, cutting initial DOM node weight and context listener footprints.
+- **Stale Context Prevention**: Replaced object-spreading identity issues in `getMarket` context accessor, preventing cascaded global React re-renders on every market tick.
+- **Auto-Refresh Fix**: Rectified stale closure and interval resetting bugs in `App.jsx` where toggling auto-refresh did not clear or register timers correctly.
+- **Node Server Uncaught Error Handler**: Added global logging error catchers for `uncaughtException` and `unhandledRejection` to protect the Node development server from hard crashes.
+
+### Asynchronous Caching & Admin Hardening (Phase 2)
+- **Async Caching Layer**: Converted local caching functions (`readDailyCacheAsync`, `writeDailyCacheAsync`, `readLatestCacheAsync`) to use Node's promise-based asynchronous `fs.promises` library, preventing event loop blocks.
+- **Dynamic Administrative Verification**: Replaced hardcoded client-side admin email strings with server-side configurable authorization values via `process.env.ADMIN_EMAIL` and a dynamic `/api/admin/config` public configuration endpoint.
+
+### Backend Modularity & Unit Testing (Phase 3)
+- **Route Controller Factory**: Created `routeFactory.js` middleware wrapper to abstract standard cache-check, timeout loops, and fallback loading operations across Express controllers.
+- **Express Route Testing**: Added comprehensive controller-level fallback and cache operations unit test suites for `globalMacro.test.js`, `commodities.test.js`, and `credit.test.js`.
+
+### Frontend Code Modularization & Quality Gates (Phase 4)
+- **DataProvider God Module Split**: Extracted stateless logical blocks (Firebase RTDB networking, structural quality validation guards, alerts evaluation, cache serialization) from the 765-line `DataProvider.jsx` file into clean helper modules under `src/hub/lib/`.
+- **Vitest Scope & Thresholds Config**: Pinned Vitest scanner root scope strictly to the project folder, installed `@vitest/coverage-v8`, and set a strict 40% code coverage requirement across statements, branches, functions, and lines.
+
+### Code Quality & Security Cleanup (Phase 5)
+- **Consolidated Error Boundaries**: Created a single unified `ErrorBoundary.jsx` component supporting `"global"` and `"tab"` display variants, refactoring out local duplicate class definitions in `App.jsx` and `HubLayout.jsx`.
+- **Externalized Ticker Map**: Moved the 350-line hardcoded static stock mapping out of `stocks.js` into an external `tickerMap.json` data configuration file read synchronously at server boot.
+- **Dropdown Lifecycle Optimization**: Extracted inline `PanelDropdownItems` rendering functions to file-scope inside `MarketTabBar.jsx` to prevent redundant dropdown unmounting during state updates, and replaced global namespace `window` assignments with standard CustomEvent dispatches.
+
 ## 2026-06-23
 
 ### Security Hardening

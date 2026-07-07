@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { Suspense, useState, useEffect, useCallback } from 'react';
+import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import './index.css';
 import { ThemeProvider } from './hub/ThemeContext';
 import { ToastProvider } from './hub/ToastContext';
@@ -10,36 +10,7 @@ import HubLayout from './hub/HubLayout';
 import { MARKETS } from './hub/markets.config';
 import { MARKET_COMPONENTS } from './hub/lazyMarketComponents';
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { error };
-  }
-  render() {
-    if (this.state.error) {
-      return (
-        <div style={{ padding: '40px', color: '#f87171', fontFamily: 'monospace', background: 'var(--bg-primary)', minHeight: '100vh' }}>
-          <h2 style={{ marginBottom: 12 }}>Something went wrong</h2>
-          <pre style={{ fontSize: 13, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>
-            {this.state.error.message}
-            {'\n\n'}
-            {this.state.error.stack}
-          </pre>
-          <button
-            onClick={() => this.setState({ error: null })}
-            style={{ marginTop: 20, padding: '8px 16px', background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 6, cursor: 'pointer' }}
-          >
-            Try again
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
+import ErrorBoundary from './components/ErrorBoundary';
 
 function PopoutView({ marketId }) {
   const marketMeta = MARKETS.find(m => m.id === marketId);
@@ -53,19 +24,26 @@ function PopoutView({ marketId }) {
     document.title = label + ' — Market Hub';
   }, [label]);
 
+  const hasRefetched = useRef(false);
   useEffect(() => {
-    if (!marketCtx?.data && !marketCtx?.isLoading) {
+    if (!hasRefetched.current && !marketCtx?.data && !marketCtx?.isLoading) {
+      hasRefetched.current = true;
       marketCtx?.refetch?.();
     }
-  }, []);
+  }, [marketCtx]);
+
+  const refetchRef = useRef(marketCtx?.refetch);
+  useEffect(() => {
+    refetchRef.current = marketCtx?.refetch;
+  }, [marketCtx?.refetch]);
 
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
-      marketCtx?.refetch?.();
+      refetchRef.current?.();
     }, 300000);
     return () => clearInterval(interval);
-  }, [autoRefresh, marketCtx]);
+  }, [autoRefresh]);
 
   if (!MarketComponent) {
     return (
@@ -142,7 +120,7 @@ export default function App() {
         <ToastProvider>
           <CurrencyProvider initialCurrency="USD">
             <DataProvider autoRefresh={false} refreshKey={0}>
-              <ErrorBoundary>
+              <ErrorBoundary type="global" name="Market Hub">
                 <PopoutView marketId={popoutId} />
               </ErrorBoundary>
             </DataProvider>
@@ -156,7 +134,7 @@ export default function App() {
     <ThemeProvider>
       <ToastProvider>
         <CurrencyProvider>
-          <ErrorBoundary>
+          <ErrorBoundary type="global" name="Market Hub">
             <HubLayout />
           </ErrorBoundary>
         </CurrencyProvider>
