@@ -51,3 +51,16 @@ npm run guard:secrets && npm run build && cd functions && npm install --ignore-s
 ```
 
 If any step in the chain fails, **resolve the failure before pushing to the repository**.
+
+---
+
+## 4. Troubleshooting CI Environment Failures
+
+If the **Build** job succeeds on GitHub Actions but the **Deploy** job fails with a message similar to:
+> *Branch "master" is not allowed to deploy to github-pages due to environment protection rules.*
+
+This is a GitHub repository settings issue, not a codebase compilation error. To resolve this:
+1. Go to your repository on GitHub.
+2. Navigate to **Settings → Environments → github-pages**.
+3. Under **Deployment branches and tags**, change the selection to **"All branches"**, or add `master` as an approved deployment branch.
+
