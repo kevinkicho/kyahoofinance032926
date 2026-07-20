@@ -401,10 +401,9 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
         <HistoricalModeBanner />
         <main id="main-content" ref={contentRef} role="tabpanel" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
           {MARKETS.map(m => {
-            const isVisited = visitedMarkets.includes(m.id);
-            if (!isVisited) return null;
+            if (m.id !== activeMarket) return null;
             return (
-              <div key={m.id} style={{ display: m.id === activeMarket ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div key={m.id} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 <ErrorBoundary type="tab" name={m.label}>
                   <Suspense fallback={<MarketFallback />}>
                     <ActiveMarketWrapper activeMarket={m.id} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} onNavigate={setActiveMarket} />
