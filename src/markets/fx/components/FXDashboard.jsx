@@ -8,6 +8,9 @@ import CarryMap from './CarryMap';
 import ReerChart from './ReerChart';
 import CurrencyCorrelationMatrix from './CurrencyCorrelationMatrix';
 import FXSidebar from './FXSidebar';
+import ImfCoferPanel from './ImfCoferPanel';
+import TreasuryTicPanel from './TreasuryTicPanel';
+import BisReerPanel from './BisReerPanel';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import './FXDashboard.css';
 
@@ -44,6 +47,9 @@ const LAYOUT = {
     { i: 'ratediff', x: 8, y: 6,  w: 4,  h: 3 },
     { i: 'carry',    x: 0, y: 9,  w: 12, h: 5 },
     { i: 'rate-dashboard', x: 0, y: 14, w: 12, h: 3 },
+    { i: 'imf-cofer', x: 0, y: 17, w: 4, h: 4 },
+    { i: 'treasury-tic', x: 4, y: 17, w: 4, h: 4 },
+    { i: 'bis-reer', x: 8, y: 17, w: 4, h: 4 },
   ]
 };
 
@@ -289,6 +295,15 @@ function FXDashboard({
             </div>
           </BentoCard>
         )}
+        <BentoCard key="imf-cofer" title="IMF COFER Reserves" subtitle="Currency composition of official FX reserves" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="IMF COFER" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <ImfCoferPanel />
+        </BentoCard>
+        <BentoCard key="treasury-tic" title="Treasury TIC Holdings" subtitle="Top foreign holders of US Treasury securities" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="US Treasury TIC" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <TreasuryTicPanel />
+        </BentoCard>
+        <BentoCard key="bis-reer" title="BIS REER Comparison" subtitle="Real effective exchange rates for major economies" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="BIS / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <BisReerPanel />
+        </BentoCard>
       </BentoWrapper>
     </div>
   );

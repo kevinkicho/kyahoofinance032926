@@ -5,6 +5,9 @@ import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
 import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import WorldBankDebtPanel from './WorldBankDebtPanel';
+import BisTotalCreditPanel from './BisTotalCreditPanel';
+import TreasuryCreditHoldingsPanel from './TreasuryCreditHoldingsPanel';
 import './CreditDashboard.css';
 
 // KPI strip is now a real bento child at row 0 (h:2). All other panels
@@ -30,6 +33,9 @@ const LAYOUT = {
     { i: 'muni-market',    x: 6, y: 12, w: 6, h: 4 },
     { i: 'bank-stress',    x: 0, y: 16, w: 12, h: 3 },
     { i: 'ted-spread',     x: 0, y: 19, w: 6, h: 3 },
+    { i: 'wb-debt', x: 6, y: 19, w: 6, h: 3 },
+    { i: 'bis-total-credit', x: 0, y: 22, w: 6, h: 3 },
+    { i: 'treasury-credit-holdings', x: 6, y: 22, w: 6, h: 3 },
   ]
 };
 
@@ -697,6 +703,15 @@ function CreditDashboard({
             </div>
           </BentoCard>
         )}
+        <BentoCard key="wb-debt" title="World Bank Debt Statistics" subtitle="GDP growth and trade openness by country" accent="credit" className="credit-bento-card" contentClassName="bento-panel-scroll" source="World Bank" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <WorldBankDebtPanel />
+        </BentoCard>
+        <BentoCard key="bis-total-credit" title="BIS Total Credit" subtitle="Credit-to-GDP ratios for major economies" accent="credit" className="credit-bento-card" contentClassName="bento-panel-scroll" source="BIS" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <BisTotalCreditPanel />
+        </BentoCard>
+        <BentoCard key="treasury-credit-holdings" title="Treasury Credit Holdings" subtitle="Top foreign holders of US Treasury securities" accent="credit" className="credit-bento-card" contentClassName="bento-panel-scroll" source="US Treasury TIC" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <TreasuryCreditHoldingsPanel />
+        </BentoCard>
       </BentoWrapper>
     </div>
   );

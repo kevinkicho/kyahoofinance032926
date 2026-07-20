@@ -128,6 +128,7 @@ export default function RadarView({ flatData = [], onTickerSelect }) {
           option={option} 
           onEvents={onEvents}
           style={{ width: '100%', height: '100%' }}
+          sourceInfo={{ title: 'Equities Radar', source: 'Yahoo Finance', endpoint: '/api/stocks', series: [], updatedAt: new Date().toISOString() }}
         />
       </div>
     </div>

@@ -21,6 +21,8 @@ import KeyIndicesStrip from './components/KeyIndicesStrip';
 import PortfolioTracker from './components/PortfolioTracker';
 import RadarView from './components/RadarView';
 import MetricValue from '../../components/MetricValue/MetricValue';
+import BeaCorporateProfitsPanel from './components/BeaCorporateProfitsPanel';
+import WorldBankMarketCapPanel from './components/WorldBankMarketCapPanel';
 
 import './EquitiesDashboard.css';
 
@@ -130,6 +132,8 @@ const HEATMAP_LAYOUT = {
     { i: 'sec-fundamentals', x: 0, y: 10, w: 6, h: 3 },
     { i: 'universe-updates', x: 0, y: 13, w: 12, h: 4 },
     { i: 'sec-filings', x: 6, y: 10, w: 6, h: 3 },
+    { i: 'bea-corporate-profits', x: 0, y: 17, w: 6, h: 3 },
+    { i: 'wb-market-cap', x: 6, y: 17, w: 6, h: 3 },
   ]
 };
 
@@ -1456,6 +1460,12 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           {secFundamentalsCard}
           {secFilingsCard}
           {universeUpdatesCard}
+          <BentoCard key="bea-corporate-profits" title="BEA Corporate Profits" subtitle="GDP components · personal saving rate" accent="equities" className="eq-bento-card" contentClassName="eq-panel-content" source="Bureau of Economic Analysis" timestamp={dataTimestamp} isLive={true} isCurrent={!snapshotDate} fetchedOn={dataTimestamp} fetchLog={quotesFetchLog}>
+            <BeaCorporateProfitsPanel />
+          </BentoCard>
+          <BentoCard key="wb-market-cap" title="World Bank Market Cap" subtitle="Key indicators by country" accent="equities" className="eq-bento-card" contentClassName="eq-panel-content" source="World Bank" timestamp={dataTimestamp} isLive={true} isCurrent={!snapshotDate} fetchedOn={dataTimestamp} fetchLog={quotesFetchLog}>
+            <WorldBankMarketCapPanel />
+          </BentoCard>
         </BentoWrapper>
       ) : viewMode === 'portfolio' ? (
         // PORTFOLIO_LAYOUT only has 'kpi' + 'portfolio' slots — sidebar

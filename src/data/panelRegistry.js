@@ -187,6 +187,9 @@ export const PANEL_REGISTRY = {
     { id: 'carry', title: 'Carry Map', field: 'carryData', fieldPath: 'carryData', source: 'fx.js', external: [{ name: 'FRED / ECB', seriesIds: ['FEDFUNDS','ECBMRRFR'] }], renderCheck: 'carryData && Object.keys(carryData).length > 0' },
     { id: 'correlation', title: 'Correlation Matrix', field: 'history', fieldPath: 'history', source: 'fx.js:33 (Frankfurter)', external: [{ name: 'Frankfurter', seriesIds: [] }], renderCheck: '!!history && Object.keys(history).length > 0', renderType: 'CurrencyCorrelationMatrix', shapeCheck: SHAPE_CHECKS.fxHistory, notes: 'Component expects history keyed by currency code with array values (e.g. { EUR: [...rates] }), NOT date→currency. If shape is wrong, panel shows "No history available for correlation".' },
     { id: 'reer', title: 'REER Chart', field: 'reerData', fieldPath: 'reerData', source: 'fx.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'reerData?.dates?.length > 0', renderType: 'SafeECharts' },
+    { id: 'imf-cofer', title: 'IMF COFER Reserves', field: 'imfReserves', fieldPath: 'imfReserves', source: 'fx.js (IMF COFER)', external: [{ name: 'IMF', seriesIds: [] }], renderCheck: 'imfReserves?.reserves && Object.keys(imfReserves.reserves).length > 0', renderType: 'ImfCoferPanel' },
+    { id: 'treasury-tic', title: 'Treasury TIC Holdings', field: '(cross-market: treasuryTIC)', fieldPath: 'ticCtx.data.latest', source: 'treasuryTIC.js', external: [{ name: 'US Treasury TIC', seriesIds: [] }], renderCheck: 'ticCtx?.data?.latest?.length > 0', renderType: 'TreasuryTicPanel' },
+    { id: 'bis-reer', title: 'BIS REER Comparison', field: 'reer', fieldPath: 'reer', source: 'fx.js (BIS/FRED)', external: [{ name: 'BIS', seriesIds: ['RNBUSBIS','RNBEBIS','RNJPBIS','RNGBBIS','RNCBBIS'] }], renderCheck: 'reer?.dates?.length > 0', renderType: 'BisReerPanel' },
   ],
 
   crypto: [
@@ -195,14 +198,24 @@ export const PANEL_REGISTRY = {
     { id: 'defi', title: 'DeFi Chains', field: 'defiData', fieldPath: 'defiData', source: 'crypto.js', external: [{ name: 'DefiLlama', seriesIds: [] }], renderCheck: 'defiData && Object.keys(defiData).length > 0' },
     { id: 'funding', title: 'Funding & Positioning', field: 'fundingData', fieldPath: 'fundingData', source: 'crypto.js', external: [{ name: 'Bybit', seriesIds: [] }], renderCheck: 'fundingData && Object.keys(fundingData).length > 0' },
     { id: 'onchain', title: 'On-Chain Metrics', field: 'onChainData', fieldPath: 'onChainData', source: 'crypto.js', external: [{ name: 'Mempool.space / Etherscan', seriesIds: [] }], renderCheck: 'onChainData && Object.keys(onChainData).length > 0' },
+    { id: 'stablecoin-composition', title: 'Stablecoin Composition', field: 'stablecoinMcap', fieldPath: 'stablecoinMcap', source: 'crypto.js (DeFi Llama)', external: [{ name: 'DeFi Llama', seriesIds: [] }], renderCheck: 'stablecoinMcap != null', renderType: 'StablecoinCompositionPanel' },
+    { id: 'defi-tvl-trend', title: 'DeFi TVL Trend', field: 'defiData', fieldPath: 'defiData.chains', source: 'crypto.js (DeFi Llama)', external: [{ name: 'DeFi Llama', seriesIds: [] }], renderCheck: 'defiData?.chains?.length > 0', renderType: 'DefiTvlTrendPanel' },
+    { id: 'btc-onchain', title: 'BTC On-Chain Activity', field: 'onChainData', fieldPath: 'onChainData', source: 'crypto.js (mempool.space)', external: [{ name: 'Mempool.space', seriesIds: [] }], renderCheck: 'onChainData != null', renderType: 'BtcOnChainPanel' },
   ],
 
   equities: [
+    { id: 'kpi', title: 'Key Indices', field: 'indices', fieldPath: 'indices', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: ['^GSPC','^IXIC','^DJI','^RUT','^STOXX50E','^N225','^HSI'] }], renderCheck: 'indexQuotes && Object.keys(indexQuotes).length > 0', renderType: 'KeyIndicesStrip' },
+    { id: 'sidebar', title: 'Market Summary', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'Sidebar' },
     { id: 'key-indices', title: 'Key Indices', field: 'indices', fieldPath: 'indices', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: ['^GSPC','^IXIC','^DJI'] }], renderCheck: 'indices && indices.length > 0' },
     { id: 'heatmap', title: 'Heatmap', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'HeatmapView' },
     { id: 'bar-race', title: 'Bar Race', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'BarRaceView' },
     { id: 'list', title: 'List View', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'ListView' },
     { id: 'portfolio', title: 'Portfolio Tracker', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0' },
+    { id: 'ml-explorer', title: 'ML Explorer', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js + equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'flatData && flatData.length > 0', renderType: 'MLExplorer' },
+    { id: 'radar', title: 'Factor Radar', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'flatData && flatData.length > 0', renderType: 'RadarView' },
+    { id: 'sec-fundamentals', title: 'SEC Fundamentals', field: '(cross-market: edgar)', fieldPath: 'edgarCtx.data', source: 'edgar.js (SEC EDGAR XBRL)', external: [{ name: 'SEC EDGAR', seriesIds: [] }], renderCheck: 'edgarRows && edgarRows.length > 0', renderType: 'BentoCard table' },
+    { id: 'bea-corporate-profits', title: 'BEA Corporate Profits', field: '(cross-market: bea)', fieldPath: 'beaCtx.data.gdpComponents', source: 'bea.js', external: [{ name: 'Bureau of Economic Analysis', seriesIds: [] }], renderCheck: 'beaCtx?.data?.gdpComponents?.length > 0', renderType: 'BentoCard table' },
+    { id: 'wb-market-cap', title: 'World Bank Market Cap', field: '(cross-market: worldbank)', fieldPath: 'wbCtx.data.countries', source: 'worldbank.js', external: [{ name: 'World Bank', seriesIds: ['CM.MKT.LCAP.GD.ZS'] }], renderCheck: 'wbCtx?.data?.countries?.length > 0', renderType: 'BentoCard table' },
     {
       id: 'universe-updates', title: 'Universe Expansion Queue',
       field: 'updates', fieldPath: 'updates',
@@ -242,12 +255,18 @@ export const PANEL_REGISTRY = {
   ],
 
   derivatives: [
+    { id: 'kpi', title: 'Derivatives Key Metrics', field: 'vixTermStructure', fieldPath: 'vixTermStructure', source: 'derivatives.js', external: [{ name: 'Yahoo Finance / FRED', seriesIds: ['VIXCLS'] }], renderCheck: 'vixTermStructure != null', renderType: 'KPI strip' },
+    { id: 'metrics', title: 'Key Metrics', field: 'vixTermStructure', fieldPath: 'vixTermStructure', source: 'derivatives.js', external: [{ name: 'Yahoo Finance / FRED', seriesIds: ['VIXCLS'] }], renderCheck: 'vixTermStructure != null', renderType: 'KPI strip' },
     { id: 'vix-term', title: 'VIX Term Structure', field: 'vixTermStructure', fieldPath: 'vixTermStructure', source: 'derivatives.js', external: [{ name: 'Yahoo Finance / FRED', seriesIds: ['VIXCLS'] }], renderCheck: 'vixTermStructure && vixTermStructure.length > 0' },
+    { id: 'vix1y', title: 'VIX — 1 Year', field: 'fredVixHistory', fieldPath: 'fredVixHistory', source: 'derivatives.js', external: [{ name: 'FRED', seriesIds: ['VIXCLS'] }], renderCheck: 'fredVixHistory?.values?.length > 0', renderType: 'SafeECharts' },
+    { id: 'skew', title: 'Skew Index', field: 'skewIndex', fieldPath: 'skewIndex', source: 'derivatives.js', external: [{ name: 'CBOE / FRED', seriesIds: ['SKEW'] }], renderCheck: 'skewIndex != null' },
     { id: 'vol-surface', title: 'Vol Surface', field: 'volSurfaceData', fieldPath: 'volSurfaceData', source: 'derivatives.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'volSurfaceData && Object.keys(volSurfaceData).length > 0' },
     { id: 'options-flow', title: 'Options Flow', field: 'optionsFlow', fieldPath: 'optionsFlow', source: 'derivatives.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'optionsFlow && Object.keys(optionsFlow).length > 0' },
     { id: 'gamma', title: 'Gamma Exposure', field: 'gammaExposure', fieldPath: 'gammaExposure', source: 'derivatives.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'gammaExposure && Object.keys(gammaExposure).length > 0' },
+    { id: 'volprem', title: 'Vol Premium', field: 'volPremium', fieldPath: 'volPremium', source: 'derivatives.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'volPremium != null' },
     { id: 'cftc-tff', title: 'CFTC Financial Futures', field: 'contracts', fieldPath: 'contracts', crossMarket: 'cftcTFF', source: 'cftcTFF.js', external: [{ name: 'CFTC Socrata', seriesIds: [] }], renderCheck: 'cftcTFFCtx?.data?.contracts && Object.keys(cftcTFFCtx.data.contracts).length > 0' },
     { id: 'bis-otc', title: 'BIS OTC Derivatives', field: 'categories', fieldPath: 'categories', crossMarket: 'bisOTC', source: 'bisOTC.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'bisOTCCtx?.data?.categories && Object.keys(bisOTCCtx.data.categories).length > 0' },
+    { id: 'ecb-derivatives', title: 'ECB Financial Market Data', field: '(cross-market: ecb)', fieldPath: 'ecbCtx.data', source: 'ecb.js', external: [{ name: 'ECB SDW', seriesIds: [] }], renderCheck: 'ecbCtx?.data?.policyRates != null', renderType: 'BentoCard table' },
   ],
 
   realEstate: [
@@ -256,6 +275,9 @@ export const PANEL_REGISTRY = {
     { id: 'affordability', title: 'Affordability Map', field: 'housingAffordability', fieldPath: 'housingAffordability', source: 'realEstate.js', external: [{ name: 'FRED / NAR', seriesIds: ['MEHOINUSA672N'] }], renderCheck: 'housingAffordability && Object.keys(housingAffordability).length > 0' },
     { id: 'cap-rate', title: 'Cap Rate Monitor', field: 'capRateData', fieldPath: 'capRateData', source: 'realEstate.js', external: [{ name: 'FRED', seriesIds: ['MORTGAGE30US','DGS10'] }], renderCheck: 'capRateData && Object.keys(capRateData).length > 0' },
     { id: 'fhfa-hpi', title: 'FHFA House Price Index', field: 'fhfaHpi', fieldPath: 'fhfaHpi', source: 'realEstate.js', external: [{ name: 'FRED', seriesIds: ['USSTHPI'] }], renderCheck: 'fhfaHpi?.values?.length > 0' },
+    { id: 'bis-property-prices', title: 'BIS Property Price Comparison', field: 'priceIndexData', fieldPath: 'priceIndexData', source: 'realEstate.js (BIS/FRED)', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'priceIndexData && Object.keys(priceIndexData).length > 0', renderType: 'BisPropertyPricePanel' },
+    { id: 'metro-case-shiller', title: 'Metro Case-Shiller', field: 'caseShillerData', fieldPath: 'caseShillerData.metros', source: 'realEstate.js (FRED)', external: [{ name: 'FRED', seriesIds: ['SFXRSA','NYXRSA','LXXRSA','MIXRSA','CHXRSA'] }], renderCheck: 'caseShillerData?.metros && Object.keys(caseShillerData.metros).length > 0', renderType: 'MetroCaseShillerPanel' },
+    { id: 'hud-affordability-by-metro', title: 'HUD Affordability by Metro', field: 'hudData', fieldPath: 'hudData', source: 'realEstate.js (HUD/Census)', external: [{ name: 'HUD', seriesIds: [] }], renderCheck: 'Array.isArray(hudData) && hudData.length > 0', renderType: 'HudAffordabilityPanel' },
   ],
 
   insurance: [
@@ -263,6 +285,9 @@ export const PANEL_REGISTRY = {
     { id: 'combined-ratio', title: 'Combined Ratio', field: 'combinedRatioData', fieldPath: 'combinedRatioData', source: 'insurance.js', external: [{ name: 'FRED / SEC EDGAR', seriesIds: [] }], renderCheck: 'combinedRatioData && Object.keys(combinedRatioData).length > 0' },
     { id: 'reinsurance', title: 'Reinsurance Pricing', field: 'reinsurancePricing', fieldPath: 'reinsurancePricing', source: 'insurance.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'reinsurancePricing && reinsurancePricing.length > 0' },
     { id: 'reserve', title: 'Reserve Adequacy', field: 'reserveAdequacyData', fieldPath: 'reserveAdequacyData', source: 'insurance.js', external: [{ name: 'FRED / SEC EDGAR', seriesIds: [] }], renderCheck: 'reserveAdequacyData && Object.keys(reserveAdequacyData).length > 0' },
+    { id: 'wb-ins-penetration', title: 'World Bank Insurance Penetration', field: '(cross-market: worldbank)', fieldPath: 'wbCtx.data.countries', source: 'worldbank.js', external: [{ name: 'World Bank', seriesIds: ['GFDD.DI.09','GFDD.DI.10'] }], renderCheck: 'wbCtx?.data?.countries?.length > 0', renderType: 'WbInsurancePenetrationPanel' },
+    { id: 'fema-disasters', title: 'FEMA Disaster Declarations', field: '(cross-market: fema)', fieldPath: 'femaCtx.data.declarations', source: 'fema.js', external: [{ name: 'FEMA', seriesIds: [] }], renderCheck: 'femaCtx?.data?.declarations?.length > 0', renderType: 'FemaDisasterPanel' },
+    { id: 'usgs-earthquakes', title: 'USGS Earthquake Activity', field: '(cross-market: usgs)', fieldPath: 'usgsCtx.data.events', source: 'usgs.js', external: [{ name: 'USGS', seriesIds: [] }], renderCheck: 'usgsCtx?.data?.events?.length > 0', renderType: 'UsgsEarthquakePanel' },
   ],
 
   commodities: [
@@ -315,6 +340,8 @@ export const PANEL_REGISTRY = {
     { id: 'bis-total-credit', title: 'BIS Total Credit', field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', crossMarket: 'globalMacro', source: 'globalMacro.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'macroCtx?.data?.bisCreditToGDP && Object.keys(macroCtx.data.bisCreditToGDP).length > 0' },
     { id: 'fdic-summary', title: 'FDIC Banking Summary', field: 'summary', fieldPath: 'summary', crossMarket: 'fdic', source: 'fdic.js', external: [{ name: 'FDIC', seriesIds: [] }], renderCheck: 'fdicCtx?.data?.summary' },
     { id: 'ted-spread', title: 'TED Spread', field: 'tedSpread', fieldPath: 'tedSpread', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['TEDRATE'] }], renderCheck: 'tedSpread && tedSpread.values?.length > 0' },
+    { id: 'wb-debt', title: 'World Bank Debt Statistics', field: '(cross-market: worldbank)', fieldPath: 'wbCtx.data.countries', source: 'worldbank.js', external: [{ name: 'World Bank', seriesIds: ['NY.GDP.MKTP.KD.ZG','NE.TRD.GNFS.ZS'] }], renderCheck: 'wbCtx?.data?.countries?.length > 0', renderType: 'WorldBankDebtPanel' },
+    { id: 'treasury-credit-holdings', title: 'Treasury Credit Holdings', field: '(cross-market: treasuryTIC)', fieldPath: 'ticCtx.data.latest', source: 'treasuryTIC.js', external: [{ name: 'US Treasury TIC', seriesIds: [] }], renderCheck: 'ticCtx?.data?.latest?.length > 0', renderType: 'TreasuryCreditHoldingsPanel' },
   ],
 
   sentiment: [

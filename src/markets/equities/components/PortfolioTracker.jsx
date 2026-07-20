@@ -226,7 +226,7 @@ export default function PortfolioTracker({ indexQuotes, onTickerSelect }) {
         
         {pieOption && (
           <div className="pf-chart-wrap" onMouseDown={(e) => e.stopPropagation()}>
-            <SafeECharts option={pieOption} style={{ height: '100%', width: '100%' }} />
+            <SafeECharts option={pieOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Portfolio Allocation', source: 'Yahoo Finance', endpoint: '/api/stocks', series: [], updatedAt: new Date().toISOString() }} />
           </div>
         )}
         

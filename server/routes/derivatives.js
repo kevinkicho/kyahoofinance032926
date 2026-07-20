@@ -21,7 +21,7 @@ async function buildVolAndGamma(spyPrice) {
     trackApiCall('Yahoo Finance');
     const idx = await yf.options('SPY');
     expirations = idx.expirationDates || [];
-  } catch { return null; }
+  } catch (e) { console.warn('[Derivatives] buildVolAndGamma failed:', e?.message); return null; }
 
   const now = Math.floor(Date.now() / 1000);
   const volGrid = [];

@@ -59,7 +59,10 @@ describe('Global Macro Route', () => {
 
   it('uses latest cache fallback when API calls fail', async () => {
     cache.readDailyCacheAsync.mockResolvedValueOnce(null);
-    cache.writeDailyCacheAsync.mockRejectedValueOnce(new Error('Trigger fallback path'));
+    const { trackApiCall } = await import('../lib/rateLimits.js');
+    trackApiCall.mockImplementationOnce(() => {
+      throw new Error('Trigger fallback path');
+    });
     const mockFallback = {
       data: { scorecard: { US: { gdpGrowth: 1.9 } } },
       fetchedOn: '2026-04-20',

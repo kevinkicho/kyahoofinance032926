@@ -33,6 +33,7 @@ export function makeCachedRouteHandler({
           fetchedOn: today,
           isCurrent: true,
           isLive: true,
+          _cacheSource: 'daily_file',
           ...(sources ? { _sources: sources } : {}),
         });
       }
@@ -50,6 +51,7 @@ export function makeCachedRouteHandler({
           fetchedOn: today,
           isCurrent: true,
           isLive: true,
+          _cacheSource: 'memory',
           ...(sources ? { _sources: sources } : {}),
         });
       }
@@ -71,6 +73,7 @@ export function makeCachedRouteHandler({
               isCurrent: false,
               isLive: false,
               _timeout: true,
+              _cacheSource: 'timeout_fallback',
             });
           }
           res.status(504).json({ error: `${marketName} upstream timeout`, isCurrent: false, isLive: false });
@@ -102,6 +105,7 @@ export function makeCachedRouteHandler({
           isCurrent: true,
           isLive: true,
           _errors,
+          _cacheSource: 'live',
           ...(sources ? { _sources: sources } : {}),
         });
       }
@@ -118,6 +122,7 @@ export function makeCachedRouteHandler({
             fetchedOn: fallback.fetchedOn,
             isCurrent: false,
             isLive: false,
+            _cacheSource: 'error_fallback',
           });
         }
       } catch (fallbackError) {

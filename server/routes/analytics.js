@@ -95,13 +95,13 @@ router.get('/', (req, res) => {
         : null;
       let fileSizeKB = null;
       if (latest?.data) {
-        try { fileSizeKB = Math.round(Buffer.byteLength(JSON.stringify(latest.data)) / 1024); } catch {}
+        try { fileSizeKB = Math.round(Buffer.byteLength(JSON.stringify(latest.data)) / 1024); } catch (e) { console.warn('[Analytics] fileSizeKB error:', e?.message); }
       }
       let keyCount = 0;
       try {
         const data = latest?.data;
         if (data && typeof data === 'object') keyCount = Object.keys(data).length;
-      } catch {}
+      } catch (e) { console.warn('[Analytics] keyCount error:', e?.message); }
       return {
         market,
         fetchedOn,
@@ -132,14 +132,14 @@ router.get('/', (req, res) => {
         const stat = fs.statSync(fp);
         size = stat.size;
         modified = stat.mtime.toISOString();
-      } catch {}
+      } catch (e) { console.warn('[Analytics] stat error:', e?.message); }
       const sizeKB = size > 0 ? Math.max(1, Math.round(size / 1024)) : 0;
       const sizeDisplay = size > 0 ? (size < 1024 ? `${size}B` : `${sizeKB}KB`) : '0';
       return { name: f, sizeKB, sizeDisplay, modified };
     });
     const totalSize = fileDetails.reduce((s, f) => s + (f.sizeKB || 0), 0);
     result.cacheFiles = { count: allFiles.length, totalSizeKB: totalSize, files: fileDetails.slice(0, 30) };
-  } catch {
+  } catch (e) { console.warn('[Analytics] cacheFiles error:', e?.message);
     result.cacheFiles = { count: 0, totalSizeKB: 0, files: [] };
   }
 
@@ -149,8 +149,8 @@ router.get('/', (req, res) => {
     if (memCache && typeof memCache.keys === 'function') {
       let keys = [];
       let hits = 0, misses = 0;
-      try { keys = memCache.keys() || []; } catch { keys = []; }
-      try { const stats = memCache.getStats(); if (stats) { hits = stats.hits || 0; misses = stats.misses || 0; } } catch {}
+      try { keys = memCache.keys() || []; } catch (e) { console.warn('[Analytics] memCache.keys error:', e?.message); keys = []; }
+      try { const stats = memCache.getStats(); if (stats) { hits = stats.hits || 0; misses = stats.misses || 0; } } catch (e) { console.warn('[Analytics] memCache.getStats error:', e?.message); }
       result.memCache = {
         keyCount: keys.length,
         keys: keys.sort().slice(0, 50),
@@ -161,7 +161,7 @@ router.get('/', (req, res) => {
     } else {
       result.memCache = { keyCount: 0, keys: [], hits: 0, misses: 0, hitRate: 0 };
     }
-  } catch {
+  } catch (e) { console.warn('[Analytics] memCache error:', e?.message);
     result.memCache = { keyCount: 0, keys: [], hits: 0, misses: 0, hitRate: 0 };
   }
 
@@ -219,17 +219,17 @@ router.get('/', (req, res) => {
                 const re = layer.regexp.source.replace(/^\\\/\?/, '').replace(/\\/g, '');
                 routerPrefix = prefix + '/' + re.replace(/\/?\?\$/, '');
               }
-            } catch {}
+      } catch (e) { console.warn('[Analytics] stat error:', e?.message); }
             extractRoutes(layer.handle.stack, routerPrefix);
           }
-        } catch {}
+        } catch (e) { console.warn('[Analytics] extractRoutes layer error:', e?.message); }
       }
     }
     if (req.app && req.app._router && req.app._router.stack) {
       extractRoutes(req.app._router.stack, '');
     }
     result.routes = routes;
-  } catch {
+  } catch (e) { console.warn('[Analytics] routes extraction error:', e?.message);
     result.routes = [];
   }
 
@@ -295,7 +295,7 @@ router.delete('/cache/:market', (req, res) => {
   }
   const files = fs.readdirSync(CACHE_DIR).filter(f => f.startsWith(`${market}-`) && f.endsWith('.json'));
   for (const f of files) {
-    try { fs.unlinkSync(path.join(CACHE_DIR, f)); } catch {}
+    try { fs.unlinkSync(path.join(CACHE_DIR, f)); } catch (e) { console.warn('[Analytics] unlink error:', e?.message); }
   }
   // Also clear from memory cache
   req.app.locals.cache?.del(`route_${market}`);

@@ -22,6 +22,8 @@ export const MARKET_PANELS = {
     { id: 'universe-updates', title: 'Universe Expansion Queue' },
     { id: 'sec-fundamentals', title: 'SEC Fundamentals' },
     { id: 'sec-filings', title: 'SEC Filing Activity' },
+    { id: 'bea-corporate-profits', title: 'BEA Corporate Profits' },
+    { id: 'wb-market-cap', title: 'World Bank Market Cap' },
   ],
   bonds: [
     { id: 'kpi', title: 'Bonds Key Metrics' },
@@ -56,6 +58,9 @@ export const MARKET_PANELS = {
     { id: 'ratediff', title: 'Rate Differentials' },
     { id: 'carry', title: 'Carry Map' },
     { id: 'rate-dashboard', title: 'Rate Dashboard' },
+    { id: 'imf-cofer', title: 'IMF COFER Reserves' },
+    { id: 'treasury-tic', title: 'Treasury TIC Holdings' },
+    { id: 'bis-reer', title: 'BIS REER Comparison' },
   ],
   derivatives: [
     { id: 'kpi', title: 'Derivatives Key Metrics' },
@@ -69,6 +74,7 @@ export const MARKET_PANELS = {
     { id: 'volprem', title: 'Vol Premium' },
     { id: 'cftc-tff', title: 'CFTC Financial Futures' },
     { id: 'bis-otc', title: 'BIS OTC Derivatives' },
+    { id: 'ecb-derivatives', title: 'ECB Financial Market Data' },
   ],
   realEstate: [
     { id: 'metrics', title: 'Key Metrics' },
@@ -88,6 +94,9 @@ export const MARKET_PANELS = {
     { id: 'census-trends-housing', title: 'Census Housing Trends' },
     { id: 'census-trends-trade', title: 'Census Trade Trends' },
     { id: 'fhfa-hpi', title: 'FHFA House Price Index' },
+    { id: 'bis-property-prices', title: 'BIS Property Price Comparison' },
+    { id: 'metro-case-shiller', title: 'Metro Case-Shiller' },
+    { id: 'hud-affordability-by-metro', title: 'HUD Affordability by Metro' },
   ],
   insurance: [
     { id: 'kpi', title: 'Insurance Key Metrics' },
@@ -105,6 +114,9 @@ export const MARKET_PANELS = {
     { id: 'cat-exposure', title: 'Cat Exposure' },
     { id: 'usgs-minerals', title: 'USGS Earthquake Activity (30d)' },
     { id: 'ecb-supervisory', title: 'ECB Policy Rates' },
+    { id: 'wb-ins-penetration', title: 'World Bank Insurance Penetration' },
+    { id: 'fema-disasters', title: 'FEMA Disaster Declarations' },
+    { id: 'usgs-earthquakes', title: 'USGS Earthquake Activity' },
   ],
   commodities: [
     { id: 'sidebar', title: 'Market Summary' },
@@ -177,6 +189,9 @@ export const MARKET_PANELS = {
     { id: 'exchanges', title: 'Top Exchanges' },
     { id: 'onchain', title: 'On-Chain Metrics' },
     { id: 'onchain-chart', title: 'BTC Hashrate (30d)' },
+    { id: 'stablecoin-composition', title: 'Stablecoin Composition' },
+    { id: 'defi-tvl-trend', title: 'DeFi TVL Trend' },
+    { id: 'btc-onchain', title: 'BTC On-Chain Activity' },
   ],
   credit: [
     { id: 'kpi', title: 'Credit Key Metrics' },
@@ -194,6 +209,9 @@ export const MARKET_PANELS = {
     { id: 'muni-market', title: 'US Municipal Bond Market (MSRB)' },
     { id: 'bank-stress', title: 'Bank Stress Monitor' },
     { id: 'ted-spread', title: 'TED Spread' },
+    { id: 'wb-debt', title: 'World Bank Debt Statistics' },
+    { id: 'bis-total-credit', title: 'BIS Total Credit' },
+    { id: 'treasury-credit-holdings', title: 'Treasury Credit Holdings' },
   ],
   sentiment: [
     { id: 'sidebar', title: 'Market Snapshot' },

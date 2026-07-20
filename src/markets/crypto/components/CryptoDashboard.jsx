@@ -5,6 +5,9 @@ import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import CryptoSidebar from './CryptoSidebar';
+import StablecoinCompositionPanel from './StablecoinCompositionPanel';
+import DefiTvlTrendPanel from './DefiTvlTrendPanel';
+import BtcOnChainPanel from './BtcOnChainPanel';
 import './CryptoDashboard.css';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
@@ -22,6 +25,9 @@ const LAYOUT = {
     { i: 'exchanges',     x: 4, y: 4, w: 4, h: 3 },
     { i: 'onchain',       x: 8, y: 4, w: 4, h: 3 },
     { i: 'onchain-chart', x: 0, y: 7, w: 12, h: 3 },
+    { i: 'stablecoin-composition', x: 0, y: 10, w: 4, h: 3 },
+    { i: 'defi-tvl-trend', x: 4, y: 10, w: 4, h: 3 },
+    { i: 'btc-onchain', x: 8, y: 10, w: 4, h: 3 },
   ]
 };
 
@@ -383,6 +389,15 @@ function CryptoDashboard({
             </div>
           </BentoCard>
         )}
+        <BentoCard key="stablecoin-composition" title="Stablecoin Composition" subtitle="Total market cap and dominance" accent="crypto" className="crypto-bento-card" contentClassName="crypto-panel-scroll" source="DeFi Llama" timestamp={lastUpdated} isLive={stablecoinMcap != null} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <StablecoinCompositionPanel />
+        </BentoCard>
+        <BentoCard key="defi-tvl-trend" title="DeFi TVL Trend" subtitle="TVL by chain with 7d change" accent="crypto" className="crypto-bento-card" contentClassName="crypto-panel-scroll" source="DeFi Llama" timestamp={lastUpdated} isLive={!!defiData?.chains?.length} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <DefiTvlTrendPanel />
+        </BentoCard>
+        <BentoCard key="btc-onchain" title="BTC On-Chain Activity" subtitle="Hashrate, mempool, difficulty, fees" accent="crypto" className="crypto-bento-card" contentClassName="crypto-panel-scroll" source="mempool.space" timestamp={lastUpdated} isLive={!!onChainData} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <BtcOnChainPanel />
+        </BentoCard>
       </BentoWrapper>
     </div>
   );

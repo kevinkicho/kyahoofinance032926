@@ -278,6 +278,101 @@ const SERIES_MAP = {
   eiaResidentialSales: { id: 'EIA/electricity/retail-sales/RES/sales', source: 'EIA', name: 'Residential Electricity Sales', url: '/api/eia' },
   eiaCommercialSales: { id: 'EIA/electricity/retail-sales/COM/sales', source: 'EIA', name: 'Commercial Electricity Sales', url: '/api/eia' },
   eiaIndustrialSales: { id: 'EIA/electricity/retail-sales/IND/sales', source: 'EIA', name: 'Industrial Electricity Sales', url: '/api/eia' },
+  // EDGAR fundamentals
+  edgarRevenue: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Revenue (SEC EDGAR)', url: '/api/edgar' },
+  edgarNetIncome: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Net Income (SEC EDGAR)', url: '/api/edgar' },
+  edgarTotalAssets: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Total Assets (SEC EDGAR)', url: '/api/edgar' },
+  edgarTotalLiabilities: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Total Liabilities (SEC EDGAR)', url: '/api/edgar' },
+  edgarOperatingIncome: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Operating Income (SEC EDGAR)', url: '/api/edgar' },
+  edgarFreeCashFlow: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Free Cash Flow (SEC EDGAR)', url: '/api/edgar' },
+  edgarCapex: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Capital Expenditure (SEC EDGAR)', url: '/api/edgar' },
+  edgarRAndD: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'R&D Expense (SEC EDGAR)', url: '/api/edgar' },
+  edgarInterestExpense: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Interest Expense (SEC EDGAR)', url: '/api/edgar' },
+  edgarCurrentAssets: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Current Assets (SEC EDGAR)', url: '/api/edgar' },
+  edgarCurrentLiabilities: { id: 'SEC EDGAR', source: 'SEC EDGAR XBRL', name: 'Current Liabilities (SEC EDGAR)', url: '/api/edgar' },
+  // BEA data
+  beaGdpNominal: { id: 'BEA T10101', source: 'Bureau of Economic Analysis', name: 'Real GDP by Component', url: '/api/bea' },
+  beaPersonalIncome: { id: 'BEA T20600', source: 'Bureau of Economic Analysis', name: 'Personal Income & Outlays', url: '/api/bea' },
+  beaSavingRate: { id: 'BEA T20600', source: 'Bureau of Economic Analysis', name: 'Personal Saving Rate', url: '/api/bea' },
+  // World Bank data
+  wbMarketCapGDP: { id: 'CM.MKT.LCAP.GD.ZS', source: 'World Bank', name: 'Market Capitalization % of GDP', url: '/api/worldbank' },
+  wbGdpGrowth: { id: 'NY.GDP.MKTP.KD.ZG', source: 'World Bank', name: 'GDP Growth (annual %)', url: '/api/worldbank' },
+  wbGdpPerCap: { id: 'NY.GDP.PCAP.CD', source: 'World Bank', name: 'GDP per Capita (USD)', url: '/api/worldbank' },
+  wbInflation: { id: 'FP.CPI.TOTL.ZG', source: 'World Bank', name: 'Inflation CPI (annual %)', url: '/api/worldbank' },
+  wbTradeGdp: { id: 'NE.TRD.GNFS.ZS', source: 'World Bank', name: 'Trade % of GDP', url: '/api/worldbank' },
+  wbPopulation: { id: 'SP.POP.TOTL', source: 'World Bank', name: 'Population (millions)', url: '/api/worldbank' },
+  // ECB data
+  ecbMainRefiRate: { id: 'ECB MRR_FR', source: 'ECB SDW', name: 'ECB Main Refinancing Rate', url: '/api/ecb' },
+  ecbDepositRate: { id: 'ECB DFR', source: 'ECB SDW', name: 'ECB Deposit Facility Rate', url: '/api/ecb' },
+  ecbMarginalLending: { id: 'ECB MLFR', source: 'ECB SDW', name: 'ECB Marginal Lending Rate', url: '/api/ecb' },
+  ecbM3Growth: { id: 'ECB M3', source: 'ECB SDW', name: 'M3 Monetary Aggregate YoY %', url: '/api/ecb' },
+  ecbHicp: { id: 'ECB HICP', source: 'ECB SDW', name: 'HICP Annual Rate of Change', url: '/api/ecb' },
+  // BIS OTC data
+  bisOTC_Total: { id: 'BIS DER_D1', source: 'BIS', name: 'Total OTC Derivatives Outstanding', url: '/api/bisOTC' },
+  bisOTC_FX: { id: 'BIS DER_D1', source: 'BIS', name: 'FX Derivatives Outstanding', url: '/api/bisOTC' },
+  bisOTC_IR: { id: 'BIS DER_D1', source: 'BIS', name: 'Interest Rate Derivatives Outstanding', url: '/api/bisOTC' },
+  bisOTC_Equity: { id: 'BIS DER_D1', source: 'BIS', name: 'Equity Derivatives Outstanding', url: '/api/bisOTC' },
+  bisOTC_CDS: { id: 'BIS DER_D1', source: 'BIS', name: 'Credit Default Swaps Outstanding', url: '/api/bisOTC' },
+  // IMF COFER
+  imfReserves: { id: 'IMF COFER', source: 'IMF', name: 'Total Allocated Reserves (USD B)', url: '/api/fx' },
+  imfUsdShare: { id: 'IMF COFER', source: 'IMF', name: 'USD Share of Allocated Reserves', url: '/api/fx' },
+  imfEurShare: { id: 'IMF COFER', source: 'IMF', name: 'EUR Share of Allocated Reserves', url: '/api/fx' },
+  imfJpyShare: { id: 'IMF COFER', source: 'IMF', name: 'JPY Share of Allocated Reserves', url: '/api/fx' },
+  imfGbpShare: { id: 'IMF COFER', source: 'IMF', name: 'GBP Share of Allocated Reserves', url: '/api/fx' },
+  imfCnyShare: { id: 'IMF COFER', source: 'IMF', name: 'CNY Share of Allocated Reserves', url: '/api/fx' },
+  // Treasury TIC
+  ticJapan: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'Japan Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  ticChina: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'China Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  ticUK: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'UK Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  ticTotal: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'Total Foreign Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  // BIS REER
+  reerUS: { id: 'RNBUSBIS', source: 'BIS/FRED', name: 'US Real Effective Exchange Rate', url: '/api/fx' },
+  reerEU: { id: 'RNBEBIS', source: 'BIS/FRED', name: 'Euro Area Real Effective Exchange Rate', url: '/api/fx' },
+  reerJP: { id: 'RNJPBIS', source: 'BIS/FRED', name: 'Japan Real Effective Exchange Rate', url: '/api/fx' },
+  reerGB: { id: 'RNGBBIS', source: 'BIS/FRED', name: 'UK Real Effective Exchange Rate', url: '/api/fx' },
+  reerCN: { id: 'RNCBBIS', source: 'BIS/FRED', name: 'China Real Effective Exchange Rate', url: '/api/fx' },
+  // World Bank debt
+  wbExternalDebt: { id: 'DT.DOD.DECT.CD', source: 'World Bank', name: 'External Debt Stocks (USD)', url: '/api/worldbank' },
+  wbGovDebtGDP: { id: 'GC.DOD.TOTL.GD.ZS', source: 'World Bank', name: 'Central Government Debt % of GDP', url: '/api/worldbank' },
+  wbCurrentAccount: { id: 'BN.CAB.XOKA.GD.ZS', source: 'World Bank', name: 'Current Account Balance % of GDP', url: '/api/worldbank' },
+  // BIS total credit
+  bisCreditToGDP_US: { id: 'BIS Total Credit', source: 'BIS', name: 'US Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
+  bisCreditToGDP_EU: { id: 'BIS Total Credit', source: 'BIS', name: 'Euro Area Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
+  bisCreditToGDP_JP: { id: 'BIS Total Credit', source: 'BIS', name: 'Japan Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
+  // Stablecoin data
+  stablecoinTotal: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'Total Stablecoin Market Cap', url: '/api/crypto' },
+  stablecoinUsdt: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'USDT Market Cap', url: '/api/crypto' },
+  stablecoinUsdc: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'USDC Market Cap', url: '/api/crypto' },
+  stablecoinDai: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'DAI Market Cap', url: '/api/crypto' },
+  // DeFi TVL
+  defiTvlEth: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'Ethereum DeFi TVL', url: '/api/crypto' },
+  defiTvlSol: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'Solana DeFi TVL', url: '/api/crypto' },
+  defiTvlBsc: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'BSC DeFi TVL', url: '/api/crypto' },
+  // On-chain
+  btcHashrate: { id: 'mempool.space', source: 'mempool.space', name: 'BTC Hashrate', url: '/api/crypto' },
+  btcMempool: { id: 'mempool.space', source: 'mempool.space', name: 'BTC Mempool Count', url: '/api/crypto' },
+  btcDifficulty: { id: 'mempool.space', source: 'mempool.space', name: 'BTC Difficulty Change', url: '/api/crypto' },
+  // BIS property prices
+  bisPropertyUS: { id: 'BIS', source: 'BIS/FRED', name: 'US Residential Property Price Index', url: '/api/realEstate' },
+  bisPropertyUK: { id: 'BIS', source: 'BIS/FRED', name: 'UK Residential Property Price Index', url: '/api/realEstate' },
+  bisPropertyDE: { id: 'BIS', source: 'BIS/FRED', name: 'Germany Residential Property Price Index', url: '/api/realEstate' },
+  bisPropertyJP: { id: 'BIS', source: 'BIS/FRED', name: 'Japan Residential Property Price Index', url: '/api/realEstate' },
+  // Metro Case-Shiller
+  caseShillerSF: { id: 'SFXRSA', source: 'FRED', name: 'San Francisco Home Price Index', url: '/api/realEstate' },
+  caseShillerNY: { id: 'NYXRSA', source: 'FRED', name: 'New York Home Price Index', url: '/api/realEstate' },
+  caseShillerLA: { id: 'LXXRSA', source: 'FRED', name: 'Los Angeles Home Price Index', url: '/api/realEstate' },
+  caseShillerMiami: { id: 'MIXRSA', source: 'FRED', name: 'Miami Home Price Index', url: '/api/realEstate' },
+  caseShillerChicago: { id: 'CHXRSA', source: 'FRED', name: 'Chicago Home Price Index', url: '/api/realEstate' },
+  // HUD affordability
+  hudRentIncome: { id: 'HUD', source: 'HUD/Census', name: 'Rent-to-Income Ratio by Metro', url: '/api/realEstate' },
+  hudHomeValue: { id: 'HUD', source: 'HUD/Census', name: 'Median Home Value by Metro', url: '/api/realEstate' },
+  // World Bank insurance
+  wbLifeIns: { id: 'GFDD.DI.09', source: 'World Bank', name: 'Life Insurance Premium % of GDP', url: '/api/worldbank' },
+  wbNonLifeIns: { id: 'GFDD.DI.10', source: 'World Bank', name: 'Non-Life Insurance Premium % of GDP', url: '/api/worldbank' },
+  // FEMA
+  femaDisasters: { id: 'OpenFEMA', source: 'FEMA', name: 'FEMA Disaster Declarations', url: '/api/fema' },
+  // USGS
+  usgsEarthquakes: { id: 'USGS', source: 'USGS', name: 'USGS Earthquake Activity', url: '/api/usgs' },
 };
 
 export function getSeriesInfo(key) {
