@@ -1,0 +1,93 @@
+# Global Market Hub — environment template
+#
+# Copy this file to `.env` and fill in your keys, OR run `node scripts/setup-env.js`
+# to be walked through it interactively. None of these are committed (`.env` is
+# in .gitignore). Routes that depend on a missing key fall through to a
+# "Data source temporarily unavailable" placeholder; the rest of the app
+# still runs.
+
+QUICK-STATS-API-KEY=79B77964-F47D-3F8B-A1E6-EDC5CA2E4347
+
+DATA-GOV-API-KEY=GOspRVQ1BY62sb60dx1OvRM4IZlvtXsPUNPK5VUd
+
+CENSUS-API-KEY=06c3555dbdc1c6d4c162c187bdb7e4bff97035b7
+
+# ───────────────────────────────────────────────────────────────────────
+# FRED — St. Louis Fed Federal Reserve Economic Data
+# Used by: bonds, commodities, credit, derivatives, equityDeepDive, fx,
+#          globalMacro, insurance, macro, realEstate, sentiment, calendar,
+#          and as a BLS fallback for the BLS tab.
+# Get a free key (instant, no review): https://fred.stlouisfed.org/docs/api/api_key.html
+FRED_API_KEY=01681186eb68c411f9c263f9ce6066f0
+
+# ───────────────────────────────────────────────────────────────────────
+# EIA — US Energy Information Administration
+# Used by: commodities (petroleum / natgas series), eia tab
+# Get a free key (instant): https://www.eia.gov/opendata/register.php
+EIA_API_KEY=LqsfRWCXVdDTlCvCTayIft2gRsqXxPE77dWR13YX
+
+# ───────────────────────────────────────────────────────────────────────
+# BLS — Bureau of Labor Statistics
+# Used by: bls tab, globalMacro (employment series).
+# Without it the bls route falls back to FRED mirrors automatically (FRED
+# carries every series we use), so this is optional if FRED_API_KEY is set.
+# Get a free key (instant): https://data.bls.gov/registrationEngine/
+BLS_API_KEY=fe327af0ae1a40d090dd58a364943e3f
+
+# ───────────────────────────────────────────────────────────────────────
+# BEA — US Bureau of Economic Analysis (NIPA detail)
+# Used by: /api/bea (GDP components, personal income, savings rate)
+# Get a free key (instant): https://apps.bea.gov/API/signup/
+BEA_API_KEY=A8563E19-7F72-4AB9-A63B-446D89D41B40
+
+# ───────────────────────────────────────────────────────────────────────
+# SEC EDGAR — XBRL company financial data
+# Used by: /api/edgar
+# SEC mandates a User-Agent identifying the requester. Format:
+#   "Your Name your@email.com" — not a key, just contact info.
+# Without this they'll throttle the generic UA aggressively.
+# https://www.sec.gov/os/accessing-edgar-data
+EDGAR_USER_AGENT=KEVINKICHO@GMAIL.COM
+
+# ───────────────────────────────────────────────────────────────────────
+# Finnhub — IPO Calendar Data
+# Used by: universeUpdates (Auto-discovery of new IPOs)
+# Get a free key (60 calls/min limit): https://finnhub.io/
+FINNHUB_API_KEY=d8ple2pr01qujv4irklgd8ple2pr01qujv4irkm0
+
+# ───────────────────────────────────────────────────────────────────────
+# Yahoo Finance OAuth — only required if you switch the Yahoo client
+# from the public scrape path to authenticated calls (currently unused
+# by the default code path; safe to leave blank).
+YAHOO_APP_ID=
+YAHOO_CLIENT_ID=
+YAHOO_CLIENT_SECRET=
+YAHOO_APP_NAME=
+YAHOO_REDIRECT_URI=https://localhost:3001/auth/callback
+YAHOO_HOMEPAGE_URL=https://localhost:5173
+
+# ───────────────────────────────────────────────────────────────────────
+# Client-side keys (VITE_ prefix → bundled into the browser at build time;
+# only put values here that are SAFE to expose publicly).
+
+# When the frontend is deployed to static hosting (GitHub Pages, etc.) it cannot
+# use the local dev proxy. Set this to the *root* of your deployed Firebase
+# Functions (or Cloud Run) service so that all /api/* calls go to the real backend.
+#
+# After you run `firebase deploy --only functions`, the output will show the
+# correct URL for the `api` function. Example:
+#   https://us-central1-kfinance032926.cloudfunctions.net/api
+#
+# You can also set this as a GitHub Repository Variable (recommended for CI):
+#   Settings → Secrets and variables → Actions → Variables → New variable
+#   Name: VITE_API_BASE_URL
+#   Value: https://us-central1-kfinance032926.cloudfunctions.net/api
+VITE_API_BASE_URL=
+
+# Client-side Firebase config for secured admin refresh (optional, Google Auth)
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_PROJECT_ID=kfinance032926
+
+# reCAPTCHA Enterprise site key (public; safe to bundle). Backend verification
+# happens in Firebase Functions using the project service account.
+VITE_RECAPTCHA_ENTERPRISE_SITE_KEY=6Ldl3yYtAAAAAAmHpuYyoj1qMJyfrvlQFZNjf08f
