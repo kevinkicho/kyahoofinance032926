@@ -6,6 +6,8 @@
 // APIs happen to be available.
 import { test, expect } from '@playwright/test';
 
+const BASE = '/kyahoofinance032926/';
+
 test('▶ button triggers market fetches and the app stays interactive', async ({ page }) => {
   const apiCalls = [];
   page.on('request', (req) => {
@@ -13,7 +15,21 @@ test('▶ button triggers market fetches and the app stays interactive', async (
     if (url.includes('/api/') && !url.endsWith('/api/health')) apiCalls.push(url);
   });
 
-  await page.goto('/');
+  // Intercept RTDB snapshot calls — return mock data so DataProvider seeds markets
+  await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
+    const url = route.request().url();
+    if (url.includes('history.json?shallow=true')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ '2026-06-24': true }) });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] }, fetchedAt: '2026-06-24T12:00:00Z' }),
+    });
+  });
+
+  await page.goto(BASE);
   await expect(page.getByRole('tab', { name: /Equities market/i })).toBeVisible();
 
   // Click the ▶ refresh button (aria-label: "Refresh data now").
