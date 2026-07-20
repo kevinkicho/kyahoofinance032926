@@ -170,7 +170,7 @@ test.beforeEach(async ({ page }) => {
         hitRate: 92
       },
       errorLog: [
-        { timestamp: '2026-06-24T12:00:00Z', error: 'Database connection reset' }
+        { timestamp: '2026-06-24T12:00:00Z', error: 'Database connection reset', status: 503, method: 'GET', path: '/api/fred' }
       ],
       environment: {
         nodeVersion: 'v22.22.3',
