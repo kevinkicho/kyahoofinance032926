@@ -84,9 +84,18 @@ test.describe('Mocked-API data correctness', () => {
   test.slow();
 
   test.beforeEach(async ({ page }) => {
-    // Intercept RTDB snapshot calls to force live fetches of /api/*
+    // Intercept RTDB snapshot calls — return mock data so DataProvider seeds markets
     await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
-      await route.fulfill({ status: 404, contentType: 'application/json', body: 'null' });
+      const url = route.request().url();
+      if (url.includes('history.json?shallow=true')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ '2026-06-24': true }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] }, fetchedAt: '2026-06-24T12:00:00Z' }),
+      });
     });
     // Intercept all other /api/ calls to avoid hitting the throttled backend
     await page.route(/\/api\//, async (route) => {
