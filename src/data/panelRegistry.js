@@ -198,6 +198,9 @@ export const PANEL_REGISTRY = {
     { id: 'defi', title: 'DeFi Chains', field: 'defiData', fieldPath: 'defiData', source: 'crypto.js', external: [{ name: 'DefiLlama', seriesIds: [] }], renderCheck: 'defiData && Object.keys(defiData).length > 0' },
     { id: 'funding', title: 'Funding & Positioning', field: 'fundingData', fieldPath: 'fundingData', source: 'crypto.js', external: [{ name: 'Bybit', seriesIds: [] }], renderCheck: 'fundingData && Object.keys(fundingData).length > 0' },
     { id: 'onchain', title: 'On-Chain Metrics', field: 'onChainData', fieldPath: 'onChainData', source: 'crypto.js', external: [{ name: 'Mempool.space / Etherscan', seriesIds: [] }], renderCheck: 'onChainData && Object.keys(onChainData).length > 0' },
+    { id: 'stablecoin-composition', title: 'Stablecoin Composition', field: 'stablecoinMcap', fieldPath: 'stablecoinMcap', source: 'crypto.js (DeFi Llama)', external: [{ name: 'DeFi Llama', seriesIds: [] }], renderCheck: 'stablecoinMcap != null', renderType: 'StablecoinCompositionPanel' },
+    { id: 'defi-tvl-trend', title: 'DeFi TVL Trend', field: 'defiData', fieldPath: 'defiData.chains', source: 'crypto.js (DeFi Llama)', external: [{ name: 'DeFi Llama', seriesIds: [] }], renderCheck: 'defiData?.chains?.length > 0', renderType: 'DefiTvlTrendPanel' },
+    { id: 'btc-onchain', title: 'BTC On-Chain Activity', field: 'onChainData', fieldPath: 'onChainData', source: 'crypto.js (mempool.space)', external: [{ name: 'Mempool.space', seriesIds: [] }], renderCheck: 'onChainData != null', renderType: 'BtcOnChainPanel' },
   ],
 
   equities: [
@@ -272,6 +275,9 @@ export const PANEL_REGISTRY = {
     { id: 'affordability', title: 'Affordability Map', field: 'housingAffordability', fieldPath: 'housingAffordability', source: 'realEstate.js', external: [{ name: 'FRED / NAR', seriesIds: ['MEHOINUSA672N'] }], renderCheck: 'housingAffordability && Object.keys(housingAffordability).length > 0' },
     { id: 'cap-rate', title: 'Cap Rate Monitor', field: 'capRateData', fieldPath: 'capRateData', source: 'realEstate.js', external: [{ name: 'FRED', seriesIds: ['MORTGAGE30US','DGS10'] }], renderCheck: 'capRateData && Object.keys(capRateData).length > 0' },
     { id: 'fhfa-hpi', title: 'FHFA House Price Index', field: 'fhfaHpi', fieldPath: 'fhfaHpi', source: 'realEstate.js', external: [{ name: 'FRED', seriesIds: ['USSTHPI'] }], renderCheck: 'fhfaHpi?.values?.length > 0' },
+    { id: 'bis-property-prices', title: 'BIS Property Price Comparison', field: 'priceIndexData', fieldPath: 'priceIndexData', source: 'realEstate.js (BIS/FRED)', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'priceIndexData && Object.keys(priceIndexData).length > 0', renderType: 'BisPropertyPricePanel' },
+    { id: 'metro-case-shiller', title: 'Metro Case-Shiller', field: 'caseShillerData', fieldPath: 'caseShillerData.metros', source: 'realEstate.js (FRED)', external: [{ name: 'FRED', seriesIds: ['SFXRSA','NYXRSA','LXXRSA','MIXRSA','CHXRSA'] }], renderCheck: 'caseShillerData?.metros && Object.keys(caseShillerData.metros).length > 0', renderType: 'MetroCaseShillerPanel' },
+    { id: 'hud-affordability-by-metro', title: 'HUD Affordability by Metro', field: 'hudData', fieldPath: 'hudData', source: 'realEstate.js (HUD/Census)', external: [{ name: 'HUD', seriesIds: [] }], renderCheck: 'Array.isArray(hudData) && hudData.length > 0', renderType: 'HudAffordabilityPanel' },
   ],
 
   insurance: [
@@ -279,6 +285,9 @@ export const PANEL_REGISTRY = {
     { id: 'combined-ratio', title: 'Combined Ratio', field: 'combinedRatioData', fieldPath: 'combinedRatioData', source: 'insurance.js', external: [{ name: 'FRED / SEC EDGAR', seriesIds: [] }], renderCheck: 'combinedRatioData && Object.keys(combinedRatioData).length > 0' },
     { id: 'reinsurance', title: 'Reinsurance Pricing', field: 'reinsurancePricing', fieldPath: 'reinsurancePricing', source: 'insurance.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'reinsurancePricing && reinsurancePricing.length > 0' },
     { id: 'reserve', title: 'Reserve Adequacy', field: 'reserveAdequacyData', fieldPath: 'reserveAdequacyData', source: 'insurance.js', external: [{ name: 'FRED / SEC EDGAR', seriesIds: [] }], renderCheck: 'reserveAdequacyData && Object.keys(reserveAdequacyData).length > 0' },
+    { id: 'wb-ins-penetration', title: 'World Bank Insurance Penetration', field: '(cross-market: worldbank)', fieldPath: 'wbCtx.data.countries', source: 'worldbank.js', external: [{ name: 'World Bank', seriesIds: ['GFDD.DI.09','GFDD.DI.10'] }], renderCheck: 'wbCtx?.data?.countries?.length > 0', renderType: 'WbInsurancePenetrationPanel' },
+    { id: 'fema-disasters', title: 'FEMA Disaster Declarations', field: '(cross-market: fema)', fieldPath: 'femaCtx.data.declarations', source: 'fema.js', external: [{ name: 'FEMA', seriesIds: [] }], renderCheck: 'femaCtx?.data?.declarations?.length > 0', renderType: 'FemaDisasterPanel' },
+    { id: 'usgs-earthquakes', title: 'USGS Earthquake Activity', field: '(cross-market: usgs)', fieldPath: 'usgsCtx.data.events', source: 'usgs.js', external: [{ name: 'USGS', seriesIds: [] }], renderCheck: 'usgsCtx?.data?.events?.length > 0', renderType: 'UsgsEarthquakePanel' },
   ],
 
   commodities: [

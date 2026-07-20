@@ -339,6 +339,40 @@ const SERIES_MAP = {
   bisCreditToGDP_US: { id: 'BIS Total Credit', source: 'BIS', name: 'US Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
   bisCreditToGDP_EU: { id: 'BIS Total Credit', source: 'BIS', name: 'Euro Area Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
   bisCreditToGDP_JP: { id: 'BIS Total Credit', source: 'BIS', name: 'Japan Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
+  // Stablecoin data
+  stablecoinTotal: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'Total Stablecoin Market Cap', url: '/api/crypto' },
+  stablecoinUsdt: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'USDT Market Cap', url: '/api/crypto' },
+  stablecoinUsdc: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'USDC Market Cap', url: '/api/crypto' },
+  stablecoinDai: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'DAI Market Cap', url: '/api/crypto' },
+  // DeFi TVL
+  defiTvlEth: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'Ethereum DeFi TVL', url: '/api/crypto' },
+  defiTvlSol: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'Solana DeFi TVL', url: '/api/crypto' },
+  defiTvlBsc: { id: 'DeFi Llama', source: 'DeFi Llama', name: 'BSC DeFi TVL', url: '/api/crypto' },
+  // On-chain
+  btcHashrate: { id: 'mempool.space', source: 'mempool.space', name: 'BTC Hashrate', url: '/api/crypto' },
+  btcMempool: { id: 'mempool.space', source: 'mempool.space', name: 'BTC Mempool Count', url: '/api/crypto' },
+  btcDifficulty: { id: 'mempool.space', source: 'mempool.space', name: 'BTC Difficulty Change', url: '/api/crypto' },
+  // BIS property prices
+  bisPropertyUS: { id: 'BIS', source: 'BIS/FRED', name: 'US Residential Property Price Index', url: '/api/realEstate' },
+  bisPropertyUK: { id: 'BIS', source: 'BIS/FRED', name: 'UK Residential Property Price Index', url: '/api/realEstate' },
+  bisPropertyDE: { id: 'BIS', source: 'BIS/FRED', name: 'Germany Residential Property Price Index', url: '/api/realEstate' },
+  bisPropertyJP: { id: 'BIS', source: 'BIS/FRED', name: 'Japan Residential Property Price Index', url: '/api/realEstate' },
+  // Metro Case-Shiller
+  caseShillerSF: { id: 'SFXRSA', source: 'FRED', name: 'San Francisco Home Price Index', url: '/api/realEstate' },
+  caseShillerNY: { id: 'NYXRSA', source: 'FRED', name: 'New York Home Price Index', url: '/api/realEstate' },
+  caseShillerLA: { id: 'LXXRSA', source: 'FRED', name: 'Los Angeles Home Price Index', url: '/api/realEstate' },
+  caseShillerMiami: { id: 'MIXRSA', source: 'FRED', name: 'Miami Home Price Index', url: '/api/realEstate' },
+  caseShillerChicago: { id: 'CHXRSA', source: 'FRED', name: 'Chicago Home Price Index', url: '/api/realEstate' },
+  // HUD affordability
+  hudRentIncome: { id: 'HUD', source: 'HUD/Census', name: 'Rent-to-Income Ratio by Metro', url: '/api/realEstate' },
+  hudHomeValue: { id: 'HUD', source: 'HUD/Census', name: 'Median Home Value by Metro', url: '/api/realEstate' },
+  // World Bank insurance
+  wbLifeIns: { id: 'GFDD.DI.09', source: 'World Bank', name: 'Life Insurance Premium % of GDP', url: '/api/worldbank' },
+  wbNonLifeIns: { id: 'GFDD.DI.10', source: 'World Bank', name: 'Non-Life Insurance Premium % of GDP', url: '/api/worldbank' },
+  // FEMA
+  femaDisasters: { id: 'OpenFEMA', source: 'FEMA', name: 'FEMA Disaster Declarations', url: '/api/fema' },
+  // USGS
+  usgsEarthquakes: { id: 'USGS', source: 'USGS', name: 'USGS Earthquake Activity', url: '/api/usgs' },
 };
 
 export function getSeriesInfo(key) {

@@ -4,6 +4,9 @@ import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import BisPropertyPricePanel from './BisPropertyPricePanel';
+import MetroCaseShillerPanel from './MetroCaseShillerPanel';
+import HudAffordabilityPanel from './HudAffordabilityPanel';
 import {
   HousingPanel as CensusHousingPanel,
   TradePanel as CensusTradePanel,
@@ -392,6 +395,15 @@ function RealEstateDashboard({
   // fhfaHpi is now received as a direct prop
   if (fhfaHpi?.values?.length > 0) {
     layoutItems.push({ i: 'fhfa-hpi', x: 0, y: censusY + 7, w: 6, h: 3 });
+  }
+  if (priceIndexData && Object.keys(priceIndexData).length > 0) {
+    layoutItems.push({ i: 'bis-property-prices', x: 6, y: censusY + 7, w: 6, h: 3 });
+  }
+  if (caseShillerData?.metros && Object.keys(caseShillerData.metros).length > 0) {
+    layoutItems.push({ i: 'metro-case-shiller', x: 0, y: censusY + 10, w: 6, h: 3 });
+  }
+  if (Array.isArray(hudData) && hudData.length > 0) {
+    layoutItems.push({ i: 'hud-affordability-by-metro', x: 6, y: censusY + 10, w: 6, h: 3 });
   }
 
   const dynamicLayout = { lg: layoutItems };
@@ -939,6 +951,21 @@ function RealEstateDashboard({
                 />
               </div>
             </div>
+          </BentoCard>
+        )}
+        {priceIndexData && Object.keys(priceIndexData).length > 0 && (
+          <BentoCard key="bis-property-prices" title="BIS Property Price Comparison" subtitle="Residential property price indices" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="BIS / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <BisPropertyPricePanel />
+          </BentoCard>
+        )}
+        {caseShillerData?.metros && Object.keys(caseShillerData.metros).length > 0 && (
+          <BentoCard key="metro-case-shiller" title="Metro Case-Shiller" subtitle="Metro-level home price indices" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="S&P CoreLogic / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <MetroCaseShillerPanel />
+          </BentoCard>
+        )}
+        {Array.isArray(hudData) && hudData.length > 0 && (
+          <BentoCard key="hud-affordability-by-metro" title="HUD Affordability by Metro" subtitle="Rent-to-income ratios and home values" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="HUD / Census" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+            <HudAffordabilityPanel />
           </BentoCard>
         )}
       </BentoWrapper>

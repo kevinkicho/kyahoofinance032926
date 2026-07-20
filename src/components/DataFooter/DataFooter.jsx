@@ -168,6 +168,15 @@ const SOURCE_META = {
   reer: { desc: 'BIS real effective exchange rates — trade-weighted currency valuation for major economies', series: [] },
   worldBankDebt: { desc: 'World Bank International Debt Statistics — external debt stocks, central government debt % of GDP, current account balance', series: [] },
   bisTotalCredit: { desc: 'BIS total credit to non-financial sector as % of GDP — credit-to-GDP gaps for major economies', series: [] },
+  stablecoinData: { desc: 'DeFi Llama stablecoin data — total market cap and per-coin breakdown (USDT, USDC, DAI)', series: [] },
+  defiTvl: { desc: 'DeFi Llama — total value locked by chain (Ethereum, Solana, BSC, etc.)', series: [] },
+  onChainMetrics: { desc: 'mempool.space — BTC on-chain data: hashrate, mempool count, difficulty, fee levels', series: [] },
+  bisPropertyPrices: { desc: 'BIS residential property price indices — international comparison (US, UK, DE, AU, CA, JP)', series: [] },
+  caseShillerMetros: { desc: 'S&P CoreLogic Case-Shiller metro-level home price indices (SF, NY, LA, Miami, Chicago)', series: [] },
+  hudAffordability: { desc: 'HUD/Census — metro-level rent-to-income ratios, median home values, and affordability metrics', series: [] },
+  wbInsurancePenetration: { desc: 'World Bank — life and non-life insurance premium as % of GDP for major economies', series: [] },
+  femaDisasters: { desc: 'OpenFEMA — US disaster declarations by type and state', series: [] },
+  usgsEarthquakes: { desc: 'USGS — recent significant earthquake events (M4.5+) with magnitude, location, depth', series: [] },
 };
 
 function resolveMeta(key) {

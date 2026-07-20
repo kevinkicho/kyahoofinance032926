@@ -94,6 +94,9 @@ export const MARKET_PANELS = {
     { id: 'census-trends-housing', title: 'Census Housing Trends' },
     { id: 'census-trends-trade', title: 'Census Trade Trends' },
     { id: 'fhfa-hpi', title: 'FHFA House Price Index' },
+    { id: 'bis-property-prices', title: 'BIS Property Price Comparison' },
+    { id: 'metro-case-shiller', title: 'Metro Case-Shiller' },
+    { id: 'hud-affordability-by-metro', title: 'HUD Affordability by Metro' },
   ],
   insurance: [
     { id: 'kpi', title: 'Insurance Key Metrics' },
@@ -111,6 +114,9 @@ export const MARKET_PANELS = {
     { id: 'cat-exposure', title: 'Cat Exposure' },
     { id: 'usgs-minerals', title: 'USGS Earthquake Activity (30d)' },
     { id: 'ecb-supervisory', title: 'ECB Policy Rates' },
+    { id: 'wb-ins-penetration', title: 'World Bank Insurance Penetration' },
+    { id: 'fema-disasters', title: 'FEMA Disaster Declarations' },
+    { id: 'usgs-earthquakes', title: 'USGS Earthquake Activity' },
   ],
   commodities: [
     { id: 'sidebar', title: 'Market Summary' },
@@ -183,6 +189,9 @@ export const MARKET_PANELS = {
     { id: 'exchanges', title: 'Top Exchanges' },
     { id: 'onchain', title: 'On-Chain Metrics' },
     { id: 'onchain-chart', title: 'BTC Hashrate (30d)' },
+    { id: 'stablecoin-composition', title: 'Stablecoin Composition' },
+    { id: 'defi-tvl-trend', title: 'DeFi TVL Trend' },
+    { id: 'btc-onchain', title: 'BTC On-Chain Activity' },
   ],
   credit: [
     { id: 'kpi', title: 'Credit Key Metrics' },
