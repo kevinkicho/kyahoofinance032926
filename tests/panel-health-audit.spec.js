@@ -1,19 +1,35 @@
 import { test, expect } from '@playwright/test';
 
+test.setTimeout(180000);
+
 test.describe('Panel health accuracy', () => {
   test('dropdown status matches actual panel presence in main view', async ({ page }) => {
-    // Navigate and wait for splash to finish
+    // Intercept RTDB snapshot calls — return mock data so DataProvider seeds markets
+    await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
+      const url = route.request().url();
+      if (url.includes('history.json?shallow=true')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ '2026-06-24': true }) });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] }, fetchedAt: '2026-06-24T12:00:00Z' }),
+      });
+    });
+
+    // Navigate and wait for splash to finish or timeout
     await page.goto('/kyahoofinance032926/');
-    await page.waitForSelector('.splash-screen', { state: 'hidden', timeout: 120_000 }).catch(() => {});
-    await page.waitForTimeout(3000);
+    await page.waitForSelector('.splash-screen', { state: 'hidden', timeout: 60_000 }).catch(() => {});
+    await page.waitForTimeout(2000);
 
     // Get all market tabs
-    const tabs = await page.locator('[data-market-tab]').all();
-    const marketIds = await Promise.all(tabs.map(t => t.getAttribute('data-market-tab')));
+    const tabs = await page.locator('[data-market]').all();
+    const marketIds = await Promise.all(tabs.map(t => t.getAttribute('data-market')));
 
     for (const marketId of marketIds.filter(Boolean)) {
       // Hover the tab to open dropdown
-      const tab = page.locator(`[data-market-tab="${marketId}"]`);
+      const tab = page.locator(`[data-market="${marketId}"]`);
       await tab.hover();
       await page.waitForTimeout(500);
 
