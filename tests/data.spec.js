@@ -116,12 +116,9 @@ test.describe('Mocked-API data correctness', () => {
       });
     });
     // Intercept all other /api/ calls to avoid hitting the throttled backend
+    // Use fallback so specific mockApi() routes in test bodies take priority
     await page.route(/\/api\//, async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ isLive: true, isCurrent: true }),
-      });
+      await route.fallback();
     });
     page.on('console', msg => console.log(`[browser console] ${msg.type()}: ${msg.text()}`));
     page.on('pageerror', err => console.log(`[browser error] ${err.message}`));
