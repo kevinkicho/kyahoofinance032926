@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import DataContext from './DataContext';
 import { useInterval } from '../hooks/useInterval';
 import { loadFromRTDB, listSnapshotDates } from './lib/rtdb';
-import { passesStructuralGuard, hasNonNullData, STRUCTURAL_GUARDS } from './lib/guards';
+import { passesStructuralGuard, hasNonNullData, needsLiveRepair, STRUCTURAL_GUARDS } from './lib/guards';
 import { computeFreshnessReport } from './lib/freshness';
 import { computeAlerts, getDisabledRuleIds } from './lib/alerts';
 import { saveSnapshot, createInitialMarketState, FEDERATED_MARKETS } from './lib/snapshot';
@@ -63,7 +63,7 @@ export const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);
 // Re-export extracted helpers to maintain backward compatibility with test suites
 export { computeFreshnessReport } from './lib/freshness';
 export { computeAlerts } from './lib/alerts';
-export { passesStructuralGuard, STRUCTURAL_GUARDS, hasNonNullData } from './lib/guards';
+export { passesStructuralGuard, STRUCTURAL_GUARDS, hasNonNullData, needsLiveRepair } from './lib/guards';
 
 const dlog = import.meta.env.DEV ? console.log.bind(console) : () => {};
 
@@ -165,7 +165,12 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const seededIds = new Set(
       rtdbSeeds.filter(Boolean).filter(s => {
         if (!hasNonNullData(s.seed.data, s.id)) return false;
-        return passesStructuralGuard(s.id, s.seed.data);
+        if (!passesStructuralGuard(s.id, s.seed.data)) return false;
+        if (needsLiveRepair(s.id, s.seed.data)) {
+          dlog(`[DataProvider] ${s.id} snapshot needs live repair — critical fields null`);
+          return false;
+        }
+        return true;
       }).map(s => s.id)
     );
 
@@ -232,7 +237,12 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const seededIds = new Set(
       rtdbSeeds.filter(Boolean).filter(s => {
         if (!hasNonNullData(s.seed.data, s.id)) return false;
-        return passesStructuralGuard(s.id, s.seed.data);
+        if (!passesStructuralGuard(s.id, s.seed.data)) return false;
+        if (needsLiveRepair(s.id, s.seed.data)) {
+          dlog(`[DataProvider] ${s.id} snapshot needs live repair — critical fields null`);
+          return false;
+        }
+        return true;
       }).map(s => s.id)
     );
 

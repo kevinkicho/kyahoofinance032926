@@ -13,7 +13,7 @@ export const STRUCTURAL_GUARDS = {
     return fredSpreadBranch || emBondBranch || loanBranch || defaultBranch;
   },
   crypto:         d => (d.coinMarketData?.coins?.length >= 2) || (d.coins?.length >= 2) || (d.fearGreedData != null),
-  equities:      d => (d.quotes && Object.keys(d.quotes).length >= 50) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
+  equities:      d => (d.quotes && Object.keys(d.quotes).length >= 1) || (Array.isArray(d.stocks) && d.stocks.length >= 1),
   equitiesDeepDive: d => (Array.isArray(d.sectorData?.sectors) && d.sectorData.sectors.length >= 5) || (Array.isArray(d.sectors) && d.sectors.length >= 5),
   calendar:       d => {
     const events = Array.isArray(d.economicEvents) && d.economicEvents.length >= 1;
