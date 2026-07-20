@@ -10,14 +10,14 @@ describe('fetchBLSSeries', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns null when API key is missing', async () => {
+  it('returns error object when API key is missing', async () => {
     global.fetch.mockResolvedValueOnce({
       ok: false,
       text: async () => 'error',
     });
 
     const result = await fetchBLSSeries(['LNS14000000'], '');
-    expect(result).toBeNull();
+    expect(result._error).toBeDefined();
   });
 
   it('returns parsed series data on success', async () => {
@@ -45,7 +45,7 @@ describe('fetchBLSSeries', () => {
     expect(result[0].data[0].value).toBe('4.1');
   });
 
-  it('returns null on API error status', async () => {
+  it('returns error object on API error status', async () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -55,7 +55,7 @@ describe('fetchBLSSeries', () => {
     });
 
     const result = await fetchBLSSeries(['INVALID'], 'test-key');
-    expect(result).toBeNull();
+    expect(result._error).toBeDefined();
   });
 });
 

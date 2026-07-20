@@ -13,18 +13,18 @@ describe('fetchCOTHistory', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns null on fetch error', async () => {
+  it('returns error object on fetch error', async () => {
     fetchJSONSpy.mockRejectedValueOnce(new Error('Network error'));
 
     const result = await fetchCOTHistory();
-    expect(result).toBeNull();
+    expect(result._error).toBeDefined();
   });
 
-  it('returns null when no valid data', async () => {
+  it('returns error object when no valid data', async () => {
     fetchJSONSpy.mockResolvedValueOnce(null);
 
     const result = await fetchCOTHistory();
-    expect(result).toBeNull();
+    expect(result._error).toBeDefined();
   });
 
   it('parses CFTC data and computes net positioning', async () => {
@@ -87,7 +87,7 @@ describe('fetchCOTHistory', () => {
     expect(result.EUR[0].date).toBeDefined();
   });
 
-  it('returns null when fewer than 3 currencies have data', async () => {
+  it('returns error object when fewer than 3 currencies have data', async () => {
     fetchJSONSpy.mockResolvedValueOnce([
       { report_date_as_yyyy_mm_dd: '2024-03-12', market_and_exchange_names: 'EURO FX', noncomm_positions_long_all: '100000', noncomm_positions_short_all: '50000', open_interest_all: '200000' },
       { report_date_as_yyyy_mm_dd: '2024-03-05', market_and_exchange_names: 'EURO FX', noncomm_positions_long_all: '90000', noncomm_positions_short_all: '60000', open_interest_all: '200000' },
@@ -95,7 +95,6 @@ describe('fetchCOTHistory', () => {
     ]);
 
     const result = await fetchCOTHistory();
-
-    expect(result).toBeNull();
+    expect(result._error).toBeDefined();
   });
 });

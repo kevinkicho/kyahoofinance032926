@@ -88,7 +88,7 @@ async function fetchIMFCOFER() {
     const url = 'https://dataservices.imf.org/REST/SDMX_JSON.svc/GetData/COFER/Q.US+XT+EU+JP+UK+CN+CH.SDR_XDC.XDR?startPeriod=2020-Q1';
     const data = await fetchJSON(url);
     const series = data?.CompactData?.DataSet?.Series;
-    if (!series) return null;
+    if (!series) return { _error: 'IMF COFER: no series in response' };
     const entries = Array.isArray(series) ? series : [series];
     const result = {};
     for (const s of entries) {
@@ -101,10 +101,10 @@ async function fetchIMFCOFER() {
         result[label] = Math.round(parseFloat(latestVal['@OBS_VALUE']) * 100) / 100;
       }
     }
-    return Object.keys(result).length >= 3 ? { asOf: entries[0]?.Obs?.['@TIME_PERIOD'] || null, reserves: result } : null;
+    return Object.keys(result).length >= 3 ? { asOf: entries[0]?.Obs?.['@TIME_PERIOD'] || null, reserves: result } : { _error: 'IMF COFER: insufficient data' };
   } catch (e) {
     console.warn('[FX] IMF COFER fetch failed:', e.message);
-    return null;
+    return { _error: `IMF COFER fetch failed: ${e.message}` };
   }
 }
 
@@ -159,8 +159,8 @@ export async function fetchCOTHistory() {
         .slice(-52);
     });
 
-    return Object.keys(history).length >= 3 ? history : null;
-  } catch (e) { console.warn('[FX]', e.message || e); return null; }
+    return Object.keys(history).length >= 3 ? history : { _error: 'COT: insufficient currency data' };
+  } catch (e) { console.warn('[FX]', e.message || e); return { _error: `COT fetch error: ${e.message}` }; }
 }
 
 router.get('/', async (req, res) => {
@@ -306,7 +306,9 @@ router.get('/', async (req, res) => {
     let cotHistory = null;
     try {
       trackApiCall('CFTC');
-      cotHistory = await fetchCOTHistory();
+      const result = await fetchCOTHistory();
+      if (result && !result._error) cotHistory = result;
+      else if (result?._error) console.warn('[FX] COT:', result._error);
     } catch (e) { console.warn('[FX]', e.message || e); }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -315,7 +317,9 @@ router.get('/', async (req, res) => {
     let imfReserves = null;
     try {
       trackApiCall('IMF COFER');
-      imfReserves = await fetchIMFCOFER();
+      const result = await fetchIMFCOFER();
+      if (result && !result._error) imfReserves = result;
+      else if (result?._error) console.warn('[FX] IMF COFER:', result._error);
     } catch (e) { console.warn('[FX] IMF COFER:', e.message || e); }
 
     const _sources = {

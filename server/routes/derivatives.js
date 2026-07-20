@@ -21,7 +21,7 @@ async function buildVolAndGamma(spyPrice) {
     trackApiCall('Yahoo Finance');
     const idx = await yf.options('SPY');
     expirations = idx.expirationDates || [];
-  } catch (e) { console.warn('[Derivatives] buildVolAndGamma failed:', e?.message); return null; }
+  } catch (e) { console.warn('[Derivatives] buildVolAndGamma failed:', e?.message); return { _error: `buildVolAndGamma: ${e?.message}` }; }
 
   const now = Math.floor(Date.now() / 1000);
   const volGrid = [];
@@ -62,7 +62,7 @@ async function buildVolAndGamma(spyPrice) {
   }
 
   const total = volGrid.flat().filter(v => v != null).length;
-  if (total < 20) return null;
+  if (total < 20) return { _error: `Insufficient vol surface data (${total}/20 points)` };
 
   const gammaExposure = Object.entries(gexMap)
     .map(([strike, value]) => ({ strike: parseFloat(strike), value: Math.round(value / 1e6) }))
@@ -161,9 +161,11 @@ router.get('/', async (req, res) => {
       const spyQuote = await yf.quote('SPY');
       if (!spyQuote?.regularMarketPrice) throw new Error('SPY price unavailable');
       const result = await buildVolAndGamma(spyQuote.regularMarketPrice);
-      if (result) {
+      if (result && !result._error) {
         volSurfaceData = result.volSurfaceData;
         gammaExposure = result.gammaExposure;
+      } else if (result?._error) {
+        _errors.volSurfaceData = result._error;
       }
     } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.volSurfaceData = e.message; }
 

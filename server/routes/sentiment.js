@@ -306,12 +306,12 @@ router.get('/', async (_req, res) => {
     function fredHistToSeries(settlResult) {
       try {
         const rows = settlResult.status === 'fulfilled' ? settlResult.value : [];
-        if (!Array.isArray(rows) || rows.length === 0) return null;
+        if (!Array.isArray(rows) || rows.length === 0) return { _error: 'No data from FRED series' };
         return {
           dates:  rows.map(r => r.date),
           values: rows.map(r => r.value),
         };
-      } catch (e) { console.warn('[Sentiment]', e.message || e); return null; }
+      } catch (e) { console.warn('[Sentiment]', e.message || e); return { _error: e.message }; }
     }
 
     const marginDebt      = fredHistToSeries(marginDebtResult);

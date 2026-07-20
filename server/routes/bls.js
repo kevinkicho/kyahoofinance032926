@@ -68,7 +68,7 @@ async function fetchFromFred(FRED_API_KEY) {
           history: { dates, values },
           _source: true,
         }];
-      } catch (e) { return [key, null]; }
+      } catch (e) { _errors[`bls_${key}`] = e.message; return [key, { _error: e.message }]; }
     })
   );
   for (const [key, def] of entries) {
@@ -98,18 +98,18 @@ export async function fetchBLSSeries(seriesIds, apiKey) {
     if (!res.ok) {
       const text = await res.text();
       console.warn(`[BLS] upstream ${res.status}: ${text.slice(0, 200)}`);
-      return null;
+      return { _error: `BLS upstream returned ${res.status}` };
     }
     const data = await res.json();
     if (data.status !== 'REQUEST_SUCCEEDED') {
       console.warn(`[BLS] API status: ${data.status}`, data.message);
-      return null;
+      return { _error: `BLS API status: ${data.status}` };
     }
     return data.Results?.series || [];
   } catch (err) {
     clearTimeout(timeout);
     console.error('[BLS] fetch error:', err.message);
-    return null;
+    return { _error: `BLS fetch error: ${err.message}` };
   }
 }
 
@@ -195,10 +195,10 @@ router.get('/', async (req, res) => {
     const seriesIds = Object.values(BLS_SERIES).map(s => s.id);
     const rawSeries = await fetchBLSSeries(seriesIds, apiKey);
 
-    if (!rawSeries) {
+    if (!rawSeries || rawSeries._error) {
       const fallback = readLatestCache('bls');
-      if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-      return res.status(502).json({ error: 'BLS API unavailable' });
+      if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false, _error: rawSeries?._error || 'BLS API unavailable' });
+      return res.status(502).json({ error: rawSeries?._error || 'BLS API unavailable' });
     }
 
     const seriesData = parseSeries(rawSeries);

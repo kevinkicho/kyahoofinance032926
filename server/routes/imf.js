@@ -42,7 +42,7 @@ async function fetchWEOIndicator(subject, weoCodes) {
     const url = `${IMF_API_BASE}/GetData/WEO/${key}.${subject}.A?startPeriod=2022&endPeriod=2030`;
     const data = await fetchJSON(url);
     const series = data?.CompactData?.DataSet?.Series;
-    if (!series) return {};
+    if (!series) return { _error: `WEO ${subject}: no series in response` };
 
     const entries = Array.isArray(series) ? series : [series];
     const result = {};
@@ -62,7 +62,7 @@ async function fetchWEOIndicator(subject, weoCodes) {
       }
     }
     return result;
-  } catch (e) { console.warn('[IMF] fetchWEOIndicator:', e?.message); return {}; }
+  } catch (e) { console.warn('[IMF] fetchWEOIndicator:', e?.message); return { _error: `WEO ${subject}: ${e?.message}` }; }
 }
 
 async function fetchIFSData(indicator, countries) {
@@ -71,7 +71,7 @@ async function fetchIFSData(indicator, countries) {
     const url = `${IMF_API_BASE}/GetData/IFS/${codes}.A.${indicator}?startPeriod=2020`;
     const data = await fetchJSON(url);
     const series = data?.CompactData?.DataSet?.Series;
-    if (!series) return {};
+    if (!series) return { _error: `IFS ${indicator}: no series in response` };
 
     const entries = Array.isArray(series) ? series : [series];
     const result = {};
@@ -91,7 +91,7 @@ async function fetchIFSData(indicator, countries) {
       }
     }
     return result;
-  } catch (e) { console.warn('[IMF] fetchIFSData:', e?.message); return {}; }
+  } catch (e) { console.warn('[IMF] fetchIFSData:', e?.message); return { _error: `IFS ${indicator}: ${e?.message}` }; }
 }
 
 async function fetchCOFER() {
@@ -99,7 +99,7 @@ async function fetchCOFER() {
     const url = `${IMF_API_BASE}/GetData/COFER/Q.USD+XDR+EUR+JPY+GBP+CNY+CHF+Other.XDC_USD.XDR?startPeriod=2022-Q1`;
     const data = await fetchJSON(url);
     const series = data?.CompactData?.DataSet?.Series;
-    if (!series) return null;
+    if (!series) return { _error: 'COFER: no series in response' };
 
     const entries = Array.isArray(series) ? series : [series];
     const result = {};
@@ -126,8 +126,8 @@ async function fetchCOFER() {
       };
     }
 
-    return Object.keys(result).length >= 3 ? result : null;
-  } catch (e) { console.warn('[IMF] fetchCOFER:', e?.message); return null; }
+    return Object.keys(result).length >= 3 ? result : { _error: 'COFER: insufficient currency data' };
+  } catch (e) { console.warn('[IMF] fetchCOFER:', e?.message); return { _error: `COFER fetch error: ${e?.message}` }; }
 }
 
 router.get('/', async (req, res) => {
@@ -163,10 +163,12 @@ router.get('/', async (req, res) => {
       })
     );
     for (const r of weoResults) {
-      if (r.status === 'fulfilled' && r.value.data && Object.keys(r.value.data).length > 0) {
+      if (r.status === 'fulfilled' && r.value.data && !r.value.data._error && Object.keys(r.value.data).length > 0) {
         weoForecasts[r.value.key] = r.value.data;
       } else if (r.status === 'rejected') {
         console.warn('[IMF] WEO fetch failed:', r.reason?.message || r.reason);
+      } else if (r.status === 'fulfilled' && r.value.data?._error) {
+        console.warn('[IMF] WEO fetch failed:', r.value.data._error);
       }
     }
 

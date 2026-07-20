@@ -31,7 +31,6 @@ const SOURCE_META = {
   weekHist: { desc: '7-day rate history for 1W change calculation', series: [] },
   month30: { desc: '30-day-ago snapshot for 1M change calculation', series: [] },
   fredFxRates: { desc: 'FRED foreign exchange rate series (EUR, JPY, GBP, CHF, AUD, CAD)', series: ['DEXUSEU', 'DEXJPUS', 'DEXUSUK', 'DEXSZUS', 'DEXALUS', 'DEXCAUS'] },
-  reer: { desc: 'Real effective exchange rates from BIS/FRED', series: [] },
   rateDifferentials: { desc: 'Central bank policy rate differentials vs Fed funds', series: [] },
   dxyHistory: { desc: 'Trade-weighted US dollar index (DTWEXBGS)', series: ['DTWEXBGS'] },
   cotHistory: { desc: 'CFTC Commitments of Traders historical positioning', series: [] },

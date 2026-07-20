@@ -49,6 +49,9 @@ export const MARKET_COMPONENTS = {
   alerts:            lazyWithRetry(() => import('../markets/alerts/AlertsMarket')),
   watchlist:         lazyWithRetry(() => import('../markets/watchlist/WatchlistMarket')),
   analytics:         lazyWithRetry(() => import('../markets/analytics/AnalyticsMarket')),
+  census:            lazyWithRetry(() => import('../markets/census/CensusMarket')),
+  imf:               lazyWithRetry(() => import('../markets/imf/ImfMarket')),
+  worldbank:         lazyWithRetry(() => import('../markets/worldbank/WorldbankMarket')),
 };
 
 // Prefetch heavy / frequently used tabs on idle to reduce perceived load time
