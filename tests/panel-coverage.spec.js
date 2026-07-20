@@ -916,7 +916,7 @@ test.beforeEach(async ({ page }) => {
 // failures don't cascade across markets.
 for (const market of MARKETS) {
   test(`panel coverage · ${market}`, async ({ page }, testInfo) => {
-    test.setTimeout(SETTLE_MS + 25_000);
+    test.setTimeout(60_000);
     const expected = PANEL_REGISTRY[market]?.panels || [];
 
     if (market === 'watchlist') {
@@ -926,7 +926,9 @@ for (const market of MARKETS) {
     }
 
     await page.goto(`/kyahoofinance032926/?market=${market}`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(SETTLE_MS);
+    // Wait for splash screen to dismiss so we only collect the active market's panels
+    await page.waitForSelector('.splash-screen', { state: 'hidden', timeout: 35_000 }).catch(() => {});
+    await page.waitForTimeout(2000);
 
     if (market === 'bonds') {
       const text = await page.textContent('body');
