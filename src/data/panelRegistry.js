@@ -187,6 +187,9 @@ export const PANEL_REGISTRY = {
     { id: 'carry', title: 'Carry Map', field: 'carryData', fieldPath: 'carryData', source: 'fx.js', external: [{ name: 'FRED / ECB', seriesIds: ['FEDFUNDS','ECBMRRFR'] }], renderCheck: 'carryData && Object.keys(carryData).length > 0' },
     { id: 'correlation', title: 'Correlation Matrix', field: 'history', fieldPath: 'history', source: 'fx.js:33 (Frankfurter)', external: [{ name: 'Frankfurter', seriesIds: [] }], renderCheck: '!!history && Object.keys(history).length > 0', renderType: 'CurrencyCorrelationMatrix', shapeCheck: SHAPE_CHECKS.fxHistory, notes: 'Component expects history keyed by currency code with array values (e.g. { EUR: [...rates] }), NOT date→currency. If shape is wrong, panel shows "No history available for correlation".' },
     { id: 'reer', title: 'REER Chart', field: 'reerData', fieldPath: 'reerData', source: 'fx.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'reerData?.dates?.length > 0', renderType: 'SafeECharts' },
+    { id: 'imf-cofer', title: 'IMF COFER Reserves', field: 'imfReserves', fieldPath: 'imfReserves', source: 'fx.js (IMF COFER)', external: [{ name: 'IMF', seriesIds: [] }], renderCheck: 'imfReserves?.reserves && Object.keys(imfReserves.reserves).length > 0', renderType: 'ImfCoferPanel' },
+    { id: 'treasury-tic', title: 'Treasury TIC Holdings', field: '(cross-market: treasuryTIC)', fieldPath: 'ticCtx.data.latest', source: 'treasuryTIC.js', external: [{ name: 'US Treasury TIC', seriesIds: [] }], renderCheck: 'ticCtx?.data?.latest?.length > 0', renderType: 'TreasuryTicPanel' },
+    { id: 'bis-reer', title: 'BIS REER Comparison', field: 'reer', fieldPath: 'reer', source: 'fx.js (BIS/FRED)', external: [{ name: 'BIS', seriesIds: ['RNBUSBIS','RNBEBIS','RNJPBIS','RNGBBIS','RNCBBIS'] }], renderCheck: 'reer?.dates?.length > 0', renderType: 'BisReerPanel' },
   ],
 
   crypto: [
@@ -328,6 +331,8 @@ export const PANEL_REGISTRY = {
     { id: 'bis-total-credit', title: 'BIS Total Credit', field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', crossMarket: 'globalMacro', source: 'globalMacro.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'macroCtx?.data?.bisCreditToGDP && Object.keys(macroCtx.data.bisCreditToGDP).length > 0' },
     { id: 'fdic-summary', title: 'FDIC Banking Summary', field: 'summary', fieldPath: 'summary', crossMarket: 'fdic', source: 'fdic.js', external: [{ name: 'FDIC', seriesIds: [] }], renderCheck: 'fdicCtx?.data?.summary' },
     { id: 'ted-spread', title: 'TED Spread', field: 'tedSpread', fieldPath: 'tedSpread', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['TEDRATE'] }], renderCheck: 'tedSpread && tedSpread.values?.length > 0' },
+    { id: 'wb-debt', title: 'World Bank Debt Statistics', field: '(cross-market: worldbank)', fieldPath: 'wbCtx.data.countries', source: 'worldbank.js', external: [{ name: 'World Bank', seriesIds: ['NY.GDP.MKTP.KD.ZG','NE.TRD.GNFS.ZS'] }], renderCheck: 'wbCtx?.data?.countries?.length > 0', renderType: 'WorldBankDebtPanel' },
+    { id: 'treasury-credit-holdings', title: 'Treasury Credit Holdings', field: '(cross-market: treasuryTIC)', fieldPath: 'ticCtx.data.latest', source: 'treasuryTIC.js', external: [{ name: 'US Treasury TIC', seriesIds: [] }], renderCheck: 'ticCtx?.data?.latest?.length > 0', renderType: 'TreasuryCreditHoldingsPanel' },
   ],
 
   sentiment: [

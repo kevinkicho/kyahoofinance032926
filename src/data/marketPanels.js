@@ -58,6 +58,9 @@ export const MARKET_PANELS = {
     { id: 'ratediff', title: 'Rate Differentials' },
     { id: 'carry', title: 'Carry Map' },
     { id: 'rate-dashboard', title: 'Rate Dashboard' },
+    { id: 'imf-cofer', title: 'IMF COFER Reserves' },
+    { id: 'treasury-tic', title: 'Treasury TIC Holdings' },
+    { id: 'bis-reer', title: 'BIS REER Comparison' },
   ],
   derivatives: [
     { id: 'kpi', title: 'Derivatives Key Metrics' },
@@ -197,6 +200,9 @@ export const MARKET_PANELS = {
     { id: 'muni-market', title: 'US Municipal Bond Market (MSRB)' },
     { id: 'bank-stress', title: 'Bank Stress Monitor' },
     { id: 'ted-spread', title: 'TED Spread' },
+    { id: 'wb-debt', title: 'World Bank Debt Statistics' },
+    { id: 'bis-total-credit', title: 'BIS Total Credit' },
+    { id: 'treasury-credit-holdings', title: 'Treasury Credit Holdings' },
   ],
   sentiment: [
     { id: 'sidebar', title: 'Market Snapshot' },

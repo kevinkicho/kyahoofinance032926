@@ -163,6 +163,11 @@ const SOURCE_META = {
   ecbPolicyRates: { desc: 'ECB Statistical Data Warehouse — main refinancing, deposit facility, marginal lending rates', series: [] },
   ecbMonetaryAggregates: { desc: 'ECB SDW — M3 monetary aggregate annual rate of change', series: [] },
   ecbInflation: { desc: 'ECB SDW — HICP overall annual rate of change', series: [] },
+  imfReserves: { desc: 'IMF COFER — Currency composition of official foreign exchange reserves (USD, EUR, JPY, GBP, CNY, etc.)', series: [] },
+  treasuryTic: { desc: 'US Treasury TIC — Major foreign holders of US Treasury securities by country', series: [] },
+  reer: { desc: 'BIS real effective exchange rates — trade-weighted currency valuation for major economies', series: [] },
+  worldBankDebt: { desc: 'World Bank International Debt Statistics — external debt stocks, central government debt % of GDP, current account balance', series: [] },
+  bisTotalCredit: { desc: 'BIS total credit to non-financial sector as % of GDP — credit-to-GDP gaps for major economies', series: [] },
 };
 
 function resolveMeta(key) {

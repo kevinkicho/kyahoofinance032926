@@ -313,6 +313,32 @@ const SERIES_MAP = {
   bisOTC_IR: { id: 'BIS DER_D1', source: 'BIS', name: 'Interest Rate Derivatives Outstanding', url: '/api/bisOTC' },
   bisOTC_Equity: { id: 'BIS DER_D1', source: 'BIS', name: 'Equity Derivatives Outstanding', url: '/api/bisOTC' },
   bisOTC_CDS: { id: 'BIS DER_D1', source: 'BIS', name: 'Credit Default Swaps Outstanding', url: '/api/bisOTC' },
+  // IMF COFER
+  imfReserves: { id: 'IMF COFER', source: 'IMF', name: 'Total Allocated Reserves (USD B)', url: '/api/fx' },
+  imfUsdShare: { id: 'IMF COFER', source: 'IMF', name: 'USD Share of Allocated Reserves', url: '/api/fx' },
+  imfEurShare: { id: 'IMF COFER', source: 'IMF', name: 'EUR Share of Allocated Reserves', url: '/api/fx' },
+  imfJpyShare: { id: 'IMF COFER', source: 'IMF', name: 'JPY Share of Allocated Reserves', url: '/api/fx' },
+  imfGbpShare: { id: 'IMF COFER', source: 'IMF', name: 'GBP Share of Allocated Reserves', url: '/api/fx' },
+  imfCnyShare: { id: 'IMF COFER', source: 'IMF', name: 'CNY Share of Allocated Reserves', url: '/api/fx' },
+  // Treasury TIC
+  ticJapan: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'Japan Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  ticChina: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'China Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  ticUK: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'UK Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  ticTotal: { id: 'TIC MFH', source: 'US Treasury TIC', name: 'Total Foreign Holdings of US Treasuries (USD B)', url: '/api/treasuryTIC' },
+  // BIS REER
+  reerUS: { id: 'RNBUSBIS', source: 'BIS/FRED', name: 'US Real Effective Exchange Rate', url: '/api/fx' },
+  reerEU: { id: 'RNBEBIS', source: 'BIS/FRED', name: 'Euro Area Real Effective Exchange Rate', url: '/api/fx' },
+  reerJP: { id: 'RNJPBIS', source: 'BIS/FRED', name: 'Japan Real Effective Exchange Rate', url: '/api/fx' },
+  reerGB: { id: 'RNGBBIS', source: 'BIS/FRED', name: 'UK Real Effective Exchange Rate', url: '/api/fx' },
+  reerCN: { id: 'RNCBBIS', source: 'BIS/FRED', name: 'China Real Effective Exchange Rate', url: '/api/fx' },
+  // World Bank debt
+  wbExternalDebt: { id: 'DT.DOD.DECT.CD', source: 'World Bank', name: 'External Debt Stocks (USD)', url: '/api/worldbank' },
+  wbGovDebtGDP: { id: 'GC.DOD.TOTL.GD.ZS', source: 'World Bank', name: 'Central Government Debt % of GDP', url: '/api/worldbank' },
+  wbCurrentAccount: { id: 'BN.CAB.XOKA.GD.ZS', source: 'World Bank', name: 'Current Account Balance % of GDP', url: '/api/worldbank' },
+  // BIS total credit
+  bisCreditToGDP_US: { id: 'BIS Total Credit', source: 'BIS', name: 'US Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
+  bisCreditToGDP_EU: { id: 'BIS Total Credit', source: 'BIS', name: 'Euro Area Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
+  bisCreditToGDP_JP: { id: 'BIS Total Credit', source: 'BIS', name: 'Japan Total Credit to Non-Financial Sector % of GDP', url: '/api/globalMacro' },
 };
 
 export function getSeriesInfo(key) {
