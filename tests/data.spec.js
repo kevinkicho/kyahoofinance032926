@@ -37,6 +37,14 @@ const cannedBondsResponse = {
     JP: { '10y': 0.95 },
     GB: { '10y': 4.05 },
   },
+  spreadHistory: { dates: ['2026-01', '2026-02', '2026-03'], t10y2y: [-0.2, -0.25, -0.3], t10y3m: [-0.7, -0.75, -0.8], t5y30y: [0.1, 0.12, 0.15] },
+  fedBalanceSheetHistory: { dates: ['2026-01', '2026-02', '2026-03'], values: [7500, 7400, 7300] },
+  m2HistoryData: { dates: ['2026-01', '2026-02', '2026-03'], values: [21000, 20900, 20850] },
+  cpiComponents: { dates: ['2026-01', '2026-02', '2026-03'], all: [3.1, 3.2, 3.0], core: [3.8, 3.7, 3.6], food: [2.5, 2.4, 2.3], energy: [-1.0, -0.5, -2.0], latest: { all: 3.0, core: 3.6, food: 2.3, energy: -2.0 } },
+  debtToGdpHistory: { dates: ['2026-01', '2026-02', '2026-03'], values: [120.5, 121.2, 122.0], latest: 122.0 },
+  breakevensData: { current: { be5y: 2.3, be10y: 2.2 }, history: { dates: ['2026-01', '2026-02', '2026-03'], be5y: [2.2, 2.25, 2.3], be10y: [2.1, 2.15, 2.2], forward5y5y: [2.0, 2.05, 2.1] } },
+  durationLadder: { buckets: [{ bucket: '1-3 Yrs', amount: 500 }, { bucket: '3-5 Yrs', amount: 800 }], total: 1300, avgRate: 4.2 },
+  macroData: { cftcNetLong: 12000, moneyVelocity: 1.3, centralBankRates: { 'United States': 5.25, 'Euro Area': 4.25, 'United Kingdom': 5.00, 'Japan': 0.10, 'Canada': 4.75, 'Australia': 4.35 } },
   _sources: { fred: true },
 };
 
