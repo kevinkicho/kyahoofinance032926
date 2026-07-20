@@ -13,6 +13,22 @@ test.describe('Equities market — live deployment', () => {
     });
     page.on('pageerror', err => errors.push(err.message));
 
+    // Intercept RTDB snapshot calls — return mock data so DataProvider seeds markets
+    await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
+      const url = route.request().url();
+      if (url.includes('history.json?shallow=true')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ '2026-06-24': true }) });
+        return;
+      }
+      const match = url.match(/marketSnapshots\/([^/]+)\//);
+      const marketId = match ? match[1] : null;
+      let mockData = { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] };
+      if (marketId === 'equities') {
+        mockData = { isLive: true, isCurrent: true, quotes: { AAPL: { price: 150, change: 2.3 }, MSFT: { price: 420, change: 1.5 } }, stocks: [{ ticker: 'AAPL', price: 150, change: 2.3 }], indices: { SPY: { price: 450, change: 0.5 }, QQQ: { price: 380, change: 0.8 } } };
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: mockData, fetchedAt: '2026-06-24T12:00:00Z' }) });
+    });
+
     await page.goto(`${BASE}?market=equities`, { waitUntil: 'domcontentloaded' });
 
     // App container should be visible
@@ -43,6 +59,22 @@ test.describe('Equities market — live deployment', () => {
   });
 
   test('equities heatmap or key indices visible', async ({ page }) => {
+    // Intercept RTDB snapshot calls — return mock data so DataProvider seeds markets
+    await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
+      const url = route.request().url();
+      if (url.includes('history.json?shallow=true')) {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ '2026-06-24': true }) });
+        return;
+      }
+      const match = url.match(/marketSnapshots\/([^/]+)\//);
+      const marketId = match ? match[1] : null;
+      let mockData = { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] };
+      if (marketId === 'equities') {
+        mockData = { isLive: true, isCurrent: true, quotes: { AAPL: { price: 150, change: 2.3 }, MSFT: { price: 420, change: 1.5 } }, stocks: [{ ticker: 'AAPL', price: 150, change: 2.3 }], indices: { SPY: { price: 450, change: 0.5 }, QQQ: { price: 380, change: 0.8 } } };
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: mockData, fetchedAt: '2026-06-24T12:00:00Z' }) });
+    });
+
     await page.goto(`${BASE}?market=equities`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(10000);
 
