@@ -13,9 +13,9 @@ import { test, expect } from '@playwright/test';
 
 const MARKET_TABS = [
   'Equities', 'Bonds', 'FX', 'Derivatives', 'Real Estate',
-  'Insurance', 'Commodities', 'Global Macro', 'Equities Deep Dive',
+  'Insurance', 'Commodities', 'Macro', 'Equity+',
   'Crypto', 'Credit', 'Sentiment', 'Calendar', 'Watchlist',
-  'Analytics', 'BLS', 'EIA', 'Census',
+  'Analytics', 'Labor', 'Energy', 'Alerts',
 ];
 
 const MAX_CLICKS_PER_TAB = 5;
