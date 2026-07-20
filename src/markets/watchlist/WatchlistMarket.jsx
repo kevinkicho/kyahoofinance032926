@@ -370,7 +370,7 @@ function WatchlistMarket({ onNavigate }) {
                 </div>
 
                 {tickers.length === 0 ? (
-                  <div className="watch-empty">No tickers added yet. Type a symbol above to start tracking.</div>
+                  <div className="watch-empty" data-testid="watchlist-empty">No tickers added yet. Type a symbol above to start tracking.</div>
                 ) : (
                   <table className="watch-ticker-table">
                     <thead>

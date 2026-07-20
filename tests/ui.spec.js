@@ -117,7 +117,7 @@ test.describe('Empty-state rendering (no API keys)', () => {
       localStorage.removeItem('hub-watchlist-metrics');
     });
     await page.goto('/?market=watchlist');
-    await expect(page.getByText(/No tickers added yet/i)).toBeVisible();
+    await expect(page.locator('[data-testid="watchlist-empty"]')).toBeVisible();
   });
 });
 
