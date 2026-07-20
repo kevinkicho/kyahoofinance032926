@@ -110,6 +110,7 @@ test.beforeEach(async ({ page }) => {
       isLive: true, isCurrent: true,
       quotes: Object.fromEntries(Array.from({ length: 60 }, (_, i) => [`TICKER${i}`, { price: 100 + i, change: 1.5, changePercent: 1.2 }])),
       stocks: [{ ticker: 'AAPL', price: 150, change: 2.3 }],
+      indices: { SPY: { price: 450, change: 0.5 }, QQQ: { price: 380, change: 0.8 } },
       dummy: true
     },
     '/api/watchlist': {
