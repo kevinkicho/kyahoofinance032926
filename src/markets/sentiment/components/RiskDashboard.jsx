@@ -73,9 +73,6 @@ function buildLineOption({ dates, values, color, minBuffer = 0, yLabel = '', col
 
 export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHistory, bare = false }) {
   const { colors } = useTheme();
-  if (!riskData) return null;
-  const { signals = [], overallScore = 50, overallLabel = 'Neutral' } = riskData;
-  const color = scoreColor(overallScore, colors.textSecondary);
 
   const vvixOption = useMemo(() => {
     if (!vvixHistory?.dates?.length) return null;
@@ -161,6 +158,10 @@ export default function RiskDashboard({ riskData, marginDebt, vvixHistory, fsiHi
       areaColor: lineColor,
     }), rising, last };
   }, [marginDebt, colors]);
+
+  if (!riskData) return null;
+  const { signals = [], overallScore = 50, overallLabel = 'Neutral' } = riskData;
+  const color = scoreColor(overallScore, colors.textSecondary);
 
   const body = (
     <>

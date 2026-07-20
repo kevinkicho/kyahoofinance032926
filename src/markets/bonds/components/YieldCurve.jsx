@@ -14,18 +14,6 @@ const COUNTRY_COLORS = {
 export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYieldHistory, yieldHistory, lastUpdated }) {
   const { colors } = useTheme();
 
-  if (!yieldCurveData || Object.keys(yieldCurveData).length === 0) {
-    return (
-      <div className="bonds-panel">
-        <div className="bonds-panel-header">
-          <span className="bonds-panel-title">Yield Curve</span>
-          <span className="bonds-panel-subtitle">Government bond yields by country · FRED</span>
-        </div>
-        <div className="bonds-empty">No yield curve data available — FRED Treasury series may be temporarily unavailable</div>
-      </div>
-    );
-  }
-
   const option = useMemo(() => {
     const countries = Object.keys(yieldCurveData);
     return {
@@ -168,6 +156,18 @@ export default function YieldCurve({ yieldCurveData, spreadIndicators, fredYield
 
   // US tenor bars
   const maxYield = Math.max(...TENORS.map(t => us[t] ?? 0), 0.01);
+
+  if (!yieldCurveData || Object.keys(yieldCurveData).length === 0) {
+    return (
+      <div className="bonds-panel">
+        <div className="bonds-panel-header">
+          <span className="bonds-panel-title">Yield Curve</span>
+          <span className="bonds-panel-subtitle">Government bond yields by country · FRED</span>
+        </div>
+        <div className="bonds-empty">No yield curve data available — FRED Treasury series may be temporarily unavailable</div>
+      </div>
+    );
+  }
 
   return (
     <div className="bonds-panel">
