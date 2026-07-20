@@ -156,6 +156,13 @@ const SOURCE_META = {
   eia_elecIndustrial: { desc: 'US industrial electricity retail sales and prices — EIA', series: [] },
   eia_co2Total: { desc: 'US total CO₂ emissions — EIA', series: [] },
   eia_co2BySector: { desc: 'US CO₂ emissions by sector — EIA', series: [] },
+  secEdgarFundamentals: { desc: 'SEC EDGAR XBRL — mega-cap company financial fundamentals (revenue, net income, assets, liabilities, cash flow)', series: [] },
+  secEdgarFilings: { desc: 'SEC EDGAR submissions API — filing activity across 20 mega-cap tickers (8-K, Form 4, 10-K/Q, 13G/D)', series: [] },
+  beaNationalAccounts: { desc: 'Bureau of Economic Analysis — NIPA GDP components, personal income, saving rate', series: [] },
+  beaIncome: { desc: 'Bureau of Economic Analysis — personal income & outlays, saving rate (T20600)', series: [] },
+  ecbPolicyRates: { desc: 'ECB Statistical Data Warehouse — main refinancing, deposit facility, marginal lending rates', series: [] },
+  ecbMonetaryAggregates: { desc: 'ECB SDW — M3 monetary aggregate annual rate of change', series: [] },
+  ecbInflation: { desc: 'ECB SDW — HICP overall annual rate of change', series: [] },
 };
 
 function resolveMeta(key) {

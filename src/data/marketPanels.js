@@ -22,6 +22,8 @@ export const MARKET_PANELS = {
     { id: 'universe-updates', title: 'Universe Expansion Queue' },
     { id: 'sec-fundamentals', title: 'SEC Fundamentals' },
     { id: 'sec-filings', title: 'SEC Filing Activity' },
+    { id: 'bea-corporate-profits', title: 'BEA Corporate Profits' },
+    { id: 'wb-market-cap', title: 'World Bank Market Cap' },
   ],
   bonds: [
     { id: 'kpi', title: 'Bonds Key Metrics' },
@@ -69,6 +71,7 @@ export const MARKET_PANELS = {
     { id: 'volprem', title: 'Vol Premium' },
     { id: 'cftc-tff', title: 'CFTC Financial Futures' },
     { id: 'bis-otc', title: 'BIS OTC Derivatives' },
+    { id: 'ecb-derivatives', title: 'ECB Financial Market Data' },
   ],
   realEstate: [
     { id: 'metrics', title: 'Key Metrics' },

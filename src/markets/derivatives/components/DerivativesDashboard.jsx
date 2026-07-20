@@ -7,6 +7,7 @@ import BentoCard from '../../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import DerivativesSidebar from './DerivativesSidebar';
+import EcbDerivativesPanel from './EcbDerivativesPanel';
 import './DerivativesDashboard.css';
 
 // KPI strip is now a real bento child at row 0 (h:2). Other panels shifted
@@ -23,7 +24,8 @@ const LAYOUT = {
     { i: 'gamma',   x: 0, y: 7, w: 3,  h: 4 },
     { i: 'volprem', x: 3, y: 8, w: 3,  h: 3 },
     { i: 'cftc-tff', x: 6, y: 7, w: 6, h: 4 },
-    { i: 'bis-otc', x: 0, y: 11, w: 12, h: 4 },
+    { i: 'bis-otc', x: 0, y: 11, w: 8, h: 4 },
+    { i: 'ecb-derivatives', x: 8, y: 11, w: 4, h: 4 },
   ]
 };
 
@@ -436,6 +438,9 @@ function DerivativesDashboard({
           ) : (
             <div className="deriv-empty">BIS OTC data unavailable</div>
           )}
+        </BentoCard>
+        <BentoCard key="ecb-derivatives" title="ECB Financial Market Data" subtitle="Policy rates · M3 · HICP" accent="derivatives" className="deriv-bento-card" contentClassName="deriv-panel-content" source="ECB Statistical Data Warehouse" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <EcbDerivativesPanel />
         </BentoCard>
       </BentoWrapper>
     </div>
