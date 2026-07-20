@@ -105,11 +105,6 @@ test.beforeEach(async ({ page }) => {
   page.on('console', msg => console.log(`[browser console] ${msg.type()}: ${msg.text()}`));
   page.on('pageerror', err => console.error(`[browser pageerror] ${err.message}\n${err.stack}`));
 
-  // Intercept RTDB snapshot calls to force live fetches of /api/*
-  await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
-    await route.fulfill({ status: 404, contentType: 'application/json', body: 'null' });
-  });
-
   const mockResponses = {
     '/api/equities': {
       isLive: true, isCurrent: true,
@@ -824,6 +819,84 @@ test.beforeEach(async ({ page }) => {
       dummy: true
     }
   };
+
+  // Build a mapping from marketId (extracted from RTDB URL) to mock data.
+  // The app's DataProvider reads from RTDB, not /api/* directly, so we must
+  // return mock RTDB snapshots instead of 404.
+  const marketIdToMockData = {
+    analytics:     mockResponses['/api/analytics'] || mockResponses['/api/rate-limits'],
+    equities:      mockResponses['/api/equities'],
+    bonds:         mockResponses['/api/bonds'],
+    fx:            mockResponses['/api/fx'],
+    derivatives:   mockResponses['/api/derivatives'],
+    realEstate:    mockResponses['/api/realEstate'],
+    insurance:     mockResponses['/api/insurance'],
+    commodities:   mockResponses['/api/commoditiesEnhanced'],
+    globalMacro:   mockResponses['/api/globalMacro'],
+    watchlist:     mockResponses['/api/watchlist'],
+    equitiesDeepDive: mockResponses['/api/equityDeepDive'],
+    institutional: mockResponses['/api/institutional'],
+    crypto:        mockResponses['/api/crypto'],
+    credit:        mockResponses['/api/credit'],
+    sentiment:     mockResponses['/api/sentiment'],
+    calendar:      mockResponses['/api/calendar'],
+    imf:           mockResponses['/api/imf'],
+    worldbank:     mockResponses['/api/worldbank'],
+    bls:           mockResponses['/api/bls'],
+    eia:           mockResponses['/api/eia'],
+    census:        mockResponses['/api/census'],
+    bea:           mockResponses['/api/bea'],
+    eurostat:      mockResponses['/api/eurostat'],
+    oecd:          mockResponses['/api/oecd'],
+    oecdInsurance: mockResponses['/api/oecd'],
+    edgar:         mockResponses['/api/edgar'],
+    universeUpdates: mockResponses['/api/universeUpdates'],
+    nyfed:         mockResponses['/api/nyfed'],
+    fdic:          mockResponses['/api/fdic'],
+    ecb:           mockResponses['/api/ecb'],
+    treasuryTIC:   mockResponses['/api/treasuryTIC'],
+    treasuryAuctions: mockResponses['/api/treasuryAuctions'],
+    treasuryDTS:   mockResponses['/api/treasuryDTS'],
+    treasuryCost:  mockResponses['/api/treasuryCost'],
+    fedSEP:        mockResponses['/api/fed/sep'],
+    fedGDPNow:     mockResponses['/api/fed/gdpnow'],
+    fedInflationNowcast: mockResponses['/api/fed/inflation-nowcast'],
+    fedNewsSentiment: mockResponses['/api/fed/news-sentiment'],
+    msrb:          mockResponses['/api/msrb'],
+    fema:          mockResponses['/api/fema'],
+    usgs:          mockResponses['/api/usgs'],
+    edgarInsurerRatios: mockResponses['/api/edgar/insurer-ratios'],
+    edgarFilingActivity: mockResponses['/api/edgar/filing-activity'],
+    usda:          mockResponses['/api/usda'],
+    censusTrade:   mockResponses['/api/censusTrade'],
+    eiaPetroleum:  mockResponses['/api/eiaPetroleum'],
+    cftcTFF:       mockResponses['/api/cftcTFF'],
+    bisOTC:        mockResponses['/api/bisOTC'],
+    fao:           mockResponses['/api/fao'],
+  };
+  const fallbackMock = { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] };
+
+  // Intercept RTDB snapshot calls — return mock data so DataProvider seeds markets
+  await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
+    const url = route.request().url();
+    // history.json?shallow=true — return a list of available dates
+    if (url.includes('history.json?shallow=true')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ '2026-06-24': true }),
+      });
+      return;
+    }
+    const match = url.match(/marketSnapshots\/([^/]+)\//);
+    const marketId = match ? match[1] : null;
+    const mockData = marketId && marketIdToMockData[marketId] ? marketIdToMockData[marketId] : fallbackMock;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ data: mockData, fetchedAt: '2026-06-24T12:00:00Z' }),
+    });
+  });
 
   // Intercept all other /api/ calls to avoid hitting the throttled backend
   await page.route(/\/api\//, async (route) => {
