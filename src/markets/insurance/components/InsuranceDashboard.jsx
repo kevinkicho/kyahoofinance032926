@@ -18,7 +18,7 @@ function InsuranceDashboard({
   catBondSpreads, combinedRatioData, reserveAdequacyData,
   reinsurancePricing, reinsurers, fredHyOasHistory,
   sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
-  catLosses, combinedRatioHistory,
+  catLosses, combinedRatioHistory, insuranceEmployment, insuranceWages,
   isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
   currency, currentSymbol, convert,
 }) {
@@ -58,6 +58,8 @@ function InsuranceDashboard({
   const wbCtx   = useMarketData('worldbank');
   const insRatiosCtx = useMarketData('edgarInsurerRatios');
   const ecbCtx = useMarketData('ecb');
+  const oecdInsCtx = useMarketData('oecdInsurance');
+  const wbInsCtx = useMarketData('worldbank');
 
   const hyOasOption = useMemo(() => {
     if (!fredHyOasHistory?.dates?.length) return null;
@@ -252,6 +254,18 @@ function InsuranceDashboard({
   }
   if (ecbCtx?.data?.policyRates) {
     layoutItems.push({ i: 'ecb-supervisory', x: 6, y: 18, w: 6, h: 3 });
+  }
+  // OECD Insurance Statistics
+  if (oecdInsCtx?.data?.insurance && Object.keys(oecdInsCtx.data.insurance).length > 0) {
+    layoutItems.push({ i: 'oecd-insurance', x: 0, y: 21, w: 6, h: 4 });
+  }
+  // World Bank additional insurance indicators
+  if (wbInsCtx?.data?.countries?.some(c => c.reinsurancePctGdp != null || c.topInsurerMarketShare != null)) {
+    layoutItems.push({ i: 'wb-ins-depth', x: 6, y: 21, w: 6, h: 4 });
+  }
+  // Insurance Employment & Wages (FRED CES)
+  if (insuranceEmployment?.dates?.length || insuranceWages?.dates?.length) {
+    layoutItems.push({ i: 'ins-employment', x: 0, y: 25, w: 12, h: 3 });
   }
 
   const dynamicLayout = { lg: layoutItems };
@@ -680,6 +694,153 @@ function InsuranceDashboard({
                   <div style={{ fontSize: 18, fontWeight: 700, color }}>{value != null ? `${value.toFixed(2)}%` : '—'}</div>
                 </div>
               ))}
+            </div>
+          </BentoCard>
+        )}
+
+        {/* OECD Insurance Statistics — gross premiums, penetration, density */}
+        {oecdInsCtx?.data?.insurance && Object.keys(oecdInsCtx.data.insurance).length > 0 && (
+          <BentoCard
+            key="oecd-insurance"
+            title="OECD Insurance Statistics"
+            subtitle="Gross premiums, penetration & density by country"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="OECD SDMX"
+            timestamp={oecdInsCtx?.lastUpdated || lastUpdated}
+            isLive={!!oecdInsCtx?.data?.isLive}
+            isCurrent={oecdInsCtx?.isCurrent ?? isCurrent}
+            fetchedOn={oecdInsCtx?.fetchedOn || fetchedOn}
+            fetchLog={oecdInsCtx?.fetchLog || fetchLog}
+            error={oecdInsCtx?.error || error}
+          >
+            <div style={{ overflow: 'auto', height: '100%' }}>
+              <table style={{ width: '100%', fontSize: 10, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
+                    <th style={{ textAlign: 'left', padding: '3px 6px' }}>Country</th>
+                    <th style={{ textAlign: 'right', padding: '3px 6px' }}>Life Penetration</th>
+                    <th style={{ textAlign: 'right', padding: '3px 6px' }}>Non-Life Penetration</th>
+                    <th style={{ textAlign: 'right', padding: '3px 6px' }}>Life Density</th>
+                    <th style={{ textAlign: 'right', padding: '3px 6px' }}>Non-Life Density</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(oecdInsCtx.data.insurance).map(([key, ind]) => {
+                    if (!ind.byCountry) return null;
+                    return Object.entries(ind.byCountry).slice(0, 12).map(([country, obs]) => {
+                      const latest = obs?.[obs.length - 1];
+                      return (
+                        <tr key={`${key}-${country}`} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                          <td style={{ padding: '3px 6px', color: colors.textPrimary }}>{country}</td>
+                          <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: colors.textSecondary }}>
+                            {latest?.value != null ? latest.value.toFixed(2) : '—'}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  }).flat().slice(0, 30)}
+                </tbody>
+              </table>
+            </div>
+          </BentoCard>
+        )}
+
+        {/* World Bank Additional Insurance Indicators */}
+        {wbInsCtx?.data?.countries?.some(c => c.reinsurancePctGdp != null || c.topInsurerMarketShare != null) && (
+          <BentoCard
+            key="wb-ins-depth"
+            title="Insurance Market Structure"
+            subtitle="Reinsurance, market share & concentration — World Bank GFDD"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-scroll"
+            source="World Bank GFDD"
+            timestamp={wbInsCtx?.lastUpdated || lastUpdated}
+            isLive={!!wbInsCtx?.data?.countries?.length}
+            isCurrent={wbInsCtx?.isCurrent ?? isCurrent}
+            fetchedOn={wbInsCtx?.fetchedOn || fetchedOn}
+            fetchLog={wbInsCtx?.fetchLog || fetchLog}
+            error={wbInsCtx?.error || error}
+          >
+            <div style={{ overflow: 'auto', height: '100%' }}>
+              <table style={{ width: '100%', fontSize: 10, borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
+                    <th style={{ textAlign: 'left', padding: '3px 6px' }}>Country</th>
+                    <th style={{ textAlign: 'right', padding: '3px 6px' }}>Reinsurance / GDP</th>
+                    <th style={{ textAlign: 'right', padding: '3px 6px' }}>Top 10 Mkt Share</th>
+                    <th style={{ textAlign: 'right', padding: '3px 6px' }}>Concentration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(wbInsCtx.data.countries || []).filter(c => c.reinsurancePctGdp != null || c.topInsurerMarketShare != null).map(c => (
+                    <tr key={c.code} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
+                      <td style={{ padding: '3px 6px', color: colors.textPrimary }}>{c.flag} {c.name}</td>
+                      <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: colors.textSecondary }}>
+                        <MetricValue value={c.reinsurancePctGdp} seriesKey="wbReinsurancePct" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
+                      </td>
+                      <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: colors.textSecondary }}>
+                        <MetricValue value={c.topInsurerMarketShare} seriesKey="wbTopInsurerShare" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
+                      </td>
+                      <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: colors.textSecondary }}>
+                        <MetricValue value={c.insConcentration} seriesKey="wbInsConcentration" timestamp={lastUpdated} format={v => v != null ? v.toFixed(2) : '—'} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </BentoCard>
+        )}
+
+        {/* Insurance Employment & Wages (FRED CES) */}
+        {(insuranceEmployment?.dates?.length || insuranceWages?.dates?.length) && (
+          <BentoCard
+            key="ins-employment"
+            title="Insurance Industry Employment & Wages"
+            subtitle="NAICS 524 — Insurance carriers (FRED CES)"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-content"
+            source="FRED CES"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, height: '100%' }}>
+              {insuranceEmployment?.dates?.length > 0 && (
+                <SafeECharts
+                  option={{
+                    animation: false, backgroundColor: 'transparent',
+                    tooltip: { trigger: 'axis' },
+                    grid: { top: 20, right: 12, bottom: 24, left: 50 },
+                    xAxis: { type: 'category', data: insuranceEmployment.dates.slice(-36), axisLabel: { color: colors.textMuted, fontSize: 9, interval: 5 } },
+                    yAxis: { type: 'value', name: 'M workers', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted, formatter: v => `${v.toFixed(1)}M` }, splitLine: { lineStyle: { color: colors.cardBg } } },
+                    series: [{ type: 'line', data: insuranceEmployment.values.slice(-36), smooth: true, symbol: 'none', lineStyle: { color: '#42a5f5', width: 2 }, areaStyle: { color: 'rgba(66,165,245,0.1)' } }],
+                  }}
+                  style={{ height: '100%', width: '100%' }}
+                  sourceInfo={{ title: 'Insurance Employment', source: 'FRED CES', endpoint: '/api/insurance', series: [{ id: 'CES5552400001' }], updatedAt: lastUpdated }}
+                />
+              )}
+              {insuranceWages?.dates?.length > 0 && (
+                <SafeECharts
+                  option={{
+                    animation: false, backgroundColor: 'transparent',
+                    tooltip: { trigger: 'axis' },
+                    grid: { top: 20, right: 12, bottom: 24, left: 50 },
+                    xAxis: { type: 'category', data: insuranceWages.dates.slice(-36), axisLabel: { color: colors.textMuted, fontSize: 9, interval: 5 } },
+                    yAxis: { type: 'value', name: '$/hr', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted, formatter: v => `$${v.toFixed(1)}` }, splitLine: { lineStyle: { color: colors.cardBg } } },
+                    series: [{ type: 'line', data: insuranceWages.values.slice(-36), smooth: true, symbol: 'none', lineStyle: { color: '#66bb6a', width: 2 }, areaStyle: { color: 'rgba(102,187,106,0.1)' } }],
+                  }}
+                  style={{ height: '100%', width: '100%' }}
+                  sourceInfo={{ title: 'Insurance Wages', source: 'FRED CES', endpoint: '/api/insurance', series: [{ id: 'CES5552400030' }], updatedAt: lastUpdated }}
+                />
+              )}
             </div>
           </BentoCard>
         )}

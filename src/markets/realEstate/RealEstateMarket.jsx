@@ -4,6 +4,8 @@ import { useMarketData } from '../../hub/DataContext';
 import { useCurrency } from '../../hub/CurrencyContext';
 import RealEstateDashboard from './components/RealEstateDashboard';
 import { normalizeRealEstateData } from '../../data/marketNormalizers';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './components/RealEstateDashboard.css';
 import './RealEstateMarket.css';
 import '../census/CensusMarket.css';
@@ -60,10 +62,11 @@ function RealEstateMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    // RealEstateDashboard's "Key Metrics" bento panel is a superset of the
-    // old loose <RealEstateSidebar>, so the sidebar and the outer
-    // two-column grid (`--with-sidebar`) are gone.
     <div className="re-market" role="region" aria-label="Real Estate">
+      <div className="re-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="realEstateLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Real Estate Market', source: 'FRED / HUD / FHFA / BIS / Census', endpoint: '/api/realEstate', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <div className="re-market-main">
         <RealEstateDashboard
           convert={convert}

@@ -4,6 +4,8 @@ import EquitiesDeepDiveDashboard from './components/EquitiesDeepDiveDashboard';
 import EquitiesDeepDiveKpiStrip from './components/EquitiesDeepDiveKpiStrip';
 import EquitiesDeepDiveSidebar from './components/EquitiesDeepDiveSidebar';
 import { normalizeEquityDeepDiveData } from '../../data/marketNormalizers';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './EquitiesDeepDiveMarket.css';
 
 function getEquityDeepDiveProps(centralData, institutionalCtx) {
@@ -72,6 +74,10 @@ function EquitiesDeepDiveMarket({ centralData, institutionalData: institutionalC
 
     return (
       <div className="eqd-market">
+        <div className="eqd-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+          <MetricValue value={props.lastUpdated} seriesKey="eqdLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+          <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Equities Deep Dive', source: 'Yahoo Finance / FRED / SEC EDGAR', endpoint: '/api/equityDeepDive', series: [], updatedAt: props.lastUpdated }} />
+        </div>
         <EquitiesDeepDiveDashboard
           kpiPanel={kpiPanel}
           sidebarPanel={sidebarPanel}

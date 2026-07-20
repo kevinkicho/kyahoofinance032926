@@ -3,6 +3,8 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import CreditDashboard from './components/CreditDashboard';
 import CreditKpiStrip from './components/CreditKpiStrip';
 import { useCurrency } from '../../hub/CurrencyContext';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './CreditMarket.css';
 
 function getCreditProps(centralData) {
@@ -79,6 +81,10 @@ function CreditMarket({ centralData } = {}) {
 
     return (
       <div className="credit-market">
+        <div className="credit-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+          <MetricValue value={props.lastUpdated} seriesKey="creditLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+          <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Credit Market', source: 'FRED / FDIC / MSRB / BIS', endpoint: '/api/credit', series: [], updatedAt: props.lastUpdated }} />
+        </div>
         <CreditDashboard
           kpiPanel={kpiPanel}
           spreadData={props.spreadData}

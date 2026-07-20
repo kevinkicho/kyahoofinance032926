@@ -32,6 +32,7 @@ export const MARKET_ENDPOINTS = {
   bea:               '/api/bea',
   eurostat:          '/api/eurostat',
   oecd:              '/api/oecd',
+  oecdInsurance:     '/api/oecd/insurance',
   edgar:             '/api/edgar',
   universeUpdates:   '/api/universeUpdates',
   nyfed:             '/api/nyfed',

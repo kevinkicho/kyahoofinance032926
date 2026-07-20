@@ -35,6 +35,63 @@ async function fetchOecdCli() {
   return out;
 }
 
+// ── OECD Insurance Statistics ──────────────────────────────────────────────
+// Fetches gross premiums, insurance penetration (%GDP), and density
+// (premiums per capita) for life and non-life insurance across countries.
+// Uses OECD SDMX API — no key required.
+// Docs: https://data.oecd.org/insurance/insurance-spending.htm
+const INS_COUNTRIES = ['USA', 'GBR', 'DEU', 'FRA', 'ITA', 'JPN', 'CAN', 'AUS', 'KOR', 'NLD', 'CHE', 'ESP'];
+const INS_INDICATORS = [
+  { key: 'grossPremiumsLife',   sdmx: 'DPN_LIFE',   label: 'Gross premiums written — life',   unit: 'USD' },
+  { key: 'grossPremiumsNonLife', sdmx: 'DPN_NLIFE',  label: 'Gross premiums written — non-life', unit: 'USD' },
+  { key: 'penetrationLife',     sdmx: 'PEN_LIFE',   label: 'Insurance penetration — life',     unit: '%GDP' },
+  { key: 'penetrationNonLife',  sdmx: 'PEN_NLIFE',  label: 'Insurance penetration — non-life',  unit: '%GDP' },
+  { key: 'densityLife',         sdmx: 'DEN_LIFE',   label: 'Insurance density — life',          unit: 'USD/cap' },
+  { key: 'densityNonLife',      sdmx: 'DEN_NLIFE',  label: 'Insurance density — non-life',      unit: 'USD/cap' },
+];
+
+async function fetchOecdInsurance() {
+  trackApiCall('OECD');
+  const out = {};
+  for (const ind of INS_INDICATORS) {
+    try {
+      const url = `${BASE}/OECD.INS,DSD_INSURANCE@DF_INSURANCE,1.0/${INS_COUNTRIES.join('+')}.A.${ind.sdmx}...?format=jsondata&lastNObservations=5`;
+      const data = await fetchJSON(url);
+      const parsed = parseSdmx(data);
+      const byCountry = {};
+      for (const s of parsed) {
+        const country = s.dims?.REF_AREA || s.key?.[0];
+        if (!country) continue;
+        byCountry[country] = s.observations.slice(-3);
+      }
+      out[ind.key] = { byCountry, label: ind.label, unit: ind.unit };
+    } catch (e) {
+      console.warn(`[OECD Insurance] ${ind.key}: ${e.message}`);
+    }
+  }
+  return out;
+}
+
+router.get('/insurance', async (_req, res) => {
+  const cached = readDailyCache('oecd_insurance');
+  if (cached) return res.json(cached);
+
+  const today = todayStr();
+  let insurance = null;
+  try { insurance = await fetchOecdInsurance(); } catch (e) { console.warn('[OECD] Insurance:', e.message); }
+
+  const _sources = { oecdInsurance: !!(insurance && Object.keys(insurance).length) };
+  const isLive = _sources.oecdInsurance;
+
+  const result = { insurance, _sources, isLive, isCurrent: true, fetchedOn: today, lastUpdated: today };
+  if (isLive) writeDailyCache('oecd_insurance', result);
+  else {
+    const fallback = readLatestCache('oecd_insurance');
+    if (fallback) return res.json({ ...fallback.data, isCurrent: false, fetchedOn: fallback.fetchedOn });
+  }
+  res.json(result);
+});
+
 router.get('/', async (_req, res) => {
   const cached = readDailyCache('oecd');
   if (cached) return res.json(cached);

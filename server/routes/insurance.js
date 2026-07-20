@@ -295,6 +295,38 @@ router.get('/', async (req, res) => {
       }
     : null;
 
+  // Insurance employment (FRED CES — NAICS 524, insurance carriers)
+  let insuranceEmployment = null;
+  if (FRED_API_KEY) {
+    try {
+      trackApiCall('FRED');
+      const empHist = await fetchFredHistory('CES5552400001', FRED_API_KEY, 60);
+      if (empHist.length >= 12) {
+        insuranceEmployment = {
+          dates: empHist.map(p => p.date),
+          values: empHist.map(p => Math.round(p.value / 1000 * 10) / 10),
+          latest: empHist.length > 0 ? Math.round(empHist[empHist.length - 1].value / 1000 * 10) / 10 : null,
+        };
+      }
+    } catch (e) { console.warn('[Insurance] employment:', e.message || e); _errors.insuranceEmployment = e.message; }
+  }
+
+  // Insurance industry wages (FRED CES — NAICS 524, average hourly earnings)
+  let insuranceWages = null;
+  if (FRED_API_KEY) {
+    try {
+      trackApiCall('FRED');
+      const wageHist = await fetchFredHistory('CES5552400030', FRED_API_KEY, 60);
+      if (wageHist.length >= 12) {
+        insuranceWages = {
+          dates: wageHist.map(p => p.date),
+          values: wageHist.map(p => Math.round(p.value * 10) / 10),
+          latest: wageHist.length > 0 ? Math.round(wageHist[wageHist.length - 1].value * 10) / 10 : null,
+        };
+      }
+    } catch (e) { console.warn('[Insurance] wages:', e.message || e); _errors.insuranceWages = e.message; }
+  }
+
   // Reinsurance pricing
   let reinsurancePricing = [];
 
@@ -337,6 +369,8 @@ router.get('/', async (req, res) => {
     treasury10y: hasData(treasury10y),
     catLosses: hasData(catLosses),
     combinedRatioHistory: hasData(combinedRatioHistory),
+    insuranceEmployment: hasData(insuranceEmployment),
+    insuranceWages: hasData(insuranceWages),
   };
 
   const result = {
@@ -354,6 +388,8 @@ router.get('/', async (req, res) => {
     treasury10y,
     catLosses,
     combinedRatioHistory,
+    insuranceEmployment,
+    insuranceWages,
     _sources,
     lastUpdated: today,
   };

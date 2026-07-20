@@ -3,6 +3,8 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import CryptoDashboard from './components/CryptoDashboard';
 import CryptoSidebar from './components/CryptoSidebar';
 import { useCurrency } from '../../hub/CurrencyContext';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './CryptoMarket.css';
 
 function getCryptoProps(centralData) {
@@ -57,9 +59,11 @@ function CryptoMarket({ centralData } = {}) {
   });
 
   return (
-    // CryptoSidebar now lives inside CryptoDashboard's BentoWrapper as a
-    // real grid item, so the outer `--with-sidebar` two-column grid is gone.
     <div className="crypto-market" role="region" aria-label="Crypto">
+      <div className="crypto-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="cryptoLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Crypto Market', source: 'CoinGecko / DeFi Llama / mempool.space', endpoint: '/api/crypto', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <div className="crypto-market-main">
         <CryptoDashboard
           coinMarketData={convertedCoins}

@@ -2,6 +2,8 @@ import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import FXDashboard from './components/FXDashboard';
 import { exchangeRates } from '../../utils/constants';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 
 function getFXProps(centralData) {
   const d = centralData.data || {};
@@ -86,10 +88,11 @@ function FXMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    // FXSidebar AND the top KPI strip now both live as real bento panels
-    // inside FXDashboard's BentoWrapper; the outer `--with-sidebar` grid
-    // and the standalone `.fx-kpi-panel` are gone.
     <div className="fx-market" role="region" aria-label="FX">
+      <div className="fx-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="fxLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'FX Market', source: 'Frankfurter / FRED / CFTC', endpoint: '/api/fx', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <div className="fx-market-main">
         <FXDashboard
           spotRates={props.spotRates}

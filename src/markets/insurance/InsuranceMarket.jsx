@@ -32,6 +32,8 @@ function getInsuranceProps(centralData) {
     treasury10y: d.treasury10y,
     catLosses: d.catLosses,
     combinedRatioHistory: d.combinedRatioHistory,
+    insuranceEmployment: d.insuranceEmployment,
+    insuranceWages: d.insuranceWages,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,
@@ -70,6 +72,8 @@ function InsuranceMarket({ centralData } = {}) {
         treasury10y={props.treasury10y}
         catLosses={props.catLosses}
         combinedRatioHistory={props.combinedRatioHistory}
+        insuranceEmployment={props.insuranceEmployment}
+        insuranceWages={props.insuranceWages}
         error={props.error}
         fetchedOn={props.fetchedOn}
         isCurrent={props.isCurrent}

@@ -29,6 +29,10 @@ const INDICATORS = [
   // life vs non-life premium share of GDP). Used by the Insurance tab.
   { key: 'lifeInsPctGdp',     wdi: 'GFDD.DI.09', label: 'Life insurance premium / GDP',     unit: '%' },
   { key: 'nonLifeInsPctGdp',  wdi: 'GFDD.DI.10', label: 'Non-life insurance premium / GDP', unit: '%' },
+  // Additional GFDD insurance indicators for the Insurance tab
+  { key: 'reinsurancePctGdp',     wdi: 'GFDD.DI.11', label: 'Reinsurance premiums / GDP',          unit: '%' },
+  { key: 'topInsurerMarketShare', wdi: 'GFDD.DI.12', label: 'Market share of top 10 insurers',     unit: '%' },
+  { key: 'insConcentration',      wdi: 'GFDD.DI.13', label: 'Insurance sector concentration ratio', unit: '' },
 ];
 
 const WB_API = 'https://api.worldbank.org/v2';

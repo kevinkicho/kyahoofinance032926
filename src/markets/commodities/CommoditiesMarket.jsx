@@ -4,6 +4,8 @@ import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import CommoditiesDashboard from './components/CommoditiesDashboard';
 import { normalizeCommoditiesData } from '../../data/marketNormalizers';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './components/CommoditiesDashboard.css';
 
 function calculateDataAge(dateString) {
@@ -359,10 +361,11 @@ function CommoditiesMarket({ centralData } = {}) {
   const commodityCurrencies = props.commodityCurrencies || ccyFromFx;
 
   return (
-    // The internal "Market Summary" bento panel inside CommoditiesDashboard
-    // is a superset of the old loose <CommoditiesSidebar>, so the sidebar
-    // and the outer two-column grid are no longer needed.
     <div className="com-market">
+      <div className="com-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="commoditiesLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Commodities Market', source: 'EIA / FRED / Yahoo Finance', endpoint: '/api/commodities', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <div className="com-market-main">
         <CommoditiesDashboard
           currency={currency}

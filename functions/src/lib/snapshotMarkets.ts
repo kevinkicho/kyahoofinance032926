@@ -36,6 +36,7 @@ export const SNAPSHOT_MARKETS: SnapshotMarket[] = [
   { id: "bea", path: "/api/bea" },
   { id: "eurostat", path: "/api/eurostat" },
   { id: "oecd", path: "/api/oecd" },
+  { id: "oecdInsurance", path: "/api/oecd/insurance" },
   { id: "edgar", path: "/api/edgar" },
   { id: "nyfed", path: "/api/nyfed" },
   { id: "fdic", path: "/api/fdic" },

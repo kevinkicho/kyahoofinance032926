@@ -4,6 +4,8 @@ import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import SentimentDashboard from './components/SentimentDashboard';
 import { normalizeSentimentData } from '../../data/marketNormalizers';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './SentimentMarket.css';
 
 function getSentimentProps(centralData) {
@@ -43,11 +45,11 @@ function SentimentMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    // SentimentDashboard already wraps <SentimentSidebar> inside its
-    // BentoWrapper as a real grid panel; the loose left-column copy
-    // here was a duplicate and is gone, along with the outer two-column
-    // grid (`--with-sidebar`).
     <div className="sent-market" role="region" aria-label="Sentiment">
+      <div className="sent-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="sentimentLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Sentiment Market', source: 'CFTC / FRED / Alternative.me', endpoint: '/api/sentiment', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <div className="sent-market-main">
         <SentimentDashboard
           fearGreedData={props.fearGreedData}

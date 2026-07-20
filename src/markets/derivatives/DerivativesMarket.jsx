@@ -4,6 +4,8 @@ import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import DerivativesDashboard from './components/DerivativesDashboard';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './components/DerivativesDashboard.css';
 import './DerivativesMarket.css';
 
@@ -76,10 +78,11 @@ function DerivativesMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    // KPI strip is now a real bento child rendered inside
-    // DerivativesDashboard's BentoWrapper (passed via the `kpis` prop).
-    // The "Key Metrics" sidebar panel was already in there.
     <div className="deriv-market" role="region" aria-label="Derivatives">
+      <div className="deriv-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="derivativesLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Derivatives Market', source: 'CBOE / CFTC / BIS / ECB', endpoint: '/api/derivatives', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <div className="deriv-market-main">
         <DerivativesDashboard
           kpis={kpis}

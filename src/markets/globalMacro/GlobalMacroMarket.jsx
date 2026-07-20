@@ -5,6 +5,8 @@ import GlobalMacroKpiStrip from './components/GlobalMacroKpiStrip';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import { normalizeGlobalMacroData } from '../../data/marketNormalizers';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './components/GlobalMacroDashboard.css';
 
 function getGlobalMacroProps(centralData) {
@@ -74,6 +76,10 @@ function GlobalMacroMarket({ centralData } = {}) {
 
   return (
     <div className="mac-market">
+      <div className="mac-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="globalMacroLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Global Macro', source: 'World Bank / OECD / ECB / BEA / Eurostat / FRED', endpoint: '/api/globalMacro', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <GlobalMacroDashboard
         kpiSidebar={kpiSidebar}
         convert={convert}

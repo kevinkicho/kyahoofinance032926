@@ -215,7 +215,7 @@ app.get('/api/health', (req, res) => {
 // even though the URL is /api/equityDeepDive). `commodities_enhanced` is the
 // v2 commodities cache; `commodities` (legacy) is kept until the legacy
 // route is retired.
-const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','commodities_enhanced','globalMacro','equityDeepDive','crypto','credit','sentiment','calendar','fx','imf','worldbank','bls','eia','census','institutional','nyfed','fdic','bea','edgar','ecb','eurostat','oecd','treasuryTIC','treasuryAuctions','treasuryDTS'];
+const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','commodities_enhanced','globalMacro','equityDeepDive','crypto','credit','sentiment','calendar','fx','imf','worldbank','bls','eia','census','institutional','nyfed','fdic','bea','edgar','ecb','eurostat','oecd','oecd_insurance','treasuryTIC','treasuryAuctions','treasuryDTS'];
 app.get('/api/cache/status', (_req, res) => {
   const today = todayStr();
   const status = {};
@@ -274,6 +274,7 @@ app.use('/api/edgar', edgarRouter);
 app.use('/api/ecb', ecbRouter);
 app.use('/api/eurostat', eurostatRouter);
 app.use('/api/oecd', oecdRouter);
+app.use('/api/oecd/insurance', oecdRouter);
 app.use('/api/treasury/tic', treasuryTICRouter);
 app.use('/api/treasuryTIC', treasuryTICRouter);
 app.use('/api/treasury/auctions', treasuryAuctionsRouter);

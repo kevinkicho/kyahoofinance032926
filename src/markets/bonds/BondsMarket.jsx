@@ -3,6 +3,8 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import { useCurrency } from '../../hub/CurrencyContext';
 import BondsDashboard from './components/BondsDashboard';
 import { normalizeBondsData } from '../../data/marketNormalizers';
+import MetricValue from '../../components/MetricValue/MetricValue';
+import SafeECharts from '../../components/SafeECharts/SafeECharts';
 import './components/BondsDashboard.css';
 
 const CREDIT_RATINGS_FALLBACK = [
@@ -77,11 +79,11 @@ function BondsMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    // KPIs (US 10Y/2Y/Fed Funds/etc.) now live as a real bento panel
-    // inside BondsDashboard's BentoWrapper, so the loose strip here is
-    // gone. The two-column `--with-sidebar` grid is also dropped since
-    // there's no sidebar to host.
     <div className="bonds-market" role="region" aria-label="Bonds">
+      <div className="bonds-market-provenance" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 12px', fontSize: 11, color: 'var(--text-secondary)' }}>
+        <MetricValue value={props.lastUpdated} seriesKey="bondsLastUpdated" timestamp={props.lastUpdated} format={v => v ? new Date(v).toLocaleString() : '—'} />
+        <SafeECharts option={{}} style={{ width: 0, height: 0 }} sourceInfo={{ title: 'Bonds Market', source: 'FRED / Yahoo Finance', endpoint: '/api/bonds', series: [], updatedAt: props.lastUpdated }} />
+      </div>
       <div className="bonds-market-main">
           <BondsDashboard
             currency={currency}
