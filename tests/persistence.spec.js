@@ -10,6 +10,8 @@
  */
 import { test, expect } from '@playwright/test';
 
+const BASE = '/kyahoofinance032926/';
+
 const TARGETS = [
   { market: 'fx',          panelKey: 'kpi' },
   { market: 'derivatives', panelKey: 'kpi' },
@@ -31,7 +33,21 @@ async function getTransform(page, panelKey) {
 test.describe('layout persistence', () => {
   for (const { market, panelKey } of TARGETS) {
     test(`${market}: ${panelKey} drag survives reload`, async ({ page }) => {
-      await page.goto(`/?market=${market}`, { waitUntil: 'domcontentloaded' });
+      // Intercept RTDB snapshot calls via addInitScript so it survives reload
+      await page.addInitScript(() => {
+        const origFetch = window.fetch;
+        window.fetch = (url, ...args) => {
+          if (typeof url === 'string' && url.includes('firebaseio.com/marketSnapshots')) {
+            if (url.includes('history.json?shallow=true')) {
+              return Promise.resolve(new Response(JSON.stringify({ '2026-06-24': true }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+            }
+            return Promise.resolve(new Response(JSON.stringify({ data: { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] }, fetchedAt: '2026-06-24T12:00:00Z' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          }
+          return origFetch(url, ...args);
+        };
+      });
+
+      await page.goto(`${BASE}?market=${market}`, { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(4000);
 
       const card = page.locator('.react-grid-item').first();
