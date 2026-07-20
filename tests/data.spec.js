@@ -91,10 +91,20 @@ test.describe('Mocked-API data correctness', () => {
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ '2026-06-24': true }) });
         return;
       }
+      const match = url.match(/marketSnapshots\/([^/]+)\//);
+      const marketId = match ? match[1] : null;
+      let mockData;
+      if (marketId === 'bonds') {
+        mockData = cannedBondsResponse;
+      } else if (marketId === 'crypto') {
+        mockData = cannedCryptoResponse;
+      } else {
+        mockData = { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] };
+      }
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ data: { isLive: true, isCurrent: true, key1: [1, 2], key2: [3, 4] }, fetchedAt: '2026-06-24T12:00:00Z' }),
+        body: JSON.stringify({ data: mockData, fetchedAt: '2026-06-24T12:00:00Z' }),
       });
     });
     // Intercept all other /api/ calls to avoid hitting the throttled backend
