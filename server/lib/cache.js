@@ -46,7 +46,7 @@ export function readDailyCache(market) {
       }
       return data;
     }
-  } catch { /* skip */ }
+  } catch (e) { console.warn(`[datacache] readDailyCache failed for ${market}:`, e?.message); }
   return null;
 }
 
@@ -188,7 +188,7 @@ export async function readLatestCacheAsync(market) {
       return null;
     }
     return { data, fetchedOn };
-  } catch { return null; }
+  } catch (e) { console.warn(`[datacache] readLatestCacheAsync failed for ${market}:`, e?.message); return null; }
 }
 
 export async function readLatestCacheWithFieldAsync(market, fieldPath, lookbackDays = 14) {

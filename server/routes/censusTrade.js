@@ -60,7 +60,7 @@ async function fetchTradeForMonth(url, valueField, month) {
       if (Number.isFinite(v)) out[code] = { name, value: v };
     }
     return out;
-  } catch (e) { console.warn('[Census trade]', e.message); return null; }
+  } catch (e) { console.warn('[Census trade]', e.message); return { _error: e.message, _source: 'Census Bureau', _fetchedAt: new Date().toISOString() }; }
 }
 
 router.get('/', async (_req, res) => {

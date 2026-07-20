@@ -664,11 +664,11 @@ const MLExplorer = ({ flatData, onTickerSelect }) => {
       </div>
 
       <div className="ml-chart-section">
-        {scatterOption && <SafeECharts option={scatterOption} style={{ height: '240px', width: '100%' }} />}
+        {scatterOption && <SafeECharts option={scatterOption} style={{ height: '240px', width: '100%' }} sourceInfo={{ title: 'ML Explorer Scatter', source: 'Yahoo Finance / Equity+ DataProvider', endpoint: '/api/equityDeepDive', series: [], updatedAt: eddLastUpdated }} />}
         {sectorBarOption && (
           <div style={{ marginTop: '0.5rem' }}>
             <div className="ml-section-title" style={{ padding: '0 0.5rem 0.25rem' }}>Sector ETF Performance</div>
-            <SafeECharts option={sectorBarOption} style={{ height: sectorSummary.length > 0 ? `${Math.max(200, sectorSummary.length * 24)}px` : '200px', width: '100%' }} />
+            <SafeECharts option={sectorBarOption} style={{ height: sectorSummary.length > 0 ? `${Math.max(200, sectorSummary.length * 24)}px` : '200px', width: '100%' }} sourceInfo={{ title: 'Sector ETF Performance', source: 'Yahoo Finance / Equity+ DataProvider', endpoint: '/api/equityDeepDive', series: [], updatedAt: eddLastUpdated }} />
           </div>
         )}
         <DataFooter source="Yahoo Finance / Equity+ DataProvider" timestamp={eddLastUpdated} isLive={eddIsLive} fetchLog={eddFetchLog} error={eddError} fetchedOn={eddFetchedOn} isCurrent={eddIsCurrent} />

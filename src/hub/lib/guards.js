@@ -45,6 +45,57 @@ export function passesStructuralGuard(id, d) {
   }
 }
 
+// CRITICAL_FIELDS — markets whose snapshots may pass the structural guard
+// but have null critical fields because upstream APIs failed on snapshot day.
+// When any critical field is null, the market needs a live repair fetch.
+const CRITICAL_FIELDS = {
+  bonds:          ['spreadHistory', 'fedBalanceSheetHistory', 'm2HistoryData', 'cpiComponents', 'debtToGdpHistory', 'breakevensData', 'durationLadder', 'macroData'],
+  realEstate:     ['foreclosureData', 'mbaApplications', 'creDelinquencies', 'existingHomeSales', 'rentalVacancy', 'treasury10y'],
+  fx:             ['fredFxRates', 'dxyHistory', 'rateDifferentials'],
+  derivatives:    ['volPremium', 'skewHistory', 'vixPercentile'],
+  insurance:      ['industryAvgCombinedRatio', 'catLosses', 'reinsurancePricing'],
+  globalMacro:    ['imfWEO', 'bisCreditToGDP'],
+  commodities:    ['sectorHeatmapData', 'commodityCurrencies'],
+  crypto:         ['ethGas', 'fundingData', 'onChainData'],
+  credit:         ['delinquencyRates', 'commercialPaper'],
+  sentiment:      ['riskData', 'returnsData', 'cftcData'],
+  equities:       ['quotes', 'indices'],
+  equitiesDeepDive: ['sectorData', 'factorData', 'earningsData', 'shortData', 'insiderData'],
+  calendar:       ['economicEvents', 'centralBanks', 'earningsSeason'],
+  bls:            ['series'],
+  eia:            ['electricity', 'co2Emissions', 'petroleum', 'naturalGas'],
+};
+
+export function needsLiveRepair(id, data) {
+  if (!data || typeof data !== 'object') return true;
+  // Markets with custom logic
+  if (id === 'equitiesDeepDive') {
+    if (!data.sectorData?.sectors?.length && !data.factorData?.inFavor && !data.factorData?.stocks?.length) return true;
+    if (data.equityRiskPremium == null && data.spPE == null && data.buffettIndicator == null) return true;
+    return false;
+  }
+  if (id === 'globalMacro') {
+    if (data.cfnai?.values?.length === 0 && data.oecdCli == null) return true;
+    const fields = CRITICAL_FIELDS[id] || [];
+    return fields.some(f => data[f] == null);
+  }
+  if (id === 'sentiment') {
+    if (data.fearGreedData?.score == null && data.fearGreedData?.value == null) return true;
+    const fields = CRITICAL_FIELDS[id] || [];
+    return fields.some(f => data[f] == null);
+  }
+  if (id === 'calendar') {
+    if (!data.centralBanks?.length && !data.economicEvents?.length && !data.keyReleases?.length) return true;
+    return false;
+  }
+  // Markets that don't need repair (system endpoints or always-fresh)
+  if (id === 'analytics' || id === 'watchlist' || id === 'alerts') return false;
+  // Generic critical-field check
+  const fields = CRITICAL_FIELDS[id];
+  if (!fields) return false;
+  return fields.some(f => data[f] == null);
+}
+
 export function hasNonNullData(d, id) {
   if (!d || typeof d !== 'object') return false;
   const renderable = isRenderableMarketSnapshot(id, d);
