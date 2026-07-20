@@ -15,7 +15,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: [path.resolve(__dirname, './src/__tests__/setup.js')],
-    exclude: ['**/node_modules/**', '**/.worktrees/**', 'tests/**'],
+    exclude: ['**/node_modules/**', '**/.worktrees/**', '**/.swarm/**', 'tests/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

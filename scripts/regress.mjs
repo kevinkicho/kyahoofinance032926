@@ -129,7 +129,7 @@ const CHECKS = [
     apiPath: '/api/equityDeepDive',
   },
   { tab: 'credit', name: 'Credit Key Metrics',
-    shape: j => (j.spreadData?.current && j.emBondData?.countries) ? { ok: true } : { ok: false, why: 'spreadData/emBondData shape' },
+    shape: j => (j.spreadData?.current && j.emBondData?.countries) ? { ok: true } : { ok: false, env: true, why: 'spreadData/emBondData shape (FRED key required)' },
     panel: 'Credit Key Metrics',
   },
   { tab: 'bls', name: 'BLS panels (FRED fallback)',
@@ -251,7 +251,12 @@ const OVERLAP_CHECK = async (page) => {
   // 3. Per-tab DOM checks for duplicate panels
   await page.goto(`${BASE}/?market=fx`, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(8000);
-  const reerCount = await page.locator('.react-grid-item:has(:text("Real Effective Exchange Rates"))').count();
+  const reerCount = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.react-grid-item')).filter(item => {
+      const titles = item.querySelectorAll('.bento-panel-title');
+      return Array.from(titles).some(t => t.textContent.trim() === 'Real Effective Exchange Rates');
+    }).length;
+  });
 
   await browser.close();
 
