@@ -785,7 +785,7 @@ function GlobalMacroDashboard({
                       <td style={{ padding: '6px 8px', color: colors.textSecondary }}>{p.variable}</td>
                       {['current', 'next', 'twoOut', 'longerRun'].map(k => (
                         <td key={k} style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: colors.textPrimary || '#e2e8f0' }}>
-                          {typeof p.median[k] === 'number' && Number.isFinite(p.median[k]) ? `${p.median[k].toFixed(1)}%` : '—'}
+                          {typeof p.median?.[k] === 'number' && Number.isFinite(p.median[k]) ? `${p.median[k].toFixed(1)}%` : '—'}
                         </td>
                       ))}
                     </tr>
@@ -813,7 +813,7 @@ function GlobalMacroDashboard({
               error={error}
             >
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {cleveData.tables.slice(0, 2).map((tbl, i) => (
+                {(cleveData.tables || []).slice(0, 2).map((tbl, i) => (
                   <div key={i}>
                     <div className="mac-sidebar-title" style={{ marginBottom: 4 }}>
                       {tbl.kind === 'mom' ? 'Month-over-Month' : tbl.kind === 'yoy' ? 'Year-over-Year' : 'Quarterly QoQ'}
@@ -829,7 +829,7 @@ function GlobalMacroDashboard({
                         </tr>
                       </thead>
                       <tbody>
-                        {tbl.rows.slice(0, 4).map((r, j) => (
+                        {(tbl.rows || []).slice(0, 4).map((r, j) => (
                           <tr key={j} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
                             <td style={{ padding: '4px 6px', color: colors.textSecondary }}>{r.period}</td>
                             <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.cpi?.toFixed(2)}%</td>

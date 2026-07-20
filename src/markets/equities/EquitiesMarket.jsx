@@ -671,8 +671,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
 
   const processedData = useMemo(() => {
     let filtered = flatData.filter(item =>
-      item.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.region.toLowerCase().includes(searchQuery.toLowerCase())
+      (item.ticker || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.region || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
     if (sortConfig.key) {
       const sortKey = sortConfig.key === 'value' ? 'adjustedValue' : sortConfig.key;
