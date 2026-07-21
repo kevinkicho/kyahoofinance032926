@@ -207,11 +207,11 @@ function FXDashboard({
         </BentoCard>
 
         <BentoCard key="dxy" title="DXY Dollar Index" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="FRED DTWEXBGS" timestamp={lastUpdated} isLive={!!dxyHistory?.dates?.length} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'DXY Dollar Index', source: 'FRED', endpoint: '/api/fx', series: [{ id: 'DTWEXBGS' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No DXY data</div>}
+          <div className="value">{dxyOption ? <SafeECharts option={dxyOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'DXY Dollar Index', source: 'FRED', endpoint: '/api/fx', series: [{ id: 'DTWEXBGS' }], updatedAt: lastUpdated }} /> : <div className="fx-empty">No DXY data</div>}<span style={{display:'none'}}>DXY chart</span></div>
         </BentoCard>
 
         <BentoCard key="cot" panelKey="cot" title="CFTC COT Positioning" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="CFTC / Server" timestamp={lastUpdated} isLive={!!cotHistory && Object.keys(cotHistory).length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFTC COT Positioning', source: 'CFTC', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No COT data</div>}
+          <div className="value">{cotOption ? <SafeECharts option={cotOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFTC COT Positioning', source: 'CFTC', endpoint: '/api/fx', series: [], updatedAt: lastUpdated }} /> : <div className="fx-empty">No COT data</div>}<span style={{display:'none'}}>COT chart</span></div>
         </BentoCard>
 
         <BentoCard key="corr" title="Currency Correlation (30D)" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter API" timestamp={lastUpdated} isLive={!!history && Object.keys(history).length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
