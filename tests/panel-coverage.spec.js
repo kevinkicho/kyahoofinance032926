@@ -543,8 +543,10 @@ test.beforeEach(async ({ page }) => {
         price: 82.5,
         changePct: 1.2,
         ytd: 3.5,
-        dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
-        values: [80.0, 81.2, 79.5, 82.0, 81.5, 82.5]
+        history: {
+          dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
+          closes: [80.0, 81.2, 79.5, 82.0, 81.5, 82.5]
+        }
       },
       capRateData: [
         { sector: 'Residential', impliedYield: 4.8, capRate: 4.8 },
@@ -552,6 +554,12 @@ test.beforeEach(async ({ page }) => {
         { sector: 'Retail', impliedYield: 5.5, capRate: 5.5 },
         { sector: 'Industrial', impliedYield: 5.1, capRate: 5.1 }
       ],
+      supplyData: {
+        housingStarts: { dates: ['2026-01', '2026-02', '2026-03'], values: [1.5, 1.6, 1.55] },
+        permits: { dates: ['2026-01', '2026-02', '2026-03'], values: [1.4, 1.45, 1.42] },
+        monthsSupply: 3.2,
+        activeListings: 450000
+      },
       dummy: true
     },
     '/api/insurance': {

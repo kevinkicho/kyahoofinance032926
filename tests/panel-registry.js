@@ -102,6 +102,7 @@ export const PANEL_REGISTRY = {
       { title: 'Cap Rates by Sector' },
       { title: 'Housing Affordability Stack' },
       { title: 'Supply & Demand' },
+      { title: 'MBA Applications' },
     ],
   },
   insurance: {
