@@ -121,7 +121,7 @@ export const PANEL_REGISTRY = {
   },
   commodities: {
     panels: [
-      { title: 'Market Summary', minValues: 4 },
+      { title: 'Market Summary', minValues: 3 },
       { title: 'Commodity Prices' },
       { title: 'Futures Curve' },
       { title: 'Sector Performance' },
@@ -138,6 +138,7 @@ export const PANEL_REGISTRY = {
       { title: 'Curve Structure Board' },
       { title: 'Strategic Material Detail' },
       { title: 'Material-to-Sector Exposure Matrix' },
+      { title: 'US Ag Commodity Prices' },
     ],
   },
   globalMacro: {

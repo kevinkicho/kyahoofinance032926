@@ -400,17 +400,19 @@ test.beforeEach(async ({ page }) => {
     },
     '/api/usda': {
       isLive: true, isCurrent: true,
-      agriculturalPrices: [{ item: 'Corn', price: 4.5 }, { item: 'Wheat', price: 6.2 }],
+      summary: [{ desc: 'Corn', latest: { value: 4.5, period: '2026-06' }, unit: '$/bu', yoyPct: 8.2 }, { desc: 'Wheat', latest: { value: 6.2, period: '2026-06' }, unit: '$/bu', yoyPct: -3.5 }, { desc: 'Soybeans', latest: { value: 12.8, period: '2026-06' }, unit: '$/bu', yoyPct: 5.1 }],
       dummy: true
     },
     '/api/censusTrade': {
       isLive: true, isCurrent: true,
-      exports: [{ product: 'Soybeans', value: 120000000 }],
+      summary: { worldBalanceB: -85.2, latestMonth: '2026-05' },
       dummy: true
     },
     '/api/eiaPetroleum': {
       isLive: true, isCurrent: true,
-      inventories: { crudeOil: 420 },
+      crudeStocks: { latest: { value: 455000, period: '2026-06-19' }, yoyPct: 2.3 },
+      gasoline: { latest: { value: 220000, period: '2026-06-19' }, yoyPct: 1.8 },
+      naturalGas: { latest: { value: 2.85, period: '2026-06-19' }, yoyPct: -12.5 },
       dummy: true
     },
     '/api/cftcTFF': {
@@ -608,10 +610,23 @@ test.beforeEach(async ({ page }) => {
     },
     '/api/commoditiesEnhanced': {
       isLive: true, isCurrent: true,
-      cotData: [{ date: '2026-05-01', netLong: 125000 }, { date: '2026-05-08', netLong: 130000 }],
-      priceDashboardData: [{ commodity: 'Crude Oil', price: 80.5, change: 1.2 }],
+      cotData: {
+        commodities: [
+          { name: 'WTI Crude Oil', code: 'CL', netPct: 12.5, longK: 250, shortK: 180, oiK: 1500, latest: { noncommNet: 70000, commNet: -70000, netChange: 5000, totalOI: 1500000 }, history: [{ noncommNet: 65000 }, { noncommNet: 70000 }] },
+          { name: 'Gold', code: 'GC', netPct: 8.2, longK: 180, shortK: 120, oiK: 800, latest: { noncommNet: 60000, commNet: -60000, netChange: 2000, totalOI: 800000 }, history: [{ noncommNet: 58000 }, { noncommNet: 60000 }] },
+          { name: 'Natural Gas', code: 'NG', netPct: -5.1, longK: 80, shortK: 120, oiK: 600, latest: { noncommNet: -40000, commNet: 40000, netChange: -3000, totalOI: 600000 }, history: [{ noncommNet: -37000 }, { noncommNet: -40000 }] }
+        ]
+      },
+      priceDashboardData: [
+        { name: 'Gold', price: 2350.5, change1d: 0.8, change1w: 1.2, change1m: 3.5, changeYtd: 12.4 },
+        { name: 'WTI Crude Oil', price: 80.5, change1d: -0.3, change1w: -1.5, change1m: 2.1, changeYtd: 8.5 },
+        { name: 'Natural Gas', price: 2.85, change1d: 1.5, change1w: 3.2, change1m: -4.1, changeYtd: -15.2 }
+      ],
       sectorHeatmapData: { commodities: [{ sector: 'Energy', performance: 2.1 }] },
-      yahoo: { futures: { CL: { price: 80.5, change: 1.2 } } },
+      yahoo: { futures: { 'GC=F': { price: 2350.5, change: 0.8, _lastUpdated: '2026-07-20T12:00:00Z' }, 'CL=F': { price: 80.5, change: -0.3, _lastUpdated: '2026-07-20T12:00:00Z' }, 'NG=F': { price: 2.85, change: 1.5, _lastUpdated: '2026-07-20T12:00:00Z' }, DBC: { price: 28.5, change: 0.4, ytd: 5.2 } } },
+      goldOilRatio: { ratio: 29.2 },
+      dbcEtf: { price: 28.5, changePct: 0.4 },
+      contangoIndicator: { structure: 'Contango' },
       commodityCurrencies: [{ currency: 'CAD', rate: 1.36 }],
       dummy: true
     },
@@ -717,7 +732,7 @@ test.beforeEach(async ({ page }) => {
           { ticker: 'GLD', dailyReturns: [-0.005, 0.002, 0.003, -0.001, 0.005, -0.002] }
         ]
       },
-      cftcData: [{ asset: 'S&P 500', netLong: 45000 }],
+      cftcData: { commodities: [{ code: 'CL', name: 'WTI Crude Oil', netPct: 12.5, longK: 250, shortK: 180, oiK: 1500 }, { code: 'GC', name: 'Gold', netPct: 8.2, longK: 180, shortK: 120, oiK: 800 }] },
       dummy: true
     },
     '/api/calendar': {
