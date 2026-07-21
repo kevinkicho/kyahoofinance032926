@@ -6,6 +6,7 @@ import MarketKpiStrip from '../../components/MarketKpiStrip';
 import { useMarketData, useDataContext } from '../../hub/DataContext';
 import { auth } from '../../lib/firebase';
 import PanelTraceInspector from './PanelTraceInspector';
+import DataQualityScore from './components/DataQualityScore';
 import DataFooter from '../../components/DataFooter/DataFooter';
 import { PANEL_REGISTRY, TRACEABLE_MARKETS } from '../../data/panelRegistry';
 import { MARKETS } from '../../hub/markets.config';
@@ -609,7 +610,8 @@ const LAYOUT = {
     { i: 'routes', x: 6, y: 13, w: 3, h: 3 },
     { i: 'panel-trace', x: 0, y: 16, w: 12, h: 8 },
     { i: 'coverage-matrix', x: 0, y: 24, w: 12, h: 4 },
-    { i: 'visibility-audit', x: 0, y: 28, w: 12, h: 6 },
+    { i: 'data-quality', x: 0, y: 28, w: 6, h: 4 },
+    { i: 'visibility-audit', x: 0, y: 32, w: 12, h: 6 },
   ]
 };
 
@@ -1265,6 +1267,10 @@ export default function AnalyticsMarket({ onNavigate }) {
                 ))}
               </tbody>
             </table>
+          </BentoCard>
+
+          <BentoCard key="data-quality" title="Data Quality Score" subtitle={`Avg ${Math.round((data.dataFreshness?.markets || []).reduce((s, m) => s + (m.isCurrent ? 100 : m.fetchedOn ? 30 : 0), 0) / Math.max((data.dataFreshness?.markets || []).length, 1))} / 100`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            <DataQualityScore markets={data.dataFreshness?.markets || []} />
           </BentoCard>
 
           <BentoCard key="visibility-audit" title="Panel Visibility Audit" subtitle="Audit DOM visibility of grid panels" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>

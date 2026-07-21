@@ -89,14 +89,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// /factors previously returned Math.random()-generated values, which silently
-// violated the no-mock-data policy. No free factor-data API is wired up yet,
-// so the endpoint now returns an empty list with _sources.factorsLive=false
-// and the UI renders "—" via its standard empty-state path.
-router.get('/factors', async (_req, res) => {
-  res.json({ factors: [], _sources: { factorsLive: false } });
-});
-
 router.get('/stats', async (req, res) => {
   try {
     const cache = req.app.locals.cache;

@@ -68,6 +68,7 @@ import cftcTFFRouter from './routes/cftcTFF.js';
 import bisOTCRouter from './routes/bisOTC.js';
 import faoRouter from './routes/fao.js';
 import treasuryCostRouter from './routes/treasuryCost.js';
+import { startFxWebSocket } from './lib/ws.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
 process.on('uncaughtException', (err) => {
@@ -325,4 +326,5 @@ server = app.listen(port, () => {
   console.log(`Global Macro Backend running at http://localhost:${actualPort}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
   console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/fx  /api/summary/:t  /api/history/:t  /api/analytics`);
+  startFxWebSocket(server);
 });

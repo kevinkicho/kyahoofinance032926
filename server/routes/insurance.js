@@ -329,7 +329,6 @@ router.get('/', async (req, res) => {
     hyOAS: hasData(hyOAS),
     igOAS: hasData(igOAS),
     catBondSpreads: hasData(catBondSpreads),
-    catBondSpreads_synthetic: true,
     fredHyOasHistory: hasData(fredHyOasHistory),
     sectorETF: hasData(sectorETF),
     catBondProxy: hasData(catBondProxy),

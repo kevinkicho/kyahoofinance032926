@@ -233,7 +233,17 @@ router.get('/', (req, res) => {
     result.routes = [];
   }
 
-  result._sources = { analytics: true };
+  result._sources = {
+    analytics: true,
+    markets: Object.fromEntries(
+      CACHEABLE_MARKETS.map(market => {
+        const latest = readLatestCache(market);
+        const fetchedOn = latest?.fetchedOn || null;
+        const isCurrent = fetchedOn === today;
+        return [market, { isCurrent, lastUpdated: latest?.data?.lastUpdated || fetchedOn || null }];
+      })
+    ),
+  };
   res.json(result);
 });
 

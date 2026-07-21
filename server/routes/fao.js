@@ -28,17 +28,9 @@ router.get('/', async (_req, res) => {
     const fb = readLatestCache('fao');
     if (fb) return res.json({ ...fb.data, isCurrent: false, fetchedOn: fb.fetchedOn });
     const fallbackResult = {
-      series: [
-        { date: '2015', value: 1001203400 },
-        { date: '2016', value: 1012340500 },
-        { date: '2017', value: 1023450600 },
-        { date: '2018', value: 1034560700 },
-        { date: '2019', value: 1045670800 },
-        { date: '2020', value: 1056780900 },
-        { date: '2021', value: 1067891000 },
-        { date: '2022', value: 1078901100 },
-      ],
-      _sources: { fao: true },
+      foodPriceIndex: null,
+      summary: null,
+      _sources: { fao: false },
       isLive: false,
       isCurrent: false,
       fetchedOn: today,

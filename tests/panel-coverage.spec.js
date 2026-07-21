@@ -26,7 +26,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PANEL_REGISTRY, SOFT_EXTRA_MARKETS } from './panel-registry.js';
 
-const SETTLE_MS = Number(process.env.COVERAGE_SETTLE_MS || 7000);
+const SETTLE_MS = Number(process.env.COVERAGE_SETTLE_MS || 35000);
 const STRICT = process.env.COVERAGE_STRICT !== '0';
 const ONLY = (process.env.COVERAGE_ONLY || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -108,6 +108,7 @@ test.beforeEach(async ({ page }) => {
   // Intercept RTDB snapshot calls to force live fetches of /api/*
   await page.route(/firebaseio\.com\/marketSnapshots/, async (route) => {
     const url = route.request().url();
+    console.log(`[RTDB route] intercepted: ${url}`);
     if (url.includes('equitiesDeepDive')) {
       await route.fulfill({
         status: 200,
@@ -169,6 +170,307 @@ test.beforeEach(async ({ page }) => {
           fetchedAt: '2026-07-20 09:00:00',
         }),
       });
+    } else if (url.includes('watchlist')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            AAPL: { symbol: 'AAPL', price: 175, change: 1.5, changePct: 0.86, name: 'Apple Inc.', marketCap: 2800000000000, weekHigh52: 200, weekLow52: 150, regularMarketPrice: 175, regularMarketChange: 1.5, regularMarketChangePercent: 0.86, shortName: 'Apple Inc.' },
+            MSFT: { symbol: 'MSFT', price: 420, change: 2.3, changePct: 0.55, name: 'Microsoft Corp.', marketCap: 3100000000000, weekHigh52: 450, weekLow52: 380, regularMarketPrice: 420, regularMarketChange: 2.3, regularMarketChangePercent: 0.55, shortName: 'Microsoft Corp.' },
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('analytics')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            apiUsage: { totalExternalCalls: 120, sources: [{ name: 'Yahoo Finance', used: 12, limit: 2000, pct: 1, remaining: 1988 }, { name: 'FRED', used: 45, limit: 172800, pct: 0, remaining: 172755 }] },
+            endpoints: [{ path: '/api/stocks', calls: 50, avgMs: 12, maxMs: 45, minMs: 2, p50Ms: 10, errors: 0, errorPct: 0, lastCalled: '2026-06-24T12:00:00Z', recentErrors: [] }],
+            dataFreshness: { today: '2026-06-24', markets: [{ market: 'bonds', fetchedOn: '2026-06-24', isCurrent: true, ageHours: 1, hasFileCache: true, hasMemCache: true, fileSizeKB: 12, keyCount: 5 }], currentCount: 1, staleCount: 0, noCacheCount: 0 },
+            cacheFiles: { count: 3, totalSizeKB: 35, files: [{ name: 'bonds.json', sizeKB: 12, sizeDisplay: '12KB', modified: '2026-06-24T12:00:00Z' }] },
+            memCache: { keyCount: 5, keys: ['route_bonds'], hits: 120, misses: 10, hitRate: 92 },
+            errorLog: [{ timestamp: '2026-06-24T12:00:00Z', method: 'GET', path: '/api/bonds', status: 500, ip: '127.0.0.1', userAgent: 'Mozilla/5.0' }],
+            environment: { nodeVersion: 'v22.22.3', platform: 'linux', arch: 'x64', cpus: 2, totalMemGB: 1, freeMemGB: 1, hostname: 'localhost', pid: 1, cwd: '/workspace', env: 'production' },
+            uptime: { seconds: 600, memoryMB: 38, rssMB: 196, heapTotalMB: 43, externalMB: 7, arrayBuffersMB: 0 },
+            sourceHealth: [{ name: 'Yahoo Finance', status: 'ok', used: 12, limit: 2000, pct: 1 }],
+            routes: [{ path: '/api/analytics', methods: ['GET'] }],
+            _sources: { analytics: true, markets: { bonds: { isCurrent: true, lastUpdated: '2026-06-24T12:00:00Z' } } },
+          },
+          fetchedAt: '2026-06-24 12:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('bonds')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            fetchLog: [{ method: 'GET', url: '/api/bonds', status: 200, duration: 50 }],
+            yieldCurveData: {
+              US: { '1m': 5.2, '3m': 5.3, '2y': 4.8, '10y': 4.5 },
+              DE: { '1m': 3.2, '3m': 3.3, '2y': 3.0, '10y': 2.8 },
+              JP: { '1m': 0.1, '3m': 0.1, '2y': 0.2, '10y': 0.8 }
+            },
+            spreadIndicators: { t10y2y: -0.3, t10y3m: -0.8 },
+            spreadData: {
+              dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
+              IG: [120, 118, 122, 125, 121, 120],
+              HY: [350, 345, 355, 360, 348, 350],
+              EM: [180, 175, 185, 190, 182, 180],
+              BBB: [220, 215, 225, 230, 221, 220]
+            },
+            spreadHistory: {
+              dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
+              t10y2y: [-0.2, -0.25, -0.3, -0.28, -0.32, -0.3],
+              t10y3m: [-0.7, -0.75, -0.8, -0.78, -0.82, -0.8],
+              t5y30y: [0.1, 0.12, 0.15, 0.13, 0.14, 0.15]
+            },
+            fedBalanceSheetHistory: { dates: ['2026-01', '2026-02', '2026-03'], values: [7500, 7400, 7300] },
+            m2HistoryData: { dates: ['2026-01', '2026-02', '2026-03'], values: [21000, 20900, 20850] },
+            cpiComponents: {
+              dates: ['2026-01', '2026-02', '2026-03'],
+              all: [3.1, 3.2, 3.0], core: [3.8, 3.7, 3.6], food: [2.5, 2.4, 2.3], energy: [-1.0, -0.5, -2.0],
+              latest: { all: 3.0, core: 3.6, food: 2.3, energy: -2.0 }
+            },
+            debtToGdpHistory: { dates: ['2026-01', '2026-02', '2026-03'], values: [120.5, 121.2, 122.0], latest: 122.0 },
+            breakevensData: { current: { be5y: 2.3, be10y: 2.2 }, history: { dates: ['2026-01', '2026-02', '2026-03'], be5y: [2.2, 2.25, 2.3], be10y: [2.1, 2.15, 2.2], forward5y5y: [2.0, 2.05, 2.1] } },
+            durationLadder: { buckets: [{ bucket: '1-3 Yrs', amount: 500 }, { bucket: '3-5 Yrs', amount: 800 }], total: 1300, avgRate: 4.2 },
+            macroData: {
+              cftcNetLong: 12000,
+              moneyVelocity: 1.3,
+              centralBankRates: {
+                'United States': 5.25, 'Euro Area': 4.25, 'United Kingdom': 5.00,
+                'Japan': 0.10, 'Canada': 4.75, 'Australia': 4.35
+              }
+            },
+            tipsYields: { '5y': 2.1, '10y': 2.2, '30y': 2.4 },
+            realYieldHistory: { dates: ['2026-01', '2026-02', '2026-03'], d5y: [2.0, 2.05, 2.1], d10y: [2.1, 2.15, 2.2] },
+            creditRatings: {
+              asOf: '2026-06-24',
+              countries: [
+                { country: 'US', name: 'United States', sp: 'AA+', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
+                { country: 'DE', name: 'Germany', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
+                { country: 'JP', name: 'Japan', sp: 'A+', moodys: 'A1', fitch: 'A', region: 'Asia' },
+                { country: 'CH', name: 'Switzerland', sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' }
+              ]
+            },
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('credit')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            fetchLog: [{ method: 'GET', url: '/api/credit', status: 200, duration: 50 }],
+            spreadData: {
+              current: { igSpread: 120, hySpread: 350, emSpread: 180, bbbSpread: 220, cccSpread: 650 },
+              history: {
+                dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
+                IG: [120, 118, 122, 125, 121, 120],
+                HY: [350, 345, 355, 360, 348, 350],
+                EM: [180, 175, 185, 190, 182, 180],
+                BBB: [220, 215, 225, 230, 221, 220],
+                CCC: [650, 640, 660, 670, 645, 650]
+              }
+            },
+            commercialPaper: { rate: 5.35, history: { dates: ['2026-01', '2026-02', '2026-03'], values: [5.3, 5.35, 5.32] } },
+            delinquencyRates: [{ type: 'Credit Card', rate: 2.85 }],
+            emBondData: {
+              countries: [
+                { country: 'Mexico', spread: 180, yield: 6.2, debtGdp: 50 },
+                { country: 'Brazil', spread: 210, yield: 6.5, debtGdp: 75 },
+                { country: 'Colombia', spread: 230, yield: 6.7, debtGdp: 60 },
+                { country: 'South Africa', spread: 290, yield: 7.5, debtGdp: 70 },
+                { country: 'Turkey', spread: 350, yield: 8.2, debtGdp: 40 }
+              ],
+              regions: [
+                { region: 'Latin America', spread: 200 },
+                { region: 'EMEA', spread: 240 }
+              ]
+            },
+            defaultData: {
+              rates: [
+                { category: 'HY Default', value: 1.5, avg: 1.2 },
+                { category: 'Sovereign', value: 0.5, avg: 0.3 }
+              ]
+            },
+            loanData: { indices: [{ name: 'CLO AAA', spread: 150 }], cloTranches: [{ tranche: 'AAA', spread: 150, yield: 5.5, ltv: 60 }] },
+            lendingStandards: { easing: 5, tightening: 35, net: -30 },
+            excessReserves: { value: 3200000000000, unit: 'USD' },
+            creditQuality: { dates: ['2026-01', '2026-02', '2026-03'], aaaPct: [5.2, 5.1, 5.0], baaPct: [6.5, 6.4, 6.3], spreadBps: [130, 130, 130], latest: { date: '2026-03', aaaPct: 5.0, baaPct: 6.3, spreadBps: 130 } },
+            tedSpread: { values: [0.15, 0.14, 0.16], dates: ['2026-01', '2026-02', '2026-03'], latest: 0.15 },
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('sentiment')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            fetchLog: [{ method: 'GET', url: '/api/sentiment', status: 200, duration: 50 }],
+            fearGreedData: { score: 62, value: 'Greed', history: { dates: ['2026-06-01', '2026-06-02', '2026-06-03'], values: [60, 62, 61] } },
+            riskData: { stressIndex: -0.5, overallScore: 55, signals: [{ name: 'VIX', value: 15.2 }] },
+            returnsData: {
+              assets: [
+                { ticker: 'SPY', dailyReturns: [0.01, -0.005, 0.012, 0.003, -0.002, 0.005] },
+                { ticker: 'BTC-USD', dailyReturns: [0.02, -0.015, 0.03, 0.005, -0.01, 0.015] },
+                { ticker: 'GLD', dailyReturns: [-0.005, 0.002, 0.003, -0.001, 0.005, -0.002] }
+              ]
+            },
+            cftcData: { currencies: [{ asset: 'S&P 500', netLong: 45000 }] },
+            marginDebt: { dates: ['2026-04', '2026-05'], values: [840000000000, 850000000000] },
+            consumerCredit: { dates: ['2026-04', '2026-05'], values: [4790000000000, 4800000000000] },
+            vvixHistory: { dates: ['2026-06-01', '2026-06-02', '2026-06-03'], values: [12.5, 13.2, 12.8] },
+            fsiHistory: { dates: ['2026-06-01', '2026-06-02', '2026-06-03'], values: [-0.5, -0.4, -0.6] },
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('fdic')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            aggregate: [{ depositsB: 17500, assetsB: 22000, netIncomeB: 65, numInstitutions: 4500, quarter: '2026Q1' }],
+            failures: [{ name: 'Example Bank', date: '2026-03-15', assetsB: 0.5 }],
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('msrb')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            summary: { tradesAll: 12000, parTraded: 8500000000 },
+            primaryMarket: [{ period: 'Jan', issues: 120, parM: 8500, avgSizeM: 70.8 }],
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('fedNewsSentiment')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            indexValue: 0.15,
+            series: [{ date: '2026-06-01', sentiment: 0.12 }, { date: '2026-06-02', sentiment: 0.14 }, { date: '2026-06-03', sentiment: 0.15 }],
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('worldbank')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            countries: [
+              { code: 'USA', name: 'United States', gdpGrowth: 2.1, tradeGdp: 25, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇺🇸' },
+              { code: 'CHN', name: 'China', gdpGrowth: 4.8, tradeGdp: 37, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇨🇳' },
+              { code: 'DEU', name: 'Germany', gdpGrowth: 0.2, tradeGdp: 88, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇩🇪' },
+              { code: 'JPN', name: 'Japan', gdpGrowth: 0.9, tradeGdp: 38, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇯🇵' },
+              { code: 'GBR', name: 'United Kingdom', gdpGrowth: 0.7, tradeGdp: 65, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇬🇧' },
+            ],
+            indicators: [{ name: 'GDP per capita', value: 65000 }],
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('globalMacro')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            bisCreditToGDP: {
+              USA: { label: 'United States', series: [{ period: '2025-Q4', value: 255 }] },
+              JPN: { label: 'Japan', series: [{ period: '2025-Q4', value: 380 }] },
+              GBR: { label: 'United Kingdom', series: [{ period: '2025-Q4', value: 280 }] },
+              FRA: { label: 'France', series: [{ period: '2025-Q4', value: 310 }] },
+              CAN: { label: 'Canada', series: [{ period: '2025-Q4', value: 290 }] },
+            },
+            imfWEO: { countries: [{ country: 'USA', growth: 2.1 }] },
+            centralBankData: [
+              { country: 'US', rate: 5.25 },
+              { country: 'EA', rate: 4.25 },
+              { country: 'UK', rate: 5.00 },
+              { country: 'JP', rate: 0.10 },
+              { country: 'CA', rate: 4.75 },
+              { country: 'AU', rate: 4.35 },
+              { country: 'NZ', rate: 5.50 },
+              { country: 'CH', rate: 1.50 },
+              { country: 'NO', rate: 4.50 },
+              { country: 'SE', rate: 4.00 },
+            ],
+            scorecardData: [
+              { country: 'US', growth: 2.1, inflation: 3.0 },
+              { country: 'CN', growth: 4.8, inflation: 1.5 },
+              { country: 'DE', growth: 0.2, inflation: 2.5 },
+              { country: 'JP', growth: 0.9, inflation: 2.0 },
+              { country: 'GB', growth: 0.7, inflation: 2.8 },
+              { country: 'FR', growth: 0.5, inflation: 2.6 },
+              { country: 'IT', growth: 0.3, inflation: 2.4 },
+              { country: 'CA', growth: 1.2, inflation: 2.7 },
+              { country: 'AU', growth: 1.5, inflation: 3.2 },
+              { country: 'BR', growth: 2.5, inflation: 4.5 },
+            ],
+            growthInflationData: [{ country: 'US', growth: 2.1, inflation: 3.0 }],
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
+    } else if (url.includes('treasuryTIC')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            isLive: true, isCurrent: true,
+            latest: [
+              { country: 'Japan', holdingsB: 1100, period: '2026-05' },
+              { country: 'China, Mainland', holdingsB: 770, period: '2026-05' },
+              { country: 'United Kingdom', holdingsB: 650, period: '2026-05' },
+              { country: 'Luxembourg', holdingsB: 350, period: '2026-05' },
+              { country: 'Cayman Islands', holdingsB: 300, period: '2026-05' },
+            ],
+          },
+          fetchedAt: '2026-07-20 09:00:00',
+          isLive: true,
+        }),
+      });
     } else {
       await route.fulfill({ status: 200, contentType: 'application/json', body: 'null' });
     }
@@ -183,8 +485,10 @@ test.beforeEach(async ({ page }) => {
     },
     '/api/watchlist': {
       isLive: true, isCurrent: true,
-      tickers: ['AAPL', 'MSFT', 'GOOG'],
-      metrics: { AAPL: { price: 175 }, MSFT: { price: 420 }, GOOG: { price: 170 } },
+      AAPL: { symbol: 'AAPL', price: 175, change: 1.5, changePct: 0.86, name: 'Apple Inc.', marketCap: 2800000000000, weekHigh52: 200, weekLow52: 150, regularMarketPrice: 175, regularMarketChange: 1.5, regularMarketChangePercent: 0.86, shortName: 'Apple Inc.' },
+      MSFT: { symbol: 'MSFT', price: 420, change: 2.3, changePct: 0.55, name: 'Microsoft Corp.', marketCap: 3100000000000, weekHigh52: 450, weekLow52: 380, regularMarketPrice: 420, regularMarketChange: 2.3, regularMarketChangePercent: 0.55, shortName: 'Microsoft Corp.' },
+      GOOG: { symbol: 'GOOG', price: 170, change: -0.5, changePct: -0.29, name: 'Alphabet Inc.', marketCap: 2100000000000, weekHigh52: 190, weekLow52: 160, regularMarketPrice: 170, regularMarketChange: -0.5, regularMarketChangePercent: -0.29, shortName: 'Alphabet Inc.' },
+      _sources: { yahooFinance: true },
       dummy: true
     },
     '/api/rate-limits': {
@@ -193,7 +497,9 @@ test.beforeEach(async ({ page }) => {
       dataFreshness: { currentCount: 15, markets: [{ name: 'bonds' }, { name: 'fx' }] },
       cacheFiles: { count: 12, totalSizeKB: 256 },
       memoryCache: { keyCount: 45, hitRate: 88 },
-      errorLog: [{ timestamp: '2026-06-24T10:00:00Z', error: 'Test error' }],
+      errorLog: [
+        { timestamp: '2026-06-24T12:00:00Z', method: 'GET', path: '/api/bonds', status: 500, ip: '127.0.0.1', userAgent: 'Mozilla/5.0' }
+      ],
       dummy: true
     },
     '/api/analytics': {
@@ -239,7 +545,7 @@ test.beforeEach(async ({ page }) => {
         hitRate: 92
       },
       errorLog: [
-        { timestamp: '2026-06-24T12:00:00Z', error: 'Database connection reset' }
+        { timestamp: '2026-06-24T12:00:00Z', method: 'GET', path: '/api/bonds', status: 500, ip: '127.0.0.1', userAgent: 'Mozilla/5.0' }
       ],
       environment: {
         nodeVersion: 'v22.22.3',
@@ -818,28 +1124,19 @@ test.beforeEach(async ({ page }) => {
       isLive: true, isCurrent: true,
       electricity: {
         residential: {
-          dates: ['2026-06', '2026-05', '2026-04'],
-          sales: { values: [1500, 1400, 1300], unit: 'M kWh' },
-          revenue: { values: [200, 190, 180], unit: 'M$' },
-          price: { values: [16.2, 16.0, 15.8], unit: 'cents/kWh' },
-          latest: { period: '2026-06', sales: 1500, revenue: 200, price: 16.2 },
-          previous: { period: '2026-05', sales: 1400, revenue: 190, price: 16.0 }
+          latest: { price: 16.2, period: '2026-06', sales: 1500000, revenue: 200000000 },
+          previous: { price: 16.0, period: '2026-05', sales: 1400000, revenue: 190000000 },
+          price: { values: [15.8, 16.0, 16.2], dates: ['2026-04', '2026-05', '2026-06'] }
         },
         commercial: {
-          dates: ['2026-06', '2026-05', '2026-04'],
-          sales: { values: [1200, 1100, 1000], unit: 'M kWh' },
-          revenue: { values: [150, 140, 130], unit: 'M$' },
-          price: { values: [12.5, 12.3, 12.1], unit: 'cents/kWh' },
-          latest: { period: '2026-06', sales: 1200, revenue: 150, price: 12.5 },
-          previous: { period: '2026-05', sales: 1100, revenue: 140, price: 12.3 }
+          latest: { price: 12.5, period: '2026-06', sales: 1200000, revenue: 150000000 },
+          previous: { price: 12.3, period: '2026-05', sales: 1100000, revenue: 140000000 },
+          price: { values: [12.1, 12.3, 12.5], dates: ['2026-04', '2026-05', '2026-06'] }
         },
         industrial: {
-          dates: ['2026-06', '2026-05', '2026-04'],
-          sales: { values: [1000, 950, 900], unit: 'M kWh' },
-          revenue: { values: [80, 75, 70], unit: 'M$' },
-          price: { values: [8.2, 8.0, 7.9], unit: 'cents/kWh' },
-          latest: { period: '2026-06', sales: 1000, revenue: 80, price: 8.2 },
-          previous: { period: '2026-05', sales: 950, revenue: 75, price: 8.0 }
+          latest: { price: 8.2, period: '2026-06', sales: 1000000, revenue: 80000000 },
+          previous: { price: 8.0, period: '2026-05', sales: 950000, revenue: 75000000 },
+          price: { values: [7.9, 8.0, 8.2], dates: ['2026-04', '2026-05', '2026-06'] }
         }
       },
       co2Emissions: {
@@ -911,6 +1208,16 @@ test.beforeEach(async ({ page }) => {
     '/api/census': {
       isLive: true, isCurrent: true,
       series: { '1': { _source: true } },
+      dummy: true
+    },
+    '/api/admin/diagnostics-report': {
+      overallStatus: 'healthy',
+      timestamp: '2026-06-24T12:00:00Z',
+      markets: {
+        bonds: { status: 'healthy', duration: 120 },
+        fx: { status: 'healthy', duration: 85 },
+        equities: { status: 'healthy', duration: 95 }
+      },
       dummy: true
     }
   };
@@ -1004,14 +1311,163 @@ for (const market of MARKETS) {
       });
     }
 
+    if (market === 'credit') {
+      await page.addInitScript(() => {
+        window.localStorage.setItem('hub-markets-snapshot-v1', JSON.stringify({
+          credit: {
+            data: {
+              isLive: true, isCurrent: true,
+              fetchLog: [{ method: 'GET', url: '/api/credit', status: 200, duration: 50 }],
+              spreadData: {
+                current: { igSpread: 120, hySpread: 350, emSpread: 180, bbbSpread: 220, cccSpread: 650 },
+                history: {
+                  dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'],
+                  IG: [120, 118, 122, 125, 121, 120],
+                  HY: [350, 345, 355, 360, 348, 350],
+                  EM: [180, 175, 185, 190, 182, 180],
+                  BBB: [220, 215, 225, 230, 221, 220],
+                  CCC: [650, 640, 660, 670, 645, 650]
+                }
+              },
+              commercialPaper: { rate: 5.35, history: { dates: ['2026-01', '2026-02', '2026-03'], values: [5.3, 5.35, 5.32] } },
+              delinquencyRates: [{ type: 'Credit Card', rate: 2.85 }],
+              emBondData: {
+                countries: [
+                  { country: 'Mexico', spread: 180, yield: 6.2, debtGdp: 50 },
+                  { country: 'Brazil', spread: 210, yield: 6.5, debtGdp: 75 },
+                  { country: 'Colombia', spread: 230, yield: 6.7, debtGdp: 60 },
+                  { country: 'South Africa', spread: 290, yield: 7.5, debtGdp: 70 },
+                  { country: 'Turkey', spread: 350, yield: 8.2, debtGdp: 40 }
+                ],
+                regions: [{ region: 'Latin America', spread: 200 }, { region: 'EMEA', spread: 240 }]
+              },
+              defaultData: {
+                rates: [
+                  { category: 'HY Default', value: 1.5, avg: 1.2 },
+                  { category: 'Sovereign', value: 0.5, avg: 0.3 }
+                ]
+              },
+              loanData: { indices: [{ name: 'CLO AAA', spread: 150 }], cloTranches: [{ tranche: 'AAA', spread: 150, yield: 5.5, ltv: 60 }] },
+              lendingStandards: { easing: 5, tightening: 35, net: -30 },
+              excessReserves: { value: 3200000000000, unit: 'USD' },
+              creditQuality: { dates: ['2026-01', '2026-02', '2026-03'], aaaPct: [5.2, 5.1, 5.0], baaPct: [6.5, 6.4, 6.3], spreadBps: [130, 130, 130], latest: { date: '2026-03', aaaPct: 5.0, baaPct: 6.3, spreadBps: 130 } },
+              tedSpread: { values: [0.15, 0.14, 0.16], dates: ['2026-01', '2026-02', '2026-03'], latest: 0.15 },
+            },
+            lastUpdated: '2026-07-20 09:00:00',
+            fetchedOn: '2026-07-20 09:00:00',
+            isLive: true,
+            isCurrent: true,
+          },
+          fdic: {
+            data: {
+              isLive: true, isCurrent: true,
+              aggregate: [{ depositsB: 17500, assetsB: 22000, netIncomeB: 65, numInstitutions: 4500, quarter: '2026Q1' }],
+              failures: [{ name: 'Example Bank', date: '2026-03-15', assetsB: 0.5 }],
+            },
+            lastUpdated: '2026-07-20 09:00:00',
+            fetchedOn: '2026-07-20 09:00:00',
+            isLive: true,
+            isCurrent: true,
+          },
+          msrb: {
+            data: {
+              isLive: true, isCurrent: true,
+              summary: { tradesAll: 12000, parTraded: 8500000000 },
+              primaryMarket: [{ period: 'Jan', issues: 120, parM: 8500, avgSizeM: 70.8 }],
+            },
+            lastUpdated: '2026-07-20 09:00:00',
+            fetchedOn: '2026-07-20 09:00:00',
+            isLive: true,
+            isCurrent: true,
+          },
+          worldbank: {
+            data: {
+              isLive: true, isCurrent: true,
+              countries: [
+                { code: 'USA', name: 'United States', gdpGrowth: 2.1, tradeGdp: 25, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇺🇸' },
+                { code: 'CHN', name: 'China', gdpGrowth: 4.8, tradeGdp: 37, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇨🇳' },
+                { code: 'DEU', name: 'Germany', gdpGrowth: 0.2, tradeGdp: 88, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇩🇪' },
+                { code: 'JPN', name: 'Japan', gdpGrowth: 0.9, tradeGdp: 38, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇯🇵' },
+                { code: 'GBR', name: 'United Kingdom', gdpGrowth: 0.7, tradeGdp: 65, gdpGrowthYear: '2026', tradeGdpYear: '2025', flag: '🇬🇧' },
+              ],
+              indicators: [{ name: 'GDP per capita', value: 65000 }],
+            },
+            lastUpdated: '2026-07-20 09:00:00',
+            fetchedOn: '2026-07-20 09:00:00',
+            isLive: true,
+            isCurrent: true,
+          },
+          globalMacro: {
+            data: {
+              isLive: true, isCurrent: true,
+              bisCreditToGDP: {
+                USA: { label: 'United States', series: [{ period: '2025-Q4', value: 255 }] },
+                JPN: { label: 'Japan', series: [{ period: '2025-Q4', value: 380 }] },
+                GBR: { label: 'United Kingdom', series: [{ period: '2025-Q4', value: 280 }] },
+                FRA: { label: 'France', series: [{ period: '2025-Q4', value: 310 }] },
+                CAN: { label: 'Canada', series: [{ period: '2025-Q4', value: 290 }] },
+              },
+              centralBankData: [
+                { country: 'US', rate: 5.25 },
+                { country: 'EA', rate: 4.25 },
+                { country: 'UK', rate: 5.00 },
+                { country: 'JP', rate: 0.10 },
+                { country: 'CA', rate: 4.75 },
+                { country: 'AU', rate: 4.35 },
+                { country: 'NZ', rate: 5.50 },
+                { country: 'CH', rate: 1.50 },
+                { country: 'NO', rate: 4.50 },
+                { country: 'SE', rate: 4.00 },
+              ],
+              scorecardData: [
+                { country: 'US', growth: 2.1, inflation: 3.0 },
+                { country: 'CN', growth: 4.8, inflation: 1.5 },
+                { country: 'DE', growth: 0.2, inflation: 2.5 },
+                { country: 'JP', growth: 0.9, inflation: 2.0 },
+                { country: 'GB', growth: 0.7, inflation: 2.8 },
+                { country: 'FR', growth: 0.5, inflation: 2.6 },
+                { country: 'IT', growth: 0.3, inflation: 2.4 },
+                { country: 'CA', growth: 1.2, inflation: 2.7 },
+                { country: 'AU', growth: 1.5, inflation: 3.2 },
+                { country: 'BR', growth: 2.5, inflation: 4.5 },
+              ],
+              growthInflationData: [{ country: 'US', growth: 2.1, inflation: 3.0 }],
+            },
+            lastUpdated: '2026-07-20 09:00:00',
+            fetchedOn: '2026-07-20 09:00:00',
+            isLive: true,
+            isCurrent: true,
+          },
+          treasuryTIC: {
+            data: {
+              isLive: true, isCurrent: true,
+              latest: [
+                { country: 'Japan', holdingsB: 1100, period: '2026-05' },
+                { country: 'China, Mainland', holdingsB: 770, period: '2026-05' },
+                { country: 'United Kingdom', holdingsB: 650, period: '2026-05' },
+                { country: 'Luxembourg', holdingsB: 350, period: '2026-05' },
+                { country: 'Cayman Islands', holdingsB: 300, period: '2026-05' },
+              ],
+            },
+            lastUpdated: '2026-07-20 09:00:00',
+            fetchedOn: '2026-07-20 09:00:00',
+            isLive: true,
+            isCurrent: true,
+          },
+        }));
+      });
+    }
+
     await page.goto(`/kyahoofinance032926/?market=${market}`, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(SETTLE_MS);
 
-    if (market === 'bonds') {
+    if (market === 'bonds' || market === 'credit' || market === 'sentiment') {
       const text = await page.textContent('body');
-      console.log('DEBUG: bonds page body content length:', text?.length);
-      console.log('DEBUG: bonds page body first 1000 chars:', text?.substring(0, 1000));
-      await page.screenshot({ path: 'test-results/panel-coverage-bonds-debug.png', fullPage: true });
+      console.log(`DEBUG: ${market} page body content length:`, text?.length);
+      console.log(`DEBUG: ${market} page body first 1000 chars:`, text?.substring(0, 1000));
+      await page.screenshot({ path: `test-results/panel-coverage-${market}-debug.png`, fullPage: true });
+      // Check for any page errors
+      page.on('pageerror', err => console.error(`[PAGE ERROR] ${err.message}\n${err.stack}`));
     }
 
     const panels = await collectPanels(page);

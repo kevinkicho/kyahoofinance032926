@@ -47,19 +47,6 @@ const RELEASE_SERIES = {
   205: 'HOUST', 58: 'NAPM',
 };
 
-const RELEASE_CADENCES = [
-  { name: 'Employment Situation', category: 'employment', dayOfWeek: 5, weekOfMonth: 1, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'CPI', category: 'inflation', dayOfMonth: 12, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'PPI', category: 'inflation', dayOfMonth: 14, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'Retail Sales', category: 'consumer', dayOfMonth: 16, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'Industrial Production', category: 'growth', dayOfMonth: 17, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'Housing Starts', category: 'housing', dayOfMonth: 18, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'PCE Price Index', category: 'inflation', dayOfMonth: 27, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'Consumer Confidence', category: 'sentiment', dayOfMonth: 28, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'ISM Manufacturing', category: 'growth', dayOfMonth: 1, months: [1,2,3,4,5,6,7,8,9,10,11,12] },
-  { name: 'GDP', category: 'growth', dayOfMonth: 30, months: [1,4,7,10] },
-];
-
 function thirdFriday(year, month) {
   const d = new Date(year, month, 1);
   const day = d.getDay();
@@ -103,60 +90,6 @@ function nextBusinessDay(date) {
     d.setUTCDate(d.getUTCDate() + 1);
   }
   return d;
-}
-
-function fallbackKeyReleases(today, count = 20) {
-  const todayDate = new Date(`${today}T00:00:00Z`);
-  const releases = [];
-  let year = todayDate.getUTCFullYear();
-  let month = todayDate.getUTCMonth();
-  const maxYear = year + 2;
-
-  while (releases.length < count && year <= maxYear) {
-    for (const cfg of RELEASE_CADENCES) {
-      if (!cfg.months.includes(month + 1)) continue;
-
-      let d = null;
-      if (cfg.dayOfWeek != null && cfg.weekOfMonth != null) {
-        d = nthWeekdayOfMonth(year, month, cfg.dayOfWeek, cfg.weekOfMonth);
-      } else {
-        d = new Date(Date.UTC(year, month, cfg.dayOfMonth));
-      }
-      if (!d || d.getUTCMonth() !== month) continue;
-
-      const date = nextBusinessDay(d).toISOString().slice(0, 10);
-      if (date >= today) {
-        releases.push({
-          name: cfg.name,
-          date,
-          category: cfg.category,
-          previousValue: null,
-          source: 'cadenceFallback',
-        });
-      }
-    }
-
-    month++;
-    if (month > 11) { month = 0; year++; }
-  }
-
-  return releases
-    .sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name))
-    .slice(0, count);
-}
-
-function fallbackEconomicEvents(today, count = 30) {
-  return fallbackKeyReleases(today, count).map(r => ({
-    date: r.date,
-    country: 'US',
-    event: r.name,
-    actual: null,
-    consensus: null,
-    expected: null,
-    previous: r.previousValue ?? null,
-    importance: 2,
-    source: r.source,
-  }));
 }
 
 async function fetchFomcDatesFromFred(FRED_API_KEY) {
@@ -437,8 +370,8 @@ router.get('/', async (req, res) => {
         ...(econdbResult.status === 'fulfilled' ? econdbResult.value : []),
       ].sort((a, b) => a.date.localeCompare(b.date));
     const liveKeyReleases = releasesResult.status === 'fulfilled' ? releasesResult.value : [];
-    const economicEvents = liveEconomicEvents.length > 0 ? liveEconomicEvents : fallbackEconomicEvents(today);
-    const keyReleases = liveKeyReleases.length > 0 ? liveKeyReleases : fallbackKeyReleases(today);
+    const economicEvents = liveEconomicEvents.length > 0 ? liveEconomicEvents : [];
+    const keyReleases = liveKeyReleases.length > 0 ? liveKeyReleases : [];
 
     const result = {
       economicEvents,
@@ -450,14 +383,14 @@ router.get('/', async (req, res) => {
       dividendCalendar: dividendResult.status === 'fulfilled' ? dividendResult.value : null,
       _sources: {
         econEvents:        hasData(liveEconomicEvents),
-        econEventsFallback: !hasData(liveEconomicEvents),
+        econEventsFallback: false,
         centralBankRates:  hasData(cbRatesResult.status === 'fulfilled' ? cbRatesResult.value : null),
         centralBankDateSources: cbRatesResult.status === 'fulfilled'
           ? Object.fromEntries((cbRatesResult.value || []).map(cb => [cb.bank, cb.dateSource || 'staticFallback']))
           : {},
         earnings:          hasData(earningsResult.status === 'fulfilled' ? earningsResult.value : null),
         fredReleases:      hasData(liveKeyReleases),
-        fredReleasesFallback: !hasData(liveKeyReleases),
+        fredReleasesFallback: false,
         treasuryAuctions:  hasData(treasuryResult.status === 'fulfilled' ? treasuryResult.value : null),
         dividends:         hasData(dividendResult.status === 'fulfilled' ? dividendResult.value : null),
         econdb:            hasData(econdbResult.status === 'fulfilled' ? econdbResult.value : null),

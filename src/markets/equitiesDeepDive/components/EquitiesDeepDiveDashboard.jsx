@@ -5,6 +5,7 @@ import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import InsiderTrading from './InsiderTrading';
+import FactorRankings from './FactorRankings';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquitiesDeepDiveDashboard.css';
 
@@ -259,7 +260,8 @@ const LAYOUT = {
     { i: 'earnings',     x: 0, y: 8, w: 6,  h: 3 },
     { i: 'institutions', x: 6, y: 8, w: 3,  h: 2 },
     { i: 'insider',      x: 6, y: 10, w: 3, h: 3 },
-    { i: 'earnings-quality', x: 0, y: 13, w: 12, h: 3 },
+    { i: 'factor-rankings', x: 0, y: 12, w: 6, h: 4 },
+    { i: 'earnings-quality', x: 0, y: 16, w: 12, h: 3 },
   ]
 };
 
@@ -779,6 +781,29 @@ function EquitiesDeepDiveDashboard({
             />
           </BentoCard>
         )}
+
+        {/* Factor Rankings */}
+        <BentoCard
+          key="factor-rankings"
+          title="Factor Rankings"
+          subtitle="Percentile scores · composite · breadth divergence · ERP"
+          accent="equitiesDeepDive"
+          className="eqd-bento-card"
+          contentClassName="eqd-panel-scroll"
+          source="Yahoo Finance / FRED"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <FactorRankings
+            factorData={factorData}
+            breadthDivergence={breadthDivergence}
+            equityRiskPremium={equityRiskPremium}
+          />
+        </BentoCard>
 
         <BentoCard
           key="earnings-quality"

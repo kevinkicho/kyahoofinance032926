@@ -138,7 +138,7 @@ describe('Calendar economic calendar data fetching', () => {
     expect(eventsWithPrevious.length).toBeGreaterThan(0);
   });
 
-  it('uses fallback economic events when FRED_API_KEY is missing', async () => {
+  it('returns empty economic events when FRED_API_KEY is missing', async () => {
     delete process.env.FRED_API_KEY;
     fetchJSON.mockResolvedValue({ data: [] });
 
@@ -152,14 +152,9 @@ describe('Calendar economic calendar data fetching', () => {
     await routeHandler(mockReq, mockRes);
 
     const response = mockRes.json.mock.calls[0][0];
-    expect(response.economicEvents.length).toBeGreaterThan(0);
-    expect(response.economicEvents[0]).toMatchObject({
-      country: 'US',
-      actual: null,
-      source: 'cadenceFallback',
-    });
-    expect(response.keyReleases.length).toBeGreaterThan(0);
-    expect(response._sources.econEventsFallback).toBe(true);
-    expect(response._sources.fredReleasesFallback).toBe(true);
+    expect(response.economicEvents.length).toBe(0);
+    expect(response.keyReleases.length).toBe(0);
+    expect(response._sources.econEventsFallback).toBe(false);
+    expect(response._sources.fredReleasesFallback).toBe(false);
   });
 });

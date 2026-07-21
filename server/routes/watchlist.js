@@ -17,16 +17,43 @@ const MAX_TICKERS = 100;
 // markets too. Empty-but-valid JSON keeps the wave alive; the actual
 // quotes still flow through the POST handler when WatchlistMarket
 // pushes its localStorage tickers.
-router.get('/', (_req, res) => {
-  res.json({
-    quotes: [],
-    _sources: { yahooFinance: false },
-    lastUpdated: new Date().toISOString(),
-    fetchedOn: todayStr(),
-    isLive: false,
-    isCurrent: false,
-    _note: 'GET stub — POST tickers to populate quotes',
-  });
+const DEFAULT_TICKERS = ['SPY','QQQ','IWM','EFA','EEM','AGG','GLD','TLT','XLK','XLF'];
+
+router.get('/', async (_req, res) => {
+  try {
+    trackApiCall('Yahoo Finance', DEFAULT_TICKERS.length);
+    const results = await yahooFinance.quotes(DEFAULT_TICKERS);
+
+    const quotes = results.map(q => ({
+      symbol: q.symbol,
+      price: q.regularMarketPrice,
+      change: q.regularMarketChange,
+      changePct: q.regularMarketChangePercent,
+      name: q.shortName || q.longName,
+      marketCap: q.marketCap,
+      weekHigh52: q.fiftyTwoWeekHigh,
+      weekLow52: q.fiftyTwoWeekLow,
+    }));
+
+    res.json({
+      quotes,
+      _sources: { yahooFinance: true },
+      lastUpdated: new Date().toISOString(),
+      fetchedOn: todayStr(),
+      isLive: true,
+      isCurrent: true,
+    });
+  } catch (err) {
+    console.error('[Watchlist API] GET default fetch error:', err.message);
+    res.json({
+      quotes: [],
+      _sources: { yahooFinance: false },
+      lastUpdated: new Date().toISOString(),
+      fetchedOn: todayStr(),
+      isLive: false,
+      isCurrent: false,
+    });
+  }
 });
 
 router.post('/', async (req, res) => {

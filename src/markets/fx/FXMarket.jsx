@@ -1,7 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import FXDashboard from './components/FXDashboard';
 import { exchangeRates } from '../../utils/constants';
+
+function useFxWebSocket() {
+  const [wsRates, setWsRates] = useState(null);
+  const wsRef = useRef(null);
+
+  useEffect(() => {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const url = `${proto}//${host}/ws/fx`;
+
+    function connect() {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'fx-rates') {
+            setWsRates(msg.rates);
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        setTimeout(connect, 5000);
+      };
+
+      ws.onerror = () => {};
+    }
+
+    connect();
+
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, []);
+
+  return wsRates;
+}
 
 function getFXProps(centralData) {
   const d = centralData.data || {};
@@ -80,19 +119,20 @@ function getFXProps(centralData) {
 }
 
 function FXMarket({ centralData } = {}) {
+  const wsRates = useFxWebSocket();
+
   if (!centralData) return <MarketSkeleton />;
   const props = getFXProps(centralData);
 
   if (props.isLoading) return <MarketSkeleton />;
 
+  const mergedSpotRates = wsRates ? { ...props.spotRates, ...wsRates } : props.spotRates;
+
   return (
-    // FXSidebar AND the top KPI strip now both live as real bento panels
-    // inside FXDashboard's BentoWrapper; the outer `--with-sidebar` grid
-    // and the standalone `.fx-kpi-panel` are gone.
     <div className="fx-market" role="region" aria-label="FX">
       <div className="fx-market-main">
         <FXDashboard
-          spotRates={props.spotRates}
+          spotRates={mergedSpotRates}
           prevRates={props.prevRates}
           changes={props.changes}
           changes1w={props.changes1w}
