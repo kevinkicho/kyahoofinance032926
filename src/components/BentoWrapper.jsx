@@ -45,7 +45,7 @@ function mergeLayoutWithDefaults(saved, defaults) {
   }
   for (const item of saved) {
     if (!seen.has(item.i)) {
-      console.warn(`[BentoWrapper] Dropping orphaned layout entry "${item.i}" — panel no longer in defaults`);
+      console.debug(`[BentoWrapper] Dropping orphaned layout entry "${item.i}" — panel no longer in defaults`);
     }
   }
   return merged;

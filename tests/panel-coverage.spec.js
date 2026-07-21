@@ -54,6 +54,7 @@ async function collectPanels(page) {
       return t.value.trim();
     }
     return cards.map((card) => {
+      if (card.offsetParent === null && card.style.display === 'none') return null;
       const titleEl = card.querySelector('.bento-panel-title-row, [class*="panel-title-row"]');
       // Title row often contains both title + subtitle spans. Prefer the
       // first span/dedicated title element; fall back to the row's text.
@@ -85,7 +86,7 @@ async function collectPanels(page) {
         hasCanvas,
         hasChartSvg,
       };
-    });
+    }).filter(Boolean);
   });
 }
 
