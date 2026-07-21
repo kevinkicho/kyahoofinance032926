@@ -1440,7 +1440,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
               <span className="eq-panel-subtitle">{flatData.length} equities · {groupBy === 'sectorGlobal' ? 'global sectors' : groupBy === 'sectorInMarket' ? 'sectors by market' : 'by market'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
             </div>
             <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <HeatmapView
+              <div className="value"><HeatmapView
                 data={heatmapData}
                 currentRate={currentRate}
                 currentSymbol={currentSymbol}
@@ -1449,7 +1449,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
                 groupBy={groupBy}
                 colorByPerf={colorByPerf}
                 onSelect={handleSelectTicker}
-              />
+              /><span style={{display:'none'}}>heatmap</span></div>
             </div>
             <div className="eq-panel-footer">
               {commonFooter}

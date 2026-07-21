@@ -161,6 +161,7 @@ export const PANEL_REGISTRY = {
   equitiesDeepDive: {
     panels: [
       { title: 'Key Metrics', minValues: 4 },
+      { title: 'Equity+ Key Metrics', minValues: 4 },
       { title: 'ETF Performance' },
       { title: 'Factor In Favor' },
       { title: 'Sector Beat Rate' },

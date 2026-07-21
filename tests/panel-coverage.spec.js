@@ -648,6 +648,17 @@ test.beforeEach(async ({ page }) => {
       equityRiskPremium: 4.8,
       spPE: 24.5,
       buffettIndicator: 155.2,
+      earningsData: {
+        upcoming: [{ ticker: 'AAPL', name: 'Apple Inc.', date: '2026-07-28', epsEst: 1.45, epsPrev: 1.35 }, { ticker: 'MSFT', name: 'Microsoft Corp.', date: '2026-07-22', epsEst: 2.85, epsPrev: 2.75 }],
+        beatRates: [{ sector: 'Technology', beatRate: 78, beatCount: 45, totalCount: 58 }, { sector: 'Healthcare', beatRate: 72, beatCount: 28, totalCount: 39 }, { sector: 'Financials', beatRate: 65, beatCount: 22, totalCount: 34 }]
+      },
+      shortData: {
+        mostShorted: [{ ticker: 'GME', shortFloat: 45.2, daysToCover: 3.5, perf1w: 12.5, marketCapB: 8.5 }, { ticker: 'AMC', shortFloat: 32.8, daysToCover: 2.1, perf1w: -5.2, marketCapB: 3.2 }, { ticker: 'BBBY', shortFloat: 28.5, daysToCover: 4.2, perf1w: 8.1, marketCapB: 1.5 }]
+      },
+      insiderData: {
+        holders: [{ name: 'John Doe', shares: 1250000 }, { name: 'Jane Smith', shares: 980000 }],
+        transactions: [{ ticker: 'AAPL', date: '2026-07-15', name: 'Tim Cook', title: 'CEO', type: 'Sale', shares: 50000, value: 9500000 }, { ticker: 'MSFT', date: '2026-07-14', name: 'Satya Nadella', title: 'CEO', type: 'Sale', shares: 30000, value: 12600000 }]
+      },
       dummy: true
     },
     '/api/crypto': {

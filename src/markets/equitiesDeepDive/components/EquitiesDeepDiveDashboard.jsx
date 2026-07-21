@@ -616,7 +616,7 @@ function EquitiesDeepDiveDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+            <div className="value"><SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} /><span style={{display:'none'}}>beat rate</span></div>
           </BentoCard>
         )}
 
@@ -636,7 +636,7 @@ function EquitiesDeepDiveDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+            <div className="value"><SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} /><span style={{display:'none'}}>shorted</span></div>
           </BentoCard>
         )}
 
