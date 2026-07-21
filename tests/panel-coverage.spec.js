@@ -470,11 +470,17 @@ test.beforeEach(async ({ page }) => {
     },
     '/api/fx': {
       isLive: true, isCurrent: true,
-      fredFxRates: [{ date: '2026-05-01' }, { date: '2026-05-02' }],
-      dxyHistory: { values: [100, 101] },
+      fredFxRates: { eurUsd: { dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], values: [1.08, 1.07, 1.09, 1.10, 1.08, 1.09] }, usdJpy: { dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], values: [155, 156, 154, 153, 155, 154] } },
+      dxyHistory: { dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], values: [100, 101, 99, 98, 100, 99.5] },
       currencyCorrelations: { values: [[1]] },
-      spotRates: { EUR: 0.92, JPY: 155.2, GBP: 0.78, CHF: 0.89, AUD: 1.51, CAD: 1.36 },
-      changes1d: { EUR: 0.12, JPY: -0.45, GBP: 0.08 },
+      spotRates: { USD: 1, EUR: 0.92, JPY: 155.2, GBP: 0.78, CHF: 0.89, AUD: 1.51, CAD: 1.36, CNY: 7.25, SEK: 10.5, NOK: 10.8, NZD: 1.62, HKD: 7.82, SGD: 1.34, INR: 83.5, KRW: 1320, MXN: 18.2, BRL: 5.1, ZAR: 18.5 },
+      prevRates: { USD: 1, EUR: 0.91, JPY: 156.0, GBP: 0.77, CHF: 0.88, AUD: 1.52, CAD: 1.37, CNY: 7.24, SEK: 10.4, NOK: 10.7, NZD: 1.63, HKD: 7.81, SGD: 1.33, INR: 83.0, KRW: 1315, MXN: 18.0, BRL: 5.0, ZAR: 18.3 },
+      changes: { EUR: 0.12, JPY: -0.45, GBP: 0.08, CHF: -0.15, AUD: 0.22, CAD: -0.10, CNY: -0.05, SEK: 0.18, NOK: 0.25, NZD: -0.08, HKD: 0.01, SGD: 0.15, INR: -0.02, KRW: 0.30, MXN: -0.35, BRL: 0.40, ZAR: -0.20 },
+      changes1w: { EUR: 0.30, JPY: -0.80, GBP: 0.20, CHF: -0.30, AUD: 0.50, CAD: -0.20, CNY: -0.10, SEK: 0.35, NOK: 0.45, NZD: -0.15, HKD: 0.02, SGD: 0.25, INR: -0.05, KRW: 0.60, MXN: -0.70, BRL: 0.80, ZAR: -0.40 },
+      changes1m: { EUR: 0.80, JPY: -1.50, GBP: 0.50, CHF: -0.60, AUD: 1.20, CAD: -0.40, CNY: -0.20, SEK: 0.70, NOK: 0.90, NZD: -0.30, HKD: 0.05, SGD: 0.50, INR: -0.10, KRW: 1.20, MXN: -1.40, BRL: 1.60, ZAR: -0.80 },
+      sparklines: { EUR: [1.08, 1.07, 1.09, 1.10, 1.08, 1.09], JPY: [155, 156, 154, 153, 155, 154], GBP: [0.78, 0.77, 0.79, 0.80, 0.78, 0.79], CHF: [0.89, 0.88, 0.90, 0.87, 0.89, 0.88], AUD: [1.51, 1.52, 1.50, 1.49, 1.51, 1.50], CAD: [1.36, 1.37, 1.35, 1.34, 1.36, 1.35] },
+      cotData: { EUR: 15, JPY: -25, GBP: 8, CHF: -5, AUD: 12, CAD: -3 },
+      reer: { dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], US: [120, 121, 119, 118, 120, 119.5], EU: [105, 104, 106, 107, 105, 106], JP: [95, 94, 96, 97, 95, 96], GB: [108, 107, 109, 110, 108, 109], CN: [130, 131, 129, 128, 130, 129.5] },
       rateDifferentials: {
         fed: 5.25,
         ecb: 4.25,
@@ -493,6 +499,7 @@ test.beforeEach(async ({ page }) => {
         GBP: [{ date: '2026-05-01', net: 8000 }]
       },
       history: { EUR: [0.92, 0.915, 0.922], JPY: [155.2, 154.8, 155.5], GBP: [0.78, 0.778, 0.782] },
+      imfReserves: { reserves: { USD: { share: 58.2, valueB: 6800 }, EUR: { share: 20.5, valueB: 2400 }, JPY: { share: 5.8, valueB: 680 }, GBP: { share: 4.6, valueB: 540 }, CNY: { share: 2.3, valueB: 270 } }, totalAllocatedB: 11700, asOf: '2026-Q1' },
       dummy: true
     },
     '/api/derivatives': {
