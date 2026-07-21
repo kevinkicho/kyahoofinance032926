@@ -398,13 +398,13 @@ function DerivativesDashboard({
                   <div key={key} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: 8 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>{contract.name}</div>
                     <div style={{ fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
-                      <div style={{ color: netNonComm > 0 ? '#22c55e' : '#f87171' }}>
+                      <div className="value" style={{ color: netNonComm > 0 ? '#22c55e' : '#f87171' }}>
                         Net NonComm: {netNonComm > 0 ? '+' : ''}{netNonComm.toLocaleString()}
                       </div>
-                      <div style={{ color: colors.textMuted, fontSize: 10 }}>
+                      <div className="value" style={{ color: colors.textMuted, fontSize: 10 }}>
                         Long {latest.nonCommLong?.toLocaleString()} · Short {latest.nonCommShort?.toLocaleString()}
                       </div>
-                      <div style={{ color: colors.textMuted, fontSize: 9, marginTop: 2 }}>
+                      <div className="value" style={{ color: colors.textMuted, fontSize: 9, marginTop: 2 }}>
                         OI: {latest.openInterest?.toLocaleString()} · {latest.date?.slice(0, 10)}
                       </div>
                     </div>
@@ -425,10 +425,10 @@ function DerivativesDashboard({
                 return (
                   <div key={key} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: 8 }}>
                     <div style={{ fontSize: 10, fontWeight: 600, color: colors.textPrimary, marginBottom: 4 }}>{cat.label}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#a78bfa' }}>
+                    <div className="value" style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#a78bfa' }}>
                       {latest?.value != null ? `$${(latest.value / 1e6).toFixed(1)}T` : '—'}
                     </div>
-                    <div style={{ fontSize: 9, color: colors.textMuted, marginTop: 2 }}>
+                    <div className="value" style={{ fontSize: 9, color: colors.textMuted, marginTop: 2 }}>
                       {latest?.period || ''}
                     </div>
                   </div>

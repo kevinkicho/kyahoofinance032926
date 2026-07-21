@@ -88,6 +88,7 @@ export const PANEL_REGISTRY = {
       { title: 'Vol Premium' },
       { title: 'CFTC Financial Futures Positioning' },
       { title: 'BIS OTC Derivatives — Global Notional Outstanding' },
+      { title: 'ECB Financial Market Data' },
     ],
   },
   realEstate: {

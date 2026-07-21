@@ -415,12 +415,22 @@ test.beforeEach(async ({ page }) => {
     },
     '/api/cftcTFF': {
       isLive: true, isCurrent: true,
-      positions: [{ asset: 'Gold', netLong: 12500 }],
+      contracts: {
+        's-p-500': { name: 'S&P 500 E-mini', series: [{ nonCommLong: 250000, nonCommShort: 180000, openInterest: 2100000, date: '2026-06-17' }] },
+        'nasdaq': { name: 'Nasdaq 100 E-mini', series: [{ nonCommLong: 95000, nonCommShort: 72000, openInterest: 680000, date: '2026-06-17' }] },
+        '10y-tnote': { name: '10Y T-Note', series: [{ nonCommLong: 120000, nonCommShort: 310000, openInterest: 4200000, date: '2026-06-17' }] },
+        'eurofx': { name: 'Euro FX', series: [{ nonCommLong: 85000, nonCommShort: 42000, openInterest: 520000, date: '2026-06-17' }] }
+      },
       dummy: true
     },
     '/api/bisOTC': {
       isLive: true, isCurrent: true,
-      cds: [{ notional: 7500000000000 }],
+      categories: {
+        'fx-derivatives': { label: 'FX Derivatives', series: [{ value: 75000000000000, period: '2025-H2' }] },
+        'ir-derivatives': { label: 'Interest Rate Derivatives', series: [{ value: 135000000000000, period: '2025-H2' }] },
+        'cds': { label: 'Credit Default Swaps', series: [{ value: 7500000000000, period: '2025-H2' }] },
+        'equity-derivatives': { label: 'Equity Derivatives', series: [{ value: 12000000000000, period: '2025-H2' }] }
+      },
       dummy: true
     },
     '/api/fao': {
@@ -487,10 +497,22 @@ test.beforeEach(async ({ page }) => {
     },
     '/api/derivatives': {
       isLive: true, isCurrent: true,
-      vixTermStructure: { values: [15.2, 16.4, 17.5, 18.2] },
-      skewHistory: { values: [135, 137, 134] },
-      volPremium: { dates: ['2026-05-01'], iv: [16.2], rv: [14.1] },
+      vixTermStructure: { dates: ['Spot', '1M', '2M', '3M'], values: [15.2, 16.4, 17.5, 18.2], prevValues: [14.8, 15.9, 17.0, 17.8] },
+      skewHistory: { dates: ['2026-05-01', '2026-05-15', '2026-06-01'], values: [135, 137, 134] },
+      volPremium: { atm1mIV: 16.2, realizedVol30d: 14.1, premium: 2.1 },
       vixPercentile: 52,
+      fredVixHistory: { dates: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'], values: [18.0, 17.2, 16.5, 15.8, 15.2, 14.9] },
+      volSurfaceData: { strikes: [80, 90, 100, 110, 120], expiries: ['1W', '1M', '3M', '6M'], grid: [[25,22,20,22,25],[24,21,19,21,24],[23,20,18,20,23],[22,19,17,19,22]] },
+      optionsFlow: [
+        { ticker: 'SPY', strike: 520, expiry: '16 May 25', type: 'P', volume: 45200, openInterest: 12400, premium: 8.20, sentiment: 'bearish' },
+        { ticker: 'NVDA', strike: 950, expiry: '20 Jun 25', type: 'C', volume: 38900, openInterest: 8200, premium: 24.50, sentiment: 'bullish' },
+        { ticker: 'TLT', strike: 90, expiry: '16 May 25', type: 'C', volume: 12400, openInterest: 6800, premium: 2.20, sentiment: 'neutral' }
+      ],
+      gammaExposure: { total: 12.3, callGamma: 8.1, putGamma: 4.2, netGamma: 3.9 },
+      vixEnrichment: { vvix: 92.4, vixPercentile: 28 },
+      putCallRatio: 0.85,
+      termSpread: 2.1,
+      skewIndex: { value: 135, interpretation: 'elevated' },
       dummy: true
     },
     '/api/realEstate': {
