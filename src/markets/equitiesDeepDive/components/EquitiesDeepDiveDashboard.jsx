@@ -397,6 +397,7 @@ function EquitiesDeepDiveDashboard({
           <BentoCard
             key="sidebar"
             title="Equity+ Summary"
+            subtitle="Sectors · factors · earnings · short interest"
             accent="equitiesDeepDive"
             className="eqd-bento-card"
             contentClassName="eqd-panel-scroll"
@@ -476,7 +477,7 @@ function EquitiesDeepDiveDashboard({
             {/* Factor Scores */}
             {factorKpis && (
               <div className="eqd-metric-card">
-                <div className="eqd-sidebar-title">Factor Scores</div>
+                <div className="eqd-sidebar-title">Factor Leaders</div>
                 <div className="eqd-metric-row">
                   <span className="eqd-metric-name">Top Factor</span>
                   <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{factorKpis.topFactor.name}</span>
@@ -701,26 +702,55 @@ function EquitiesDeepDiveDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <table className="eqd-table">
+            <table className="eqd-table eqd-earnings-table">
+              <colgroup>
+                <col className="eqd-col-date" />
+                <col className="eqd-col-ticker" />
+                <col className="eqd-col-eps" />
+                <col className="eqd-col-dir" />
+              </colgroup>
               <thead>
                 <tr>
-                  <th className="eqd-th">Date</th>
-                  <th className="eqd-th">Ticker</th>
-                  <th className="eqd-th">EPS Est</th>
-                  <th className="eqd-th">Dir</th>
+                  <th className="eqd-th eqd-col-date">Date</th>
+                  <th className="eqd-th eqd-col-ticker">Ticker</th>
+                  <th className="eqd-th eqd-col-eps">EPS Est</th>
+                  <th className="eqd-th eqd-col-dir" title="Estimate vs prior-quarter EPS">Dir</th>
                 </tr>
               </thead>
               <tbody>
-                {upcoming.slice(0, 10).map(e => (
-                  <tr key={e.ticker} className="eqd-row">
-                    <td className="eqd-cell eqd-date">{e.date}</td>
-                    <td className="eqd-cell"><strong>{e.ticker}</strong></td>
-                    <td className="eqd-cell eqd-num"><MetricValue value={e.epsEst} seriesKey="earningsEpsEst" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
-                    <td className="eqd-cell eqd-dir">
-                      {(e.epsEst ?? 0) >= (e.epsPrev ?? 0) ? '▲' : '▼'}
-                    </td>
-                  </tr>
-                ))}
+                {upcoming.slice(0, 10).map(e => {
+                  const hasDir = e.epsEst != null && e.epsPrev != null;
+                  const isUp = hasDir && Number(e.epsEst) >= Number(e.epsPrev);
+                  return (
+                    <tr key={e.ticker} className="eqd-row">
+                      <td className="eqd-cell eqd-col-date eqd-date">{e.date || '—'}</td>
+                      <td className="eqd-cell eqd-col-ticker">
+                        <strong className="eqd-ticker">{e.ticker}</strong>
+                      </td>
+                      <td className="eqd-cell eqd-col-eps eqd-num">
+                        <MetricValue
+                          value={e.epsEst}
+                          seriesKey="earningsEpsEst"
+                          timestamp={lastUpdated}
+                          format={v => (v != null ? `$${Number(v).toFixed(2)}` : '—')}
+                        />
+                      </td>
+                      <td className="eqd-cell eqd-col-dir">
+                        {hasDir ? (
+                          <span
+                            className={`eqd-dir-badge ${isUp ? 'is-up' : 'is-down'}`}
+                            title={isUp ? 'EPS est ≥ prior quarter' : 'EPS est < prior quarter'}
+                            aria-label={isUp ? 'Estimate above prior' : 'Estimate below prior'}
+                          >
+                            {isUp ? '▲' : '▼'}
+                          </span>
+                        ) : (
+                          <span className="eqd-dir-badge is-muted" title="Prior EPS unavailable">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </BentoCard>

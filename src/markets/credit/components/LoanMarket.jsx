@@ -121,14 +121,18 @@ export default function LoanMarket({ loanData, excessReserves, lastUpdated }) {
         <span className="credit-panel-title">Loan Market</span>
         <span className="credit-panel-subtitle">Leveraged loans · CLO tranches · BKLN ETF proxy · Invesco / LCD</span>
       </div>
-      <div className="credit-stats-row">
-        {indices.map(idx => (
-          <div key={idx.name} className="credit-stat-pill">
-            <span className="credit-stat-label">{idx.name}</span>
-            <span className="credit-stat-value">{idx.value != null ? (idx.spread != null ? `${idx.spread}bps` : idx.value.toFixed(idx.value > 100 ? 0 : 2)) : '—'}</span>
-          </div>
-        ))}
-      </div>
+      {indices.filter(idx => idx.value != null).length > 0 && (
+        <div className="credit-stats-row">
+          {indices.filter(idx => idx.value != null).map(idx => (
+            <div key={idx.name} className="credit-stat-pill">
+              <span className="credit-stat-label">{idx.name}</span>
+              <span className="credit-stat-value">
+                {idx.spread != null ? `${idx.spread}bps` : idx.value.toFixed(idx.value > 100 ? 0 : 2)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="credit-two-col">
         <div className="credit-chart-panel">
           <div className="credit-chart-title">CLO Tranche Spreads</div>

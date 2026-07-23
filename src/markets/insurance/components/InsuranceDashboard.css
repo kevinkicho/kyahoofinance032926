@@ -181,6 +181,771 @@
   font-weight: 600;
 }
 
+/* Sector ETFs multi-fund list */
+.ins-panel-content.sector-etf-host,
+.bento-panel-content.sector-etf-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sector-etf-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.sector-etf-thead,
+.sector-etf-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 64px 54px;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.sector-etf-thead {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  padding: 0 4px 2px;
+  flex-shrink: 0;
+}
+.sector-etf-thead .num { text-align: right; }
+.sector-etf-tbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sector-etf-row {
+  padding: 3px 5px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.sector-etf-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+}
+.sector-etf-name strong {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.sector-etf-sub {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sector-etf-price {
+  text-align: right;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.sector-etf-chg {
+  text-align: right;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+.sector-etf-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+/* Cat Bond / credit / ILS spreads */
+.ins-panel-content.catbond-host,
+.bento-panel-content.catbond-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.catbond-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  gap: 3px;
+}
+.catbond-thead,
+.catbond-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) 56px 72px;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+.catbond-thead {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  padding: 0 4px 2px;
+  flex-shrink: 0;
+}
+.catbond-thead .num { text-align: right; }
+.catbond-tbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.catbond-row {
+  padding: 3px 5px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.catbond-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+}
+.catbond-name strong {
+  font-size: 10.5px;
+  color: var(--text-primary);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catbond-sub {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catbond-group {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+.catbond-val {
+  text-align: right;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.catbond-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reserve Adequacy — assets/liabilities coverage */
+.ins-panel-content.reserve-host,
+.bento-panel-content.reserve-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.reserve-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  gap: 3px;
+}
+.reserve-thead,
+.reserve-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) 58px 58px 48px;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.reserve-thead {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  padding: 0 4px 2px;
+  flex-shrink: 0;
+}
+.reserve-thead .num { text-align: right; }
+.reserve-tbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.reserve-row {
+  padding: 3px 5px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 11px;
+}
+.reserve-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+}
+.reserve-name strong {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.reserve-sub {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reserve-num {
+  text-align: right;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.reserve-num.muted {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 10px;
+}
+.reserve-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Catastrophe Exposure Monitor */
+.ins-panel-content.cat-exp-host,
+.bento-panel-content.cat-exp-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.cat-exp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.cat-exp-kpis {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 5px;
+  flex-shrink: 0;
+}
+.cat-exp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 7px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  min-width: 0;
+}
+.cat-exp-card-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cat-exp-card-val {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cat-exp-card-sub {
+  font-size: 8px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cat-exp-body {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.cat-exp-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px 7px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cat-exp-h {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+.cat-exp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.cat-exp-bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.2fr) 28px;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.cat-exp-bar-name {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cat-exp-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  min-width: 0;
+}
+.cat-exp-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ea580c, #fbbf24);
+}
+.cat-exp-bar-n {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-primary);
+}
+.cat-exp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-content: flex-start;
+}
+.cat-exp-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 10px;
+}
+.cat-exp-chip strong {
+  font-size: 10px;
+  color: var(--text-primary);
+}
+.cat-exp-chip span {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.cat-exp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: auto;
+}
+.cat-exp-table-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.cat-exp-tr {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: baseline;
+  padding: 3px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  min-width: 0;
+}
+.cat-exp-tr-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+}
+.cat-exp-tr-main strong {
+  font-size: 10px;
+  color: var(--text-primary);
+}
+.cat-exp-tr-sub {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cat-exp-tr-date {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.cat-exp-empty {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+@container bento-card (max-width: 900px) {
+  .cat-exp-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cat-exp-body { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container bento-card (max-width: 520px) {
+  .cat-exp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cat-exp-body { grid-template-columns: 1fr; }
+}
+
+/* Insurance tab — ECB Policy Rates cards */
+.ins-panel-content.ins-ecb-host,
+.bento-panel-content.ins-ecb-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.ins-ecb-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+}
+.ins-ecb-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ins-ecb-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.ins-ecb-h-sub {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+.ins-ecb-grid {
+  display: grid;
+  gap: 5px;
+}
+.ins-ecb-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ins-ecb-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.ins-ecb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 7px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  min-width: 0;
+}
+.ins-ecb-code {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.ins-ecb-val {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.ins-ecb-lab {
+  font-size: 8.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ins-ecb-meta {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ins-ecb-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: auto;
+}
+
+@container bento-card (max-width: 480px) {
+  .ins-ecb-grid-3,
+  .ins-ecb-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* USGS Earthquake Activity table */
+.ins-panel-content.usgs-eq-host,
+.bento-panel-content.usgs-eq-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.usgs-eq-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.usgs-eq-buckets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  flex-shrink: 0;
+}
+.usgs-eq-bucket {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+}
+.usgs-eq-bucket-r {
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.usgs-eq-bucket-n {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.usgs-eq-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.usgs-eq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.usgs-eq-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-card, #1a1a1a);
+  color: var(--text-dim);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: left;
+  padding: 3px 5px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+.usgs-eq-table td {
+  padding: 3px 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  vertical-align: top;
+  white-space: nowrap;
+}
+.usgs-eq-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+.usgs-eq-table .num {
+  text-align: right;
+}
+.usgs-eq-time {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 9.5px;
+}
+.usgs-eq-utc {
+  color: var(--text-dim);
+  font-size: 9px;
+}
+.usgs-eq-mag {
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+.usgs-eq-magtype {
+  display: block;
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.usgs-eq-place {
+  max-width: 180px;
+  white-space: normal;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+.usgs-eq-flag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}
+.usgs-eq-ll {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.usgs-eq-sub {
+  display: block;
+  font-size: 8px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.usgs-eq-link {
+  color: #60a5fa;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 9px;
+}
+.usgs-eq-link:hover {
+  text-decoration: underline;
+}
+.usgs-eq-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── 10. Drag states ── */
 .react-grid-item.resizing { opacity: 0.85; z-index: 10; }
 .react-grid-item.react-draggable-dragging { opacity: 0.85; z-index: 10; }

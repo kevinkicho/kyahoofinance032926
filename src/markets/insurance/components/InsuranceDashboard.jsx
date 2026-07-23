@@ -26,24 +26,81 @@ function InsuranceDashboard({
 
   const normalizedReserves = useMemo(() => {
     if (!reserveAdequacyData) return [];
-    if (Array.isArray(reserveAdequacyData)) return reserveAdequacyData;
-    const { lines = [], adequacy = [] } = reserveAdequacyData;
-    return lines.map((name, idx) => ({
-      insurer: name,
-      ratio: adequacy[idx] != null ? adequacy[idx] / 100 : null,
-    }));
+    // Preferred: structured rows from fundamentalsTimeSeries
+    if (Array.isArray(reserveAdequacyData.rows) && reserveAdequacyData.rows.length) {
+      return reserveAdequacyData.rows
+        .filter((r) => r && (r.ratio != null || r.liabilitiesM != null))
+        .map((r) => ({
+          insurer: r.insurer || r.ticker || '—',
+          ticker: r.ticker || null,
+          ratio: r.ratio != null && Number.isFinite(Number(r.ratio)) ? Number(r.ratio) : null,
+          surplusRatio: r.surplusRatio ?? null,
+          liabilitiesM: r.liabilitiesM ?? r.reserves ?? null,
+          equityM: r.equityM ?? r.required ?? null,
+          assetsM: r.assetsM ?? null,
+          investmentsM: r.investmentsM ?? null,
+          asOf: r.asOf || null,
+        }))
+        .sort((a, b) => (b.ratio ?? 0) - (a.ratio ?? 0));
+    }
+    if (Array.isArray(reserveAdequacyData)) {
+      return reserveAdequacyData.map((r) => ({
+        insurer: r.insurer || r.name || '—',
+        ratio: r.ratio != null ? Number(r.ratio) : null,
+        liabilitiesM: r.liabilitiesM ?? null,
+        equityM: r.equityM ?? null,
+        assetsM: r.assetsM ?? null,
+      }));
+    }
+    // Legacy parallel arrays: adequacy was stored as coverage % (135.5 → 1.355x)
+    const { lines = [], adequacy = [], reserves = [], required = [] } = reserveAdequacyData;
+    return lines.map((name, idx) => {
+      const a = adequacy[idx];
+      let ratio = null;
+      if (a != null && Number.isFinite(Number(a))) {
+        // Values like 111.1 meant %; values like 1.11 already multiples
+        ratio = Number(a) > 10 ? Number(a) / 100 : Number(a);
+      }
+      return {
+        insurer: name,
+        ratio,
+        liabilitiesM: reserves[idx] ?? null,
+        equityM: required[idx] ?? null,
+      };
+    }).filter((r) => r.ratio != null || r.liabilitiesM != null);
   }, [reserveAdequacyData]);
 
   const hasReserves = normalizedReserves.length > 0;
 
   const normalizedSectorETF = useMemo(() => {
     if (!sectorETF) return [];
-    if (Array.isArray(sectorETF)) return sectorETF;
+    // FRED sector pulse array (preferred) or legacy single object
+    if (Array.isArray(sectorETF) && sectorETF.length) {
+      return sectorETF
+        .filter((e) => e && (e.symbol || e.ticker || e.seriesId) && e.price != null)
+        .map((e) => ({
+          symbol: e.symbol || e.seriesId || e.ticker,
+          name: e.name || e.symbol || e.ticker,
+          group: e.group || null,
+          unit: e.unit || null,
+          price: e.price,
+          changePct: e.changePct ?? e.change ?? null,
+          yoyPct: e.yoyPct ?? null,
+          period: e.period || null,
+          source: e.source || 'FRED',
+        }));
+    }
     if (sectorETF.price != null || sectorETF.symbol) {
       return [{
-        symbol: sectorETF.symbol || 'KIE',
+        symbol: sectorETF.symbol || 'SP500',
+        name: sectorETF.name || sectorETF.symbol || 'S&P 500',
+        group: null,
+        unit: null,
         price: sectorETF.price,
-        changePct: sectorETF.changePct ?? sectorETF.change ?? 0,
+        changePct: sectorETF.changePct ?? sectorETF.change ?? null,
+        yoyPct: null,
+        period: null,
+        source: sectorETF._source || 'FRED',
       }];
     }
     return [];
@@ -89,14 +146,84 @@ function InsuranceDashboard({
     // with all-null values when that happens, so length>0 isn't enough —
     // require at least one numeric value before rendering the chart.
     if (!combinedRatioHistory?.values?.length) return null;
-    if (!combinedRatioHistory.values.some(v => typeof v === 'number')) return null;
+    const vals = combinedRatioHistory.values.filter(
+      (v) => typeof v === 'number' && Number.isFinite(v),
+    );
+    if (!vals.length) return null;
+
+    // Fixed min:80/max:110 clipped live data (~70–90). Scale to the series
+    // with padding, and include the 100% break-even line when nearby.
+    const dataMin = Math.min(...vals);
+    const dataMax = Math.max(...vals);
+    const pad = Math.max(2, (dataMax - dataMin) * 0.2 || 5);
+    let yMin = dataMin - pad;
+    let yMax = dataMax + pad;
+    if (dataMax < 100 && 100 - dataMax <= 30) yMax = Math.max(yMax, 100);
+    if (dataMin > 100 && dataMin - 100 <= 30) yMin = Math.min(yMin, 100);
+    // Nice 5-pt ticks
+    yMin = Math.floor(yMin / 5) * 5;
+    yMax = Math.ceil(yMax / 5) * 5;
+    if (yMax - yMin < 10) {
+      yMin -= 5;
+      yMax += 5;
+    }
+
     return {
-      animation: false, backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
-      grid: { top: 20, right: 30, bottom: 30, left: 50 },
-      xAxis: { type: 'category', data: combinedRatioHistory.quarters, axisLabel: { color: colors.textMuted, fontSize: 9 } },
-      yAxis: { type: 'value', name: '%', min: 80, max: 110, nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{ type: 'line', data: combinedRatioHistory.values, smooth: true, symbol: 'circle', symbolSize: 4, lineStyle: { color: '#8b5cf6', width: 2 }, markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: colors.textDim }, data: [{ yAxis: 100, label: { position: 'end', formatter: '100%', fontSize: 9, color: colors.textMuted } }] } }],
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params) => {
+          const p = Array.isArray(params) ? params[0] : params;
+          if (!p || p.value == null) return '';
+          const v = Number(p.value);
+          const profit = v < 100 ? 'underwriting profit' : v > 100 ? 'underwriting loss' : 'break-even';
+          return `${p.axisValue}<br/><b>${v.toFixed(1)}%</b> · ${profit}`;
+        },
+      },
+      grid: { top: 20, right: 36, bottom: 28, left: 46 },
+      xAxis: {
+        type: 'category',
+        data: combinedRatioHistory.quarters,
+        axisLabel: { color: colors.textMuted, fontSize: 9 },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'CR %',
+        min: yMin,
+        max: yMax,
+        scale: false,
+        nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+        axisLabel: {
+          color: colors.textMuted,
+          fontSize: 9,
+          formatter: (v) => `${v}%`,
+        },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series: [{
+        type: 'line',
+        data: combinedRatioHistory.values,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 5,
+        lineStyle: { color: '#8b5cf6', width: 2 },
+        itemStyle: { color: '#8b5cf6' },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { type: 'dashed', color: colors.textDim, width: 1 },
+          data: [{
+            yAxis: 100,
+            label: {
+              position: 'insideEndTop',
+              formatter: '100% BE',
+              fontSize: 9,
+              color: colors.textMuted,
+            },
+          }],
+        },
+      }],
     };
   }, [combinedRatioHistory, colors]);
 
@@ -139,15 +266,15 @@ function InsuranceDashboard({
         sublabel: 'High Yield Spread',
       });
     }
-    const firstEtf = normalizedSectorETF[0];
-    if (firstEtf?.price != null) {
-      const etfChange = firstEtf.changePct;
+    const spx = normalizedSectorETF.find((e) => e.symbol === 'SP500') || normalizedSectorETF[0];
+    if (spx?.price != null) {
+      const etfChange = spx.changePct;
       items.push({
-        label: `${firstEtf.symbol} ETF`,
-        value: `$${Number(firstEtf.price).toFixed(2)}`,
-        color: etfChange >= 0 ? '#4ade80' : '#f87171',
+        label: spx.name || 'S&P 500',
+        value: Number(spx.price).toLocaleString('en-US', { maximumFractionDigits: 0 }),
+        color: etfChange == null ? undefined : etfChange >= 0 ? '#4ade80' : '#f87171',
         trend: etfChange != null ? `${etfChange >= 0 ? '+' : ''}${Number(etfChange).toFixed(2)}%` : null,
-        sublabel: 'Insurance Sector',
+        sublabel: 'FRED equity',
       });
     }
     return items;
@@ -213,7 +340,20 @@ function InsuranceDashboard({
       legend: { data: ['Loss', 'Expense'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
       grid: { top: 28, right: 12, bottom: 24, left: 36 },
       xAxis: { type: 'category', data: rows.map(r => r.ticker), axisLabel: { color: colors.textSecondary, fontSize: 11 } },
-      yAxis: { type: 'value', axisLabel: { formatter: '{value}%', color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } }, max: 110 },
+      yAxis: (() => {
+        const totals = rows
+          .map((r) => (Number(r.lossPct) || 0) + (Number(r.expensePct) || 0))
+          .filter((v) => Number.isFinite(v));
+        const hi = totals.length ? Math.max(...totals, 100) : 110;
+        const yMax = Math.ceil((hi + 5) / 5) * 5;
+        return {
+          type: 'value',
+          min: 0,
+          max: yMax,
+          axisLabel: { formatter: '{value}%', color: colors.textMuted, fontSize: 9 },
+          splitLine: { lineStyle: { color: colors.cardBg } },
+        };
+      })(),
       series: [
         { name: 'Loss', type: 'bar', stack: 'cr', data: rows.map(r => r.lossPct), itemStyle: { color: '#ef4444' } },
         { name: 'Expense', type: 'bar', stack: 'cr', data: rows.map(r => r.expensePct), itemStyle: { color: '#3b82f6', borderRadius: [3, 3, 0, 0] } },
@@ -229,9 +369,10 @@ function InsuranceDashboard({
   let x2 = 0;
   if (combinedRatioData?.lines?.length > 0 || combinedRatioData?.byLine?.length > 0) { layoutItems.push({ i: 'crline', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
   if (reinsurancePricing?.byCategory?.length > 0 || (Array.isArray(reinsurancePricing) && reinsurancePricing.length > 0)) { layoutItems.push({ i: 'reinsrates', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (hasReserves) { layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (catBondSpreads?.length > 0) { layoutItems.push({ i: 'catbonds', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
-  if (hasSectorETF) { layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 3 }); x2 += 4; }
+  layoutItems.push({ i: 'reserves', x: x2, y: 5, w: 4, h: 5 }); x2 += 4;
+  layoutItems.push({ i: 'catbonds', x: x2, y: 5, w: 4, h: 5 }); x2 += 4;
+  // Always reserve Sector ETFs slot (shows empty state if needed); taller for 20 funds
+  layoutItems.push({ i: 'etfs', x: x2, y: 5, w: 4, h: 5 }); x2 += 4;
   // 2026-05-04 additions: catastrophes (FEMA + USGS), penetration (WB),
   // insurer combined ratios (EDGAR XBRL).
   if (femaCtx?.data?.declarations?.length || usgsCtx?.data?.events?.length) {
@@ -244,40 +385,109 @@ function InsuranceDashboard({
     layoutItems.push({ i: 'combined-ratios', x: 0, y: 12, w: 12, h: 3 });
   }
   if (femaCtx?.data?.summary || usgsCtx?.data?.biggest || catLosses?.values?.length) {
-    layoutItems.push({ i: 'cat-exposure', x: 0, y: 15, w: 12, h: 3 });
+    layoutItems.push({ i: 'cat-exposure', x: 0, y: 15, w: 12, h: 6 });
   }
   // USGS mineral commodities panel
   if (usgsCtx?.data?.eventsCount > 0) {
-    layoutItems.push({ i: 'usgs-minerals', x: 0, y: 18, w: 6, h: 3 });
+    layoutItems.push({ i: 'usgs-minerals', x: 0, y: 18, w: 6, h: 5 });
   }
-  if (ecbCtx?.data?.policyRates) {
-    layoutItems.push({ i: 'ecb-supervisory', x: 6, y: 18, w: 6, h: 3 });
+  if (ecbCtx?.data?.policyRates || ecbCtx?.data?.moneyMarket) {
+    layoutItems.push({ i: 'ecb-supervisory', x: 6, y: 18, w: 6, h: 5 });
   }
 
   const dynamicLayout = { lg: layoutItems };
 
   const catExposure = useMemo(() => {
-    const femaRecent = femaCtx?.data?.summary?.totalRecent;
-    const quakeCount = usgsCtx?.data?.eventsCount;
-    const biggestQuake = usgsCtx?.data?.biggest?.mag;
-    const latestCatLoss = catLosses?.values?.at?.(-1);
+    const fema = femaCtx?.data || {};
+    const usgs = usgsCtx?.data || {};
+    const femaRecent = fema.summary?.totalRecent;
+    const mostCommonType = fema.summary?.mostCommonType || null;
+    const newestDate = fema.summary?.newestDate
+      ? String(fema.summary.newestDate).slice(0, 10)
+      : null;
+    const byType = Array.isArray(fema.byType) ? fema.byType.slice(0, 8) : [];
+    const declarations = Array.isArray(fema.declarations) ? fema.declarations : [];
+
+    // State concentration from recent declarations
+    const stateCounts = {};
+    for (const d of declarations) {
+      for (const st of d.states || []) {
+        stateCounts[st] = (stateCounts[st] || 0) + 1;
+      }
+    }
+    const topStates = Object.entries(stateCounts)
+      .map(([state, count]) => ({ state, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    const openIncidents = declarations.filter((d) => !d.incidentEnd).length;
+    const multiState = declarations.filter((d) => (d.stateCount || 0) > 1 || (d.states || []).length > 1).length;
+
+    const quakeCount = usgs.eventsCount;
+    const biggest = usgs.biggest || null;
+    const biggestQuake = biggest?.mag ?? null;
+    const magBuckets = Array.isArray(usgs.magBuckets) ? usgs.magBuckets : [];
+    const events = Array.isArray(usgs.events) ? usgs.events : [];
+    const m6plus = magBuckets
+      .filter((b) => String(b.range || '').startsWith('6') || String(b.range || '').startsWith('7'))
+      .reduce((s, b) => s + (b.count || 0), 0);
+    const tsunamiFlags = events.filter((e) => e.tsunami).length;
+    const deepQuakes = events.filter((e) => (e.depthKm || 0) >= 100).length;
+    const recentQuakes = events.slice(0, 6);
+
+    const catVals = catLosses?.values || [];
+    const latestCatLoss = catVals.length ? catVals[catVals.length - 1] : null;
+    const prevCatLoss = catVals.length > 1 ? catVals[catVals.length - 2] : null;
+    const catLossChg =
+      latestCatLoss != null && prevCatLoss != null && prevCatLoss !== 0
+        ? ((latestCatLoss - prevCatLoss) / Math.abs(prevCatLoss)) * 100
+        : null;
+
     const hyOasPct = fredHyOasHistory?.values?.at?.(-1);
     const hyOasBps = typeof hyOasPct === 'number' ? hyOasPct * 100 : null;
     const combined = industryAvgCombinedRatio;
+
     const score = [
       typeof femaRecent === 'number' ? Math.min(25, femaRecent / 2) : 0,
       typeof biggestQuake === 'number' ? Math.max(0, (biggestQuake - 5) * 8) : 0,
+      typeof m6plus === 'number' ? Math.min(10, m6plus * 1.5) : 0,
       typeof latestCatLoss === 'number' ? Math.min(25, latestCatLoss / 4) : 0,
       typeof hyOasBps === 'number' ? Math.max(0, Math.min(15, (hyOasBps - 250) / 12)) : 0,
       typeof combined === 'number' ? Math.max(0, Math.min(20, (combined - 95) * 2)) : 0,
     ].reduce((sum, v) => sum + v, 0);
     const label = score >= 55 ? 'Elevated' : score >= 30 ? 'Watch' : 'Contained';
-    return { femaRecent, quakeCount, biggestQuake, latestCatLoss, hyOasBps, combined, score, label };
+    const labelColor = score >= 55 ? '#f87171' : score >= 30 ? '#f59e0b' : '#22c55e';
+
+    return {
+      femaRecent,
+      mostCommonType,
+      newestDate,
+      byType,
+      topStates,
+      openIncidents,
+      multiState,
+      recentDecls: declarations.slice(0, 6),
+      quakeCount,
+      biggestQuake,
+      biggest,
+      magBuckets,
+      m6plus,
+      tsunamiFlags,
+      deepQuakes,
+      recentQuakes,
+      latestCatLoss,
+      catLossChg,
+      hyOasBps,
+      combined,
+      score,
+      label,
+      labelColor,
+    };
   }, [femaCtx, usgsCtx, catLosses, fredHyOasHistory, industryAvgCombinedRatio]);
 
   return (
     <div className="ins-dashboard ins-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v5">
+      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v6">
         {/* KPI Strip — bento card with title row drag handle. */}
         <BentoCard
           key="kpi"
@@ -406,92 +616,249 @@ function InsuranceDashboard({
           </BentoCard>
         )}
 
-        {/* Reserve Adequacy */}
-        {hasReserves && (
-          <BentoCard
-            key="reserves"
-            title="Reserve Adequacy"
-            accent="insurance"
-            className="ins-bento-card"
-            contentClassName="ins-panel-scroll"
-            source="FRED / NAIC"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {normalizedReserves.slice(0, 8).map((r) => (
-                <div key={r.insurer} className="ins-mini-row">
-                  <span className="ins-mini-name">{r.insurer}</span>
-                  <span className="ins-mini-value" style={{ color: r.ratio > 1.1 ? '#4ade80' : r.ratio < 1 ? '#f87171' : '#fbbf24' }}>
-                    <MetricValue value={r.ratio} seriesKey="reserveAdequacy" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}x` : '—'} />
-                  </span>
-                </div>
-              ))}
+        {/* Reserve Adequacy — assets / liabilities coverage from Yahoo BS */}
+        <BentoCard
+          key="reserves"
+          title="Reserve Adequacy"
+          subtitle={`${normalizedReserves.length || 0} insurers · assets / liabilities coverage`}
+          accent="insurance"
+          className="ins-bento-card"
+          contentClassName="ins-panel-content reserve-host"
+          source="Yahoo Finance (balance sheet)"
+          timestamp={lastUpdated}
+          isLive={isLive && hasReserves}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          {hasReserves ? (
+            <div className="reserve-panel">
+              <div className="reserve-thead">
+                <span>Insurer</span>
+                <span className="num">Liab $M</span>
+                <span className="num">Equity $M</span>
+                <span className="num">Cover</span>
+              </div>
+              <div className="reserve-tbody">
+                {normalizedReserves.map((r) => {
+                  const cover = r.ratio;
+                  const color =
+                    cover == null
+                      ? undefined
+                      : cover >= 1.2
+                        ? '#4ade80'
+                        : cover >= 1.05
+                          ? '#fbbf24'
+                          : '#f87171';
+                  const fmtM = (v) =>
+                    v == null || !Number.isFinite(Number(v))
+                      ? '—'
+                      : Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+                  return (
+                    <div key={r.ticker || r.insurer} className="reserve-row">
+                      <span className="reserve-name">
+                        <strong>{r.ticker || r.insurer}</strong>
+                        {r.ticker && r.insurer !== r.ticker && (
+                          <span className="reserve-sub">{r.insurer}</span>
+                        )}
+                      </span>
+                      <span className="reserve-num muted">{fmtM(r.liabilitiesM)}</span>
+                      <span className="reserve-num muted">{fmtM(r.equityM)}</span>
+                      <span className="reserve-num" style={{ color }}>
+                        <MetricValue
+                          value={cover}
+                          seriesKey="reserveAdequacy"
+                          timestamp={r.asOf || lastUpdated}
+                          format={(v) =>
+                            v != null && Number.isFinite(Number(v))
+                              ? `${Number(v).toFixed(2)}x`
+                              : '—'
+                          }
+                        />
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="reserve-footer">
+                Cover = total assets ÷ total liabilities · Yahoo quarterly BS · not statutory RBC
+              </div>
             </div>
-          </BentoCard>
-        )}
+          ) : (
+            <div style={{ padding: 12, color: 'var(--text-muted)', fontSize: 12 }}>
+              Reserve adequacy data unavailable
+            </div>
+          )}
+        </BentoCard>
 
-        {/* Cat Bond Spreads */}
-        {catBondSpreads?.length > 0 && (
-          <BentoCard
-            key="catbonds"
-            title="Cat Bond Spreads"
-            accent="insurance"
-            className="ins-bento-card"
-            contentClassName="ins-panel-scroll"
-            source="FRED / Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {catBondSpreads.slice(0, 8).map((b) => (
-                <div key={b.name} className="ins-mini-row">
-                  <span className="ins-mini-name">{b.name}</span>
-                  <span className="ins-mini-value" style={{ color: b.spread > 8 ? '#4ade80' : '#fbbf24' }}>
-                    <MetricValue value={b.spread} seriesKey="catBondSpread" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
-                  </span>
-                </div>
-              ))}
+        {/* Cat Bond / credit / ILS spreads */}
+        <BentoCard
+          key="catbonds"
+          title="Cat Bond Spreads"
+          subtitle={`${catBondSpreads?.length || 0} series · FRED credit / Treasury / Fed stress (no Yahoo)`}
+          accent="insurance"
+          className="ins-bento-card"
+          contentClassName="ins-panel-content catbond-host"
+          source="FRED (ICE BofA / Treasury / Fed)"
+          timestamp={lastUpdated}
+          isLive={isLive && !!catBondSpreads?.length}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          {catBondSpreads?.length > 0 ? (
+            <div className="catbond-panel">
+              <div className="catbond-thead">
+                <span>Series</span>
+                <span className="num">Group</span>
+                <span className="num">Level</span>
+              </div>
+              <div className="catbond-tbody">
+                {catBondSpreads.map((b) => {
+                  const unit = b.unit || (b.spreadBps != null ? 'bps' : 'pct');
+                  const raw = b.spreadBps != null ? b.spreadBps : b.spread;
+                  const isBps = unit === 'bps';
+                  const isChg = unit === 'chg';
+                  const color = isChg
+                    ? (raw >= 0 ? '#4ade80' : '#f87171')
+                    : isBps
+                      ? (raw > 500 ? '#f87171' : raw > 200 ? '#fbbf24' : '#4ade80')
+                      : (raw > 7 ? '#f87171' : raw > 5 ? '#fbbf24' : '#60a5fa');
+                  const label = b.ticker ? `${b.ticker}` : b.name;
+                  const sub = b.ticker ? b.name : (b.seriesId || b._note || '');
+                  return (
+                    <div key={`${b.name}-${b.ticker || b.seriesId || ''}`} className="catbond-row">
+                      <span className="catbond-name">
+                        <strong>{label}</strong>
+                        {sub && sub !== label && <span className="catbond-sub" title={sub}>{sub}</span>}
+                      </span>
+                      <span className="catbond-group">{b.group || '—'}</span>
+                      <span className="catbond-val" style={{ color }}>
+                        <MetricValue
+                          value={raw}
+                          seriesKey="catBondSpread"
+                          timestamp={lastUpdated}
+                          format={(v) => {
+                            if (v == null || !Number.isFinite(Number(v))) return '—';
+                            const n = Number(v);
+                            if (isBps) {
+                              return `${n.toLocaleString('en-US', { maximumFractionDigits: 1 })} bps`;
+                            }
+                            if (isChg) {
+                              return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
+                            }
+                            return `${n.toFixed(2)}%`;
+                          }}
+                        />
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="catbond-footer">
+                Official FRED only · ICE BofA OAS · Treasury · Fed NFCI/VIX · no Yahoo · no mock OTC deals
+              </div>
             </div>
-          </BentoCard>
-        )}
+          ) : (
+            <div style={{ padding: 12, color: 'var(--text-muted)', fontSize: 12 }}>
+              Cat bond / spread data unavailable
+            </div>
+          )}
+        </BentoCard>
 
-        {/* Sector ETFs */}
-        {hasSectorETF && (
-          <BentoCard
-            key="etfs"
-            title="Sector ETFs"
-            accent="insurance"
-            className="ins-bento-card"
-            contentClassName="ins-panel-scroll"
-            source="Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {normalizedSectorETF.slice(0, 8).map((e) => (
-                <div key={e.symbol} className="ins-mini-row">
-                  <span className="ins-mini-name">{e.symbol}</span>
-                  <span className="ins-mini-value" style={{ color: (e.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
-                    <MetricValue value={e.changePct || 0} seriesKey="insuranceSectorEtf" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
-                  </span>
-                </div>
-              ))}
+        {/* Sector / industry pulse — FRED Fed / BLS / BEA / Census */}
+        <BentoCard
+          key="etfs"
+          title="Sector / Industry Pulse"
+          subtitle={`${normalizedSectorETF.length || 0} official series · Fed · BLS · BEA · Census (FRED)`}
+          accent="insurance"
+          className="ins-bento-card"
+          contentClassName="ins-panel-content sector-etf-host"
+          source="FRED (Fed / BLS / BEA / Census)"
+          timestamp={lastUpdated}
+          isLive={isLive && hasSectorETF}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          {hasSectorETF ? (
+            <div className="sector-etf-panel">
+              <div className="sector-etf-thead">
+                <span>Series</span>
+                <span className="num">Level</span>
+                <span className="num">Chg</span>
+              </div>
+              <div className="sector-etf-tbody">
+                {normalizedSectorETF.map((e) => {
+                  const chg = e.changePct;
+                  const level = e.price;
+                  let levelStr = '—';
+                  if (level != null && Number.isFinite(Number(level))) {
+                    const n = Number(level);
+                    if (e.unit === '$M' || Math.abs(n) >= 1000) {
+                      levelStr = n.toLocaleString('en-US', { maximumFractionDigits: 1 });
+                    } else {
+                      levelStr = n.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      });
+                    }
+                    if (e.unit && e.unit !== 'idx' && e.unit !== 'k') {
+                      /* unit shown in subtitle */
+                    }
+                  }
+                  return (
+                    <div key={e.symbol} className="sector-etf-row">
+                      <span className="sector-etf-name">
+                        <strong>{e.group ? `${e.group}` : e.symbol}</strong>
+                        <span className="sector-etf-sub" title={`${e.name} · ${e.symbol}`}>
+                          {e.name}
+                          {e.period ? ` · ${String(e.period).slice(0, 10)}` : ''}
+                        </span>
+                      </span>
+                      <span className="sector-etf-price" title={e.unit || ''}>
+                        {levelStr}
+                        {e.unit === 'idx' ? '' : e.unit === 'k' ? 'k' : e.unit === '$M' ? '' : ''}
+                      </span>
+                      <span
+                        className="sector-etf-chg"
+                        style={{
+                          color:
+                            chg == null
+                              ? 'var(--text-muted)'
+                              : chg >= 0
+                                ? '#4ade80'
+                                : '#f87171',
+                        }}
+                      >
+                        {chg == null
+                          ? '—'
+                          : (
+                            <MetricValue
+                              value={chg}
+                              seriesKey="insuranceSectorEtf"
+                              timestamp={e.period || lastUpdated}
+                              format={(v) => `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`}
+                            />
+                          )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="sector-etf-footer">
+                Official FRED streams only · not Yahoo sector ETFs · IP = Fed G.17 · PPI = BLS
+              </div>
             </div>
-          </BentoCard>
-        )}
+          ) : (
+            <div className="ins-empty" style={{ padding: 12, color: 'var(--text-muted)', fontSize: 12 }}>
+              Sector / industry FRED data unavailable
+            </div>
+          )}
+        </BentoCard>
 
         {/* Recent US Catastrophes — FEMA disaster declarations + USGS quakes */}
         {(femaCtx?.data?.declarations?.length || usgsCtx?.data?.events?.length) && (
@@ -613,11 +980,11 @@ function InsuranceDashboard({
         <BentoCard
           key="cat-exposure"
           title="Catastrophe Exposure Monitor"
-          subtitle={`${catExposure.label} risk · FEMA, USGS, insured-loss, spread, and underwriting signals`}
+          subtitle={`${catExposure.label} · FEMA declarations · USGS seismicity · credit & underwriting`}
           accent="insurance"
           className="ins-bento-card"
-          contentClassName="ins-panel-scroll"
-          source="OpenFEMA / USGS / FRED / SEC EDGAR"
+          contentClassName="ins-panel-content cat-exp-host"
+          source="OpenFEMA / USGS / FRED"
           timestamp={femaCtx?.lastUpdated || usgsCtx?.lastUpdated || lastUpdated}
           isLive={!!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive || catLosses?.values?.length)}
           isCurrent={femaCtx?.isCurrent ?? isCurrent}
@@ -625,62 +992,577 @@ function InsuranceDashboard({
           fetchLog={femaCtx?.fetchLog || fetchLog}
           error={femaCtx?.error || error}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 8 }}>
-            {[
-              ['Exposure Score', catExposure.score, catExposure.score >= 55 ? '#f87171' : catExposure.score >= 30 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(0)}/100`],
-              ['FEMA Recent', catExposure.femaRecent, '#ef4444', v => `${v}`],
-              ['M4.5+ Quakes', catExposure.quakeCount, '#f59e0b', v => `${v}`],
-              ['Largest Quake', catExposure.biggestQuake, catExposure.biggestQuake >= 6 ? '#f87171' : '#f59e0b', v => `M${v.toFixed(1)}`],
-              ['Cat Loss', catExposure.latestCatLoss, '#a78bfa', v => `$${v.toFixed(1)}B`],
-              ['Combined', catExposure.combined, catExposure.combined >= 100 ? '#f87171' : '#22c55e', v => `${v.toFixed(1)}%`],
-            ].map(([label, value, color, format]) => (
-              <div key={label} style={{ background: colors.cardBg, borderRadius: 6, padding: '8px 10px', minWidth: 0 }}>
-                <div style={{ color: colors.textMuted, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
-                <div style={{ color, fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                  {typeof value === 'number' && Number.isFinite(value) ? format(value) : '—'}
+          <div className="cat-exp-panel">
+            {/* KPI score cards */}
+            <div className="cat-exp-kpis">
+              {[
+                {
+                  label: 'Exposure score',
+                  value: catExposure.score,
+                  color: catExposure.labelColor,
+                  fmt: (v) => `${Number(v).toFixed(0)}/100`,
+                  sub: catExposure.label,
+                },
+                {
+                  label: 'FEMA recent',
+                  value: catExposure.femaRecent,
+                  color: '#ef4444',
+                  fmt: (v) => Number(v).toLocaleString('en-US'),
+                  sub: catExposure.mostCommonType
+                    ? `top: ${catExposure.mostCommonType}`
+                    : catExposure.newestDate || '',
+                },
+                {
+                  label: 'Open incidents',
+                  value: catExposure.openIncidents,
+                  color: '#f97316',
+                  fmt: (v) => Number(v).toLocaleString('en-US'),
+                  sub: catExposure.multiState
+                    ? `${catExposure.multiState} multi-state`
+                    : 'active declarations',
+                },
+                {
+                  label: 'M4.5+ quakes (30d)',
+                  value: catExposure.quakeCount,
+                  color: '#f59e0b',
+                  fmt: (v) => Number(v).toLocaleString('en-US'),
+                  sub: catExposure.m6plus != null ? `${catExposure.m6plus} ≥ M6` : '',
+                },
+                {
+                  label: 'Largest quake',
+                  value: catExposure.biggestQuake,
+                  color: (catExposure.biggestQuake ?? 0) >= 6 ? '#f87171' : '#f59e0b',
+                  fmt: (v) => `M${Number(v).toFixed(1)}`,
+                  sub: catExposure.biggest?.place
+                    ? String(catExposure.biggest.place).slice(0, 28)
+                    : '',
+                },
+                {
+                  label: 'Cat loss signal',
+                  value: catExposure.latestCatLoss,
+                  color: '#a78bfa',
+                  fmt: (v) => `$${Number(v).toFixed(1)}B`,
+                  sub:
+                    catExposure.catLossChg != null
+                      ? `${catExposure.catLossChg >= 0 ? '+' : ''}${catExposure.catLossChg.toFixed(1)}% vs prior`
+                      : 'insured loss proxy',
+                },
+                {
+                  label: 'HY OAS',
+                  value: catExposure.hyOasBps,
+                  color: (catExposure.hyOasBps ?? 0) > 400 ? '#f87171' : '#60a5fa',
+                  fmt: (v) => `${Math.round(v)} bps`,
+                  sub: 'credit stress',
+                },
+                {
+                  label: 'Combined ratio',
+                  value: catExposure.combined,
+                  color: (catExposure.combined ?? 0) >= 100 ? '#f87171' : '#22c55e',
+                  fmt: (v) => `${Number(v).toFixed(1)}%`,
+                  sub: 'underwriting',
+                },
+              ].map((c) => (
+                <div key={c.label} className="cat-exp-card">
+                  <span className="cat-exp-card-label">{c.label}</span>
+                  <span className="cat-exp-card-val" style={{ color: c.color }}>
+                    {typeof c.value === 'number' && Number.isFinite(c.value) ? c.fmt(c.value) : '—'}
+                  </span>
+                  {c.sub ? <span className="cat-exp-card-sub" title={c.sub}>{c.sub}</span> : null}
+                </div>
+              ))}
+            </div>
+
+            <div className="cat-exp-body">
+              {/* FEMA peril mix */}
+              <div className="cat-exp-block">
+                <div className="cat-exp-h">FEMA by peril</div>
+                <div className="cat-exp-list">
+                  {(catExposure.byType || []).length ? (
+                    catExposure.byType.map((t) => {
+                      const max = Math.max(...catExposure.byType.map((x) => x.count || 0), 1);
+                      const pct = Math.round(((t.count || 0) / max) * 100);
+                      return (
+                        <div key={t.type} className="cat-exp-bar-row">
+                          <span className="cat-exp-bar-name">{t.type}</span>
+                          <span className="cat-exp-bar-track">
+                            <span className="cat-exp-bar-fill" style={{ width: `${pct}%` }} />
+                          </span>
+                          <span className="cat-exp-bar-n">{t.count}</span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="cat-exp-empty">No FEMA type breakdown</div>
+                  )}
                 </div>
               </div>
-            ))}
+
+              {/* Top states */}
+              <div className="cat-exp-block">
+                <div className="cat-exp-h">Top states (FEMA)</div>
+                <div className="cat-exp-chips">
+                  {(catExposure.topStates || []).length ? (
+                    catExposure.topStates.map((s) => (
+                      <div key={s.state} className="cat-exp-chip">
+                        <strong>{s.state}</strong>
+                        <span>{s.count}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="cat-exp-empty">No state tags</div>
+                  )}
+                </div>
+                <div className="cat-exp-h" style={{ marginTop: 6 }}>USGS mag buckets</div>
+                <div className="cat-exp-chips">
+                  {(catExposure.magBuckets || []).map((b) => (
+                    <div key={b.range} className="cat-exp-chip">
+                      <strong>{b.range}</strong>
+                      <span style={{
+                        color: String(b.range).startsWith('7')
+                          ? '#f87171'
+                          : String(b.range).startsWith('6')
+                            ? '#f59e0b'
+                            : '#4ade80',
+                      }}
+                      >
+                        {b.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="cat-exp-meta">
+                  {catExposure.tsunamiFlags != null && (
+                    <span>Tsunami flags: {catExposure.tsunamiFlags}</span>
+                  )}
+                  {catExposure.deepQuakes != null && (
+                    <span>Depth ≥100 km: {catExposure.deepQuakes}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Recent declarations */}
+              <div className="cat-exp-block">
+                <div className="cat-exp-h">Recent FEMA declarations</div>
+                <div className="cat-exp-table-wrap">
+                  {(catExposure.recentDecls || []).length ? (
+                    catExposure.recentDecls.map((d) => (
+                      <div key={d.disasterNumber || d.title} className="cat-exp-tr">
+                        <span className="cat-exp-tr-main">
+                          <strong>{d.type || '—'}</strong>
+                          <span className="cat-exp-tr-sub" title={d.title}>
+                            {(d.states || []).join(',') || '—'} · {d.title || ''}
+                          </span>
+                        </span>
+                        <span className="cat-exp-tr-date">
+                          {d.firstDeclared ? String(d.firstDeclared).slice(0, 10) : '—'}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="cat-exp-empty">No recent declarations</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Recent quakes */}
+              <div className="cat-exp-block">
+                <div className="cat-exp-h">Recent quakes (USGS)</div>
+                <div className="cat-exp-table-wrap">
+                  {(catExposure.recentQuakes || []).length ? (
+                    catExposure.recentQuakes.map((e) => (
+                      <div key={e.id} className="cat-exp-tr">
+                        <span className="cat-exp-tr-main">
+                          <strong style={{
+                            color: (e.mag || 0) >= 6 ? '#f87171' : (e.mag || 0) >= 5 ? '#f59e0b' : '#4ade80',
+                          }}
+                          >
+                            M{e.mag != null ? Number(e.mag).toFixed(1) : '—'}
+                          </strong>
+                          <span className="cat-exp-tr-sub" title={e.place}>{e.place || '—'}</span>
+                        </span>
+                        <span className="cat-exp-tr-date">
+                          {e.depthKm != null ? `${Number(e.depthKm).toFixed(0)} km` : '—'}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="cat-exp-empty">No recent events</div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </BentoCard>
 
         {usgsCtx?.data?.eventsCount > 0 && (
-          <BentoCard key="usgs-minerals" title="USGS Earthquake Activity (30d)" accent="insurance" className="ins-bento-card" contentClassName="ins-panel-scroll" source="USGS Earthquake Hazards Program" timestamp={usgsCtx?.lastUpdated || lastUpdated} isLive={!!usgsCtx?.data?.isLive} isCurrent={usgsCtx?.isCurrent ?? isCurrent} fetchedOn={usgsCtx?.fetchedOn || fetchedOn} fetchLog={usgsCtx?.fetchLog || fetchLog} error={usgsCtx?.error || error}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 8 }}>
-                {usgsCtx.data.magBuckets?.map(b => (
-                  <div key={b.range} style={{ background: colors.cardBg, borderRadius: 6, padding: '6px 8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 9, color: colors.textMuted }}>{b.range}</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: b.range.startsWith('7') ? '#f87171' : b.range.startsWith('6') ? '#f59e0b' : '#22c55e' }}>{b.count}</div>
+          <BentoCard
+            key="usgs-minerals"
+            title="USGS Earthquake Activity (30d)"
+            subtitle={`${usgsCtx.data.eventsCount} M4.5+ events · feed + human-readable times`}
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-content usgs-eq-host"
+            source="USGS Earthquake Hazards Program"
+            timestamp={usgsCtx?.lastUpdated || lastUpdated}
+            isLive={!!usgsCtx?.data?.isLive}
+            isCurrent={usgsCtx?.isCurrent ?? isCurrent}
+            fetchedOn={usgsCtx?.fetchedOn || fetchedOn}
+            fetchLog={usgsCtx?.fetchLog || fetchLog}
+            error={usgsCtx?.error || error}
+          >
+            <div className="usgs-eq-panel">
+              <div className="usgs-eq-buckets">
+                {usgsCtx.data.magBuckets?.map((b) => (
+                  <div key={b.range} className="usgs-eq-bucket">
+                    <span className="usgs-eq-bucket-r">{b.range}</span>
+                    <span
+                      className="usgs-eq-bucket-n"
+                      style={{
+                        color: String(b.range).startsWith('7')
+                          ? '#f87171'
+                          : String(b.range).startsWith('6')
+                            ? '#f59e0b'
+                            : '#22c55e',
+                      }}
+                    >
+                      {b.count}
+                    </span>
                   </div>
                 ))}
               </div>
-              <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-                {usgsCtx.data.events?.slice(0, 8).map(e => (
-                  <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: `1px solid ${colors.cardBg}`, fontSize: 11 }}>
-                    <span style={{ color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{e.place}</span>
-                    <span style={{ fontWeight: 600, color: (e.mag || 0) >= 6 ? '#f87171' : (e.mag || 0) >= 5 ? '#f59e0b' : '#22c55e', marginLeft: 8 }}>M{e.mag?.toFixed(1)}</span>
-                  </div>
-                ))}
+
+              <div className="usgs-eq-table-wrap">
+                <table className="usgs-eq-table">
+                  <thead>
+                    <tr>
+                      <th>When (local)</th>
+                      <th>UTC</th>
+                      <th>Mag</th>
+                      <th>Place</th>
+                      <th>Depth</th>
+                      <th>Lat / Lon</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Felt</th>
+                      <th>Alert</th>
+                      <th>Sig</th>
+                      <th>Link</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(usgsCtx.data.events || []).slice(0, 20).map((e) => {
+                      const ms = e.timeMs ?? (e.time ? Date.parse(e.time) : NaN);
+                      const d = Number.isFinite(ms) ? new Date(ms) : null;
+                      const localStr = d
+                        ? d.toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            timeZoneName: 'short',
+                          })
+                        : '—';
+                      const utcStr = d
+                        ? d.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+                        : (e.time ? String(e.time).replace('T', ' ').replace('Z', ' UTC') : '—');
+                      const magColor =
+                        (e.mag || 0) >= 7
+                          ? '#f87171'
+                          : (e.mag || 0) >= 6
+                            ? '#fb923c'
+                            : (e.mag || 0) >= 5
+                              ? '#f59e0b'
+                              : '#4ade80';
+                      const alertColor = {
+                        green: '#22c55e',
+                        yellow: '#eab308',
+                        orange: '#f97316',
+                        red: '#ef4444',
+                      }[String(e.alert || '').toLowerCase()] || 'var(--text-dim)';
+
+                      return (
+                        <tr key={e.id || `${e.time}-${e.place}`}>
+                          <td className="usgs-eq-time" title={e.time || ''}>{localStr}</td>
+                          <td className="usgs-eq-utc" title={e.time || ''}>{utcStr}</td>
+                          <td className="usgs-eq-mag" style={{ color: magColor }}>
+                            {e.mag != null ? `M${Number(e.mag).toFixed(1)}` : '—'}
+                            {e.magType ? <span className="usgs-eq-magtype">{e.magType}</span> : null}
+                          </td>
+                          <td className="usgs-eq-place" title={e.place || e.title || ''}>
+                            {e.place || e.title || '—'}
+                            {e.tsunami ? <span className="usgs-eq-flag">Tsunami</span> : null}
+                          </td>
+                          <td className="num">
+                            {e.depthKm != null ? `${Number(e.depthKm).toFixed(1)} km` : '—'}
+                          </td>
+                          <td className="num usgs-eq-ll">
+                            {e.lat != null && e.lon != null
+                              ? `${Number(e.lat).toFixed(2)}°, ${Number(e.lon).toFixed(2)}°`
+                              : '—'}
+                          </td>
+                          <td>{e.type || 'earthquake'}</td>
+                          <td>{e.status || '—'}</td>
+                          <td className="num">
+                            {e.felt != null
+                              ? Number(e.felt).toLocaleString('en-US')
+                              : '—'}
+                            {e.cdi != null ? (
+                              <span className="usgs-eq-sub"> CDI {Number(e.cdi).toFixed(1)}</span>
+                            ) : null}
+                            {e.mmi != null ? (
+                              <span className="usgs-eq-sub"> MMI {Number(e.mmi).toFixed(1)}</span>
+                            ) : null}
+                          </td>
+                          <td style={{ color: alertColor, fontWeight: 700, textTransform: 'capitalize' }}>
+                            {e.alert || '—'}
+                          </td>
+                          <td className="num">{e.sig != null ? e.sig : '—'}</td>
+                          <td>
+                            {e.url ? (
+                              <a
+                                href={e.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="usgs-eq-link"
+                                onMouseDown={(ev) => ev.stopPropagation()}
+                              >
+                                USGS
+                              </a>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="usgs-eq-footer">
+                USGS GeoJSON M4.5+ month feed · times shown local + UTC · depth / lat-lon / felt / alert / significance from source
+                {usgsCtx.data.metadata?.generated
+                  ? ` · feed generated ${new Date(usgsCtx.data.metadata.generated).toLocaleString()}`
+                  : ''}
               </div>
             </div>
           </BentoCard>
         )}
 
-        {ecbCtx?.data?.policyRates && (
-          <BentoCard key="ecb-supervisory" title="ECB Policy Rates" accent="insurance" className="ins-bento-card" contentClassName="ins-panel-scroll" source="ECB SDW" timestamp={ecbCtx?.lastUpdated || lastUpdated} isLive={!!ecbCtx?.data?.isLive} isCurrent={ecbCtx?.isCurrent ?? isCurrent} fetchedOn={ecbCtx?.fetchedOn || fetchedOn} fetchLog={ecbCtx?.fetchLog || fetchLog} error={ecbCtx?.error || error}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, height: '100%' }}>
-              {[
-                ['Main Refinancing', ecbCtx.data.policyRates.mainRefinancing?.value, '#42a5f5'],
-                ['Deposit Facility', ecbCtx.data.policyRates.depositFacility?.value, '#66bb6a'],
-                ['Marginal Lending', ecbCtx.data.policyRates.marginalLending?.value, '#ef5350'],
-              ].map(([label, value, color]) => (
-                <div key={label} style={{ background: colors.cardBg, borderRadius: 6, padding: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 9, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{label}</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color }}>{value != null ? `${value.toFixed(2)}%` : '—'}</div>
+        {(ecbCtx?.data?.policyRates || ecbCtx?.data?.moneyMarket) && (
+          <BentoCard
+            key="ecb-supervisory"
+            title="ECB Policy Rates"
+            subtitle="Policy corridor · €STR · EURIBOR · M3 · HICP · ECB SDW"
+            accent="insurance"
+            className="ins-bento-card"
+            contentClassName="ins-panel-content ins-ecb-host"
+            source="ECB Statistical Data Warehouse"
+            timestamp={ecbCtx?.lastUpdated || lastUpdated}
+            isLive={!!ecbCtx?.data?.isLive}
+            isCurrent={ecbCtx?.isCurrent ?? isCurrent}
+            fetchedOn={ecbCtx?.fetchedOn || fetchedOn}
+            fetchLog={ecbCtx?.fetchLog || fetchLog}
+            error={ecbCtx?.error || error}
+          >
+            {(() => {
+              const pr = ecbCtx?.data?.policyRates || {};
+              const mm = ecbCtx?.data?.moneyMarket || {};
+              const m3 = ecbCtx?.data?.m3Growth || [];
+              const hicp = ecbCtx?.data?.hicpDetail || [];
+              const m3Last = m3.length ? m3[m3.length - 1] : null;
+              const hicpLast = hicp.length ? hicp[hicp.length - 1] : null;
+              const fmt = (v, d = 2) =>
+                v != null && Number.isFinite(Number(v)) ? `${Number(v).toFixed(d)}%` : '—';
+              const chg = (v) => {
+                if (v == null || !Number.isFinite(Number(v))) return null;
+                const n = Number(v);
+                return `${n > 0 ? '+' : ''}${n.toFixed(2)} pp`;
+              };
+
+              const policyCards = [
+                {
+                  code: 'DFR',
+                  label: 'Deposit facility',
+                  value: pr.depositFacility?.value,
+                  period: pr.depositFacility?.period,
+                  delta: pr.depositFacilityChange?.value,
+                  color: '#66bb6a',
+                  key: 'ecbDepositRate',
+                  digits: 2,
+                },
+                {
+                  code: 'MRR',
+                  label: 'Main refinancing',
+                  value: pr.mainRefinancing?.value,
+                  period: pr.mainRefinancing?.period,
+                  delta: pr.mainRefinancingChange?.value,
+                  color: '#42a5f5',
+                  key: 'ecbMainRefiRate',
+                  digits: 2,
+                },
+                {
+                  code: 'MLFR',
+                  label: 'Marginal lending',
+                  value: pr.marginalLending?.value,
+                  period: pr.marginalLending?.period,
+                  delta: pr.marginalLendingChange?.value,
+                  color: '#ef5350',
+                  key: 'ecbMarginalLending',
+                  digits: 2,
+                },
+              ];
+
+              const mmCards = [
+                { code: '€STR', label: 'Vol-weighted overnight', value: mm.estr?.value, period: mm.estr?.period, color: '#a78bfa', key: 'ecbEstr', digits: 3 },
+                { code: '€STR p25', label: '25th percentile', value: mm.estrP25?.value, period: mm.estrP25?.period, color: '#c4b5fd', digits: 3 },
+                { code: '€STR p75', label: '75th percentile', value: mm.estrP75?.value, period: mm.estrP75?.period, color: '#c4b5fd', digits: 3 },
+                { code: '€STR m-avg', label: 'Monthly average', value: mm.estrMonthlyAvg?.value, period: mm.estrMonthlyAvg?.period, color: '#a78bfa', digits: 3 },
+                { code: 'E1M', label: 'EURIBOR 1-month', value: mm.euribor1m?.value, period: mm.euribor1m?.period, color: '#fbbf24', key: 'ecbEuribor1m', digits: 3 },
+                { code: 'E3M', label: 'EURIBOR 3-month', value: mm.euribor3m?.value, period: mm.euribor3m?.period, color: '#fbbf24', key: 'ecbEuribor3m', digits: 3 },
+                { code: 'E6M', label: 'EURIBOR 6-month', value: mm.euribor6m?.value, period: mm.euribor6m?.period, color: '#f59e0b', key: 'ecbEuribor6m', digits: 3 },
+                { code: 'E1Y', label: 'EURIBOR 1-year', value: mm.euribor1y?.value, period: mm.euribor1y?.period, color: '#f59e0b', key: 'ecbEuribor1y', digits: 3 },
+              ].filter((c) => c.value != null && Number.isFinite(Number(c.value)));
+
+              const derivedCards = [
+                { code: 'Corridor', label: 'MLFR − DFR', value: pr.corridorWidth?.value, period: pr.corridorWidth?.period, color: '#94a3b8', digits: 2 },
+                { code: 'MRR−DFR', label: 'Standing facility spread', value: pr.standingFacilitySpread?.value, period: pr.standingFacilitySpread?.period, color: '#94a3b8', digits: 2 },
+                {
+                  code: '€STR−DFR',
+                  label: 'Pass-through gap',
+                  value:
+                    mm.estr?.value != null && pr.depositFacility?.value != null
+                      ? Number(mm.estr.value) - Number(pr.depositFacility.value)
+                      : null,
+                  period: mm.estr?.period,
+                  color: '#38bdf8',
+                  digits: 2,
+                },
+                {
+                  code: 'E3M−MRR',
+                  label: 'EURIBOR 3M − MRR',
+                  value:
+                    mm.euribor3m?.value != null && pr.mainRefinancing?.value != null
+                      ? Number(mm.euribor3m.value) - Number(pr.mainRefinancing.value)
+                      : null,
+                  period: mm.euribor3m?.period,
+                  color: '#38bdf8',
+                  digits: 2,
+                },
+              ].filter((c) => c.value != null && Number.isFinite(Number(c.value)));
+
+              const macroCards = [
+                {
+                  code: 'M3',
+                  label: 'Money supply YoY',
+                  value: m3Last?.value,
+                  period: m3Last?.period,
+                  color: '#22c55e',
+                  key: 'ecbM3Growth',
+                  digits: 1,
+                },
+                {
+                  code: 'HICP',
+                  label: 'Euro-area inflation YoY',
+                  value: hicpLast?.value,
+                  period: hicpLast?.period,
+                  color: (hicpLast?.value ?? 0) > 3 ? '#f87171' : '#22c55e',
+                  key: 'ecbHicp',
+                  digits: 1,
+                },
+                {
+                  code: '€STR vol',
+                  label: '€STR turnover €m',
+                  value: mm.estrVolume?.value,
+                  period: mm.estrVolume?.period,
+                  color: '#64748b',
+                  digits: 0,
+                  isLevel: true,
+                },
+                {
+                  code: '€STR txn',
+                  label: '€STR transactions',
+                  value: mm.estrTransactions?.value,
+                  period: mm.estrTransactions?.period,
+                  color: '#64748b',
+                  digits: 0,
+                  isLevel: true,
+                },
+              ].filter((c) => c.value != null && Number.isFinite(Number(c.value)));
+
+              const renderCard = (c) => (
+                <div key={c.code + c.label} className="ins-ecb-card">
+                  <span className="ins-ecb-code" style={{ color: c.color }}>{c.code}</span>
+                  <span className="ins-ecb-val" style={{ color: c.color }}>
+                    {c.key && !c.isLevel ? (
+                      <MetricValue
+                        value={c.value}
+                        seriesKey={c.key}
+                        timestamp={c.period}
+                        format={(v) => fmt(v, c.digits ?? 2)}
+                      />
+                    ) : c.isLevel ? (
+                      Number(c.value).toLocaleString('en-US', { maximumFractionDigits: c.digits ?? 0 })
+                    ) : (
+                      fmt(c.value, c.digits ?? 2)
+                    )}
+                  </span>
+                  <span className="ins-ecb-lab">{c.label}</span>
+                  <span className="ins-ecb-meta">
+                    {c.period ? String(c.period) : ''}
+                    {chg(c.delta) ? ` · ${chg(c.delta)}` : ''}
+                  </span>
                 </div>
-              ))}
-            </div>
+              );
+
+              return (
+                <div className="ins-ecb-panel">
+                  <div className="ins-ecb-sec">
+                    <div className="ins-ecb-h">
+                      Key ECB interest rates
+                      {pr.mainRefinancing?.period && (
+                        <span className="ins-ecb-h-sub">eff. {pr.mainRefinancing.period}</span>
+                      )}
+                    </div>
+                    <div className="ins-ecb-grid ins-ecb-grid-3">
+                      {policyCards.map(renderCard)}
+                    </div>
+                  </div>
+
+                  {mmCards.length > 0 && (
+                    <div className="ins-ecb-sec">
+                      <div className="ins-ecb-h">€STR &amp; EURIBOR</div>
+                      <div className="ins-ecb-grid ins-ecb-grid-4">
+                        {mmCards.map(renderCard)}
+                      </div>
+                    </div>
+                  )}
+
+                  {derivedCards.length > 0 && (
+                    <div className="ins-ecb-sec">
+                      <div className="ins-ecb-h">Spreads / pass-through</div>
+                      <div className="ins-ecb-grid ins-ecb-grid-4">
+                        {derivedCards.map(renderCard)}
+                      </div>
+                    </div>
+                  )}
+
+                  {macroCards.length > 0 && (
+                    <div className="ins-ecb-sec">
+                      <div className="ins-ecb-h">Euro-area aggregates</div>
+                      <div className="ins-ecb-grid ins-ecb-grid-4">
+                        {macroCards.map(renderCard)}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="ins-ecb-footer">
+                    Live ECB SDW only · DFR/MRR/MLFR · €STR · EURIBOR 1M–1Y · M3 · HICP · no mock
+                  </div>
+                </div>
+              );
+            })()}
           </BentoCard>
         )}
       </BentoWrapper>

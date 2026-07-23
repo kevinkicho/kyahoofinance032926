@@ -443,16 +443,101 @@
 }
 
 /* ── Panel status indicators in dropdown ── */
+.market-panel-dropdown-row {
+  position: relative;
+}
 .panel-dropdown-status-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   margin-right: 6px;
+  cursor: pointer;
   flex-shrink: 0;
+  box-shadow: 0 0 0 2px transparent;
+}
+.panel-dropdown-status-dot:hover {
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.45);
+}
+.panel-status-ok .panel-dropdown-title {
+  color: inherit;
+}
+.panel-badge-ok {
+  color: #86efac !important;
+  background: rgba(34, 197, 94, 0.12) !important;
+}
+.panel-health-popover {
+  margin: 0 4px 6px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #0b1220;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  font-size: 11px;
+  color: #e2e8f0;
+}
+.panel-health-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.panel-health-popover-close {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.panel-health-popover-verdict {
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+.panel-health-popover-verdict.is-green {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+}
+.panel-health-popover-verdict.is-red {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+}
+.panel-health-popover-gates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.panel-health-popover-gates li {
+  padding: 3px 0;
+  color: #94a3b8;
+  word-break: break-word;
+}
+.panel-health-popover-gates li.ok { color: #86efac; }
+.panel-health-popover-gates li.bad { color: #fca5a5; }
+.panel-health-popover-note {
+  margin: 8px 0 6px;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.panel-health-popover-jump {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 600;
 }
 .panel-dropdown-status-dot[data-status="ok"] {
   background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.55);
 }
 .panel-dropdown-status-dot[data-status="cross"] {
   background: #60a5fa;

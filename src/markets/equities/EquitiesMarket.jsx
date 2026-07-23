@@ -19,10 +19,11 @@ import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import KeyIndicesStrip from './components/KeyIndicesStrip';
 import PortfolioTracker from './components/PortfolioTracker';
-import RadarView from './components/RadarView';
 import MetricValue from '../../components/MetricValue/MetricValue';
 import BeaCorporateProfitsPanel from './components/BeaCorporateProfitsPanel';
 import WorldBankMarketCapPanel from './components/WorldBankMarketCapPanel';
+import SecMegaCapFundamentalsPanel from './components/SecMegaCapFundamentalsPanel';
+import SecFilingActivityPanel from './components/SecFilingActivityPanel';
 
 import './EquitiesDashboard.css';
 
@@ -129,44 +130,36 @@ const HEATMAP_LAYOUT = {
     { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
     { i: 'heatmap', x: 0, y: 4, w: 8,  h: 6 },
     { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
-    { i: 'sec-fundamentals', x: 0, y: 10, w: 6, h: 3 },
-    { i: 'universe-updates', x: 0, y: 13, w: 12, h: 4 },
-    { i: 'sec-filings', x: 6, y: 10, w: 6, h: 3 },
-    { i: 'bea-corporate-profits', x: 0, y: 17, w: 6, h: 3 },
-    { i: 'wb-market-cap', x: 6, y: 17, w: 6, h: 3 },
-  ]
-};
-
-const RADAR_LAYOUT = {
-  lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
-    { i: 'radar',   x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'sec-fundamentals', x: 0, y: 10, w: 7, h: 6 },
+    { i: 'sec-filings', x: 7, y: 10, w: 5, h: 6 },
+    { i: 'universe-updates', x: 0, y: 16, w: 12, h: 4 },
+    // h:4 (not 6–7): content is KPI + compact charts/table; taller cells left wasteful empty bottom.
+    { i: 'bea-corporate-profits', x: 0, y: 20, w: 12, h: 4 },
+    { i: 'wb-market-cap', x: 0, y: 24, w: 12, h: 4 },
   ]
 };
 
 const RACE_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
-    { i: 'race',   x: 0,  y: 4, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 3 },
+    { i: 'race',    x: 0, y: 3, w: 8,  h: 8 },
+    { i: 'sidebar', x: 8, y: 3, w: 4,  h: 8 },
   ]
 };
 
 const LIST_LAYOUT = {
   lg: [
-    { i: 'kpi',            x: 0, y: 0, w: 12, h: 4 },
-    { i: 'list-main',      x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'detail-sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',            x: 0, y: 0, w: 12, h: 3 },
+    { i: 'list-main',      x: 0, y: 3, w: 8,  h: 8 },
+    { i: 'detail-sidebar', x: 8, y: 3, w: 4,  h: 8 },
   ]
 };
 
-// PORTFOLIO_LAYOUT was previously referenced but undefined — pre-existing
-// ReferenceError in the Portfolio sub-tab. Now defined alongside the KPI.
+// PORTFOLIO_LAYOUT — full-width tracker under Key Indices (taller so table + chart fit).
 const PORTFOLIO_LAYOUT = {
   lg: [
-    { i: 'kpi',       x: 0, y: 0, w: 12, h: 4 },
-    { i: 'portfolio', x: 0, y: 4, w: 12, h: 6 },
+    { i: 'kpi',       x: 0, y: 0, w: 12, h: 3 },
+    { i: 'portfolio', x: 0, y: 3, w: 12, h: 9 },
   ]
 };
 
@@ -324,11 +317,11 @@ function formatTimestamp(d) {
 // stale saved layout. Wiping the older keys guarantees v4 starts clean
 // for every user, regardless of browser cache state.
 const STALE_LAYOUT_KEYS = [
-  'equities-heatmap-layout',   'equities-heatmap-layout-v2',   'equities-heatmap-layout-v3',   'equities-heatmap-layout-v4',   'equities-heatmap-layout-v5',   'equities-heatmap-layout-v6',
-  'equities-list-layout',      'equities-list-layout-v2',      'equities-list-layout-v3',      'equities-list-layout-v4',      'equities-list-layout-v5',      'equities-list-layout-v6',
+  'equities-heatmap-layout',   'equities-heatmap-layout-v2',   'equities-heatmap-layout-v3',   'equities-heatmap-layout-v4',   'equities-heatmap-layout-v5',   'equities-heatmap-layout-v6',   'equities-heatmap-layout-v7',   'equities-heatmap-layout-v8',
+  'equities-list-layout',      'equities-list-layout-v2',      'equities-list-layout-v3',      'equities-list-layout-v4',      'equities-list-layout-v5',      'equities-list-layout-v6', 'equities-list-layout-v7', 'equities-list-layout-v8',
   'equities-radar-layout',     'equities-radar-layout-v2',     'equities-radar-layout-v3',     'equities-radar-layout-v4',     'equities-radar-layout-v5',     'equities-radar-layout-v6',
-  'equities-race-layout',      'equities-race-layout-v2',      'equities-race-layout-v3',      'equities-race-layout-v4',      'equities-race-layout-v5',      'equities-race-layout-v6',
-  'equities-portfolio-layout', 'equities-portfolio-layout-v2', 'equities-portfolio-layout-v3', 'equities-portfolio-layout-v4', 'equities-portfolio-layout-v5', 'equities-portfolio-layout-v6',
+  'equities-race-layout',      'equities-race-layout-v2',      'equities-race-layout-v3',      'equities-race-layout-v4',      'equities-race-layout-v5',      'equities-race-layout-v6', 'equities-race-layout-v7', 'equities-race-layout-v8',
+  'equities-portfolio-layout', 'equities-portfolio-layout-v2', 'equities-portfolio-layout-v3', 'equities-portfolio-layout-v4', 'equities-portfolio-layout-v5', 'equities-portfolio-layout-v6', 'equities-portfolio-layout-v7', 'equities-portfolio-layout-v8',
   'equities-ml-layout',        'equities-ml-layout-v2',        'equities-ml-layout-v3',        'equities-ml-layout-v4',        'equities-ml-layout-v5',        'equities-ml-layout-v6',
 ];
 let __equitiesLayoutCleanupRan = false;
@@ -345,6 +338,10 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   // sneak into the v4 layout merge as a degenerate 1×1.
   purgeStaleLayoutKeys();
   const [viewMode, setViewMode] = usePersistedState(`${STORAGE_KEY}-viewMode`, 'heatmap');
+  // Removed sub-tabs (ML Explorer, Radar) — remap stale localStorage so users land on Heatmap.
+  useEffect(() => {
+    if (viewMode === 'ml-explorer' || viewMode === 'radar') setViewMode('heatmap');
+  }, [viewMode, setViewMode]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'value', direction: 'descending' });
   const [selectedTicker, setSelectedTicker] = useState(null);
@@ -1078,10 +1075,10 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     <BentoCard
       key="sec-fundamentals"
       title="SEC Mega-Cap Fundamentals"
-      subtitle={`${edgarSummary.count} companies · ${edgarSummary.profitable}/${edgarSummary.count} profitable · avg margin ${edgarSummary.avgMargin?.toFixed(1) || '—'}% · avg ROE ${edgarSummary.avgRoe?.toFixed(1) || '—'}% · avg D/E ${edgarSummary.avgDe?.toFixed(1) || '—'} · ${edgarSummary.gradeA || 0} grade A`}
+      subtitle={`${edgarSummary.count} cos · ${edgarSummary.profitable}/${edgarSummary.count} profitable · ${edgarSummary.gradeA || 0} grade A`}
       accent="equities"
       className="eq-bento-card"
-      contentClassName="eq-panel-content eq-panel-scroll"
+      contentClassName="eq-panel-content"
       source="SEC EDGAR XBRL"
       timestamp={edgarCtx?.lastUpdated || dataTimestamp}
       isLive={!!edgarCtx?.data?.isLive}
@@ -1090,121 +1087,13 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       fetchLog={edgarCtx?.fetchLog || []}
       error={edgarCtx?.error}
     >
-      {/* Summary KPI strip */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, padding: '0 2px' }}>
-        {[
-          { label: 'Avg Margin', value: edgarSummary.avgMargin != null ? `${edgarSummary.avgMargin.toFixed(1)}%` : '—', color: '#60a5fa' },
-          { label: 'Avg ROE', value: edgarSummary.avgRoe != null ? `${edgarSummary.avgRoe.toFixed(1)}%` : '—', color: '#22c55e' },
-          { label: 'Avg ROA', value: edgarSummary.avgRoa != null ? `${edgarSummary.avgRoa.toFixed(1)}%` : '—', color: '#a78bfa' },
-          { label: 'Avg Rev Growth', value: edgarSummary.avgRevGrowth != null ? `${edgarSummary.avgRevGrowth >= 0 ? '+' : ''}${edgarSummary.avgRevGrowth.toFixed(1)}%` : '—', color: edgarSummary.avgRevGrowth >= 0 ? '#22c55e' : '#f87171' },
-          { label: 'Avg D/E', value: edgarSummary.avgDe != null ? `${edgarSummary.avgDe.toFixed(1)}x` : '—', color: '#f59e0b' },
-        ].map(kpi => (
-          <span key={kpi.label} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ color: 'var(--text-muted)' }}>{kpi.label}</span>{' '}
-            <strong style={{ color: kpi.color, fontVariantNumeric: 'tabular-nums' }}>{kpi.value}</strong>
-          </span>
-        ))}
-      </div>
-
-      {/* Main table */}
-      <div className="eq-mini-table">
-        <div style={{ display: 'grid', gridTemplateColumns: '48px 52px 60px 60px 52px 52px 48px 42px', gap: 6, alignItems: 'center', padding: '0 0 4px', fontSize: 8, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          <span>Ticker</span>
-          <span style={{ textAlign: 'right' }}>FY</span>
-          <span style={{ textAlign: 'right' }}>Revenue</span>
-          <span style={{ textAlign: 'right' }}>Net Inc</span>
-          <span style={{ textAlign: 'right' }}>Margin</span>
-          <span style={{ textAlign: 'right' }}>ROE</span>
-          <span style={{ textAlign: 'right' }}>D/E</span>
-          <span style={{ textAlign: 'right' }}>Grd</span>
-        </div>
-        {edgarRows.map(row => (
-          <div key={row.ticker} className="eq-stat-card" style={{ display: 'grid', gridTemplateColumns: '48px 52px 60px 60px 52px 52px 48px 42px', gap: 6, alignItems: 'center', fontSize: 11 }}>
-            <strong style={{ fontSize: 11 }}>{row.ticker}</strong>
-            <span style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.period || '—'}</span>
-            <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              <MetricValue value={row.revenue} seriesKey="edgarRevenue" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(0)}B` : '—'} />
-            </span>
-            <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-              <MetricValue value={row.netIncome} seriesKey="edgarNetIncome" timestamp={edgarCtx?.lastUpdated} format={v => v != null ? `$${(v / 1e9).toFixed(0)}B` : '—'} />
-            </span>
-            <span style={{ color: (row.margin ?? 0) >= 20 ? '#22c55e' : (row.margin ?? 0) >= 10 ? '#f59e0b' : '#f87171', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>
-              {row.margin != null ? `${row.margin.toFixed(0)}%` : '—'}
-            </span>
-            <span style={{ color: (row.roe ?? 0) >= 20 ? '#22c55e' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>
-              {row.roe != null ? `${row.roe.toFixed(0)}%` : '—'}
-            </span>
-            <span style={{ color: (row.debtToEquity ?? 0) > 3 ? '#f87171' : '#94a3b8', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>
-              {row.debtToEquity != null ? `${row.debtToEquity.toFixed(1)}x` : '—'}
-            </span>
-            <span style={{
-              color: row.quality === 'A' ? '#22c55e' : row.quality === 'B' ? '#60a5fa' : row.quality === 'C' ? '#f59e0b' : '#f87171',
-              fontWeight: 700, textAlign: 'right', fontSize: 11
-            }}>{row.quality}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Detailed breakdown per ticker */}
-      <div style={{ marginTop: 8, borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-        <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, padding: '0 2px' }}>Detailed Breakdown</div>
-        {edgarRows.slice(0, 6).map(row => (
-          <div key={row.ticker} style={{ marginBottom: 6, padding: '4px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <strong style={{ fontSize: 11 }}>{row.ticker}</strong>
-              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>FY{row.period}</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 4, fontSize: 9 }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Op Margin </span>
-                <strong style={{ color: (row.operatingMargin ?? 0) >= 20 ? '#22c55e' : '#94a3b8' }}>
-                  {row.operatingMargin != null ? `${row.operatingMargin.toFixed(1)}%` : '—'}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>FCF </span>
-                <strong style={{ color: (row.fcf ?? 0) > 0 ? '#22c55e' : '#f87171' }}>
-                  {row.fcf != null ? `$${(row.fcf / 1e9).toFixed(1)}B` : '—'}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Rev Growth </span>
-                <strong style={{ color: (row.revGrowth ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                  {row.revGrowth != null ? `${row.revGrowth >= 0 ? '+' : ''}${row.revGrowth.toFixed(1)}%` : '—'}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>NI Growth </span>
-                <strong style={{ color: (row.niGrowth ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>
-                  {row.niGrowth != null ? `${row.niGrowth >= 0 ? '+' : ''}${row.niGrowth.toFixed(1)}%` : '—'}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>Current Ratio </span>
-                <strong style={{ color: (row.currentRatio ?? 0) >= 1.5 ? '#22c55e' : '#f59e0b' }}>
-                  {row.currentRatio != null ? `${row.currentRatio.toFixed(2)}x` : '—'}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>R&D Intensity </span>
-                <strong>{row.rdIntensity != null ? `${row.rdIntensity.toFixed(1)}%` : '—'}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>P/E </span>
-                <strong>{row.pe != null ? `${row.pe.toFixed(1)}x` : '—'}</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)' }}>P/B </span>
-                <strong>{row.pbRatio != null ? `${row.pbRatio.toFixed(1)}x` : '—'}</strong>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <SecMegaCapFundamentalsPanel
+        rows={edgarRows}
+        summary={edgarSummary}
+      />
     </BentoCard>
   ) : null;
 
-  const filingActivityData = filingActivityCtx?.data?.byType || {};
   const filingActivityTotal = filingActivityCtx?.data?.total || 0;
   const filingActivityTickers = filingActivityCtx?.data?.tickerCount || 0;
   const materialFilings = filingActivityCtx?.data?.material || [];
@@ -1212,37 +1101,14 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const earningsFilings = filingActivityCtx?.data?.earnings || [];
   const activistFilings = filingActivityCtx?.data?.activist || [];
 
-  const CategorySection = ({ title, icon, color, filings, maxRows = 5 }) => {
-    if (!filings || filings.length === 0) return null;
-    return (
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 600, color, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span>{icon}</span> {title} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({filings.length})</span>
-        </div>
-        {filings.slice(0, maxRows).map((f, i) => (
-          <div key={`${f.ticker}-${f.date}-${i}`} style={{ display: 'grid', gridTemplateColumns: '44px 48px 60px 1fr 36px', gap: 6, alignItems: 'center', padding: '2px 0', fontSize: 11, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-            <strong style={{ fontSize: 11 }}>{f.ticker}</strong>
-            <span style={{ color, fontSize: 10 }}>{f.form}</span>
-            <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>{f.date}</span>
-            <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10 }}>{f.description || '—'}</span>
-            <a href={f.url} target="_blank" rel="noopener noreferrer" style={{ color: '#60a5fa', textAlign: 'right', textDecoration: 'none', fontSize: 10 }} title={`View on SEC EDGAR`}>↗</a>
-          </div>
-        ))}
-        {filings.length > maxRows && (
-          <div style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'center', marginTop: 2 }}>+{filings.length - maxRows} more</div>
-        )}
-      </div>
-    );
-  };
-
-  const secFilingsCard = filingActivityTotal > 0 ? (
+  const secFilingsCard = filingActivityTotal > 0 || Object.keys(filingActivityCtx?.data?.byTicker || {}).length > 0 ? (
     <BentoCard
       key="sec-filings"
       title="SEC Filing Activity"
-      subtitle={`${filingActivityTotal} filings · ${filingActivityTickers} tickers · ${materialFilings.length} material events · ${insiderFilings.length} insider trades`}
+      subtitle={`${filingActivityTotal} filings · ${filingActivityTickers} tickers`}
       accent="equities"
       className="eq-bento-card"
-      contentClassName="eq-panel-content eq-panel-scroll"
+      contentClassName="eq-panel-content"
       source="SEC EDGAR"
       timestamp={filingActivityCtx?.lastUpdated || dataTimestamp}
       isLive={!!filingActivityCtx?.data?.isLive}
@@ -1251,32 +1117,16 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       fetchLog={filingActivityCtx?.fetchLog || []}
       error={filingActivityCtx?.error}
     >
-      {/* Summary pills */}
-      <div style={{ marginBottom: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {[
-          { label: '8-K Material', count: materialFilings.length, color: '#f59e0b' },
-          { label: 'Form 4 Insider', count: insiderFilings.length, color: '#a78bfa' },
-          { label: '10-K/Q Earnings', count: earningsFilings.length, color: '#22c55e' },
-          { label: '13G/D Activist', count: activistFilings.length, color: '#ec4899' },
-        ].filter(s => s.count > 0).map(s => (
-          <span key={s.label} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: `${s.color}15`, border: `1px solid ${s.color}30` }}>
-            <span style={{ color: s.color }}>{s.label}</span>{' '}
-            <strong style={{ color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.count}</strong>
-          </span>
-        ))}
-      </div>
-
-      {/* Material events (8-K) */}
-      <CategorySection title="Material Events (8-K)" icon="⚡" color="#f59e0b" filings={materialFilings} maxRows={4} />
-
-      {/* Insider trading (Form 4) */}
-      <CategorySection title="Insider Transactions (Form 4)" icon="👤" color="#a78bfa" filings={insiderFilings} maxRows={4} />
-
-      {/* Earnings filings (10-K/Q) */}
-      <CategorySection title="Earnings Filings (10-K/Q)" icon="📊" color="#22c55e" filings={earningsFilings} maxRows={3} />
-
-      {/* Activist filings (13G/D) */}
-      <CategorySection title="Activist / Institutional (13G/D)" icon="🏦" color="#ec4899" filings={activistFilings} maxRows={3} />
+      <SecFilingActivityPanel
+        byTicker={filingActivityCtx?.data?.byTicker || {}}
+        byType={filingActivityCtx?.data?.byType || {}}
+        total={filingActivityTotal}
+        tickerCount={filingActivityTickers}
+        material={materialFilings}
+        insider={insiderFilings}
+        earnings={earningsFilings}
+        activist={activistFilings}
+      />
     </BentoCard>
   ) : null;
 
@@ -1386,14 +1236,19 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           onRowClick={handleSelectTicker}
         />
       ) : viewMode === 'list' ? (
-        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v8">
+        // Always mount detail-sidebar (empty or DetailPanel). Conditional
+        // mount/unmount on selectedTicker made RGL re-compact and twitch.
+        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v9">
           {kpiBentoCard}
           <div key="list-main" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
               <span className="eq-panel-title">Equity List</span>
-              <span className="eq-panel-subtitle">Detailed market table</span>
+              <span className="eq-panel-subtitle">
+                {processedData.length} equities · click a row for detail
+                {snapshotDate ? ` · snapshot ${snapshotDate}` : ''}
+              </span>
             </div>
-            <div className="eq-panel-content bento-panel-content eq-panel-scroll" onMouseDown={stopDrag}>
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
               <ListView
                 processedData={processedData}
                 handleSort={handleSort}
@@ -1415,24 +1270,49 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
               <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
             </div>
           </div>
-          {selectedTicker && (
-            <div key="detail-sidebar" className="eq-bento-card eq-detail-sidebar">
-              <div className="eq-panel-title-row bento-panel-title-row">
-                <span className="eq-panel-title">Detail · {selectedTicker}</span>
-              </div>
-              <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+          <div key="detail-sidebar" className="eq-bento-card eq-list-detail">
+            <div className="eq-panel-title-row bento-panel-title-row">
+              <span className="eq-panel-title">
+                {selectedTicker
+                  ? `Detail · ${selectedTicker.ticker || selectedTicker.fullName || '—'}`
+                  : 'Detail'}
+              </span>
+              {selectedTicker && (
+                <span className="eq-panel-subtitle">
+                  {selectedTicker.isLoading ? 'loading…' : selectedTicker.fullName || ''}
+                </span>
+              )}
+            </div>
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+              {selectedTicker ? (
                 <DetailPanel
                   selectedTicker={selectedTicker}
                   setSelectedTicker={setSelectedTicker}
                   currentRate={currentRate}
                   currentSymbol={currentSymbol}
                 />
-              </div>
+              ) : (
+                <div className="eq-summary">
+                  <div className="eq-hint" style={{ padding: '24px 12px', fontStyle: 'normal' }}>
+                    Select a ticker from the list to load live quote, fundamentals, and history.
+                  </div>
+                  <div className="eq-stat-card">
+                    <div className="eq-stat-label">Equities in view</div>
+                    <div className="eq-stat-value">{processedData.length}</div>
+                  </div>
+                  <div className="eq-stat-card">
+                    <div className="eq-stat-label">Global mkt cap ({currency})</div>
+                    <div className="eq-stat-value">
+                      {currentSymbol}{(globalValCap * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} B
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </BentoWrapper>
       ) : viewMode === 'heatmap' ? (
-        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v8">
+        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v9">
           {kpiBentoCard}
           <div key="heatmap" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
@@ -1460,38 +1340,79 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           {secFundamentalsCard}
           {secFilingsCard}
           {universeUpdatesCard}
-          <BentoCard key="bea-corporate-profits" title="BEA Corporate Profits" subtitle="GDP components · personal saving rate" accent="equities" className="eq-bento-card" contentClassName="eq-panel-content" source="Bureau of Economic Analysis" timestamp={dataTimestamp} isLive={true} isCurrent={!snapshotDate} fetchedOn={dataTimestamp} fetchLog={quotesFetchLog}>
+          <BentoCard
+            key="bea-corporate-profits"
+            title="BEA Corporate Profits"
+            subtitle="Corporate profits · real GDP growth · personal saving rate"
+            accent="equities"
+            className="eq-bento-card"
+            contentClassName="eq-panel-content"
+            source="Bureau of Economic Analysis (NIPA)"
+            timestamp={dataTimestamp}
+            isLive={true}
+            isCurrent={!snapshotDate}
+            fetchedOn={dataTimestamp}
+            fetchLog={quotesFetchLog}
+          >
             <BeaCorporateProfitsPanel />
           </BentoCard>
-          <BentoCard key="wb-market-cap" title="World Bank Market Cap" subtitle="Key indicators by country" accent="equities" className="eq-bento-card" contentClassName="eq-panel-content" source="World Bank" timestamp={dataTimestamp} isLive={true} isCurrent={!snapshotDate} fetchedOn={dataTimestamp} fetchLog={quotesFetchLog}>
+          <BentoCard
+            key="wb-market-cap"
+            title="World Bank Market Cap"
+            subtitle="Listed equity market size · GDP · inflation · trade by country"
+            accent="equities"
+            className="eq-bento-card"
+            contentClassName="eq-panel-content"
+            source="World Bank WDI"
+            timestamp={dataTimestamp}
+            isLive={true}
+            isCurrent={!snapshotDate}
+            fetchedOn={dataTimestamp}
+            fetchLog={quotesFetchLog}
+          >
             <WorldBankMarketCapPanel />
           </BentoCard>
         </BentoWrapper>
       ) : viewMode === 'portfolio' ? (
-        // PORTFOLIO_LAYOUT only has 'kpi' + 'portfolio' slots — sidebar
-        // intentionally omitted because Portfolio takes full width. Don't
-        // render <sidebarPanel> here, otherwise RGL falls back to a 1×1
-        // default and Market Summary collapses to a 116×120 stub.
-        // PortfolioTracker also brings its own title row, so we wrap it in
-        // a slim shell instead of the redundant eq-panel-title chrome.
-        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v8">
+        // PORTFOLIO_LAYOUT only has 'kpi' + 'portfolio' — no sidebar (avoids 1×1 RGL stubs).
+        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v9">
           {kpiBentoCard}
-          <div key="portfolio" className="eq-bento-card" onMouseDown={stopDrag}>
-            <PortfolioTracker indexQuotes={indexQuotes} onTickerSelect={handleSelectTicker} />
-          </div>
+          <BentoCard
+            key="portfolio"
+            title="Portfolio Tracker"
+            subtitle="Add holdings · live Yahoo quotes · allocation"
+            accent="equities"
+            className="eq-bento-card"
+            contentClassName="eq-panel-content pf-tracker-host"
+            source="Yahoo Finance"
+            timestamp={dataTimestamp}
+            isLive={true}
+            isCurrent={!snapshotDate}
+            noFooter={false}
+          >
+            <PortfolioTracker
+              universeQuotes={displayUniverse}
+              onTickerSelect={handleSelectTicker}
+            />
+          </BentoCard>
         </BentoWrapper>
-      ) : viewMode === 'radar' ? (
-        <BentoWrapper layout={RADAR_LAYOUT} storageKey="equities-radar-layout-v8">
+      ) : viewMode === 'race' ? (
+        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v9">
           {kpiBentoCard}
-          <div key="radar" className="eq-bento-card">
+          <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">Equities Radar</span>
-              <span className="eq-panel-subtitle">Plot stocks by dimensions · color-by-sector</span>
+              <span className="eq-panel-title">Bar Race</span>
+              <span className="eq-panel-subtitle">Top 30 by market cap · colored by {groupBy === 'market' ? 'region' : 'sector'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
             </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <RadarView
+            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+              <TimeTravel onSnapshotSelect={handleSnapshotSelect} isActive={viewMode === 'race'} />
+              <BarRaceView
                 flatData={flatData}
-                onTickerSelect={handleSelectTicker}
+                currentRate={currentRate}
+                currentSymbol={currentSymbol}
+                currency={currency}
+                groupBy={groupBy}
+                snapshotDate={snapshotDate}
               />
             </div>
             <div className="eq-panel-footer">
@@ -1502,22 +1423,24 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           {sidebarPanel}
         </BentoWrapper>
       ) : (
-        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v8">
+        // Fallback (unknown viewMode) → heatmap
+        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v9">
           {kpiBentoCard}
-          <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div key="heatmap" className="eq-bento-card">
             <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">Bar Race</span>
-              <span className="eq-panel-subtitle">Top 30 · colored by {groupBy === 'market' ? 'region' : 'sector'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
+              <span className="eq-panel-title">Equity Heatmap</span>
+              <span className="eq-panel-subtitle">{flatData.length} equities</span>
             </div>
-            <TimeTravel onSnapshotSelect={handleSnapshotSelect} isActive={viewMode === 'race'} />
             <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <BarRaceView
-                flatData={flatData}
+              <HeatmapView
+                data={heatmapData}
                 currentRate={currentRate}
                 currentSymbol={currentSymbol}
                 currency={currency}
+                rankMetric={rankMetric}
                 groupBy={groupBy}
-                snapshotDate={snapshotDate}
+                colorByPerf={colorByPerf}
+                onSelect={handleSelectTicker}
               />
             </div>
             <div className="eq-panel-footer">

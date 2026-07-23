@@ -25,7 +25,7 @@
 // "Supply & Demand", not "Supply &amp; Demand").
 //
 // IMPORTANT: only register panels that render on the **default landing
-// view** of the tab. Sub-tab-only panels (e.g. "ML Explorer", "Bar Race")
+// view** of the tab. Sub-tab-only panels (e.g. "Bar Race", "Portfolio")
 // should not be in this list — extend with a sub-tab walker if needed.
 
 export const PANEL_REGISTRY = {

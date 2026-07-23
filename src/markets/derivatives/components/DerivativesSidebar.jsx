@@ -100,7 +100,19 @@ function DerivativesSidebar({
           <div className="deriv-metric-row">
             <span className="deriv-metric-name">Gamma Exp</span>
             <span className="deriv-metric-num" style={{ color: '#60a5fa' }}>
-              <MetricValue value={gexTotal} seriesKey="gammaExposure" timestamp={lastUpdated} format={v => `$${v.toFixed(1)}B`} />
+              <MetricValue
+                value={gexTotal}
+                seriesKey="gammaExposure"
+                timestamp={lastUpdated}
+                format={(v) => {
+                  if (v == null || !Number.isFinite(Number(v))) return '—';
+                  const body = Math.abs(Number(v)).toLocaleString('en-US', {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  });
+                  return `$${body}B`;
+                }}
+              />
             </span>
           </div>
         )}

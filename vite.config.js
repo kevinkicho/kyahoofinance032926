@@ -27,37 +27,53 @@ function appVersionPlugin() {
   };
 }
 
-// Read the backend port from .server-port file (written by server/index.js on startup).
-// Falls back to 3001 if file doesn't exist yet.
+// Read the backend port from .server-port (written by server/index.js).
+// Re-read on every proxy hop so starting the API after Vite still works,
+// and so a stale port file from a dead process does not stick forever.
 function getBackendPort() {
   const portFile = path.join(__dirname, '.server-port');
-  try { return parseInt(fs.readFileSync(portFile, 'utf8'), 10) || 3001; } catch { return 3001; }
+  try {
+    const n = parseInt(fs.readFileSync(portFile, 'utf8'), 10);
+    if (n > 0) return n;
+  } catch { /* missing file */ }
+  return parseInt(process.env.PORT || process.env.VITE_API_PORT || '3001', 10) || 3001;
 }
 
-// Proxy routes are derived from the canonical shared/route-list.json so the
-// Vite dev proxy, the Express server, and Firebase Functions all stay in sync.
-// See docs/API_ENDPOINTS.md. Additional non-standard mount paths (compatibility
-// aliases like /api/commodities/v2) are appended below.
-const SHARED_ROUTE_LIST = JSON.parse(
-  fs.readFileSync(path.join(__dirname, 'shared', 'route-list.json'), 'utf8')
-);
-const API_ROUTES = SHARED_ROUTE_LIST.filter(r => r !== 'macro').map(r => `/api/${r}`).concat([
-  '/api/summary', '/api/history', '/api/snapshot',
-  '/api/cache', '/api/rate-limits', '/api/health',
-  // Compatibility aliases — the server mounts these in addition to the
-  // canonical paths. Without proxy entries Vite returns index.html and
-  // DataProvider blows up on JSON.parse.
-  '/api/commodities/v2',
-  '/api/treasury/tic', '/api/treasury/auctions', '/api/treasury/dts',
-  '/api/treasury', '/api/fed',
-  '/api/census-trade', '/api/eia-petroleum',
-]);
+function getBackendTarget() {
+  return `http://127.0.0.1:${getBackendPort()}`;
+}
 
+// Single /api proxy with dynamic target. Prefer one catch-all over dozens of
+// per-route entries so new routes work without vite config churn.
+// See shared/api-routing.json for the canonical route inventory.
 function buildProxyConfig() {
-  const target = `http://localhost:${getBackendPort()}`;
-  const proxy = {};
-  for (const r of API_ROUTES) proxy[r] = { target, changeOrigin: true };
-  return proxy;
+  return {
+    '/api': {
+      // Initial target (http-proxy requires a string); `router` overrides per request.
+      target: getBackendTarget(),
+      changeOrigin: true,
+      // Re-resolve backend port for every request (server may start after Vite).
+      router: () => getBackendTarget(),
+      configure: (proxy) => {
+        proxy.on('error', (err, _req, res) => {
+          const port = getBackendPort();
+          console.error(
+            `[vite proxy] API backend unreachable at http://127.0.0.1:${port} (${err.code || err.message}).\n` +
+            `  → Start the Express server:  npm run server\n` +
+            `  → Or run both together:      npm run dev   (starts API + Vite)`
+          );
+          if (res && !res.headersSent) {
+            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: 'API backend not running',
+              hint: 'Run `npm run server` in another terminal, or use `npm run dev` which starts both.',
+              target: getBackendTarget(),
+            }));
+          }
+        });
+      },
+    },
+  };
 }
 
 export default defineConfig({

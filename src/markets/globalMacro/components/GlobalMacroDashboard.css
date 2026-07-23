@@ -293,11 +293,372 @@
   margin-bottom: 8px;
 }
 
+/* ── 15b. Cleveland Fed Inflation Nowcast ── */
+.mac-cleve {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  padding: 2px 0;
+  box-sizing: border-box;
+}
+.mac-cleve-empty {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+.mac-cleve-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.mac-cleve-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mac-cleve-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0f766e;
+  background: rgba(20, 184, 166, 0.15);
+  border: 1px solid rgba(20, 184, 166, 0.35);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.mac-cleve-period {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mac-cleve-updated {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.mac-cleve-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.mac-cleve-kpi {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 10px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  border-top: 2px solid transparent;
+}
+.mac-cleve-kpi.is-cool { border-top-color: #38bdf8; }
+.mac-cleve-kpi.is-ok { border-top-color: #22c55e; }
+.mac-cleve-kpi.is-warm { border-top-color: #f59e0b; }
+.mac-cleve-kpi.is-hot { border-top-color: #ef4444; }
+.mac-cleve-kpi-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mac-cleve-kpi-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+.mac-cleve-kpi.is-cool .mac-cleve-kpi-value { color: #38bdf8; }
+.mac-cleve-kpi.is-ok .mac-cleve-kpi-value { color: #4ade80; }
+.mac-cleve-kpi.is-warm .mac-cleve-kpi-value { color: #fbbf24; }
+.mac-cleve-kpi.is-hot .mac-cleve-kpi-value { color: #f87171; }
+.mac-cleve-kpi-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+.mac-cleve-mom-chip {
+  font-size: 9px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+}
+.mac-cleve-mom-chip.is-cool { color: #38bdf8; }
+.mac-cleve-mom-chip.is-ok { color: #4ade80; }
+.mac-cleve-mom-chip.is-warm { color: #fbbf24; }
+.mac-cleve-mom-chip.is-hot { color: #f87171; }
+
+.mac-cleve-qtr-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 8px;
+  background: rgba(20, 184, 166, 0.06);
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  border-radius: 8px;
+}
+.mac-cleve-qtr-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #14b8a6;
+  margin-right: 4px;
+}
+.mac-cleve-qtr-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  font-size: 10px;
+}
+.mac-cleve-qtr-name { color: var(--text-muted); font-weight: 500; }
+.mac-cleve-qtr-val {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.mac-cleve-qtr-pill.is-cool .mac-cleve-qtr-val { color: #38bdf8; }
+.mac-cleve-qtr-pill.is-ok .mac-cleve-qtr-val { color: #4ade80; }
+.mac-cleve-qtr-pill.is-warm .mac-cleve-qtr-val { color: #fbbf24; }
+.mac-cleve-qtr-pill.is-hot .mac-cleve-qtr-val { color: #f87171; }
+
+.mac-cleve-tables {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.mac-cleve-tables--1 { grid-template-columns: 1fr; }
+.mac-cleve-tables--2 { grid-template-columns: 1fr 1fr; }
+.mac-cleve-tables--3 { grid-template-columns: 1fr 1fr 1fr; }
+.mac-cleve-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+}
+.mac-cleve-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.mac-cleve-card-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #14b8a6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mac-cleve-card-unit {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.mac-cleve-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+.mac-cleve-table th {
+  text-align: right;
+  padding: 5px 6px;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.mac-cleve-table th:first-child { text-align: left; }
+.mac-cleve-table td {
+  padding: 5px 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+.mac-cleve-period-cell {
+  color: var(--text-secondary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.mac-cleve-latest-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #14b8a6;
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25);
+  flex-shrink: 0;
+}
+.mac-cleve-num {
+  text-align: right;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.mac-cleve-num.is-cool { color: #38bdf8; }
+.mac-cleve-num.is-ok { color: #4ade80; }
+.mac-cleve-num.is-warm { color: #fbbf24; }
+.mac-cleve-num.is-hot { color: #f87171; }
+.mac-cleve-num.is-muted { color: var(--text-dim); }
+.mac-cleve-table tr.is-latest td {
+  background: rgba(20, 184, 166, 0.06);
+}
+.mac-cleve-footer {
+  font-size: 9px;
+  flex-shrink: 0;
+  padding: 0 2px;
+}
+
+/* ── Global Liquidity Dashboard cards ── */
+.mac-liq {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  height: 100%;
+}
+.mac-liq-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  border-left: 3px solid #f59e0b;
+  flex-shrink: 0;
+}
+.mac-liq-tone-supportive { border-left-color: #22c55e; }
+.mac-liq-tone-tight { border-left-color: #f87171; }
+.mac-liq-tone-neutral { border-left-color: #f59e0b; }
+.mac-liq-hero-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.mac-liq-hero-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+.mac-liq-tone-supportive .mac-liq-hero-value { color: #4ade80; }
+.mac-liq-tone-tight .mac-liq-hero-value { color: #f87171; }
+.mac-liq-tone-neutral .mac-liq-hero-value { color: #fbbf24; }
+.mac-liq-hero-regime {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.mac-liq-hero-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.mac-liq-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+  flex: 1;
+}
+.mac-liq-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 10px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  border-top: 2px solid var(--border-subtle);
+}
+.mac-liq-card--pos { border-top-color: #22c55e; }
+.mac-liq-card--neg { border-top-color: #f87171; }
+.mac-liq-card--warn { border-top-color: #f59e0b; }
+.mac-liq-card--info { border-top-color: #38bdf8; }
+.mac-liq-card--muted { border-top-color: var(--border-subtle); }
+.mac-liq-card-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mac-liq-card-value {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  line-height: 1.15;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.mac-liq-card--pos .mac-liq-card-value { color: #4ade80; }
+.mac-liq-card--neg .mac-liq-card-value { color: #f87171; }
+.mac-liq-card--warn .mac-liq-card-value { color: #fbbf24; }
+.mac-liq-card--info .mac-liq-card-value { color: #38bdf8; }
+.mac-liq-card-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 /* ── 16. Responsive ── */
+@container bento-card (max-width: 720px) {
+  .mac-liq-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @container bento-card (max-width: 500px) {
   .mac-scorecard-compact { grid-template-columns: 32px 48px repeat(3, 1fr); font-size: 10px; }
   .mac-activity-summary { grid-template-columns: 1fr; }
   .mac-cli-mini-grid { grid-template-columns: repeat(2, 1fr); }
+  .mac-cleve-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mac-cleve-tables--2,
+  .mac-cleve-tables--3 { grid-template-columns: 1fr; }
+  .mac-cleve-kpi-value { font-size: 15px; }
+  .mac-liq-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mac-liq-hero-value { font-size: 22px; }
+  .mac-liq-card-value { font-size: 15px; }
 }
 
 @container bento-card (max-height: 280px) {

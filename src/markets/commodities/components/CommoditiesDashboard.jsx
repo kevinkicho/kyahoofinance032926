@@ -32,9 +32,15 @@ function usePersistedState(key, defaultValue) {
 }
 
 function formatMaterialPrice(price, unit) {
-  if (price == null || Number.isNaN(Number(price))) return 'Strategic';
+  if (price == null || Number.isNaN(Number(price))) return '—';
   const decimals = Number(price) >= 100 ? 0 : 2;
   return `$${Number(price).toLocaleString(undefined, { maximumFractionDigits: decimals })}${unit ? ` ${unit}` : ''}`;
+}
+
+/** Prefer a finite number; ignore null/NaN/non-numeric. */
+function finiteNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
 function materialRiskLabel(score) {
@@ -50,8 +56,8 @@ function avgNumeric(values) {
 }
 
 function curveSpreadPct(curve) {
-  const prices = curve?.prices || [];
-  if (prices.length < 2 || prices[0] == null) return null;
+  const prices = (curve?.prices || []).filter((v) => typeof v === 'number' && Number.isFinite(v));
+  if (prices.length < 2 || !prices[0]) return null;
   return ((Number(prices[prices.length - 1]) / Number(prices[0])) - 1) * 100;
 }
 
@@ -194,12 +200,23 @@ function CommoditiesDashboard({
 
   const physicalPressureRows = useMemo(() => {
     const pctRead = yoy => yoy == null ? 'No YoY' : `${Number(yoy) >= 0 ? '+' : ''}${Number(yoy).toFixed(1)}% YoY`;
+    // Split numeric display from unit so the Latest column can align values
+    // (tabular, right) and units (fixed-width, left) independently.
+    const fmtNum = (n, digits = 2) => {
+      const v = Number(n);
+      if (!Number.isFinite(v)) return null;
+      return v.toLocaleString('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      });
+    };
     const rows = [];
     const eia = eiaPetCtx?.data || {};
     if (eia.crudeStocks?.latest?.value != null) {
       rows.push({
         market: 'Crude stocks',
-        latest: `${(Number(eia.crudeStocks.latest.value) / 1000).toFixed(0)}M bbl`,
+        value: fmtNum(Number(eia.crudeStocks.latest.value) / 1000, 0),
+        unit: 'M bbl',
         pressure: eia.crudeStocks.yoyPct != null && Number(eia.crudeStocks.yoyPct) > 0 ? 'Looser' : 'Tighter',
         read: pctRead(eia.crudeStocks.yoyPct),
       });
@@ -207,7 +224,8 @@ function CommoditiesDashboard({
     if (eia.gasoline?.latest?.value != null) {
       rows.push({
         market: 'Gasoline',
-        latest: `$${Number(eia.gasoline.latest.value).toFixed(2)}/gal`,
+        value: fmtNum(eia.gasoline.latest.value, 2),
+        unit: '$/gal',
         pressure: eia.gasoline.yoyPct != null && Number(eia.gasoline.yoyPct) > 0 ? 'Inflationary' : 'Disinflationary',
         read: pctRead(eia.gasoline.yoyPct),
       });
@@ -215,16 +233,20 @@ function CommoditiesDashboard({
     if (eia.naturalGas?.latest?.value != null) {
       rows.push({
         market: 'Henry Hub gas',
-        latest: `$${Number(eia.naturalGas.latest.value).toFixed(2)}/MMBtu`,
+        value: fmtNum(eia.naturalGas.latest.value, 2),
+        unit: '$/MMBtu',
         pressure: eia.naturalGas.yoyPct != null && Number(eia.naturalGas.yoyPct) > 0 ? 'Tighter' : 'Softer',
         read: pctRead(eia.naturalGas.yoyPct),
       });
     }
     (usdaCtx?.data?.summary || []).slice(0, 4).forEach(item => {
-      if (!item.latest) return;
+      if (item?.latest?.value == null && item?.latest == null) return;
+      const raw = item.latest?.value ?? item.latest;
+      if (raw == null || !Number.isFinite(Number(raw))) return;
       rows.push({
         market: item.desc || item.key,
-        latest: `${Number(item.latest.value).toFixed(2)} ${item.unit || ''}`.trim(),
+        value: fmtNum(raw, 2),
+        unit: item.unit || item.latest?.unit || '',
         pressure: item.yoyPct != null && Number(item.yoyPct) > 0 ? 'Upward' : 'Lower',
         read: pctRead(item.yoyPct),
       });
@@ -233,29 +255,101 @@ function CommoditiesDashboard({
       const bal = Number(tradeCtx.data.summary.worldBalanceB);
       rows.push({
         market: 'US trade balance',
-        latest: `${bal >= 0 ? '+' : '-'}$${Math.abs(bal).toFixed(1)}B`,
+        value: `${bal >= 0 ? '+' : '−'}${fmtNum(Math.abs(bal), 1)}`,
+        unit: '$B',
         pressure: bal < 0 ? 'Import demand' : 'Export surplus',
         read: tradeCtx.data.summary.latestMonth || 'latest month',
       });
     }
-    return rows;
+    return rows.filter(row => row.value != null);
   }, [eiaPetCtx, usdaCtx, tradeCtx]);
 
+  // Live $/unit quotes for strategic materials. Prefer dashboard rows, then
+  // Yahoo futures from the enhanced payload (same feed as Commodity Prices),
+  // then FRED/goldLatest fallbacks. Without the enhanced path, Precious Metals
+  // Complex ratios and Latest columns stay empty even when futures are live.
   const materialPriceMap = useMemo(() => {
     const map = new Map();
+    const put = (ticker, price, change, name, source) => {
+      if (!ticker) return;
+      const p = finiteNumber(price);
+      if (p == null) return;
+      const prev = map.get(ticker);
+      // Keep an existing quote if it already has a 1d change and the new one does not.
+      if (prev && prev.change != null && change == null) return;
+      map.set(ticker, {
+        price: p,
+        change: finiteNumber(change) ?? prev?.change ?? null,
+        name: name || prev?.name || ticker,
+        source: source || prev?.source || null,
+      });
+    };
+
     allCommodities.forEach(item => {
       if (!item?.ticker) return;
-      map.set(item.ticker, {
-        price: item.price,
-        change: item.change1d,
-        name: item.name,
-      });
+      put(
+        item.ticker,
+        item.price,
+        item.change1d ?? item.change,
+        item.name,
+        item._source || 'Dashboard',
+      );
     });
-    if (fredCommodities?.goldLatest?.price != null && !map.has('GC=F')) {
-      map.set('GC=F', { price: fredCommodities.goldLatest.price, change: null, name: 'Gold' });
+
+    const yahooFutures = enhancedData?.yahoo?.futures;
+    if (yahooFutures && typeof yahooFutures === 'object') {
+      Object.entries(yahooFutures).forEach(([ticker, q]) => {
+        put(ticker, q?.price, q?.change ?? q?.changePercent, q?.name || ticker, 'Yahoo Finance');
+      });
     }
+
+    // FRED commodity map (when series is present — gold AM retired; silver series may lag).
+    const fred = enhancedData?.fred || {};
+    if (fred.silver?.value != null) put('SI=F', fred.silver.value, null, 'Silver', 'FRED');
+    if (fred.gold_am?.value != null) put('GC=F', fred.gold_am.value, null, 'Gold', 'FRED');
+
+    if (fredCommodities?.goldLatest?.price != null) {
+      put('GC=F', fredCommodities.goldLatest.price, null, 'Gold', fredCommodities.goldLatest.source || 'FRED');
+    }
+    if (fredCommodities?.silverLatest?.price != null) {
+      put(
+        'SI=F',
+        fredCommodities.silverLatest.price,
+        fredCommodities.silverLatest.change,
+        'Silver',
+        fredCommodities.silverLatest.source || 'FRED',
+      );
+    }
+    if (fredCommodities?.platinumLatest?.price != null) {
+      put(
+        'PL=F',
+        fredCommodities.platinumLatest.price,
+        fredCommodities.platinumLatest.change,
+        'Platinum',
+        fredCommodities.platinumLatest.source || 'Yahoo Finance',
+      );
+    }
+    if (fredCommodities?.palladiumLatest?.price != null) {
+      put(
+        'PA=F',
+        fredCommodities.palladiumLatest.price,
+        fredCommodities.palladiumLatest.change,
+        'Palladium',
+        fredCommodities.palladiumLatest.source || 'Yahoo Finance',
+      );
+    }
+
+    // Name-based fill when rows lack tickers (legacy snapshots).
+    allCommodities.forEach(item => {
+      const name = String(item?.name || '').toLowerCase();
+      if (name.includes('gold') && !name.includes('oil')) put('GC=F', item.price, item.change1d ?? item.change, 'Gold', item._source);
+      if (name === 'silver' || name.startsWith('silver ')) put('SI=F', item.price, item.change1d ?? item.change, 'Silver', item._source);
+      if (name.includes('platinum')) put('PL=F', item.price, item.change1d ?? item.change, 'Platinum', item._source);
+      if (name.includes('palladium')) put('PA=F', item.price, item.change1d ?? item.change, 'Palladium', item._source);
+    });
+
     return map;
-  }, [allCommodities, fredCommodities]);
+  }, [allCommodities, fredCommodities, enhancedData]);
 
   const strategicMaterials = useMemo(() => {
     return STRATEGIC_MATERIALS.map(material => {
@@ -264,6 +358,7 @@ function CommoditiesDashboard({
         ...material,
         livePrice: live?.price ?? null,
         liveChange: live?.change ?? null,
+        liveSource: live?.source ?? null,
         riskLabel: materialRiskLabel(material.criticality),
       };
     });
@@ -288,15 +383,32 @@ function CommoditiesDashboard({
 
   const pricedPrecious = useMemo(() => {
     const bySymbol = Object.fromEntries(preciousRows.map(row => [row.symbol, row]));
-    const ratio = (a, b) => bySymbol[a]?.livePrice != null && bySymbol[b]?.livePrice != null
-      ? Number(bySymbol[a].livePrice) / Number(bySymbol[b].livePrice)
-      : null;
+    const ratio = (a, b) => {
+      const num = finiteNumber(bySymbol[a]?.livePrice);
+      const den = finiteNumber(bySymbol[b]?.livePrice);
+      if (num == null || den == null || den === 0) return null;
+      return num / den;
+    };
+    // Liquid futures first (live prices), then remaining PGMs by criticality.
+    const ordered = [...preciousRows].sort((a, b) => {
+      const aLive = a.livePrice != null ? 1 : 0;
+      const bLive = b.livePrice != null ? 1 : 0;
+      if (bLive !== aLive) return bLive - aLive;
+      // Prefer major monetary/PGM futures order among live rows
+      const rank = { Au: 0, Ag: 1, Pt: 2, Pd: 3 };
+      const ar = rank[a.symbol] ?? 50;
+      const br = rank[b.symbol] ?? 50;
+      if (ar !== br) return ar - br;
+      return b.criticality - a.criticality;
+    });
     return {
-      rows: preciousRows,
+      rows: ordered,
+      liveCount: ordered.filter(r => r.livePrice != null).length,
       ratios: [
-        { label: 'Gold / Silver', value: ratio('Au', 'Ag') },
-        { label: 'Platinum / Gold', value: ratio('Pt', 'Au') },
-        { label: 'Palladium / Platinum', value: ratio('Pd', 'Pt') },
+        { label: 'Gold / Silver', value: ratio('Au', 'Ag'), unit: 'x' },
+        { label: 'Platinum / Gold', value: ratio('Pt', 'Au'), unit: 'x' },
+        { label: 'Palladium / Platinum', value: ratio('Pd', 'Pt'), unit: 'x' },
+        { label: 'Gold / Platinum', value: ratio('Au', 'Pt'), unit: 'x' },
       ],
     };
   }, [preciousRows]);
@@ -385,13 +497,17 @@ function CommoditiesDashboard({
       { market: 'WTI crude', curve: futuresCurveData, unit: futuresCurveData?.unit || '$/bbl' },
       { market: 'Gold', curve: goldFuturesCurve, unit: goldFuturesCurve?.unit || '$/oz' },
     ].map(row => {
+      const finite = (row.curve?.prices || []).filter((v) => typeof v === 'number' && Number.isFinite(v));
       const spread = curveSpreadPct(row.curve);
+      const spot = (typeof row.curve?.spotPrice === 'number' && Number.isFinite(row.curve.spotPrice))
+        ? row.curve.spotPrice
+        : (finite[0] ?? null);
       return {
         ...row,
-        spot: row.curve?.spotPrice,
-        contracts: row.curve?.labels?.length || 0,
+        spot,
+        contracts: finite.length || row.curve?.labels?.length || 0,
         spread,
-        structure: curveStructure(spread),
+        structure: row.curve?.structure || curveStructure(spread),
       };
     });
   }, [futuresCurveData, goldFuturesCurve]);
@@ -513,25 +629,36 @@ function CommoditiesDashboard({
           contentClassName="com-panel-content com-panel-scroll"
           source="CFTC / Yahoo"
           timestamp={lastUpdated}
-          isLive={!!cotData}
+          isLive={!!(cotData || allCommodities.length || dbcEtf)}
           isCurrent={isCurrent}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
         >
+          <div className="com-summary">
             <div className="com-sidebar-section">
               <div className="com-sidebar-title">Key Prices</div>
               <div className="com-sidebar-list">
-                 {allCommodities.filter(c => ['Gold', 'WTI Crude Oil', 'Natural Gas'].includes(c.name)).map(c => (
-                   <div key={c.ticker} className="com-sidebar-item">
-                     <span className="com-sidebar-label">{c.name}</span>
-                     <div className="com-sidebar-value-row">
-                       <span className="com-sidebar-value">{c.price?.toLocaleString()}</span>
-                       <span className="com-sidebar-change">{formatChange(c.change1d)}</span>
-                     </div>
-                   </div>
-                 ))}
-
+                {(() => {
+                  const keyRows = allCommodities.filter(c =>
+                    ['GC=F', 'CL=F', 'NG=F'].includes(c.ticker)
+                    || ['Gold', 'WTI Crude Oil', 'WTI Crude', 'Natural Gas'].includes(c.name)
+                  );
+                  if (!keyRows.length) {
+                    return <div className="com-sidebar-empty">No live prices yet</div>;
+                  }
+                  return keyRows.map(c => (
+                    <div key={c.ticker || c.name} className="com-sidebar-item">
+                      <span className="com-sidebar-label">{c.name}</span>
+                      <div className="com-sidebar-value-row">
+                        <span className="com-sidebar-value">
+                          {c.price != null ? Number(c.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
+                        </span>
+                        <span className="com-sidebar-change">{formatChange(c.change1d)}</span>
+                      </div>
+                    </div>
+                  ));
+                })()}
               </div>
             </div>
 
@@ -540,44 +667,76 @@ function CommoditiesDashboard({
               <div className="com-sidebar-list">
                 <div className="com-sidebar-item">
                   <span className="com-sidebar-label">Gold/Oil Ratio</span>
-                  <span className="com-sidebar-value">{goldOilRatio?.ratio || '—'}</span>
+                  <span className="com-sidebar-value">
+                    {goldOilRatio?.ratio != null ? Number(goldOilRatio.ratio).toFixed(1) : '—'}
+                  </span>
                 </div>
                 <div className="com-sidebar-item">
                   <span className="com-sidebar-label">DBC ETF</span>
                   <div className="com-sidebar-value-row">
-                    <span className="com-sidebar-value">{dbcEtf?.price?.toLocaleString()}</span>
+                    <span className="com-sidebar-value">
+                      {dbcEtf?.price != null ? Number(dbcEtf.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—'}
+                    </span>
                     <span className="com-sidebar-change">{formatChange(dbcEtf?.changePct)}</span>
                   </div>
                 </div>
-                 <div className="com-sidebar-item">
-                   <span className="com-sidebar-label">Contango</span>
-                   <span className="com-sidebar-value">{contangoIndicator ? (contangoIndicator.structure === 'Contango' ? 'Contango' : 'Backwardation') : '—'}</span>
-                 </div>
-
+                <div className="com-sidebar-item">
+                  <span className="com-sidebar-label">WTI Curve</span>
+                  {(() => {
+                    let structure = contangoIndicator?.structure || null;
+                    if (!structure && contangoIndicator?.contangoPct != null) {
+                      const pct = contangoIndicator.contangoPct;
+                      structure = pct > 0.35 ? 'Contango' : pct < -0.35 ? 'Backwardation' : 'Flat';
+                    }
+                    const cls = structure === 'Contango' ? 'structure-contango'
+                      : structure === 'Backwardation' ? 'structure-backwardation'
+                      : structure === 'Flat' ? 'structure-flat' : '';
+                    return (
+                      <div className="com-sidebar-value-row">
+                        <span className={`com-sidebar-value ${cls}`}>{structure || '—'}</span>
+                        {contangoIndicator?.contangoPct != null && (
+                          <span className="com-sidebar-change">
+                            {formatChange(contangoIndicator.contangoPct)}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
 
             <div className="com-sidebar-section">
               <div className="com-sidebar-title">COT Net Positions</div>
               <div className="com-sidebar-list">
-                {/* Cross-market enrichment now passes cotData as
-                    { commodities: [...] } (object with flat array). The
-                    older legacy shape was [{ sector, commodities: [] }, ...]
-                    so accept both — flatten if it's an array, or read
-                    .commodities directly. */}
-                {(Array.isArray(cotData)
-                  ? cotData.flatMap(s => s.commodities || [])
-                  : (cotData?.commodities || [])
-                ).slice(0, 5).map(c => (
-                  <div key={c.ticker || c.code || c.name} className="com-sidebar-item">
-                    <span className="com-sidebar-label">{c.name}</span>
-                    <span className={`com-sidebar-value ${(c.netPct ?? c.netPosition ?? 0) >= 0 ? 'pos' : 'neg'}`}>
-                      {(() => { const v = c.netPct != null ? `${c.netPct >= 0 ? '+' : ''}${c.netPct}%` : (c.netPosition != null ? `${c.netPosition > 0 ? '+' : ''}${c.netPosition.toLocaleString()}` : '—'); return v; })()}
-                    </span>
-                  </div>
-                ))}
+                {/* Cross-market enrichment: { commodities: [...] } or legacy sector tree */}
+                {(() => {
+                  const rows = (Array.isArray(cotData)
+                    ? cotData.flatMap(s => s.commodities || [])
+                    : (cotData?.commodities || [])
+                  ).slice(0, 5);
+                  if (!rows.length) {
+                    return <div className="com-sidebar-empty">Load Sentiment for COT</div>;
+                  }
+                  return rows.map(c => {
+                    const net = c.netPct ?? c.netPosition;
+                    return (
+                      <div key={c.ticker || c.code || c.name} className="com-sidebar-item">
+                        <span className="com-sidebar-label">{c.name}</span>
+                        <span className={`com-sidebar-value ${net != null ? (net >= 0 ? 'pos' : 'neg') : ''}`}>
+                          {c.netPct != null
+                            ? `${c.netPct >= 0 ? '+' : ''}${Number(c.netPct).toFixed(1)}%`
+                            : (c.netPosition != null
+                              ? `${c.netPosition > 0 ? '+' : ''}${Number(c.netPosition).toLocaleString()}`
+                              : '—')}
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
+          </div>
         </BentoCard>
 
         <BentoCard
@@ -720,7 +879,7 @@ function CommoditiesDashboard({
           title="Commodity FX (vs USD)"
           accent="commodities"
           contentClassName="com-panel-content"
-          source="Yahoo Finance"
+          source="FX Market / Spot"
           timestamp={lastUpdated}
           isLive={!!commodityCurrencies}
           isCurrent={isCurrent}
@@ -728,19 +887,45 @@ function CommoditiesDashboard({
           fetchLog={fetchLog}
           error={error}
         >
-          <div className="com-fx-table">
-            <div className="com-fx-row header">
-              <span>Currency</span>
-              <span>Rate</span>
-              <span>Change</span>
-            </div>
-            {commodityCurrencies && Object.entries(commodityCurrencies).map(([cur, data]) => (
-              <div key={cur} className="com-fx-row">
-                <span className="com-fx-name">{cur}</span>
-                <span className="com-fx-rate">{data.rate?.toFixed(4)}</span>
-                <span className="com-fx-change">{formatChange(data.changePct)}</span>
+          <div className="com-fx-panel">
+            <div className="com-fx-table">
+              <div className="com-fx-row header">
+                <span>Currency</span>
+                <span style={{ textAlign: 'right' }}>Rate</span>
+                <span style={{ textAlign: 'right' }}>1d %</span>
               </div>
-            ))}
+              {commodityCurrencies && Object.keys(commodityCurrencies).length > 0 ? (
+                Object.entries(commodityCurrencies).map(([cur, data]) => {
+                  const meta = {
+                    CAD: 'Canada · oil / lumber',
+                    AUD: 'Australia · metals / coal',
+                    NOK: 'Norway · crude',
+                    BRL: 'Brazil · softs / iron',
+                    CLP: 'Chile · copper',
+                    ZAR: 'S. Africa · PGM / gold',
+                  };
+                  return (
+                    <div key={cur} className="com-fx-row">
+                      <span className="com-fx-name">
+                        <span className="com-fx-code">{cur}</span>
+                        <span className="com-fx-desc">{meta[cur] || 'Commodity bloc'}</span>
+                      </span>
+                      <span className="com-fx-rate">
+                        {data.rate != null ? Number(data.rate).toFixed(4) : '—'}
+                      </span>
+                      <span className="com-fx-change">
+                        {formatChange(data.changePct ?? data.change1d)}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="com-sidebar-empty" style={{ padding: '12px 10px' }}>
+                  No FX rates — open FX market or wait for spot load
+                </div>
+              )}
+            </div>
+            <div className="com-fx-footer">Units per USD · positive = USD stronger vs commodity currency</div>
           </div>
         </BentoCard>
 
@@ -841,22 +1026,34 @@ function CommoditiesDashboard({
           error={eiaPetCtx?.error || usdaCtx?.error || tradeCtx?.error || error}
         >
           {physicalPressureRows.length > 0 ? (
-            <table className="com-table" style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+            <table className="com-table com-pressure-table">
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', color: 'var(--text-muted)', padding: '5px 8px' }}>Indicator</th>
-                  <th style={{ textAlign: 'right', color: 'var(--text-muted)', padding: '5px 8px' }}>Latest</th>
-                  <th style={{ textAlign: 'right', color: 'var(--text-muted)', padding: '5px 8px' }}>Pressure</th>
-                  <th style={{ textAlign: 'right', color: 'var(--text-muted)', padding: '5px 8px' }}>Read</th>
+                  <th className="com-th" style={{ textAlign: 'left' }}>Indicator</th>
+                  <th className="com-th com-pressure-latest-col">Latest</th>
+                  <th className="com-th">Pressure</th>
+                  <th className="com-th">Read</th>
                 </tr>
               </thead>
               <tbody>
                 {physicalPressureRows.map(row => (
-                  <tr key={row.market}>
-                    <td style={{ padding: '5px 8px', borderTop: '1px solid var(--border-subtle)' }}>{row.market}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', borderTop: '1px solid var(--border-subtle)', fontVariantNumeric: 'tabular-nums' }}>{row.latest}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', borderTop: '1px solid var(--border-subtle)', color: ['Tighter', 'Inflationary', 'Upward', 'Import demand'].includes(row.pressure) ? '#f59e0b' : '#22c55e' }}>{row.pressure}</td>
-                    <td style={{ padding: '5px 8px', textAlign: 'right', borderTop: '1px solid var(--border-subtle)', color: 'var(--text-muted)' }}>{row.read}</td>
+                  <tr key={row.market} className="com-row">
+                    <td className="com-cell" style={{ textAlign: 'left' }}>{row.market}</td>
+                    <td className="com-cell com-pressure-latest">
+                      <span className="com-pressure-value">{row.value}</span>
+                      <span className="com-pressure-unit">{row.unit || ''}</span>
+                    </td>
+                    <td
+                      className="com-cell"
+                      style={{
+                        color: ['Tighter', 'Inflationary', 'Upward', 'Import demand'].includes(row.pressure)
+                          ? '#f59e0b'
+                          : '#22c55e',
+                      }}
+                    >
+                      {row.pressure}
+                    </td>
+                    <td className="com-cell" style={{ color: 'var(--text-muted)' }}>{row.read}</td>
                   </tr>
                 ))}
               </tbody>
@@ -924,21 +1121,43 @@ function CommoditiesDashboard({
           fetchLog={fetchLog}
           error={error}
         >
-          <div className="com-critical-list">
-            {criticalityRows.map(row => (
-              <div key={row.symbol} className="com-critical-row">
-                <div className="com-critical-main">
-                  <span className="com-critical-symbol">{row.symbol}</span>
-                  <span className="com-critical-name">{row.name}</span>
-                </div>
-                <div className="com-critical-score">
-                  <span>{row.criticality}</span>
-                  <div className="com-critical-bar"><span style={{ width: `${row.criticality}%` }} /></div>
-                </div>
-                <div className="com-critical-meta">{row.importReliance}% import · {row.topProducer}</div>
-              </div>
-            ))}
-          </div>
+          <table className="com-material-table com-critical-table">
+            <thead>
+              <tr>
+                <th className="com-critical-rank-col">#</th>
+                <th>Material</th>
+                <th>Score</th>
+                <th>Import</th>
+                <th>Top Producer</th>
+                <th>Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {criticalityRows.map((row, idx) => (
+                <tr key={row.symbol}>
+                  <td className="com-critical-rank-col">{idx + 1}</td>
+                  <td>
+                    <span className="com-critical-symbol">{row.symbol}</span>
+                    {' '}
+                    <span className="com-critical-name">{row.name}</span>
+                  </td>
+                  <td>
+                    <div className="com-critical-score">
+                      <span>{row.criticality}</span>
+                      <div className="com-critical-bar" aria-hidden="true">
+                        <span style={{ width: `${row.criticality}%` }} />
+                      </div>
+                    </div>
+                  </td>
+                  <td>{row.importReliance}%</td>
+                  <td>{row.topProducer}</td>
+                  <td style={{ color: row.criticality >= 90 ? '#f87171' : row.criticality >= 75 ? '#f59e0b' : 'var(--text-muted)' }}>
+                    {row.riskLabel}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </BentoCard>
 
         <BentoCard
@@ -988,13 +1207,17 @@ function CommoditiesDashboard({
         <BentoCard
           key="precious-complex"
           title="Precious Metals Complex"
-          subtitle="Monetary metals, PGMs, and industrial precious links"
+          subtitle={
+            pricedPrecious.liveCount > 0
+              ? `${pricedPrecious.liveCount} live futures · PGMs without exchange quotes show metadata only`
+              : 'Monetary metals, PGMs · waiting for Yahoo futures'
+          }
           accent="commodities"
           className="com-bento-card"
           contentClassName="com-panel-content com-panel-scroll"
-          source="Yahoo Finance / USGS metadata"
+          source="Yahoo Finance futures (GC/SI/PL/PA) · USGS supply metadata"
           timestamp={lastUpdated}
-          isLive={materialPriceMap.size > 0}
+          isLive={pricedPrecious.liveCount > 0}
           isCurrent={isCurrent}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
@@ -1004,24 +1227,50 @@ function CommoditiesDashboard({
             {pricedPrecious.ratios.map(row => (
               <div key={row.label} className="com-ratio-card">
                 <span>{row.label}</span>
-                <strong>{row.value != null ? row.value.toFixed(2) : '-'}</strong>
+                <strong className={row.value == null ? 'com-ratio-empty' : ''}>
+                  {row.value != null ? `${row.value.toFixed(2)}${row.unit || ''}` : '—'}
+                </strong>
               </div>
             ))}
           </div>
-          <table className="com-material-table">
+          <table className="com-material-table com-precious-table">
             <thead>
-              <tr><th>Metal</th><th>Latest</th><th>1d</th><th>Primary Use</th><th>Risk</th></tr>
+              <tr>
+                <th>Metal</th>
+                <th>Latest</th>
+                <th>1d</th>
+                <th>Primary Use</th>
+                <th>Import</th>
+                <th>Risk</th>
+                <th>Source</th>
+              </tr>
             </thead>
             <tbody>
-              {pricedPrecious.rows.slice(0, 8).map(row => (
-                <tr key={row.symbol}>
-                  <td><strong>{row.symbol}</strong> {row.name}</td>
-                  <td>{formatMaterialPrice(row.livePrice, row.yahoo ? '/oz' : '')}</td>
-                  <td className={row.liveChange == null ? '' : Number(row.liveChange) >= 0 ? 'com-up' : 'com-down'}>
-                    {row.liveChange == null ? '-' : `${Number(row.liveChange) >= 0 ? '+' : ''}${Number(row.liveChange).toFixed(2)}%`}
+              {pricedPrecious.rows.map(row => (
+                <tr key={row.symbol} className={row.livePrice == null ? 'com-precious-meta-only' : ''}>
+                  <td>
+                    <span className="com-critical-symbol">{row.symbol}</span>
+                    {' '}
+                    <span className="com-critical-name">{row.name}</span>
                   </td>
-                  <td>{row.uses[0]}</td>
-                  <td>{row.riskLabel}</td>
+                  <td className="com-price">
+                    {row.livePrice != null
+                      ? formatMaterialPrice(row.livePrice, '/oz')
+                      : '—'}
+                  </td>
+                  <td className={row.liveChange == null ? '' : Number(row.liveChange) >= 0 ? 'com-up' : 'com-down'}>
+                    {row.liveChange == null
+                      ? '—'
+                      : `${Number(row.liveChange) >= 0 ? '+' : ''}${Number(row.liveChange).toFixed(2)}%`}
+                  </td>
+                  <td>{row.uses?.[0] || '—'}</td>
+                  <td>{row.importReliance != null ? `${row.importReliance}%` : '—'}</td>
+                  <td style={{ color: row.criticality >= 90 ? '#f87171' : row.criticality >= 75 ? '#f59e0b' : 'var(--text-muted)' }}>
+                    {row.riskLabel}
+                  </td>
+                  <td className="com-source-cell">
+                    {row.liveSource || (row.yahoo ? row.yahoo : row.proxy) || '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

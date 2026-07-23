@@ -36,7 +36,36 @@ export default function CombinedRatioMonitor({ combinedRatioData, industryAvgCom
     legend: { data: lineNames, textStyle: { color: colors.textSecondary, fontSize: 10 }, top: 0 },
     grid: { left: 50, right: 16, top: 30, bottom: 24 },
     xAxis: { type: 'category', data: quarters, axisLabel: { color: colors.textMuted, fontSize: 10 }, axisLine: { lineStyle: { color: colors.cardBg } } },
-    yAxis: { type: 'value', name: 'CR (%)', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
+    yAxis: (() => {
+      const nums = (series || [])
+        .flatMap((s) => (s.data || []).filter((v) => typeof v === 'number' && Number.isFinite(v)));
+      if (!nums.length) {
+        return {
+          type: 'value',
+          name: 'CR (%)',
+          scale: true,
+          nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+          axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '{value}%' },
+          splitLine: { lineStyle: { color: colors.cardBg } },
+        };
+      }
+      const lo = Math.min(...nums);
+      const hi = Math.max(...nums);
+      const pad = Math.max(2, (hi - lo) * 0.15 || 5);
+      let yMin = Math.floor((lo - pad) / 5) * 5;
+      let yMax = Math.ceil((hi + pad) / 5) * 5;
+      if (hi < 100 && 100 - hi <= 25) yMax = Math.max(yMax, 100);
+      if (lo > 100 && lo - 100 <= 25) yMin = Math.min(yMin, 100);
+      return {
+        type: 'value',
+        name: 'CR (%)',
+        min: yMin,
+        max: yMax,
+        nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+        axisLabel: { color: colors.textMuted, fontSize: 10, formatter: '{value}%' },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      };
+    })(),
     series: [
       ...series,
       { type: 'line', markLine: { silent: true, data: [{ yAxis: 100 }], lineStyle: { color: '#ef4444', type: 'dashed', width: 1 }, label: { formatter: '100%', color: '#ef4444', fontSize: 9 } }, data: [] },

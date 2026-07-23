@@ -10,14 +10,17 @@ function getSentimentProps(centralData) {
   const d = centralData.data || {};
   const normalized = normalizeSentimentData(d);
   return {
-    fearGreedData: normalized.values.fearGreedData,
+    // Prefer raw payload (has indicators/history); normalizer is a thin pass-through.
+    fearGreedData: d.fearGreedData || normalized.values.fearGreedData,
     cftcData: normalized.values.cftcData,
     riskData: normalized.values.riskData,
     returnsData: normalized.values.returnsData,
     marginDebt: d.marginDebt || normalized.series.marginDebt,
     consumerCredit: d.consumerCredit || normalized.series.consumerCredit,
-    vvixHistory: normalized.series.vvixHistory,
-    fsiHistory: normalized.series.fsiHistory,
+    // Prefer raw history series (same pattern as marginDebt) so FSI/VVIX
+    // cards never blank when the normalizer falls back to empty shells.
+    vvixHistory: d.vvixHistory || normalized.series.vvixHistory,
+    fsiHistory: d.fsiHistory || normalized.series.fsiHistory,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,
     isLoading: centralData.isLoading,

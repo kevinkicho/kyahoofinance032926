@@ -186,59 +186,101 @@ router.get('/gdpnow', async (_req, res) => {
 // ─────────────────────────────────────────────────────────────────────────
 const CLEVE_NOWCAST_URL = 'https://www.clevelandfed.org/indicators-and-data/inflation-nowcasting';
 
+function parseClevelandNum(cell) {
+  const t = String(cell ?? '').replace(/&nbsp;/gi, ' ').trim();
+  if (!t || t === '—' || t === '-') return null;
+  const n = parseFloat(t.replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+function classifyClevelandTable(block) {
+  // Captions use lowercase "year-over-year"; case-sensitive /Year/ mis-tagged YoY as mom.
+  const caption = (block.match(/<caption[^>]*>([\s\S]*?)<\/caption>/i)?.[1] || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+  const text = `${caption} ${block.slice(0, 400)}`.toLowerCase();
+  if (/quarter/.test(text) || /q\/q|qoq|annualized/.test(caption)) return 'quarterly';
+  if (/year-over-year|year over year|\byoy\b|y\/y/.test(text)) return 'yoy';
+  if (/month-over-month|month over month|\bmom\b|m\/m/.test(text)) return 'mom';
+  if (/<th[^>]*>\s*quarter\s*<\/th>/i.test(block)) return 'quarterly';
+  return 'mom';
+}
+
 function parseClevelandTables(html) {
-  // Cleveland renders three nowcast tables (monthly month-over-month,
-  // monthly year-over-year, quarterly QoQ). Each has the same column
-  // header sequence: <th>Month/Quarter</th><th>CPI</th><th>Core CPI</th>
-  // <th>PCE</th><th>Core PCE</th><th>Updated</th>. We capture the data
-  // rows from the first two tables — month-over-month + year-over-year
-  // are the headline numbers.
-  const tables = [...html.matchAll(/<table[\s\S]*?<\/table>/g)];
+  // Cleveland renders three nowcast tables (MoM, YoY, quarterly annualized).
+  // Released measures leave blank cells — keep the row with nulls.
+  const tables = [...html.matchAll(/<table[\s\S]*?<\/table>/gi)];
   const out = [];
+  const seenKind = new Set();
   for (const t of tables) {
     const block = t[0];
-    if (!/<th[^>]*>CPI<\/th>/.test(block) || !/<th[^>]*>Core CPI<\/th>/.test(block)) continue;
-    const labelKind = /Quarter/.test(block) ? 'quarterly' : (/Year/.test(block) ? 'yoy' : 'mom');
-    const rowRegex = /<tr>\s*<t[hd][^>]*>([^<]+)<\/t[hd]>\s*<td[^>]*>([0-9.\-]+)<\/td>\s*<td[^>]*>([0-9.\-]+)<\/td>\s*<td[^>]*>([0-9.\-]+)<\/td>\s*<td[^>]*>([0-9.\-]+)<\/td>(?:\s*<td[^>]*>([^<]+)<\/td>)?\s*<\/tr>/g;
+    if (!/<th[^>]*>\s*CPI\s*<\/th>/i.test(block) || !/<th[^>]*>\s*Core CPI\s*<\/th>/i.test(block)) continue;
+    const labelKind = classifyClevelandTable(block);
+    const rowRegex = /<tr>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>(?:\s*<td[^>]*>([\s\S]*?)<\/td>)?\s*<\/tr>/gi;
     const rows = [];
     for (const m of block.matchAll(rowRegex)) {
+      const period = String(m[1]).replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').trim();
+      if (!period || /^note:/i.test(period)) continue;
+      const cpi = parseClevelandNum(m[2]);
+      const coreCpi = parseClevelandNum(m[3]);
+      const pce = parseClevelandNum(m[4]);
+      const corePce = parseClevelandNum(m[5]);
+      if (cpi == null && coreCpi == null && pce == null && corePce == null) continue;
       rows.push({
-        period:  m[1].trim(),
-        cpi:     parseFloat(m[2]),
-        coreCpi: parseFloat(m[3]),
-        pce:     parseFloat(m[4]),
-        corePce: parseFloat(m[5]),
-        updated: m[6]?.trim() || null,
+        period,
+        cpi,
+        coreCpi,
+        pce,
+        corePce,
+        updated: m[6] ? String(m[6]).replace(/<[^>]+>/g, '').trim() || null : null,
       });
     }
-    if (rows.length) out.push({ kind: labelKind, rows });
+    if (!rows.length || seenKind.has(labelKind)) continue;
+    seenKind.add(labelKind);
+    out.push({ kind: labelKind, rows });
   }
   return out;
 }
 
-router.get('/inflation-nowcast', async (_req, res) => {
-  const cached = readDailyCache('fed_inflation_nowcast');
-  if (cached) return res.json(cached);
+router.get('/inflation-nowcast', async (req, res) => {
+  const forceRefresh = req.query?.refresh === 'true' || req.query?.refresh === '1';
+  if (!forceRefresh) {
+    const cached = readDailyCache('fed_inflation_nowcast');
+    if (cached?.tables?.length) {
+      const kinds = cached.tables.map(t => t.kind);
+      const ok = kinds.includes('yoy') || kinds.filter(k => k === 'mom').length <= 1;
+      if (ok) return res.json(cached);
+    } else if (cached) {
+      return res.json(cached);
+    }
+  }
 
   const today = todayStr();
-  let tables = null, latest = null;
+  let tables = null, latest = null, byKind = null;
   try {
     trackApiCall('Cleveland Fed');
     const html = await fetchHtml(CLEVE_NOWCAST_URL);
     const parsed = parseClevelandTables(html);
     if (parsed.length) {
       tables = parsed;
-      // Surface a flat "latest" object showing the freshest CPI/Core CPI/PCE/Core PCE
-      // from the month-over-month table (first row is the current month).
       const mom = parsed.find(t => t.kind === 'mom');
-      latest = mom?.rows?.[0] || parsed[0]?.rows?.[0] || null;
+      const yoy = parsed.find(t => t.kind === 'yoy');
+      const quarterly = parsed.find(t => t.kind === 'quarterly');
+      byKind = {
+        mom: mom?.rows?.[0] || null,
+        yoy: yoy?.rows?.[0] || null,
+        quarterly: quarterly?.rows?.[0] || null,
+      };
+      latest = byKind.yoy || byKind.mom || parsed[0]?.rows?.[0] || null;
     }
   } catch (e) { console.warn('[Fed Cleveland]', e.message); }
 
   const _sources = { fed_inflation_nowcast: !!(tables && tables.length) };
   const isLive = _sources.fed_inflation_nowcast;
   const result = {
-    tables, latest,
+    tables, latest, byKind,
     _sources, isLive, isCurrent: true, fetchedOn: today, lastUpdated: today,
   };
   if (isLive) writeDailyCache('fed_inflation_nowcast', result);

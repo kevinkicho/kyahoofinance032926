@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { makeCachedRouteHandler } from '../lib/routeFactory.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { WEO_SNAPSHOT } from '../dataSources/weoSnapshot.js';
+import { readLatestCache } from '../lib/cache.js';
 
 const router = Router();
 
@@ -305,40 +307,142 @@ async function fetchECBYieldCurve() {
 // ─────────────────────────────────────────────────────────────────────────────
 // BIS CREDIT-TO-GDP GAPS — financial stability indicator
 // ─────────────────────────────────────────────────────────────────────────────
-const BIS_CREDIT_COUNTRIES = {
-  US: '3A.US', EA: '4C.EA19', GB: '3A.GB', JP: '3A.JP', CA: '3A.CA',
-  CN: '3A.CN', KR: '3A.KR', AU: '3A.AU', SE: '3A.SE', CH: '3A.CH',
+// BIS Total Credit (WS_TC): credit to non-financial sector as % of GDP.
+// WS_CBP Credit_to_GDP GAP endpoint is flaky / Accept-header picky; WS_TC
+// via SDMX-JSON is the reliable path (same source as BIS "Total credit").
+const BIS_TC_LABELS = {
+  US: 'United States', GB: 'United Kingdom', JP: 'Japan', CA: 'Canada',
+  CN: 'China', KR: 'South Korea', AU: 'Australia', SE: 'Sweden',
+  CH: 'Switzerland', DE: 'Germany', FR: 'France', IT: 'Italy',
+  ES: 'Spain', BR: 'Brazil', IN: 'India', MX: 'Mexico', ZA: 'South Africa',
+  EA: 'Euro Area', XM: 'Euro Area',
 };
+const BIS_TC_WANT = new Set(Object.keys(BIS_TC_LABELS));
+
+/**
+ * Normalize country map to UI shape:
+ *   { US: { label, series: [{period,value}], latest } }
+ * Accepts legacy scalar form { US: 251.2 } as well.
+ */
+function normalizeBisCreditMap(raw, { proxy = null, asOf = null } = {}) {
+  if (!raw || typeof raw !== 'object') return null;
+  const out = {};
+  for (const [code, info] of Object.entries(raw)) {
+    if (code.startsWith('_')) continue;
+    const label = BIS_TC_LABELS[code]
+      || MACRO_COUNTRIES.find((c) => c.code === code)?.name
+      || code;
+    if (typeof info === 'number' && Number.isFinite(info)) {
+      out[code] = {
+        label,
+        latest: Math.round(info * 10) / 10,
+        series: [{ period: asOf || 'latest', value: Math.round(info * 10) / 10 }],
+      };
+      continue;
+    }
+    if (info && typeof info === 'object') {
+      let series = Array.isArray(info.series) ? info.series
+        .map((p) => ({
+          period: p.period || p.date || null,
+          value: Number(p.value),
+        }))
+        .filter((p) => p.period && Number.isFinite(p.value))
+        : [];
+      if (!series.length && info.latest != null && Number.isFinite(Number(info.latest))) {
+        series = [{ period: info.period || asOf || 'latest', value: Number(info.latest) }];
+      }
+      if (!series.length && info.value != null && Number.isFinite(Number(info.value))) {
+        series = [{ period: info.period || asOf || 'latest', value: Number(info.value) }];
+      }
+      if (!series.length) continue;
+      const latest = series[series.length - 1];
+      out[code] = {
+        label: info.label || label,
+        series,
+        latest: latest.value,
+        period: latest.period,
+      };
+    }
+  }
+  if (Object.keys(out).length < 3) return null;
+  if (proxy) out._proxy = proxy;
+  out._unit = '% of GDP';
+  out._source = proxy ? proxy : 'BIS WS_TC';
+  return out;
+}
 
 async function fetchBISCreditToGDP() {
   try {
-    const countryFilter = Object.values(BIS_CREDIT_COUNTRIES).join(',');
-    const url = `https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBP/1.0/M.Credit_to_GDP..C.GAP?startPeriod=2020-01-01&format=json`;
-    const data = await fetchJSON(url);
-    const observations = data?.dataSets?.[0]?.observations;
-    if (!observations) return null;
+    // Total credit to non-financial sector (C), all lenders (A), nominal (N),
+    // % of GDP (770), break-adjusted (A), quarterly.
+    const url = 'https://stats.bis.org/api/v1/data/WS_TC?startPeriod=2015&lastNObservations=24&format=sdmx-json&detail=dataonly';
+    const data = await fetchJSON(url, undefined, { Accept: 'application/json' }, 45000);
+    const ds = data?.data?.dataSets?.[0] || data?.dataSets?.[0];
+    const struct = data?.data?.structure || data?.structure;
+    const sdims = struct?.dimensions?.series || [];
+    const timeVals = struct?.dimensions?.observation?.[0]?.values || [];
+    if (!ds?.series || !sdims.length) return null;
 
-    const structure = data?.structure?.dimensions?.observation || [];
-    const countryDim = data?.structure?.dimensions?.series?.find(d => d.id === 'REF_AREA');
-    const countryValues = countryDim?.values || [];
+    const decode = (key) => {
+      const parts = String(key).split(':').map(Number);
+      const o = {};
+      sdims.forEach((d, i) => { o[d.id] = d.values?.[parts[i]]?.id ?? null; });
+      return o;
+    };
 
-    const result = {};
-    const codeMap = Object.fromEntries(Object.entries(BIS_CREDIT_COUNTRIES).map(([k, v]) => [v.split('.')[1], k]));
+    const best = {};
+    for (const [key, ser] of Object.entries(ds.series)) {
+      const d = decode(key);
+      if (d.FREQ !== 'Q') continue;
+      // C = non-financial sector (headline total credit); P = private non-fin
+      if (d.TC_BORROWERS !== 'C' && d.TC_BORROWERS !== 'P') continue;
+      if (d.TC_LENDERS !== 'A') continue;
+      if (d.UNIT_TYPE !== '770') continue; // % of GDP
+      if (d.VALUATION !== 'N' && d.VALUATION !== 'M') continue;
+      if (d.TC_ADJUST && d.TC_ADJUST !== 'A') continue;
+      let cty = d.BORROWERS_CTY;
+      if (cty === 'XM') cty = 'EA';
+      if (!BIS_TC_WANT.has(cty)) continue;
 
-    for (const [obsKey, obsVal] of Object.entries(observations)) {
-      const val = parseFloat(obsVal?.[0] ?? obsVal);
-      if (isNaN(val)) continue;
-      const parts = obsKey.split(':');
-      const areaIdx = parseInt(parts[0] || '0');
-      const areaCode = countryValues[areaIdx]?.id;
-      const cc = codeMap[areaCode];
-      if (!cc) continue;
-      result[cc] = Math.round(val * 10) / 10;
+      const obs = ser.observations || {};
+      const idxs = Object.keys(obs).map(Number).sort((a, b) => a - b);
+      if (!idxs.length) continue;
+      const series = idxs
+        .map((i) => ({
+          period: timeVals[i]?.id || String(i),
+          value: Math.round(Number(obs[i]?.[0]) * 10) / 10,
+        }))
+        .filter((p) => p.period && Number.isFinite(p.value));
+      if (!series.length) continue;
+
+      const score = (d.TC_BORROWERS === 'C' ? 20 : 10)
+        + (d.VALUATION === 'N' ? 2 : 1)
+        + series.length;
+      if (!best[cty] || score > best[cty].score) {
+        best[cty] = {
+          score,
+          label: BIS_TC_LABELS[cty] || cty,
+          series,
+          latest: series[series.length - 1].value,
+          period: series[series.length - 1].period,
+        };
+      }
     }
 
-    return Object.keys(result).length >= 3 ? result : null;
+    const cleaned = {};
+    for (const [k, v] of Object.entries(best)) {
+      cleaned[k] = {
+        label: v.label,
+        series: v.series,
+        latest: v.latest,
+        period: v.period,
+      };
+    }
+    return Object.keys(cleaned).length >= 3
+      ? normalizeBisCreditMap(cleaned)
+      : null;
   } catch (e) {
-    console.warn('[GlobalMacro] BIS credit-to-GDP fetch failed:', e.message);
+    console.warn('[GlobalMacro] BIS total credit (WS_TC) fetch failed:', e.message);
     return null;
   }
 }
@@ -568,6 +672,30 @@ router.get('/', makeCachedRouteHandler({
     } catch (e) {
       console.warn('IMF WEO fetch failed:', e.message);
     }
+    // Snapshot fallback so WEO panels never blank when IMF API is unreachable
+    if (!imfWEO || !Object.keys(imfWEO).length) {
+      try {
+        const imfFb = readLatestCache('imf');
+        if (imfFb?.data?.countries?.length) {
+          imfWEO = Object.fromEntries(
+            imfFb.data.countries.map(c => [c.code, { ...c }])
+          );
+        }
+      } catch { /* ignore */ }
+    }
+    if (!imfWEO || !Object.keys(imfWEO).length) {
+      imfWEO = Object.fromEntries(
+        WEO_SNAPSHOT.countries.map(c => {
+          const entry = { name: c.name, flag: c.flag };
+          for (const key of WEO_SNAPSHOT.indicators) {
+            entry[key] = c[key] ?? null;
+            entry[key + 'Prev'] = c[key + 'Prev'] ?? null;
+          }
+          return [c.code, entry];
+        })
+      );
+      imfWEO._snapshot = { vintage: WEO_SNAPSHOT.vintage, asOf: WEO_SNAPSHOT.asOf };
+    }
 
     // Fetch BIS credit-to-GDP gaps
     let bisCreditToGDP = null;
@@ -577,7 +705,6 @@ router.get('/', makeCachedRouteHandler({
     } catch (e) {
       console.warn('BIS credit-to-GDP fetch failed:', e.message);
     }
-
     // Fetch BIS policy rates for all countries
     let bisPolicyRates = null;
     try {
@@ -666,6 +793,26 @@ router.get('/', makeCachedRouteHandler({
       })),
     };
 
+    // Soft proxy when BIS total-credit API is down: use WB gov debt % GDP
+    // (clearly marked). Normalize to the same { label, series } shape the UI expects.
+    const bisKeys = bisCreditToGDP
+      ? Object.keys(bisCreditToGDP).filter((k) => !k.startsWith('_'))
+      : [];
+    if (bisKeys.length < 3) {
+      const proxy = {};
+      for (const c of debtData.countries) {
+        if (c.debt != null && Number.isFinite(c.debt)) proxy[c.code] = Math.round(c.debt * 10) / 10;
+      }
+      if (Object.keys(proxy).length >= 3) {
+        bisCreditToGDP = normalizeBisCreditMap(proxy, {
+          proxy: 'worldbank_gov_debt_pct_gdp',
+          asOf: String(debtData.year || 'latest'),
+        });
+      }
+    } else {
+      bisCreditToGDP = normalizeBisCreditMap(bisCreditToGDP) || bisCreditToGDP;
+    }
+
     const result = {
       scorecardData,
       growthInflationData,
@@ -693,6 +840,7 @@ router.get('/', makeCachedRouteHandler({
         bisCreditToGDP: bisCreditToGDP != null && Object.keys(bisCreditToGDP).length > 0,
       },
     };
+    return result;
   }
 }));
 

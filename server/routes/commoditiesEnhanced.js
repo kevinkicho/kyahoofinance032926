@@ -5,9 +5,10 @@
 // reference it for provenance "verify" buttons.
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { readDailyCache, writeDailyCache, readLatestCache, todayStr, mergeWithPreviousCache } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 import {
   commodityDataSources,
   getCommoditiesByCategory,
@@ -31,15 +32,16 @@ const EIA_SERIES = {
   jet_fuel: { series: 'PET.EER_EPK2_VFP_NUS_DPG.D', name: 'Kerosene Jet Fuel', unit: '$/gal' },
   propane: { series: 'PET.EER_EPLLPA_PF4_Y44RL_DPG.D', name: 'Propane Mont Belvieu', unit: '$/gal' },
 
-  // Weekly Stocks/Inventories
-  crude_stocks: { series: 'PET.WCRSTUS1.W', name: 'Crude Oil Stocks', unit: 'Million Barrels' },
-  gasoline_stocks: { series: 'PET.WGSTUS1.W', name: 'Gasoline Stocks', unit: 'Million Barrels' },
-  distillate_stocks: { series: 'PET.WDFTUUS1.W', name: 'Distillate Fuel Stocks', unit: 'Million Barrels' },
+  // Weekly Stocks/Inventories (series IDs verified against EIA v2 seriesid endpoint).
+  // EIA returns these as thousand barrels (MBBL); we convert to million for UI.
+  crude_stocks: { series: 'PET.WCESTUS1.W', name: 'Crude Oil Stocks excl SPR', unit: 'Million Barrels', scale: 0.001 },
+  gasoline_stocks: { series: 'PET.WGTSTUS1.W', name: 'Total Gasoline Stocks', unit: 'Million Barrels', scale: 0.001 },
+  distillate_stocks: { series: 'PET.WDISTUS1.W', name: 'Distillate Fuel Oil Stocks', unit: 'Million Barrels', scale: 0.001 },
   natgas_storage: { series: 'NG.NW2_EPG0_SWO_R48_BCF.W', name: 'Natural Gas Storage', unit: 'Bcf' },
 
-  // Weekly Production
-  crude_production: { series: 'PET.WCRFPUS1.W', name: 'Field Production of Crude Oil', unit: 'Thousand Barrels/Day' },
-  refinery_input: { series: 'PET.WCRRIUS2.W', name: 'Refinery Net Input', unit: 'Thousand Barrels/Day' },
+  // Weekly Production (WCRFPUS1 retired → WCRFPUS2). EIA: thousand bbl/day → million.
+  crude_production: { series: 'PET.WCRFPUS2.W', name: 'Field Production of Crude Oil', unit: 'Million Barrels/Day', scale: 0.001 },
+  refinery_input: { series: 'PET.WCRRIUS2.W', name: 'Refinery Net Input', unit: 'Million Barrels/Day', scale: 0.001 },
 
   // Refinery Utilization
   refinery_utilization: { series: 'PET.WPULEUS3.W', name: 'Refinery Utilization', unit: 'Percent' },
@@ -50,16 +52,14 @@ const EIA_SERIES = {
   gasoline_padd5: { series: 'PET.EER_EPMRU_PF4_Y35LA_DPG.D', name: 'Gasoline PADD 5 (CA)', unit: '$/gal' },
 };
 
-// FRED Commodity Series (expanded)
+// FRED Commodity Series (expanded).
+// Note: GOLDAMGBD228NLBM / GOLDPMGBD228NLBM were retired by FRED — gold is
+// sourced from Yahoo GC=F futures on the dashboard instead.
+// SLVPRUSD (London silver fix) was also discontinued; silver is Yahoo SI=F.
 const FRED_COMMODITIES = {
-  // Precious Metals
-  gold_am: { series: 'GOLDAMGBD228NLBM', name: 'Gold London AM', unit: '$/oz' },
-  gold_pm: { series: 'GOLDPMGBD228NLBM', name: 'Gold London PM', unit: '$/oz' },
-  silver: { series: 'SILVERUSDQB', name: 'Silver', unit: '$/oz' },
-
-  // Industrial Metals
-  copper: { series: 'PCOPP', name: 'Copper', unit: 'Index 2010=100' },
-  aluminum: { series: 'PALUM', name: 'Aluminum', unit: 'Index 2010=100' },
+  // Industrial Metals (World Bank Pink Sheet via FRED)
+  copper: { series: 'PCOPPUSDM', name: 'Copper', unit: '$/mt' },
+  aluminum: { series: 'PALUMUSDM', name: 'Aluminum', unit: '$/mt' },
 
   // Oil
   wti: { series: 'DCOILWTICO', name: 'WTI Crude', unit: '$/bbl' },
@@ -72,12 +72,10 @@ const FRED_COMMODITIES = {
   soybeans: { series: 'PSOYBUSDM', name: 'Soybeans', unit: '$/mt' },
   rice: { series: 'PRICENPQUSDM', name: 'Rice', unit: '$/mt' },
 
-  // Livestock
-  beef: { series: 'PBEEFUSDQ', name: 'Beef', unit: '$/kg' },
-  poultry: { series: 'PPOULTUSDQ', name: 'Poultry', unit: '$/kg' },
-
   // Consumer prices
   gas_retail: { series: 'GASREGW', name: 'Regular Gasoline Retail', unit: '$/gal' },
+  ppi_commodity: { series: 'PPIACO', name: 'PPI All Commodities', unit: 'Index' },
+  dollarIndex: { series: 'DTWEXBGS', name: 'Trade Weighted USD', unit: 'Index' },
 };
 
 // World Bank Commodity Codes
@@ -143,34 +141,49 @@ const WORLD_BANK_COMMODITIES = [
 async function fetchEIAWithTimestamp(series, apiKey) {
   if (!apiKey) return null;
 
+  // Infer frequency from series id suffix (.D / .W / .M). Forcing
+  // frequency=daily on weekly inventory series often returns empty rows.
+  const freq = series.endsWith('.W') ? 'weekly' : series.endsWith('.M') ? 'monthly' : 'daily';
+
   try {
-    const url = `https://api.eia.gov/v2/seriesid/${series}?api_key=${apiKey}&frequency=daily&sort[0][column]=period&sort[0][direction]=desc&length=365`;
+    const url = `https://api.eia.gov/v2/seriesid/${series}?api_key=${apiKey}&frequency=${freq}&sort[0][column]=period&sort[0][direction]=desc&length=120`;
     trackApiCall('EIA');
-    const data = await fetchJSON(url);
+    const data = await fetchJSON(url, undefined, {}, 15000);
 
-    if (!data?.response?.data?.length) return null;
+    if (!data?.response?.data?.length) {
+      // Retry without frequency filter (EIA is picky about some series)
+      const url2 = `https://api.eia.gov/v2/seriesid/${series}?api_key=${apiKey}&length=120`;
+      const data2 = await fetchJSON(url2, undefined, {}, 15000);
+      if (!data2?.response?.data?.length) return null;
+      return parseEiaRows(data2, freq);
+    }
 
-    const rows = data.response.data.sort((a, b) => new Date(a.period) - new Date(b.period));
-    const latest = rows[rows.length - 1];
-
-    return {
-      value: parseFloat(latest.value),
-      date: latest.period,
-      unit: data.response.data[0]?.unit || '',
-      description: data.response.data[0]?.seriesDescription || '',
-      history: rows.slice(-52).map(r => ({
-        date: r.period,
-        value: parseFloat(r.value),
-      })),
-      _source: 'EIA',
-      _lastUpdated: new Date().toISOString(),
-      _updateFrequency: 'Daily',
-      _dataAge: calculateDataAge(latest.period),
-    };
+    return parseEiaRows(data, freq);
   } catch (e) {
     console.warn(`EIA fetch failed for ${series}:`, e.message);
     return null;
   }
+}
+
+function parseEiaRows(data, freq) {
+  const rows = data.response.data
+    .filter(r => r.value != null && r.value !== '')
+    .map(r => ({ period: r.period, value: parseFloat(r.value) }))
+    .filter(r => Number.isFinite(r.value))
+    .sort((a, b) => new Date(a.period) - new Date(b.period));
+  if (!rows.length) return null;
+  const latest = rows[rows.length - 1];
+  return {
+    value: latest.value,
+    date: latest.period,
+    unit: data.response.data[0]?.units || data.response.data[0]?.unit || '',
+    description: data.response.data[0]?.['series-description'] || data.response.data[0]?.seriesDescription || '',
+    history: rows.slice(-52).map(r => ({ date: r.period, value: r.value })),
+    _source: 'EIA',
+    _lastUpdated: new Date().toISOString(),
+    _updateFrequency: freq === 'weekly' ? 'Weekly' : freq === 'monthly' ? 'Monthly' : 'Daily',
+    _dataAge: calculateDataAge(latest.period),
+  };
 }
 
 // Fetch FRED data with timestamps
@@ -269,27 +282,32 @@ router.get('/', async (req, res) => {
   const cacheKey = 'commodities_enhanced';
   const today = todayStr();
 
-  // Check cache
-  const daily = readDailyCache('commodities_enhanced');
-  if (daily) {
-    return res.json({
-      ...daily,
-      lastUpdated: today,
-      fetchedOn: today,
-      isCurrent: true,
-      _meta: { source: 'daily_cache', timestamp: formatTimestamp(daily._timestamp) },
-    });
-  }
+  const forceRefresh = req.query?.refresh === 'true' || req.query?.refresh === '1';
+  // Check cache (skip when client requests a live refresh)
+  if (!forceRefresh) {
+    const daily = readDailyCache('commodities_enhanced');
+    if (daily) {
+      return res.json({
+        ...daily,
+        lastUpdated: today,
+        fetchedOn: today,
+        isCurrent: true,
+        _meta: { source: 'daily_cache', timestamp: formatTimestamp(daily._timestamp) },
+      });
+    }
 
-  const cached = cache.get(cacheKey);
-  if (cached) {
-    return res.json({
-      ...cached,
-      lastUpdated: today,
-      fetchedOn: today,
-      isCurrent: true,
-      _meta: { source: 'memory_cache', timestamp: formatTimestamp(cached._timestamp) },
-    });
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return res.json({
+        ...cached,
+        lastUpdated: today,
+        fetchedOn: today,
+        isCurrent: true,
+        _meta: { source: 'memory_cache', timestamp: formatTimestamp(cached._timestamp) },
+      });
+    }
+  } else if (cache) {
+    cache.del(cacheKey);
   }
 
   try {
@@ -306,12 +324,29 @@ router.get('/', async (req, res) => {
     };
 
     // 1. EIA Energy Data (expanded)
+    // Inventory/production series arrive as thousand barrels (EIA MBBL);
+    // apply config.scale (0.001) so UI gets million barrels / M bbl/day.
     const eiaData = {};
     const eiaPromises = Object.entries(EIA_SERIES).map(async ([key, config]) => {
       const data = await fetchEIAWithTimestamp(config.series, EIA_API_KEY);
       if (data) {
+        const scale = config.scale && Number.isFinite(config.scale) ? config.scale : 1;
+        // Skip re-scale if cache/merge already applied million-barrel units
+        // (crude stocks ~400 M, production ~13 M bbl/d).
+        const alreadyScaled = scale !== 1 && Number.isFinite(data.value) && (
+          (key.includes('production') || key.includes('input')) ? data.value < 100 : data.value < 2000
+        );
+        const s = alreadyScaled ? 1 : scale;
+        const scaleV = (v) => (Number.isFinite(v) ? Math.round(v * s * 1000) / 1000 : v);
+        const history = (data.history || []).map((h) => ({ ...h, value: scaleV(h.value) }));
+        const avg = history.length
+          ? history.reduce((a, b) => a + b.value, 0) / history.length
+          : null;
         eiaData[key] = {
           ...data,
+          value: scaleV(data.value),
+          history,
+          avg: avg != null ? Math.round(avg * 10) / 10 : null,
           name: config.name,
           unit: config.unit,
         };
@@ -332,12 +367,12 @@ router.get('/', async (req, res) => {
     const computeAvg = (history) => {
       if (!history || history.length === 0) return null;
       const sum = history.reduce((a, b) => a + b.value, 0);
-      return sum / history.length;
+      return Math.round((sum / history.length) * 10) / 10;
     };
 
     if (eiaData.crude_stocks) {
       const val = eiaData.crude_stocks.value;
-      const avg = computeAvg(eiaData.crude_stocks.history);
+      const avg = eiaData.crude_stocks.avg ?? computeAvg(eiaData.crude_stocks.history);
       supplyDemand.crudeStocks = {
         periods: eiaData.crude_stocks.history.map(h => h.date),
         values: eiaData.crude_stocks.history.map(h => h.value),
@@ -347,7 +382,7 @@ router.get('/', async (req, res) => {
     }
     if (eiaData.natgas_storage) {
       const val = eiaData.natgas_storage.value;
-      const avg = computeAvg(eiaData.natgas_storage.history);
+      const avg = eiaData.natgas_storage.avg ?? computeAvg(eiaData.natgas_storage.history);
       supplyDemand.natGasStorage = {
         periods: eiaData.natgas_storage.history.map(h => h.date),
         values: eiaData.natgas_storage.history.map(h => h.value),
@@ -359,11 +394,13 @@ router.get('/', async (req, res) => {
       supplyDemand.crudeProduction = {
         periods: eiaData.crude_production.history.map(h => h.date),
         values: eiaData.crude_production.history.map(h => h.value),
+        latest: eiaData.crude_production.value,
+        avg5yr: eiaData.crude_production.avg ?? computeAvg(eiaData.crude_production.history),
       };
     }
     if (eiaData.gasoline_stocks) {
       const val = eiaData.gasoline_stocks.value;
-      const avg = computeAvg(eiaData.gasoline_stocks.history);
+      const avg = eiaData.gasoline_stocks.avg ?? computeAvg(eiaData.gasoline_stocks.history);
       supplyDemand.gasolineStocks = {
         periods: eiaData.gasoline_stocks.history.map(h => h.date),
         values: eiaData.gasoline_stocks.history.map(h => h.value),
@@ -373,7 +410,7 @@ router.get('/', async (req, res) => {
     }
     if (eiaData.distillate_stocks) {
       const val = eiaData.distillate_stocks.value;
-      const avg = computeAvg(eiaData.distillate_stocks.history);
+      const avg = eiaData.distillate_stocks.avg ?? computeAvg(eiaData.distillate_stocks.history);
       supplyDemand.distillateStocks = {
         periods: eiaData.distillate_stocks.history.map(h => h.date),
         values: eiaData.distillate_stocks.history.map(h => h.value),
@@ -474,15 +511,52 @@ router.get('/', async (req, res) => {
       const allSymbols = [...wtiContracts, ...gcContracts].map(c => c.symbol);
       const curveQuotes = await yf.quote(allSymbols).catch(() => null);
       const curveArr = Array.isArray(curveQuotes) ? curveQuotes : (curveQuotes ? [curveQuotes] : []);
-      const findPrice = (sym) => curveArr.find(q => q?.symbol === sym)?.regularMarketPrice ?? null;
-      const wtiPrices = wtiContracts.map(c => findPrice(c.symbol));
-      const gcPrices  = gcContracts.map(c => findPrice(c.symbol));
-      if (wtiPrices.some(p => typeof p === 'number')) {
-        result.futuresCurveData = { labels: wtiContracts.map(c => c.label), prices: wtiPrices, unit: '$/bbl' };
+      const findPrice = (sym) => {
+        const p = curveArr.find(q => q?.symbol === sym)?.regularMarketPrice;
+        return typeof p === 'number' && Number.isFinite(p) ? p : null;
+      };
+      // Drop months Yahoo doesn't quote (expired / not listed) so the UI
+      // never gets a leading null that breaks contango / spot KPIs.
+      const packCurve = (contracts, unit, spotPrice) => {
+        const pairs = contracts
+          .map(c => ({ label: c.label, price: findPrice(c.symbol) }))
+          .filter(p => p.price != null);
+        if (!pairs.length) return null;
+        const prices = pairs.map(p => p.price);
+        const spot = typeof spotPrice === 'number' && Number.isFinite(spotPrice)
+          ? spotPrice
+          : prices[0];
+        // Full-curve slope (back vs front), same basis as FuturesCurve spreadPct.
+        let contangoPct = null;
+        if (prices.length >= 2 && prices[0]) {
+          contangoPct = Math.round(((prices[prices.length - 1] / prices[0]) - 1) * 1000) / 10;
+        }
+        return {
+          labels: pairs.map(p => p.label),
+          prices,
+          unit,
+          spotPrice: spot,
+          contangoPct,
+          structure: contangoPct == null ? null
+            : contangoPct > 0.35 ? 'Contango'
+            : contangoPct < -0.35 ? 'Backwardation'
+            : 'Flat',
+        };
+      };
+      const clSpot = yahooData.futures?.['CL=F']?.price ?? null;
+      const gcSpot = yahooData.futures?.['GC=F']?.price ?? null;
+      const wtiCurve = packCurve(wtiContracts, '$/bbl', clSpot);
+      const goldCurve = packCurve(gcContracts, '$/oz', gcSpot);
+      if (wtiCurve) {
+        result.futuresCurveData = wtiCurve;
+        if (wtiCurve.contangoPct != null) {
+          result.contangoIndicator = {
+            contangoPct: wtiCurve.contangoPct,
+            structure: wtiCurve.structure,
+          };
+        }
       }
-      if (gcPrices.some(p => typeof p === 'number')) {
-        result.goldFuturesCurve = { labels: gcContracts.map(c => c.label), prices: gcPrices, unit: '$/oz' };
-      }
+      if (goldCurve) result.goldFuturesCurve = goldCurve;
     } catch (e) { console.warn('[Commodities] futures curve fetch failed:', e.message); }
 
     // 5. Data Source Registry
@@ -528,12 +602,13 @@ router.get('/', async (req, res) => {
       },
     };
 
-    // Cache the result
-    writeDailyCache('commodities_enhanced', result);
-    cache.set(cacheKey, result, 1800); // 30 minutes
+    // Preserve previously-good FRED/EIA fields if this pass hit rate limits.
+    const merged = mergeWithPreviousCache('commodities_enhanced', result);
+    writeDailyCache('commodities_enhanced', merged);
+    cache.set(cacheKey, merged, 1800); // 30 minutes
 
     res.json({
-      ...result,
+      ...merged,
       lastUpdated: today,
       fetchedOn: today,
       isCurrent: true,
@@ -541,21 +616,15 @@ router.get('/', async (req, res) => {
 
   } catch (error) {
     console.error('Commodities API error:', error);
-
-    const fallback = readLatestCache('commodities_enhanced');
-    if (fallback) {
-      return res.json({
-        ...fallback.data,
-        fetchedOn: fallback.fetchedOn,
-        isCurrent: false,
+    return sendCachedOrDegradedSync(res, 'commodities_enhanced', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'commodities_enhanced',
+      extra: {
         _error: 'fetch_failed',
         _meta: { source: 'fallback_cache', note: 'Using cached data due to error' },
-      });
-    }
-
-    res.status(500).json({
-      error: 'Internal server error',
-      _timestamp: new Date().toISOString(),
+        _timestamp: new Date().toISOString(),
+      },
     });
   }
 });

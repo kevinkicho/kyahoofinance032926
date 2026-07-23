@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchJSON } from '../lib/fetch.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -271,9 +272,11 @@ router.get('/', async (_req, res) => {
     res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Crypto API error:', error);
-    const fallback = readLatestCache('crypto');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'crypto', {
+      error,
+      memoryCache: _req.app.locals.cache,
+      cacheKey: 'crypto_data',
+    });
   }
 });
 

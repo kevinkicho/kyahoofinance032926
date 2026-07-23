@@ -3,6 +3,34 @@ import ReactEChartsCore from 'echarts-for-react/lib/core';
 import echarts from '../../lib/echarts';
 import ChartSourcePopover from './ChartSourcePopover';
 
+/** Extract a few leaf numbers from an echarts option for panel-health confirm. */
+function extractSeriesSamples(option, max = 12) {
+  const out = [];
+  if (!option || typeof option !== 'object') return out;
+  const series = Array.isArray(option.series) ? option.series : option.series ? [option.series] : [];
+  for (const s of series) {
+    const data = s?.data;
+    if (!Array.isArray(data)) continue;
+    for (const pt of data.slice(-max)) {
+      let n = null;
+      if (typeof pt === 'number' && Number.isFinite(pt)) n = pt;
+      else if (Array.isArray(pt)) {
+        const last = pt[pt.length - 1];
+        if (typeof last === 'number' && Number.isFinite(last)) n = last;
+      } else if (pt && typeof pt === 'object') {
+        const v = pt.value ?? pt[1];
+        if (typeof v === 'number' && Number.isFinite(v)) n = v;
+        else if (Array.isArray(v) && typeof v[v.length - 1] === 'number') n = v[v.length - 1];
+      }
+      if (n != null) {
+        out.push(n);
+        if (out.length >= max) return out;
+      }
+    }
+  }
+  return out;
+}
+
 const SafeECharts = forwardRef(function SafeECharts({ option, style, className, opts, onEvents, onChartReady, sourceInfo, ...rest }, ref) {
   const instanceRef = useRef(null);
   const mountedRef = useRef(false);
@@ -12,6 +40,21 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
   const [popoverPos, setPopoverPos] = useState(null);
   const [popoverInfo, setPopoverInfo] = useState(null);
   const [chartError, setChartError] = useState(null);
+
+  // Stamp series samples on the DOM so panel-health can confirm chart data
+  // without relying on window.echarts / painted canvas text.
+  const seriesSamples = useMemo(() => extractSeriesSamples(option), [option]);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (seriesSamples.length) {
+      el.setAttribute('data-series-samples', seriesSamples.map(n => String(n)).join(','));
+      el.dataset.seriesSampleCount = String(seriesSamples.length);
+    } else {
+      el.removeAttribute('data-series-samples');
+      delete el.dataset.seriesSampleCount;
+    }
+  }, [seriesSamples]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -180,6 +223,7 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
       ref={containerRef}
       className={className}
       style={containerStyle}
+      data-series-samples={seriesSamples.length ? seriesSamples.join(',') : undefined}
     >
       <ReactEChartsCore
         ref={ref}

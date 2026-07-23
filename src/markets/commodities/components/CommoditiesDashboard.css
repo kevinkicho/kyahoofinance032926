@@ -215,9 +215,17 @@
 
 /* ── 9. Layout helpers ── */
 .com-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; flex: 1; min-height: 0; }
-.com-wide-narrow { display: flex; gap: 6px; flex: 1; min-height: 0; flex-wrap: wrap; }
-.com-wide-narrow > .com-scroll { flex: 1 1 300px; min-width: 0; }
+.com-wide-narrow { display: flex; gap: 6px; flex: 1; min-height: 0; flex-wrap: wrap; align-items: stretch; }
+/* Table scroll region grows; table inside stays content-height so rows do not stretch */
+.com-wide-narrow > .com-scroll { flex: 1 1 300px; min-width: 0; min-height: 0; align-self: stretch; }
 .com-wide-narrow > .com-chart-panel { flex: 0 0 35%; min-width: 200px; max-width: 360px; }
+/* Bare tables (legacy) must not flex-stretch row heights with the panel */
+.com-wide-narrow > .com-table {
+  flex: 1 1 300px;
+  min-width: 0;
+  height: auto !important;
+  align-self: flex-start;
+}
 .com-three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; flex: 1; min-height: 0; }
 
 .com-chart-panel {
@@ -313,24 +321,64 @@
   text-overflow: ellipsis;
 }
 
-.com-critical-list { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
-.com-critical-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 70px;
-  gap: 4px 8px;
-  padding: 5px 6px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 5px;
+/* Criticality leaderboard table (dense rows; content-sized, not card stack) */
+.com-critical-table {
+  height: auto;
 }
-
-.com-critical-main { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-.com-critical-symbol { color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Cascadia Code', monospace; }
-.com-critical-name { color: var(--text-secondary); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.com-critical-score { display: flex; align-items: center; gap: 5px; color: var(--text-primary); font-size: 10px; font-weight: 700; }
-.com-critical-bar { flex: 1; height: 4px; background: var(--bg-card); border-radius: 99px; overflow: hidden; }
-.com-critical-bar span { display: block; height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); }
-.com-critical-meta { grid-column: 1 / -1; color: var(--text-muted); font-size: 9px; }
+.com-critical-table th,
+.com-critical-table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.com-critical-table tbody tr {
+  height: 28px;
+}
+.com-critical-table tbody td {
+  height: 28px;
+  max-height: 28px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  box-sizing: border-box;
+}
+.com-critical-rank-col {
+  width: 28px;
+  text-align: right;
+  color: var(--text-muted) !important;
+  font-variant-numeric: tabular-nums;
+}
+.com-critical-symbol {
+  color: #f59e0b;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 11px;
+}
+.com-critical-name {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+.com-critical-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 72px;
+}
+.com-critical-bar {
+  width: 48px;
+  height: 4px;
+  background: var(--bg-card);
+  border-radius: 99px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.com-critical-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
 
 .com-material-table {
   width: 100%;
@@ -353,6 +401,77 @@
   padding: 5px 6px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.12);
   font-variant-numeric: tabular-nums;
+}
+
+/* Physical Supply Pressure — Latest = value | unit, independently aligned */
+.com-pressure-table {
+  width: 100%;
+  height: auto;
+}
+.com-pressure-table tbody tr.com-row {
+  height: 28px;
+}
+.com-pressure-table tbody td.com-cell {
+  height: 28px;
+  max-height: 28px;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+.com-pressure-latest-col {
+  min-width: 140px;
+}
+.com-pressure-latest {
+  /* value column right-aligned, unit column left-aligned at a fixed gutter */
+  display: grid !important;
+  grid-template-columns: minmax(4.5rem, 1fr) 4.75rem;
+  column-gap: 8px;
+  align-items: baseline;
+  justify-items: stretch;
+  text-align: left !important;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.com-pressure-value {
+  text-align: right;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 11px;
+  min-width: 0;
+}
+.com-pressure-unit {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Precious Metals Complex — dense table + ratio strip */
+.com-precious-table tbody tr {
+  height: 28px;
+}
+.com-precious-table tbody td {
+  height: 28px;
+  max-height: 28px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.com-precious-table .com-price {
+  color: #ca8a04;
+  font-weight: 600;
+}
+.com-precious-meta-only td {
+  opacity: 0.72;
+}
+.com-ratio-empty {
+  color: var(--text-muted) !important;
+  font-weight: 500 !important;
 }
 
 .com-material-hit { color: #22c55e !important; font-weight: 700; }
@@ -565,7 +684,7 @@
 .com-sector-bar-val.negative { color: #ef4444; }
 
 /* ── 14. Tables ── */
-.com-table { border-collapse: collapse; width: 100%; table-layout: auto; }
+.com-table { border-collapse: collapse; width: 100%; table-layout: auto; height: auto; }
 .com-th { background: var(--bg-card); color: var(--text-secondary); font-size: 10px; font-weight: 600; padding: 3px 6px; border: 1px solid var(--bg-primary); text-align: right; white-space: nowrap; }
 .com-th:first-child { text-align: left; }
 .com-row:hover { background: var(--bg-card); }
@@ -577,6 +696,55 @@
 .com-down { color: #ef4444; }
 .com-flat { color: var(--text-secondary); }
 .com-spark { width: 80px; height: 28px; display: block; }
+
+/* Fixed row heights for Commodity Prices (and any table that opts in).
+   Rows must not stretch when the bento panel grows — match Sector Performance
+   content-sized behavior with explicit min sizes. */
+.com-table-fixed-rows {
+  height: auto !important;
+  flex: 0 0 auto;
+}
+.com-table-fixed-rows thead tr {
+  height: 26px;
+}
+.com-table-fixed-rows thead .com-th {
+  height: 26px;
+  max-height: 26px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+.com-table-fixed-rows tbody tr.com-row {
+  height: 32px;
+}
+.com-table-fixed-rows tbody tr.com-row > .com-cell {
+  height: 32px;
+  max-height: 32px;
+  min-height: 32px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  line-height: 1.2;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.com-table-fixed-rows tbody tr.com-sector-row {
+  height: 22px;
+}
+.com-table-fixed-rows tbody tr.com-sector-row > td {
+  height: 22px;
+  max-height: 22px;
+  min-height: 22px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  line-height: 1.2;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.com-table-fixed-rows .com-spark {
+  width: 80px;
+  height: 22px;
+  max-height: 22px;
+}
 .com-heat-dg { background: #14532d; color: #86efac; }
 .com-heat-lg { background: #1a3a28; color: #4ade80; }
 .com-heat-neu { background: var(--bg-card); color: var(--text-secondary); }
@@ -603,6 +771,185 @@
 .com-fx-badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--border-subtle); color: var(--text-primary); }
 .com-empty { display: flex; align-items: center; justify-content: center; padding: 16px; color: var(--text-muted); font-size: 12px; font-style: italic; min-height: 40px; }
 
+/* ── 15b. Market Summary (sidebar) ── */
+.com-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: 2px 0;
+}
+.com-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 8px 6px;
+  min-width: 0;
+}
+.com-sidebar-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ca8a04;
+  padding: 0 2px 4px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 2px;
+}
+.com-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.com-sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  min-height: 28px;
+  transition: background 0.12s ease;
+}
+.com-sidebar-item:hover {
+  background: rgba(202, 138, 4, 0.06);
+}
+.com-sidebar-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.com-sidebar-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.com-sidebar-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-align: right;
+}
+.com-sidebar-value.pos { color: #22c55e; }
+.com-sidebar-value.neg { color: #ef4444; }
+.com-sidebar-value.structure-contango { color: #f59e0b; }
+.com-sidebar-value.structure-backwardation { color: #22c55e; }
+.com-sidebar-value.structure-flat { color: var(--text-muted); }
+.com-sidebar-change {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  min-width: 52px;
+  text-align: right;
+  white-space: nowrap;
+}
+.com-sidebar-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 6px 4px;
+}
+
+/* ── 15c. Commodity FX table ── */
+.com-fx-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 2px 0;
+}
+.com-fx-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-primary);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.com-fx-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 1.2fr) minmax(72px, 1fr) minmax(64px, 0.9fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  transition: background 0.12s ease;
+}
+.com-fx-row:last-child { border-bottom: none; }
+.com-fx-row:not(.header):hover {
+  background: rgba(202, 138, 4, 0.06);
+}
+.com-fx-row.header {
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 10px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.com-fx-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.com-fx-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ca8a04;
+  letter-spacing: 0.02em;
+}
+.com-fx-desc {
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.com-fx-rate {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+  white-space: nowrap;
+}
+.com-fx-change {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+.com-fx-footer {
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
 /* ── 16. Responsive ── */
 /* ── 16a. Container queries — shrink content to fit bento cards before scrolling ── */
 @container bento-card (max-width: 500px) {
@@ -623,7 +970,20 @@
   .com-cell { font-size: 9px; padding: 1px 4px; }
   .com-th { font-size: 9px; padding: 2px 4px; }
   .com-spark { width: 50px; height: 20px; }
+  .com-table-fixed-rows thead tr,
+  .com-table-fixed-rows thead .com-th { height: 22px; max-height: 22px; }
+  .com-table-fixed-rows tbody tr.com-row,
+  .com-table-fixed-rows tbody tr.com-row > .com-cell {
+    height: 26px; min-height: 26px; max-height: 26px;
+  }
+  .com-table-fixed-rows .com-spark { width: 50px; height: 18px; max-height: 18px; }
   .com-source-cell { display: none; }
+  .com-sidebar-section { padding: 6px; }
+  .com-sidebar-label { font-size: 10px; }
+  .com-sidebar-value { font-size: 11px; }
+  .com-fx-row { grid-template-columns: minmax(72px, 1.1fr) minmax(60px, 1fr) minmax(52px, 0.8fr); padding: 5px 8px; }
+  .com-fx-code { font-size: 11px; }
+  .com-fx-desc { display: none; }
 }
 
 @container bento-card (max-height: 280px) {

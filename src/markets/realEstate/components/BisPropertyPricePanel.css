@@ -1,0 +1,171 @@
+/* BIS Property Price Comparison — dense multi-country list */
+.re-panel-content.bis-pp-host,
+.bento-panel-content.bis-pp-host {
+  padding: 0 !important;
+  overflow: hidden;
+  gap: 0;
+}
+
+.bis-pp-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.bis-pp-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.bis-pp-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.bis-pp-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 9px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.bis-pp-summary strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.bis-pp-controls {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.bis-pp-select {
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  max-width: 96px;
+}
+
+.bis-pp-thead,
+.bis-pp-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 56px 52px;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.bis-pp-thead {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  padding: 0 4px 2px;
+  flex-shrink: 0;
+}
+
+.bis-pp-thead .num {
+  text-align: right;
+}
+
+.bis-pp-tbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.bis-pp-row {
+  padding: 3px 5px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.bis-pp-country {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.bis-pp-flag {
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.bis-pp-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.bis-pp-name strong {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.bis-pp-sub {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bis-pp-idx {
+  text-align: right;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: #60a5fa;
+}
+
+.bis-pp-yoy {
+  text-align: right;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.bis-pp-yoy.pos { color: #4ade80; }
+.bis-pp-yoy.neg { color: #f87171; }
+
+.bis-pp-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

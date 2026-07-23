@@ -79,41 +79,211 @@
 .cal-table td { padding: 5px 10px; color: #cbd5e1; border-bottom: 1px solid var(--bg-primary); }
 .cal-table tr:hover td { background: var(--bg-card); }
 .cal-table .cal-upcoming { opacity: 1; }
-.cal-table .cal-released td { opacity: 0.6; }
+/* Released rows slightly muted but still readable */
+.cal-table .cal-released td { opacity: 0.85; }
 .cal-surprise-pos { color: #34d399; font-weight: 600; }
 .cal-surprise-neg { color: #f87171; font-weight: 600; }
 .cal-surprise-na  { color: var(--text-dim); }
+
+/* Economic calendar dense table */
+.cal-econ-table-wrap {
+  overflow: auto;
+  max-height: 100%;
+  min-height: 0;
+  flex: 1;
+}
+.cal-econ-table {
+  table-layout: fixed;
+  width: 100%;
+}
+.cal-econ-table th,
+.cal-econ-table td {
+  padding: 5px 6px;
+  vertical-align: middle;
+}
+.cal-th-date { width: 11%; text-align: left !important; }
+.cal-th-flag { width: 4%; }
+.cal-th-event { width: 28%; text-align: left !important; }
+.cal-th-status { width: 10%; text-align: center !important; }
+.cal-th-num { width: 12%; text-align: right !important; }
+.cal-td-date {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cal-td-flag { text-align: center; }
+.cal-td-event { text-align: left; }
+.cal-event-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+.cal-event-meta {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.cal-td-status { text-align: center; }
+.cal-status-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 99px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.cal-status-pill.is-upcoming {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+}
+.cal-status-pill.is-released {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
+}
+.cal-td-num {
+  text-align: right;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.cal-td-muted { color: var(--text-muted); font-weight: 500; }
+.cal-econ-empty {
+  text-align: center;
+  padding: 16px !important;
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 /* ── 10. Country flag ── */
 .cal-flag { margin-right: 4px; }
 
 /* ── 11. Central bank cards ── */
-.cal-cb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; }
-.cal-cb-card {
-  background: var(--bg-card); border-radius: 10px; padding: 14px 16px;
-  border: 1px solid var(--border-color);
+.cal-cb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 10px;
+  min-height: 0;
 }
-.cal-cb-bank { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
-.cal-cb-rate { font-size: 22px; font-weight: 700; font-family: monospace; color: var(--text-primary); margin-bottom: 4px; }
+.cal-cb-card {
+  background: var(--bg-primary);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.cal-cb-bank {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cal-cb-flag { font-size: 14px; line-height: 1; }
+.cal-cb-rate {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: #f43f5e;
+  line-height: 1.15;
+  margin: 2px 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+.cal-cb-rate .mv-root {
+  color: inherit;
+  font: inherit;
+}
+.cal-cb-rate-missing {
+  color: var(--text-muted);
+  font-size: 20px;
+}
+.cal-cb-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+}
+.cal-cb-meta-label { color: var(--text-muted); }
+.cal-cb-meta-val {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
 .cal-cb-next { font-size: 10px; color: var(--text-secondary); }
-.cal-cb-countdown { font-size: 11px; color: #f43f5e; font-weight: 600; margin-top: 4px; }
+.cal-cb-countdown { font-size: 11px; color: #f43f5e; font-weight: 600; }
+.cal-cb-series {
+  font-size: 8px;
+  color: var(--text-muted);
+  line-height: 1.2;
+  margin-top: 2px;
+}
 .cal-cb-decision {
-  display: inline-block; padding: 2px 8px; border-radius: 8px;
-  font-size: 9px; font-weight: 700; margin-top: 6px;
+  display: inline-block;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  margin-top: 4px;
 }
 .cal-cb-hold { background: var(--border-color); color: var(--text-secondary); }
 .cal-cb-hike { background: #7f1d1d; color: #fca5a5; }
 .cal-cb-cut  { background: #14532d; color: #86efac; }
 
 /* ── 12. Timeline ── */
-.cal-timeline { padding: 12px 14px; }
-.cal-timeline-title { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.cal-timeline { padding: 8px 10px; }
+.cal-timeline-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
 .cal-timeline-row {
-  display: flex; align-items: center; gap: 8px; padding: 3px 0;
-  font-size: 10px; color: var(--text-secondary);
+  display: grid;
+  grid-template-columns: 10px 78px 36px 52px 36px auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+.cal-timeline-date {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.cal-timeline-bank { font-weight: 600; color: var(--text-primary); }
+.cal-timeline-rate {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-weight: 700;
+  color: #f43f5e;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.cal-timeline-days {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
 }
 .cal-timeline-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .cal-dot-fed { background: #3b82f6; }
 .cal-dot-ecb { background: #facc15; }
@@ -196,4 +366,143 @@
   font-weight: 600;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   color: var(--text-primary);
+}
+
+/* Calendar Summary — dense snapshot */
+.cal-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  padding: 2px 0 6px;
+}
+.cal-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.cal-summary-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  border-top: 2px solid var(--border-subtle);
+}
+.cal-summary-chip.is-hot {
+  border-top-color: #f43f5e;
+}
+.cal-summary-chip-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.cal-summary-chip-value {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+.cal-summary-chip.is-hot .cal-summary-chip-value {
+  color: #f87171;
+}
+.cal-summary-chip-sub {
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+.cal-summary-rates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.cal-summary-rate-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  min-width: 0;
+}
+.cal-summary-rate-bank {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cal-summary-rate-val {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  color: #f43f5e;
+}
+.cal-summary-rate-meet {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+.cal-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cal-summary-row {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: var(--bg-primary);
+  min-height: 26px;
+}
+.cal-summary-row-date {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cal-summary-row-name {
+  font-size: 11px;
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.cal-summary-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f43f5e;
+  flex-shrink: 0;
+}
+.cal-summary-row-meta {
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+.cal-summary-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 2px;
 }

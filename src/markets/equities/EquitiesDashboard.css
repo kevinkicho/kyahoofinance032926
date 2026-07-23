@@ -202,6 +202,8 @@
   background: var(--bg-primary);
 }
 
+/* Legacy fixed-width sidebar (non-bento). Inside RGL bento cards, fixed
+   width fights the grid cell and causes resize thrash / twitching. */
 .eq-detail-sidebar {
   width: 340px;
   min-width: 300px;
@@ -209,6 +211,16 @@
   border-left: 1px solid var(--border-subtle);
   overflow-y: auto;
   background: var(--bg-card);
+}
+
+/* List-view detail panel lives in the bento grid — fill the cell only. */
+.eq-bento-card.eq-list-detail,
+.eq-bento-card.eq-detail-sidebar {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none;
+  border-left: none;
+  overflow: hidden;
 }
 
 /* ── 3. Bento root — wrapper for react-grid-layout ── */
@@ -488,10 +500,22 @@
 }
 
 /* ── 10. Heatmap panel — force full height ── */
-/* Excludes .pf-tracker (PortfolioTracker), which manages its own children's
-   flex behavior (header form fixed-size, holdings/chart flex-grow). */
-.eq-bento-card .eq-panel-content:not(.pf-tracker) > div {
+/* Excludes PortfolioTracker host — it manages internal flex (holdings + chart). */
+.eq-bento-card .eq-panel-content:not(.pf-tracker):not(.pf-tracker-host) > div {
   flex: 1;
+  min-height: 0;
+}
+
+/* PortfolioTracker fills the BentoCard content area */
+.eq-bento-card .eq-panel-content.pf-tracker-host {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  min-height: 0;
+}
+.eq-bento-card .eq-panel-content.pf-tracker-host > .pf-tracker {
+  flex: 1 1 auto;
   min-height: 0;
 }
 
@@ -534,5 +558,1078 @@
 
   .eq-index-group {
     grid-column: 1 / -1;
+  }
+}
+
+/* -- BEA Corporate Profits panel -- */
+.bea-profits-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 4px 8px 2px;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* pack content to top — no stretch-gap at bottom */
+  justify-content: flex-start;
+}
+/* Compact KPI strip — label + value + sub in a low horizontal band */
+.bea-profits-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  flex-shrink: 0;
+}
+.bea-profits-kpi {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 3px 8px 3px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 0;
+  align-items: baseline;
+}
+.bea-profits-kpi-label {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.bea-profits-kpi-value {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-align: right;
+}
+.bea-profits-kpi-sub {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 8px;
+  color: var(--text-dim);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* Charts: fixed compact band — no empty vertical stretch inside the card */
+.bea-profits-charts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+.bea-profits-chart-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 6px 2px;
+  height: 108px;
+}
+.bea-profits-chart-title {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 1px;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+.bea-profits-chart-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 88px;
+  position: relative;
+}
+.bea-profits-chart-body > div,
+.bea-profits-chart-body .echarts-for-react {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+.bea-profits-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* GDP components: take leftover height but stay dense (scroll if needed) */
+.bea-profits-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  padding: 3px 6px 2px;
+}
+.bea-profits-table-wrap > .bea-profits-chart-title {
+  margin-bottom: 2px;
+}
+.bea-profits-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  justify-content: flex-start;
+}
+.bea-profits-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 10px;
+  flex-shrink: 0;
+  line-height: 1.25;
+}
+.bea-profits-row:last-child {
+  border-bottom: none;
+}
+.bea-profits-row:hover {
+  background: rgba(96, 165, 250, 0.05);
+}
+.bea-profits-row-label {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.bea-profits-row-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-weight: 600;
+}
+.bea-profits-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  padding-top: 0;
+  margin: 0;
+}
+@container bento-card (max-width: 560px) {
+  .bea-profits-kpis { grid-template-columns: 1fr; }
+  .bea-profits-kpi {
+    grid-template-columns: 1fr auto;
+  }
+  .bea-profits-charts {
+    grid-template-columns: 1fr;
+    flex: 0 0 auto;
+  }
+  .bea-profits-chart-card { height: 96px; }
+  .bea-profits-chart-body { height: 76px; }
+}
+
+/* -- World Bank Market Cap / country indicators -- */
+.wb-mcap-panel {
+  --wb-cols:
+    28px minmax(88px, 1.3fr) 64px minmax(56px, 0.9fr)
+    58px 58px 52px 52px 64px 48px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 4px 8px 2px;
+  box-sizing: border-box;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+/* Compact KPI strip — same density pattern as BEA profits cards */
+.wb-mcap-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  flex-shrink: 0;
+}
+.wb-mcap-kpi {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 3px 8px 3px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 0;
+  align-items: baseline;
+}
+.wb-mcap-kpi-label {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.wb-mcap-kpi-value {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.wb-mcap-kpi-sub {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 8px;
+  color: var(--text-dim);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.wb-mcap-empty {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Table shell fills leftover height; only the body scrolls — dense rows */
+.wb-mcap-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+.wb-mcap-table-head,
+.wb-mcap-table-row {
+  display: grid;
+  grid-template-columns: var(--wb-cols);
+  column-gap: 4px;
+  align-items: center;
+  padding: 0 6px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.wb-mcap-table-head {
+  flex-shrink: 0;
+  height: 22px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-deep, #0a0f1a);
+  /* solid underlay so rows never bleed through the header */
+  box-shadow: 0 1px 0 var(--border-subtle);
+  z-index: 2;
+}
+.wb-mcap-table-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.wb-mcap-table-row {
+  min-height: 24px;
+  height: auto;
+  font-size: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+.wb-mcap-table-row:last-child {
+  border-bottom: none;
+}
+.wb-mcap-table-row:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+.wb-col-flag {
+  font-size: 14px;
+  text-align: center;
+  line-height: 1;
+}
+.wb-col-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  justify-content: center;
+  padding: 4px 0;
+}
+.wb-col-name strong {
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+.wb-col-name-full {
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.wb-col-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+.wb-col-cap {
+  color: #60a5fa;
+  font-weight: 700;
+}
+.wb-col-muted { color: var(--text-secondary); }
+.wb-col-dim { color: var(--text-muted); }
+.wb-col-bar {
+  min-width: 0;
+  padding: 0 2px;
+}
+.wb-bar-track {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.wb-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  min-width: 0;
+}
+.wb-mcap-footer {
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@container bento-card (max-width: 700px) {
+  .wb-mcap-panel {
+    --wb-cols: 28px minmax(70px, 1fr) 56px 48px 48px 48px 56px;
+  }
+  .wb-mcap-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wb-mcap-kpi-value { font-size: 13px; }
+  .wb-col-bar,
+  .wb-mcap-table-head > .wb-col-bar,
+  .wb-mcap-table-row > :nth-child(4),
+  .wb-mcap-table-row > :nth-child(6),
+  .wb-mcap-table-row > :nth-child(10),
+  .wb-mcap-table-row > :nth-child(11),
+  .wb-mcap-table-head > :nth-child(4),
+  .wb-mcap-table-head > :nth-child(6),
+  .wb-mcap-table-head > :nth-child(10),
+  .wb-mcap-table-head > :nth-child(11) {
+    display: none;
+  }
+}
+
+/* -- SEC Mega-Cap Fundamentals -- */
+/* ── SEC Mega-Cap Fundamentals (dense CSS grid, no overlapping cells) ── */
+.sec-mega-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 6px 8px 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.sec-mega-empty {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Compact KPI strip */
+.sec-mega-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  flex-shrink: 0;
+}
+.sec-mega-kpi {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 3px 5px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.sec-mega-kpi-label {
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.sec-mega-kpi-value {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.sec-mega-kpi--blue .sec-mega-kpi-value { color: #60a5fa; }
+.sec-mega-kpi--green .sec-mega-kpi-value { color: #22c55e; }
+.sec-mega-kpi--purple .sec-mega-kpi-value { color: #a78bfa; }
+.sec-mega-kpi--amber .sec-mega-kpi-value { color: #f59e0b; }
+.sec-mega-kpi--red .sec-mega-kpi-value { color: #f87171; }
+
+/*
+ * Fixed grid columns — every row uses the same template so values never
+ * spill into neighboring cells (the old HTML table + % widths did).
+ * Tkr | FY | Rev | NI | Mrg | ROE | Gr | D/E | FCF | Q
+ */
+.sec-mega-grid {
+  --sec-cols: 46px 26px minmax(0, 1.15fr) minmax(0, 1.15fr) 40px 40px 42px 36px minmax(0, 1fr) 24px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.sec-mega-head,
+.sec-mega-row {
+  display: grid;
+  grid-template-columns: var(--sec-cols);
+  column-gap: 0;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.sec-mega-head {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 4px;
+}
+.sec-mega-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sec-mega-entry {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sec-mega-entry:last-child {
+  border-bottom: none;
+}
+.sec-mega-row {
+  padding: 0 4px;
+  min-height: 26px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+.sec-mega-row:hover {
+  background: rgba(96, 165, 250, 0.07);
+}
+.sec-mega-entry.is-open > .sec-mega-row {
+  background: rgba(96, 165, 250, 0.1);
+}
+.sec-mega-cell {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 3px;
+  font-size: 10px;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+.sec-mega-head .sec-mega-cell {
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.sec-mega-cell.c-tkr {
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-left: 2px;
+}
+.sec-mega-cell.c-tkr strong {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.sec-mega-cell.c-fy {
+  text-align: center;
+  font-size: 9px;
+}
+.sec-mega-cell.c-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+.sec-mega-cell.c-grd {
+  text-align: center;
+  font-weight: 800;
+  font-size: 11px;
+  padding-right: 2px;
+}
+.sec-mega-cell.sec-emph {
+  font-weight: 700;
+}
+.sec-muted { color: var(--text-muted); font-weight: 500; }
+.sec-grade-a { color: #22c55e; }
+.sec-grade-b { color: #60a5fa; }
+.sec-grade-c { color: #f59e0b; }
+.sec-grade-d { color: #f87171; }
+
+.sec-mega-detail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px 8px;
+  padding: 6px 8px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sec-mega-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.sec-mega-detail-item span {
+  font-size: 7.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sec-mega-detail-item strong {
+  font-size: 11px;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sec-mega-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Narrow card: drop Gr + FCF so remaining columns stay readable */
+@container bento-card (max-width: 560px) {
+  .sec-mega-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sec-mega-grid {
+    --sec-cols: 46px 26px minmax(0, 1.2fr) minmax(0, 1.2fr) 42px 42px 38px 24px;
+  }
+  .sec-mega-cell.c-opt { display: none; }
+  .sec-mega-detail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container bento-card (max-width: 400px) {
+  .sec-mega-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* visible: tkr rev ni mrg roe de q  (fy + gr + fcf hidden via .c-fy/.c-opt) */
+  .sec-mega-grid {
+    --sec-cols: 44px minmax(0, 1.15fr) minmax(0, 1.15fr) 40px 40px 36px 22px;
+  }
+  .sec-mega-cell.c-fy {
+    display: none;
+  }
+}
+
+/* ── SEC Filing Activity ── */
+.sec-file-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 6px 8px 4px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.sec-file-empty {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+.sec-file-empty-rows {
+  padding: 14px 8px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* KPI cards */
+.sec-file-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  flex-shrink: 0;
+}
+.sec-file-kpi {
+  appearance: none;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 5px 6px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.sec-file-kpi:hover {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(96, 165, 250, 0.06);
+}
+.sec-file-kpi.is-active {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(96, 165, 250, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.15);
+}
+.sec-file-kpi-label {
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.sec-file-kpi-value {
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sec-file-kpi--blue .sec-file-kpi-value { color: #60a5fa; }
+.sec-file-kpi--slate .sec-file-kpi-value { color: #94a3b8; }
+.sec-file-kpi--amber .sec-file-kpi-value { color: #f59e0b; }
+.sec-file-kpi--purple .sec-file-kpi-value { color: #a78bfa; }
+.sec-file-kpi--green .sec-file-kpi-value { color: #22c55e; }
+.sec-file-kpi--pink .sec-file-kpi-value { color: #ec4899; }
+
+/* Form / category tally chips */
+.sec-file-tallies {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.sec-file-tally-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+}
+.sec-file-forms {
+  max-height: 42px;
+  overflow: hidden;
+}
+.sec-file-chip {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--chip, #64748b) 35%, transparent);
+  background: color-mix(in srgb, var(--chip, #64748b) 12%, transparent);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sec-file-chip strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--chip, var(--text-primary));
+  margin-left: 2px;
+}
+.sec-file-chip--form {
+  --chip: #64748b;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--border-subtle);
+}
+.sec-file-chip--form strong { color: var(--text-primary); }
+.sec-file-chip:hover {
+  filter: brightness(1.15);
+}
+.sec-file-chip.is-active {
+  border-color: color-mix(in srgb, var(--chip, #60a5fa) 70%, transparent);
+  background: color-mix(in srgb, var(--chip, #60a5fa) 22%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--chip, #60a5fa) 25%, transparent);
+}
+
+/* Search / filter / sort bar */
+.sec-file-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(72px, 0.7fr) auto;
+  gap: 4px;
+  flex-shrink: 0;
+  align-items: center;
+  min-width: 0;
+}
+.sec-file-search,
+.sec-file-select {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  color: var(--text-primary);
+  font-size: 10px;
+  padding: 4px 6px;
+  outline: none;
+}
+.sec-file-search:focus,
+.sec-file-select:focus {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+.sec-file-search::placeholder {
+  color: var(--text-dim);
+}
+.sec-file-sorts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: flex-end;
+}
+.sec-file-sort-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sec-file-sort-btn:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+.sec-file-sort-btn.is-active {
+  color: #93c5fd;
+  background: rgba(96, 165, 250, 0.1);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+.sec-file-meta {
+  font-size: 9px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sec-file-meta strong {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.sec-file-clear {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: #93c5fd;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  cursor: pointer;
+  margin-left: auto;
+}
+.sec-file-clear:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+/* Dense filing grid */
+.sec-file-grid {
+  --sec-file-cols: 42px minmax(0, 0.85fr) 40px 48px minmax(0, 1.4fr) 22px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: 7px;
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.sec-file-head,
+.sec-file-row {
+  display: grid;
+  grid-template-columns: var(--sec-file-cols);
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0 4px;
+}
+.sec-file-head {
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.sec-file-head .sec-file-cell {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 7.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 5px 2px;
+  cursor: pointer;
+  text-align: inherit;
+}
+.sec-file-head .sec-file-cell:hover {
+  color: #93c5fd;
+}
+.sec-file-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sec-file-row {
+  min-height: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sec-file-row:last-child {
+  border-bottom: none;
+}
+.sec-file-row:hover {
+  background: rgba(96, 165, 250, 0.06);
+}
+.sec-file-cell {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 2px;
+  font-size: 10px;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+.sec-file-cell.c-tkr {
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.sec-file-cell.c-tkr strong {
+  font-size: 10px;
+}
+.sec-file-cell.c-form {
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: left;
+}
+.sec-file-cell.c-date {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+.sec-file-cell.c-cat {
+  text-align: center;
+}
+.sec-file-cat-pill {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--chip, #94a3b8);
+  background: color-mix(in srgb, var(--chip, #64748b) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip, #64748b) 28%, transparent);
+}
+.sec-file-cell.c-desc {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+.sec-file-cell.c-link {
+  text-align: right;
+  padding-right: 2px;
+}
+.sec-file-cell.c-link a {
+  color: #60a5fa;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+}
+.sec-file-cell.c-link a:hover {
+  color: #93c5fd;
+}
+.sec-file-footer {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container bento-card (max-width: 520px) {
+  .sec-file-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sec-file-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sec-file-sorts {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .sec-file-grid {
+    --sec-file-cols: 40px minmax(0, 0.9fr) 38px minmax(0, 1.2fr) 20px;
+  }
+  .sec-file-cell.c-cat,
+  .sec-file-head .c-cat {
+    display: none;
+  }
+}
+@container bento-card (max-width: 380px) {
+  .sec-file-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sec-file-grid {
+    --sec-file-cols: 40px minmax(0, 1fr) 36px 20px;
+  }
+  .sec-file-cell.c-cat,
+  .sec-file-cell.c-desc,
+  .sec-file-head .c-cat,
+  .sec-file-head .c-desc {
+    display: none;
   }
 }

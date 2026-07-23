@@ -25,13 +25,21 @@ router.get('/', makeCachedRouteHandler({
       BBB: 'BAMLC0A4CBBB',
       CCC: 'BAMLH0A3HYC',
     };
+    // Bank charge-off / delinquency series (quarterly %, FDIC-insured banks).
+    // These power the Default Rates panel — Moody's HY TTM defaults are not free.
     const CHARGEOFF_SERIES = {
-      commercial: 'DRALACBN',
-      consumer:   'DRSFRMACBS',
+      commercial: 'DRALACBN',   // C&I loan charge-off rate
+      consumer:   'DRSFRMACBS', // SFR mortgage charge-off (consumer housing credit)
+      cards:      'CORCCACBS',  // Credit-card charge-off rate
+    };
+    const EXTRA_DEFAULT_SERIES = {
+      cardDelinq: 'DRCCLACBS', // Credit-card delinquency rate
+      ciDelinq:   'DRBLACBS',  // C&I loan delinquency rate
     };
 
     let spreadData = null;
     let chargeoffData = null;
+    let extraDefaultSeries = {};
     let delinquencyRates = null;
     let lendingStandards = null;
     let commercialPaper  = null;
@@ -40,15 +48,22 @@ router.get('/', makeCachedRouteHandler({
 
     if (FRED_API_KEY) {
       trackApiCall('FRED');
-      const [spreadResults, chargeoffResults, delinqResults, lendingStdResult, cpRateResults, excessResResult] = await Promise.all([
+      const [spreadResults, chargeoffResults, extraDefaultResults, delinqResults, lendingStdResult, cpRateResults, excessResResult] = await Promise.all([
         Promise.allSettled(
+          // Daily BAML OAS series — pull ~3 months so short outages still
+          // leave enough points for the KPI strip + history charts.
           Object.entries(CREDIT_SPREAD_SERIES).map(async ([key, sid]) =>
-            [key, await fetchFredHistory(sid, FRED_API_KEY, 13)]
+            [key, await fetchFredHistory(sid, FRED_API_KEY, 66)]
           )
         ),
         Promise.allSettled(
           Object.entries(CHARGEOFF_SERIES).map(async ([key, sid]) =>
-            [key, await fetchFredHistory(sid, FRED_API_KEY, 9)]
+            [key, await fetchFredHistory(sid, FRED_API_KEY, 24)]
+          )
+        ),
+        Promise.allSettled(
+          Object.entries(EXTRA_DEFAULT_SERIES).map(async ([key, sid]) =>
+            [key, await fetchFredHistory(sid, FRED_API_KEY, 24)]
           )
         ),
         Promise.allSettled([
@@ -70,33 +85,53 @@ router.get('/', makeCachedRouteHandler({
         else if (r.status === 'rejected') _errors.spreadData = r.reason?.message || 'FRED spread fetch failed';
       });
 
-      const igArr  = (raw.IG  || []).slice(-12);
-      const hyArr  = (raw.HY  || []).slice(-12);
-      const emArr  = (raw.EM  || []).slice(-12);
-      const bbbArr = (raw.BBB || []).slice(-12);
-      const cccArr = (raw.CCC || []).slice(-1);
+      // Keep last ~60 trading days for charts; KPIs only need the latest print.
+      const igArr  = (raw.IG  || []).slice(-60);
+      const hyArr  = (raw.HY  || []).slice(-60);
+      const emArr  = (raw.EM  || []).slice(-60);
+      const bbbArr = (raw.BBB || []).slice(-60);
+      const cccArr = (raw.CCC || []).slice(-60);
 
-      const anchorArr = igArr.length >= 6 ? igArr : hyArr.length >= 6 ? hyArr : null;
+      // Any series with ≥1 observation is enough for Key Metrics. Previously
+      // we required ≥6 points on IG/HY; a partial FRED batch left spreadData
+      // null, then an all-null shell blocked cache merge from restoring values.
+      const anchorArr =
+        (igArr.length  ? igArr  : null) ||
+        (hyArr.length  ? hyArr  : null) ||
+        (emArr.length  ? emArr  : null) ||
+        (bbbArr.length ? bbbArr : null);
 
       if (anchorArr) {
         // FRED reports BAML OAS series in *percent* (e.g. 0.81 = 81 bps).
         // The dashboard formats these with a "bps" suffix, so multiply by 100
         // before rounding. Without ×100 we silently rendered 81 bps as "1 bps".
-        const toBps = v => Math.round(v * 100);
+        const toBps = v => (v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 100));
+        const byDate = (arr) => {
+          const m = new Map();
+          (arr || []).forEach(p => { if (p?.date != null) m.set(p.date, p.value); });
+          return m;
+        };
+        const igMap = byDate(igArr);
+        const hyMap = byDate(hyArr);
+        const emMap = byDate(emArr);
+        const bbbMap = byDate(bbbArr);
+        const latestOf = (arr) => (arr?.length ? toBps(arr.at(-1).value) : null);
+
         spreadData = {
           current: {
-            igSpread:  igArr.length  ? toBps(igArr.at(-1).value)  : null,
-            hySpread:  hyArr.length  ? toBps(hyArr.at(-1).value)  : null,
-            emSpread:  emArr.length  ? toBps(emArr.at(-1).value)  : null,
-            bbbSpread: bbbArr.length ? toBps(bbbArr.at(-1).value) : null,
-            cccSpread: cccArr.length ? toBps(cccArr.at(-1).value) : null,
+            igSpread:  latestOf(igArr),
+            hySpread:  latestOf(hyArr),
+            emSpread:  latestOf(emArr),
+            bbbSpread: latestOf(bbbArr),
+            cccSpread: latestOf(cccArr),
           },
           history: {
+            // Align all series to the anchor date grid (not equal-length arrays)
             dates: anchorArr.map(p => dateToMonthLabel(p.date)),
-            IG:    igArr.length  === anchorArr.length ? igArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
-            HY:    hyArr.length  === anchorArr.length ? hyArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
-            EM:    emArr.length  === anchorArr.length ? emArr.map(p  => toBps(p.value)) : anchorArr.map(() => null),
-            BBB:   bbbArr.length === anchorArr.length ? bbbArr.map(p => toBps(p.value)) : anchorArr.map(() => null),
+            IG:    anchorArr.map(p => (igMap.has(p.date)  ? toBps(igMap.get(p.date))  : null)),
+            HY:    anchorArr.map(p => (hyMap.has(p.date)  ? toBps(hyMap.get(p.date))  : null)),
+            EM:    anchorArr.map(p => (emMap.has(p.date)  ? toBps(emMap.get(p.date))  : null)),
+            BBB:   anchorArr.map(p => (bbbMap.has(p.date) ? toBps(bbbMap.get(p.date)) : null)),
           },
           etfs: [],
         };
@@ -104,20 +139,47 @@ router.get('/', makeCachedRouteHandler({
 
       const coRaw = {};
       chargeoffResults.forEach(r => { if (r.status === 'fulfilled') coRaw[r.value[0]] = r.value[1]; });
+      extraDefaultResults.forEach(r => {
+        if (r.status === 'fulfilled') extraDefaultSeries[r.value[0]] = r.value[1];
+      });
 
-      const coCommercial = (coRaw.commercial || []).slice(-8);
-      const coConsumer   = (coRaw.consumer   || []).slice(-8);
-      const coAnchor     = coCommercial.length >= 4 ? coCommercial : coConsumer;
+      const toQLabel = (dateStr) => {
+        const d = new Date(dateStr + 'T00:00:00Z');
+        const q = Math.ceil((d.getUTCMonth() + 1) / 3);
+        return `Q${q}-${String(d.getUTCFullYear()).slice(2)}`;
+      };
+      const packSeries = (arr, n = 12) => (arr || []).slice(-n).map(p => ({
+        date: p.date,
+        label: toQLabel(p.date),
+        value: Math.round(Number(p.value) * 100) / 100,
+      }));
 
-      if (coAnchor.length >= 4) {
+      const coCommercial = packSeries(coRaw.commercial, 12);
+      const coConsumer   = packSeries(coRaw.consumer, 12);
+      const coCards      = packSeries(coRaw.cards, 12);
+      const coAnchor     = coCommercial.length ? coCommercial
+        : (coConsumer.length ? coConsumer : coCards);
+
+      // Accept even a single quarter — charge-offs feed the Default Rates panel.
+      if (coAnchor.length >= 1) {
         chargeoffData = {
-          dates:      coAnchor.map(p => {
-            const d = new Date(p.date + 'T00:00:00Z');
-            const q = Math.ceil((d.getUTCMonth() + 1) / 3);
-            return `Q${q}-${String(d.getUTCFullYear()).slice(2)}`;
-          }),
-          commercial: coCommercial.map(p => Math.round(p.value * 100) / 100),
-          consumer:   coConsumer.map(p   => Math.round(p.value * 100) / 100),
+          dates:      coAnchor.map(p => p.label),
+          commercial: coCommercial.length ? coAnchor.map(a => {
+            const hit = coCommercial.find(p => p.date === a.date);
+            return hit ? hit.value : null;
+          }) : coAnchor.map(() => null),
+          consumer:   coConsumer.length ? coAnchor.map(a => {
+            const hit = coConsumer.find(p => p.date === a.date) || coConsumer.find(p => p.label === a.label);
+            return hit ? hit.value : null;
+          }) : coAnchor.map(() => null),
+          cards:      coCards.length ? coAnchor.map(a => {
+            const hit = coCards.find(p => p.date === a.date) || coCards.find(p => p.label === a.label);
+            return hit ? hit.value : null;
+          }) : coAnchor.map(() => null),
+          // raw packed series for peak / prev lookups
+          _commercial: coCommercial,
+          _consumer: coConsumer,
+          _cards: coCards,
         };
       }
 
@@ -390,39 +452,104 @@ let emBondCountries = [];
       }
     }
 
-    const loanData = {
-      cloTranches,
-      indices: [
-        { name: 'BKLN NAV',                 value: etfs.find(e=>e.ticker==='BKLN')?.price ?? null, change1d: etfs.find(e=>e.ticker==='BKLN')?.change1d ?? null, spread: null },
-        { name: 'CS Lev Loan 100 Index',    value: null, change1d: null, spread: null },
-        { name: 'LL New Issue Vol ($B YTD)',  value: null,   change1d: null, spread: null },
-      ],
+    // Only real loan proxies — never ship proprietary/null index shells.
+    const bkln = etfs.find(e => e.ticker === 'BKLN');
+    const loanIndices = [];
+    if (bkln?.price != null) {
+      loanIndices.push({
+        name: 'BKLN NAV',
+        value: bkln.price,
+        change1d: bkln.change1d ?? undefined,
+      });
+    }
+    const liveClo = (cloTranches || []).filter(t => t.spread != null || t.yield != null);
+    const loanData = (liveClo.length || loanIndices.length)
+      ? { cloTranches: liveClo, indices: loanIndices }
+      : null;
+
+    // Build defaultData from real FRED bank charge-off / delinquency series.
+    // Moody's HY TTM default rates are proprietary — do not ship null placeholders.
+    const seriesStats = (packed) => {
+      const vals = (packed || []).map(p => (typeof p === 'number' ? p : p?.value))
+        .filter(v => typeof v === 'number' && Number.isFinite(v));
+      if (!vals.length) return { value: null, prev: null, peak: null };
+      return {
+        value: vals[vals.length - 1],
+        prev: vals.length > 1 ? vals[vals.length - 2] : null,
+        peak: Math.round(Math.max(...vals) * 100) / 100,
+      };
     };
 
-    // Build defaultData.rates from real FRED charge-off data already fetched above,
-    // supplemented with HY/CCC spread-derived indicators.
-    const coCommLatest = chargeoffData?.commercial?.at(-1) ?? null;
-    const coConsLatest = chargeoffData?.consumer?.at(-1) ?? null;
-    // CCC-spread proxy: CCC/HY spread ratio gives a rough distressed-ratio proxy.
+    const coCommStats = seriesStats(chargeoffData?._commercial?.length
+      ? chargeoffData._commercial
+      : chargeoffData?.commercial);
+    const coConsStats = seriesStats(chargeoffData?._consumer?.length
+      ? chargeoffData._consumer
+      : chargeoffData?.consumer);
+    const coCardStats = seriesStats(chargeoffData?._cards?.length
+      ? chargeoffData._cards
+      : chargeoffData?.cards);
+
+    const packExtra = (arr) => (arr || []).slice(-12).map(p => ({
+      date: p.date,
+      value: Math.round(Number(p.value) * 100) / 100,
+    }));
+    const cardDelinqStats = seriesStats(packExtra(extraDefaultSeries.cardDelinq));
+    const ciDelinqStats = seriesStats(packExtra(extraDefaultSeries.ciDelinq));
+
+    // CCC/HY OAS ratio (×100): higher = more stressed credit market. Not a %.
     const cccSpread = spreadData?.current?.cccSpread ?? null;
     const hySpread  = spreadData?.current?.hySpread  ?? null;
     const distressedProxy = (cccSpread != null && hySpread != null && hySpread > 0)
       ? Math.round((cccSpread / hySpread) * 100 * 10) / 10
       : null;
-    const defaultData = {
-      rates: [
-        // Charge-off rates from FRED (quarterly, all FDIC-insured banks)
-        { category: 'Commercial Charge-Off Rate', value: coCommLatest, prev: chargeoffData?.commercial?.at(-2) ?? null, peak: null, unit: '%' },
-        { category: 'Consumer Charge-Off Rate',   value: coConsLatest, prev: chargeoffData?.consumer?.at(-2)   ?? null, peak: null, unit: '%' },
-        // Spread-derived proxy: CCC-rated share of HY index (higher = more distress)
-        { category: 'CCC/HY Distress Proxy',      value: distressedProxy, prev: null, peak: null, unit: '%' },
-        // Placeholder rows — require proprietary Moody's/LCD data not freely available
-        { category: 'HY Default Rate (TTM)',       value: null, prev: null, peak: null, unit: '%' },
-        { category: 'Loan Default Rate (TTM)',     value: null, prev: null, peak: null, unit: '%' },
-      ],
-      chargeoffs: chargeoffData || null,
-      defaultHistory: null,
-    };
+
+    const rateRows = [
+      { category: 'C&I Charge-Off Rate', series: 'DRALACBN', ...coCommStats, unit: '%', source: 'FRED' },
+      { category: 'Mortgage Charge-Off Rate', series: 'DRSFRMACBS', ...coConsStats, unit: '%', source: 'FRED' },
+      { category: 'Credit Card Charge-Off', series: 'CORCCACBS', ...coCardStats, unit: '%', source: 'FRED' },
+      { category: 'Credit Card Delinquency', series: 'DRCCLACBS', ...cardDelinqStats, unit: '%', source: 'FRED' },
+      { category: 'C&I Delinquency Rate', series: 'DRBLACBS', ...ciDelinqStats, unit: '%', source: 'FRED' },
+      { category: 'HY OAS (stress)', series: 'BAMLH0A0HYM2', value: hySpread, unit: 'bps', source: 'FRED' },
+      { category: 'CCC/HY Distress Ratio', series: 'BAMLH0A3HYC/BAMLH0A0HYM2', value: distressedProxy, unit: 'idx', source: 'FRED' },
+    ]
+      .filter(r => r.value != null)
+      .map((r) => {
+        const out = { category: r.category, series: r.series, value: r.value, unit: r.unit, source: r.source };
+        if (r.prev != null) out.prev = r.prev;
+        if (r.peak != null) out.peak = r.peak;
+        return out;
+      });
+
+    // Trend history for charts: bank charge-offs (real), not proprietary HY defaults.
+    const defaultHistory = chargeoffData?.dates?.length
+      ? {
+          dates: chargeoffData.dates,
+          hy: chargeoffData.commercial || [],   // panel legend: use C&I as primary
+          loan: chargeoffData.consumer || [],
+          commercial: chargeoffData.commercial || [],
+          consumer: chargeoffData.consumer || [],
+          cards: chargeoffData.cards || [],
+        }
+      : null;
+
+    // Strip internal packed helpers before shipping to the client
+    const chargeoffsPublic = chargeoffData
+      ? {
+          dates: chargeoffData.dates,
+          commercial: chargeoffData.commercial,
+          consumer: chargeoffData.consumer,
+          cards: chargeoffData.cards,
+        }
+      : null;
+
+    const defaultData = rateRows.length || chargeoffsPublic
+      ? {
+          rates: rateRows,
+          chargeoffs: chargeoffsPublic,
+          defaultHistory,
+        }
+      : null;
 
     const _sources = {
       spreadData:       spreadData != null,
@@ -444,21 +571,25 @@ let emBondCountries = [];
       tedSpread:        tedSpread != null,
     };
 
-    const finalSpreadData = spreadData ?? {
-      current: { igSpread: null, hySpread: null, emSpread: null, bbbSpread: null, cccSpread: null },
-      history: { dates: [], IG: [], HY: [], EM: [], BBB: [] },
-      etfs,
-    };
+    // Prefer real spreadData (or null). Do NOT substitute an all-null shell —
+    // mergeWithPreviousCache only fills empty/null fields, and a null shell
+    // object would block restoring yesterday's live OAS prints.
+    const hasLiveSpreads = !!(
+      spreadData?.current &&
+      Object.values(spreadData.current).some(v => v != null)
+    );
+    if (spreadData && etfs?.length) spreadData.etfs = etfs;
+    else if (spreadData) spreadData.etfs = spreadData.etfs || [];
 
     // isLive: true if any of the headline sources came back with data. The
     // route was previously omitting this entirely, which made every panel
     // that gated FETCHED on isLive (e.g. Credit Key Metrics) flip to
     // NO DATA — even though spreads, EM yields and default rates were live.
     const isLive = !!(
-      spreadData ||
+      hasLiveSpreads ||
       emYieldDataFetched ||
       loanData ||
-      defaultData ||
+      (defaultData?.rates || []).some(r => r?.value != null) ||
       delinquencyRates ||
       lendingStandards ||
       commercialPaper ||
@@ -466,8 +597,8 @@ let emBondCountries = [];
     );
 
     const result = {
-      _sources,
-      spreadData:  finalSpreadData,
+      _sources: { ..._sources, spreadData: hasLiveSpreads },
+      spreadData: hasLiveSpreads ? spreadData : null,
       emBondData,
       loanData,
       defaultData,
@@ -479,6 +610,7 @@ let emBondCountries = [];
       tedSpread,
       isLive,
     };
+    return result;
   }
 }));
 

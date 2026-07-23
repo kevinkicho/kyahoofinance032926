@@ -245,12 +245,352 @@
 .fg-history-title { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
 
 /* Vol Premium */
-.vol-premium-row { display: flex; gap: 12px; padding: 6px 12px 4px; flex-wrap: wrap; flex-shrink: 0; }
-.vol-premium-pill { display: flex; flex-direction: column; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 16px; min-width: 96px; }
-.vol-premium-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.vol-premium-value { font-size: 14px; font-weight: 600; color: #a78bfa; }
+/* legacy vol-premium classes kept for other panels */
+.vol-premium-row { display: flex; gap: 8px; padding: 0; flex-wrap: wrap; flex-shrink: 0; }
+.vol-premium-pill { display: flex; flex-direction: column; align-items: flex-start; background: var(--bg-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px 10px; min-width: 0; flex: 1 1 0; }
+.vol-premium-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.vol-premium-value { font-size: 14px; font-weight: 700; color: #a78bfa; font-variant-numeric: tabular-nums; }
 .vol-premium-pos { color: #22c55e; }
 .vol-premium-neg { color: #ef4444; }
+
+/* Vol Premium panel — equal cards that fill the bento */
+.deriv-panel-content.vp-host,
+.bento-panel-content.vp-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.vp-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.vp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: stretch;
+}
+.vp-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.vp-card-spread.pos {
+  border-color: rgba(74, 222, 128, 0.25);
+  background: rgba(74, 222, 128, 0.06);
+}
+.vp-card-spread.neg {
+  border-color: rgba(248, 113, 113, 0.25);
+  background: rgba(248, 113, 113, 0.06);
+}
+.vp-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.vp-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+.vp-pos { color: #22c55e !important; }
+.vp-neg { color: #ef4444 !important; }
+.vp-hint {
+  font-size: 8px;
+  color: var(--text-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+@container bento-card (max-width: 320px) {
+  .vp-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+  }
+  .vp-value { font-size: 16px; }
+}
+
+/* CFTC TFF positioning — equal dense cards, no ghost columns */
+.deriv-panel-content.cftc-host,
+.bento-panel-content.cftc-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.cftc-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.cftc-grid {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  align-content: stretch;
+  overflow-y: auto;
+}
+.cftc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.cftc-card.long {
+  border-color: rgba(74, 222, 128, 0.18);
+}
+.cftc-card.short {
+  border-color: rgba(248, 113, 113, 0.18);
+}
+.cftc-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.cftc-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.cftc-date {
+  font-size: 8px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cftc-net {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.cftc-net.pos { color: #22c55e; }
+.cftc-net.neg { color: #f87171; }
+.cftc-net-label {
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+.cftc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+.cftc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+.cftc-stat-l {
+  font-size: 8px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.cftc-stat-v {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cftc-stat-v.pos { color: #4ade80; }
+.cftc-stat-v.neg { color: #f87171; }
+
+@container bento-card (max-width: 420px) {
+  .cftc-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* BIS OTC notional — compact total + equal category cards (no tall empty stretch) */
+.deriv-panel-content.bis-host,
+.bento-panel-content.bis-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.bis-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.bis-total-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid rgba(167, 139, 250, 0.28);
+  border-radius: 6px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.bis-total-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.bis-kicker {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.bis-total-val {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: #a78bfa;
+  line-height: 1.1;
+}
+.bis-total-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.bis-period {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.bis-delta {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.bis-delta.pos { color: #22c55e; }
+.bis-delta.neg { color: #ef4444; }
+.bis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 5px;
+  /* content-sized rows — do not stretch cards into empty panel height */
+  align-content: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.bis-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  box-sizing: border-box;
+  /* hug content height */
+  height: auto;
+  align-self: start;
+}
+.bis-card-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.bis-card-val {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: #c4b5fd;
+  line-height: 1.15;
+}
+.bis-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 8px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+@container bento-card (max-width: 480px) {
+  .bis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bis-total-val { font-size: 17px; }
+}
 
 /* KPI strip */
 .deriv-kpi-strip { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; flex-shrink: 0; }
@@ -287,6 +627,188 @@
 .deriv-summary-value.call { color: #22c55e; }
 .deriv-summary-value.put  { color: #ef4444; }
 .deriv-summary-divider { width: 1px; height: 36px; background: var(--border-color); }
+
+/* SKEW Index panel */
+.deriv-panel-content.skew-host,
+.bento-panel-content.skew-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.skew-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.skew-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.skew-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 7px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  min-width: 0;
+}
+.skew-kpi-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.skew-kpi-val {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: #f59e0b;
+}
+.skew-kpi-regime,
+.skew-kpi-range {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.skew-chart {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.deriv-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Options Flow list — distinguishable contracts (not bare ticker) */
+.deriv-panel-content.flow-host,
+.bento-panel-content.flow-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.flow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+.flow-list-head,
+.flow-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) 42px 42px 40px;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.flow-list-head {
+  flex-shrink: 0;
+  padding: 0 4px 2px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.flow-list-row {
+  padding: 3px 5px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+}
+.flow-contract {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+}
+.flow-contract-main {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.flow-contract-main strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.flow-cp-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 0 4px;
+  border-radius: 3px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+.flow-cp-badge.call {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+}
+.flow-cp-badge.put {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+.flow-strike {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.flow-contract-sub {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flow-num {
+  text-align: right;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+.flow-vol { color: #60a5fa; }
+.flow-oi { color: var(--text-muted); font-weight: 600; }
+.flow-bias {
+  text-align: right;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.flow-bias.bull { color: #4ade80; }
+.flow-bias.bear { color: #f87171; }
 
 /* ── 12. Responsive ── */
 @container bento-card (max-width: 500px) {

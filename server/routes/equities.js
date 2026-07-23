@@ -4,6 +4,7 @@ import { getYahooTicker, mapToYahooTicker } from '../lib/stocks.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchJSON } from '../lib/fetch.js';
 import { stockUniverseData } from '../../src/data/stockUniverse.js';
+import { buildDegradedShell } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -209,12 +210,14 @@ router.get('/', async (req, res) => {
     });
   } catch (e) {
     console.error('[equities]', e?.message || e);
-    res.status(500).json({
-      marketId: 'equities',
-      status: 'failed',
-      error: e?.message || 'Failed to fetch equities snapshot',
-      fetchedAt: new Date().toISOString(),
-      _sources: { yahooQuotes: false },
+    // Equities is a live snapshot (no disk market cache) — still 200 for SPA.
+    return res.json({
+      ...buildDegradedShell('equities', e, {
+        marketId: 'equities',
+        status: 'degraded',
+        fetchedAt: new Date().toISOString(),
+        _sources: { yahooQuotes: false },
+      }),
     });
   }
 });

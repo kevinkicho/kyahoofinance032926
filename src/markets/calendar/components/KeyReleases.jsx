@@ -13,6 +13,24 @@ const CAT_CSS = {
   sentiment:  'cal-cat-sentiment',
 };
 
+/** Format large dollar amounts as $1.2M / $21B / $1.1T (handles string inputs). */
+function formatCompactMoney(raw) {
+  if (raw == null || raw === '') return '—';
+  const n = typeof raw === 'number' ? raw : Number(String(raw).replace(/[$,\s]/g, ''));
+  if (!Number.isFinite(n)) return String(raw);
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  const fmt = (v, suffix) => {
+    const rounded = v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2);
+    return `${sign}$${rounded.replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1')}${suffix}`;
+  };
+  if (abs >= 1e12) return fmt(abs / 1e12, 'T');
+  if (abs >= 1e9) return fmt(abs / 1e9, 'B');
+  if (abs >= 1e6) return fmt(abs / 1e6, 'M');
+  if (abs >= 1e3) return fmt(abs / 1e3, 'K');
+  return `${sign}$${abs.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
 export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpiry, section }) {
   const { colors } = useTheme();
   const kpis = useMemo(() => {
@@ -31,6 +49,13 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
   }, [keyReleases]);
 
   if (section === 'data') {
+    if (!keyReleases?.length) {
+      return (
+        <div className="cal-panel-footer" style={{ padding: 16, color: 'var(--text-muted)' }}>
+          No upcoming key US releases in the current window.
+        </div>
+      );
+    }
     return (
       <>
         {kpis && (
@@ -59,19 +84,30 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
         )}
         <div className="cal-release-list">
           {keyReleases.map((r, i) => (
-            <div key={i} className="cal-release-item">
+            <div key={`${r.date}-${r.name}-${i}`} className="cal-release-item">
               <span className="cal-release-date">{r.date}</span>
               <span className="cal-release-name">
                 {r.name}
-                <span className={`cal-cat-badge ${CAT_CSS[r.category] || ''}`}>{r.category}</span>
+                {r.category && (
+                  <span className={`cal-cat-badge ${CAT_CSS[r.category] || ''}`}>{r.category}</span>
+                )}
               </span>
-              {r.previousValue != null && <span className="cal-release-prev">Prev: <MetricValue value={r.previousValue} seriesKey="krPreviousValue" format={v => v != null ? `${v}` : '—'} /></span>}
+              {r.previousValue != null && (
+                <span className="cal-release-prev">
+                  Prev:{' '}
+                  <MetricValue
+                    value={r.previousValue}
+                    seriesKey="krPreviousValue"
+                    format={(v) => (v != null ? `${typeof v === 'number' ? (Math.abs(v) >= 100 ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : v.toFixed(2)) : v}` : '—')}
+                  />
+                </span>
+              )}
             </div>
           ))}
         </div>
-        {keyReleases.length <= 1 && (
-          <div className="cal-panel-footer">Partial source coverage: the current calendar snapshot contains {keyReleases.length} FRED key release.</div>
-        )}
+        <div className="cal-panel-footer">
+          FRED release calendars · previous print from primary series · {keyReleases.length} upcoming
+        </div>
       </>
     );
   }
@@ -98,7 +134,9 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
                   <tr key={i}>
                     <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{a.date}</td>
                     <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{a.type}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}><MetricValue value={a.amount} seriesKey="treasAuctionAmount" format={v => v != null ? `${v}` : '—'} /></td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399', fontWeight: 600, textAlign: 'right' }}>
+                      <MetricValue value={a.amount} seriesKey="treasAuctionAmount" format={formatCompactMoney} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -111,18 +149,36 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
               <span className="cal-panel-title">Options Expiry</span>
               <span className="cal-panel-subtitle" style={{ marginLeft: 8 }}>Next monthly expiry dates</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {optionsExpiry.map((e, i) => (
-                <div key={i} style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  background: 'var(--bg-card)', border: '1px solid var(--border-color)',
-                  borderRadius: 8, padding: '5px 14px', minWidth: 90,
-                }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#f43f5e' }}>{e.date}</span>
-                  <span style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{e.type}</span>
-                </div>
-              ))}
-            </div>
+            <table className="cal-table">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>#</th>
+                  <th style={{ textAlign: 'left' }}>Date</th>
+                  <th style={{ textAlign: 'left' }}>Type</th>
+                  <th style={{ textAlign: 'right' }}>Days</th>
+                </tr>
+              </thead>
+              <tbody>
+                {optionsExpiry.map((e, i) => {
+                  const days = (() => {
+                    if (!e.date) return null;
+                    const t = new Date(`${e.date}T12:00:00Z`);
+                    if (Number.isNaN(t.getTime())) return null;
+                    return Math.round((t - Date.now()) / 86400000);
+                  })();
+                  return (
+                    <tr key={`${e.date}-${i}`}>
+                      <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{i + 1}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#f43f5e' }}>{e.date}</td>
+                      <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{e.type || 'Monthly Options Expiry'}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: 11, textAlign: 'right', color: days != null && days <= 7 ? '#fbbf24' : colors.textMuted }}>
+                        {days == null ? '—' : days < 0 ? 'passed' : days === 0 ? 'today' : `${days}d`}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </>
@@ -196,7 +252,9 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
                 <tr key={i}>
                   <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{a.date}</td>
                   <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{a.type}</td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399' }}><MetricValue value={a.amount} seriesKey="treasAuctionAmount" format={v => v != null ? `${v}` : '—'} /></td>
+                  <td style={{ fontFamily: 'monospace', fontSize: 11, color: '#34d399', fontWeight: 600, textAlign: 'right' }}>
+                    <MetricValue value={a.amount} seriesKey="treasAuctionAmount" format={formatCompactMoney} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -205,23 +263,41 @@ export default function KeyReleases({ keyReleases, treasuryAuctions, optionsExpi
       )}
 
       {optionsExpiry?.length > 0 && (
-        <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '8px 14px' }}>
-          <div style={{ marginBottom: 8 }}>
+        <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '8px 0' }}>
+          <div className="cal-panel-header" style={{ padding: '8px 14px' }}>
             <span className="cal-panel-title">Options Expiry</span>
-            <span className="cal-panel-subtitle" style={{ marginLeft: 8 }}>Next monthly expiry dates</span>
+            <span className="cal-panel-subtitle">Next monthly expiry dates</span>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {optionsExpiry.map((e, i) => (
-              <div key={i} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                background: 'var(--bg-card)', border: '1px solid var(--border-color)',
-                borderRadius: 8, padding: '5px 14px', minWidth: 90,
-              }}>
-                <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#f43f5e' }}>{e.date}</span>
-                <span style={{ fontSize: 9, color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{e.type}</span>
-              </div>
-            ))}
-          </div>
+          <table className="cal-table">
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>#</th>
+                <th style={{ textAlign: 'left' }}>Date</th>
+                <th style={{ textAlign: 'left' }}>Type</th>
+                <th style={{ textAlign: 'right' }}>Days</th>
+              </tr>
+            </thead>
+            <tbody>
+              {optionsExpiry.map((e, i) => {
+                const days = (() => {
+                  if (!e.date) return null;
+                  const t = new Date(`${e.date}T12:00:00Z`);
+                  if (Number.isNaN(t.getTime())) return null;
+                  return Math.round((t - Date.now()) / 86400000);
+                })();
+                return (
+                  <tr key={`${e.date}-${i}`}>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11, color: colors.textMuted }}>{i + 1}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#f43f5e' }}>{e.date}</td>
+                    <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{e.type || 'Monthly Options Expiry'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 11, textAlign: 'right', color: days != null && days <= 7 ? '#fbbf24' : colors.textMuted }}>
+                      {days == null ? '—' : days < 0 ? 'passed' : days === 0 ? 'today' : `${days}d`}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

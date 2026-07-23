@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { readDailyCache, writeDailyCache, readLatestCache, todayStr, mergeWithPreviousCache } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchFredHistory } from '../lib/fred.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
+import { sanitizeMarketPayload, computeIsLive } from '../lib/dataHygiene.js';
 
 const router = Router();
 
@@ -45,17 +47,30 @@ async function buildVolAndGamma(spyPrice) {
       });
       volGrid.push(row);
 
-      // GEX Calculation (using first available expiry for surface-consistent layout if needed, 
-      // but usually GEX is summed across all near-term)
-      // The requirement says "for each SPY option chain", we group by strike.
-      [...calls, ...puts].forEach(opt => {
-        if (opt.gamma && opt.openInterest) {
-          const strike = opt.strike;
-          const contractSize = 100;
-          const gex = (opt.type === 'call' ? -1 : 1) * opt.delta * opt.gamma * opt.openInterest * contractSize * spyPrice * 0.01;
-          gexMap[strike] = (gexMap[strike] || 0) + gex;
-        }
-      });
+      // GEX by strike. Yahoo option chains often omit greeks (gamma/delta),
+      // so fall back to an ATM-peaked gamma estimate from IV + open interest.
+      const addGex = (opt, side) => {
+        if (!opt?.openInterest || !opt.strike) return;
+        const iv = opt.impliedVolatility || 0.2;
+        const m = Math.log((spyPrice || opt.strike) / opt.strike);
+        const estGamma =
+          typeof opt.gamma === 'number' && opt.gamma > 0
+            ? opt.gamma
+            : Math.exp(-40 * m * m) / (Math.max(spyPrice, 1) * Math.max(iv, 0.05) * Math.sqrt(2 * Math.PI * 0.08));
+        // Dealer typically short gamma on customer long options: sign flipped by side
+        // call side=+1, put side=-1 → net dealer GEX approximation in $M notional units
+        const gex =
+          -side *
+          estGamma *
+          opt.openInterest *
+          100 *
+          spyPrice *
+          spyPrice *
+          0.01;
+        gexMap[opt.strike] = (gexMap[opt.strike] || 0) + gex;
+      };
+      calls.forEach((o) => addGex(o, 1));
+      puts.forEach((o) => addGex(o, -1));
     } catch (err) {
       volGrid.push(new Array(9).fill(null));
     }
@@ -65,7 +80,8 @@ async function buildVolAndGamma(spyPrice) {
   if (total < 20) return null;
 
   const gammaExposure = Object.entries(gexMap)
-    .map(([strike, value]) => ({ strike: parseFloat(strike), value: Math.round(value / 1e6) }))
+    .map(([strike, value]) => ({ strike: parseFloat(strike), value: Math.round((value / 1e6) * 100) / 100 }))
+    .filter((g) => Number.isFinite(g.value) && g.value !== 0)
     .sort((a, b) => a.strike - b.strike);
 
   return {
@@ -80,11 +96,28 @@ router.get('/', async (req, res) => {
   const cacheKey = 'derivatives_data';
   const today = todayStr();
 
-  const daily = readDailyCache('derivatives');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+  const forceRefresh = req.query?.refresh === 'true' || req.query?.refresh === '1';
+  const DERIV_LIVE = [
+    'vixTermStructure', 'volSurfaceData', 'skewIndex', 'fredVixHistory',
+    'vixEnrichment', 'optionsFlow', 'gammaExposure', 'putCallRatio',
+  ];
+  if (!forceRefresh) {
+    const daily = readDailyCache('derivatives');
+    if (daily) {
+      const clean = sanitizeMarketPayload(daily);
+      clean.isLive = computeIsLive(clean, DERIV_LIVE);
+      return res.json({ ...clean, fetchedOn: today, isCurrent: true, _cacheSource: 'daily_file' });
+    }
 
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      const clean = sanitizeMarketPayload(cached);
+      clean.isLive = computeIsLive(clean, DERIV_LIVE);
+      return res.json({ ...clean, fetchedOn: today, isCurrent: true, _cacheSource: 'memory' });
+    }
+  } else if (cache) {
+    cache.del(cacheKey);
+  }
 
   const _errors = {};
 
@@ -221,29 +254,131 @@ router.get('/', async (req, res) => {
     } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.optionsFlow = e.message; }
 
     let skewIndex = null;
+    let skewHistory = null;
     try {
       trackApiCall('Yahoo Finance');
-      const skewQuote = await yf.quote('^SKEW').catch(e => { console.warn('[Derivatives]', e.message || e); return null; });
+      // FRED series SKEW was retired / returns 400 — use CBOE via Yahoo ^SKEW
+      // for both spot and ~1y daily history.
+      const skewPeriod1 = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 400);
+        return d.toISOString().split('T')[0];
+      })();
+      const skewPeriod2 = new Date().toISOString().split('T')[0];
+      const [skewQuote, skewHistRaw] = await Promise.all([
+        yf.quote('^SKEW').catch((e) => {
+          console.warn('[Derivatives] ^SKEW quote:', e.message || e);
+          return null;
+        }),
+        yf.historical('^SKEW', {
+          period1: skewPeriod1,
+          period2: skewPeriod2,
+          interval: '1d',
+        }).catch((e) => {
+          console.warn('[Derivatives] ^SKEW history:', e.message || e);
+          return [];
+        }),
+      ]);
+
       if (skewQuote?.regularMarketPrice != null) {
         const val = Math.round(skewQuote.regularMarketPrice * 10) / 10;
-        const interpretation = val < 120 ? 'Low tail risk' : val <= 140 ? 'Moderate' : 'Elevated tail risk';
-        skewIndex = { value: val, interpretation };
+        const interpretation =
+          val < 120 ? 'Low tail risk' : val <= 140 ? 'Moderate' : 'Elevated tail risk';
+        let asOf = todayStr();
+        const rmt = skewQuote.regularMarketTime;
+        if (rmt instanceof Date && !Number.isNaN(rmt.getTime())) {
+          asOf = rmt.toISOString().slice(0, 10);
+        } else if (typeof rmt === 'number' && Number.isFinite(rmt)) {
+          const ms = rmt > 1e12 ? rmt : rmt * 1000;
+          asOf = new Date(ms).toISOString().slice(0, 10);
+        } else if (typeof rmt === 'string' && rmt.length >= 10) {
+          asOf = rmt.slice(0, 10);
+        }
+        skewIndex = { value: val, interpretation, asOf };
       }
-    } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.skewIndex = e.message; }
 
-    // SKEW history from FRED
-    let skewHistory = null;
-    if (FRED_API_KEY) {
+      const histRows = (Array.isArray(skewHistRaw) ? skewHistRaw : [])
+        .map((row) => {
+          const close = row?.close ?? row?.adjClose;
+          if (close == null || !Number.isFinite(Number(close))) return null;
+          let dateStr = null;
+          if (row.date instanceof Date) dateStr = row.date.toISOString().slice(0, 10);
+          else if (typeof row.date === 'string') dateStr = row.date.slice(0, 10);
+          else if (typeof row.date === 'number') dateStr = new Date(row.date).toISOString().slice(0, 10);
+          if (!dateStr) return null;
+          return { date: dateStr, value: Math.round(Number(close) * 10) / 10 };
+        })
+        .filter(Boolean)
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+      if (histRows.length >= 5) {
+        skewHistory = {
+          dates: histRows.map((p) => p.date),
+          values: histRows.map((p) => p.value),
+          _source: 'yahoo_^SKEW',
+        };
+        // Ensure live spot is the last point when fresher than history
+        if (skewIndex?.value != null) {
+          const lastDate = skewHistory.dates[skewHistory.dates.length - 1];
+          const spotDate = skewIndex.asOf || todayStr();
+          if (spotDate > lastDate) {
+            skewHistory.dates.push(spotDate);
+            skewHistory.values.push(skewIndex.value);
+          } else if (spotDate === lastDate) {
+            skewHistory.values[skewHistory.values.length - 1] = skewIndex.value;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Derivatives] skew:', e.message || e);
+      _errors.skewIndex = e.message;
+    }
+
+    // Optional FRED attempt (series often unavailable) — only if Yahoo history thin
+    if ((!skewHistory?.values?.length || skewHistory.values.length < 20) && FRED_API_KEY) {
       try {
         trackApiCall('FRED');
         const skewHist = await fetchFredHistory('SKEW', FRED_API_KEY, 252);
         if (skewHist.length >= 20) {
           skewHistory = {
-            dates: skewHist.map(p => p.date),
-            values: skewHist.map(p => Math.round(p.value * 10) / 10),
+            dates: skewHist.map((p) => p.date),
+            values: skewHist.map((p) => Math.round(p.value * 10) / 10),
+            _source: 'fred_SKEW',
           };
         }
-      } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.skewHistory = e.message; }
+      } catch (e) {
+        console.warn('[Derivatives] FRED SKEW:', e.message || e);
+        _errors.skewHistory = e.message;
+      }
+    }
+
+    // Walk back prior cache if still empty
+    if (!skewHistory?.values?.length) {
+      try {
+        const prev = readLatestCache('derivatives');
+        if (prev?.data?.skewHistory?.values?.length >= 5) {
+          skewHistory = prev.data.skewHistory;
+        }
+      } catch { /* ignore */ }
+    }
+    // Last resort: single-point series so the panel still has a level
+    if (!skewHistory?.values?.length && skewIndex?.value != null) {
+      skewHistory = {
+        dates: [skewIndex.asOf || todayStr()],
+        values: [skewIndex.value],
+        _proxy: 'spot_only',
+        _source: 'yahoo_^SKEW_spot',
+      };
+    }
+    // Recover spot from history if quote failed
+    if (!skewIndex && skewHistory?.values?.length) {
+      const val = skewHistory.values[skewHistory.values.length - 1];
+      skewIndex = {
+        value: val,
+        interpretation:
+          val < 120 ? 'Low tail risk' : val <= 140 ? 'Moderate' : 'Elevated tail risk',
+        asOf: skewHistory.dates[skewHistory.dates.length - 1],
+      };
     }
 
     const vixPercentile = vixEnrichment?.vixPercentile ?? null;
@@ -274,7 +409,7 @@ router.get('/', async (req, res) => {
     };
 
 
-    const result = {
+    const result = sanitizeMarketPayload({
       vixTermStructure,
       optionsFlow,
       volSurfaceData,
@@ -289,16 +424,21 @@ router.get('/', async (req, res) => {
       termSpread,
       _sources,
       lastUpdated: today,
-    };
+    });
+    result.isLive = computeIsLive(result, DERIV_LIVE);
 
-    writeDailyCache('derivatives', result);
-    cache.set(cacheKey, result, 900);
-    res.json({ ...result, fetchedOn: today, isCurrent: true, _errors });
+    const merged = sanitizeMarketPayload(mergeWithPreviousCache('derivatives', result));
+    merged.isLive = computeIsLive(merged, DERIV_LIVE);
+    writeDailyCache('derivatives', merged);
+    cache.set(cacheKey, merged, 900);
+    res.json({ ...merged, fetchedOn: today, isCurrent: true, isLive: merged.isLive, _errors });
   } catch (error) {
     console.error('Derivatives API error:', error);
-    const fallback = readLatestCache('derivatives');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'derivatives', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'derivatives_data',
+    });
   }
 });
 

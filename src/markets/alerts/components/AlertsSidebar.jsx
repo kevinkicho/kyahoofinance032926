@@ -1,10 +1,8 @@
 import React from 'react';
-import DataFooter from '../../../components/DataFooter/DataFooter';
 
-function AlertsSidebar({ alerts, rules, enabledMap, fetchedOn, lastUpdated, isLive, fetchLog, error, isCurrent }) {
-  // Defaults: AlertsMarket.jsx renders this sidebar without enabledMap (only
-  // the AlertsDashboard-internal copy passes it). Coalesce to safe values
-  // here so the component doesn't crash regardless of caller.
+function AlertsSidebar({ alerts, rules, enabledMap, fetchedOn }) {
+  // Footer belongs on BentoCard — never render DataFooter inside content
+  // (that caused the duplicate FETCHED bar under Alert Status).
   const safeAlerts = Array.isArray(alerts) ? alerts : [];
   const safeRules = Array.isArray(rules) ? rules : [];
   const safeEnabled = enabledMap || {};
@@ -37,7 +35,7 @@ function AlertsSidebar({ alerts, rules, enabledMap, fetchedOn, lastUpdated, isLi
           </div>
         </div>
       </div>
-      <div className="alerts-sidebar-section" style={{ marginTop: 12 }}>
+      <div className="alerts-sidebar-section" style={{ marginTop: 12, borderBottom: 'none' }}>
         <div className="alerts-sidebar-title">Rule Health</div>
         <div className="alerts-sidebar-group">
           {safeRules.map(r => {
@@ -52,16 +50,6 @@ function AlertsSidebar({ alerts, rules, enabledMap, fetchedOn, lastUpdated, isLi
           })}
         </div>
       </div>
-
-      <DataFooter
-        source="Multi-market (6 endpoints)"
-        timestamp={lastUpdated}
-        isLive={isLive}
-        fetchLog={fetchLog}
-        error={error}
-        fetchedOn={fetchedOn}
-        isCurrent={isCurrent}
-      />
     </div>
   );
 }

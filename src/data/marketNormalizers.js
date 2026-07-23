@@ -37,6 +37,14 @@ function isNum(v) {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
+function firstNum(...vals) {
+  for (const v of vals) {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (v != null && v !== '' && Number.isFinite(Number(v))) return Number(v);
+  }
+  return null;
+}
+
 function pick(obj, keys) {
   for (const key of keys) {
     const value = obj?.[key];
@@ -47,13 +55,17 @@ function pick(obj, keys) {
 
 export function normalizeBondsData(data = {}) {
   const usCurve = data.yieldCurveData?.US || data.yieldCurveData?.us || {};
+  const tr = data.treasuryRates || {};
+  // Prefer explicit US* keys; fall back to curve tenors then monthly GS*/TB*
+  // averages (bills/notes/bonds) so Key Metrics never shows empty while
+  // secondary fields still have real FRED values.
   const treasuryRates = {
-    ...(data.treasuryRates || {}),
-    US3M: data.treasuryRates?.US3M ?? usCurve['3m'] ?? usCurve['3M'] ?? null,
-    US2Y: data.treasuryRates?.US2Y ?? usCurve['2y'] ?? usCurve['2Y'] ?? null,
-    US5Y: data.treasuryRates?.US5Y ?? usCurve['5y'] ?? usCurve['5Y'] ?? null,
-    US10Y: data.treasuryRates?.US10Y ?? usCurve['10y'] ?? usCurve['10Y'] ?? null,
-    US30Y: data.treasuryRates?.US30Y ?? usCurve['30y'] ?? usCurve['30Y'] ?? null,
+    ...tr,
+    US3M: firstNum(tr.US3M, usCurve['3m'], usCurve['3M'], tr.bills, tr.fedFunds),
+    US2Y: firstNum(tr.US2Y, usCurve['2y'], usCurve['2Y'], tr['0–2y'], tr['0-2y']),
+    US5Y: firstNum(tr.US5Y, usCurve['5y'], usCurve['5Y'], tr['2–5y'], tr['2-5y']),
+    US10Y: firstNum(tr.US10Y, usCurve['10y'], usCurve['10Y'], tr.notes, tr['5–10y'], tr['5-10y']),
+    US30Y: firstNum(tr.US30Y, usCurve['30y'], usCurve['30Y'], tr.bonds, tr['10y+']),
   };
   const spreadIndicators = {
     ...(data.spreadIndicators || {}),
@@ -66,6 +78,8 @@ export function normalizeBondsData(data = {}) {
   };
   const spreadData = data.spreadData ? {
     ...data.spreadData,
+    // Prefer server-provided `current` (already in bps). Fall back to last
+    // history point so KPI strips bind even on partial payloads.
     current: {
       ...(data.spreadData.current || {}),
       igSpread: data.spreadData.current?.igSpread ?? data.spreadData.current?.ig ?? data.spreadData.IG?.at?.(-1) ?? null,
@@ -106,24 +120,31 @@ export function normalizeCommoditiesData(data = {}) {
   const goldHistory = toSeries(fred.gold_am || fred.gold || data.fredCommodities?.goldHistory);
   const goldLatest = latestValue(fred.gold_am || fred.gold) ?? yahooFutures['GC=F']?.price ?? null;
   const wtiLatest = latestValue(data.eia?.wti_price || fred.wti) ?? yahooFutures['CL=F']?.price ?? null;
-  const supplyDemand = data.supplyDemandData || {};
+  // Enhanced route uses `supplyDemand`; legacy uses `supplyDemandData`.
+  const supplyDemand = data.supplyDemandData || data.supplyDemand || {};
   const eia = data.eia || {};
+  const meanVals = (vals) => {
+    if (!Array.isArray(vals) || !vals.length) return null;
+    const nums = vals.filter((v) => Number.isFinite(v));
+    return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+  };
+  const fromEia = (entry) => {
+    if (!entry) return undefined;
+    const values = (entry.history || []).map((row) => row.value);
+    return {
+      periods: (entry.history || []).map((row) => row.date),
+      values,
+      avg5yr: entry.avg ?? entry._avg5yr ?? meanVals(values),
+      latest: entry.value ?? (values.length ? values[values.length - 1] : null),
+    };
+  };
   const normalizedSupplyDemand = {
     ...supplyDemand,
-    crudeStocks: supplyDemand.crudeStocks || (eia.crude_stocks ? {
-      periods: (eia.crude_stocks.history || []).map(row => row.date),
-      values: (eia.crude_stocks.history || []).map(row => row.value),
-      avg5yr: eia.crude_stocks._avg5yr ?? null,
-    } : undefined),
-    natGasStorage: supplyDemand.natGasStorage || (eia.natgas_storage ? {
-      periods: (eia.natgas_storage.history || []).map(row => row.date),
-      values: (eia.natgas_storage.history || []).map(row => row.value),
-      avg5yr: eia.natgas_storage._avg5yr ?? null,
-    } : undefined),
-    crudeProduction: supplyDemand.crudeProduction || (eia.crude_production ? {
-      periods: (eia.crude_production.history || []).map(row => row.date),
-      values: (eia.crude_production.history || []).map(row => row.value),
-    } : undefined),
+    crudeStocks: supplyDemand.crudeStocks || fromEia(eia.crude_stocks),
+    natGasStorage: supplyDemand.natGasStorage || fromEia(eia.natgas_storage),
+    crudeProduction: supplyDemand.crudeProduction || fromEia(eia.crude_production),
+    gasolineStocks: supplyDemand.gasolineStocks || fromEia(eia.gasoline_stocks),
+    distillateStocks: supplyDemand.distillateStocks || fromEia(eia.distillate_stocks),
   };
   return {
     values: {
@@ -380,7 +401,9 @@ export function normalizeSeriesPayload(data = {}) {
 
 export function isRenderableMarketSnapshot(id, data) {
   if (!data || typeof data !== 'object') return false;
-  if (['analytics', 'watchlist', 'usda', 'censusTrade', 'eiaPetroleum'].includes(id)) {
+  if (['analytics', 'watchlist', 'usda', 'censusTrade', 'eiaPetroleum', 'fao', 'bisOTC', 'universeUpdates'].includes(id)) {
+    // Sparse auxiliary feeds: accept any non-meta payload so empty-but-valid
+    // responses (e.g. updates: []) still reach the panel instead of "API returned empty".
     return Object.keys(data).some(key => !key.startsWith('_') && data[key] != null);
   }
   if (id === 'bea') return !!(data.gdpComponents?.length || data.personalIncome?.length || data.savingRate?.length);

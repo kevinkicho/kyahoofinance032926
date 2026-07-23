@@ -12,6 +12,7 @@ import ImfReserves from '../../imf/ImfReserves';
 import ImfCofier from '../../imf/ImfCofier';
 import WbDevScatter from '../../worldbank/WbDevScatter';
 import WbTradeOpenness from '../../worldbank/WbTradeOpenness';
+import ClevelandNowcastPanel from './ClevelandNowcastPanel';
 import './GlobalMacroDashboard.css';
 
 
@@ -119,12 +120,12 @@ const LAYOUT = {
     // because they're forward-looking US macro indicators.
     { i: 'gdpnow',       x: 0, y: 31, w: 6,  h: 4 },
     { i: 'fomc-sep',     x: 6, y: 31, w: 6,  h: 4 },
-    { i: 'cleveland',    x: 0, y: 35, w: 12, h: 3 },
-    { i: 'bea-accounts', x: 0, y: 38, w: 6,  h: 4 },
-    { i: 'eurostat',     x: 6, y: 38, w: 6,  h: 4 },
-    { i: 'oecd-direct',  x: 0, y: 42, w: 12, h: 4 },
-    { i: 'bea-income',   x: 0, y: 46, w: 12, h: 4 },
-    { i: 'global-liquidity', x: 0, y: 50, w: 12, h: 3 },
+    { i: 'cleveland',    x: 0, y: 35, w: 12, h: 5 },
+    { i: 'bea-accounts', x: 0, y: 40, w: 6,  h: 4 },
+    { i: 'eurostat',     x: 6, y: 40, w: 6,  h: 4 },
+    { i: 'oecd-direct',  x: 0, y: 44, w: 12, h: 4 },
+    { i: 'bea-income',   x: 0, y: 48, w: 12, h: 4 },
+    { i: 'global-liquidity', x: 0, y: 52, w: 12, h: 4 },
   ]
 };
 
@@ -636,12 +637,23 @@ function GlobalMacroDashboard({
             </BentoCard>
           )}
 
-          {/* IMF — COFER currency-share donut */}
-          {imfData?.cofer && Object.keys(imfData.cofer).length > 0 && (
-            <BentoCard key="imf-cofer" title="COFER Currency Shares" subtitle="Global FX reserves by currency · IMF COFER · quarterly" accent="globalMacro" className="mac-bento-card" source="IMF COFER" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-              <ImfCofier cofer={imfData.cofer} lastUpdated={lastUpdated} />
-            </BentoCard>
-          )}
+          {/* IMF — COFER currency-share donut (always mount so layout stays stable) */}
+          <BentoCard
+            key="imf-cofer"
+            title="COFER Currency Shares"
+            subtitle="Global FX reserves by currency · IMF COFER · quarterly"
+            accent="globalMacro"
+            className="mac-bento-card"
+            source="IMF COFER"
+            timestamp={lastUpdated}
+            isLive={!!(imfData?.cofer && Object.keys(imfData.cofer).length > 0)}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <ImfCofier cofer={imfData?.cofer} lastUpdated={lastUpdated} />
+          </BentoCard>
 
           {/* World Bank — Trade Openness */}
           {wbData?.countries?.length > 0 && (
@@ -675,11 +687,11 @@ function GlobalMacroDashboard({
               error={error}
             >
               <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 1fr', gap: 14, height: '100%' }}>
-                <div>
+                <div style={{ overflowY: 'auto', minHeight: 0 }}>
                   <div className="mac-sidebar-title">Policy Rates</div>
                   {[
-                    { key: 'mainRefinancing', label: 'Main Refinancing (MRR)', color: '#14b8a6' },
                     { key: 'depositFacility',  label: 'Deposit Facility (DFR)',  color: '#3b82f6' },
+                    { key: 'mainRefinancing', label: 'Main Refinancing (MRR)', color: '#14b8a6' },
                     { key: 'marginalLending',  label: 'Marginal Lending (MLFR)', color: '#f59e0b' },
                   ].map(row => {
                     const obs = ecbData.policyRates[row.key];
@@ -696,6 +708,29 @@ function GlobalMacroDashboard({
                       </div>
                     );
                   })}
+                  {ecbData.moneyMarket && (
+                    <>
+                      <div className="mac-sidebar-title" style={{ marginTop: 10 }}>€STR &amp; EURIBOR</div>
+                      {[
+                        { label: '€STR', value: ecbData.moneyMarket.estr?.value, period: ecbData.moneyMarket.estr?.period, digits: 3 },
+                        { label: 'EURIBOR 1M', value: ecbData.moneyMarket.euribor1m?.value, period: ecbData.moneyMarket.euribor1m?.period, digits: 3 },
+                        { label: 'EURIBOR 3M', value: ecbData.moneyMarket.euribor3m?.value, period: ecbData.moneyMarket.euribor3m?.period, digits: 3 },
+                        { label: 'EURIBOR 6M', value: ecbData.moneyMarket.euribor6m?.value, period: ecbData.moneyMarket.euribor6m?.period, digits: 3 },
+                        { label: 'EURIBOR 1Y', value: ecbData.moneyMarket.euribor1y?.value, period: ecbData.moneyMarket.euribor1y?.period, digits: 3 },
+                        { label: 'Corridor width', value: ecbData.policyRates.corridorWidth?.value, period: ecbData.policyRates.corridorWidth?.period, digits: 2 },
+                      ].filter(r => r.value != null && Number.isFinite(Number(r.value))).map(row => (
+                        <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: `1px solid ${colors.cardBg}` }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ color: colors.textSecondary, fontSize: 11 }}>{row.label}</span>
+                            {row.period && <span style={{ color: colors.textMuted, fontSize: 9 }}>{row.period}</span>}
+                          </div>
+                          <span style={{ color: '#a78bfa', fontSize: 14, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                            {Number(row.value).toFixed(row.digits)}%
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <div className="mac-sidebar-title">HICP Inflation (YoY)</div>
@@ -795,56 +830,36 @@ function GlobalMacroDashboard({
             </BentoCard>
           )}
 
-          {/* Cleveland Fed Inflation Nowcasting — MoM + YoY tables */}
-          {cleveData?.tables?.length > 0 && (
-            <BentoCard
-              key="cleveland"
-              title="Cleveland Fed · Inflation Nowcast"
-              subtitle={cleveData.latest ? `${cleveData.latest.period}: CPI ${cleveData.latest.cpi}% · Core ${cleveData.latest.coreCpi}% · PCE ${cleveData.latest.pce}% · Core PCE ${cleveData.latest.corePce}%` : 'Current-month inflation projection'}
-              accent="globalMacro"
-              className="mac-bento-card"
-              contentClassName="mac-panel-scroll"
-              source="Cleveland Fed"
-              timestamp={cleveLastUpdated || lastUpdated}
-              isLive={!!cleveData?.isLive}
-              isCurrent={cleveData?.isCurrent !== false}
-              fetchedOn={cleveData?.fetchedOn || fetchedOn}
-              fetchLog={fetchLog}
-              error={error}
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {cleveData.tables.slice(0, 2).map((tbl, i) => (
-                  <div key={i}>
-                    <div className="mac-sidebar-title" style={{ marginBottom: 4 }}>
-                      {tbl.kind === 'mom' ? 'Month-over-Month' : tbl.kind === 'yoy' ? 'Year-over-Year' : 'Quarterly QoQ'}
-                    </div>
-                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
-                          <th style={{ textAlign: 'left', padding: '4px 6px' }}>{tbl.kind === 'quarterly' ? 'Quarter' : 'Month'}</th>
-                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>CPI</th>
-                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>Core</th>
-                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>PCE</th>
-                          <th style={{ textAlign: 'right', padding: '4px 6px' }}>Core PCE</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tbl.rows.slice(0, 4).map((r, j) => (
-                          <tr key={j} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
-                            <td style={{ padding: '4px 6px', color: colors.textSecondary }}>{r.period}</td>
-                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.cpi?.toFixed(2)}%</td>
-                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.coreCpi?.toFixed(2)}%</td>
-                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.pce?.toFixed(2)}%</td>
-                            <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.corePce?.toFixed(2)}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            </BentoCard>
-          )}
+          {/* Cleveland Fed Inflation Nowcasting — KPI strip + MoM/YoY/QoQ tables */}
+          <BentoCard
+            key="cleveland"
+            title="Cleveland Fed · Inflation Nowcast"
+            subtitle={(() => {
+              const tables = cleveData?.tables || [];
+              const yoy = tables.find((t) => t.kind === 'yoy')?.rows?.[0]
+                || cleveData?.byKind?.yoy
+                || (tables.filter((t) => t.kind === 'mom').length > 1 ? tables[1]?.rows?.[0] : null)
+                || cleveData?.latest;
+              if (yoy && yoy.cpi != null) {
+                const core = yoy.coreCpi != null ? ` · Core ${Number(yoy.coreCpi).toFixed(2)}%` : '';
+                const pce = yoy.pce != null ? ` · PCE ${Number(yoy.pce).toFixed(2)}%` : '';
+                return `${yoy.period || 'Latest'} YoY · CPI ${Number(yoy.cpi).toFixed(2)}%${core}${pce}`;
+              }
+              return cleveData ? 'Current-month inflation projection · Cleveland Fed' : 'Loading Cleveland Fed nowcast…';
+            })()}
+            accent="globalMacro"
+            className="mac-bento-card"
+            contentClassName="mac-panel-scroll"
+            source="Cleveland Fed"
+            timestamp={cleveLastUpdated || lastUpdated}
+            isLive={!!cleveData?.isLive}
+            isCurrent={cleveData?.isCurrent !== false}
+            fetchedOn={cleveData?.fetchedOn || fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
+            <ClevelandNowcastPanel data={cleveData} lastUpdated={cleveLastUpdated || lastUpdated} />
+          </BentoCard>
 
           {beaData && (beaData.gdpComponents?.length || beaData.savingRate?.length) && (
             <BentoCard
@@ -985,21 +1000,78 @@ function GlobalMacroDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 8 }}>
-              {[
-                ['Liquidity Score', globalLiquidity.drainScore, globalLiquidity.drainScore >= 15 ? '#22c55e' : globalLiquidity.drainScore <= -15 ? '#f87171' : '#f59e0b', v => `${v >= 0 ? '+' : ''}${v.toFixed(0)}`],
-                ['TGA Close', globalLiquidity.tgaLatest?.closeB, '#22d3ee', v => `$${v.toFixed(0)}B`],
-                ['TGA 5D Flow', globalLiquidity.tgaChange5d, globalLiquidity.tgaChange5d <= 0 ? '#22c55e' : '#f87171', v => `${v >= 0 ? '+' : ''}$${v.toFixed(0)}B`],
-                ['ECB M3 YoY', globalLiquidity.m3Latest?.value, '#3b82f6', v => `${v.toFixed(1)}%`],
-                ['GDPNow', globalLiquidity.gdpNow, '#a78bfa', v => `${v.toFixed(1)}%`],
-              ].map(([label, value, color, format]) => (
-                <div key={label} className="mac-metric-row" style={{ display: 'block', padding: '8px 10px', background: colors.cardBg, borderRadius: 6 }}>
-                  <div className="mac-metric-label">{label}</div>
-                  <div className="mac-metric-value" style={{ color, fontSize: 16 }}>
-                    {typeof value === 'number' && Number.isFinite(value) ? format(value) : '—'}
+            <div className="mac-liq">
+              <div className={`mac-liq-hero mac-liq-tone-${globalLiquidity.label === 'Supportive' ? 'supportive' : globalLiquidity.label === 'Tightening' ? 'tight' : 'neutral'}`}>
+                <span className="mac-liq-hero-label">Liquidity backdrop</span>
+                <strong className="mac-liq-hero-value">
+                  {Number.isFinite(globalLiquidity.drainScore)
+                    ? `${globalLiquidity.drainScore >= 0 ? '+' : ''}${globalLiquidity.drainScore.toFixed(0)}`
+                    : '—'}
+                </strong>
+                <em className="mac-liq-hero-regime">{globalLiquidity.label}</em>
+                <span className="mac-liq-hero-hint">Composite of TGA flow, euro-area M3, saving rate, GDPNow</span>
+              </div>
+
+              <div className="mac-liq-cards">
+                {[
+                  {
+                    key: 'tga',
+                    label: 'TGA Close',
+                    value: globalLiquidity.tgaLatest?.closeB,
+                    format: v => `$${Number(v).toFixed(0)}B`,
+                    sub: globalLiquidity.tgaLatest?.date || globalLiquidity.tgaLatest?.period || 'Treasury General Account',
+                    tone: 'info',
+                  },
+                  {
+                    key: 'tga5d',
+                    label: 'TGA 5D Flow',
+                    value: globalLiquidity.tgaChange5d,
+                    format: v => `${Number(v) >= 0 ? '+' : ''}$${Number(v).toFixed(0)}B`,
+                    sub: Number.isFinite(globalLiquidity.tgaChange5d)
+                      ? (globalLiquidity.tgaChange5d <= 0 ? 'TGA drain → risk-on bias' : 'TGA rebuild → drain risk')
+                      : '5-session change',
+                    tone: Number.isFinite(globalLiquidity.tgaChange5d)
+                      ? (globalLiquidity.tgaChange5d <= 0 ? 'pos' : 'neg')
+                      : 'muted',
+                  },
+                  {
+                    key: 'm3',
+                    label: 'ECB M3 YoY',
+                    value: globalLiquidity.m3Latest?.value,
+                    format: v => `${Number(v).toFixed(1)}%`,
+                    sub: globalLiquidity.m3Latest?.period || 'Euro-area broad money',
+                    tone: Number.isFinite(globalLiquidity.m3Latest?.value)
+                      ? (globalLiquidity.m3Latest.value >= 3 ? 'pos' : globalLiquidity.m3Latest.value >= 1.5 ? 'warn' : 'neg')
+                      : 'muted',
+                  },
+                  {
+                    key: 'saving',
+                    label: 'Saving Rate',
+                    value: globalLiquidity.saving?.value != null ? Number(globalLiquidity.saving.value) : null,
+                    format: v => `${Number(v).toFixed(1)}%`,
+                    sub: globalLiquidity.saving?.period || 'BEA personal saving',
+                    tone: 'info',
+                  },
+                  {
+                    key: 'gdpnow',
+                    label: 'GDPNow',
+                    value: globalLiquidity.gdpNow,
+                    format: v => `${Number(v).toFixed(1)}%`,
+                    sub: 'Atlanta Fed nowcast',
+                    tone: Number.isFinite(globalLiquidity.gdpNow)
+                      ? (globalLiquidity.gdpNow >= 2 ? 'pos' : globalLiquidity.gdpNow >= 0 ? 'warn' : 'neg')
+                      : 'muted',
+                  },
+                ].map(card => (
+                  <div key={card.key} className={`mac-liq-card mac-liq-card--${card.tone}`}>
+                    <span className="mac-liq-card-label">{card.label}</span>
+                    <strong className="mac-liq-card-value">
+                      {typeof card.value === 'number' && Number.isFinite(card.value) ? card.format(card.value) : '—'}
+                    </strong>
+                    <span className="mac-liq-card-sub">{card.sub}</span>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </BentoCard>
         </BentoWrapper>

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, Suspense, Component } from 'react';
 import MarketTabBar from './MarketTabBar';
-import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
 import { DEFAULT_MARKET, MARKETS } from './markets.config';
 import HubFooter from './HubFooter';
 import { useToast } from './ToastContext';
@@ -8,8 +7,6 @@ import { DataProvider } from './DataProvider';
 import { useMarketData, useDataContext } from './DataContext';
 import { useCurrency } from './CurrencyContext';
 import { captureBentoSnapshot } from '../utils/exportUtils';
-import { apiUrl } from '../lib/api';
-import { getRecaptchaEnterpriseToken } from '../lib/recaptchaEnterprise';
 import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import './Skeleton.css';
 import './responsive.css';
@@ -272,61 +269,25 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
   }, [addToast]);
 
   const handleRefresh = useCallback(async () => {
+    // Local-first: re-fetch all markets from the local Express API.
+    // No Firebase Auth / admin crawl required for localhost production.
     try {
-      let token = null;
-      let email = null;
-
-      // 1. Google sign-in if client-side Firebase Auth is configured
-      if (auth && googleProvider) {
-        let user = auth.currentUser;
-        if (!user) {
-          addToast('Admin sign-in required to refresh global data.', 'info');
-          return;
-        }
-        email = user.email;
-        token = await user.getIdToken();
-      } else {
-        addToast('Admin sign-in is not available in this build.', 'error');
-        return;
-      }
-
-      addToast('Admin authenticated. Triggering global refresh crawl...', 'info');
-      const recaptchaToken = await getRecaptchaEnterpriseToken('ADMIN_REFRESH');
-
-      // 3. Trigger backend crawl
-      const res = await fetch(apiUrl('/api/admin/refresh-all'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'X-Recaptcha-Token': recaptchaToken || '',
-          'X-Recaptcha-Action': 'ADMIN_REFRESH'
-        }
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.userMessage || 'Admin refresh could not be started.');
-      }
-
-      const resData = await res.json();
-
-      // 4. Reload data in frontend
-      if (dataCtx && dataCtx.refetchLatestSnapshots) {
-        dataCtx.refetchLatestSnapshots();
-        addToast('Global refresh completed! Reloading latest snapshots...', 'success');
-      } else if (dataCtx && dataCtx.refetchAll) {
-        dataCtx.refetchAll();
-        addToast('Global refresh completed! Reloading all markets...', 'success');
+      addToast('Refreshing all markets from local API…', 'info');
+      if (dataCtx?.refetchAll) {
+        await dataCtx.refetchAll();
+        addToast('Market data refresh started.', 'success');
+      } else if (dataCtx?.refetchLatestSnapshots) {
+        await dataCtx.refetchLatestSnapshots();
+        addToast('Market data refresh started.', 'success');
       } else {
         setRefreshKey(k => k + 1);
-        addToast('Global refresh completed!', 'success');
+        addToast('Market data refresh started.', 'success');
       }
     } catch (e) {
-      console.error('[HubLayout] Global refresh failed:', e);
-      addToast(e.message || 'Admin refresh could not be started.', 'error');
+      console.error('[HubLayout] Refresh failed:', e);
+      addToast(e.message || 'Refresh failed.', 'error');
     }
-  }, [dataCtx, addToast]);
+  }, [dataCtx, addToast, setRefreshKey]);
 
   // Keyboard shortcuts: 1-9,0 for markets, Ctrl+E export, Ctrl+K search, Escape
   useEffect(() => {

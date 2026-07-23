@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
+import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
 import './BondsDashboard.css';
 
@@ -10,67 +11,71 @@ const SERIES_CONFIG = [
   { key: 'BBB', label: 'BBB-Rated (Crossover)',  color: '#a78bfa' },
 ];
 
-export default function SpreadMonitor({ spreadData, mortgageSpread }) {
+export default function SpreadMonitor({ spreadData, mortgageSpread, lastUpdated }) {
   const { colors } = useTheme();
 
-  if (!spreadData || !spreadData.dates || spreadData.dates.length === 0) {
-    return (
-      <div className="bonds-panel">
-        <div className="bonds-panel-header">
-          <span className="bonds-panel-title">Credit Spread Monitor</span>
-          <span className="bonds-panel-subtitle">IG · HY · EM · BBB spreads over Treasuries</span>
-        </div>
-        <div className="bonds-empty">No spread data available — FRED credit spread series may be temporarily unavailable</div>
-      </div>
-    );
-  }
+  const hasSeries = !!(spreadData?.dates?.length
+    && SERIES_CONFIG.some(({ key }) => (spreadData[key] || []).some((v) => v != null)));
 
-  const option = useMemo(() => ({
-    animation: false,
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      formatter: (params) =>
-        `<b>${params[0].axisValue}</b><br/>` +
-        params.map(p => `${p.seriesName}: <b>${p.value} bps</b>`).join('<br/>'),
-    },
-    legend: {
-      data: SERIES_CONFIG.map(s => s.label),
-      top: 0,
-      textStyle: { color: colors.textSecondary, fontSize: 11 },
-    },
-    grid: { top: 40, right: 20, bottom: 30, left: 60 },
-    xAxis: {
-      type: 'category',
-      data: spreadData.dates,
-      axisLabel: { color: colors.textMuted, fontSize: 11 },
-      axisLine: { lineStyle: { color: colors.cardBg } },
-    },
-    yAxis: {
-      type: 'value',
-      name: 'bps',
-      nameTextStyle: { color: colors.textMuted, fontSize: 10 },
-      axisLabel: { color: colors.textMuted, fontSize: 11 },
-      splitLine: { lineStyle: { color: colors.cardBg } },
-    },
-    series: SERIES_CONFIG.map(({ key, label, color }) => ({
-      name: label,
-      type: 'line',
-      smooth: false,
-      data: spreadData[key],
-      itemStyle: { color },
-      lineStyle: { width: 2 },
-      areaStyle: { color, opacity: 0.06 },
-      symbol: 'none',
-    })),
-  }), [spreadData, colors]);
+  const option = useMemo(() => {
+    if (!hasSeries) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params) =>
+          `<b>${params[0].axisValue}</b><br/>` +
+          params.map(p => `${p.seriesName}: <b>${p.value != null ? p.value : '—'} bps</b>`).join('<br/>'),
+      },
+      legend: {
+        data: SERIES_CONFIG.map(s => s.label),
+        top: 0,
+        textStyle: { color: colors.textSecondary, fontSize: 11 },
+      },
+      grid: { top: 40, right: 20, bottom: 30, left: 60 },
+      xAxis: {
+        type: 'category',
+        data: spreadData.dates,
+        axisLabel: { color: colors.textMuted, fontSize: 11 },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'bps',
+        nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+        axisLabel: { color: colors.textMuted, fontSize: 11 },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series: SERIES_CONFIG.map(({ key, label, color }) => ({
+        name: label,
+        type: 'line',
+        smooth: false,
+        data: spreadData[key],
+        connectNulls: true,
+        itemStyle: { color },
+        lineStyle: { width: 2 },
+        areaStyle: { color, opacity: 0.06 },
+        symbol: 'none',
+      })),
+    };
+  }, [spreadData, colors, hasSeries]);
 
-  // KPI computations
   const latest = useMemo(() => {
-    const ig  = spreadData.IG?.[spreadData.IG.length - 1] ?? null;
-    const hy  = spreadData.HY?.[spreadData.HY.length - 1] ?? null;
-    const em  = spreadData.EM?.[spreadData.EM.length - 1] ?? null;
-    const bbb = spreadData.BBB?.[spreadData.BBB.length - 1] ?? null;
+    if (!spreadData) {
+      return { ig: null, hy: null, em: null, bbb: null, widest: null, hyIgGap: null, all: [] };
+    }
+    const lastNonNull = (arr) => {
+      if (!Array.isArray(arr)) return null;
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (arr[i] != null && Number.isFinite(Number(arr[i]))) return Number(arr[i]);
+      }
+      return null;
+    };
+    const ig  = spreadData.current?.igSpread ?? lastNonNull(spreadData.IG);
+    const hy  = spreadData.current?.hySpread ?? lastNonNull(spreadData.HY);
+    const em  = spreadData.current?.emSpread ?? lastNonNull(spreadData.EM);
+    const bbb = spreadData.current?.bbbSpread ?? lastNonNull(spreadData.BBB);
     const all = [
       { key: 'IG', val: ig, color: '#60a5fa' },
       { key: 'HY', val: hy, color: '#f472b6' },
@@ -82,38 +87,56 @@ export default function SpreadMonitor({ spreadData, mortgageSpread }) {
     return { ig, hy, em, bbb, widest, hyIgGap, all };
   }, [spreadData]);
 
-  // Sort bars descending for side panel
   const sortedBars = useMemo(() =>
     [...latest.all].sort((a, b) => b.val - a.val),
   [latest.all]);
   const maxSpread = sortedBars.length ? sortedBars[0].val : 1;
 
+  if (!hasSeries && latest.all.length === 0) {
+    return (
+      <div className="bonds-panel">
+        <div className="bonds-panel-header">
+          <span className="bonds-panel-title">Credit Spread Monitor</span>
+          <span className="bonds-panel-subtitle">IG · HY · EM · BBB spreads over Treasuries</span>
+        </div>
+        <div className="bonds-empty">No spread data available — FRED credit spread series may be temporarily unavailable</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bonds-panel">
+    <div className="bonds-panel" data-panel-bound="1" data-panel-live="1">
       <div className="bonds-panel-header">
         <span className="bonds-panel-title">Spread Monitor</span>
         <span className="bonds-panel-subtitle">Credit spreads over US Treasuries &middot; basis points (bps)</span>
       </div>
 
-      {/* KPI Strip */}
       <div className="bonds-kpi-strip">
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">IG Spread</span>
-          <span className="bonds-kpi-value accent">{latest.ig != null ? `${latest.ig} bps` : '\u2014'}</span>
+          <span className="bonds-kpi-value accent">
+            <MetricValue value={latest.ig} seriesKey="igSpread" timestamp={lastUpdated} format={(v) => `${Math.round(v)} bps`} />
+          </span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">HY Spread</span>
-          <span className="bonds-kpi-value accent">{latest.hy != null ? `${latest.hy} bps` : '\u2014'}</span>
+          <span className="bonds-kpi-value accent">
+            <MetricValue value={latest.hy} seriesKey="hySpread" timestamp={lastUpdated} format={(v) => `${Math.round(v)} bps`} />
+          </span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">Widest</span>
           <span className="bonds-kpi-value" style={{ color: latest.widest?.color || '#10b981' }}>
-            {latest.widest ? `${latest.widest.key} ${latest.widest.val}` : '\u2014'}
+            {latest.widest
+              ? <>{latest.widest.key} <MetricValue value={latest.widest.val} seriesKey="hySpread" timestamp={lastUpdated} format={(v) => String(Math.round(v))} /></>
+              : '—'}
           </span>
         </div>
         <div className="bonds-kpi-pill">
           <span className="bonds-kpi-label">{`HY\u2212IG Gap`}</span>
-          <span className="bonds-kpi-value accent">{latest.hyIgGap != null ? `${latest.hyIgGap} bps` : '\u2014'}</span>
+          <span className="bonds-kpi-value accent">
+            <MetricValue value={latest.hyIgGap} seriesKey="hySpread" timestamp={lastUpdated} format={(v) => `${Math.round(v)} bps`} />
+          </span>
         </div>
         {mortgageSpread != null && (
           <div className="bonds-kpi-pill">
@@ -127,10 +150,11 @@ export default function SpreadMonitor({ spreadData, mortgageSpread }) {
         )}
       </div>
 
-      {/* Wide-Narrow: Chart + Latest Bars */}
       <div className="bonds-wide-narrow">
         <div className="bonds-chart-wrap">
-          <SafeECharts option={option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Spread Monitor', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }] }} />
+          {option
+            ? <SafeECharts option={option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Spread Monitor', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'BAMLH0A0HYM2' }, { id: 'BAMLC0A0CM' }] }} />
+            : <div className="bonds-empty">Chart series incomplete</div>}
         </div>
         <div className="bonds-chart-panel">
           <div className="bonds-chart-title">Latest Spreads</div>
@@ -142,15 +166,13 @@ export default function SpreadMonitor({ spreadData, mortgageSpread }) {
                 <div className="bonds-bar-track">
                   <div className="bonds-bar-fill" style={{ width: `${pct}%`, background: s.color }} />
                 </div>
-                <span className="bonds-bar-val">{s.val} bps</span>
+                <span className="bonds-bar-val">
+                  <MetricValue value={s.val} seriesKey={s.key === 'HY' ? 'hySpread' : 'igSpread'} timestamp={lastUpdated} format={(v) => `${Math.round(v)}`} />
+                </span>
               </div>
             );
           })}
         </div>
-      </div>
-
-      <div className="bonds-panel-footer">
-        Source: ICE BofA indices via FRED &middot; spreads over US Treasuries
       </div>
     </div>
   );

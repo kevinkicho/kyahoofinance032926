@@ -2,6 +2,7 @@ import { Router } from 'express';
 import https from 'https';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -230,9 +231,11 @@ router.get('/', async (req, res) => {
     res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Institutional API error:', error);
-    const fallback = readLatestCache('institutional');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'institutional', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'institutional_data',
+    });
   }
 });
 

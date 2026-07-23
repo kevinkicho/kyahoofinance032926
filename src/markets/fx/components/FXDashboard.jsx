@@ -46,10 +46,10 @@ const LAYOUT = {
     { i: 'corr',     x: 4, y: 6,  w: 4,  h: 3 },
     { i: 'ratediff', x: 8, y: 6,  w: 4,  h: 3 },
     { i: 'carry',    x: 0, y: 9,  w: 12, h: 5 },
-    { i: 'rate-dashboard', x: 0, y: 14, w: 12, h: 3 },
-    { i: 'imf-cofer', x: 0, y: 17, w: 4, h: 4 },
-    { i: 'treasury-tic', x: 4, y: 17, w: 4, h: 4 },
-    { i: 'bis-reer', x: 8, y: 17, w: 4, h: 4 },
+    { i: 'rate-dashboard', x: 0, y: 14, w: 12, h: 2 },
+    { i: 'imf-cofer', x: 0, y: 16, w: 4, h: 4 },
+    { i: 'treasury-tic', x: 4, y: 16, w: 4, h: 4 },
+    { i: 'bis-reer', x: 8, y: 16, w: 4, h: 4 },
   ]
 };
 
@@ -118,19 +118,24 @@ function FXDashboard({
 
   const rateDiffRows = useMemo(() => {
     if (!rateDifferentials) return [];
-    const policyMap = {
-      EUR: rateDifferentials.usFed_ecb,
-      GBP: rateDifferentials.usFed_boe,
-      JPY: rateDifferentials.usFed_boj,
-    };
-    return Object.entries(policyMap)
-      .filter(([, diff]) => typeof diff === 'number')
-      .map(([code, diff]) => ({
-        code,
-        diff,
-        spotChange: changes?.[code],
-        monthChange: changes1m?.[code],
-        signal: diff > 1 && (changes?.[code] ?? 0) >= 0 ? 'USD carry winning' : diff < -1 ? `${code} carry winning` : 'Balanced',
+    const policyMap = [
+      { code: 'EUR', diff: rateDifferentials.usFed_ecb, cb: rateDifferentials.ecb, cbLabel: 'ECB' },
+      { code: 'GBP', diff: rateDifferentials.usFed_boe, cb: rateDifferentials.boe, cbLabel: 'BoE' },
+      { code: 'JPY', diff: rateDifferentials.usFed_boj, cb: rateDifferentials.boj, cbLabel: 'BoJ' },
+    ];
+    return policyMap
+      .filter((r) => typeof r.diff === 'number')
+      .map((r) => ({
+        ...r,
+        fed: rateDifferentials.fed,
+        spotChange: changes?.[r.code],
+        monthChange: changes1m?.[r.code],
+        signal:
+          r.diff > 1 && (changes?.[r.code] ?? 0) >= 0
+            ? 'USD carry winning'
+            : r.diff < -1
+              ? `${r.code} carry winning`
+              : 'Balanced',
       }))
       .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
   }, [rateDifferentials, changes, changes1m]);
@@ -170,7 +175,7 @@ function FXDashboard({
           Live FX rates unavailable — showing static fallback rates. All changes will be 0%.
         </div>
       )}
-      <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v7">
+      <BentoWrapper layout={LAYOUT} storageKey="fx-layout-v8">
         <BentoCard key="kpi" panelKey="kpi" title="FX Key Metrics" subtitle="Spot rates · DXY · G10 average" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="Frankfurter / FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
           <MarketKpiStrip kpis={kpiItems} bare />
         </BentoCard>
@@ -262,10 +267,10 @@ function FXDashboard({
           <BentoCard
             key="rate-dashboard"
             title="Rate Differential Dashboard"
-            subtitle="Policy-rate support versus recent spot performance"
+            subtitle="Fed policy vs ECB / BoE / BoJ · spot 1D / 1M"
             accent="fx"
             className="fx-bento-card"
-            contentClassName="fx-panel-content fx-panel-scroll"
+            contentClassName="fx-panel-content rd-host"
             source="FRED / Central Banks / Frankfurter"
             timestamp={lastUpdated}
             isLive={!!rateDiffRows.length}
@@ -274,31 +279,74 @@ function FXDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-              {rateDiffRows.map(row => (
-                <div key={row.code} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 6, padding: '8px 10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <strong style={{ color: colors.textPrimary }}>{row.code}/USD</strong>
-                    <span style={{ color: row.diff >= 0 ? '#22c55e' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>
+            <div className="rd-panel">
+              {rateDifferentials?.fed != null && (
+                <div className="rd-policy-strip">
+                  {[
+                    { label: 'Fed', value: rateDifferentials.fed, color: '#60a5fa' },
+                    { label: 'ECB', value: rateDifferentials.ecb, color: '#a78bfa' },
+                    { label: 'BoE', value: rateDifferentials.boe, color: '#34d399' },
+                    { label: 'BoJ', value: rateDifferentials.boj, color: '#fbbf24' },
+                  ].filter((p) => p.value != null).map((p) => (
+                    <div key={p.label} className="rd-policy-pill">
+                      <span className="rd-policy-label">{p.label}</span>
+                      <span className="rd-policy-val" style={{ color: p.color }}>{Number(p.value).toFixed(2)}%</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="rd-table" role="table">
+                <div className="rd-thead" role="row">
+                  <span>Pair</span>
+                  <span>Fed − CB</span>
+                  <span>CB rate</span>
+                  <span>1D</span>
+                  <span>1M</span>
+                  <span>Signal</span>
+                </div>
+                {rateDiffRows.map((row) => (
+                  <div key={row.code} className="rd-row" role="row">
+                    <span className="rd-pair">
+                      <strong>{row.code}</strong>
+                      <span className="rd-pair-sub">vs USD · {row.cbLabel}</span>
+                    </span>
+                    <span className={`rd-num ${row.diff >= 0 ? 'pos' : 'neg'}`}>
                       {row.diff >= 0 ? '+' : ''}{row.diff.toFixed(2)}%
                     </span>
+                    <span className="rd-num muted">
+                      {row.cb != null ? `${Number(row.cb).toFixed(2)}%` : '—'}
+                    </span>
+                    <span className={`rd-num ${(row.spotChange ?? 0) >= 0 ? 'pos' : 'neg'}`}>
+                      {row.spotChange != null ? `${row.spotChange >= 0 ? '+' : ''}${row.spotChange.toFixed(2)}%` : '—'}
+                    </span>
+                    <span className={`rd-num ${(row.monthChange ?? 0) >= 0 ? 'pos' : 'neg'}`}>
+                      {row.monthChange != null ? `${row.monthChange >= 0 ? '+' : ''}${row.monthChange.toFixed(2)}%` : '—'}
+                    </span>
+                    <span className="rd-signal">{row.signal}</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8, fontSize: 11 }}>
-                    <span style={{ color: colors.textMuted }}>1D</span>
-                    <span style={{ textAlign: 'right', color: (row.spotChange ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>{row.spotChange != null ? `${row.spotChange >= 0 ? '+' : ''}${row.spotChange.toFixed(2)}%` : '—'}</span>
-                    <span style={{ color: colors.textMuted }}>1M</span>
-                    <span style={{ textAlign: 'right', color: (row.monthChange ?? 0) >= 0 ? '#22c55e' : '#f87171' }}>{row.monthChange != null ? `${row.monthChange >= 0 ? '+' : ''}${row.monthChange.toFixed(2)}%` : '—'}</span>
-                  </div>
-                  <div style={{ marginTop: 8, color: colors.textSecondary, fontSize: 11 }}>{row.signal}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </BentoCard>
         )}
-        <BentoCard key="imf-cofer" title="IMF COFER Reserves" subtitle="Currency composition of official FX reserves" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="IMF COFER" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        <BentoCard
+          key="imf-cofer"
+          title="IMF COFER Reserves"
+          subtitle="Currency composition of official FX reserves"
+          accent="fx"
+          className="fx-bento-card"
+          contentClassName="fx-panel-content cofer-host"
+          source="IMF COFER"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
           <ImfCoferPanel />
         </BentoCard>
-        <BentoCard key="treasury-tic" title="Treasury TIC Holdings" subtitle="Top foreign holders of US Treasury securities" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="US Treasury TIC" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        <BentoCard key="treasury-tic" title="Treasury TIC Holdings" subtitle="Top foreign holders of US Treasury securities" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content tic-host" source="US Treasury TIC" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
           <TreasuryTicPanel />
         </BentoCard>
         <BentoCard key="bis-reer" title="BIS REER Comparison" subtitle="Real effective exchange rates for major economies" accent="fx" className="fx-bento-card" contentClassName="fx-panel-content" source="BIS / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>

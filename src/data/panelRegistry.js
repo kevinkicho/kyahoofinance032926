@@ -20,7 +20,10 @@ function hasArrayValues(obj, minKeys = 2) {
 }
 
 const SHAPE_CHECKS = {
-  // FX history must be keyed by currency code with array values, not by date
+  // FX REER panel uses `reer` (not reerData) from /api/fx
+  // Carry Map uses rateDifferentials (not carryData)
+
+// FX history must be keyed by currency code with array values, not by date
   fxHistory: (val) => {
     if (!val || typeof val !== 'object') return { ok: false, detail: 'null or not object' };
     const keys = Object.keys(val);
@@ -184,9 +187,9 @@ export const PANEL_REGISTRY = {
     { id: 'rate-matrix', title: 'Rate Matrix', field: 'spotRates', fieldPath: 'spotRates', source: 'fx.js', external: [{ name: 'Frankfurter / FRED', seriesIds: ['DEXUSEU','DEXJPUS'] }], renderCheck: 'spotRates && Object.keys(spotRates).length > 0' },
     { id: 'top-movers', title: 'Top Movers', field: 'changes1d', fieldPath: 'changes1d', source: 'fx.js', external: [{ name: 'Frankfurter', seriesIds: [] }], renderCheck: 'changes1d && Object.keys(changes1d).length > 0' },
     { id: 'dxy', title: 'DXY Tracker', field: 'dxyHistory', fieldPath: 'dxyHistory', source: 'fx.js', external: [{ name: 'FRED', seriesIds: ['DTWEXBGS'] }], renderCheck: 'dxyHistory?.dates?.length > 0', renderType: 'SafeECharts' },
-    { id: 'carry', title: 'Carry Map', field: 'carryData', fieldPath: 'carryData', source: 'fx.js', external: [{ name: 'FRED / ECB', seriesIds: ['FEDFUNDS','ECBMRRFR'] }], renderCheck: 'carryData && Object.keys(carryData).length > 0' },
+    { id: 'carry', title: 'Carry Map', field: 'rateDifferentials', fieldPath: 'rateDifferentials', source: 'fx.js', external: [{ name: 'FRED / ECB', seriesIds: ['FEDFUNDS','ECBMRRFR'] }], renderCheck: 'rateDifferentials && (rateDifferentials.fed != null || Object.keys(rateDifferentials).length > 0)' },
     { id: 'correlation', title: 'Correlation Matrix', field: 'history', fieldPath: 'history', source: 'fx.js:33 (Frankfurter)', external: [{ name: 'Frankfurter', seriesIds: [] }], renderCheck: '!!history && Object.keys(history).length > 0', renderType: 'CurrencyCorrelationMatrix', shapeCheck: SHAPE_CHECKS.fxHistory, notes: 'Component expects history keyed by currency code with array values (e.g. { EUR: [...rates] }), NOT date→currency. If shape is wrong, panel shows "No history available for correlation".' },
-    { id: 'reer', title: 'REER Chart', field: 'reerData', fieldPath: 'reerData', source: 'fx.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'reerData?.dates?.length > 0', renderType: 'SafeECharts' },
+    { id: 'reer', title: 'REER Chart', field: 'reer', fieldPath: 'reer', source: 'fx.js', external: [{ name: 'BIS / FRED', seriesIds: [] }], renderCheck: 'reer?.dates?.length > 0', renderType: 'SafeECharts' },
     { id: 'imf-cofer', title: 'IMF COFER Reserves', field: 'imfReserves', fieldPath: 'imfReserves', source: 'fx.js (IMF COFER)', external: [{ name: 'IMF', seriesIds: [] }], renderCheck: 'imfReserves?.reserves && Object.keys(imfReserves.reserves).length > 0', renderType: 'ImfCoferPanel' },
     { id: 'treasury-tic', title: 'Treasury TIC Holdings', field: '(cross-market: treasuryTIC)', fieldPath: 'ticCtx.data.latest', source: 'treasuryTIC.js', external: [{ name: 'US Treasury TIC', seriesIds: [] }], renderCheck: 'ticCtx?.data?.latest?.length > 0', renderType: 'TreasuryTicPanel' },
     { id: 'bis-reer', title: 'BIS REER Comparison', field: 'reer', fieldPath: 'reer', source: 'fx.js (BIS/FRED)', external: [{ name: 'BIS', seriesIds: ['RNBUSBIS','RNBEBIS','RNJPBIS','RNGBBIS','RNCBBIS'] }], renderCheck: 'reer?.dates?.length > 0', renderType: 'BisReerPanel' },
@@ -211,8 +214,6 @@ export const PANEL_REGISTRY = {
     { id: 'bar-race', title: 'Bar Race', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'BarRaceView' },
     { id: 'list', title: 'List View', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0', renderType: 'ListView' },
     { id: 'portfolio', title: 'Portfolio Tracker', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'quotes && Object.keys(quotes).length > 0' },
-    { id: 'ml-explorer', title: 'ML Explorer', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js + equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'flatData && flatData.length > 0', renderType: 'MLExplorer' },
-    { id: 'radar', title: 'Factor Radar', field: 'quotes', fieldPath: 'quotes', source: 'stocks.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'flatData && flatData.length > 0', renderType: 'RadarView' },
     { id: 'sec-fundamentals', title: 'SEC Fundamentals', field: '(cross-market: edgar)', fieldPath: 'edgarCtx.data', source: 'edgar.js (SEC EDGAR XBRL)', external: [{ name: 'SEC EDGAR', seriesIds: [] }], renderCheck: 'edgarRows && edgarRows.length > 0', renderType: 'BentoCard table' },
     { id: 'bea-corporate-profits', title: 'BEA Corporate Profits', field: '(cross-market: bea)', fieldPath: 'beaCtx.data.gdpComponents', source: 'bea.js', external: [{ name: 'Bureau of Economic Analysis', seriesIds: [] }], renderCheck: 'beaCtx?.data?.gdpComponents?.length > 0', renderType: 'BentoCard table' },
     { id: 'wb-market-cap', title: 'World Bank Market Cap', field: '(cross-market: worldbank)', fieldPath: 'wbCtx.data.countries', source: 'worldbank.js', external: [{ name: 'World Bank', seriesIds: ['CM.MKT.LCAP.GD.ZS'] }], renderCheck: 'wbCtx?.data?.countries?.length > 0', renderType: 'BentoCard table' },

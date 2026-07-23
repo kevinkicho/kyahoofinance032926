@@ -1,7 +1,7 @@
 import express from 'express';
-import yahooFinance from 'yahoo-finance2';
 import { todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { yf } from '../lib/yahoo.js';
 
 const router = express.Router();
 
@@ -9,22 +9,15 @@ const router = express.Router();
 const TICKER_RE = /^[A-Z0-9^][A-Z0-9.\-^=]{0,15}$/;
 const MAX_TICKERS = 100;
 
-// DataProvider does an initial GET on every market endpoint (see
-// fetchAllMarkets in src/hub/DataProvider.jsx). Without a GET handler
-// here the request fell through to the static fallback which returns
-// dist/index.html → DataProvider's JSON.parse blew up → the whole
-// initial-fetch wave threw "Unexpected token '<'" and dropped sibling
-// markets too. Empty-but-valid JSON keeps the wave alive; the actual
-// quotes still flow through the POST handler when WatchlistMarket
-// pushes its localStorage tickers.
-const DEFAULT_TICKERS = ['SPY','QQQ','IWM','EFA','EEM','AGG','GLD','TLT','XLK','XLF'];
+// DataProvider GETs every market endpoint. Default basket so watchlist
+// panels have a real quote stream on first paint (not empty []).
+const DEFAULT_TICKERS = ['SPY', 'QQQ', 'IWM', 'EFA', 'EEM', 'AGG', 'GLD', 'TLT', 'XLK', 'XLF'];
 
-router.get('/', async (_req, res) => {
-  try {
-    trackApiCall('Yahoo Finance', DEFAULT_TICKERS.length);
-    const results = await yahooFinance.quotes(DEFAULT_TICKERS);
-
-    const quotes = results.map(q => ({
+function normalizeQuotes(results) {
+  const arr = Array.isArray(results) ? results : results ? [results] : [];
+  return arr
+    .filter(Boolean)
+    .map(q => ({
       symbol: q.symbol,
       price: q.regularMarketPrice,
       change: q.regularMarketChange,
@@ -33,15 +26,27 @@ router.get('/', async (_req, res) => {
       marketCap: q.marketCap,
       weekHigh52: q.fiftyTwoWeekHigh,
       weekLow52: q.fiftyTwoWeekLow,
-    }));
+    }))
+    .filter(q => q.symbol && q.price != null);
+}
 
+async function fetchQuotes(tickers) {
+  trackApiCall('Yahoo Finance', tickers.length);
+  // yahoo-finance2 v3: instance method is quote() (not quotes)
+  const results = await yf.quote(tickers);
+  return normalizeQuotes(results);
+}
+
+router.get('/', async (_req, res) => {
+  try {
+    const quotes = await fetchQuotes(DEFAULT_TICKERS);
     res.json({
       quotes,
-      _sources: { yahooFinance: true },
+      _sources: { yahooFinance: quotes.length > 0 },
       lastUpdated: new Date().toISOString(),
       fetchedOn: todayStr(),
-      isLive: true,
-      isCurrent: true,
+      isLive: quotes.length > 0,
+      isCurrent: quotes.length > 0,
     });
   } catch (err) {
     console.error('[Watchlist API] GET default fetch error:', err.message);
@@ -52,6 +57,7 @@ router.get('/', async (_req, res) => {
       fetchedOn: todayStr(),
       isLive: false,
       isCurrent: false,
+      error: err.message,
     });
   }
 });
@@ -72,27 +78,14 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    trackApiCall('Yahoo Finance', tickers.length);
-    const results = await yahooFinance.quotes(tickers);
-
-    const quotes = results.map(q => ({
-      symbol: q.symbol,
-      price: q.regularMarketPrice,
-      change: q.regularMarketChange,
-      changePct: q.regularMarketChangePercent,
-      name: q.shortName || q.longName,
-      marketCap: q.marketCap,
-      weekHigh52: q.fiftyTwoWeekHigh,
-      weekLow52: q.fiftyTwoWeekLow,
-    }));
-
+    const quotes = await fetchQuotes(tickers);
     res.json({
       quotes,
-      _sources: { yahooFinance: true },
+      _sources: { yahooFinance: quotes.length > 0 },
       lastUpdated: new Date().toISOString(),
       fetchedOn: todayStr(),
-      isLive: true,
-      isCurrent: true,
+      isLive: quotes.length > 0,
+      isCurrent: quotes.length > 0,
     });
   } catch (err) {
     console.error('[Watchlist API] Batch fetch error:', err.message);

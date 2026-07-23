@@ -39,35 +39,55 @@ function CreditMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
     // Server returns spreadData as { current: { igSpread, hySpread, ... },
-    // history, etfs } — an object, not an array. The previous .find()/.map()
-    // shape was leftover from an older API contract and crashed the panel.
-    // Spreads are basis points, so currency conversion doesn't apply.
+    // history, etfs } — an object, not an array. Spreads are basis points.
     const cur = props.spreadData?.current || {};
 
-    // Derive scalars the KPI strip expects from the actual server shape:
-    // - emBondData: server returns `{countries:[{spread},...], regions, noYahoo}`
-    //   so compute the average spread across countries that have one.
-    // - defaultData: server returns `{rates:[{category,value,...}], ...}`
-    //   so pluck the HY default rate from the rates array.
+    // EM KPI: prefer FRED BAMLEMCBPIOAS (spreadData.current.emSpread). Country
+    // ETF yields rarely populate `.spread`, so averaging them left the KPI blank.
     const emCountries = Array.isArray(props.emBondData?.countries) ? props.emBondData.countries : [];
     const emSpreads = emCountries.map(c => c?.spread).filter(v => typeof v === 'number');
     const emSpreadAvg = emSpreads.length > 0
       ? Math.round(emSpreads.reduce((s, v) => s + v, 0) / emSpreads.length)
       : null;
-    const hyDefault = Array.isArray(props.defaultData?.rates)
-      ? props.defaultData.rates.find(r => /HY Default/i.test(r?.category))?.value
-      : null;
+    const emSpread = typeof cur.emSpread === 'number' ? cur.emSpread : emSpreadAvg;
+
+    // Default Rate KPI: "HY Default Rate (TTM)" is proprietary/null. Fall back
+    // through real FRED charge-off / distress rows so Key Metrics isn't empty.
+    const rateRows = Array.isArray(props.defaultData?.rates) ? props.defaultData.rates : [];
+    const pickRate = (...patterns) => {
+      for (const re of patterns) {
+        const hit = rateRows.find(r => re.test(r?.category) && typeof r?.value === 'number');
+        if (hit) return hit.value;
+      }
+      const any = rateRows.find(r => typeof r?.value === 'number');
+      return typeof any?.value === 'number' ? any.value : null;
+    };
+    const defaultRate = pickRate(
+      /C&I Charge-Off|Commercial Charge-Off/i,
+      /Credit Card Charge-Off/i,
+      /Mortgage Charge-Off|Consumer Charge-Off/i,
+      /C&I Delinquency/i,
+      /HY Default/i,
+      /Distress/i,
+      /Loan Default/i,
+    );
+
+    const cpRate = typeof props.commercialPaper?.rate === 'number'
+      ? props.commercialPaper.rate
+      : (typeof props.commercialPaper?.financial3m === 'number'
+        ? props.commercialPaper.financial3m
+        : (typeof props.commercialPaper?.nonfinancial3m === 'number'
+          ? props.commercialPaper.nonfinancial3m
+          : null));
 
     // KPI strip becomes a real bento child rendered inside CreditDashboard.
-    // Pass it via the `kpiPanel` prop. CreditKpiStrip is reused unchanged
-    // (it already renders a MarketKpiStrip with seriesKeys).
     const kpiPanel = (
       <CreditKpiStrip
-        igOas={cur.igSpread}
-        hyOas={cur.hySpread}
-        emSpread={emSpreadAvg}
-        defaultRate={typeof hyDefault === 'number' ? hyDefault : null}
-        cpRate={props.commercialPaper?.rate}
+        igOas={typeof cur.igSpread === 'number' ? cur.igSpread : null}
+        hyOas={typeof cur.hySpread === 'number' ? cur.hySpread : null}
+        emSpread={emSpread}
+        defaultRate={defaultRate}
+        cpRate={cpRate}
         lastUpdated={props.lastUpdated}
         isLive={props.isLive}
         fetchLog={props.fetchLog}

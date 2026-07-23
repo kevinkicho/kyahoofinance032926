@@ -63,13 +63,148 @@ const HEATMAP_SECTOR = {
 };
 
 const FUTURES_NAMES = {
-  'CL=F': 'WTI Crude', 'BZ=F': 'Brent Crude', 'NG=F': 'Natural Gas', 'HO=F': 'Heating Oil',
+  // Names must match sidebar/KPI filters (e.g. "WTI Crude Oil") and PriceDashboard labels.
+  'CL=F': 'WTI Crude Oil', 'BZ=F': 'Brent Crude', 'NG=F': 'Natural Gas', 'HO=F': 'Heating Oil',
   'GC=F': 'Gold', 'SI=F': 'Silver', 'PL=F': 'Platinum', 'PA=F': 'Palladium',
   'HG=F': 'Copper',
   'ZC=F': 'Corn', 'ZW=F': 'Wheat', 'ZO=F': 'Oats', 'ZS=F': 'Soybeans', 'ZL=F': 'Soybean Oil', 'ZM=F': 'Soybean Meal',
   'KC=F': 'Coffee', 'CT=F': 'Cotton', 'SB=F': 'Sugar',
   'LE=F': 'Live Cattle', 'GF=F': 'Feeder Cattle', 'HE=F': 'Lean Hogs',
 };
+
+/**
+ * Normalize a futures curve for the UI: drop null months, attach spotPrice,
+ * and derive contango from the first two finite prices.
+ */
+function enrichFuturesCurve(curve, spotFallback) {
+  if (!curve || !Array.isArray(curve.labels) || !curve.labels.length) return null;
+  const pricesIn = Array.isArray(curve.prices) ? curve.prices : [];
+  const pairs = curve.labels
+    .map((label, i) => ({ label, price: pricesIn[i] }))
+    .filter((p) => typeof p.price === 'number' && Number.isFinite(p.price));
+  if (!pairs.length) return null;
+  const prices = pairs.map((p) => p.price);
+  const spot = (typeof curve.spotPrice === 'number' && Number.isFinite(curve.spotPrice))
+    ? curve.spotPrice
+    : (typeof spotFallback === 'number' && Number.isFinite(spotFallback) ? spotFallback : prices[0]);
+  let contangoPct = curve.contangoPct;
+  if (contangoPct == null && prices.length >= 2 && prices[0]) {
+    contangoPct = Math.round(((prices[prices.length - 1] / prices[0]) - 1) * 1000) / 10;
+  }
+  const structure = curve.structure
+    || (contangoPct == null ? null
+      : contangoPct > 0.35 ? 'Contango'
+      : contangoPct < -0.35 ? 'Backwardation'
+      : 'Flat');
+  return {
+    labels: pairs.map((p) => p.label),
+    prices,
+    unit: curve.unit || null,
+    spotPrice: spot,
+    contangoPct: contangoPct ?? null,
+    structure: structure ?? null,
+  };
+}
+
+/** Mean of finite numbers, or null. */
+function seriesMean(values) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const nums = values.filter((v) => Number.isFinite(v));
+  if (!nums.length) return null;
+  return nums.reduce((a, b) => a + b, 0) / nums.length;
+}
+
+/**
+ * EIA weekly petroleum inventory/production series arrive as thousand barrels
+ * (EIA "MBBL") while the UI charts label Million Barrels / M bbl/day.
+ * Scale down when values look like thousand-unit raw EIA (stocks ≫ 2k,
+ * production ≫ 100). Idempotent if already converted.
+ */
+function scaleEiaSeriesForDisplay(series, kind = 'stocks') {
+  if (!series || typeof series !== 'object') return series;
+  const values = Array.isArray(series.values) ? series.values : [];
+  const latestHint = Number.isFinite(series.latest)
+    ? series.latest
+    : (values.length ? values[values.length - 1] : null);
+  const thr = kind === 'production' ? 100 : kind === 'natgas' ? Infinity : 2000;
+  const needsScale = Number.isFinite(latestHint) && latestHint >= thr;
+  const scale = (v) => (Number.isFinite(v) ? Math.round((v / 1000) * 100) / 100 : v);
+  const nextValues = needsScale ? values.map(scale) : values;
+  let avg = series.avg5yr;
+  if (needsScale && Number.isFinite(avg)) avg = scale(avg);
+  if (avg == null) avg = seriesMean(nextValues);
+  if (Number.isFinite(avg)) avg = Math.round(avg * 10) / 10;
+  const latest = needsScale && Number.isFinite(series.latest)
+    ? scale(series.latest)
+    : (series.latest ?? (nextValues.length ? nextValues[nextValues.length - 1] : null));
+  return {
+    ...series,
+    periods: Array.isArray(series.periods) ? series.periods : [],
+    values: nextValues,
+    avg5yr: avg,
+    latest: latest ?? null,
+  };
+}
+
+function seriesFromEia(eiaEntry) {
+  if (!eiaEntry) return null;
+  const history = Array.isArray(eiaEntry.history) ? eiaEntry.history : [];
+  if (!history.length && eiaEntry.value == null) return null;
+  const periods = history.map((h) => h.date);
+  const values = history.map((h) => h.value);
+  const avg = eiaEntry.avg ?? eiaEntry._avg5yr ?? seriesMean(values);
+  return {
+    periods,
+    values,
+    avg5yr: avg,
+    latest: eiaEntry.value ?? (values.length ? values[values.length - 1] : null),
+  };
+}
+
+/**
+ * Build UI supplyDemandData from enhanced payload.
+ * Prefer server-built `supplyDemand` (has avg5yr), fill gaps from `eia.*`,
+ * then normalize EIA thousand-barrel units for display.
+ */
+function buildSupplyDemandData(d) {
+  const fromServer = d.supplyDemand && typeof d.supplyDemand === 'object' ? d.supplyDemand : {};
+  const eia = d.eia || {};
+
+  const pick = (serverKey, eiaKey, kind) => {
+    const s = fromServer[serverKey];
+    const hasVals = s && Array.isArray(s.values) && s.values.length > 0;
+    const raw = hasVals
+      ? {
+          periods: s.periods || [],
+          values: s.values,
+          avg5yr: s.avg5yr ?? null,
+          latest: s.latest ?? s.values[s.values.length - 1],
+        }
+      : seriesFromEia(eia[eiaKey]);
+    if (!raw) return null;
+    return scaleEiaSeriesForDisplay(raw, kind);
+  };
+
+  const sd = {};
+  const crudeStocks = pick('crudeStocks', 'crude_stocks', 'stocks');
+  if (crudeStocks) {
+    sd.crudeStocks = crudeStocks;
+    sd.crudeStocksLatest = crudeStocks.latest;
+  }
+  const natGas = pick('natGasStorage', 'natgas_storage', 'natgas');
+  if (natGas) {
+    sd.natGasStorage = natGas;
+    sd.natGasLatest = natGas.latest;
+  }
+  const prod = pick('crudeProduction', 'crude_production', 'production');
+  if (prod) sd.crudeProduction = prod;
+  const gas = pick('gasolineStocks', 'gasoline_stocks', 'stocks');
+  if (gas) sd.gasolineStocks = gas;
+  const dist = pick('distillateStocks', 'distillate_stocks', 'stocks');
+  if (dist) sd.distillateStocks = dist;
+
+  return Object.keys(sd).length > 0 ? sd : null;
+}
 
 function mapV2ToLegacy(d) {
   const result = { priceDashboardData: null, futuresCurveData: null, sectorHeatmapData: null, supplyDemandData: null, cotData: null, fredCommodities: null, goldFuturesCurve: null, dbcEtf: null, goldOilRatio: null, contangoIndicator: null, commodityCurrencies: null, seasonalPatterns: null };
@@ -78,63 +213,10 @@ function mapV2ToLegacy(d) {
     if (d.eia.wti_price) eiaPrices.push({ ticker: 'CL=F', name: 'WTI Crude', price: d.eia.wti_price.value, change1d: null, unit: d.eia.wti_price.unit, _source: 'EIA', _lastUpdated: d.eia.wti_price._lastUpdated });
     if (d.eia.natgas) eiaPrices.push({ ticker: 'NG=F', name: 'Natural Gas', price: d.eia.natgas.value, change1d: null, unit: d.eia.natgas.unit, _source: 'EIA', _lastUpdated: d.eia.natgas._lastUpdated });
     if (eiaPrices.length > 0) result.priceDashboardData = [{ sector: 'Energy', commodities: eiaPrices }];
-    if (d.eia.crude_stocks || d.eia.natgas_storage) {
-      const sd = {};
-      if (d.eia.crude_stocks) {
-        const cs = d.eia.crude_stocks;
-        sd.crudeStocks = {
-          periods: (cs.history || []).map(h => h.date),
-          values: (cs.history || []).map(h => h.value),
-          avg5yr: cs.avg ?? null,
-        };
-        sd.crudeStocksLatest = cs.value;
-      }
-      if (d.eia.natgas_storage) {
-        const ns = d.eia.natgas_storage;
-        sd.natGasStorage = {
-          periods: (ns.history || []).map(h => h.date),
-          values: (ns.history || []).map(h => h.value),
-          avg5yr: ns.avg ?? null,
-        };
-        sd.natGasLatest = ns.value;
-      }
-      if (d.eia.crude_production) {
-        const cp = d.eia.crude_production;
-        sd.crudeProduction = {
-          periods: (cp.history || []).map(h => h.date),
-          values: (cp.history || []).map(h => h.value),
-        };
-      }
-      if (d.eia.gasoline_stocks) {
-        const gs = d.eia.gasoline_stocks;
-        sd.gasolineStocks = {
-          periods: (gs.history || []).map(h => h.date),
-          values: (gs.history || []).map(h => h.value),
-          avg5yr: gs.avg ?? null,
-        };
-      }
-      if (d.eia.distillate_stocks) {
-        const ds = d.eia.distillate_stocks;
-        sd.distillateStocks = {
-          periods: (ds.history || []).map(h => h.date),
-          values: (ds.history || []).map(h => h.value),
-          avg5yr: ds.avg ?? null,
-        };
-      }
-      result.supplyDemandData = sd;
-    }
   }
 
-  // Fallback: server may also expose pre-built `supplyDemand` at the top
-  // level (separate from `eia.x_stocks`). When the eia path didn't yield
-  // anything, prefer that one.
-  if (!result.supplyDemandData && d.supplyDemand && typeof d.supplyDemand === 'object') {
-    const fallback = {};
-    for (const [k, v] of Object.entries(d.supplyDemand)) {
-      if (v && typeof v === 'object') fallback[k] = v;
-    }
-    if (Object.keys(fallback).length > 0) result.supplyDemandData = fallback;
-  }
+  // Always merge server supplyDemand + eia (prefer supplyDemand avg5yr).
+  result.supplyDemandData = buildSupplyDemandData(d);
   if (d.fred) {
     const fc = {};
     const wtiH = normalizeFredSeries(d.fred.wti);
@@ -230,13 +312,45 @@ function mapV2ToLegacy(d) {
     const wtiPrice = d.eia?.wti_price?.value || d.fred?.wti?.value || d.yahoo?.futures?.['CL=F']?.price;
     if (wtiPrice) result.goldOilRatio = { ratio: Math.round((goldPrice / wtiPrice) * 100) / 100 };
   }
+  // Futures curves: strip null months + attach continuous-contract spot.
+  const wtiCurve = enrichFuturesCurve(
+    d.futuresCurveData,
+    d.yahoo?.futures?.['CL=F']?.price ?? d.eia?.wti_price?.value,
+  );
+  if (wtiCurve) result.futuresCurveData = wtiCurve;
+  const goldCurve = enrichFuturesCurve(
+    d.goldFuturesCurve,
+    d.yahoo?.futures?.['GC=F']?.price,
+  );
+  if (goldCurve) result.goldFuturesCurve = goldCurve;
+
+  // Contango indicator for sidebar / price dashboard KPI.
+  if (d.contangoIndicator?.contangoPct != null || d.contangoIndicator?.structure) {
+    result.contangoIndicator = {
+      contangoPct: d.contangoIndicator.contangoPct ?? wtiCurve?.contangoPct ?? null,
+      structure: d.contangoIndicator.structure
+        || wtiCurve?.structure
+        || null,
+    };
+  } else if (wtiCurve?.contangoPct != null) {
+    result.contangoIndicator = {
+      contangoPct: wtiCurve.contangoPct,
+      structure: wtiCurve.structure,
+    };
+  }
+
+  // Pass through seasonal patterns when server provides them.
+  if (d.seasonalPatterns && typeof d.seasonalPatterns === 'object') {
+    result.seasonalPatterns = d.seasonalPatterns;
+  }
   return result;
 }
 
 function getCommoditiesProps(centralData) {
   const d = centralData.data || {};
   const normalized = normalizeCommoditiesData(d);
-  const hasV2 = d.eia || d.fred || d.yahoo || d.worldBank;
+  const hasV2 = !!(d.eia || d.fred || d.yahoo || d.worldBank
+    || d.futuresCurveData || d.goldFuturesCurve || d.supplyDemand || d.supplyDemandData);
   const mapped = hasV2 ? mapV2ToLegacy(d) : {};
   const fredCommodities = d.fredCommodities || mapped.fredCommodities || {};
   if (!fredCommodities.goldHistory?.dates?.length && normalized.series.goldHistory?.dates?.length) {
@@ -249,17 +363,60 @@ function getCommoditiesProps(centralData) {
       timestamp: d.fred?.gold_am?._lastUpdated || d.yahoo?.futures?.['GC=F']?._lastUpdated || d._timestamp,
     };
   }
+  // Gold / silver / platinum / palladium from Yahoo futures when FRED gold
+  // series is retired and SLVPRUSD is unavailable — keeps Precious Metals
+  // Complex ratios and Latest columns populated.
+  if (!fredCommodities.goldLatest && d.yahoo?.futures?.['GC=F']?.price != null) {
+    fredCommodities.goldLatest = {
+      price: d.yahoo.futures['GC=F'].price,
+      source: 'Yahoo Finance',
+      timestamp: d.yahoo.futures['GC=F']._lastUpdated || d._timestamp,
+    };
+  }
+  if (!fredCommodities.silverLatest && d.yahoo?.futures?.['SI=F']?.price != null) {
+    fredCommodities.silverLatest = {
+      price: d.yahoo.futures['SI=F'].price,
+      change: d.yahoo.futures['SI=F'].change ?? null,
+      source: 'Yahoo Finance',
+      timestamp: d.yahoo.futures['SI=F']._lastUpdated || d._timestamp,
+    };
+  }
+  if (!fredCommodities.platinumLatest && d.yahoo?.futures?.['PL=F']?.price != null) {
+    fredCommodities.platinumLatest = {
+      price: d.yahoo.futures['PL=F'].price,
+      change: d.yahoo.futures['PL=F'].change ?? null,
+      source: 'Yahoo Finance',
+      timestamp: d.yahoo.futures['PL=F']._lastUpdated || d._timestamp,
+    };
+  }
+  if (!fredCommodities.palladiumLatest && d.yahoo?.futures?.['PA=F']?.price != null) {
+    fredCommodities.palladiumLatest = {
+      price: d.yahoo.futures['PA=F'].price,
+      change: d.yahoo.futures['PA=F'].change ?? null,
+      source: 'Yahoo Finance',
+      timestamp: d.yahoo.futures['PA=F']._lastUpdated || d._timestamp,
+    };
+  }
   return {
+    // Prefer mapped curves (null months stripped + spotPrice) when available.
     priceDashboardData: d.priceDashboardData || mapped.priceDashboardData,
-    futuresCurveData: d.futuresCurveData || mapped.futuresCurveData,
+    futuresCurveData: mapped.futuresCurveData || enrichFuturesCurve(d.futuresCurveData, d.yahoo?.futures?.['CL=F']?.price),
     sectorHeatmapData: d.sectorHeatmapData || mapped.sectorHeatmapData,
-    supplyDemandData: d.supplyDemandData || mapped.supplyDemandData || normalized.values.supplyDemandData,
+    // Prefer legacy shape, then mapped v2 (merged supplyDemand+eia+unit scale),
+    // then raw enhanced supplyDemand, then normalizer fallback.
+    supplyDemandData: d.supplyDemandData || mapped.supplyDemandData || d.supplyDemand || normalized.values.supplyDemandData,
     cotData: d.cotData || mapped.cotData,
     fredCommodities,
-    goldFuturesCurve: d.goldFuturesCurve || mapped.goldFuturesCurve,
-    dbcEtf: d.dbcEtf || mapped.dbcEtf,
+    goldFuturesCurve: mapped.goldFuturesCurve || enrichFuturesCurve(d.goldFuturesCurve, d.yahoo?.futures?.['GC=F']?.price),
+    dbcEtf: d.dbcEtf || mapped.dbcEtf || (d.yahoo?.dbc ? {
+      price: d.yahoo.dbc.price,
+      changePct: d.yahoo.dbc.change,
+      ytd: d.yahoo.dbc.ytd ?? null,
+      _source: d.yahoo.dbc._source,
+      _lastUpdated: d.yahoo.dbc._lastUpdated,
+    } : null),
     goldOilRatio: d.goldOilRatio || mapped.goldOilRatio || normalized.values.goldOilRatio,
-    contangoIndicator: d.contangoIndicator || mapped.contangoIndicator,
+    contangoIndicator: mapped.contangoIndicator || d.contangoIndicator,
     commodityCurrencies: d.commodityCurrencies || mapped.commodityCurrencies,
     seasonalPatterns: d.seasonalPatterns || mapped.seasonalPatterns,
     enhancedData: d.eia || d.fred || d.yahoo || d.worldBank ? d : d.enhancedData,
@@ -342,14 +499,16 @@ function CommoditiesMarket({ centralData } = {}) {
 
   // FX market keeps spotRates keyed by ISO currency — derive a small
   // commodity-bloc snapshot the Currencies panel can render.
+  // Server field is `changes1d` (not `changes`); UI reads `changePct`.
   const ccyFromFx = (() => {
     const rates = fxCtx?.data?.spotRates;
-    const changes = fxCtx?.data?.changes;
+    const changes = fxCtx?.data?.changes1d || fxCtx?.data?.changes || {};
     if (!rates) return null;
     const out = {};
     for (const ccy of ['CAD', 'AUD', 'NOK', 'BRL', 'CLP', 'ZAR']) {
       if (rates[ccy] != null) {
-        out[ccy] = { rate: rates[ccy], change1d: changes?.[ccy] ?? null };
+        const ch = changes?.[ccy] ?? null;
+        out[ccy] = { rate: rates[ccy], change1d: ch, changePct: ch };
       }
     }
     return Object.keys(out).length > 0 ? out : null;

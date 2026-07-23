@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/start.js",
+    "dev:vite": "vite",
     "server": "node server/index.js",
     "start": "node scripts/start.js",
     "build": "vite build",
@@ -12,6 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:routing": "vitest run src/__tests__/apiRoutingRegistry.test.js src/__tests__/dataProviderApplyResult.test.js server/__tests__/panelRouting.test.js",
+    "test:panels": "playwright test tests/panel-api-routing.spec.js tests/panel-capabilities.spec.js --reporter=list",
     "test:audit": "playwright test tests/data-binding-audit.spec.js --reporter=list",
     "test:coverage": "playwright test tests/panel-coverage.spec.js --reporter=list",
     "test:persist": "playwright test tests/persistence.spec.js --reporter=list",

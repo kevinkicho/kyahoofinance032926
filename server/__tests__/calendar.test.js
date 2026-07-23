@@ -8,6 +8,7 @@ vi.mock('../lib/cache.js', () => ({
   readDailyCache: vi.fn(() => null),
   writeDailyCache: vi.fn(),
   readLatestCache: vi.fn(() => null),
+  mergeWithPreviousCache: vi.fn((_m, data) => data),
   todayStr: vi.fn(() => '2026-04-22'),
 }));
 
@@ -119,23 +120,27 @@ describe('Calendar economic calendar data fetching', () => {
     });
   });
 
-  it('includes actual and previous values from series observations', async () => {
+  it('includes lastPrint/previous from series observations (upcoming have no actual)', async () => {
     setupFREDMocks(fetchJSON);
 
     const { default: calendarRouter } = await import('../routes/calendar.js');
     const routeHandler = calendarRouter.stack[0].route.stack[0].handle;
 
-    const mockCache = new Map();
+    const mockCache = { get: () => null, set: () => {}, del: () => {}, flushAll: () => {} };
     const mockReq = { app: { locals: { cache: mockCache } }, query: {} };
     const mockRes = { json: vi.fn(), status: vi.fn().mockReturnThis() };
 
     await routeHandler(mockReq, mockRes);
 
     const response = mockRes.json.mock.calls[0][0];
+    // Mock release dates are all after today (2026-04-22) → actual stays unset/omitted.
     const eventsWithActual = response.economicEvents.filter(e => e.actual != null);
-    expect(eventsWithActual.length).toBeGreaterThan(0);
-    const eventsWithPrevious = response.economicEvents.filter(e => e.previous != null);
-    expect(eventsWithPrevious.length).toBeGreaterThan(0);
+    expect(eventsWithActual.length).toBe(0);
+    // lastPrint / previous carry the latest FRED observation for the panel.
+    const eventsWithPrint = response.economicEvents.filter(
+      (e) => e.lastPrint != null || e.previous != null,
+    );
+    expect(eventsWithPrint.length).toBeGreaterThan(0);
   });
 
   it('returns empty economic events when FRED_API_KEY is missing', async () => {

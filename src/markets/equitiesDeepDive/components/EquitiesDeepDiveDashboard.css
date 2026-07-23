@@ -213,6 +213,196 @@
   color: var(--text-secondary);
 }
 
+/* ── Equity+ Summary panel (sidebar bento) ── */
+.eqd-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  height: 100%;
+}
+.eqd-summary-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+.eqd-summary-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 6px;
+  flex-shrink: 0;
+}
+.eqd-summary-hi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 9px 7px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  border-top: 2px solid var(--border-subtle);
+}
+.eqd-summary-hi-card--pos { border-top-color: #22c55e; }
+.eqd-summary-hi-card--neg { border-top-color: #ef4444; }
+.eqd-summary-hi-card--accent { border-top-color: #6366f1; }
+.eqd-summary-hi-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eqd-summary-hi-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+.eqd-summary-hi-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.eqd-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+}
+.eqd-summary-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.eqd-summary-card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.eqd-summary-card-meta {
+  font-size: 9px;
+  color: var(--text-dim);
+}
+.eqd-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+.eqd-summary-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.9fr) minmax(60px, 1.4fr) 52px;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+.eqd-summary-row--factor {
+  grid-template-columns: minmax(64px, 0.85fr) minmax(50px, 1.5fr) 40px;
+}
+.eqd-summary-row-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.eqd-summary-ticker {
+  color: #818cf8;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.eqd-summary-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eqd-summary-bar-wrap {
+  position: relative;
+  height: 10px;
+  border-radius: 3px;
+  background: rgba(148, 163, 184, 0.08);
+  overflow: hidden;
+}
+.eqd-summary-bar-center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--text-dim);
+  opacity: 0.5;
+}
+.eqd-summary-bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+}
+.eqd-summary-bar-fill.is-pos { background: #22c55e; }
+.eqd-summary-bar-fill.is-neg { background: #ef4444; }
+.eqd-summary-score-track {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(148, 163, 184, 0.12);
+  overflow: hidden;
+}
+.eqd-summary-score-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: #6366f1;
+}
+.eqd-summary-score-fill.is-pos { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.eqd-summary-score-fill.is-warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.eqd-summary-score-fill.is-neg { background: linear-gradient(90deg, #ef4444, #f87171); }
+.eqd-summary-score-fill.is-muted { background: var(--text-dim); }
+.eqd-summary-row-val {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.eqd-summary-row-val.is-pos,
+.eqd-pos { color: #4ade80; }
+.eqd-summary-row-val.is-neg,
+.eqd-neg { color: #f87171; }
+.eqd-summary-row-val.is-warn { color: #fbbf24; }
+.eqd-summary-row-val.is-muted { color: var(--text-muted); }
+
+@container bento-card (max-width: 360px) {
+  .eqd-summary-highlights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .eqd-summary-row {
+    grid-template-columns: minmax(56px, 1fr) minmax(40px, 1.2fr) 48px;
+  }
+}
+
 /* ── Sidebar metric cards (used inside Key Metrics bento card) ── */
 .eqd-metric-card {
   background: var(--bg-primary);
@@ -257,6 +447,7 @@
 .eqd-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 11px;
 }
 
@@ -270,6 +461,9 @@
   letter-spacing: 0.5px;
   position: sticky;
   top: 0;
+  z-index: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .eqd-row {
@@ -283,21 +477,104 @@
 .eqd-cell {
   padding: 6px 8px;
   color: var(--text-primary);
+  box-sizing: border-box;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.eqd-cell eqd-date {
+.eqd-cell.eqd-date,
+.eqd-date {
   color: var(--text-secondary);
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
 
 .eqd-num {
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
-.eqd-dir {
+/* Upcoming Earnings — keep header alignment locked to cell alignment */
+.eqd-earnings-table col.eqd-col-date { width: 28%; }
+.eqd-earnings-table col.eqd-col-ticker { width: 22%; }
+.eqd-earnings-table col.eqd-col-eps { width: 30%; }
+.eqd-earnings-table col.eqd-col-dir { width: 20%; }
+
+.eqd-earnings-table .eqd-col-date {
+  text-align: left;
+}
+.eqd-earnings-table .eqd-col-ticker {
+  text-align: left;
+}
+.eqd-earnings-table .eqd-col-eps {
+  text-align: right;
+}
+.eqd-earnings-table .eqd-col-dir {
   text-align: center;
-  font-size: 12px;
+}
+
+.eqd-ticker {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+/* Dir is a static status indicator — not interactive (unlike MetricValue provenance) */
+.eqd-dir,
+.eqd-dir-badge {
+  text-align: center;
+  font-size: 11px;
+  cursor: default !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.eqd-earnings-table .eqd-col-dir,
+.eqd-earnings-table .eqd-col-dir * {
+  cursor: default !important;
+}
+
+.eqd-dir-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+.eqd-dir-badge.is-up {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.eqd-dir-badge.is-down {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.eqd-dir-badge.is-muted {
+  color: var(--text-muted);
+  background: rgba(148, 163, 184, 0.08);
+  border-color: var(--border-subtle);
+  font-weight: 500;
+}
+
+/* MetricValue in numeric columns stays right-aligned under EPS Est header */
+.eqd-earnings-table .eqd-col-eps .mv-root {
+  display: inline-block;
+  width: 100%;
+  text-align: right;
+  box-sizing: border-box;
 }
 
 /* ── Heat Map Colors ── */

@@ -4,6 +4,7 @@ import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../l
 import { trackApiCall } from '../lib/rateLimits.js';
 import { WEO_SNAPSHOT } from '../dataSources/weoSnapshot.js';
 import { IFS_SNAPSHOT, COFER_SNAPSHOT } from '../dataSources/ifsCofeSnapshot.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -146,10 +147,13 @@ router.get('/', async (req, res) => {
     const ROUTE_TIMEOUT = 15000;
     routeTimer = setTimeout(() => {
       if (!res.headersSent) {
-        console.warn('[IMF] Route timeout — responding with partial data');
-        const fallback = readLatestCache('imf');
-        if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-        res.status(504).json({ error: 'IMF upstream timeout', isCurrent: false });
+        console.warn('[IMF] Route timeout — responding with fallback (200)');
+        sendCachedOrDegradedSync(res, 'imf', {
+          error: new Error('IMF upstream timeout'),
+          memoryCache: cache,
+          cacheKey,
+          extra: { _timeout: true },
+        });
       }
     }, ROUTE_TIMEOUT);
 
@@ -280,9 +284,11 @@ router.get('/', async (req, res) => {
     clearTimeout(routeTimer);
     if (res.headersSent) return;
     console.error('IMF API error:', error);
-    const fallback = readLatestCache('imf');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'imf', {
+      error,
+      memoryCache: cache,
+      cacheKey,
+    });
   }
 });
 

@@ -1,9 +1,14 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { readDailyCache, writeDailyCache, readLatestCache, todayStr, mergeWithPreviousCache } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
+
+function wantsRefresh(req) {
+  return req.query?.refresh === 'true' || req.query?.refresh === '1';
+}
 
 const DXY_SYMBOLS = 'EUR,GBP,JPY,CAD,SEK,CHF';
 const MOVER_SYMBOLS = 'EUR,GBP,JPY,CNY,CHF,AUD,CAD,SEK,NOK,NZD,HKD,SGD,INR,KRW,MXN,BRL,ZAR';
@@ -83,25 +88,71 @@ async function fetchFredLatest(seriesId, FRED_API_KEY) {
 // ─────────────────────────────────────────────────────────────────────────────
 // IMF COFER — Currency composition of official foreign exchange reserves
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Normalize COFER map so UI can always read `.share` (and optional `.valueB`).
+ * Accepts: { USD: 57.8 } | { USD: { value/share: 57.8 } }
+ */
+function normalizeCoferReserves(raw, asOf = null) {
+  if (!raw || typeof raw !== 'object') return null;
+  const reserves = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'Total' || k === 'XT') continue;
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      reserves[k] = { share: Math.round(v * 100) / 100, valueB: null };
+    } else if (v && typeof v === 'object') {
+      const share = v.share ?? v.value ?? v.pct;
+      if (share == null || !Number.isFinite(Number(share))) continue;
+      reserves[k] = {
+        share: Math.round(Number(share) * 100) / 100,
+        valueB: v.valueB ?? v.amountB ?? null,
+        asOf: v.asOf || asOf || null,
+      };
+    }
+  }
+  if (Object.keys(reserves).length < 3) return null;
+  return reserves;
+}
+
 async function fetchIMFCOFER() {
   try {
-    const url = 'https://dataservices.imf.org/REST/SDMX_JSON.svc/GetData/COFER/Q.US+XT+EU+JP+UK+CN+CH.SDR_XDC.XDR?startPeriod=2020-Q1';
-    const data = await fetchJSON(url);
-    const series = data?.CompactData?.DataSet?.Series;
-    if (!series) return null;
-    const entries = Array.isArray(series) ? series : [series];
-    const result = {};
-    for (const s of entries) {
-      const refArea = s['@REF_AREA'];
-      const obs = Array.isArray(s.Obs) ? s.Obs : [s.Obs];
-      const latestVal = obs.filter(o => o['@OBS_VALUE'] != null).sort((a, b) => b['@TIME_PERIOD'].localeCompare(a['@TIME_PERIOD']))[0];
-      if (latestVal) {
-        const ccMap = { US: 'USD', XT: 'Total', EU: 'EUR', JP: 'JPY', UK: 'GBP', CN: 'CNY', CH: 'CHF' };
-        const label = ccMap[refArea] || refArea;
-        result[label] = Math.round(parseFloat(latestVal['@OBS_VALUE']) * 100) / 100;
+    // Prefer allocated-reserve shares by currency (global claims), not REF_AREA country codes.
+    // Fallback URL uses common COFER currency dimensions when available.
+    const urls = [
+      'https://dataservices.imf.org/REST/SDMX_JSON.svc/GetData/COFER/Q.USD+XDR+EUR+JPY+GBP+CNY+CHF+Other.XDC_USD.XDR?startPeriod=2020-Q1',
+      'https://dataservices.imf.org/REST/SDMX_JSON.svc/GetData/COFER/Q.US+XT+EU+JP+UK+CN+CH.SDR_XDC.XDR?startPeriod=2020-Q1',
+    ];
+    for (const url of urls) {
+      try {
+        const data = await fetchJSON(url, undefined, {}, 20000);
+        const series = data?.CompactData?.DataSet?.Series;
+        if (!series) continue;
+        const entries = Array.isArray(series) ? series : [series];
+        const result = {};
+        let asOf = null;
+        for (const s of entries) {
+          const refArea = s['@REF_AREA'] || s['@CURRENCY'] || s['@SERIES_CODE'];
+          const obs = Array.isArray(s.Obs) ? s.Obs : (s.Obs ? [s.Obs] : []);
+          const latestVal = obs
+            .filter((o) => o && o['@OBS_VALUE'] != null)
+            .sort((a, b) => String(b['@TIME_PERIOD']).localeCompare(String(a['@TIME_PERIOD'])))[0];
+          if (!latestVal) continue;
+          const ccMap = {
+            US: 'USD', USD: 'USD', XT: 'Total', EU: 'EUR', EUR: 'EUR',
+            JP: 'JPY', JPY: 'JPY', UK: 'GBP', GBP: 'GBP', CN: 'CNY', CNY: 'CNY',
+            CH: 'CHF', CHF: 'CHF', XDR: 'SDR', SDR: 'SDR', Other: 'Other',
+          };
+          const label = ccMap[refArea] || refArea;
+          if (!label || label === 'Total') continue;
+          result[label] = Math.round(parseFloat(latestVal['@OBS_VALUE']) * 100) / 100;
+          if (!asOf) asOf = latestVal['@TIME_PERIOD'] || null;
+        }
+        const reserves = normalizeCoferReserves(result, asOf);
+        if (reserves) return { asOf, reserves, _source: 'imf_live' };
+      } catch (e) {
+        console.warn('[FX] IMF COFER attempt failed:', e.message);
       }
     }
-    return Object.keys(result).length >= 3 ? { asOf: entries[0]?.Obs?.['@TIME_PERIOD'] || null, reserves: result } : null;
+    return null;
   } catch (e) {
     console.warn('[FX] IMF COFER fetch failed:', e.message);
     return null;
@@ -169,11 +220,15 @@ router.get('/', async (req, res) => {
   const cacheKey = 'fx_data';
   const today = todayStr();
 
-  const daily = readDailyCache('fx');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+  if (!wantsRefresh(req)) {
+    const daily = readDailyCache('fx');
+    if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true, _cacheSource: 'daily_file' });
 
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+    const cached = cache.get(cacheKey);
+    if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true, _cacheSource: 'memory' });
+  } else if (cache) {
+    cache.del(cacheKey);
+  }
 
   try {
     let frankfurterData = null;
@@ -317,6 +372,42 @@ router.get('/', async (req, res) => {
       trackApiCall('IMF COFER');
       imfReserves = await fetchIMFCOFER();
     } catch (e) { console.warn('[FX] IMF COFER:', e.message || e); }
+    // Fallback: use IMF route cache / live cofer so the panel is not empty
+    // when dataservices.imf.org is down / rate-limited.
+    if (!imfReserves?.reserves) {
+      try {
+        const imfFb = readLatestCache('imf');
+        const cofer = imfFb?.data?.cofer;
+        const reserves = normalizeCoferReserves(cofer, imfFb?.data?.snapshot?.asOf || imfFb?.fetchedOn || null);
+        if (reserves) {
+          imfReserves = {
+            asOf: imfFb.data?.snapshot?.asOf || imfFb.fetchedOn || null,
+            reserves,
+            _source: 'imf_cache_cofer',
+          };
+        }
+      } catch { /* ignore */ }
+    }
+    // Ultimate static COFER shares (same snapshot used by /api/imf)
+    if (!imfReserves?.reserves) {
+      try {
+        const { COFER_SNAPSHOT } = await import('../dataSources/ifsCofeSnapshot.js');
+        const reserves = normalizeCoferReserves(COFER_SNAPSHOT.shares, COFER_SNAPSHOT.asOf);
+        if (reserves) {
+          imfReserves = {
+            asOf: COFER_SNAPSHOT.asOf,
+            reserves,
+            _source: 'cofer_snapshot',
+            _vintage: COFER_SNAPSHOT.vintage,
+          };
+        }
+      } catch { /* ignore */ }
+    }
+    // Normalize any live/partial shape so clients always get { share }.
+    if (imfReserves?.reserves) {
+      const norm = normalizeCoferReserves(imfReserves.reserves, imfReserves.asOf);
+      if (norm) imfReserves = { ...imfReserves, reserves: norm };
+    }
 
     const _sources = {
       frankfurter:       !!(frankfurterData?.spotRates),
@@ -328,10 +419,24 @@ router.get('/', async (req, res) => {
       imfReserves:       !!(imfReserves && Object.keys(imfReserves.reserves || {}).length),
     };
 
+    const spotRates = frankfurterData?.spotRates || null;
+    const prevRates = frankfurterData?.prevRates || null;
+    // 1-day percent change (USD quote convention: drop in foreign units = USD stronger)
+    let changes1d = null;
+    if (spotRates && prevRates) {
+      changes1d = {};
+      for (const [code, rate] of Object.entries(spotRates)) {
+        if (code === 'USD') { changes1d[code] = 0; continue; }
+        const prev = prevRates[code];
+        if (prev && rate) changes1d[code] = -((rate - prev) / prev * 100);
+      }
+    }
+
     const result = {
-      spotRates:          frankfurterData?.spotRates || null,
-      prevRates:          frankfurterData?.prevRates || null,
+      spotRates,
+      prevRates,
       history:            frankfurterData?.history || null,
+      changes1d,
       changes1w:          frankfurterData?.changes1w || null,
       changes1m:          frankfurterData?.changes1m || null,
       sparklines:         frankfurterData?.sparklines || null,
@@ -348,14 +453,17 @@ router.get('/', async (req, res) => {
       lastUpdated: today,
     };
 
-    writeDailyCache('fx', result);
-    cache.set(cacheKey, result, 900);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
+    const merged = mergeWithPreviousCache('fx', result);
+    writeDailyCache('fx', merged);
+    cache.set(cacheKey, merged, 900);
+    res.json({ ...merged, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('FX API error:', error);
-    const fallback = readLatestCache('fx');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'fx', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'fx_data',
+    });
   }
 });
 

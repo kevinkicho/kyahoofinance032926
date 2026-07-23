@@ -26,27 +26,117 @@ function highlightMatch(text, query) {
   );
 }
 
+function reportStatus(entry) {
+  if (!entry) return 'unknown';
+  if (typeof entry === 'string') return entry;
+  return entry.status || 'unknown';
+}
+
+function PanelHealthPopover({ report, onClose, onJump }) {
+  if (!report) return null;
+  const green = report.status === 'ok';
+  return (
+    <div className="panel-health-popover" role="dialog" onClick={e => e.stopPropagation()}>
+      <div className="panel-health-popover-head">
+        <strong>{report.title || report.panelId}</strong>
+        <button type="button" className="panel-health-popover-close" onClick={onClose} aria-label="Close">×</button>
+      </div>
+      <div className={`panel-health-popover-verdict ${green ? 'is-green' : 'is-red'}`}>
+        {green ? 'GREEN — fetch + display + confirm' : 'NOT GREEN'}
+      </div>
+      <ul className="panel-health-popover-gates">
+        <li className={report.fetchOk ? 'ok' : 'bad'}>
+          <span>{report.fetchOk ? '✓' : '✗'}</span> Fetch: {report.fetchDetail || (report.fetchOk ? 'ok' : 'fail')}
+        </li>
+        <li className={report.displayOk ? 'ok' : 'bad'}>
+          <span>{report.displayOk ? '✓' : '✗'}</span> Display: {report.displayDetail || (report.displayOk ? 'ok' : 'fail')}
+        </li>
+        <li className={report.confirmOk ? 'ok' : 'bad'}>
+          <span>{report.confirmOk ? '✓' : '✗'}</span> Confirm: {report.confirmDetail || (report.confirmOk ? 'ok' : 'fail')}
+        </li>
+      </ul>
+      <p className="panel-health-popover-note">
+        Null fetch + null display is not green. Full requested stream must be fetched, shown, and matched on screen.
+      </p>
+      {onJump && (
+        <button type="button" className="panel-health-popover-jump" onClick={() => onJump(report.marketId, report.panelId)}>
+          Jump to panel
+        </button>
+      )}
+    </div>
+  );
+}
+
 function PanelDropdownItems({ marketId, onJump, panelHealth }) {
   const panels = MARKET_PANELS[marketId] || [];
+  const [detailId, setDetailId] = useState(null);
   return panels.map(p => {
-    const status = panelHealth?.[p.id];
-    const isOk = status === 'ok';
+    const report = panelHealth?.[p.id];
+    const status = reportStatus(report);
+    // Strict: only full three-gate success is green
+    const isOk = status === 'ok' && (typeof report === 'string' || (report?.fetchOk && report?.displayOk && report?.confirmOk));
     const isStale = status === 'stale';
-    const isBad = status === 'null' || status === 'empty' || status === 'not-rendered';
-    const isUnknown = status === 'unknown' || status === 'loading';
-    const tooltip = isOk ? 'Data loaded' : isStale ? 'Data is stale' : isBad ? 'No data available' : isUnknown ? 'Market not yet loaded' : 'Loading...';
+    const isBad = !isOk && (status === 'null' || status === 'empty' || status === 'not-rendered' || status === 'error');
+    const isUnknown = !isOk && !isBad && (status === 'unknown' || status === 'loading' || status === 'pending');
+    const tooltip = isOk
+      ? 'Green: fetch + display + confirm all passed'
+      : isStale
+        ? 'Stale data'
+        : isBad
+          ? `Not green — F${report?.fetchOk ? '✓' : '✗'} D${report?.displayOk ? '✓' : '✗'} C${report?.confirmOk ? '✓' : '✗'}`
+          : 'Loading / not evaluated';
+    const showDetail = detailId === p.id;
     return (
-      <button
-        key={p.id}
-        className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isUnknown ? ' panel-status-unknown' : ''}`}
-        onClick={() => onJump(marketId, p.id)}
-        title={`${p.title} — ${tooltip}`}
-      >
-        <span className="panel-dropdown-status-dot" data-status={isOk ? 'ok' : isStale ? 'stale' : isBad ? 'null' : 'unknown'} />
-        <span className="panel-dropdown-title">{p.title}</span>
-        {isBad && <span className="panel-dropdown-badge">unavailable</span>}
-        {isStale && <span className="panel-dropdown-badge panel-badge-stale">stale</span>}
-      </button>
+      <div key={p.id} className="market-panel-dropdown-row">
+        <button
+          type="button"
+          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isUnknown ? ' panel-status-unknown' : ''}${isOk ? ' panel-status-ok' : ''}`}
+          onClick={() => onJump(marketId, p.id)}
+          title={`${p.title} — ${tooltip}`}
+        >
+          <span
+            className="panel-dropdown-status-dot"
+            data-status={isOk ? 'ok' : isStale ? 'stale' : isBad ? 'null' : 'unknown'}
+            role="button"
+            tabIndex={0}
+            title="Click for panel health detail"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDetailId(showDetail ? null : p.id);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                setDetailId(showDetail ? null : p.id);
+              }
+            }}
+          />
+          <span className="panel-dropdown-title">{p.title}</span>
+          {isOk && <span className="panel-dropdown-badge panel-badge-ok">verified</span>}
+          {isBad && <span className="panel-dropdown-badge">not green</span>}
+          {isStale && <span className="panel-dropdown-badge panel-badge-stale">stale</span>}
+        </button>
+        {showDetail && (
+          <PanelHealthPopover
+            report={typeof report === 'object' && report ? { ...report, marketId, panelId: p.id, title: p.title } : {
+              marketId,
+              panelId: p.id,
+              title: p.title,
+              status,
+              fetchOk: false,
+              displayOk: false,
+              confirmOk: false,
+              fetchDetail: 'no report',
+              displayDetail: 'n/a',
+              confirmDetail: 'n/a',
+            }}
+            onClose={() => setDetailId(null)}
+            onJump={(m, id) => { setDetailId(null); onJump(m, id); }}
+          />
+        )}
+      </div>
     );
   });
 }

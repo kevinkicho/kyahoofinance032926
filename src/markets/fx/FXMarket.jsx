@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import FXDashboard from './components/FXDashboard';
-import { exchangeRates } from '../../utils/constants';
+// Static exchange-rate tables intentionally removed — empty live data must
+// show "—" placeholders, never fabricated FX levels.
 
 function useFxWebSocket() {
   const [wsRates, setWsRates] = useState(null);
@@ -44,23 +45,21 @@ function useFxWebSocket() {
 
 function getFXProps(centralData) {
   const d = centralData.data || {};
-  const fallback = { USD: 1, ...exchangeRates };
-  const liveSpotRates = d.spotRates || d.frankfurterLatest;
-  const livePrevRates = d.prevRates || d.frankfurterPrev;
-  // Detect when we're falling back to static rates — this is the most
-  // insidious failure mode: the dashboard looks fully populated but all
-  // changes are 0% because prev == current (both from the same static table).
-  // We surface this as a prop so the dashboard can show a warning banner
-  // instead of silently rendering stale data as if it were live.
-  const isUsingFallbackRates = !liveSpotRates;
-  const spotRates = liveSpotRates || fallback;
-  const prevRates = livePrevRates || fallback;
-  const changes = Object.keys(spotRates).reduce((acc, code) => {
-    if (code === 'USD') return { ...acc, [code]: 0 };
-    const prev = prevRates[code] || spotRates[code];
-    acc[code] = prev ? -((spotRates[code] - prev) / prev * 100) : 0;
-    return acc;
-  }, {});
+  const liveSpotRates = d.spotRates || d.frankfurterLatest || null;
+  const livePrevRates = d.prevRates || d.frankfurterPrev || null;
+  // Never invent FX levels. When the API is down, panels render empty states.
+  const isUsingFallbackRates = false;
+  const spotRates = liveSpotRates || {};
+  const prevRates = livePrevRates || {};
+  // Prefer server-computed 1d changes; otherwise derive from spot vs prev.
+  const changes = d.changes1d && typeof d.changes1d === 'object'
+    ? d.changes1d
+    : Object.keys(spotRates).reduce((acc, code) => {
+      if (code === 'USD') { acc[code] = 0; return acc; }
+      const prev = prevRates[code];
+      if (prev && spotRates[code]) acc[code] = -((spotRates[code] - prev) / prev * 100);
+      return acc;
+    }, {});
 
   // The Frankfurter API returns history as { "2026-05-22": { CAD: 1.39, ... }, ... }
   // keyed by date. The CurrencyCorrelationMatrix component expects history keyed by

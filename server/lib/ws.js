@@ -1,6 +1,6 @@
 import { WebSocketServer } from 'ws';
-import yahooFinance from 'yahoo-finance2';
 import { trackApiCall } from './rateLimits.js';
+import { yf } from './yahoo.js';
 
 const FX_TICKERS = ['EURUSD=X', 'GBPUSD=X', 'JPYUSD=X', 'CNYUSD=X', 'CHFUSD=X', 'AUDUSD=X', 'CADUSD=X', 'SEKUSD=X', 'NOKUSD=X', 'NZDUSD=X', 'HKDUSD=X', 'SGDUSD=X', 'INRUSD=X', 'KRWUSD=X', 'MXNUSD=X', 'BRLUSD=X', 'ZARUSD=X'];
 const INTERVAL_MS = 30000;
@@ -28,11 +28,12 @@ export function startFxWebSocket(server) {
 
     try {
       trackApiCall('Yahoo Finance', FX_TICKERS.length);
-      const results = await yahooFinance.quotes(FX_TICKERS);
+      const raw = await yf.quote(FX_TICKERS);
+      const results = Array.isArray(raw) ? raw : raw ? [raw] : [];
 
       const rates = {};
       for (const q of results) {
-        if (q.regularMarketPrice != null) {
+        if (q?.regularMarketPrice != null && q.symbol) {
           const symbol = q.symbol.replace('=X', '');
           rates[symbol] = q.regularMarketPrice;
         }

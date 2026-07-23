@@ -43,9 +43,12 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar, insid
     let largestMktCap = null;
     let largestCapVal = -Infinity;
     earningsSeason.forEach(e => {
-      if (e.marketCapB != null && e.marketCapB > largestCapVal) {
-        largestCapVal = e.marketCapB;
-        largestMktCap = { ticker: e.ticker, marketCapB: e.marketCapB };
+      const capB = e.marketCapB != null
+        ? Number(e.marketCapB)
+        : (e.marketCap != null ? Number(e.marketCap) / 1e9 : null);
+      if (capB != null && Number.isFinite(capB) && capB > largestCapVal) {
+        largestCapVal = capB;
+        largestMktCap = { ticker: e.ticker, marketCapB: Math.round(capB * 10) / 10 };
       }
     });
     const epsVals = earningsSeason.map(e => e.epsEst).filter(v => v != null);
@@ -114,7 +117,21 @@ export default function EarningsSeason({ earningsSeason, dividendCalendar, insid
                   <td>{e.name}</td>
                   <td style={{ fontFamily: 'monospace' }}><MetricValue value={e.epsEst} seriesKey="earnEpsEst" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
                   <td style={{ fontFamily: 'monospace', color: colors.textMuted }}><MetricValue value={e.epsPrev} seriesKey="earnEpsPrev" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
-                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}><MetricValue value={e.marketCapB} seriesKey="earnMktCap" format={v => v != null ? `$${v.toLocaleString()}` : '—'} /></td>
+                  <td style={{ fontFamily: 'monospace', color: colors.textSecondary }}>
+                    <MetricValue
+                      value={
+                        e.marketCapB != null
+                          ? Number(e.marketCapB)
+                          : (e.marketCap != null ? Number(e.marketCap) / 1e9 : null)
+                      }
+                      seriesKey="earnMktCap"
+                      format={v => {
+                        if (v == null || !Number.isFinite(Number(v))) return '—';
+                        const n = Number(v);
+                        return n >= 1000 ? `$${(n / 1000).toFixed(2)}T` : `$${n.toLocaleString(undefined, { maximumFractionDigits: 1 })}B`;
+                      }}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -118,31 +118,52 @@ export default function EarningsWatch({ earningsData }) {
           <div className="eq-chart-title">Upcoming Earnings</div>
           <div className="eq-chart-subtitle">▲ est &gt; prior · ▼ est &lt; prior</div>
           <div className="eq-scroll">
-            <table className="eq-table">
+            <table className="eq-table eqd-earnings-table">
+              <colgroup>
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '34%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '12%' }} />
+              </colgroup>
               <thead>
                 <tr>
-                  <th className="eq-th">Date</th>
-                  <th className="eq-th">Company</th>
-                  <th className="eq-th">EPS Est</th>
-                  <th className="eq-th">Prior</th>
-                  <th className="eq-th">Dir</th>
+                  <th className="eq-th eqd-col-date">Date</th>
+                  <th className="eq-th eqd-col-ticker">Company</th>
+                  <th className="eq-th eqd-col-eps">EPS Est</th>
+                  <th className="eq-th eqd-col-eps">Prior</th>
+                  <th className="eq-th eqd-col-dir" title="Estimate vs prior-quarter EPS">Dir</th>
                 </tr>
               </thead>
               <tbody>
-                {upcoming.map(e => (
-                  <tr key={e.ticker} className="eq-row">
-                    <td className="eq-cell eq-date">{e.date}</td>
-                    <td className="eq-cell">
-                      <strong>{e.ticker}</strong>
-                      <span className="eq-name"> {e.name}</span>
-                    </td>
-                    <td className="eq-cell eq-num"><MetricValue value={e.epsEst} seriesKey="earningsEpsEst" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
-                    <td className="eq-cell eq-num eq-muted"><MetricValue value={e.epsPrev} seriesKey="earningsEpsPrev" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
-                    <td className="eq-cell eq-dir">
-                      {(e.epsEst ?? 0) >= (e.epsPrev ?? 0) ? '▲' : '▼'}
-                    </td>
-                  </tr>
-                ))}
+                {upcoming.map(e => {
+                  const hasDir = e.epsEst != null && e.epsPrev != null;
+                  const isUp = hasDir && Number(e.epsEst) >= Number(e.epsPrev);
+                  return (
+                    <tr key={e.ticker} className="eq-row">
+                      <td className="eq-cell eqd-col-date eq-date">{e.date}</td>
+                      <td className="eq-cell eqd-col-ticker">
+                        <strong>{e.ticker}</strong>
+                        <span className="eq-name"> {e.name}</span>
+                      </td>
+                      <td className="eq-cell eq-num eqd-col-eps"><MetricValue value={e.epsEst} seriesKey="earningsEpsEst" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                      <td className="eq-cell eq-num eq-muted eqd-col-eps"><MetricValue value={e.epsPrev} seriesKey="earningsEpsPrev" format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></td>
+                      <td className="eq-cell eqd-col-dir">
+                        {hasDir ? (
+                          <span
+                            className={`eqd-dir-badge ${isUp ? 'is-up' : 'is-down'}`}
+                            title={isUp ? 'EPS est ≥ prior quarter' : 'EPS est < prior quarter'}
+                            aria-label={isUp ? 'Estimate above prior' : 'Estimate below prior'}
+                          >
+                            {isUp ? '▲' : '▼'}
+                          </span>
+                        ) : (
+                          <span className="eqd-dir-badge is-muted">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

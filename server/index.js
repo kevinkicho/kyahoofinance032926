@@ -10,7 +10,7 @@ import NodeCache from 'node-cache';
 import fs from 'fs';
 import crypto from 'crypto';
 
-import { cleanOldCaches, CACHE_DIR, todayStr, readLatestCache } from './lib/cache.js';
+import { cleanOldCaches, CACHE_DIR, todayStr, readLatestCache, requestContext } from './lib/cache.js';
 import { buildSnapshotIndex } from './lib/stocks.js';
 import { DATA_DIR } from './lib/stocks.js';
 import { getApiCounts, KNOWN_LIMITS } from './lib/rateLimits.js';
@@ -68,6 +68,7 @@ import cftcTFFRouter from './routes/cftcTFF.js';
 import bisOTCRouter from './routes/bisOTC.js';
 import faoRouter from './routes/fao.js';
 import treasuryCostRouter from './routes/treasuryCost.js';
+import panelRoutingRouter from './routes/panelRouting.js';
 import { startFxWebSocket } from './lib/ws.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
@@ -148,6 +149,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// ?refresh=true|1 → skip daily file cache + in-memory cache for this request
+// so DataProvider live loads always hit upstream APIs.
+app.use('/api', (req, res, next) => {
+  const skipCache =
+    req.query?.refresh === 'true' ||
+    req.query?.refresh === '1' ||
+    req.headers['x-cache-bypass'] === '1';
+  req.skipCache = skipCache;
+  requestContext.run({ skipCache }, () => next());
+});
+
 // Endpoint metrics tracker (shared with /api/analytics)
 const endpointTracker = {};
 app.locals.endpointTracker = endpointTracker;
@@ -181,19 +193,30 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// HTTP cache headers — match in-memory TTL (15 min for market data, 5 min for health/status)
+// HTTP cache headers — match in-memory TTL (15 min for market data, 5 min for health/status).
+// Live refresh requests must not be stored by browsers or intermediate caches.
 app.use('/api', (req, res, next) => {
-  // Skip caching for POST (stock quotes are user-specific ticker lists)
   if (req.method !== 'GET') return next();
+  if (req.skipCache || req.query?.refresh === 'true' || req.query?.refresh === '1') {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    return next();
+  }
   const short = ['/api/health', '/api/cache/status'];
   const maxAge = short.some(p => req.path === p || req.originalUrl === p) ? 300 : 900;
   res.set('Cache-Control', `public, max-age=${maxAge}, stale-while-revalidate=60`);
   next();
 });
 
-// Share cache with all routes via app.locals
+// Share cache with all routes via app.locals.
+// get() respects ?refresh=true (requestContext.skipCache) so custom routes
+// that only call cache.get() still bypass stale memory on live reloads.
 app.locals.cache = {
-  get: (key) => localCache.get(key),
+  get: (key) => {
+    const store = requestContext.getStore();
+    if (store?.skipCache) return undefined;
+    return localCache.get(key);
+  },
   set: (key, val, ttl) => localCache.set(key, val, ttl),
   del: (key) => localCache.del(key),
   flushAll: () => localCache.flushAll(),
@@ -208,6 +231,62 @@ if (fs.existsSync(distPath)) {
 // ── Inline health + cache status (tiny, no route module needed) ───────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date(), dataDir: DATA_DIR });
+});
+
+// FRED series health — fails soft; used by ops + density CI.
+app.get('/api/health/series', async (req, res) => {
+  try {
+    const { CRITICAL_FRED_SERIES } = await import('./lib/dataHygiene.js');
+    const { fetchFredLatestWithDate } = await import('./lib/fred.js');
+    const key = (process.env.FRED_API_KEY || '').trim();
+    if (!key) {
+      return res.json({ status: 'skip', reason: 'FRED_API_KEY missing', series: [] });
+    }
+    const results = [];
+    for (const spec of CRITICAL_FRED_SERIES) {
+      try {
+        const latest = await fetchFredLatestWithDate(spec.id, key);
+        const ageDays = latest?.date
+          ? Math.floor((Date.now() - new Date(`${latest.date}T12:00:00Z`).getTime()) / 86400000)
+          : null;
+        const ok = latest?.value != null
+          && ageDays != null
+          && ageDays <= (spec.maxAgeDays ?? 90);
+        results.push({
+          id: spec.id,
+          name: spec.name,
+          markets: spec.markets,
+          value: latest?.value ?? null,
+          date: latest?.date ?? null,
+          ageDays,
+          maxAgeDays: spec.maxAgeDays,
+          ok,
+        });
+      } catch (e) {
+        results.push({
+          id: spec.id,
+          name: spec.name,
+          markets: spec.markets,
+          value: null,
+          date: null,
+          ageDays: null,
+          maxAgeDays: spec.maxAgeDays,
+          ok: false,
+          error: e.message,
+        });
+      }
+    }
+    const failed = results.filter((r) => !r.ok);
+    res.json({
+      status: failed.length ? 'degraded' : 'ok',
+      checked: results.length,
+      failed: failed.length,
+      series: results,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
 });
 
 // Keep this list in sync with the keys actually passed to writeDailyCache
@@ -296,6 +375,8 @@ app.use('/api/cftcTFF', cftcTFFRouter);
 app.use('/api/bisOTC', bisOTCRouter);
 app.use('/api/fao', faoRouter);
 app.use('/api/treasuryCost', treasuryCostRouter);
+// Panel API routing registry (discovery + health probe for every tab endpoint)
+app.use('/api/panel-routing', panelRoutingRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

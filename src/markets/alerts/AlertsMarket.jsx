@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import AlertsDashboard from './components/AlertsDashboard';
 import MarketSkeleton from '../../hub/MarketSkeleton';
-import DataFooter from '../../components/DataFooter/DataFooter';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import './components/AlertsDashboard.css';
@@ -81,8 +80,8 @@ function AlertsMarket({ centralData } = {}) {
   if (props.isLoading) return <MarketSkeleton />;
 
   return (
-    // The "Severity / Rule Health" bento panel inside AlertsDashboard
-    // already wraps <AlertsSidebar>, so the loose left-column copy is gone.
+    // Footers live on each BentoCard (not a market-level strip) so they sit
+    // flush under panels like Bonds/Credit — no floating orphan bar.
     <div className="alerts-market">
       <div className="alerts-market-main">
         {props.alerts.length > 0 && (
@@ -106,7 +105,6 @@ function AlertsMarket({ centralData } = {}) {
           onToggleRule={props.refetch}
           correlationData={correlationData}
         />
-        <DataFooter source="Multi-market (6 endpoints)" timestamp={props.lastUpdated} isLive={props.isLive} fetchLog={props.fetchLog} error={props.error} fetchedOn={props.fetchedOn} isCurrent={props.isCurrent} isHistorical={props.isHistorical} asOfDate={props.asOfDate} />
       </div>
     </div>
   );

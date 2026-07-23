@@ -65,9 +65,9 @@ describe('EquitiesDeepDiveMarket', () => {
     expect(screen.getAllByText('Sector Performance').length).toBeGreaterThan(0);
   });
 
-  it('shows sidebar with Factor Scores', () => {
+  it('shows Factor Scores / Factor Leaders panels', () => {
     render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
-    expect(screen.getByText('Factor Scores')).toBeInTheDocument();
+    expect(screen.getAllByText(/Factor Scores|Factor Leaders/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows ETF Performance panel', () => {

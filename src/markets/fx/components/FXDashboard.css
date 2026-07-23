@@ -473,6 +473,139 @@
   overflow: auto;
 }
 
+/* ── Rate Differential Dashboard (dense table, no sparse cards) ── */
+.fx-panel-content.rd-host {
+  padding: 6px 8px !important;
+  overflow: hidden;
+  gap: 0;
+}
+.rd-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.rd-policy-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.rd-policy-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  min-width: 0;
+}
+.rd-policy-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rd-policy-val {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.rd-table {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.rd-thead,
+.rd-row {
+  display: grid;
+  grid-template-columns: minmax(88px, 1.2fr) minmax(64px, 0.9fr) minmax(56px, 0.8fr) minmax(52px, 0.7fr) minmax(52px, 0.7fr) minmax(100px, 1.2fr);
+  gap: 6px;
+  align-items: center;
+  padding: 3px 8px;
+  min-width: 0;
+}
+.rd-thead {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  padding-top: 0;
+  padding-bottom: 2px;
+}
+.rd-thead > span:not(:first-child) {
+  text-align: right;
+}
+.rd-row {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  font-size: 11px;
+}
+.rd-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.15;
+}
+.rd-pair strong {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+.rd-pair-sub {
+  font-size: 8px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rd-num {
+  text-align: right;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-primary);
+}
+.rd-num.pos { color: #22c55e; }
+.rd-num.neg { color: #f87171; }
+.rd-num.muted {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.rd-signal {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container bento-card (max-width: 640px) {
+  .rd-thead,
+  .rd-row {
+    grid-template-columns: minmax(70px, 1fr) minmax(56px, 0.9fr) minmax(48px, 0.7fr) minmax(44px, 0.6fr) minmax(44px, 0.6fr) minmax(72px, 1fr);
+    gap: 4px;
+    padding: 3px 6px;
+  }
+  .rd-signal { font-size: 9px; }
+}
+
 /* ── 24. Responsive ── */
 @container bento-card (max-width: 500px) {
   .fx-panel-title { font-size: 10px; }

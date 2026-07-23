@@ -23,7 +23,7 @@ export const MARKETS = [
 export const DEFAULT_MARKET = 'equities';
 
 export const SEARCH_INDEX = [
-  { marketId: 'equities',         label: 'Equities',    subTabs: ['Heatmap', 'List', 'Bar Race', 'Portfolio', 'Radar', 'ML Explorer', 'Data Hub'], keywords: ['AAPL', 'TSLA', 'MSFT', 'NVDA', 'S&P 500', 'Nasdaq'] },
+  { marketId: 'equities',         label: 'Equities',    subTabs: ['Heatmap', 'List', 'Bar Race', 'Portfolio', 'Data Hub'], keywords: ['AAPL', 'TSLA', 'MSFT', 'NVDA', 'S&P 500', 'Nasdaq'] },
   { marketId: 'bonds',            label: 'Bonds',       subTabs: ['Yield Curve', 'Credit Matrix', 'Spread Monitor', 'Duration Ladder', 'Breakevens'], keywords: ['DGS10', 'UST10Y', '10Y Treasury', 'TIPS', 'Real Yields'] },
   { marketId: 'fx',               label: 'FX',          subTabs: ['Rate Matrix', 'Carry Map', 'DXY Tracker', 'Top Movers'], keywords: ['DXY', 'USD', 'EURUSD', 'JPY'] },
   { marketId: 'derivatives',      label: 'Derivatives', subTabs: ['Vol Surface', 'VIX Term Structure', 'Options Flow'], keywords: ['VIX', 'VIXCLS', 'SKEW', 'Gamma', 'GEX', 'VVIX'] },

@@ -1,7 +1,6 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import './ListView.css';
 import { useTheme } from '../../hub/ThemeContext';
-import MetricValue from '../MetricValue/MetricValue';
 
 const SECTOR_COLORS = {
   'Technology':  '#3b82f6',
@@ -195,13 +194,18 @@ const ListView = ({
                 changePct = ((av / item.marketCap - 1) * 100);
               }
 
+              // Stable row key (avoid index-only) so re-sorts don't remount every tr
               return (
-                <tr key={`r-${item.ticker}-${i}`} className="clickable-row" onClick={() => handleSelectTicker(item)}>
+                <tr
+                  key={`r-${item.ticker}-${item.region || ''}`}
+                  className="clickable-row"
+                  onClick={() => handleSelectTicker(item)}
+                >
                   <td className="lv-rank">
                     {item.rank ? <span className="lv-rank-num">{item.rank}</span> : null}
                   </td>
                   <td>
-                    <div className="ticker-badge" style={{ backgroundColor: item.color }}>
+                    <div className="ticker-badge" style={{ backgroundColor: item.color || '#64748b' }}>
                       {item.ticker}
                     </div>
                   </td>
@@ -218,35 +222,20 @@ const ListView = ({
                     )}
                   </td>
                   <td>
-                    <span className="region-indicator" style={{ borderLeftColor: item.regionColor }}>
+                    <span className="region-indicator" style={{ borderLeftColor: item.regionColor || '#64748b' }}>
                       {item.region}
                     </span>
                   </td>
                   <td className="text-right lv-metric">
-                    <MetricValue
-                      value={item.adjustedValue || item.value}
-                      seriesKey={
-                        rankMetric === 'marketCap' ? 'universeMarketCap' :
-                        rankMetric === 'revenue' ? 'edgarRevenue' :
-                        rankMetric === 'netIncome' ? 'edgarNetIncome' :
-                        rankMetric === 'pe' ? 'stockValuation' :
-                        rankMetric === 'divYield' ? 'stockFundamental' :
-                        'universeMarketCap'
-                      }
-                      timestamp={snapshotDate || dataTimestamp}
-                      format={() => metricStr}
-                    />
+                    {/* Plain text — MetricValue on every row was expensive and
+                        re-created format closures each render (list flicker). */}
+                    {metricStr}
                   </td>
                   {showChange && (
                     <td className={`text-right lv-change ${changePct === null ? '' : changePct >= 0 ? 'text-green' : 'text-red'}`}>
-                      {changePct !== null ? (
-                        <MetricValue
-                          value={changePct}
-                          seriesKey="stockPrice"
-                          timestamp={snapshotDate || dataTimestamp}
-                          format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`}
-                        />
-                      ) : '—'}
+                      {changePct !== null
+                        ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(1)}%`
+                        : '—'}
                     </td>
                   )}
                 </tr>

@@ -1,14 +1,17 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useDataContext } from '../hub/DataContext';
 import { MARKET_PANELS } from '../data/marketPanels';
+import {
+  evaluateMarketPanels,
+  evaluatePanelHealth,
+  statusMapFromReports,
+} from '../hub/lib/panelHealthEval';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Panel health cache — populated by SplashScreen DOM scan during init.
-// Every market renders behind the splash backdrop; scanAllPanels() finds
-// [data-panel-key] elements and records 'ok' / 'null' / 'stale' per panel.
-// The cache is set once via setPanelCache() when splash dismisses.
+// Panel health cache — populated by SplashScreen during init with FULL reports
+// (fetch + display + confirm). Green only when all three gates pass.
 // ─────────────────────────────────────────────────────────────────────────────
-let _panelCache = {};
+let _panelCache = {}; // marketId -> { panelId -> PanelHealthReport | legacy string }
 let _cacheVersion = 0;
 const _listeners = new Set();
 
@@ -18,29 +21,30 @@ export function setPanelCache(cache) {
   _listeners.forEach(fn => fn());
 }
 
-// Live DOM scan for a single panel. Used as fallback when the splash cache
-// is stale (e.g. panel rendered after splash dismissed, or user navigated
-// to a different tab and back).
-function scanPanelInDOM(panelId) {
-  const el = document.querySelector(`[data-panel-key="${panelId}"]`);
-  if (!el) return null;
-  const text = el.textContent || '';
-  const footer = el.querySelector('.bento-footer, [class*="footer"]');
-  const footerText = footer?.textContent || '';
-  if (/stale/i.test(footerText)) return 'stale';
-  if (/\bno data\b|\bunavailable\b|\bnot available\b/i.test(text) && text.length < 200) return 'null';
-  return 'ok';
+export function getPanelCache() {
+  return _panelCache;
 }
 
+export function getPanelReport(marketId, panelId) {
+  const entry = _panelCache?.[marketId]?.[panelId];
+  if (!entry) return null;
+  if (typeof entry === 'string') return { status: entry, panelId, marketId };
+  return entry;
+}
+
+function normalizeReport(entry, fallbackStatus = 'null') {
+  if (!entry) return { status: fallbackStatus };
+  if (typeof entry === 'string') return { status: entry };
+  return entry;
+}
+
+/**
+ * Live health map for a market's panels.
+ * Returns Record<panelId, PanelHealthReport> with strict green criteria.
+ */
 export function usePanelHealth(marketId) {
   const ctx = useDataContext();
   const allMarkets = ctx?.markets;
-  // mutationTick is incremented on every DOM mutation and on every cache
-  // update. It is included in useMemo deps so that scanPanelInDOM() re-runs
-  // when the DOM changes (e.g. a panel renders after data arrives, or the
-  // user hovers a different tab). Without it, useMemo returns stale results
-  // because [marketId, allMarkets, _cacheVersion] don't change on DOM mutation.
-  // DO NOT REMOVE from deps — the dropdown dots will stop updating.
   const [mutationTick, setMutationTick] = useState(0);
   const observerRef = useRef(null);
 
@@ -53,40 +57,71 @@ export function usePanelHealth(marketId) {
   useEffect(() => {
     if (!marketId) return;
     observerRef.current?.disconnect();
-    const obs = new MutationObserver(() => setMutationTick(n => n + 1));
-    obs.observe(document.body, { childList: true, subtree: true });
+    // Debounce DOM mutations — full subtree observe is noisy.
+    let t = null;
+    const obs = new MutationObserver(() => {
+      clearTimeout(t);
+      t = setTimeout(() => setMutationTick(n => n + 1), 120);
+    });
+    obs.observe(document.body, { childList: true, subtree: true, characterData: true });
     observerRef.current = obs;
-    return () => obs.disconnect();
+    return () => {
+      clearTimeout(t);
+      obs.disconnect();
+    };
   }, [marketId]);
 
   return useMemo(() => {
-    const panels = MARKET_PANELS[marketId] || [];
-    const cached = _panelCache[marketId] || {};
+    if (!marketId) return {};
     const marketCtx = allMarkets?.[marketId];
-    const health = {};
-
+    // Prefer live evaluation so post-splash updates stay accurate.
+    const live = evaluateMarketPanels(marketId, marketCtx, allMarkets);
+    const cached = _panelCache[marketId] || {};
+    // Merge: live wins when element is present; otherwise keep cache detail.
+    const out = {};
+    const panels = MARKET_PANELS[marketId] || [];
     for (const p of panels) {
-      const live = scanPanelInDOM(p.id);
-      if (live) {
-        health[p.id] = live;
-      } else if (document.querySelector(`[data-panel-key="${p.id}"]`)) {
-        if (cached[p.id]) {
-          health[p.id] = cached[p.id];
-        } else if (!marketCtx) {
-          health[p.id] = 'unknown';
-        } else if (marketCtx.isLoading) {
-          health[p.id] = 'loading';
-        } else if (marketCtx.error && !marketCtx.data) {
-          health[p.id] = 'null';
-        } else if (marketCtx.data) {
-          health[p.id] = 'ok';
-        } else {
-          health[p.id] = 'unknown';
-        }
+      const liveR = live[p.id];
+      const cacheR = normalizeReport(cached[p.id]);
+      if (liveR?.elPresent) {
+        out[p.id] = liveR;
+      } else if (cacheR?.status && cacheR.status !== 'loading') {
+        // Keep splash snapshot if panel not currently mounted (inactive tab)
+        out[p.id] = { ...cacheR, title: cacheR.title || p.title, panelId: p.id, marketId };
       } else {
-        health[p.id] = 'null';
+        out[p.id] = liveR || {
+          status: 'null',
+          marketId,
+          panelId: p.id,
+          title: p.title,
+          fetchOk: false,
+          displayOk: false,
+          confirmOk: false,
+          fetchDetail: 'not evaluated',
+          displayDetail: 'panel not mounted',
+          confirmDetail: 'n/a',
+        };
       }
     }
-    return health;
+    return out;
   }, [marketId, allMarkets, _cacheVersion, mutationTick]);
+}
+
+/** Status-string map for simple consumers. */
+export function usePanelHealthStatuses(marketId) {
+  const reports = usePanelHealth(marketId);
+  return useMemo(() => statusMapFromReports(reports), [reports]);
+}
+
+/** Evaluate a single panel on demand (detail modal). */
+export function evaluateSinglePanel(marketId, panelId, allMarkets) {
+  const marketCtx = allMarkets?.[marketId];
+  const title = (MARKET_PANELS[marketId] || []).find(p => p.id === panelId)?.title;
+  return evaluatePanelHealth({
+    marketId,
+    panelId,
+    panelTitle: title,
+    marketCtx,
+    allMarkets,
+  });
 }

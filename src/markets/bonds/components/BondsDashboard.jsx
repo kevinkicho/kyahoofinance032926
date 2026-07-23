@@ -16,6 +16,365 @@ import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './BondsDashboard.css';
 
+/** Format FRED macro levels with correct units (never dump nested objects). */
+function buildMacroRows(macroData, nationalDebt, debtToGdpHistory) {
+  if (!macroData || typeof macroData !== 'object') return [];
+  const rows = [];
+  const push = (id, label, value, kind, seriesKey, color) => {
+    if (value == null || (typeof value === 'number' && !Number.isFinite(value))) return;
+    if (typeof value === 'object') return; // skip nested maps like centralBankRates
+    rows.push({ id, label, value, kind, seriesKey, color });
+  };
+
+  // WALCL = millions USD → trillions
+  push('fedBalanceSheet', 'Fed balance sheet', macroData.fedBalanceSheet, 'milToT', 'fedBalanceSheet');
+  // M2SL = billions USD → trillions
+  push('m2', 'M2 money stock', macroData.m2, 'bilToT', 'm2');
+  // GFDEBTN = millions USD → trillions (prefer explicit nationalDebt if set)
+  push('federalDebt', 'Federal debt', nationalDebt != null ? nationalDebt * 1e6 : macroData.federalDebt, 'milToT', 'federalDebt', '#f87171');
+  // FYFSD = millions USD
+  push('surplusDeficit', 'Budget surplus', macroData.surplusDeficit, 'milToB', 'surplusDeficit',
+    macroData.surplusDeficit != null && macroData.surplusDeficit < 0 ? '#f87171' : '#4ade80');
+  push('unemployment', 'Unemployment', macroData.unemployment, 'pct', 'unemployment');
+  push('laborParticipation', 'Labor participation', macroData.laborParticipation, 'pct', 'laborParticipation');
+  // GDP = billions USD (level, not growth)
+  push('gdp', 'Nominal GDP', macroData.gdp, 'bilToT', 'gdp');
+  // PCEPI = price index level
+  push('pce', 'PCE price index', macroData.pce, 'index', 'pce');
+  push('tb3ms', '3M T-bill', macroData.tb3ms, 'pct', 'tb3ms');
+  if (debtToGdpHistory?.latest != null) {
+    push('debtToGdp', 'Debt / GDP', debtToGdpHistory.latest, 'pct', 'debtToGdp', '#f87171');
+  }
+  return rows;
+}
+
+function formatMacroValue(value, kind, convertAndFormat) {
+  if (value == null || typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  switch (kind) {
+    case 'pct':
+      return `${value.toFixed(2)}%`;
+    case 'index':
+      return value.toFixed(1);
+    case 'milToT':
+      // millions → trillions
+      return `$${(value / 1e6).toFixed(2)}T`;
+    case 'bilToT':
+      return `$${(value / 1e3).toFixed(2)}T`;
+    case 'milToB': {
+      const b = value / 1e3;
+      const sign = b < 0 ? '−' : '';
+      return `${sign}$${Math.abs(b).toFixed(0)}B`;
+    }
+    default:
+      return convertAndFormat ? convertAndFormat(value, 'USD', 1) : String(value);
+  }
+}
+
+function MacroIndicatorsPanel({ macroData, nationalDebt, debtToGdpHistory, lastUpdated, convertAndFormat }) {
+  const rows = useMemo(
+    () => buildMacroRows(macroData, nationalDebt, debtToGdpHistory),
+    [macroData, nationalDebt, debtToGdpHistory],
+  );
+  const cbRates = macroData?.centralBankRates || {};
+  const cbMeta = macroData?.centralBankMeta || {};
+  const cbEntries = Object.entries(cbRates).filter(([, v]) => v != null && Number.isFinite(Number(v)));
+
+  if (!rows.length && !cbEntries.length) {
+    return <div className="bonds-empty">No macro data available</div>;
+  }
+
+  return (
+    <div className="mi-panel">
+      <div className="mi-section-title">US macro snapshot</div>
+      <div className="mi-grid">
+        {rows.map((r) => (
+          <div key={r.id} className="mi-card">
+            <span className="mi-card-label">{r.label}</span>
+            <span className="mi-card-value" style={r.color ? { color: r.color } : undefined}>
+              <MetricValue
+                value={r.value}
+                seriesKey={r.seriesKey}
+                timestamp={lastUpdated}
+                format={(v) => formatMacroValue(v, r.kind, convertAndFormat)}
+              />
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {cbEntries.length > 0 && (
+        <>
+          <div className="mi-section-title mi-section-title--spaced">Central bank / overnight rates</div>
+          <div className="mi-cb-grid">
+            {cbEntries.map(([code, rate]) => (
+              <div key={code} className="mi-cb-card">
+                <span className="mi-cb-code">{code}</span>
+                <span className="mi-cb-rate">{Number(rate).toFixed(2)}%</span>
+                <span className="mi-cb-meta">{cbMeta[code]?.label || 'policy rate'}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Display order: majors first, then EM / others alphabetically within groups
+const CB_ORDER = [
+  'US', 'EU', 'UK', 'JP', 'CN', 'DE', 'FR', 'ES', 'IT',
+  'CA', 'AU', 'CH', 'SE', 'NO', 'NZ',
+  'IN', 'KR', 'BR', 'MX', 'RU', 'TR', 'ZA', 'ID', 'CL', 'PL', 'IL', 'CZ', 'HU',
+];
+const CB_FLAGS = {
+  US: '🇺🇸', EU: '🇪🇺', UK: '🇬🇧', JP: '🇯🇵', CN: '🇨🇳',
+  DE: '🇩🇪', FR: '🇫🇷', ES: '🇪🇸', IT: '🇮🇹',
+  CA: '🇨🇦', AU: '🇦🇺', CH: '🇨🇭', SE: '🇸🇪', NO: '🇳🇴', NZ: '🇳🇿',
+  IN: '🇮🇳', KR: '🇰🇷', BR: '🇧🇷', MX: '🇲🇽', RU: '🇷🇺',
+  TR: '🇹🇷', ZA: '🇿🇦', ID: '🇮🇩', CL: '🇨🇱', PL: '🇵🇱', IL: '🇮🇱',
+  CZ: '🇨🇿', HU: '🇭🇺',
+};
+const CB_NAMES = {
+  US: 'United States', EU: 'Euro area', UK: 'United Kingdom', JP: 'Japan',
+  CN: 'China', DE: 'Germany', FR: 'France', ES: 'Spain', IT: 'Italy',
+  CA: 'Canada', AU: 'Australia', CH: 'Switzerland', SE: 'Sweden',
+  NO: 'Norway', NZ: 'New Zealand', IN: 'India', KR: 'South Korea',
+  BR: 'Brazil', MX: 'Mexico', RU: 'Russia', TR: 'Türkiye', ZA: 'South Africa',
+  ID: 'Indonesia', CL: 'Chile', PL: 'Poland', IL: 'Israel',
+  CZ: 'Czechia', HU: 'Hungary',
+};
+
+function fmtPct(v, digits = 2) {
+  if (v == null || !Number.isFinite(Number(v))) return '—';
+  return `${Number(v).toFixed(digits)}%`;
+}
+
+function fmtChg(v) {
+  if (v == null || !Number.isFinite(Number(v))) return null;
+  const n = Number(v);
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${n.toFixed(2)}`;
+}
+
+/** Full ECB policy + money-market rates panel (live SDW only). */
+function EcbPolicyRatesPanel({ data }) {
+  const pr = data?.policyRates;
+  const mm = data?.moneyMarket;
+  const m3Last = data?.m3Growth?.length ? data.m3Growth[data.m3Growth.length - 1] : null;
+  const hicpLast = data?.hicpDetail?.length ? data.hicpDetail[data.hicpDetail.length - 1] : null;
+
+  if (!pr && !mm && !m3Last && !hicpLast) {
+    return <div className="bonds-empty">ECB data unavailable</div>;
+  }
+
+  const corridor = [
+    {
+      code: 'DFR',
+      label: 'Deposit facility',
+      value: pr?.depositFacility?.value,
+      period: pr?.depositFacility?.period,
+      chg: pr?.depositFacilityChange?.value,
+      color: '#66bb6a',
+    },
+    {
+      code: 'MRR',
+      label: 'Main refinancing',
+      value: pr?.mainRefinancing?.value,
+      period: pr?.mainRefinancing?.period,
+      chg: pr?.mainRefinancingChange?.value,
+      color: '#42a5f5',
+    },
+    {
+      code: 'MLFR',
+      label: 'Marginal lending',
+      value: pr?.marginalLending?.value,
+      period: pr?.marginalLending?.period,
+      chg: pr?.marginalLendingChange?.value,
+      color: '#ef5350',
+    },
+  ];
+
+  const mmRows = [
+    { label: '€STR (vol-wtd)', value: mm?.estr?.value, period: mm?.estr?.period, color: '#a78bfa' },
+    { label: '€STR 25th pct', value: mm?.estrP25?.value, period: mm?.estrP25?.period },
+    { label: '€STR 75th pct', value: mm?.estrP75?.value, period: mm?.estrP75?.period },
+    { label: '€STR monthly avg', value: mm?.estrMonthlyAvg?.value, period: mm?.estrMonthlyAvg?.period },
+    { label: 'EURIBOR 1M', value: mm?.euribor1m?.value, period: mm?.euribor1m?.period, color: '#fbbf24' },
+    { label: 'EURIBOR 3M', value: mm?.euribor3m?.value, period: mm?.euribor3m?.period, color: '#fbbf24' },
+    { label: 'EURIBOR 6M', value: mm?.euribor6m?.value, period: mm?.euribor6m?.period, color: '#fbbf24' },
+    { label: 'EURIBOR 1Y', value: mm?.euribor1y?.value, period: mm?.euribor1y?.period, color: '#fbbf24' },
+  ].filter((r) => r.value != null && Number.isFinite(Number(r.value)));
+
+  const derived = [
+    {
+      label: 'Corridor width (MLFR−DFR)',
+      value: pr?.corridorWidth?.value,
+      period: pr?.corridorWidth?.period,
+    },
+    {
+      label: 'MRR − DFR spread',
+      value: pr?.standingFacilitySpread?.value,
+      period: pr?.standingFacilitySpread?.period,
+    },
+    {
+      label: '€STR − DFR',
+      value:
+        mm?.estr?.value != null && pr?.depositFacility?.value != null
+          ? Number(mm.estr.value) - Number(pr.depositFacility.value)
+          : null,
+      period: mm?.estr?.period,
+    },
+  ].filter((r) => r.value != null && Number.isFinite(Number(r.value)));
+
+  const macro = [
+    { label: 'M3 growth (YoY)', value: m3Last?.value, period: m3Last?.period, digits: 1 },
+    { label: 'HICP (YoY)', value: hicpLast?.value, period: hicpLast?.period, digits: 1 },
+  ].filter((r) => r.value != null);
+
+  const effDate = pr?.mainRefinancing?.period || pr?.depositFacility?.period || null;
+
+  return (
+    <div className="ecb-panel">
+      <div className="ecb-section">
+        <div className="ecb-section-h">
+          <span>Key ECB interest rates</span>
+          {effDate && <span className="ecb-asof">eff. {effDate}</span>}
+        </div>
+        <div className="ecb-corridor">
+          {corridor.map((r) => (
+            <div key={r.code} className="ecb-rate-card">
+              <span className="ecb-rate-code" style={{ color: r.color }}>{r.code}</span>
+              <span className="ecb-rate-val" style={{ color: r.color }}>{fmtPct(r.value)}</span>
+              <span className="ecb-rate-label">{r.label}</span>
+              {fmtChg(r.chg) != null && (
+                <span className={`ecb-rate-chg ${Number(r.chg) > 0 ? 'up' : Number(r.chg) < 0 ? 'down' : ''}`}>
+                  last Δ {fmtChg(r.chg)} pp
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {mmRows.length > 0 && (
+        <div className="ecb-section">
+          <div className="ecb-section-h"><span>€STR &amp; EURIBOR</span></div>
+          <div className="ecb-rate-list">
+            {mmRows.map((r) => (
+              <div key={r.label} className="ecb-rate-row">
+                <span className="ecb-rate-name">{r.label}</span>
+                <span className="ecb-rate-period">{r.period || ''}</span>
+                <span className="ecb-rate-num" style={r.color ? { color: r.color } : undefined}>
+                  {fmtPct(r.value, 3)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {derived.length > 0 && (
+        <div className="ecb-section">
+          <div className="ecb-section-h"><span>Corridor / spreads</span></div>
+          <div className="ecb-rate-list">
+            {derived.map((r) => (
+              <div key={r.label} className="ecb-rate-row">
+                <span className="ecb-rate-name">{r.label}</span>
+                <span className="ecb-rate-period">{r.period || ''}</span>
+                <span className="ecb-rate-num">{fmtPct(r.value, 2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {macro.length > 0 && (
+        <div className="ecb-section">
+          <div className="ecb-section-h"><span>Euro-area aggregates</span></div>
+          <div className="ecb-rate-list">
+            {macro.map((r) => (
+              <div key={r.label} className="ecb-rate-row">
+                <span className="ecb-rate-name">{r.label}</span>
+                <span className="ecb-rate-period">{r.period || ''}</span>
+                <span className="ecb-rate-num">{fmtPct(r.value, r.digits ?? 2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="ecb-footer">Live ECB SDW · no mock · DFR/MRR/MLFR · €STR · EURIBOR 1M–1Y</div>
+    </div>
+  );
+}
+
+function CentralBankRatesPanel({ rates, meta, ecbRate }) {
+  const merged = { ...(rates || {}) };
+  // Prefer live ECB SDW main refinancing for EU when available
+  if (ecbRate != null && Number.isFinite(Number(ecbRate))) {
+    merged.EU = Number(ecbRate);
+  }
+
+  const orderIdx = Object.fromEntries(CB_ORDER.map((c, i) => [c, i]));
+  const entries = Object.keys(merged)
+    .map((code) => ({
+      code,
+      rate: merged[code] != null && Number.isFinite(Number(merged[code])) ? Number(merged[code]) : null,
+      label: meta?.[code]?.label || CB_NAMES[code] || code,
+      name: CB_NAMES[code] || code,
+      series: meta?.[code]?.series || null,
+    }))
+    .filter((e) => e.rate != null)
+    .sort((a, b) => {
+      const ia = orderIdx[a.code] ?? 500;
+      const ib = orderIdx[b.code] ?? 500;
+      if (ia !== ib) return ia - ib;
+      return b.rate - a.rate;
+    });
+
+  if (!entries.length) {
+    return <div className="bonds-empty">Global rate data unavailable — FRED series empty</div>;
+  }
+
+  // Cap bar scale so extreme rates (e.g. TR 35%) don't crush everyone else
+  const barMax = Math.min(
+    Math.max(...entries.map((e) => e.rate), 0.01),
+    Math.max(8, ...entries.filter((e) => e.rate <= 15).map((e) => e.rate), 1) * 1.15,
+  );
+
+  return (
+    <div className="mi-panel">
+      <div className="mi-cb-summary">
+        <span>{entries.length} economies</span>
+        <span>rates · live FRED / ECB</span>
+      </div>
+      <div className="mi-cb-list">
+        {entries.map((e) => (
+          <div key={e.code} className="mi-cb-row">
+            <span className="mi-cb-flag">{CB_FLAGS[e.code] || '·'}</span>
+            <span className="mi-cb-name">
+              <strong>{e.code}</strong>
+              <span className="mi-cb-sub" title={e.series || undefined}>
+                {e.name} · {e.label}
+              </span>
+            </span>
+            <span className="mi-cb-bar-track">
+              <span
+                className="mi-cb-bar-fill"
+                style={{ width: `${Math.min(100, Math.max(2, (e.rate / barMax) * 100))}%` }}
+              />
+            </span>
+            <span className="mi-cb-rate-lg">{e.rate.toFixed(2)}%</span>
+          </div>
+        ))}
+      </div>
+      <div className="mi-footer">
+        Live only · US EFFR · EU ECB MRR · UK SONIA · JP/CA/AU/CN/IN/BR/KR/… OECD call money · no mock
+      </div>
+    </div>
+  );
+}
+
 function BondsDashboard({
   yieldCurveData, creditRatingsData, creditRatingsAsOf, spreadIndicators, spreadData, durationLadderData, durationLadderMeta,
   breakevensData, fredYieldHistory, treasuryRates, fedFundsFutures, yieldHistory,
@@ -38,32 +397,25 @@ function BondsDashboard({
   const layout = {
     lg: [
       { i: 'kpi',        x: 0, y: 0,  w: 12, h: 2 },
-      { i: 'yield',      x: 0, y: 2,  w: 8,  h: 4 },
-      { i: 'metrics',    x: 8, y: 2,  w: 4,  h: 4 },
-      { i: 'credit',     x: 0, y: 6,  w: 4,  h: 3 },
-      { i: 'realYield',  x: 4, y: 6,  w: 4,  h: 3 },
-      { i: 'ratings',    x: 8, y: 6,  w: 4,  h: 3 },
-      { i: 'curvespreads', x: 0, y: 9, w: 4, h: 3 },
-      { i: 'fed',        x: 4, y: 9,  w: 4,  h: 3 },
-      { i: 'm2',         x: 8, y: 9,  w: 4,  h: 3 },
-      { i: 'cpi',        x: 0, y: 12, w: 4,  h: 3 },
-      { i: 'debtgdp',    x: 4, y: 12, w: 4,  h: 3 },
-      { i: 'breakevens', x: 8, y: 12, w: 4,  h: 3 },
-      { i: 'duration',   x: 0, y: 15, w: 6,  h: 4 },
-      { i: 'macro',      x: 6, y: 15, w: 6,  h: 4 },
-      // Tier-1 additions (2026-05-03): foreign holders of US Treasuries
-      // and overnight money-market activity. Sourced from /api/treasury/tic
-      // and /api/nyfed via useMarketData above.
-      { i: 'foreign-holders', x: 0, y: 19, w: 6, h: 4 },
-      { i: 'money-market',    x: 6, y: 19, w: 6, h: 4 },
-      // Tier-1 addition (2026-05-04): Treasury auction results — bid-to-cover
-      // history + indirect-bidder share table. Sourced from
-      // /api/treasury/auctions via useMarketData('treasuryAuctions').
-      { i: 'auctions',        x: 0, y: 23, w: 12, h: 5 },
-      // Phase 4 additions: ECB yield curves, global policy rates, Treasury avg interest cost
-      { i: 'ecb-yields',      x: 0, y: 28, w: 6, h: 4 },
-      { i: 'global-rates',    x: 6, y: 28, w: 6, h: 4 },
-      { i: 'treasury-cost',   x: 0, y: 32, w: 6, h: 3 },
+      { i: 'yield',      x: 0, y: 2,  w: 8,  h: 5 },
+      { i: 'metrics',    x: 8, y: 2,  w: 4,  h: 5 },
+      { i: 'credit',     x: 0, y: 7,  w: 4,  h: 3 },
+      { i: 'realYield',  x: 4, y: 7,  w: 4,  h: 3 },
+      { i: 'ratings',    x: 8, y: 7,  w: 4,  h: 3 },
+      { i: 'curvespreads', x: 0, y: 10, w: 4, h: 3 },
+      { i: 'fed',        x: 4, y: 10, w: 4,  h: 3 },
+      { i: 'm2',         x: 8, y: 10, w: 4,  h: 3 },
+      { i: 'cpi',        x: 0, y: 13, w: 4,  h: 3 },
+      { i: 'debtgdp',    x: 4, y: 13, w: 4,  h: 3 },
+      { i: 'breakevens', x: 8, y: 13, w: 4,  h: 3 },
+      { i: 'duration',   x: 0, y: 16, w: 6,  h: 5 },
+      { i: 'macro',      x: 6, y: 16, w: 6,  h: 5 },
+      { i: 'foreign-holders', x: 0, y: 21, w: 6, h: 4 },
+      { i: 'money-market',    x: 6, y: 21, w: 6, h: 4 },
+      { i: 'auctions',        x: 0, y: 25, w: 12, h: 5 },
+      { i: 'ecb-yields',      x: 0, y: 30, w: 6, h: 7 },
+      { i: 'global-rates',    x: 6, y: 30, w: 6, h: 7 },
+      { i: 'treasury-cost',   x: 0, y: 37, w: 6, h: 3 },
     ]
   };
 
@@ -75,16 +427,27 @@ function BondsDashboard({
     // need to bail out rather than throw.
     const fmtPct = v => typeof v === 'number' ? `${v.toFixed(2)}%` : '—';
     const fmtBps = v => typeof v === 'number' ? `${Math.round(v)} bps` : '—';
+    const n = (...vals) => {
+      for (const v of vals) if (typeof v === 'number' && Number.isFinite(v)) return v;
+      return null;
+    };
+    const us10 = n(treasuryRates?.US10Y, yieldCurveData?.US?.['10y']);
+    const us2 = n(treasuryRates?.US2Y, yieldCurveData?.US?.['2y']);
+    const curve = n(spreadIndicators?.t10y2y, (us10 != null && us2 != null ? us10 - us2 : null));
+    const fed = n(fedFundsFutures?.m1, treasuryRates?.fedFunds, treasuryRates?.US3M);
+    const ig = n(spreadData?.current?.igSpread, spreadData?.current?.ig);
+    const hy = n(spreadData?.current?.hySpread, spreadData?.current?.hy);
+    const be5 = n(breakevensData?.current?.be5y);
     return [
-      { label: 'US 10Y',      rawValue: treasuryRates?.US10Y,           value: fmtPct(treasuryRates?.US10Y),           format: fmtPct, seriesKey: '10y',      sublabel: 'Treasury' },
-      { label: 'US 2Y',       rawValue: treasuryRates?.US2Y,            value: fmtPct(treasuryRates?.US2Y),            format: fmtPct, seriesKey: '2y',       sublabel: 'Treasury' },
-      { label: 'Fed Funds',   rawValue: fedFundsFutures?.m1,            value: fmtPct(fedFundsFutures?.m1),            format: fmtPct, seriesKey: 'fedFunds', sublabel: 'Policy rate' },
-      { label: '10Y-2Y',      rawValue: spreadIndicators?.t10y2y,       value: fmtPct(spreadIndicators?.t10y2y),       format: fmtPct, seriesKey: 't10y2y',   color: spreadIndicators?.t10y2y < 0 ? '#f87171' : '#4ade80', sublabel: 'Curve' },
-      { label: 'IG OAS',      rawValue: spreadData?.current?.igSpread,  value: fmtBps(spreadData?.current?.igSpread),  format: fmtBps, seriesKey: 'igOAS',    sublabel: 'Investment Grade' },
-      { label: 'HY OAS',      rawValue: spreadData?.current?.hySpread,  value: fmtBps(spreadData?.current?.hySpread),  format: fmtBps, seriesKey: 'hyOAS',    sublabel: 'High Yield' },
-      { label: '5Y BE',       rawValue: breakevensData?.current?.be5y,  value: fmtPct(breakevensData?.current?.be5y),  format: fmtPct, seriesKey: 't5yie',    sublabel: 'Breakeven' },
+      { label: 'US 10Y',    rawValue: us10, value: fmtPct(us10), format: fmtPct, seriesKey: '10y',      sublabel: 'Treasury' },
+      { label: 'US 2Y',     rawValue: us2,  value: fmtPct(us2),  format: fmtPct, seriesKey: '2y',       sublabel: 'Treasury' },
+      { label: 'Fed Funds', rawValue: fed,  value: fmtPct(fed),  format: fmtPct, seriesKey: 'fedFunds', sublabel: 'Policy rate' },
+      { label: '10Y-2Y',    rawValue: curve, value: fmtPct(curve), format: fmtPct, seriesKey: 't10y2y', color: curve != null && curve < 0 ? '#f87171' : '#4ade80', sublabel: 'Curve' },
+      { label: 'IG OAS',    rawValue: ig,   value: fmtBps(ig),   format: fmtBps, seriesKey: 'igOAS',    sublabel: 'Investment Grade' },
+      { label: 'HY OAS',    rawValue: hy,   value: fmtBps(hy),   format: fmtBps, seriesKey: 'hyOAS',    sublabel: 'High Yield' },
+      { label: '5Y BE',     rawValue: be5,  value: fmtPct(be5),  format: fmtPct, seriesKey: 't5yie',    sublabel: 'Breakeven' },
     ];
-  }, [treasuryRates, fedFundsFutures, spreadIndicators, spreadData, breakevensData]);
+  }, [treasuryRates, fedFundsFutures, spreadIndicators, spreadData, breakevensData, yieldCurveData]);
 
   // Spread History chart
   const spreadHistoryOption = useMemo(() => {
@@ -311,7 +674,7 @@ function BondsDashboard({
 
   return (
     <div className="bonds-dashboard bonds-dashboard--bento">
-      <BentoWrapper layout={layout} storageKey="bonds-layout-v5">
+      <BentoWrapper layout={layout} storageKey="bonds-layout-v9">
         {/* KPI strip — first bento child, full-width across row 0. Each
             pill is clickable (MetricValue popover with FRED series ID). */}
         <BentoCard
@@ -336,19 +699,25 @@ function BondsDashboard({
         <BentoCard
           key="yield"
           title="Yield Curve"
-          subtitle={`${countryCount} countries · sovereign benchmark rates`}
+          subtitle={`${countryCount} markets · US multi-tenor + global 10Y`}
           accent="bonds"
           className="bonds-bento-card"
-          contentClassName="bonds-panel-content"
-          source="FRED / Yahoo Finance"
+          contentClassName="bonds-panel-content yc-host"
+          source="FRED"
           timestamp={lastUpdated}
-          isLive={Object.keys(yieldCurveData).some(k => yieldCurveData[k] && Object.values(yieldCurveData[k]).some(v => v != null))}
+          isLive={Object.keys(yieldCurveData || {}).some(k => yieldCurveData[k] && Object.values(yieldCurveData[k]).some(v => v != null))}
           isCurrent={isCurrent}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
         >
-          {yieldCurveData && <YieldCurve yieldCurveData={yieldCurveData} spreadIndicators={spreadIndicators} fredYieldHistory={fredYieldHistory} yieldHistory={yieldHistory} lastUpdated={lastUpdated} />}
+          <YieldCurve
+            yieldCurveData={yieldCurveData}
+            spreadIndicators={spreadIndicators}
+            fredYieldHistory={fredYieldHistory}
+            yieldHistory={yieldHistory}
+            lastUpdated={lastUpdated}
+          />
         </BentoCard>
 
         {/* Key Metrics (sidebar) */}
@@ -475,8 +844,10 @@ function BondsDashboard({
         </BentoCard>
 
         {/* Credit Spreads */}
-        <BentoCard key="credit" title="Credit Spreads" subtitle="IG · HY · EM · BBB" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED ICE BofA" timestamp={lastUpdated} isLive={spreadData?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {spreadData?.dates?.length ? <SpreadMonitor spreadData={spreadData} mortgageSpread={mortgageSpread} /> : <div className="bonds-empty">No spread data available</div>}
+        <BentoCard key="credit" title="Credit Spreads" subtitle="IG · HY · EM · BBB" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED ICE BofA" timestamp={lastUpdated} isLive={!!(spreadData?.dates?.length || spreadData?.current?.hySpread != null)} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          {(spreadData?.dates?.length || spreadData?.current)
+            ? <SpreadMonitor spreadData={spreadData} mortgageSpread={mortgageSpread} lastUpdated={lastUpdated} />
+            : <div className="bonds-empty">No spread data available</div>}
         </BentoCard>
 
         {/* Real Yields — RealYields was refactored in Phase 6b to expose
@@ -541,16 +912,22 @@ function BondsDashboard({
           subtitle={`US Treasury marketable debt by maturity${durationLadderMeta?.asOf ? ` (as of ${new Date(durationLadderMeta.asOf + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })})` : ''}`}
           accent="bonds"
           className="bonds-bento-card"
-          contentClassName="bonds-panel-content"
-          source="Treasury Fiscal Data"
+          contentClassName="bonds-panel-content dl-host"
+          source="Treasury Fiscal Data / CME ZQ"
           timestamp={lastUpdated}
-          isLive={!!durationLadderMeta}
+          isLive={!!durationLadderMeta || !!(fedFundsFutures && Object.keys(fedFundsFutures).length > 1)}
           isCurrent={isCurrent}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
         >
-          <DurationLadder bare durationLadderData={durationLadderData} durationLadderMeta={durationLadderMeta} treasuryRates={treasuryRates} fedFundsFutures={fedFundsFutures} />
+          <DurationLadder
+            bare
+            durationLadderData={durationLadderData}
+            durationLadderMeta={durationLadderMeta}
+            treasuryRates={treasuryRates}
+            fedFundsFutures={fedFundsFutures}
+          />
         </BentoCard>
 
         {/* Macro Indicators */}
@@ -609,7 +986,7 @@ function BondsDashboard({
             : 'Bid-to-cover trend · indirect-bidder share = foreign demand proxy'}
           accent="bonds"
           className="bonds-bento-card"
-          contentClassName="bonds-panel-scroll"
+          contentClassName="bonds-panel-content auc-host"
           source="US Treasury Fiscal Data"
           timestamp={auctionCtx?.lastUpdated || lastUpdated}
           isLive={!!(auctionCtx?.data?.auctions?.length)}
@@ -619,55 +996,89 @@ function BondsDashboard({
           error={auctionCtx?.error || error}
         >
           {auctionTrendOption ? (
-            // 1fr/1fr split balances chart + table (was 1.4fr/1fr — the chart
-            // crowded the table into a narrow column with empty space below).
-            // Table also bumped from 12 → 24 rows so it actually fills the
-            // panel height instead of leaving a long empty tail.
-            <div style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 10, height: '100%', minHeight: 0 }}>
+            <div className="auc-panel">
               {auctionDemandSummary && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+                <div className="auc-kpis">
                   {[
                     ['Demand', auctionDemandSummary.demandLabel, '#22d3ee'],
-                    ['Avg BTC', auctionDemandSummary.avgBidToCover, '#10b981', v => v.toFixed(2)],
-                    ['Indirect', auctionDemandSummary.avgIndirectPct, '#a78bfa', v => `${v.toFixed(0)}%`],
-                    ['Dealer', auctionDemandSummary.avgDealerPct, '#f59e0b', v => `${v.toFixed(0)}%`],
+                    ['Avg BTC', auctionDemandSummary.avgBidToCover, '#10b981', (v) => v.toFixed(2)],
+                    ['Indirect', auctionDemandSummary.avgIndirectPct, '#a78bfa', (v) => `${v.toFixed(0)}%`],
+                    ['Dealer', auctionDemandSummary.avgDealerPct, '#f59e0b', (v) => `${v.toFixed(0)}%`],
                   ].map(([label, value, color, format]) => (
-                    <div key={label} className="bonds-metric-card" style={{ padding: '6px 8px', minWidth: 0 }}>
-                      <div className="bonds-metric-name">{label}</div>
-                      <div className="bonds-metric-num" style={{ color }}>
-                        {typeof format === 'function' && Number.isFinite(Number(value)) ? format(Number(value)) : value ?? '—'}
-                      </div>
+                    <div key={label} className="auc-kpi">
+                      <span className="auc-kpi-label">{label}</span>
+                      <span className="auc-kpi-value" style={{ color }}>
+                        {typeof format === 'function' && Number.isFinite(Number(value))
+                          ? format(Number(value))
+                          : (value ?? '—')}
+                      </span>
                     </div>
                   ))}
                 </div>
               )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, minHeight: 0 }}>
-                <div style={{ minHeight: 0 }}>
-                  <SafeECharts option={auctionTrendOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Auction Bid-to-Cover', source: 'US Treasury Fiscal Data', endpoint: '/api/treasury/auctions', series: [], updatedAt: auctionCtx?.lastUpdated || lastUpdated }} />
+              <div className="auc-main">
+                <div className="auc-chart-card">
+                  <div className="auc-section-title">Bid-to-cover · indirect %</div>
+                  <div className="auc-chart-body">
+                    <SafeECharts
+                      option={auctionTrendOption}
+                      style={{ height: '100%', width: '100%' }}
+                      sourceInfo={{
+                        title: 'Auction Bid-to-Cover',
+                        source: 'US Treasury Fiscal Data',
+                        endpoint: '/api/treasury/auctions',
+                        series: [],
+                        updatedAt: auctionCtx?.lastUpdated || lastUpdated,
+                      }}
+                    />
+                  </div>
                 </div>
-                <div style={{ overflow: 'auto', minHeight: 0 }}>
-                  <table className="bonds-mini-table" style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ color: colors.textMuted, textAlign: 'right', borderBottom: `1px solid ${colors.cardBg}`, position: 'sticky', top: 0, background: colors.bgCard }}>
-                        <th style={{ textAlign: 'left', padding: '4px 6px' }}>Auction</th>
-                        <th style={{ textAlign: 'left', padding: '4px 6px' }}>Term</th>
-                        <th style={{ padding: '4px 6px' }}>BTC</th>
-                        <th style={{ padding: '4px 6px' }}>Indir%</th>
-                        <th style={{ padding: '4px 6px' }}>Yield</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(auctionCtx?.data?.auctions || []).slice(0, 24).map((r, i) => (
-                        <tr key={i} style={{ color: colors.textSecondary, borderBottom: `1px solid ${colors.cardBg}` }}>
-                          <td style={{ padding: '3px 6px', fontVariantNumeric: 'tabular-nums' }}>{r.auctionDate?.slice(5)}</td>
-                          <td style={{ padding: '3px 6px' }}>{r.securityType?.[0]} · {r.securityTerm}</td>
-                          <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: r.bidToCover >= 2.5 ? '#10b981' : r.bidToCover >= 2.0 ? '#fbbf24' : '#f87171' }}>{r.bidToCover?.toFixed(2)}</td>
-                          <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.indirectPct != null ? r.indirectPct.toFixed(0) + '%' : '—'}</td>
-                          <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.stopYieldPct != null ? r.stopYieldPct.toFixed(2) + '%' : '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="auc-table-card">
+                  <div className="auc-section-title">
+                    Recent results · {(auctionCtx?.data?.auctions || []).length} auctions
+                  </div>
+                  <div className="auc-table" role="table">
+                    <div className="auc-table-head" role="row">
+                      <span role="columnheader">Date</span>
+                      <span role="columnheader">Issue</span>
+                      <span role="columnheader">BTC</span>
+                      <span role="columnheader">Ind%</span>
+                      <span role="columnheader">Yield</span>
+                    </div>
+                    <div className="auc-table-body">
+                      {(auctionCtx?.data?.auctions || []).slice(0, 30).map((r, i) => {
+                        const btc = r.bidToCover;
+                        const btcColor =
+                          btc == null ? undefined
+                            : btc >= 2.5 ? '#10b981'
+                              : btc >= 2.0 ? '#fbbf24'
+                                : '#f87171';
+                        return (
+                          <div
+                            key={`${r.auctionDate}-${r.securityTerm}-${i}`}
+                            className="auc-table-row"
+                            role="row"
+                          >
+                            <span className="auc-td-date" role="cell">
+                              {r.auctionDate?.slice(5) || '—'}
+                            </span>
+                            <span className="auc-td-issue" role="cell" title={`${r.securityType || ''} ${r.securityTerm || ''}`}>
+                              {(r.securityType?.[0] || '?')} · {r.securityTerm || '—'}
+                            </span>
+                            <span className="auc-td-num" role="cell" style={{ color: btcColor }}>
+                              {btc != null ? btc.toFixed(2) : '—'}
+                            </span>
+                            <span className="auc-td-num" role="cell">
+                              {r.indirectPct != null ? `${r.indirectPct.toFixed(0)}%` : '—'}
+                            </span>
+                            <span className="auc-td-num" role="cell">
+                              {r.stopYieldPct != null ? `${r.stopYieldPct.toFixed(2)}%` : '—'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -676,58 +1087,68 @@ function BondsDashboard({
           )}
         </BentoCard>
 
-        <BentoCard key="macro" title="Macro Indicators" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED" timestamp={lastUpdated} isLive={macroData && Object.keys(macroData).length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {macroData && Object.keys(macroData).length > 0 ? (
-            <div className="bonds-metrics-grid">
-              {Object.entries(macroData).map(([key, val]) => {
-                if (val == null) return null;
-                const isMonetary = ['fedBalanceSheet', 'm2', 'federalDebt', 'surplusDeficit'].includes(key);
-                return <div key={key} className="bonds-metric-row"><span className="bonds-metric-name">{key}</span><span className="bonds-metric-num"><MetricValue value={isMonetary ? val : val} format={v => typeof v !== 'number' ? String(v) : isMonetary ? convertAndFormat(v, 'USD', 1) : `${v.toFixed(1)}%`} seriesKey={key} timestamp={lastUpdated} /></span></div>;
-              })}
-            </div>
-          ) : <div className="bonds-empty">No macro data available</div>}
+        <BentoCard
+          key="macro"
+          title="Macro Indicators"
+          subtitle="Fed balance sheet · money · labor · growth · policy rates"
+          accent="bonds"
+          className="bonds-bento-card"
+          contentClassName="bonds-panel-content mi-host"
+          source="FRED"
+          timestamp={lastUpdated}
+          isLive={macroData && Object.keys(macroData).length > 0}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <MacroIndicatorsPanel
+            macroData={macroData}
+            nationalDebt={nationalDebt}
+            debtToGdpHistory={debtToGdpHistory}
+            lastUpdated={lastUpdated}
+            convertAndFormat={convertAndFormat}
+          />
         </BentoCard>
 
-        <BentoCard key="ecb-yields" title="ECB Policy Rates" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="ECB SDW" timestamp={ecbCtx?.lastUpdated || lastUpdated} isLive={!!ecbCtx?.data?.policyRates} isCurrent={ecbCtx?.isCurrent ?? isCurrent} fetchedOn={ecbCtx?.fetchedOn || fetchedOn} fetchLog={ecbCtx?.fetchLog || fetchLog} error={ecbCtx?.error || error}>
-          {ecbCtx?.data?.policyRates ? (
-            <div className="bonds-metrics-grid">
-              {[
-                ['Main Refinancing', ecbCtx.data.policyRates.mainRefinancing?.value, '#42a5f5'],
-                ['Deposit Facility', ecbCtx.data.policyRates.depositFacility?.value, '#66bb6a'],
-                ['Marginal Lending', ecbCtx.data.policyRates.marginalLending?.value, '#ef5350'],
-              ].map(([label, value, color]) => (
-                <div key={label} className="bonds-metric-row">
-                  <span className="bonds-metric-name">{label}</span>
-                  <span className="bonds-metric-num" style={{ color }}>{value != null ? `${value.toFixed(2)}%` : '—'}</span>
-                </div>
-              ))}
-              <div className="bonds-metric-row">
-                <span className="bonds-metric-name">M3 Growth (YoY)</span>
-                <span className="bonds-metric-num">{ecbCtx.data.m3Growth?.length ? `${ecbCtx.data.m3Growth[ecbCtx.data.m3Growth.length - 1].value.toFixed(1)}%` : '—'}</span>
-              </div>
-              <div className="bonds-metric-row">
-                <span className="bonds-metric-name">HICP (YoY)</span>
-                <span className="bonds-metric-num">{ecbCtx.data.hicpDetail?.length ? `${ecbCtx.data.hicpDetail[ecbCtx.data.hicpDetail.length - 1].value.toFixed(1)}%` : '—'}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="bonds-empty">ECB data unavailable</div>
-          )}
+        <BentoCard
+          key="ecb-yields"
+          title="ECB Policy Rates"
+          subtitle="Key rates · €STR · EURIBOR · M3/HICP"
+          accent="bonds"
+          className="bonds-bento-card"
+          contentClassName="bonds-panel-content ecb-host"
+          source="ECB SDW"
+          timestamp={ecbCtx?.lastUpdated || lastUpdated}
+          isLive={!!ecbCtx?.data?.policyRates || !!ecbCtx?.data?.moneyMarket}
+          isCurrent={ecbCtx?.isCurrent ?? isCurrent}
+          fetchedOn={ecbCtx?.fetchedOn || fetchedOn}
+          fetchLog={ecbCtx?.fetchLog || fetchLog}
+          error={ecbCtx?.error || error}
+        >
+          <EcbPolicyRatesPanel data={ecbCtx?.data} />
         </BentoCard>
 
-        <BentoCard key="global-rates" title="Global Central Bank Policy Rates" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED / ECB / BOE / BOJ" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {macroData?.centralBankRates ? (
-            <div className="bonds-metrics-grid">
-              {Object.entries(macroData.centralBankRates).map(([country, rate]) => (
-                <div key={country} className="bonds-metric-row">
-                  <span className="bonds-metric-name">{country}</span>
-                  <span className="bonds-metric-num">{rate != null ? `${rate.toFixed(2)}%` : '—'}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bonds-empty">Global rate data unavailable</div>
-          )}
+        <BentoCard
+          key="global-rates"
+          title="Global Central Bank Policy Rates"
+          subtitle="Overnight / policy rates · FRED + ECB"
+          accent="bonds"
+          className="bonds-bento-card"
+          contentClassName="bonds-panel-content mi-host"
+          source="FRED / ECB"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <CentralBankRatesPanel
+            rates={macroData?.centralBankRates}
+            meta={macroData?.centralBankMeta}
+            ecbRate={ecbCtx?.data?.policyRates?.mainRefinancing?.value}
+          />
         </BentoCard>
 
         <BentoCard key="treasury-cost" title="Treasury Avg Interest Cost" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="US Treasury Fiscal Data" timestamp={treasuryCostCtx?.lastUpdated || lastUpdated} isLive={!!treasuryCostCtx?.data?.latest} isCurrent={treasuryCostCtx?.isCurrent ?? isCurrent} fetchedOn={treasuryCostCtx?.fetchedOn || fetchedOn} fetchLog={treasuryCostCtx?.fetchLog || fetchLog} error={treasuryCostCtx?.error || error}>

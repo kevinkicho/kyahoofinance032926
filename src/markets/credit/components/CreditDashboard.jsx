@@ -206,10 +206,17 @@ function CreditDashboard({
           <BentoCard
             key="kpi"
             title="Credit Key Metrics"
+            subtitle="IG/HY/EM OAS · charge-offs · commercial paper"
             accent="credit"
             className="credit-bento-card"
             contentClassName="credit-panel-scroll"
-            noFooter
+            source="FRED BAML OAS / charge-offs / CP"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
           >
             {kpiPanel}
           </BentoCard>
@@ -498,15 +505,16 @@ function CreditDashboard({
           </BentoCard>
         )}
 
-        {/* Default Rates */}
-        {defaultData?.rates?.length > 0 && (
+        {/* Default Rates — bank charge-offs & delinquencies (FRED; not proprietary Moody's HY TTM) */}
+        {(defaultData?.rates?.length > 0 || defaultData?.chargeoffs?.dates?.length > 0) && (
           <BentoCard
             key="default-rates"
             title="Default Rates"
+            subtitle="Bank charge-offs & delinquencies · FRED quarterly"
             accent="credit"
             className="credit-bento-card"
             contentClassName="bento-panel-scroll"
-            source="FRED / Moody's"
+            source="FRED (DRALACBN / DRSFRMACBS / CORCCACBS / DRCCLACBS / DRBLACBS)"
             timestamp={lastUpdated}
             isLive={isLive}
             isCurrent={isCurrent}
@@ -514,14 +522,70 @@ function CreditDashboard({
             fetchLog={fetchLog}
             error={error}
           >
-            {defaultData.rates.slice(0, 8).map((d) => (
-              <div key={d.category} className="credit-mini-row">
-                <span className="credit-mini-name">{d.category}</span>
-                <span className="credit-mini-value" style={{ color: d.value > 3 ? '#f87171' : '#fbbf24' }}>
-                  <MetricValue value={d.value} seriesKey="defaultRateByCategory" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
-                </span>
-              </div>
-            ))}
+            <div className="credit-default-panel">
+              <table className="credit-table credit-default-table">
+                <thead>
+                  <tr>
+                    <th className="credit-th" style={{ textAlign: 'left' }}>Indicator</th>
+                    <th className="credit-th">Latest</th>
+                    <th className="credit-th">Prior</th>
+                    <th className="credit-th">Δ</th>
+                    <th className="credit-th">Peak</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(defaultData.rates || []).slice(0, 10).map((d) => {
+                    const unit = d.unit || '%';
+                    const fmt = (v) => {
+                      if (v == null || !Number.isFinite(Number(v))) return '—';
+                      if (unit === 'bps') return `${Math.round(v)} bps`;
+                      if (unit === 'idx') return Number(v).toFixed(1);
+                      return `${Number(v).toFixed(2)}%`;
+                    };
+                    const delta = (d.value != null && d.prev != null)
+                      ? Number(d.value) - Number(d.prev)
+                      : null;
+                    const worse = delta != null ? delta > 0 : null;
+                    const hot = unit === '%' && d.value != null && d.value > 3;
+                    return (
+                      <tr key={d.category} className="credit-row">
+                        <td className="credit-cell" style={{ textAlign: 'left' }}>
+                          <span className="credit-default-name">{d.category}</span>
+                          {d.series && <span className="credit-default-series">{d.series}</span>}
+                        </td>
+                        <td className="credit-cell credit-num" style={{ color: hot ? '#f87171' : worse ? '#fbbf24' : '#4ade80' }}>
+                          <MetricValue
+                            value={d.value}
+                            seriesKey="defaultRateByCategory"
+                            timestamp={lastUpdated}
+                            format={fmt}
+                          />
+                        </td>
+                        <td className="credit-cell credit-num credit-muted">{fmt(d.prev)}</td>
+                        <td className={`credit-cell credit-num ${worse === true ? 'credit-neg' : worse === false ? 'credit-pos' : 'credit-muted'}`}>
+                          {delta == null ? '—' : `${delta >= 0 ? '+' : ''}${unit === 'bps' ? Math.round(delta) : delta.toFixed(2)}${unit === '%' ? 'pp' : unit === 'bps' ? '' : ''}`}
+                        </td>
+                        <td className="credit-cell credit-num credit-muted">{fmt(d.peak)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {defaultData.chargeoffs?.dates?.length > 1 && (
+                <div className="credit-default-legend">
+                  Charge-off history: {defaultData.chargeoffs.dates[0]} → {defaultData.chargeoffs.dates.at(-1)}
+                  {defaultData.chargeoffs.commercial?.at(-1) != null && (
+                    <> · C&I {Number(defaultData.chargeoffs.commercial.at(-1)).toFixed(2)}%</>
+                  )}
+                  {defaultData.chargeoffs.consumer?.at(-1) != null && (
+                    <> · Mortgage {Number(defaultData.chargeoffs.consumer.at(-1)).toFixed(2)}%</>
+                  )}
+                  {defaultData.chargeoffs.cards?.at(-1) != null && (
+                    <> · Cards {Number(defaultData.chargeoffs.cards.at(-1)).toFixed(2)}%</>
+                  )}
+                </div>
+              )}
+            </div>
           </BentoCard>
         )}
 

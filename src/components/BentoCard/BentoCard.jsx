@@ -85,11 +85,22 @@ const BentoCard = React.forwardRef(function BentoCard({
     ? { '--bento-accent-color': accentColor, ...(rest.style || {}) }
     : rest.style;
 
+  // Panel-health stamps: splash/topbar green gates read these without
+  // needing painted canvas text. data-panel-bound=1 when this card is
+  // wired to a live/current stream (or has no error and shows content).
+  const bound =
+    isLive === true ||
+    isCurrent === true ||
+    (error == null && children != null);
+
   return (
     <div
       ref={ref}
       {...rest}
       data-panel-key={panelKey}
+      data-panel-bound={bound ? '1' : '0'}
+      data-panel-live={isLive ? '1' : '0'}
+      data-panel-current={isCurrent ? '1' : '0'}
       style={inlineStyle}
       className={`bento-card ${accentClass} ${className} ${rest.className || ''}`.trim().replace(/\s+/g, ' ')}
     >

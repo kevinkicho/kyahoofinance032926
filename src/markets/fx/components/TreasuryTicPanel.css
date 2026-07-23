@@ -1,0 +1,182 @@
+/* Treasury TIC — ring chart left, total card + dense table right */
+.fx-panel-content.tic-host {
+  padding: 0 !important;
+  overflow: hidden;
+  gap: 0;
+}
+
+.tic-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.tic-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.tic-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.tic-chart {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.tic-side {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tic-total-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.tic-total-label {
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.tic-total-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: #60a5fa;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.tic-total-meta {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.tic-table-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.tic-thead,
+.tic-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) 48px 40px;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+
+.tic-thead {
+  flex-shrink: 0;
+  padding: 0 2px 2px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.tic-num {
+  text-align: right;
+}
+
+.tic-tbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* tight — no row gap */
+}
+
+.tic-row {
+  padding: 1px 3px;
+  font-size: 10px;
+  line-height: 1.2;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.tic-row:last-child {
+  border-bottom: none;
+}
+
+.tic-ccy {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tic-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tic-name {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-size: 10px;
+}
+
+.tic-hold {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #60a5fa;
+  font-weight: 700;
+  font-size: 10px;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+
+.tic-share {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+@container bento-card (max-width: 280px) {
+  .tic-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(100px, 0.85fr) minmax(0, 1.25fr);
+  }
+}

@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readLatestCacheWithFieldAsync } from '../lib/cache.js';
+import { readLatestCacheWithFieldAsync, readLatestCache } from '../lib/cache.js';
 import { makeCachedRouteHandler } from '../lib/routeFactory.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { SOVEREIGN_RATINGS } from '../dataSources/sovereignRatings.js';
 import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
+import { yf } from '../lib/yahoo.js';
 
 const router = Router();
 
@@ -136,10 +137,18 @@ async function fetchECBYieldCurve() {
 // Build _sources from cached data (so cached responses also show what was received)
 // ─────────────────────────────────────────────────────────────────────────────
 
+function hasNonNull(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  return Object.values(obj).some((v) => v != null && typeof v === 'number' && Number.isFinite(v));
+}
+
 function buildSourcesFromData(d) {
   return {
-    'US Treasury Yields': d.yieldCurveData && d.yieldCurveData.US && Object.keys(d.yieldCurveData.US).length > 0,
-    'International 10Y Yields': d.yieldCurveData && Object.keys(d.yieldCurveData).length > 1,
+    // Keys alone are not enough — null-filled US curves used to report true.
+    'US Treasury Yields': hasNonNull(d.yieldCurveData?.US) || hasNonNull({
+      a: d.treasuryRates?.US10Y, b: d.treasuryRates?.US2Y, c: d.treasuryRates?.US3M,
+    }),
+    'International 10Y Yields': d.yieldCurveData && Object.keys(d.yieldCurveData).filter((k) => k !== 'US' && hasNonNull(d.yieldCurveData[k])).length > 0,
     'TIPS Real Yields': d.tipsYields && Object.keys(d.tipsYields).length > 0,
     'Credit Spreads (IG/HY/EM/BBB)': d.spreadData && d.spreadData.dates && d.spreadData.dates.length > 0,
     'Spread Indicators': d.spreadIndicators && Object.keys(d.spreadIndicators).length > 0,
@@ -179,14 +188,42 @@ router.get('/', makeCachedRouteHandler({
     // ═══════════════════════════════════════════════════════════════════════
     trackApiCall('FRED');
     if (process.env.LOG_VERBOSE) console.log('[Bonds] Fetching US Treasury yields...');
-    const usEntries = await Promise.allSettled(
-      Object.entries(TENOR_SERIES).map(async ([tenor, sid]) => {
-        try { const v = await fetchFredLatest(sid, FRED_API_KEY); return [tenor, v]; }
-        catch (e) { console.warn('[Bonds] FRED', sid, 'failed:', e.message); _errors.yieldCurveData = e.message; return [tenor, null]; }
-      })
-    );
     const usYields = {};
-    usEntries.forEach(r => { if (r.status === 'fulfilled' && r.value[1] != null) usYields[r.value[0]] = r.value[1]; });
+    // Sequential with one retry — parallel DGS bursts were frequently leaving
+    // the whole US curve null while monthly GS* series still succeeded.
+    for (const [tenor, sid] of Object.entries(TENOR_SERIES)) {
+      let v = null;
+      for (let attempt = 0; attempt < 2 && v == null; attempt++) {
+        try {
+          trackApiCall('FRED');
+          v = await fetchFredLatest(sid, FRED_API_KEY);
+        } catch (e) {
+          console.warn('[Bonds] FRED', sid, attempt ? 'retry failed:' : 'failed:', e.message);
+          _errors.yieldCurveData = e.message;
+          if (attempt === 0) await new Promise((r) => setTimeout(r, 200));
+        }
+      }
+      if (v != null && Number.isFinite(v)) usYields[tenor] = v;
+    }
+    // Monthly average fallbacks if daily constant-maturity series are empty
+    if (usYields['3m'] == null || usYields['10y'] == null || usYields['30y'] == null) {
+      try {
+        const [tb3, gs2, gs5, gs10, gs30] = await Promise.all([
+          usYields['3m'] == null ? fetchFredLatest('TB3MS', FRED_API_KEY).catch(() => null) : null,
+          usYields['2y'] == null ? fetchFredLatest('GS2', FRED_API_KEY).catch(() => null) : null,
+          usYields['5y'] == null ? fetchFredLatest('GS5', FRED_API_KEY).catch(() => null) : null,
+          usYields['10y'] == null ? fetchFredLatest('GS10', FRED_API_KEY).catch(() => null) : null,
+          usYields['30y'] == null ? fetchFredLatest('GS30', FRED_API_KEY).catch(() => null) : null,
+        ]);
+        if (usYields['3m'] == null && tb3 != null) usYields['3m'] = tb3;
+        if (usYields['2y'] == null && gs2 != null) usYields['2y'] = gs2;
+        if (usYields['5y'] == null && gs5 != null) usYields['5y'] = gs5;
+        if (usYields['10y'] == null && gs10 != null) usYields['10y'] = gs10;
+        if (usYields['30y'] == null && gs30 != null) usYields['30y'] = gs30;
+      } catch (e) {
+        console.warn('[Bonds] monthly yield fallback failed:', e.message);
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // REAL YIELDS (TIPS)
@@ -248,17 +285,45 @@ router.get('/', makeCachedRouteHandler({
     const spreadRaw = {};
     spreadEntries.forEach(r => { if (r.status === 'fulfilled') spreadRaw[r.value[0]] = r.value[1]; });
 
-    const igArr  = (spreadRaw.IG  || []).slice(-12);
-    const hyArr  = (spreadRaw.HY  || []).slice(-12);
-    const emArr  = (spreadRaw.EM  || []).slice(-12);
-    const bbbArr = (spreadRaw.BBB || []).slice(-12);
-    const anchorArr = igArr.length === 12 ? igArr : (hyArr.length === 12 ? hyArr : []);
-    const spreadData = anchorArr.length === 12 ? {
-      dates: anchorArr.map(p => dateToMonthLabel(p.date)),
-      IG:    igArr.length  === 12 ? igArr.map(p  => Math.round(p.value))  : anchorArr.map(() => null),
-      HY:    hyArr.length  === 12 ? hyArr.map(p  => Math.round(p.value))  : anchorArr.map(() => null),
-      EM:    emArr.length  === 12 ? emArr.map(p  => Math.round(p.value))  : anchorArr.map(() => null),
-      BBB:   bbbArr.length === 12 ? bbbArr.map(p => Math.round(p.value))  : anchorArr.map(() => null),
+    // FRED BAML OAS series are reported in percentage points (e.g. 0.78 = 78 bps).
+    // Convert to whole basis points for the dashboard KPI / chart scale.
+    const toBps = (v) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v * 100) : null);
+    // Align series on the union of recent dates (do not require exactly 12 rows —
+    // partial FRED windows used to leave Credit Spreads empty).
+    const packSeries = (arr) => {
+      const map = new Map();
+      for (const p of arr || []) {
+        if (!p?.date || p.value == null || !Number.isFinite(Number(p.value))) continue;
+        map.set(String(p.date).slice(0, 10), toBps(Number(p.value)));
+      }
+      return map;
+    };
+    const igMap = packSeries(spreadRaw.IG);
+    const hyMap = packSeries(spreadRaw.HY);
+    const emMap = packSeries(spreadRaw.EM);
+    const bbbMap = packSeries(spreadRaw.BBB);
+    const dateSet = new Set([...igMap.keys(), ...hyMap.keys(), ...emMap.keys(), ...bbbMap.keys()]);
+    const datesSorted = [...dateSet].sort();
+    const windowDates = datesSorted.slice(-24);
+    const lastBps = (map) => {
+      for (let i = windowDates.length - 1; i >= 0; i--) {
+        const v = map.get(windowDates[i]);
+        if (v != null) return v;
+      }
+      return null;
+    };
+    const spreadData = windowDates.length >= 2 ? {
+      dates: windowDates.map((d) => dateToMonthLabel(d)),
+      IG: windowDates.map((d) => igMap.get(d) ?? null),
+      HY: windowDates.map((d) => hyMap.get(d) ?? null),
+      EM: windowDates.map((d) => emMap.get(d) ?? null),
+      BBB: windowDates.map((d) => bbbMap.get(d) ?? null),
+      current: {
+        igSpread: lastBps(igMap),
+        hySpread: lastBps(hyMap),
+        emSpread: lastBps(emMap),
+        bbbSpread: lastBps(bbbMap),
+      },
     } : null;
 
     // Additional Credit Indices (AAA-10Y spread, BAA-AAA spread)
@@ -281,17 +346,13 @@ router.get('/', makeCachedRouteHandler({
       t10yie: 'T10YIE',
       dfii10: 'DFII10',
     };
-    const FED_FUTURES_SERIES = { m1: 'FF1', m2: 'FF2', m3: 'FF3', m4: 'FF4', m5: 'FF5', m6: 'FF6' };
-
     trackApiCall('FRED');
-    const [indicatorEntries, fedFuturesEntries, mortgage30yRaw] = await Promise.all([
+    const [indicatorEntries, mortgage30yRaw, dffSpot] = await Promise.all([
       Promise.allSettled(
         Object.entries(SPREAD_INDICATOR_SERIES).map(async ([key, sid]) => [key, await fetchFredLatest(sid, FRED_API_KEY)])
       ),
-      Promise.allSettled(
-        Object.entries(FED_FUTURES_SERIES).map(async ([key, sid]) => [key, await fetchFredLatest(sid, FRED_API_KEY)])
-      ),
       fetchFredLatest('MORTGAGE30US', FRED_API_KEY).catch(e => { console.warn('[Bonds]', e.message || e); return null; }),
+      fetchFredLatest('DFF', FRED_API_KEY).catch(e => { console.warn('[Bonds] DFF:', e.message || e); return null; }),
     ]);
 
     const spreadIndicators = {};
@@ -299,11 +360,42 @@ router.get('/', makeCachedRouteHandler({
       if (r.status === 'fulfilled' && r.value[1] != null) spreadIndicators[r.value[0]] = r.value[1];
     });
 
-    const fedFundsFuturesRaw = {};
-    fedFuturesEntries.forEach(r => {
-      if (r.status === 'fulfilled' && r.value[1] != null) fedFundsFuturesRaw[r.value[0]] = r.value[1];
-    });
-    const fedFundsFutures = Object.keys(fedFundsFuturesRaw).length > 0 ? fedFundsFuturesRaw : null;
+    // CME 30-day Fed Funds futures (ZQ) via Yahoo — FRED FF1–FF6 is routinely
+    // 400/403. Price is 100 − implied rate. Build m1…m6 from the next 6
+    // contract months (real quotes only; never invent a flat path).
+    let fedFundsFutures = null;
+    try {
+      trackApiCall('Yahoo Finance');
+      const CME_MONTHS = ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z'];
+      const now = new Date();
+      const symbols = [];
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + i, 1));
+        const code = `ZQ${CME_MONTHS[d.getUTCMonth()]}${String(d.getUTCFullYear()).slice(-2)}.CBT`;
+        symbols.push(code);
+      }
+      const quotes = await yf.quote(symbols).catch(() => null);
+      const arr = Array.isArray(quotes) ? quotes : quotes ? [quotes] : [];
+      const bySym = Object.fromEntries(arr.filter(Boolean).map((q) => [q.symbol, q]));
+      const path = {};
+      symbols.forEach((sym, i) => {
+        const px = bySym[sym]?.regularMarketPrice ?? bySym[sym]?.price;
+        if (px != null && Number.isFinite(Number(px))) {
+          // ZQ quote ≈ 100 − implied EFFR
+          path[`m${i + 1}`] = Math.round((100 - Number(px)) * 1000) / 1000;
+        }
+      });
+      if (Object.keys(path).length > 0) {
+        // If front month missing, seed m1 from effective federal funds (DFF)
+        if (path.m1 == null && dffSpot != null) path.m1 = dffSpot;
+        fedFundsFutures = path;
+      } else if (dffSpot != null) {
+        fedFundsFutures = { m1: dffSpot };
+      }
+    } catch (e) {
+      console.warn('[Bonds] ZQ futures path failed:', e.message || e);
+      if (dffSpot != null) fedFundsFutures = { m1: dffSpot };
+    }
 
     const mortgageSpread = (mortgage30yRaw != null && usYields['10y'] != null)
       ? Math.round((mortgage30yRaw - usYields['10y']) * 100) / 100
@@ -516,23 +608,80 @@ router.get('/', makeCachedRouteHandler({
       if (r.status === 'fulfilled' && r.value[1] != null) macroData[r.value[0]] = r.value[1];
     });
 
-    macroData.centralBankRates = {
-      US: fedFundsFutures?.m1 ?? null,
-      EU: null,
-      UK: null,
-      JP: null,
-    };
+    // Global policy / overnight rates — live FRED only (no mock).
+    // BOERUKM is discontinued ~2017; UK uses SONIA (IUDSOIA).
+    // OECD IRSTCI01* = immediate rates / call money; INTDSR* = discount/policy where available.
+    const CB_RATE_SERIES = [
+      { code: 'US', label: 'Fed EFFR', series: 'DFF', fallback: 'FEDFUNDS' },
+      { code: 'EU', label: 'ECB main refi', series: 'ECBMRRFR', fallback: 'ECBDFR' },
+      { code: 'UK', label: 'SONIA', series: 'IUDSOIA', fallback: 'IR3TIB01GBM156N' },
+      { code: 'JP', label: 'BOJ call money', series: 'IRSTCI01JPM156N', fallback: 'IR3TIB01JPM156N' },
+      { code: 'CA', label: 'BoC overnight', series: 'IRSTCI01CAM156N' },
+      { code: 'AU', label: 'RBA cash', series: 'IRSTCI01AUM156N' },
+      { code: 'CN', label: 'PBOC / call', series: 'IRSTCI01CNM156N', fallback: 'INTDSRCNM193N' },
+      { code: 'IN', label: 'RBI / call', series: 'IRSTCI01INM156N', fallback: 'INTDSRINM193N' },
+      { code: 'BR', label: 'BCB / call', series: 'IRSTCI01BRM156N', fallback: 'INTDSRBRM193N' },
+      { code: 'KR', label: 'BoK / call', series: 'IRSTCI01KRM156N', fallback: 'INTDSRKRM193N' },
+      { code: 'MX', label: 'Banxico / call', series: 'IRSTCI01MXM156N', fallback: 'INTDSRMXM193N' },
+      { code: 'RU', label: 'CBR / call', series: 'IRSTCI01RUM156N', fallback: 'INTDSRRUM193N' },
+      { code: 'TR', label: 'CBRT / call', series: 'IRSTCI01TRM156N', fallback: 'INTDSRTRM193N' },
+      { code: 'ZA', label: 'SARB / call', series: 'IRSTCI01ZAM156N', fallback: 'INTDSRZAM193N' },
+      { code: 'ID', label: 'BI / call', series: 'IRSTCI01IDM156N', fallback: 'INTDSRIDM193N' },
+      { code: 'CH', label: 'SNB / call', series: 'IRSTCI01CHM156N' },
+      { code: 'SE', label: 'Riksbank / call', series: 'IRSTCI01SEM156N' },
+      { code: 'NO', label: 'Norges Bank / call', series: 'IRSTCI01NOM156N' },
+      { code: 'NZ', label: 'RBNZ / call', series: 'IRSTCI01NZM156N' },
+      { code: 'PL', label: 'NBP / call', series: 'IRSTCI01PLM156N' },
+      { code: 'CL', label: 'BCCh / call', series: 'IRSTCI01CLM156N' },
+      { code: 'IL', label: 'BoI / call', series: 'IRSTCI01ILM156N' },
+      { code: 'CZ', label: 'CNB / call', series: 'IRSTCI01CZM156N' },
+      { code: 'HU', label: 'MNB / call', series: 'IRSTCI01HUM156N' },
+      // Euro-area national overnight (OECD) — same EUR money market for DE/ES/FR/IT
+      { code: 'DE', label: 'EUR overnight (DE)', series: 'IRSTCI01DEM156N', fallback: 'ECBMRRFR' },
+      { code: 'ES', label: 'EUR overnight (ES)', series: 'IRSTCI01ESM156N', fallback: 'ECBMRRFR' },
+      { code: 'FR', label: 'EUR overnight (FR)', series: 'IRSTCI01FRM156N', fallback: 'ECBMRRFR' },
+      { code: 'IT', label: 'EUR overnight (IT)', series: 'IRSTCI01ITM156N', fallback: 'ECBMRRFR' },
+      // No live FRED OECD call-money / discount series for AR, PK, TW, SG, HK, TH, MY, PH, CO
+    ];
+
+    macroData.centralBankRates = {};
+    macroData.centralBankMeta = {};
+    // Prefer ZQ front month for US when present
+    if (fedFundsFutures?.m1 != null) {
+      macroData.centralBankRates.US = fedFundsFutures.m1;
+      macroData.centralBankMeta.US = { label: 'Fed EFFR / ZQ', series: 'ZQ+DFF' };
+    }
 
     if (FRED_API_KEY) {
       try {
-        const [ecbRate, boeRate, bojRate] = await Promise.all([
-          fetchFredLatest('ECBMRRFR', FRED_API_KEY).catch(() => null),
-          fetchFredLatest('BOERUKM', FRED_API_KEY).catch(() => null),
-          fetchFredLatest('INTDSRJPM193N', FRED_API_KEY).catch(() => null),
-        ]);
-        if (ecbRate != null) macroData.centralBankRates.EU = ecbRate;
-        if (boeRate != null) macroData.centralBankRates.UK = boeRate;
-        if (bojRate != null) macroData.centralBankRates.JP = bojRate;
+        // Sequential with light delay — parallel bursts of 25+ FRED calls
+        // were getting 403/timeout and leaving EU/UK/JP empty.
+        for (const row of CB_RATE_SERIES) {
+          if (macroData.centralBankRates[row.code] != null) continue;
+          let v = null;
+          let used = row.series;
+          try {
+            trackApiCall('FRED');
+            v = await fetchFredLatest(row.series, FRED_API_KEY);
+          } catch (e) {
+            /* try fallback */
+          }
+          if (v == null && row.fallback) {
+            try {
+              trackApiCall('FRED');
+              v = await fetchFredLatest(row.fallback, FRED_API_KEY);
+              used = row.fallback;
+            } catch (e) {
+              /* leave null */
+            }
+          }
+          if (v != null && Number.isFinite(Number(v))) {
+            macroData.centralBankRates[row.code] = Math.round(Number(v) * 10000) / 10000;
+            macroData.centralBankMeta[row.code] = { label: row.label, series: used };
+          }
+          // Pace FRED so long sequential batches don't 429 mid-loop
+          await new Promise((r) => setTimeout(r, 80));
+        }
       } catch (e) { console.warn('[Bonds] central bank rates:', e.message || e); }
     }
 
@@ -714,27 +863,39 @@ router.get('/', makeCachedRouteHandler({
       const tnotes = await fetchFredLatest('GS10', FRED_API_KEY);
       const tbonds = await fetchFredLatest('GS30', FRED_API_KEY);
       const us = usYields || {};
-      if (us['3m'] != null || us['2y'] != null || us['10y'] != null || us['30y'] != null
+      // Always publish US* keys the KPI cards read — fall back to monthly
+      // GS*/TB* averages when daily DGS* is missing (never leave US10Y null
+      // while notes/GS10 has a real value).
+      const us3m = us['3m'] ?? tbills ?? null;
+      const us2y = us['2y'] ?? null;
+      const us5y = us['5y'] ?? null;
+      const us10y = us['10y'] ?? tnotes ?? null;
+      const us30y = us['30y'] ?? tbonds ?? null;
+      if (us3m != null || us2y != null || us5y != null || us10y != null || us30y != null
           || tbills != null || tnotes != null || tbonds != null) {
         treasuryRates = {
-          // Spot yields (what the KPI strip + Duration Ladder rate column read).
-          US3M:  us['3m']  ?? null,
-          US2Y:  us['2y']  ?? null,
-          US5Y:  us['5y']  ?? null,
-          US10Y: us['10y'] ?? null,
-          US30Y: us['30y'] ?? null,
-          // Per-bucket avg rates for the Duration Ladder fallback path.
-          '0–2y':  us['2y']  ?? tbills ?? null,
-          '2–5y':  us['5y']  ?? null,
-          '5–10y': us['10y'] ?? tnotes ?? null,
-          '10y+':       us['30y'] ?? tbonds ?? null,
-          // Legacy fields kept for backward compat with anything still
-          // reading `bills/notes/bonds`.
-          fedFunds: us['3m'] ?? null,
+          US3M:  us3m,
+          US2Y:  us2y,
+          US5Y:  us5y,
+          US10Y: us10y,
+          US30Y: us30y,
+          '0–2y':  us2y  ?? tbills ?? null,
+          '2–5y':  us5y  ?? null,
+          '5–10y': us10y ?? tnotes ?? null,
+          '10y+':  us30y ?? tbonds ?? null,
+          fedFunds: us3m ?? null,
           bills: tbills,
           notes: tnotes,
           bonds: tbonds,
         };
+        // Keep yieldCurveData.US in sync for the sidebar Key Metrics card
+        if (yieldCurveData?.US) {
+          if (yieldCurveData.US['3m'] == null && us3m != null) yieldCurveData.US['3m'] = us3m;
+          if (yieldCurveData.US['2y'] == null && us2y != null) yieldCurveData.US['2y'] = us2y;
+          if (yieldCurveData.US['5y'] == null && us5y != null) yieldCurveData.US['5y'] = us5y;
+          if (yieldCurveData.US['10y'] == null && us10y != null) yieldCurveData.US['10y'] = us10y;
+          if (yieldCurveData.US['30y'] == null && us30y != null) yieldCurveData.US['30y'] = us30y;
+        }
       }
     } catch (e) { console.warn('[Bonds]', e.message || e); _errors.treasuryRates = e.message; }
 
@@ -746,6 +907,39 @@ router.get('/', makeCachedRouteHandler({
       trackApiCall('ECB');
       ecbYieldCurve = await fetchECBYieldCurve();
     } catch (e) { console.warn('[Bonds]', e.message || e); _errors.ecbYieldCurve = e.message; }
+    // Fallbacks when ECB SDMX is down: DE sovereign curve already fetched,
+    // then a couple of FRED euro-area / Germany series.
+    if (!ecbYieldCurve || Object.keys(ecbYieldCurve).length < 3) {
+      const deCurve = yieldCurveData?.DE;
+      if (deCurve && typeof deCurve === 'object' && Object.keys(deCurve).length >= 2) {
+        ecbYieldCurve = { ...deCurve, _proxy: 'DE_sovereign_curve' };
+      }
+    }
+    if (!ecbYieldCurve || Object.keys(ecbYieldCurve).filter(k => !k.startsWith('_')).length < 2) {
+      try {
+        if (FRED_API_KEY) {
+          const euroTenors = {
+            '3m': 'IR3TIB01EZM156N',
+            '10y': 'IRLTLT01DEM156N',
+          };
+          const out = { ...(ecbYieldCurve || {}) };
+          for (const [tenor, sid] of Object.entries(euroTenors)) {
+            if (out[tenor] != null) continue;
+            try {
+              trackApiCall('FRED');
+              const v = await fetchFredLatest(sid, FRED_API_KEY);
+              if (v != null) out[tenor] = v;
+            } catch { /* skip */ }
+          }
+          if (Object.keys(out).filter(k => !k.startsWith('_')).length >= 2) {
+            out._proxy = out._proxy || 'FRED_euro_rates';
+            ecbYieldCurve = out;
+          }
+        }
+      } catch (e) {
+        console.warn('[Bonds] ECB yield FRED fallback failed:', e.message);
+      }
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // BUILD RESULT
@@ -789,6 +983,7 @@ router.get('/', makeCachedRouteHandler({
       durationLadder,
       countryCount: Object.keys(yieldCurveData).length,
     };
+    return result;
   }
 }));
 

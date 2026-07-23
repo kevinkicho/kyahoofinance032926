@@ -68,18 +68,40 @@ function CryptoDashboard({
     return (coinMarketData?.coins || coinMarketData || []).slice(0, 10);
   }, [coinMarketData]);
 
+  const fgiValue = fearGreedData?.value ?? fearGreedData?.score ?? null;
+  const fgiLabel = fearGreedData?.label
+    ?? (fgiValue == null ? null
+      : fgiValue <= 25 ? 'Extreme Fear'
+      : fgiValue <= 45 ? 'Fear'
+      : fgiValue <= 55 ? 'Neutral'
+      : fgiValue <= 75 ? 'Greed'
+      : 'Extreme Greed');
+
   const fgiOption = useMemo(() => {
     const hist = fearGreedData?.history;
     if (!hist) return null;
-    const dates = Array.isArray(hist) ? hist.map((_, i) => `${i + 1}d`) : hist.dates;
-    const values = Array.isArray(hist) ? hist : hist.values;
+    let dates;
+    let values;
+    if (Array.isArray(hist)) {
+      if (!hist.length) return null;
+      if (typeof hist[0] === 'number') {
+        values = hist;
+        dates = hist.map((_, i) => `${i + 1}d`);
+      } else {
+        values = hist.map((h) => Number(h?.value ?? h)).filter((v) => Number.isFinite(v));
+        dates = hist.map((h, i) => (h?.date ? String(h.date).slice(5) : `${i + 1}d`));
+      }
+    } else {
+      dates = hist.dates || [];
+      values = hist.values || [];
+    }
     if (!values?.length) return null;
     return {
       animation: false,
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      grid: { top: 20, right: 16, bottom: 24, left: 44 },
-      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 5) } },
+      grid: { top: 16, right: 12, bottom: 22, left: 32, containLabel: false },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(dates.length / 5) - 1) } },
       yAxis: { type: 'value', min: 0, max: 100, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
       series: [{
         type: 'line',
@@ -87,9 +109,10 @@ function CryptoDashboard({
         smooth: true,
         symbol: 'none',
         lineStyle: { color: '#a78bfa', width: 2 },
-        areaStyle: { color: 'rgba(167,139,250,0.1)' },
+        areaStyle: { color: 'rgba(167,139,250,0.12)' },
         markLine: {
           silent: true,
+          symbol: 'none',
           lineStyle: { type: 'dashed', color: colors.textDim },
           data: [
             { yAxis: 25, label: { formatter: 'Fear', color: colors.textMuted, fontSize: 9 } },
@@ -184,26 +207,57 @@ function CryptoDashboard({
           </div>
         </BentoCard>
 
-        {/* Fear & Greed Chart */}
-        {fgiOption && (
-          <BentoCard
-            key="fear-greed"
-            title="Fear & Greed Index"
-            accent="crypto"
-            className="crypto-bento-card"
-            source="CoinGecko"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <div className="crypto-chart-wrap" style={{ minHeight: 140, flex: 1 }}>
-              <SafeECharts option={fgiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fear & Greed Index', source: 'CoinGecko', endpoint: '/api/crypto', series: [], updatedAt: lastUpdated }} />
+        {/* Fear & Greed — score + history (Alternative.me via crypto route) */}
+        <BentoCard
+          key="fear-greed"
+          title="Fear & Greed Index"
+          subtitle={fgiValue != null ? `${fgiLabel || '—'} · ${fgiValue}/100` : 'Crypto market sentiment'}
+          accent="crypto"
+          className="crypto-bento-card"
+          source="Alternative.me"
+          timestamp={lastUpdated}
+          isLive={!!(isLive && fgiValue != null)}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, padding: '8px 10px', boxSizing: 'border-box', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexShrink: 0 }}>
+              <span style={{
+                fontSize: 36,
+                fontWeight: 700,
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                lineHeight: 1,
+                color: fgiValue == null ? '#94a3b8'
+                  : fgiValue <= 25 ? '#f87171'
+                  : fgiValue <= 45 ? '#fbbf24'
+                  : fgiValue <= 55 ? '#e2e8f0'
+                  : fgiValue <= 75 ? '#a78bfa'
+                  : '#c084fc',
+              }}>
+                {fgiValue ?? '—'}
+              </span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fgiLabel || '—'}</div>
+                <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>0 Fear · 100 Greed</div>
+              </div>
             </div>
-          </BentoCard>
-        )}
+            {fgiOption ? (
+              <div className="crypto-chart-wrap" style={{ minHeight: 120, flex: 1 }}>
+                <SafeECharts
+                  option={fgiOption}
+                  style={{ height: '100%', width: '100%' }}
+                  sourceInfo={{ title: 'Fear & Greed Index', source: 'Alternative.me', endpoint: '/api/crypto', series: [], updatedAt: lastUpdated }}
+                />
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', padding: 8 }}>
+                History unavailable — score only
+              </div>
+            )}
+          </div>
+        </BentoCard>
 
         {/* Funding Rates */}
         {fundingRates.length > 0 && (

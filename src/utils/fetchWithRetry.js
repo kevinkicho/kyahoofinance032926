@@ -18,7 +18,13 @@ function anySignal(signals) {
 
 const isTest = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
 
-export async function fetchWithRetry(url, { retries = 2, timeout = 10000, backoff = 1000, totalTimeout = 30000 } = {}) {
+export async function fetchWithRetry(url, {
+  retries = 2,
+  timeout = 10000,
+  backoff = 1000,
+  totalTimeout = 30000,
+  headers = undefined,
+} = {}) {
   const maxRetries = isTest ? 0 : retries;
   const totalReason = new DOMException('Total timeout exceeded', 'AbortError');
   const totalController = totalTimeout ? new AbortController() : null;
@@ -32,7 +38,7 @@ export async function fetchWithRetry(url, { retries = 2, timeout = 10000, backof
         ? anySignal([attemptController.signal, totalController.signal])
         : attemptController.signal;
       try {
-        const res = await fetch(url, { signal, cache: 'no-store' });
+        const res = await fetch(url, { signal, cache: 'no-store', headers });
         if (!res.ok) throw new Error(res.status);
         return res;
       } catch (err) {

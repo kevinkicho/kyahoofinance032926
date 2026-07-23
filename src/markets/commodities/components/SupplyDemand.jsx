@@ -101,6 +101,43 @@ function buildGoldOption(dates, values, colors) {
   };
 }
 
+/** Mean of finite series values (fallback when avg5yr missing). */
+function meanSeries(values) {
+  if (!Array.isArray(values) || !values.length) return null;
+  const nums = values.filter((v) => Number.isFinite(v));
+  if (!nums.length) return null;
+  return Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10;
+}
+
+/**
+ * Ensure a stocks/production series has values + avg5yr.
+ * EIA thousand-barrel raw values (stocks ≥ 2000, production ≥ 100) are
+ * scaled to million barrels so KPI labels (M bbl / M bbl/day) stay correct
+ * even if the mapper did not run.
+ */
+function normalizeSeries(raw, kind = 'stocks') {
+  const empty = { periods: [], values: [], avg5yr: null, latest: null };
+  if (!raw || typeof raw !== 'object') return empty;
+  let values = Array.isArray(raw.values) ? raw.values.filter((v) => Number.isFinite(v)) : [];
+  let periods = Array.isArray(raw.periods) ? raw.periods : [];
+  if (periods.length !== values.length) periods = periods.slice(0, values.length);
+  const thr = kind === 'production' ? 100 : kind === 'natgas' ? Infinity : 2000;
+  const hint = values.length ? values[values.length - 1] : (Number.isFinite(raw.latest) ? raw.latest : null);
+  if (Number.isFinite(hint) && hint >= thr) {
+    values = values.map((v) => Math.round((v / 1000) * 100) / 100);
+  }
+  let avg5yr = raw.avg5yr;
+  if (Number.isFinite(avg5yr) && avg5yr >= thr) avg5yr = Math.round((avg5yr / 1000) * 100) / 100;
+  if (avg5yr == null) avg5yr = meanSeries(values);
+  const latest = values.length ? values[values.length - 1] : (Number.isFinite(raw.latest) ? raw.latest : null);
+  return { periods, values, avg5yr, latest };
+}
+
+function fmtMbbl(v, digits = 1) {
+  if (!Number.isFinite(v)) return '—';
+  return `${v.toFixed(digits)}M`;
+}
+
 export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUpdated }) {
   const { colors } = useTheme();
   if (!supplyDemandData) return (
@@ -115,35 +152,35 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
 
   let crudeStocks, natGasStorage, crudeProduction, gasolineStocks, distillateStocks;
   if (Array.isArray(supplyDemandData)) {
-    const cs = supplyDemandData.find(s => s.name === 'Crude Oil Inventories');
-    const ns = supplyDemandData.find(s => s.name === 'Natural Gas Storage');
-    crudeStocks = cs ? { periods: [], values: [], avg5yr: null } : { periods: [], values: [], avg5yr: null };
-    natGasStorage = ns ? { periods: [], values: [], avg5yr: null } : { periods: [], values: [], avg5yr: null };
-    crudeProduction = { periods: [], values: [] };
-    gasolineStocks = { periods: [], values: [], avg5yr: null };
-    distillateStocks = { periods: [], values: [], avg5yr: null };
+    // Rare legacy array shape — no usable series details
+    crudeStocks = normalizeSeries(null);
+    natGasStorage = normalizeSeries(null, 'natgas');
+    crudeProduction = normalizeSeries(null, 'production');
+    gasolineStocks = normalizeSeries(null);
+    distillateStocks = normalizeSeries(null);
   } else {
-    crudeStocks     = supplyDemandData.crudeStocks     || { periods: [], values: [], avg5yr: null };
-    natGasStorage   = supplyDemandData.natGasStorage   || { periods: [], values: [], avg5yr: null };
-    crudeProduction = supplyDemandData.crudeProduction || { periods: [], values: [] };
-    gasolineStocks  = supplyDemandData.gasolineStocks  || { periods: [], values: [], avg5yr: null };
-    distillateStocks = supplyDemandData.distillateStocks || { periods: [], values: [], avg5yr: null };
+    crudeStocks      = normalizeSeries(supplyDemandData.crudeStocks, 'stocks');
+    natGasStorage    = normalizeSeries(supplyDemandData.natGasStorage, 'natgas');
+    crudeProduction  = normalizeSeries(supplyDemandData.crudeProduction, 'production');
+    gasolineStocks   = normalizeSeries(supplyDemandData.gasolineStocks, 'stocks');
+    distillateStocks = normalizeSeries(supplyDemandData.distillateStocks, 'stocks');
   }
 
   // KPI computations
-  const crudeLatest = crudeStocks.values.length ? crudeStocks.values[crudeStocks.values.length - 1] : null;
+  const crudeLatest = crudeStocks.latest;
   const crudeDelta  = crudeStocks.avg5yr != null && crudeLatest != null
     ? Math.round((crudeLatest - crudeStocks.avg5yr) * 10) / 10
     : null;
-  const gasLatest   = natGasStorage.values.length ? natGasStorage.values[natGasStorage.values.length - 1] : null;
+  const gasLatest   = natGasStorage.latest;
   const gasDelta    = natGasStorage.avg5yr != null && gasLatest != null
     ? Math.round(gasLatest - natGasStorage.avg5yr)
     : null;
+  const prodLatest  = crudeProduction.latest;
 
   const surplusRows = [
     { label: 'Crude Oil', latest: crudeLatest, avg5yr: crudeStocks.avg5yr, unit: 'M bbl', delta: crudeDelta },
-    { label: 'Gasoline', latest: gasolineStocks.values.length ? gasolineStocks.values[gasolineStocks.values.length - 1] : null, avg5yr: gasolineStocks.avg5yr, unit: 'M bbl', delta: null },
-    { label: 'Distillate', latest: distillateStocks.values.length ? distillateStocks.values[distillateStocks.values.length - 1] : null, avg5yr: distillateStocks.avg5yr, unit: 'M bbl', delta: null },
+    { label: 'Gasoline', latest: gasolineStocks.latest, avg5yr: gasolineStocks.avg5yr, unit: 'M bbl', delta: null },
+    { label: 'Distillate', latest: distillateStocks.latest, avg5yr: distillateStocks.avg5yr, unit: 'M bbl', delta: null },
     { label: 'Nat Gas', latest: gasLatest, avg5yr: natGasStorage.avg5yr, unit: 'Bcf', delta: gasDelta },
   ].map(r => {
     if (r.delta == null && r.latest != null && r.avg5yr != null) {
@@ -171,22 +208,22 @@ export default function SupplyDemand({ supplyDemandData, fredCommodities, lastUp
       <div className="com-kpi-strip">
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Crude Stocks</span>
-          <span className="com-kpi-value">{crudeLatest != null ? <MetricValue value={crudeLatest} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toFixed(1)}M` : '—'} /> : '—'}</span>
+          <span className="com-kpi-value">{crudeLatest != null ? <MetricValue value={crudeLatest} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => typeof v === 'number' ? fmtMbbl(v) : '—'} /> : '—'}</span>
           <span className={`com-kpi-sub ${crudeDelta != null ? (crudeDelta >= 0 ? 'com-up' : 'com-down') : ''}`}>
-            {crudeDelta != null ? <><MetricValue value={crudeDelta} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}M` : '—'} /> vs 5yr avg</> : '—'}
+            {crudeDelta != null ? <><MetricValue value={crudeDelta} seriesKey="crudeStocks" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v >= 0 ? '+' : ''}${fmtMbbl(v)}` : '—'} /> vs avg</> : '—'}
           </span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Nat Gas Storage</span>
-          <span className="com-kpi-value">{gasLatest != null ? <MetricValue value={gasLatest} seriesKey="gasStorage" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toLocaleString()} Bcf` : '—'} /> : '—'}</span>
+          <span className="com-kpi-value">{gasLatest != null ? <MetricValue value={gasLatest} seriesKey="gasStorage" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${Math.round(v).toLocaleString()} Bcf` : '—'} /> : '—'}</span>
           <span className={`com-kpi-sub ${gasDelta != null ? (gasDelta >= 0 ? 'com-up' : 'com-down') : ''}`}>
-            {gasDelta != null ? <><MetricValue value={gasDelta} seriesKey="gasStorage" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v >= 0 ? '+' : ''}${v.toLocaleString()}` : '—'} /> vs 5yr avg</> : '—'}
+            {gasDelta != null ? <><MetricValue value={gasDelta} seriesKey="gasStorage" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v >= 0 ? '+' : ''}${Math.round(v).toLocaleString()}` : '—'} /> vs avg</> : '—'}
           </span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Crude Production</span>
           <span className="com-kpi-value">
-            {crudeProduction.values.length ? <MetricValue value={crudeProduction.values[crudeProduction.values.length - 1]} seriesKey="crudeProduction" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toFixed(1)}M` : '—'} /> : '—'}
+            {prodLatest != null ? <MetricValue value={prodLatest} seriesKey="crudeProduction" timestamp={lastUpdated} format={v => typeof v === 'number' ? fmtMbbl(v) : '—'} /> : '—'}
           </span>
           <span className="com-kpi-sub">bbl/day</span>
         </div>

@@ -1,11 +1,22 @@
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { AsyncLocalStorage } from 'async_hooks';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const CACHE_DIR = path.join(__dirname, '..', 'datacache');
 
 if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+/**
+ * Per-request context. When skipCache is true (client sent ?refresh=true),
+ * all readDailyCache* helpers return null so handlers re-fetch upstream.
+ */
+export const requestContext = new AsyncLocalStorage();
+
+export function shouldSkipCache() {
+  return !!requestContext.getStore()?.skipCache;
+}
 
 export function todayStr() { return new Date().toISOString().split('T')[0]; }
 
@@ -29,6 +40,7 @@ function countNonNullValues(obj, depth = 0) {
 }
 
 export function readDailyCache(market) {
+  if (shouldSkipCache()) return null;
   try {
     const fp = path.join(CACHE_DIR, `${market}-${todayStr()}.json`);
     if (fs.existsSync(fp)) {
@@ -48,6 +60,93 @@ export function readDailyCache(market) {
     }
   } catch (e) { console.warn(`[datacache] readDailyCache failed for ${market}:`, e?.message); }
   return null;
+}
+
+/** Last YYYY-MM-DD on a history-shaped field ({ dates: [...] } or top-level dates). */
+function seriesEndDate(val) {
+  if (!val || typeof val !== 'object') return null;
+  if (Array.isArray(val.dates) && val.dates.length) {
+    return String(val.dates[val.dates.length - 1]).slice(0, 10);
+  }
+  if (Array.isArray(val) && val.length && val[0]?.date) {
+    return String(val[val.length - 1].date).slice(0, 10);
+  }
+  return null;
+}
+
+function isEmptyField(v) {
+  if (v == null) return true;
+  if (Array.isArray(v)) {
+    if (v.length === 0) return true;
+    // Hollow metric rows: every item lacks any non-null primitive value
+    const valueKeys = ['value', 'rate', 'price', 'spread', 'lastPrint', 'previous', 'cpi', 'score', 'marketCapB'];
+    const anyLive = v.some((row) => {
+      if (row == null) return false;
+      if (typeof row !== 'object') return true;
+      if (valueKeys.some((k) => row[k] != null && row[k] !== '')) return true;
+      return Object.values(row).some((x) => x != null && x !== '' && typeof x !== 'object');
+    });
+    return !anyLive;
+  }
+  if (typeof v === 'object') {
+    const keys = Object.keys(v);
+    if (keys.length === 0) return true;
+    // { current: { igSpread: null, ... }, history: { dates: [] } }
+    if (v.current && typeof v.current === 'object') {
+      const curVals = Object.values(v.current);
+      const allNull = curVals.length > 0 && curVals.every((x) => x == null || x === '');
+      const noHistory = !v.history?.dates?.length;
+      if (allNull && noHistory) return true;
+      // Partial current all-null even with empty series arrays
+      if (allNull && Array.isArray(v.history?.dates) && v.history.dates.length === 0) return true;
+    }
+    // defaultData: { rates: [all null values], chargeoffs: null }
+    if (Array.isArray(v.rates)) {
+      const ratesHollow = isEmptyField(v.rates);
+      const noCo = !v.chargeoffs?.dates?.length;
+      const noHist = !v.defaultHistory?.dates?.length;
+      if (ratesHollow && noCo && noHist) return true;
+    }
+    // riskData with empty signals and no flat metrics
+    if (Array.isArray(v.signals) && v.signals.length === 0) {
+      const flat = ['vix', 'hyOas', 'igOas', 'fsi', 'vvix', 'move'];
+      if (flat.every((k) => v[k] == null)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Merge a fresh payload with the previous daily/latest cache so a transient
+ * upstream outage (FRED 403, Yahoo timeout) does not wipe fields that were
+ * previously populated. Fills empty keys and prefers the longer/newer history
+ * series when a rate-limited refresh returns a truncated time series.
+ */
+export function mergeWithPreviousCache(market, incoming) {
+  if (!incoming || typeof incoming !== 'object') return incoming;
+  const prev = readLatestCache(market);
+  if (!prev?.data || typeof prev.data !== 'object') return incoming;
+  const out = { ...incoming };
+  let usedPrev = false;
+  for (const [k, v] of Object.entries(prev.data)) {
+    if (k.startsWith('_') || k === 'lastUpdated' || k === 'fetchedOn') continue;
+    const cur = out[k];
+    if (isEmptyField(cur) && !isEmptyField(v)) {
+      out[k] = v;
+      usedPrev = true;
+      continue;
+    }
+    // Prefer previous history when it ends on a later observation date
+    // (common when refresh hits rate limits mid-batch and only partial history returns).
+    const curEnd = seriesEndDate(cur);
+    const prevEnd = seriesEndDate(v);
+    if (curEnd && prevEnd && prevEnd > curEnd) {
+      out[k] = v;
+      usedPrev = true;
+    }
+  }
+  if (usedPrev && prev.fetchedOn) out._mergedFromCacheDate = prev.fetchedOn;
+  return out;
 }
 
 export function writeDailyCache(market, data) {
@@ -131,6 +230,7 @@ export function cleanOldCaches() {
 }
 
 export async function readDailyCacheAsync(market) {
+  if (shouldSkipCache()) return null;
   try {
     const fp = path.join(CACHE_DIR, `${market}-${todayStr()}.json`);
     const content = await fs.promises.readFile(fp, 'utf8');

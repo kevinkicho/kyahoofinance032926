@@ -40,8 +40,6 @@ Panel keys (e.g. `kpi`, `yield`, `metrics`) are the `key` props on bento childre
 | List | `detail-sidebar` | Selected ticker's full Yahoo quote | One-click drill-down |
 | Bar Race | `race` | Animated bar race of top movers over time | Visual intuition for leaders |
 | Portfolio | `portfolio` | User-defined ticker bag with weights | Tracks against benchmark |
-| Radar | `radar` | Per-ticker factor radar (value/momentum/quality/low-vol) | Style exposure check |
-| ML Explorer | `ml-explorer` | Composite ML score per ticker | Long/short candidate ideas |
 | Data Hub | (full-page) | Raw stock data table for export | CSV/JSON download |
 
 **Drill-down**: click any ticker → loads `/api/summary/:t` (fundamentals, analysts) and `/api/history/:t` (5y price).

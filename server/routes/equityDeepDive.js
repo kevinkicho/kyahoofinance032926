@@ -3,6 +3,7 @@ import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../l
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchFredLatest } from '../lib/fred.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -471,9 +472,11 @@ router.get('/', async (req, res) => {
     res.json({ ...result, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('EquityDeepDive API error:', error);
-    const fallback = readLatestCache('equityDeepDive');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'equityDeepDive', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'equityDeepDive_data',
+    });
   }
 });
 

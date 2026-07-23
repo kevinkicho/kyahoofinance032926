@@ -336,45 +336,49 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
           )}
         </div>
 
-        {/* Main: table (wide) + DBC chart (narrow) */}
+        {/* Main: table (wide, content-sized rows) + DBC chart (narrow).
+            Table sits in .com-scroll so rows keep fixed height when the
+            panel is resized — same pattern as Sector Performance. */}
         <div className="com-wide-narrow">
-            <table className="com-table">
-              <thead className="com-thead-sticky">
-                <tr>
-                  <th className="com-th" style={{ textAlign: 'left' }}>Commodity</th>
-                  <th className="com-th">Price</th>
-                  <th className="com-th">Unit</th>
-                  <th className="com-th">1d%</th>
-                  <th className="com-th">1w%</th>
-                  <th className="com-th">1m%</th>
-                  <th className="com-th">30d Trend</th>
-                  <th className="com-th">Source</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayGroups.map(({ sector, commodities }) => (
-                  <React.Fragment key={sector}>
-                    <tr className="com-sector-row">
-                      <td colSpan={8}>{sector}</td>
-                    </tr>
-                    {(commodities || []).map(c => (
-                      <tr key={c.ticker || c.name} className="com-row">
-                        <td className="com-cell">{c.name}</td>
-                        <td className="com-cell com-price">
-                          <MetricValue value={c.price} seriesKey="commodityPrice" timestamp={lastUpdated} format={v => v != null ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'} />
-                        </td>
-                        <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.unit || ''}</td>
-                        <td className={`com-cell ${pctClass(c.change1d)}`}><MetricValue value={c.change1d} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
-                        <td className={`com-cell ${pctClass(c.change1w)}`}><MetricValue value={c.change1w} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1w)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
-                        <td className={`com-cell ${pctClass(c.change1m)}`}><MetricValue value={c.change1m} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1m)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
-                        <td className="com-cell"><Sparkline values={c.sparkline} /></td>
-                        <td className="com-cell com-source-cell">{c.source || c._source || ''}</td>
+            <div className="com-scroll">
+              <table className="com-table com-table-fixed-rows">
+                <thead className="com-thead-sticky">
+                  <tr>
+                    <th className="com-th" style={{ textAlign: 'left' }}>Commodity</th>
+                    <th className="com-th">Price</th>
+                    <th className="com-th">Unit</th>
+                    <th className="com-th">1d%</th>
+                    <th className="com-th">1w%</th>
+                    <th className="com-th">1m%</th>
+                    <th className="com-th">30d Trend</th>
+                    <th className="com-th">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayGroups.map(({ sector, commodities }) => (
+                    <React.Fragment key={sector}>
+                      <tr className="com-sector-row">
+                        <td colSpan={8}>{sector}</td>
                       </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
-            </table>
+                      {(commodities || []).map(c => (
+                        <tr key={c.ticker || c.name} className="com-row">
+                          <td className="com-cell">{c.name}</td>
+                          <td className="com-cell com-price">
+                            <MetricValue value={c.price} seriesKey="commodityPrice" timestamp={lastUpdated} format={v => v != null ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—'} />
+                          </td>
+                          <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.unit || ''}</td>
+                          <td className={`com-cell ${pctClass(c.change1d)}`}><MetricValue value={c.change1d} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1d)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+                          <td className={`com-cell ${pctClass(c.change1w)}`}><MetricValue value={c.change1w} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1w)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+                          <td className={`com-cell ${pctClass(c.change1m)}`}><MetricValue value={c.change1m} seriesKey="commodityChange" timestamp={lastUpdated} className={pctClass(c.change1m)} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
+                          <td className="com-cell"><Sparkline values={c.sparkline} /></td>
+                          <td className="com-cell com-source-cell">{c.source || c._source || ''}</td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             {dbcOption && (
             <div className="com-chart-panel">
               <div className="com-chart-title">DBC Commodity ETF — 1 Year</div>

@@ -22,7 +22,24 @@ export const STRUCTURAL_GUARDS = {
     return events || earnings || banks;
   },
   derivatives:    d => d.vixTermStructure?.values?.length >= 2,
-  insurance:      d => (Array.isArray(d.combinedRatioData) && d.combinedRatioData.length >= 1) || d.hyOAS != null || d.igOAS != null || d.catLosses != null,
+  // combinedRatioData is an object { quarters, lines } (not an array) in the
+  // live insurance route — also accept reinsurer tables / ETF proxies so a
+  // partial FRED outage does not blank the whole tab.
+  insurance:      d => {
+    const cr = d.combinedRatioData;
+    const crOk = Array.isArray(cr)
+      ? cr.length >= 1
+      : !!(cr && typeof cr === 'object' && (cr.lines || cr.quarters || cr.byLine || Object.keys(cr).length > 0));
+    return crOk
+      || d.hyOAS != null
+      || d.igOAS != null
+      || d.catLosses != null
+      || (Array.isArray(d.reinsurers) && d.reinsurers.length > 0)
+      || (Array.isArray(d.catBondSpreads) && d.catBondSpreads.length > 0)
+      || d.sectorETF != null
+      || d.catBondProxy != null
+      || d.reserveAdequacyData != null;
+  },
   realEstate:     d => (Array.isArray(d.reitData) && d.reitData.length >= 2) || (d.caseShillerData?.dates?.length > 0) || (d.mortgageRates?.rate30y != null),
   fx:             d => d.spotRates != null && Object.keys(d.spotRates).length >= 3,
   imf:            d => (Array.isArray(d.countries) && d.countries.length >= 5) || d.reserves != null,
@@ -98,13 +115,49 @@ export function needsLiveRepair(id, data) {
 
 export function hasNonNullData(d, id) {
   if (!d || typeof d !== 'object') return false;
+  // Fast-path known rich payloads so a strict normalizer cannot blank a tab
+  // that clearly has usable market data (e.g. yahoo.futures, coin lists).
+  if (id === 'commodities' || id === 'commoditiesEnhanced') {
+    if (d.yahoo?.futures && Object.keys(d.yahoo.futures).length > 0) return true;
+    if (d.priceDashboardData?.length > 0) return true;
+    if (d.eia && Object.keys(d.eia).length > 0) return true;
+    if (d.supplyDemand && Object.values(d.supplyDemand).some(v => v != null)) return true;
+  }
+  if (id === 'crypto') {
+    if (d.coinMarketData?.coins?.length >= 1 || d.coins?.length >= 1 || d.fearGreedData != null) return true;
+  }
+  if (id === 'insurance') {
+    if (d.reinsurers?.length > 0 || d.sectorETF || d.hyOAS != null || d.combinedRatioData) return true;
+  }
+  if (id === 'realEstate') {
+    if (d.reitData?.length > 0 || d.caseShillerData || d.mortgageRates || d.priceIndexData) return true;
+  }
+  if (id === 'globalMacro') {
+    if (d.scorecardData?.length > 0 || d.cfnai || d.oecdCli) return true;
+  }
+  if (id === 'equitiesDeepDive') {
+    if (d.sectorData?.sectors?.length > 0 || d.factorData?.stocks?.length > 0) return true;
+  }
+  if (id === 'derivatives') {
+    if (d.vixTermStructure?.values?.length > 0 || d.optionsFlow?.length > 0) return true;
+  }
+
+  // True → definitely keep. False → still try generic scoring (sparse feeds
+  // used to return false and blank entire tabs via applyResult).
   const renderable = isRenderableMarketSnapshot(id, d);
-  if (renderable != null) return renderable;
+  if (renderable === true) return true;
+
   const isSystemLike = id === 'analytics' || id === 'watchlist' || id === 'censusTrade' || id === 'eiaPetroleum' ||
-                       id === 'cftcTFF' || id === 'bisOTC' || id === 'fao' ||
-                       (id && (id.includes('Trade') || id.includes('Petroleum') || id.startsWith('treasury')));
+                       id === 'cftcTFF' || id === 'bisOTC' || id === 'fao' || id === 'bls' || id === 'census' ||
+                       id === 'oecd' || id === 'edgar' || id === 'usda' || id === 'universeUpdates' ||
+                       (id && (id.includes('Trade') || id.includes('Petroleum') || id.startsWith('treasury') || id.startsWith('fed')));
   if (isSystemLike) {
-    return Object.keys(d).some(k => !k.startsWith('_') && d[k] != null);
+    // Accept any non-meta field so aux endpoints count as "fetched" for panels.
+    return Object.keys(d).some(k =>
+      !k.startsWith('_') &&
+      k !== 'lastUpdated' && k !== 'fetchedOn' && k !== 'isCurrent' && k !== 'isLive' &&
+      d[k] != null
+    );
   }
   let nonNull = 0;
   for (const [k, v] of Object.entries(d)) {
@@ -124,6 +177,9 @@ export function hasNonNullData(d, id) {
               }
             }
             if (!hadSource) nonNull++;
+          } else if (childValues.length > 0) {
+            // Non-empty object shell (e.g. series: { unemp: {...} }) counts
+            nonNull++;
           }
         }
       } else {
@@ -131,5 +187,6 @@ export function hasNonNullData(d, id) {
       }
     }
   }
-  return nonNull >= 2;
+  // One real field is enough to paint panels; require 2 only for "rich" tabs.
+  return nonNull >= 1;
 }

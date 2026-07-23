@@ -239,6 +239,51 @@
   font-weight: 600;
 }
 
+/* Default Rates panel */
+.credit-default-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+}
+.credit-default-table {
+  width: 100%;
+  table-layout: fixed;
+}
+.credit-default-table .credit-th,
+.credit-default-table .credit-cell {
+  padding: 5px 6px;
+  vertical-align: middle;
+}
+.credit-default-table col,
+.credit-default-table th:nth-child(1),
+.credit-default-table td:nth-child(1) { width: 38%; }
+.credit-default-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 11px;
+  line-height: 1.2;
+}
+.credit-default-series {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  margin-top: 1px;
+}
+.credit-default-legend {
+  font-size: 9px;
+  color: var(--text-muted);
+  padding: 2px 2px 0;
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.credit-pos { color: #4ade80; }
+.credit-neg { color: #f87171; }
+.credit-muted { color: var(--text-muted); }
+
 /* ── 11. Scroll container ── */
 .credit-scroll { flex: 1; min-height: 0; overflow-y: auto; }
 

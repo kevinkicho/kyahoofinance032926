@@ -1,0 +1,219 @@
+{
+  "$schema_comment": "Canonical API routing for Global Market Hub. Single source of truth for DataProvider MARKET_ENDPOINTS, Vite proxy paths, panel dependency graph, and route parity tests. Keep in sync with server/index.js mounts.",
+  "version": 1,
+  "health": ["/api/health", "/api/rate-limits", "/api/cache/status"],
+  "markets": {
+    "analytics": {
+      "label": "Analytics",
+      "primary": "/api/rate-limits",
+      "deps": ["/api/analytics", "/api/cache/status", "/api/health"]
+    },
+    "equities": {
+      "label": "Equities",
+      "primary": "/api/equities",
+      "deps": ["/api/universeUpdates", "/api/edgar", "/api/edgar/filing-activity", "/api/bea", "/api/worldbank"]
+    },
+    "bonds": {
+      "label": "Bonds",
+      "primary": "/api/bonds",
+      "deps": ["/api/treasuryTIC", "/api/nyfed", "/api/treasuryAuctions", "/api/ecb", "/api/treasuryCost"]
+    },
+    "fx": {
+      "label": "FX",
+      "primary": "/api/fx",
+      "deps": ["/api/imf", "/api/treasuryTIC", "/api/cftcTFF"]
+    },
+    "derivatives": {
+      "label": "Derivatives",
+      "primary": "/api/derivatives",
+      "deps": ["/api/cftcTFF", "/api/bisOTC", "/api/ecb"]
+    },
+    "realEstate": {
+      "label": "Real Estate",
+      "primary": "/api/realEstate",
+      "deps": ["/api/census", "/api/censusTrade", "/api/fema"]
+    },
+    "insurance": {
+      "label": "Insurance",
+      "primary": "/api/insurance",
+      "deps": ["/api/fema", "/api/usgs", "/api/edgar/insurer-ratios", "/api/worldbank", "/api/ecb"]
+    },
+    "commodities": {
+      "label": "Commodities",
+      "primary": "/api/commoditiesEnhanced",
+      "deps": ["/api/usda", "/api/eiaPetroleum", "/api/fao", "/api/eia", "/api/cftcTFF"]
+    },
+    "globalMacro": {
+      "label": "Macro",
+      "primary": "/api/globalMacro",
+      "deps": ["/api/imf", "/api/worldbank", "/api/ecb", "/api/bea", "/api/eurostat", "/api/oecd", "/api/fed/gdpnow", "/api/fed/sep", "/api/fed/inflation-nowcast", "/api/treasuryDTS", "/api/bisOTC"]
+    },
+    "equitiesDeepDive": {
+      "label": "Equity+",
+      "primary": "/api/equityDeepDive",
+      "deps": ["/api/institutional", "/api/edgar"]
+    },
+    "crypto": {
+      "label": "Crypto",
+      "primary": "/api/crypto",
+      "deps": []
+    },
+    "credit": {
+      "label": "Credit",
+      "primary": "/api/credit",
+      "deps": ["/api/fdic", "/api/msrb", "/api/worldbank", "/api/bisOTC", "/api/treasuryTIC"]
+    },
+    "sentiment": {
+      "label": "Sentiment",
+      "primary": "/api/sentiment",
+      "deps": ["/api/fed/news-sentiment", "/api/eurostat", "/api/oecd"]
+    },
+    "calendar": {
+      "label": "Calendar",
+      "primary": "/api/calendar",
+      "deps": ["/api/treasuryAuctions"]
+    },
+    "bls": {
+      "label": "Labor",
+      "primary": "/api/bls",
+      "deps": []
+    },
+    "eia": {
+      "label": "Energy",
+      "primary": "/api/eia",
+      "deps": ["/api/eiaPetroleum"]
+    },
+    "watchlist": {
+      "label": "Watchlist",
+      "primary": "/api/watchlist",
+      "deps": []
+    },
+    "institutional": {
+      "label": "Institutional",
+      "primary": "/api/institutional",
+      "deps": []
+    },
+    "imf": { "label": "IMF", "primary": "/api/imf", "deps": [] },
+    "worldbank": { "label": "World Bank", "primary": "/api/worldbank", "deps": [] },
+    "census": { "label": "Census", "primary": "/api/census", "deps": [] },
+    "bea": { "label": "BEA", "primary": "/api/bea", "deps": [] },
+    "eurostat": { "label": "Eurostat", "primary": "/api/eurostat", "deps": [] },
+    "oecd": { "label": "OECD", "primary": "/api/oecd", "deps": [] },
+    "edgar": { "label": "EDGAR", "primary": "/api/edgar", "deps": [] },
+    "universeUpdates": { "label": "Universe Updates", "primary": "/api/universeUpdates", "deps": [] },
+    "nyfed": { "label": "NY Fed", "primary": "/api/nyfed", "deps": [] },
+    "fdic": { "label": "FDIC", "primary": "/api/fdic", "deps": [] },
+    "ecb": { "label": "ECB", "primary": "/api/ecb", "deps": [] },
+    "treasuryTIC": { "label": "Treasury TIC", "primary": "/api/treasuryTIC", "deps": [] },
+    "treasuryAuctions": { "label": "Treasury Auctions", "primary": "/api/treasuryAuctions", "deps": [] },
+    "treasuryDTS": { "label": "Treasury DTS", "primary": "/api/treasuryDTS", "deps": [] },
+    "treasuryCost": { "label": "Treasury Cost", "primary": "/api/treasuryCost", "deps": [] },
+    "fedSEP": { "label": "Fed SEP", "primary": "/api/fed/sep", "deps": [] },
+    "fedGDPNow": { "label": "Fed GDPNow", "primary": "/api/fed/gdpnow", "deps": [] },
+    "fedInflationNowcast": { "label": "Fed Inflation Nowcast", "primary": "/api/fed/inflation-nowcast", "deps": [] },
+    "fedNewsSentiment": { "label": "Fed News Sentiment", "primary": "/api/fed/news-sentiment", "deps": [] },
+    "msrb": { "label": "MSRB", "primary": "/api/msrb", "deps": [] },
+    "fema": { "label": "FEMA", "primary": "/api/fema", "deps": [] },
+    "usgs": { "label": "USGS", "primary": "/api/usgs", "deps": [] },
+    "edgarInsurerRatios": { "label": "EDGAR Insurer Ratios", "primary": "/api/edgar/insurer-ratios", "deps": [] },
+    "edgarFilingActivity": { "label": "EDGAR Filing Activity", "primary": "/api/edgar/filing-activity", "deps": [] },
+    "usda": { "label": "USDA", "primary": "/api/usda", "deps": [] },
+    "censusTrade": { "label": "Census Trade", "primary": "/api/censusTrade", "deps": [] },
+    "eiaPetroleum": { "label": "EIA Petroleum", "primary": "/api/eiaPetroleum", "deps": [] },
+    "cftcTFF": { "label": "CFTC TFF", "primary": "/api/cftcTFF", "deps": [] },
+    "bisOTC": { "label": "BIS OTC", "primary": "/api/bisOTC", "deps": [] },
+    "fao": { "label": "FAO", "primary": "/api/fao", "deps": [] }
+  },
+  "aliases": {
+    "/api/commodities/v2": "/api/commoditiesEnhanced",
+    "/api/treasury/tic": "/api/treasuryTIC",
+    "/api/treasury/auctions": "/api/treasuryAuctions",
+    "/api/treasury/dts": "/api/treasuryDTS",
+    "/api/census-trade": "/api/censusTrade",
+    "/api/eia-petroleum": "/api/eiaPetroleum"
+  },
+  "proxyPaths": [
+    "/api/stocks",
+    "/api/equities",
+    "/api/macro",
+    "/api/bonds",
+    "/api/derivatives",
+    "/api/realEstate",
+    "/api/insurance",
+    "/api/commodities",
+    "/api/commoditiesEnhanced",
+    "/api/commodities/v2",
+    "/api/globalMacro",
+    "/api/equityDeepDive",
+    "/api/crypto",
+    "/api/credit",
+    "/api/sentiment",
+    "/api/calendar",
+    "/api/fx",
+    "/api/analytics",
+    "/api/watchlist",
+    "/api/fred",
+    "/api/imf",
+    "/api/worldbank",
+    "/api/bls",
+    "/api/eia",
+    "/api/census",
+    "/api/bea",
+    "/api/censusTrade",
+    "/api/census-trade",
+    "/api/ecb",
+    "/api/edgar",
+    "/api/eiaPetroleum",
+    "/api/eia-petroleum",
+    "/api/eurostat",
+    "/api/fdic",
+    "/api/fed",
+    "/api/fema",
+    "/api/institutional",
+    "/api/msrb",
+    "/api/nyfed",
+    "/api/oecd",
+    "/api/treasuryAuctions",
+    "/api/treasury/auctions",
+    "/api/treasuryDTS",
+    "/api/treasury/dts",
+    "/api/treasuryTIC",
+    "/api/treasury/tic",
+    "/api/treasuryCost",
+    "/api/treasury",
+    "/api/usda",
+    "/api/usgs",
+    "/api/universeUpdates",
+    "/api/admin",
+    "/api/cftcTFF",
+    "/api/bisOTC",
+    "/api/fao",
+    "/api/summary",
+    "/api/history",
+    "/api/snapshot",
+    "/api/cache",
+    "/api/rate-limits",
+    "/api/health",
+    "/api/panel-routing"
+  ],
+  "tabMarkets": [
+    "equities",
+    "bonds",
+    "fx",
+    "derivatives",
+    "realEstate",
+    "insurance",
+    "commodities",
+    "globalMacro",
+    "equitiesDeepDive",
+    "crypto",
+    "credit",
+    "sentiment",
+    "calendar",
+    "bls",
+    "eia",
+    "alerts",
+    "watchlist",
+    "analytics"
+  ]
+}

@@ -14,10 +14,19 @@ const shell = isWin ? true : false;
 // Clean up stale port file from previous runs
 try { await unlink(PORT_FILE); } catch {}
 
+// Pin backend to 3001 so Vite's default proxy target always matches.
+// Override with PORT=... if needed.
+const backendEnv = {
+  ...process.env,
+  PORT: process.env.PORT || '3001',
+};
+
+console.log(`[start] Starting Express API (PORT=${backendEnv.PORT})…`);
+
 // Start the backend server
 const server = spawn('node', [resolve(__dirname, '..', 'server', 'index.js')], {
   stdio: 'inherit',
-  env: { ...process.env },
+  env: backendEnv,
   shell,
 });
 

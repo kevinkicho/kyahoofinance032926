@@ -44,31 +44,112 @@ function DerivativesMarket({ centralData } = {}) {
 
   const kpis = React.useMemo(() => {
     const d = marketData?.data || {};
-    // skewIndex is { value, interpretation }; gammaExposure is
-    // { total, callGamma, putGamma, netGamma } — pull the headline number
-    // out before formatting so the KPI builder doesn't blow up if upstream
-    // returns the object form.
+    // VIX term structure labels: ['9D','1M','3M','6M'] — use 1M as spot VIX.
+    const ts = d.vixTermStructure;
+    const idxOf = (label) => {
+      const i = ts?.dates?.indexOf?.(label);
+      return i != null && i >= 0 ? i : -1;
+    };
+    const at = (label) => {
+      const i = idxOf(label);
+      if (i < 0) return null;
+      const v = ts?.values?.[i];
+      return typeof v === 'number' && Number.isFinite(v) ? v : null;
+    };
+    const prevAt = (label) => {
+      const i = idxOf(label);
+      if (i < 0) return null;
+      const v = ts?.prevValues?.[i];
+      return typeof v === 'number' && Number.isFinite(v) ? v : null;
+    };
+
+    const vix = at('1M') ?? at('9D');
+    const vixPrev = prevAt('1M') ?? prevAt('9D');
+    const vix3m = at('3M');
+    const vixChgPts = vix != null && vixPrev != null && vixPrev !== 0
+      ? ((vix - vixPrev) / vixPrev) * 100
+      : null;
+
+    // skewIndex is { value, interpretation }; gammaExposure is strike array
+    // or { total }. Pull a headline number for the KPI strip.
     const skewVal = typeof d.skewIndex === 'number' ? d.skewIndex : d.skewIndex?.value;
-    let gexVal = undefined;
-    if (d.gammaExposure != null) {
-      if (typeof d.gammaExposure === 'number') {
-        gexVal = d.gammaExposure;
-      } else if (typeof d.gammaExposure === 'object') {
-        if (d.gammaExposure.total != null) {
-          gexVal = d.gammaExposure.total;
-        } else if (Array.isArray(d.gammaExposure)) {
-          gexVal = d.gammaExposure.reduce((s, g) => s + Math.abs(g?.value || 0), 0);
-        }
+    let gexVal = null;
+    if (typeof d.gammaExposure === 'number') {
+      gexVal = d.gammaExposure;
+    } else if (d.gammaExposure && typeof d.gammaExposure === 'object') {
+      if (typeof d.gammaExposure.total === 'number') gexVal = d.gammaExposure.total;
+      else if (Array.isArray(d.gammaExposure)) {
+        gexVal = d.gammaExposure.reduce((s, g) => s + Math.abs(g?.value || 0), 0);
       }
     }
-    const fmt = (v, digits = 2) => (typeof v === 'number' ? v.toFixed(digits) : '—');
+
+    // MetricValue needs raw number + format + seriesKey so pills open the
+    // provenance popover (series ID, source, timestamp).
+    const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+    const fmt2 = (v) => (typeof v === 'number' && Number.isFinite(v) ? v.toFixed(2) : '—');
+    const fmt1 = (v) => (typeof v === 'number' && Number.isFinite(v) ? v.toFixed(1) : '—');
+    const pcr = n(d.putCallRatio);
+    const skew = n(skewVal);
+    const gex = n(gexVal);
+    const chg = n(vixChgPts);
+
     return [
-      { label: 'VIX', value: fmt(d.vixValue), color: d.vixChange >= 0 ? '#f87171' : '#4ade80', trend: typeof d.vixChange === 'number' ? `${fmt(d.vixChange)}%` : null, sublabel: 'Volatility' },
-      { label: 'VIX 3M', value: fmt(d.vix3M), color: 'var(--text-primary)', trend: null, sublabel: 'Term' },
-      { label: 'Put/Call', value: fmt(d.putCallRatio), color: 'var(--text-primary)', trend: null, sublabel: 'Ratio' },
-      { label: 'Skew', value: fmt(skewVal), color: 'var(--text-primary)', trend: null, sublabel: 'SKEW' },
-      { label: 'Gamma Exp', value: fmt(gexVal), color: 'var(--text-primary)', trend: null, sublabel: 'GEX' },
-    ].filter(k => k.value !== '—');
+      {
+        label: 'VIX',
+        rawValue: vix,
+        value: fmt2(vix),
+        format: fmt2,
+        seriesKey: 'vix',
+        color: chg != null ? (chg >= 0 ? '#f87171' : '#4ade80') : undefined,
+        trend: chg != null ? `${chg >= 0 ? '+' : ''}${fmt2(chg)}%` : null,
+        sublabel: 'Volatility',
+      },
+      {
+        label: 'VIX 3M',
+        rawValue: vix3m,
+        value: fmt2(vix3m),
+        format: fmt2,
+        seriesKey: 'vix3m',
+        color: 'var(--text-primary)',
+        sublabel: 'Term',
+      },
+      {
+        label: 'Put/Call',
+        rawValue: pcr,
+        value: fmt2(pcr),
+        format: fmt2,
+        seriesKey: 'putCallRatio',
+        color: 'var(--text-primary)',
+        sublabel: 'Ratio',
+      },
+      {
+        label: 'Skew',
+        rawValue: skew,
+        value: fmt1(skew),
+        format: fmt1,
+        seriesKey: 'skew',
+        color: 'var(--text-primary)',
+        sublabel: 'SKEW',
+      },
+      {
+        label: 'Gamma Exp',
+        rawValue: gex,
+        value: typeof gex === 'number'
+          ? `$${Math.abs(gex).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}B`
+          : '—',
+        format: (v) => {
+          if (typeof v !== 'number' || !Number.isFinite(v)) return '—';
+          const body = Math.abs(v).toLocaleString('en-US', {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          });
+          return `$${body}B`;
+        },
+        seriesKey: 'gammaExposure',
+        color: 'var(--text-primary)',
+        sublabel: 'GEX',
+      },
+    ].filter((k) => k.rawValue != null);
   }, [marketData]);
 
   if (!centralData) return <MarketSkeleton />;

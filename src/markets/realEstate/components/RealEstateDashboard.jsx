@@ -32,6 +32,30 @@ function latestNumber(value, keys = ['values']) {
   return null;
 }
 
+/** Western / accounting-style number: 1234567.8 → 1,234,567.8 */
+function fmtAcct(v, digits = 0) {
+  if (v == null || !Number.isFinite(Number(v))) return '—';
+  return Number(v).toLocaleString('en-US', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function fmtUsdAcct(v, digits = 0) {
+  if (v == null || !Number.isFinite(Number(v))) return '—';
+  const n = Number(v);
+  const body = Math.abs(n).toLocaleString('en-US', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+  return n < 0 ? `-$${body}` : `$${body}`;
+}
+
+function fmtPctAcct(v, digits = 1) {
+  if (v == null || !Number.isFinite(Number(v))) return '—';
+  return `${fmtAcct(v, digits)}%`;
+}
+
 function getCommoditySnapshot(data) {
   if (!data || typeof data !== 'object') return null;
   const futures = data.yahoo?.futures || {};
@@ -74,10 +98,18 @@ function RentalAffordabilityMap({ data }) {
     data.forEach(d => {
       if (d.lat == null || d.lng == null) return;
 
-      const val = d.ratio;
+      let val = d.ratio ?? d.rentToIncome ?? null;
+      if (val != null && Number(val) > 0 && Number(val) <= 1.5) val = Number(val) * 100;
+      val = val != null ? Number(val) : null;
+      let homeValue = d.homeValue;
+      if (homeValue == null && typeof d.medianHomeValue === 'number') homeValue = d.medianHomeValue;
+      if (homeValue == null && Array.isArray(d.medianHomeValue?.values)) {
+        homeValue = d.medianHomeValue.values[d.medianHomeValue.values.length - 1];
+      }
+
       let color = '#10b981'; // Green
-      if (val > 40) color = '#ef4444'; // Red
-      else if (val > 30) color = '#f59e0b'; // Orange
+      if (val != null && val > 40) color = '#ef4444'; // Red
+      else if (val != null && val > 30) color = '#f59e0b'; // Orange
 
       const marker = window.L.circleMarker([d.lat, d.lng], {
         radius: 6,
@@ -93,27 +125,33 @@ function RentalAffordabilityMap({ data }) {
           <div class="popup-grid">
             <div class="popup-row">
               <span class="popup-label">Rent-to-Income:</span>
-              <span class="popup-val" style="color: ${color}; font-weight: 600;">${val ? val.toFixed(1) + '%' : 'N/A'}</span>
+              <span class="popup-val" style="color: ${color}; font-weight: 600;">${val != null ? val.toFixed(1) + '%' : 'N/A'}</span>
             </div>
             <div class="popup-row">
               <span class="popup-label">2B FMR Rent:</span>
-              <span class="popup-val">$${d.rent ? d.rent.toLocaleString() : 'N/A'}/mo</span>
+              <span class="popup-val">$${d.rent ? Number(d.rent).toLocaleString() : 'N/A'}/mo</span>
             </div>
             <div class="popup-row">
               <span class="popup-label">Median Income:</span>
-              <span class="popup-val">$${d.income ? d.income.toLocaleString() : 'N/A'}/yr</span>
+              <span class="popup-val">$${d.income ? Number(d.income).toLocaleString() : 'N/A'}/yr</span>
             </div>
-            ${d.homeValue ? `
+            ${homeValue ? `
             <div class="popup-divider"></div>
             <div class="popup-row">
-              <span class="popup-label">Census Home Value:</span>
-              <span class="popup-val">$${d.homeValue.toLocaleString()}</span>
+              <span class="popup-label">Home Value:</span>
+              <span class="popup-val">$${Number(homeValue).toLocaleString()}</span>
             </div>
             ` : ''}
             ${d.homeownership ? `
             <div class="popup-row">
               <span class="popup-label">Homeownership Rate:</span>
-              <span class="popup-val">${d.homeownership.toFixed(1)}%</span>
+              <span class="popup-val">${Number(d.homeownership).toFixed(1)}%</span>
+            </div>
+            ` : ''}
+            ${d._proxy ? `
+            <div class="popup-row">
+              <span class="popup-label">Source:</span>
+              <span class="popup-val">Estimated (FRED/CS)</span>
             </div>
             ` : ''}
           </div>
@@ -176,8 +214,25 @@ function RealEstateDashboard({
     if (!hudData || hudData.length === 0) return null;
 
     const sortedData = [...hudData]
+      .map((d) => {
+        let ratio = d.ratio ?? d.rentToIncome ?? null;
+        if (ratio != null && Number(ratio) > 0 && Number(ratio) <= 1.5) ratio = Number(ratio) * 100;
+        let homeValue = d.homeValue;
+        if (homeValue == null && typeof d.medianHomeValue === 'number') homeValue = d.medianHomeValue;
+        if (homeValue == null && Array.isArray(d.medianHomeValue?.values)) {
+          homeValue = d.medianHomeValue.values[d.medianHomeValue.values.length - 1];
+        }
+        return {
+          ...d,
+          ratio: ratio != null && Number.isFinite(Number(ratio)) ? Number(ratio) : null,
+          homeValue: homeValue != null ? Number(homeValue) : null,
+          rent: d.rent != null ? Number(d.rent) : null,
+          income: d.income != null ? Number(d.income) : null,
+        };
+      })
       .filter(d => d.ratio != null)
       .sort((a, b) => b.ratio - a.ratio);
+    if (!sortedData.length) return null;
 
     return {
       animation: false,
@@ -397,7 +452,7 @@ function RealEstateDashboard({
     layoutItems.push({ i: 'fhfa-hpi', x: 0, y: censusY + 7, w: 6, h: 3 });
   }
   if (priceIndexData && Object.keys(priceIndexData).length > 0) {
-    layoutItems.push({ i: 'bis-property-prices', x: 6, y: censusY + 7, w: 6, h: 3 });
+    layoutItems.push({ i: 'bis-property-prices', x: 6, y: censusY + 7, w: 6, h: 5 });
   }
   if (caseShillerData?.metros && Object.keys(caseShillerData.metros).length > 0) {
     layoutItems.push({ i: 'metro-case-shiller', x: 0, y: censusY + 10, w: 6, h: 3 });
@@ -410,14 +465,15 @@ function RealEstateDashboard({
 
   return (
     <div className="re-dashboard re-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v6">
+      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v7">
         {/* Key Metrics */}
         <BentoCard
           key="metrics"
           title="Key Metrics"
+          subtitle="Prices · rates · activity · distress"
           accent="realEstate"
           className="re-bento-card"
-          contentClassName="re-panel-scroll"
+          contentClassName="re-panel-content re-metrics-host"
           source="FRED / Yahoo Finance"
           timestamp={lastUpdated}
           isLive={isLive}
@@ -426,153 +482,281 @@ function RealEstateDashboard({
           fetchLog={fetchLog}
           error={error}
         >
-          <>
-            {typeof shillerLatest === 'number' && (
-              <div className="re-sidebar-section">
-                <div className="re-sidebar-title">Home Prices</div>
-                <div className="re-metric-card">
-                  <div className="re-metric-label">Case-Shiller</div>
-                  <div className="re-metric-value" style={{ color: '#60a5fa' }}><MetricValue value={shillerLatest} seriesKey="caseShiller" timestamp={lastUpdated} format={v => v.toFixed(1)} /></div>
-                </div>
-                {(() => {
-                  const v = medianHomePriceLatest;
-                  if (typeof v !== 'number') return null;
-                  return (
-                    <div className="re-metric-card">
-                      <div className="re-metric-row">
-                        <span className="re-metric-name">Median Price</span>
-                        <span className="re-metric-num"><MetricValue value={v} seriesKey="medianHomePrice" timestamp={lastUpdated} format={x => typeof x === 'number' ? `$${(x / 1000).toFixed(0)}K` : '—'} /></span>
-                      </div>
+          <div className="re-metrics-panel">
+            {/* Home Prices */}
+            {(typeof shillerLatest === 'number' || typeof medianHomePriceLatest === 'number') && (
+              <div className="re-m-section">
+                <div className="re-m-title">Home prices</div>
+                <div className="re-m-table">
+                  {typeof shillerLatest === 'number' && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">Case-Shiller</span>
+                      <span className="re-m-val" style={{ color: '#60a5fa' }}>
+                        <MetricValue
+                          value={shillerLatest}
+                          seriesKey="caseShiller"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtAcct(v, 1)}
+                        />
+                      </span>
+                      <span className="re-m-unit">idx</span>
                     </div>
-                  );
-                })()}
+                  )}
+                  {typeof medianHomePriceLatest === 'number' && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">Median price</span>
+                      <span className="re-m-val">
+                        <MetricValue
+                          value={medianHomePriceLatest}
+                          seriesKey="medianHomePrice"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtUsdAcct(v, 0)}
+                        />
+                      </span>
+                      <span className="re-m-unit">USD</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {mortgageRates && (
-              <div className="re-sidebar-section">
-                <div className="re-sidebar-title">Mortgage Rates</div>
-                <div className="re-metric-card">
+            {/* Mortgage Rates */}
+            {mortgageRates && (typeof mortgageRates.rate30y === 'number' || typeof mortgageRates.rate15y === 'number') && (
+              <div className="re-m-section">
+                <div className="re-m-title">Mortgage rates</div>
+                <div className="re-m-table">
                   {typeof mortgageRates.rate30y === 'number' && (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">30Y Fixed</span>
-                      <span className="re-metric-num" style={{ color: mortgageRates.rate30y > 7 ? '#f87171' : mortgageRates.rate30y > 5 ? '#fbbf24' : '#4ade80' }}>
-                        <MetricValue value={mortgageRates.rate30y} seriesKey="mortgage30y" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
+                    <div className="re-m-row">
+                      <span className="re-m-name">30Y fixed</span>
+                      <span
+                        className="re-m-val"
+                        style={{
+                          color:
+                            mortgageRates.rate30y > 7
+                              ? '#f87171'
+                              : mortgageRates.rate30y > 5
+                                ? '#fbbf24'
+                                : '#4ade80',
+                        }}
+                      >
+                        <MetricValue
+                          value={mortgageRates.rate30y}
+                          seriesKey="mortgage30y"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtAcct(v, 2)}
+                        />
                       </span>
+                      <span className="re-m-unit">%</span>
                     </div>
                   )}
                   {typeof mortgageRates.rate15y === 'number' && (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">15Y Fixed</span>
-                       <span className="re-metric-num"><MetricValue value={mortgageRates.rate15y} seriesKey="mortgage15y" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} /></span>
+                    <div className="re-m-row">
+                      <span className="re-m-name">15Y fixed</span>
+                      <span className="re-m-val">
+                        <MetricValue
+                          value={mortgageRates.rate15y}
+                          seriesKey="mortgage15y"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtAcct(v, 2)}
+                        />
+                      </span>
+                      <span className="re-m-unit">%</span>
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            <div className="re-sidebar-section">
-              <div className="re-sidebar-title">Activity</div>
-              <div className="re-metric-card">
-                {(() => {
-                  const v = housingStartsLatest;
-                  if (typeof v !== 'number') return null;
-                  return (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">Housing Starts</span>
-                      <span className="re-metric-num"><MetricValue value={v} seriesKey="housingStarts" timestamp={lastUpdated} format={x => typeof x === 'number' ? `${(x / 1000).toFixed(1)}M` : '—'} /></span>
-                    </div>
-                  );
-                })()}
-                {(() => {
-                  const v = existingHomeSalesLatest;
-                  if (typeof v !== 'number') return null;
-                  return (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">Existing Sales</span>
-                      <span className="re-metric-num"><MetricValue value={v} seriesKey="existingHomeSales" timestamp={lastUpdated} format={x => typeof x === 'number' ? `${(x / 1000).toFixed(1)}M` : '—'} /></span>
-                    </div>
-                  );
-                })()}
+            {/* Activity */}
+            <div className="re-m-section">
+              <div className="re-m-title">Activity</div>
+              <div className="re-m-table">
+                {typeof housingStartsLatest === 'number' && (
+                  <div className="re-m-row">
+                    <span className="re-m-name">Housing starts</span>
+                    <span className="re-m-val">
+                      <MetricValue
+                        value={housingStartsLatest}
+                        seriesKey="housingStarts"
+                        timestamp={lastUpdated}
+                        format={(v) => {
+                          // FRED HOUST is thousands of units (SAAR)
+                          if (v == null || !Number.isFinite(Number(v))) return '—';
+                          const units = Number(v) * 1000;
+                          return fmtAcct(units, 0);
+                        }}
+                      />
+                    </span>
+                    <span className="re-m-unit">units</span>
+                  </div>
+                )}
+                {typeof existingHomeSalesLatest === 'number' && (
+                  <div className="re-m-row">
+                    <span className="re-m-name">Existing sales</span>
+                    <span className="re-m-val">
+                      <MetricValue
+                        value={existingHomeSalesLatest}
+                        seriesKey="existingHomeSales"
+                        timestamp={lastUpdated}
+                        format={(v) => {
+                          if (v == null || !Number.isFinite(Number(v))) return '—';
+                          // Already full-unit SAAR (e.g. 4,090,000)
+                          return fmtAcct(v, 0);
+                        }}
+                      />
+                    </span>
+                    <span className="re-m-unit">units</span>
+                  </div>
+                )}
                 {typeof homeownershipRate === 'number' && (
-                  <div className="re-metric-row">
-                    <span className="re-metric-name">Homeownership</span>
-                     <span className="re-metric-num"><MetricValue value={homeownershipRate} seriesKey="homeownershipRate" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
+                  <div className="re-m-row">
+                    <span className="re-m-name">Homeownership</span>
+                    <span className="re-m-val">
+                      <MetricValue
+                        value={homeownershipRate}
+                        seriesKey="homeownershipRate"
+                        timestamp={lastUpdated}
+                        format={(v) => fmtAcct(v, 1)}
+                      />
+                    </span>
+                    <span className="re-m-unit">%</span>
                   </div>
                 )}
                 {typeof rentalVacancy === 'number' && (
-                  <div className="re-metric-row">
-                    <span className="re-metric-name">Rental Vacancy</span>
-                     <span className="re-metric-num"><MetricValue value={rentalVacancy} seriesKey="rentalVacancy" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
+                  <div className="re-m-row">
+                    <span className="re-m-name">Rental vacancy</span>
+                    <span className="re-m-val">
+                      <MetricValue
+                        value={rentalVacancy}
+                        seriesKey="rentalVacancy"
+                        timestamp={lastUpdated}
+                        format={(v) => fmtAcct(v, 1)}
+                      />
+                    </span>
+                    <span className="re-m-unit">%</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {(foreclosureData?.foreclosures?.values?.length || foreclosureData?.delinquencies?.values?.length) && (
-              <div className="re-sidebar-section">
-                <div className="re-sidebar-title">Distress</div>
-                <div className="re-metric-card">
-                  {foreclosureData?.foreclosures?.values && (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">Foreclosure Rate</span>
-                      <span className="re-metric-num" style={{ color: '#f87171' }}>
-                        <MetricValue value={foreclosureData?.foreclosures?.values?.[foreclosureData.foreclosures.values.length - 1]} seriesKey="foreclosureRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
+            {/* Distress */}
+            {(foreclosureData?.foreclosures?.values?.length ||
+              foreclosureData?.delinquencies?.values?.length ||
+              creDelinquencies?.values?.length) && (
+              <div className="re-m-section">
+                <div className="re-m-title">Distress</div>
+                <div className="re-m-table">
+                  {foreclosureData?.foreclosures?.values?.length > 0 && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">Foreclosure rate</span>
+                      <span className="re-m-val" style={{ color: '#f87171' }}>
+                        <MetricValue
+                          value={foreclosureData.foreclosures.values[foreclosureData.foreclosures.values.length - 1]}
+                          seriesKey="foreclosureRate"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtAcct(v, 2)}
+                        />
                       </span>
+                      <span className="re-m-unit">%</span>
                     </div>
                   )}
-                  {foreclosureData?.delinquencies?.values && (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">Delinquency</span>
-                      <span className="re-metric-num" style={{ color: '#fbbf24' }}>
-                        <MetricValue value={foreclosureData?.delinquencies?.values?.[foreclosureData.delinquencies.values.length - 1]} seriesKey="delinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
+                  {foreclosureData?.delinquencies?.values?.length > 0 && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">Delinquency</span>
+                      <span className="re-m-val" style={{ color: '#fbbf24' }}>
+                        <MetricValue
+                          value={foreclosureData.delinquencies.values[foreclosureData.delinquencies.values.length - 1]}
+                          seriesKey="delinquencyRate"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtAcct(v, 1)}
+                        />
                       </span>
+                      <span className="re-m-unit">%</span>
                     </div>
                   )}
-                  {creDelinquencies?.values && (
-                    <div className="re-metric-row">
-                      <span className="re-metric-name">CRE Delinq</span>
-                      <span className="re-metric-num" style={{ color: '#8b5cf6' }}>
-                        <MetricValue value={creDelinquencies?.values?.[creDelinquencies.values.length - 1]} seriesKey="creDelinquencyRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} />
+                  {creDelinquencies?.values?.length > 0 && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">CRE delinq</span>
+                      <span className="re-m-val" style={{ color: '#8b5cf6' }}>
+                        <MetricValue
+                          value={creDelinquencies.values[creDelinquencies.values.length - 1]}
+                          seriesKey="creDelinquencyRate"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtAcct(v, 1)}
+                        />
                       </span>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             )}
+                      <span className="re-m-unit">%</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-             {commoditySnapshot && (
-               <div className="re-sidebar-section">
-                 <div className="re-sidebar-title">Commodities</div>
-                 <div className="re-metric-card">
-                   {commoditySnapshot.goldPrice != null && (
-                     <div className="re-metric-row">
-                       <span className="re-metric-name">Gold</span>
-                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.goldPrice} seriesKey="goldPrice" timestamp={lastUpdated} format={v => `$${v.toLocaleString()}`} /></span>
-                     </div>
-                   )}
-                   {commoditySnapshot.wtiPrice != null && (
-                     <div className="re-metric-row">
-                       <span className="re-metric-name">WTI Oil</span>
-                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.wtiPrice} seriesKey="wtiPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(2)}`} /></span>
-                     </div>
-                   )}
-                   {commoditySnapshot.natGasPrice != null && (
-                     <div className="re-metric-row">
-                       <span className="re-metric-name">Nat Gas</span>
-                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.natGasPrice} seriesKey="natGasPrice" timestamp={lastUpdated} format={v => `$${v.toFixed(3)}`} /></span>
-                     </div>
-                   )}
-                   {typeof commoditySnapshot.goldOilRatio === 'number' && (
-                     <div className="re-metric-row">
-                       <span className="re-metric-name">Gold/Oil Ratio</span>
-                       <span className="re-metric-num"><MetricValue value={commoditySnapshot.goldOilRatio} seriesKey="goldOilRatio" timestamp={lastUpdated} format={v => v.toFixed(2)} /></span>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             )}
-           </>
+            {/* Commodities */}
+            {commoditySnapshot && (
+              <div className="re-m-section">
+                <div className="re-m-title">Commodities</div>
+                <div className="re-m-table">
+                  {commoditySnapshot.goldPrice != null && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">Gold</span>
+                      <span className="re-m-val">
+                        <MetricValue
+                          value={commoditySnapshot.goldPrice}
+                          seriesKey="goldPrice"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtUsdAcct(v, 2)}
+                        />
+                      </span>
+                      <span className="re-m-unit">/oz</span>
+                    </div>
+                  )}
+                  {commoditySnapshot.wtiPrice != null && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">WTI oil</span>
+                      <span className="re-m-val">
+                        <MetricValue
+                          value={commoditySnapshot.wtiPrice}
+                          seriesKey="wtiPrice"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtUsdAcct(v, 2)}
+                        />
+                      </span>
+                      <span className="re-m-unit">/bbl</span>
+                    </div>
+                  )}
+                  {commoditySnapshot.natGasPrice != null && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">Nat gas</span>
+                      <span className="re-m-val">
+                        <MetricValue
+                          value={commoditySnapshot.natGasPrice}
+                          seriesKey="natGasPrice"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtUsdAcct(v, 3)}
+                        />
+                      </span>
+                      <span className="re-m-unit">/mm</span>
+                    </div>
+                  )}
+                  {typeof commoditySnapshot.goldOilRatio === 'number' && (
+                    <div className="re-m-row">
+                      <span className="re-m-name">Gold / oil</span>
+                      <span className="re-m-val">
+                        <MetricValue
+                          value={commoditySnapshot.goldOilRatio}
+                          seriesKey="goldOilRatio"
+                          timestamp={lastUpdated}
+                          format={(v) => fmtAcct(v, 2)}
+                        />
+                      </span>
+                      <span className="re-m-unit">x</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </BentoCard>
 
         {affordabilityStack && (
@@ -954,7 +1138,21 @@ function RealEstateDashboard({
           </BentoCard>
         )}
         {priceIndexData && Object.keys(priceIndexData).length > 0 && (
-          <BentoCard key="bis-property-prices" title="BIS Property Price Comparison" subtitle="Residential property price indices" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="BIS / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+          <BentoCard
+            key="bis-property-prices"
+            title="BIS Property Price Comparison"
+            subtitle="Residential PPI · 40+ economies · FRED/BIS"
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-content bis-pp-host"
+            source="BIS / FRED"
+            timestamp={lastUpdated}
+            isLive={true}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+          >
             <BisPropertyPricePanel />
           </BentoCard>
         )}

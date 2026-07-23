@@ -7,6 +7,7 @@ vi.mock('../lib/fetch.js', () => ({
 vi.mock('../lib/cache.js', () => ({
   readDailyCacheAsync: vi.fn(() => Promise.resolve(null)),
   writeDailyCacheAsync: vi.fn(() => Promise.resolve()),
+  mergeWithPreviousCache: vi.fn((_m, data) => data),
   readLatestCacheAsync: vi.fn(() => Promise.resolve(null)),
   todayStr: vi.fn(() => '2026-04-22'),
 }));

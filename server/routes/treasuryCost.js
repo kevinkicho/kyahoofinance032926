@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -39,9 +40,7 @@ router.get('/', async (_req, res) => {
     res.json(result);
   } catch (e) {
     console.warn('[treasuryCost]', e.message);
-    const fb = readLatestCache('treasuryCost');
-    if (fb) return res.json({ ...fb.data, isCurrent: false, fetchedOn: fb.fetchedOn });
-    res.status(502).json({ error: 'Treasury cost API unavailable' });
+    return sendCachedOrDegradedSync(res, 'treasuryCost', { error: e });
   }
 });
 

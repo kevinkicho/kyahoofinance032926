@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -61,15 +62,20 @@ function parseSeriesObservations(rawObs) {
 
 router.get('/', async (req, res) => {
   const apiKey = process.env.FRED_API_KEY;
+  const today = todayStr();
+  const cacheKey = 'census_data';
+
   if (!apiKey) {
-    return res.status(503).json({ error: 'FRED_API_KEY not configured' });
+    return sendCachedOrDegradedSync(res, 'census', {
+      error: new Error('FRED_API_KEY not configured'),
+      memoryCache: req.app.locals.cache,
+      cacheKey,
+    });
   }
 
-  const today = todayStr();
   const daily = readDailyCache('census');
   if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
 
-  const cacheKey = 'census_data';
   const cached = req.app.locals.cache?.get(cacheKey);
   if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
 
@@ -114,9 +120,11 @@ router.get('/', async (req, res) => {
     res.json({ ...result, fetchedOn: today, isCurrent: anySourceLive });
   } catch (err) {
     console.error('[Census] route error:', err);
-    const fallback = readLatestCache('census');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'census', {
+      error: err,
+      memoryCache: req.app.locals.cache,
+      cacheKey,
+    });
   }
 });
 

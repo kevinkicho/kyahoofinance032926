@@ -80,6 +80,15 @@ export default function TimeTravel({ onSnapshotSelect, isActive }) {
     }
   }, [isActive]);
 
+  // On unmount (user leaves Bar Race), always restore live quotes so List /
+  // Heatmap don't keep a historical snapshot from the scrubber.
+  useEffect(() => {
+    return () => {
+      onSnapshotSelect(null, null, null);
+      setHistoricalDate(null);
+    };
+  }, [onSnapshotSelect, setHistoricalDate]);
+
   const loadDate = useCallback(async (date) => {
     const snap = await getSnapshot('equities', date);
     if (snap?.data?.quotes) {

@@ -511,6 +511,7 @@ router.get('/', makeCachedRouteHandler({
       seasonalPatterns:    seasonalPatterns    ?? null,
       _sources,
     };
+    return result;
   }
 }));
 

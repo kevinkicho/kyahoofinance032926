@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -61,7 +62,12 @@ router.get('/', async (req, res) => {
       res.json(response);
   } catch (error) {
     console.error('FRED API Error:', error);
-    res.status(500).json({ error: 'Failed to fetch macro data' });
+    // macro has no disk cache market name historically — still return 200 shell
+    return sendCachedOrDegradedSync(res, 'macro', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'fred_macro',
+    });
   }
 });
 

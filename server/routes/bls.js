@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchFredHistory } from '../lib/fred.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -196,9 +197,11 @@ router.get('/', async (req, res) => {
     const rawSeries = await fetchBLSSeries(seriesIds, apiKey);
 
     if (!rawSeries) {
-      const fallback = readLatestCache('bls');
-      if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-      return res.status(502).json({ error: 'BLS API unavailable' });
+      return sendCachedOrDegradedSync(res, 'bls', {
+        error: new Error('BLS API unavailable'),
+        memoryCache: req.app.locals.cache,
+        cacheKey,
+      });
     }
 
     const seriesData = parseSeries(rawSeries);
@@ -220,9 +223,11 @@ router.get('/', async (req, res) => {
     res.json({ ...result, fetchedOn: today, isCurrent: anyLive });
   } catch (err) {
     console.error('[BLS] route error:', err);
-    const fallback = readLatestCache('bls');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'bls', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey,
+    });
   }
 });
 

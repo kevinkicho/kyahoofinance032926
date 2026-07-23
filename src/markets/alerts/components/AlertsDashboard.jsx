@@ -10,11 +10,13 @@ const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
 
 const STORAGE_KEY = 'alert-rules-enabled';
 
+// Keys must match MARKET_PANELS.alerts ids (kpi / active-alerts / alert-rules)
+// so panel health can find [data-panel-key] nodes.
 const LAYOUT = {
   lg: [
-    { i: 'sidebar', x: 0, y: 0, w: 3, h: 4 },
-    { i: 'alert-feed', x: 3, y: 0, w: 5, h: 4 },
-    { i: 'correlations', x: 8, y: 0, w: 4, h: 4 },
+    { i: 'kpi', x: 0, y: 0, w: 3, h: 4 },
+    { i: 'active-alerts', x: 3, y: 0, w: 5, h: 4 },
+    { i: 'alert-rules', x: 8, y: 0, w: 4, h: 4 },
   ]
 };
 
@@ -32,7 +34,22 @@ function saveEnabled(map) {
   } catch {}
 }
 
-function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationData, isLive, lastUpdated, error, fetchLog, isCurrent }) {
+const FOOTER_SOURCE = 'Multi-market rules · federated';
+
+function AlertsDashboard({
+  alerts,
+  rules,
+  onToggleRule,
+  fetchedOn,
+  correlationData,
+  isLive,
+  lastUpdated,
+  error,
+  fetchLog,
+  isCurrent,
+  isHistorical,
+  asOfDate,
+}) {
   const ALERT_SERIES = {
     'vix-spike': 'alertVix',
     'curve-inversion': 'alertCurve',
@@ -126,49 +143,80 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
 
     return (
       <div className="alerts-dashboard alerts-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="alerts-layout-v2">
+        <BentoWrapper layout={LAYOUT} storageKey="alerts-layout-v3">
 
-        {/* Sidebar — Status Summary + Rule Health */}
+        {/* Alert Status (MARKET_PANELS id: kpi) — single BentoCard footer only */}
         <BentoCard
-          key="sidebar"
-          title="Status Summary"
+          key="kpi"
+          title="Alert Status"
           accent="alerts"
           className="alerts-bento-card"
-          source="FRED / Yahoo Finance"
+          source={FOOTER_SOURCE}
           timestamp={lastUpdated}
-          isLive={isLive}
+          isLive={isLive || rules.length > 0}
           isCurrent={isCurrent}
+          isHistorical={isHistorical}
+          asOfDate={asOfDate}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
         >
-          <AlertsSidebar
-            alerts={alerts}
-            rules={rules}
-            enabledMap={enabledMap}
-            fetchedOn={fetchedOn}
-            lastUpdated={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchLog={fetchLog}
-            error={error}
-          />
+          <div data-panel-bound="1" data-panel-live="1">
+            <div className="alerts-status-kpis" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+              <div className="bonds-kpi-pill" style={{ minWidth: 88 }}>
+                <span className="bonds-kpi-label">Active</span>
+                <span className="bonds-kpi-value accent">
+                  <MetricValue value={alerts.length} seriesKey="alertActive" format={(v) => String(Math.round(v))} />
+                </span>
+              </div>
+              <div className="bonds-kpi-pill" style={{ minWidth: 88 }}>
+                <span className="bonds-kpi-label">Rules</span>
+                <span className="bonds-kpi-value">
+                  <MetricValue value={enabledCount} seriesKey="alertRules" format={(v) => String(Math.round(v))} />
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>/{rules.length}</span>
+                </span>
+              </div>
+              <div className="bonds-kpi-pill" style={{ minWidth: 88 }}>
+                <span className="bonds-kpi-label">High</span>
+                <span className="bonds-kpi-value" style={{ color: severityCounts.high ? '#f87171' : undefined }}>
+                  <MetricValue value={severityCounts.high} seriesKey="alertHigh" format={(v) => String(Math.round(v))} />
+                </span>
+              </div>
+            </div>
+            <AlertsSidebar
+              alerts={alerts}
+              rules={rules}
+              enabledMap={enabledMap}
+              fetchedOn={fetchedOn}
+            />
+          </div>
         </BentoCard>
 
-        {/* Alert Feed */}
+        {/* Active Alerts feed */}
         <BentoCard
-          key="alert-feed"
+          key="active-alerts"
           title="Active Alerts"
           accent="alerts"
           className="alerts-bento-card"
-          noFooter
+          source={FOOTER_SOURCE}
+          timestamp={lastUpdated}
+          isLive={isLive || rules.length > 0}
+          isCurrent={isCurrent}
+          isHistorical={isHistorical}
+          asOfDate={asOfDate}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
         >
-          <>
+          <div data-panel-bound="1" data-panel-live="1">
             {alerts.length === 0 ? (
               <div className="alerts-all-clear">
                 <div className="alerts-clear-icon">&#x2713;</div>
                 <div className="alerts-clear-title">All Clear</div>
-                <div className="alerts-clear-subtitle">No anomalies detected</div>
+                <div className="alerts-clear-subtitle">
+                  <MetricValue value={0} seriesKey="alertActive" format={() => '0'} /> anomalies ·{' '}
+                  <MetricValue value={enabledCount} seriesKey="alertRules" format={(v) => String(Math.round(v))} /> rules online
+                </div>
                 <div className="alerts-clear-detail">All monitored thresholds are within normal ranges</div>
               </div>
             ) : (
@@ -209,55 +257,99 @@ function AlertsDashboard({ alerts, rules, onToggleRule, fetchedOn, correlationDa
                 <i className="alerts-legend-dot low" /> Low severity
               </div>
             </div>
-          </>
+          </div>
         </BentoCard>
 
-        {/* Correlations Matrix */}
+        {/* Alert Rules (MARKET_PANELS id: alert-rules) */}
         <BentoCard
-          key="correlations"
-          title="Cross-Market Correlations"
+          key="alert-rules"
+          title="Alert Rules"
           accent="alerts"
           className="alerts-bento-card"
-          noFooter
+          source={FOOTER_SOURCE}
+          timestamp={lastUpdated}
+          isLive={isLive || rules.length > 0}
+          isCurrent={isCurrent}
+          isHistorical={isHistorical}
+          asOfDate={asOfDate}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
         >
-          <>
-            {correlationMatrix ? (
-              <SafeECharts
-                option={{
-                  tooltip: { position: 'top' },
-                  grid: { top: '10%', left: '10%', right: '10%', bottom: '10%' },
-                  xAxis: {
-                    type: 'category',
-                    data: correlationMatrix.labels,
-                    axisLabel: { color: '#888' }
-                  },
-                  yAxis: {
-                    type: 'category',
-                    data: correlationMatrix.labels,
-                    axisLabel: { color: '#888' }
-                  },
-                  visualMap: {
-                    min: -1,
-                    max: 1,
-                    calculable: true,
-                    orient: 'horizontal',
-                    left: 'center',
-                    bottom: '5%',
-                    inRange: { color: ['#ef5350', '#fff', '#66bb6a'] }
-                  },
-                  series: [{
-                    name: 'Correlation',
-                    type: 'heatmap',
-                    data: correlationMatrix.data,
-                    label: { show: true, color: '#fff' }
-                  }]
-                }}
-                style={{ height: '100%', width: '100%' }}
-              />
-            ) : (
-              <div className="alerts-empty-state">Loading correlation data...</div>
-            )}
-          </>
+          <div data-panel-bound="1" data-panel-live="1" style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minHeight: 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              <MetricValue value={enabledCount} seriesKey="alertRules" format={(v) => String(Math.round(v))} />
+              {' / '}
+              <MetricValue value={rules.length} seriesKey="alertRulesTotal" format={(v) => String(Math.round(v))} />
+              {' rules enabled'}
+            </div>
+            <div className="alerts-rules-list" style={{ overflow: 'auto', flex: '0 0 auto', maxHeight: '42%' }}>
+              {rules.map((r) => {
+                const on = enabledMap[r.id] !== false;
+                return (
+                  <div key={r.id} className="alerts-sidebar-rule-status" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0' }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleRule(r.id)}
+                      style={{
+                        border: 'none',
+                        background: on ? 'rgba(34,197,94,0.2)' : 'rgba(148,163,184,0.15)',
+                        color: on ? '#4ade80' : 'var(--text-muted)',
+                        borderRadius: 4,
+                        fontSize: 10,
+                        padding: '2px 6px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {on ? 'ON' : 'OFF'}
+                    </button>
+                    <span style={{ fontSize: 12, flex: 1 }}>{r.label}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{r.severity}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginTop: 4 }}>Cross-Market Correlations</div>
+            <div style={{ flex: 1, minHeight: 120 }}>
+              {correlationMatrix ? (
+                <SafeECharts
+                  option={{
+                    tooltip: { position: 'top' },
+                    grid: { top: '8%', left: '12%', right: '4%', bottom: '18%' },
+                    xAxis: {
+                      type: 'category',
+                      data: correlationMatrix.labels,
+                      axisLabel: { color: '#888', fontSize: 10 },
+                    },
+                    yAxis: {
+                      type: 'category',
+                      data: correlationMatrix.labels,
+                      axisLabel: { color: '#888', fontSize: 10 },
+                    },
+                    visualMap: {
+                      min: -1,
+                      max: 1,
+                      calculable: true,
+                      orient: 'horizontal',
+                      left: 'center',
+                      bottom: '2%',
+                      textStyle: { color: '#888', fontSize: 9 },
+                      inRange: { color: ['#ef5350', '#fff', '#66bb6a'] },
+                    },
+                    series: [{
+                      name: 'Correlation',
+                      type: 'heatmap',
+                      data: correlationMatrix.data,
+                      label: { show: true, color: '#111', fontSize: 9 },
+                    }],
+                  }}
+                  style={{ height: '100%', width: '100%' }}
+                />
+              ) : (
+                <div className="alerts-empty-state">Loading correlation data…</div>
+              )}
+            </div>
+          </div>
         </BentoCard>
 
         </BentoWrapper>

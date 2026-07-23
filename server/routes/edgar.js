@@ -204,11 +204,16 @@ function classifyFiling(form) {
   const f = form.toUpperCase().trim();
   if (['8-K', '8-K/A'].includes(f)) return 'material';
   if (['10-K', '10-K/A', '10-Q', '10-Q/A'].includes(f)) return 'earnings';
-  if (f === '4' || f === '5') return 'insider';
-  if (['SC 13G', 'SC 13G/A', 'SC 13D', 'SC 13D/A'].includes(f)) return 'activist';
-  if (['DEF 14A', 'DEFA14A', 'DEF 14C'].includes(f)) return 'proxy';
+  if (f === '3' || f === '4' || f === '5' || f === '3/A' || f === '4/A' || f === '5/A') return 'insider';
+  // SEC returns both "SC 13G" and "SCHEDULE 13G" style labels
+  if (
+    ['SC 13G', 'SC 13G/A', 'SC 13D', 'SC 13D/A'].includes(f) ||
+    /^SCHEDULE\s+13[DG](\/A)?$/.test(f) ||
+    /^SC\s*13[DG](\/A)?$/.test(f)
+  ) return 'activist';
+  if (['DEF 14A', 'DEFA14A', 'DEF 14C', 'DEFR14A', 'PREC14A'].includes(f)) return 'proxy';
   if (['S-1', 'S-1/A', 'F-1', 'F-1/A'].includes(f)) return 'ipo';
-  if (['424B2', '424B3', '424B5', 'FWP'].includes(f)) return 'offering';
+  if (['424B2', '424B3', '424B4', '424B5', 'FWP'].includes(f)) return 'offering';
   return 'other';
 }
 

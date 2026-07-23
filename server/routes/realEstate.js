@@ -21,9 +21,25 @@ const REIT_META = {
   VICI: { name: 'VICI Properties',   sector: 'Gaming',       pFFO: null },
 };
 
+// BIS residential property price indices via FRED (Q{ISO3}R628BIS).
+// Expanded country set — only series that resolve on FRED are kept at runtime.
 const BIS_SERIES = {
+  // Majors
   US: 'QUSR628BIS', UK: 'QGBR628BIS', DE: 'QDEU628BIS',
-  AU: 'QAUS628BIS', CA: 'QCAN628BIS', JP: 'QJPN628BIS',
+  FR: 'QFRR628BIS', AU: 'QAUS628BIS', CA: 'QCAN628BIS', JP: 'QJPN628BIS',
+  // Europe
+  ES: 'QESR628BIS', IT: 'QITR628BIS', NL: 'QNLR628BIS', CH: 'QCHR628BIS',
+  SE: 'QSER628BIS', NO: 'QNOR628BIS', DK: 'QDKR628BIS', IE: 'QIER628BIS',
+  PT: 'QPTR628BIS', BE: 'QBER628BIS', AT: 'QATR628BIS', FI: 'QFIR628BIS',
+  PL: 'QPLR628BIS', CZ: 'QCZR628BIS', HU: 'QHUR628BIS', GR: 'QGRR628BIS',
+  RO: 'QROR628BIS', LU: 'QLUR628BIS', IS: 'QISR628BIS',
+  // Asia-Pacific
+  NZ: 'QNZR628BIS', CN: 'QCNR628BIS', IN: 'QINR628BIS', SG: 'QSGR628BIS',
+  HK: 'QHKR628BIS', TH: 'QTHR628BIS', MY: 'QMYR628BIS', ID: 'QIDR628BIS',
+  PH: 'QPHR628BIS',
+  // Americas / EM
+  BR: 'QBRR628BIS', MX: 'QMXR628BIS', CL: 'QCLR628BIS', CO: 'QCOR628BIS',
+  ZA: 'QZAR628BIS', TR: 'QTRR628BIS', IL: 'QILR628BIS', RU: 'QRUR628BIS',
 };
 
 function bisQuarterLabel(dateStr) {
@@ -244,38 +260,45 @@ router.get('/', makeCachedRouteHandler({
     let priceIndexData = null;
     if (FRED_API_KEY) {
       try {
-        trackApiCall('FRED');
-        const bisEntries = await Promise.allSettled(
-          Object.entries(BIS_SERIES).map(async ([cc, sid]) => {
-            const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${sid}&api_key=${FRED_API_KEY}&file_type=json&sort_order=asc&observation_start=2020-01-01`;
+        // Sequential + light delay: ~40 FRED series in parallel often 429.
+        const collected = {};
+        const entries = Object.entries(BIS_SERIES);
+        for (let i = 0; i < entries.length; i++) {
+          const [cc, sid] = entries[i];
+          try {
+            trackApiCall('FRED');
+            const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${sid}&api_key=${FRED_API_KEY}&file_type=json&sort_order=asc&observation_start=2015-01-01`;
             const data = await fetchJSON(url);
-            const obs = (data?.observations || []).filter(o => o.value !== '.');
-            if (!obs.length) return [cc, null];
+            const obs = (data?.observations || []).filter((o) => o.value !== '.');
+            if (!obs.length) continue;
             const base = parseFloat(obs[0].value);
-            if (!base || isNaN(base)) return [cc, null];
-            const dated = obs.map(o => ({
+            if (!base || Number.isNaN(base)) continue;
+            collected[cc] = obs.map((o) => ({
               label: bisQuarterLabel(o.date),
               value: Math.round((parseFloat(o.value) / base) * 100 * 10) / 10,
             }));
-            return [cc, dated];
-          })
-        );
-
-        const collected = {};
-        bisEntries.forEach(r => {
-          if (r.status === 'fulfilled' && r.value[1]) collected[r.value[0]] = r.value[1];
-        });
+          } catch {
+            /* skip missing / rate-limited series */
+          }
+          if (i < entries.length - 1) {
+            await new Promise((r) => setTimeout(r, 60));
+          }
+        }
 
         if (Object.keys(collected).length > 0) {
           priceIndexData = {};
           for (const [cc, pts] of Object.entries(collected)) {
             priceIndexData[cc] = {
-              dates:  pts.map(p => p.label),
-              values: pts.map(p => p.value),
+              dates: pts.map((p) => p.label),
+              values: pts.map((p) => p.value),
+              seriesId: BIS_SERIES[cc],
             };
           }
         }
-      } catch (e) { console.warn('[RealEstate]', e.message || e); _errors.priceIndexData = e.message; }
+      } catch (e) {
+        console.warn('[RealEstate]', e.message || e);
+        _errors.priceIndexData = e.message;
+      }
     }
 
     let mortgageRates = null;
@@ -608,6 +631,88 @@ router.get('/', makeCachedRouteHandler({
       console.warn('[RealEstate] HUD/Census fetch failed:', e.message || e);
       _errors.hudData = e.message;
     }
+    // HUD/Census often unavailable (no API key / invalid key). Build a usable
+    // metro table + map from FRED national affordability + Case-Shiller
+    // relative metro levels so panels are never empty shells.
+    const hudHasRatios = Array.isArray(hudData) && hudData.some((r) => r?.ratio != null);
+    if (!hudHasRatios && (affordabilityData || caseShillerData || medianHomePrice != null)) {
+      const cur = affordabilityData?.current || {};
+      const nationalPrice = cur.medianPrice
+        ?? (Array.isArray(medianHomePrice?.values) ? medianHomePrice.values.at(-1) : null)
+        ?? null;
+      const nationalIncome = cur.medianIncome ?? 75000;
+      const nationalCs = caseShillerData?.national?.values?.at?.(-1)
+        ?? caseShillerData?.national?.latest
+        ?? null;
+      const csMetros = caseShillerData?.metros || {};
+      const ownership = typeof homeownershipRate === 'number'
+        ? homeownershipRate
+        : (homeownershipRate?.latest ?? homeownershipRate?.value
+          ?? (Array.isArray(homeownershipRate?.values) ? homeownershipRate.values.at(-1) : null)
+          ?? null);
+
+      const buildRow = (metro, priceFactor = 1) => {
+        const homeValue = nationalPrice != null
+          ? Math.round(Number(nationalPrice) * priceFactor)
+          : null;
+        // Income only partially tracks local prices.
+        const income = Math.round(Number(nationalIncome) * Math.pow(priceFactor, 0.35));
+        // Rough 2BR rent proxy: ~0.45% of home value / month (market convention).
+        const rent = homeValue != null
+          ? Math.round(homeValue * 0.0045)
+          : Math.round(income * 0.30 / 12);
+        const ratio = income > 0
+          ? Math.round(((rent * 12) / income) * 1000) / 10
+          : (cur.mortgageToIncome != null
+            ? Math.round(Number(cur.mortgageToIncome) * priceFactor * 10) / 10
+            : null);
+        const priceToIncome = homeValue != null && income > 0
+          ? Math.round((homeValue / income) * 10) / 10
+          : (cur.priceToIncome != null
+            ? Math.round(Number(cur.priceToIncome) * priceFactor * 10) / 10
+            : null);
+        return {
+          city: metro.city,
+          metro: metro.city,
+          hud_code: metro.hud_code,
+          cbsa_code: metro.cbsa_code,
+          lat: metro.lat,
+          lng: metro.lng,
+          rent,
+          income,
+          ratio,
+          rentToIncome: ratio,
+          homeValue,
+          medianHomeValue: homeValue,
+          homeownership: ownership,
+          affordabilityIndex: priceToIncome,
+          priceToIncome,
+          _proxy: 'fred_case_shiller_estimate',
+        };
+      };
+
+      const rows = [];
+      // Prefer full HUD_METROS list (has lat/lng for the map).
+      for (const metro of HUD_METROS) {
+        const cs = csMetros[metro.city]?.latest;
+        const priceFactor = (nationalCs && cs && Number(nationalCs) > 0)
+          ? Number(cs) / Number(nationalCs)
+          : 1;
+        rows.push(buildRow(metro, priceFactor));
+      }
+      // If Case-Shiller has metros not in HUD list, append them at national coords skip.
+      hudData = rows.filter((r) => r.ratio != null || r.homeValue != null);
+      if (!hudData.length) {
+        // Absolute last resort: single national row centered on continental US.
+        hudData = [buildRow({
+          city: 'US National',
+          hud_code: null,
+          cbsa_code: null,
+          lat: 39.5,
+          lng: -98.35,
+        }, 1)];
+      }
+    }
 
     const _sources = {
       reitData:           reitData != null && reitData.length > 0,
@@ -632,7 +737,29 @@ router.get('/', makeCachedRouteHandler({
       hudData:            hudData != null && hudData.length > 0,
     };
 
-    return { reitData, priceIndexData, mortgageRates, affordabilityData, capRateData, caseShillerData, supplyData, homeownershipRate, rentCpi, reitEtf, treasury10y, existingHomeSales, rentalVacancy, housingStarts, medianHomePrice, foreclosureData, mbaApplications, creDelinquencies, hudData, _sources };
+    return {
+      reitData,
+      priceIndexData,
+      mortgageRates,
+      affordabilityData,
+      capRateData,
+      caseShillerData,
+      supplyData,
+      homeownershipRate,
+      rentCpi,
+      reitEtf,
+      treasury10y,
+      existingHomeSales,
+      rentalVacancy,
+      housingStarts,
+      medianHomePrice,
+      foreclosureData,
+      mbaApplications,
+      creDelinquencies,
+      fhfaHpi,
+      hudData,
+      _sources,
+    };
   }
 }));
 

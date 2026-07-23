@@ -1,16 +1,45 @@
 import { Router } from 'express';
 import { fetchJSON } from '../lib/fetch.js';
-import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
+import { readDailyCache, writeDailyCache, readLatestCache, todayStr, mergeWithPreviousCache } from '../lib/cache.js';
 import { yf } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
+import { omitNullFields, filterRowsWithData, computeIsLive, sanitizeMarketPayload } from '../lib/dataHygiene.js';
 
 const router = Router();
 
+// Policy-rate FRED series (must be currently published — BOERUKQ/BOERUKM end ~2016/17).
+// Fed: upper target rate (daily). ECB: deposit facility. BOE: SONIA as policy proxy.
+// BOJ: OECD immediate-rates / Japan.
 const CB_SCHEDULE = {
-  Fed: { dates: ['2026-01-28','2026-03-18','2026-05-06','2026-06-17','2026-07-29','2026-09-16','2026-11-04','2026-12-16'], fredSeries: 'FEDFUNDS', fredReleaseId: 13 },
-  ECB: { dates: ['2026-01-22','2026-03-05','2026-04-16','2026-06-04','2026-07-16','2026-09-10','2026-10-29','2026-12-17'], fredSeries: 'ECBDFR', cadence: { dayOfWeek: 4, weekOfMonth: 3, months: [1,3,4,6,7,9,10,12] } },
-  BOE: { dates: ['2026-02-05','2026-03-19','2026-05-07','2026-06-18','2026-08-06','2026-09-17','2026-11-05','2026-12-17'], fredSeries: 'BOERUKQ', cadence: { dayOfWeek: 4, weekOfMonth: 1, months: [2,3,5,6,8,9,11,12] } },
-  BOJ: { dates: ['2026-01-22','2026-03-12','2026-04-30','2026-06-18','2026-07-16','2026-09-17','2026-10-29','2026-12-17'], fredSeries: null, cadence: { dayOfWeek: 3, weekOfMonth: 3, months: [1,3,4,6,7,9,10,12] } },
+  Fed: {
+    dates: ['2026-01-28','2026-03-18','2026-05-06','2026-06-17','2026-07-29','2026-09-16','2026-11-04','2026-12-16'],
+    fredSeries: 'DFEDTARU',
+    fredSeriesAlt: ['DFEDTARL', 'FEDFUNDS'],
+    label: 'Fed funds target (upper)',
+    fredReleaseId: 13,
+  },
+  ECB: {
+    dates: ['2026-01-22','2026-03-05','2026-04-16','2026-06-04','2026-07-16','2026-09-10','2026-10-29','2026-12-17'],
+    fredSeries: 'ECBDFR',
+    fredSeriesAlt: ['ECBMLFR'],
+    label: 'ECB deposit facility',
+    cadence: { dayOfWeek: 4, weekOfMonth: 3, months: [1,3,4,6,7,9,10,12] },
+  },
+  BOE: {
+    dates: ['2026-02-05','2026-03-19','2026-05-07','2026-06-18','2026-08-06','2026-09-17','2026-11-05','2026-12-17'],
+    fredSeries: 'IUDSOIA', // SONIA (daily) — BOERUK* discontinued
+    fredSeriesAlt: ['IRSTCI01GBM156N'],
+    label: 'SONIA (BoE policy proxy)',
+    cadence: { dayOfWeek: 4, weekOfMonth: 1, months: [2,3,5,6,8,9,11,12] },
+  },
+  BOJ: {
+    dates: ['2026-01-22','2026-03-12','2026-04-30','2026-06-18','2026-07-16','2026-09-17','2026-10-29','2026-12-17'],
+    fredSeries: 'IRSTCI01JPM156N',
+    fredSeriesAlt: ['IR3TIB01JPM156N'],
+    label: 'Japan immediate rates (OECD)',
+    cadence: { dayOfWeek: 3, weekOfMonth: 3, months: [1,3,4,6,7,9,10,12] },
+  },
 };
 
 const EARNINGS_CAL_TICKERS = [
@@ -140,13 +169,25 @@ router.get('/', async (req, res) => {
   const cache = req.app.locals.cache;
   const cacheKey = 'calendar_data';
   const today = todayStr();
-  const refresh = req.query.refresh === 'true';
+  const refresh = req.query.refresh === 'true' || req.query.refresh === '1';
+  const LIVE_FIELDS = [
+    'economicEvents', 'centralBanks', 'earningsSeason', 'keyReleases', 'treasuryAuctions',
+  ];
 
   const daily = refresh ? null : readDailyCache('calendar');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+  if (daily) {
+    const payload = sanitizeMarketPayload({ ...daily, fetchedOn: today, isCurrent: true });
+    // Disk cache from older builds may omit isLive — recompute so panels gate correctly.
+    payload.isLive = computeIsLive(payload, LIVE_FIELDS);
+    return res.json(payload);
+  }
 
   const cached = refresh ? null : cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+  if (cached) {
+    const payload = sanitizeMarketPayload({ ...cached, fetchedOn: today, isCurrent: true });
+    payload.isLive = computeIsLive(payload, LIVE_FIELDS);
+    return res.json(payload);
+  }
 
   try {
     const plus30d = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
@@ -180,23 +221,35 @@ router.get('/', async (req, res) => {
               if (entry.status !== 'fulfilled') continue;
               const [rid, obs] = entry.value;
               const validObs = (obs?.observations || []).filter(o => o.value !== '.');
+              // Observations are newest-first from FRED (we requested sort_order=desc).
+              // For upcoming releases, latest obs = last print (previous), not "actual".
+              const lastPrint = validObs.length > 0 ? parseFloat(validObs[0].value) : null;
+              const priorPrint = validObs.length > 1 ? parseFloat(validObs[1].value) : null;
               seriesVals[rid] = {
-                actual: validObs.length > 0 ? parseFloat(validObs[0].value) : null,
-                previous: validObs.length > 1 ? parseFloat(validObs[1].value) : null,
+                lastPrint: Number.isFinite(lastPrint) ? lastPrint : null,
+                priorPrint: Number.isFinite(priorPrint) ? priorPrint : null,
+                lastActualDate: validObs[0]?.date || null,
               };
             }
             return upcoming.map(d => {
               const info = MAJOR_FRED_RELEASES[d.release_id];
               const vals = seriesVals[String(d.release_id)] || {};
+              const released = d.date && d.date <= today;
               return {
                 date: d.date,
                 country: 'US',
                 event: info.name,
-                actual: vals.actual ?? null,
-                expected: null, // FRED API doesn't routinely provide consensus
-                previous: vals.previous ?? null,
+                // Only label as actual once the release date has arrived.
+                actual: released ? (vals.lastPrint ?? null) : null,
+                expected: null, // FRED has no consensus / forecast field
+                forecast: null,
+                previous: vals.lastPrint ?? null,
+                priorPrint: vals.priorPrint ?? null,
+                lastPrint: vals.lastPrint ?? null,
+                lastActualDate: vals.lastActualDate ?? null,
+                category: info.category,
                 importance: 2,
-                source: 'FRED'
+                source: 'FRED',
               };
             });
           })()
@@ -238,69 +291,178 @@ router.get('/', async (req, res) => {
           Object.entries(CB_SCHEDULE).map(async ([bank, cfg]) => {
             let rate = null;
             let previousRate = null;
-            if (cfg.fredSeries && FRED_API_KEY) {
-              try {
-                const hist = await fetchFredHistory(cfg.fredSeries, FRED_API_KEY, 3);
-                if (hist.length >= 1) rate = hist.at(-1).value;
-                if (hist.length >= 2) previousRate = hist.at(-2).value;
-              } catch (e) { console.warn('[Calendar]', e.message || e); }
+            let rateSeries = null;
+            let rateAsOf = null;
+            if (FRED_API_KEY) {
+              const candidates = [cfg.fredSeries, ...(cfg.fredSeriesAlt || [])].filter(Boolean);
+              for (const sid of candidates) {
+                try {
+                  const hist = await fetchFredHistory(sid, FRED_API_KEY, 6);
+                  const valid = (hist || []).filter(p => p?.value != null && Number.isFinite(Number(p.value)));
+                  if (valid.length >= 1) {
+                    rate = Math.round(Number(valid.at(-1).value) * 10000) / 10000;
+                    rateAsOf = valid.at(-1).date || null;
+                    previousRate = valid.length >= 2
+                      ? Math.round(Number(valid.at(-2).value) * 10000) / 10000
+                      : null;
+                    rateSeries = sid;
+                    break;
+                  }
+                } catch (e) {
+                  console.warn(`[Calendar] ${bank} rate ${sid}:`, e.message || e);
+                }
+              }
             }
-            const FALLBACK_RATES = { Fed: 4.50, ECB: 2.65, BOE: 4.50, BOJ: 0.50 };
-            const FALLBACK_PREV  = { Fed: 4.50, ECB: 2.90, BOE: 4.50, BOJ: 0.25 };
-            if (rate == null) rate = FALLBACK_RATES[bank] ?? null;
-            if (previousRate == null) previousRate = FALLBACK_PREV[bank] ?? null;
+            // For Fed, also attach lower target when available so UI can show range.
+            let rateLow = null;
+            if (bank === 'Fed' && FRED_API_KEY) {
+              try {
+                const lowHist = await fetchFredHistory('DFEDTARL', FRED_API_KEY, 3);
+                if (lowHist?.length) rateLow = Math.round(Number(lowHist.at(-1).value) * 10000) / 10000;
+              } catch { /* optional */ }
+            }
             const dates = dynamicDates[bank] || cfg.dates;
             const nextMeeting = dates.find(d => d >= todayDate) || dates.at(-1);
-            const daysUntil = nextMeeting ? Math.round((new Date(nextMeeting) - todayDateObj) / 86400000) : null;
-            return { bank, rate, nextMeeting, daysUntil, previousRate, dateSource: sources[bank] || 'staticFallback' };
+            const daysUntil = nextMeeting
+              ? Math.round((new Date(`${nextMeeting}T12:00:00`) - new Date(`${todayDate}T12:00:00`)) / 86400000)
+              : null;
+            return {
+              bank,
+              rate,
+              rateLow,
+              rateLabel: cfg.label || null,
+              rateSeries,
+              rateAsOf,
+              nextMeeting,
+              daysUntil,
+              previousRate,
+              dateSource: sources[bank] || 'staticFallback',
+            };
           })
         );
         return results.filter(r => r.status === 'fulfilled').map(r => r.value);
       })(),
 
-      Promise.allSettled(
-        EARNINGS_CAL_TICKERS.map(t =>
-          yf.quoteSummary(t, { modules: ['calendarEvents', 'defaultKeyStatistics'] })
-            .then(d => ({ ticker: t, ...d }))
-        )
-      ).then(results => {
+      // Earnings calendar: quoteSummary for dates/EPS + batch quote for marketCap.
+      // marketCap is on the quote/price payload, NOT defaultKeyStatistics (always empty there).
+      (async () => {
         const now = new Date();
         const limit = new Date(now); limit.setDate(limit.getDate() + 60);
+        const [summaryResults, quotesRaw] = await Promise.all([
+          Promise.allSettled(
+            EARNINGS_CAL_TICKERS.map(t =>
+              yf.quoteSummary(t, { modules: ['calendarEvents', 'defaultKeyStatistics', 'price'] })
+                .then(d => ({ ticker: t, ...d }))
+            )
+          ),
+          yf.quote(EARNINGS_CAL_TICKERS).catch(() => null),
+        ]);
+        const quoteArr = Array.isArray(quotesRaw) ? quotesRaw : (quotesRaw ? [quotesRaw] : []);
+        const capByTicker = {};
+        for (const q of quoteArr) {
+          if (!q?.symbol) continue;
+          const cap = q.marketCap ?? q.marketCapRealtime;
+          if (cap != null && Number.isFinite(Number(cap))) {
+            capByTicker[q.symbol] = Number(cap);
+          }
+        }
         const entries = [];
-        results.forEach(r => {
+        summaryResults.forEach(r => {
           if (r.status !== 'fulfilled') return;
           const s = r.value;
           const ed = s.calendarEvents?.earnings?.earningsDate?.[0];
           if (!ed) return;
           const edDate = new Date(ed);
           if (edDate < now || edDate > limit) return;
+          const rawCap =
+            capByTicker[s.ticker]
+            ?? s.price?.marketCap
+            ?? s.defaultKeyStatistics?.marketCap
+            ?? null;
+          const marketCapB = rawCap != null && Number.isFinite(Number(rawCap))
+            ? Math.round(Number(rawCap) / 1e9 * 10) / 10
+            : null;
           entries.push({
             ticker: s.ticker,
             name: EARNINGS_CAL_META[s.ticker] || s.ticker,
             date: typeof ed === 'string' ? ed.split('T')[0] : edDate.toISOString().split('T')[0],
             epsEst: s.calendarEvents?.earnings?.earningsAverage ?? null,
-            epsPrev: s.defaultKeyStatistics?.trailingEps ?? null,
-            marketCapB: s.defaultKeyStatistics?.marketCap ? Math.round(s.defaultKeyStatistics.marketCap / 1e9) : null,
+            epsPrev: s.defaultKeyStatistics?.trailingEps ?? s.defaultKeyStatistics?.forwardEps ?? null,
+            marketCapB,
+            marketCap: rawCap != null ? Number(rawCap) : null,
           });
         });
         entries.sort((a, b) => a.date.localeCompare(b.date));
         return entries;
-      }),
+      })(),
 
+      // Key US releases: FRED /releases/dates (bulk) often omits the major
+      // release_ids we care about. Query each release calendar individually
+      // via /release/dates + attach previous observation values.
       FRED_API_KEY
-        ? fetchJSON(`https://api.stlouisfed.org/fred/releases/dates?api_key=${FRED_API_KEY}&file_type=json&include_release_dates_with_no_data=true&realtime_start=${today}&sort_order=asc&limit=200`)
-            .then(data => {
-              const dates = data?.release_dates || [];
-              const majorIds = Object.keys(MAJOR_FRED_RELEASES).map(Number);
-              return dates
-                .filter(d => majorIds.includes(d.release_id) && d.date >= today)
-                .map(d => {
-                  const info = MAJOR_FRED_RELEASES[d.release_id];
-                   return { name: info.name, date: d.date, category: info.category, previousValue: info.previousValue ?? null };
-                })
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .slice(0, 20);
-            })
+        ? (async () => {
+            const horizon = (() => {
+              const d = new Date();
+              d.setDate(d.getDate() + 90);
+              return d.toISOString().slice(0, 10);
+            })();
+            const entries = Object.entries(MAJOR_FRED_RELEASES);
+            const results = await Promise.allSettled(
+              entries.map(async ([rid, info]) => {
+                const seriesId = RELEASE_SERIES[rid];
+                const [datesJson, obsJson] = await Promise.all([
+                  fetchJSON(
+                    `https://api.stlouisfed.org/fred/release/dates?release_id=${rid}&api_key=${FRED_API_KEY}&file_type=json&include_release_dates_with_no_data=true&realtime_start=${today}&sort_order=asc&limit=8`
+                  ),
+                  seriesId
+                    ? fetchJSON(
+                      `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=2`
+                    ).catch(() => null)
+                    : Promise.resolve(null),
+                ]);
+                const validObs = (obsJson?.observations || []).filter((o) => o.value !== '.');
+                const lastPrintRaw = validObs.length ? parseFloat(validObs[0].value) : null;
+                const priorPrintRaw = validObs.length > 1 ? parseFloat(validObs[1].value) : null;
+                const previousValue = Number.isFinite(lastPrintRaw)
+                  ? Math.round(lastPrintRaw * 1000) / 1000
+                  : null;
+                const priorPrint = Number.isFinite(priorPrintRaw)
+                  ? Math.round(priorPrintRaw * 1000) / 1000
+                  : null;
+                const lastActualDate = validObs[0]?.date || null;
+                const dates = (datesJson?.release_dates || [])
+                  .map((d) => d.date)
+                  .filter((d) => d >= today && d <= horizon);
+                return dates.map((date) => ({
+                  name: info.name,
+                  date,
+                  category: info.category,
+                  // Last published print (used as "Previous" for upcoming releases)
+                  previousValue,
+                  lastPrint: previousValue,
+                  priorPrint,
+                  lastActualDate,
+                  releaseId: Number(rid),
+                  seriesId: seriesId || null,
+                  source: 'FRED',
+                }));
+              })
+            );
+            const out = [];
+            for (const r of results) {
+              if (r.status === 'fulfilled' && Array.isArray(r.value)) out.push(...r.value);
+              else if (r.status === 'rejected') console.warn('[Calendar] FRED release dates:', r.reason?.message || r.reason);
+            }
+            out.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
+            // Prefer the next 2 dates per release name so the list stays useful.
+            const perName = {};
+            const capped = [];
+            for (const row of out) {
+              perName[row.name] = (perName[row.name] || 0) + 1;
+              if (perName[row.name] <= 2) capped.push(row);
+            }
+            return capped.slice(0, 30);
+          })()
         : Promise.resolve([]),
 
       // Treasury Fiscal Data: the `upcoming_auctions` path was deprecated
@@ -369,43 +531,180 @@ router.get('/', async (req, res) => {
         ...(econResult.status === 'fulfilled' ? econResult.value : []),
         ...(econdbResult.status === 'fulfilled' ? econdbResult.value : []),
       ].sort((a, b) => a.date.localeCompare(b.date));
-    const liveKeyReleases = releasesResult.status === 'fulfilled' ? releasesResult.value : [];
-    const economicEvents = liveEconomicEvents.length > 0 ? liveEconomicEvents : [];
+    let liveKeyReleases = releasesResult.status === 'fulfilled' ? (releasesResult.value || []) : [];
+    if (releasesResult.status === 'rejected') {
+      console.warn('[Calendar] key releases fetch failed:', releasesResult.reason?.message || releasesResult.reason);
+    }
+    // Prefer live macro-event feeds; if those fail, project FRED key-release
+    // calendar into economicEvents so the panel still binds real scheduled data.
+    const keyAsEvents = (liveKeyReleases || []).map(r => {
+      const released = r.date && r.date <= today;
+      const lastPrint = r.lastPrint ?? r.previousValue ?? null;
+      const priorPrint = r.priorPrint ?? null;
+      return {
+        date: r.date,
+        country: 'US',
+        event: r.name,
+        // FRED has no consensus; for upcoming releases last print is Previous,
+        // not Actual. Only stamp actual after the release date.
+        actual: released ? lastPrint : null,
+        expected: null,
+        consensus: null,
+        previous: lastPrint,
+        lastPrint,
+        priorPrint,
+        lastActualDate: r.lastActualDate ?? null,
+        importance: 2,
+        source: r.source || 'FRED',
+        category: r.category,
+        seriesId: r.seriesId || null,
+        releaseId: r.releaseId ?? null,
+      };
+    });
+    // Also seed keyReleases from the economic-events FRED stream (econResult)
+    // when the dedicated release calendar is empty — same underlying schedule.
+    if (!liveKeyReleases.length) {
+      const fromEcon = (econResult.status === 'fulfilled' ? econResult.value : [])
+        .filter((e) => e.country === 'US' && e.source === 'FRED' && e.event)
+        .map((e) => ({
+          name: e.event,
+          date: e.date,
+          category: Object.values(MAJOR_FRED_RELEASES).find((m) => m.name === e.event)?.category || 'macro',
+          previousValue: e.previous ?? e.lastPrint ?? null,
+          lastPrint: e.lastPrint ?? e.previous ?? null,
+          priorPrint: e.priorPrint ?? null,
+          lastActualDate: e.lastActualDate ?? null,
+          seriesId: RELEASE_SERIES[
+            Object.entries(MAJOR_FRED_RELEASES).find(([, m]) => m.name === e.event)?.[0]
+          ] || null,
+          source: 'FRED',
+        }));
+      if (fromEcon.length) liveKeyReleases = fromEcon;
+    }
+    // Prefer the richer FRED stream; merge any missing prior/last fields from key releases.
+    const byKey = new Map(
+      (liveKeyReleases || []).map(r => [`${r.date}|${r.name}`, r]),
+    );
+    const mergePrints = (ev) => {
+      const k = byKey.get(`${ev.date}|${ev.event}`);
+      const lastPrint = ev.lastPrint ?? ev.previous ?? k?.lastPrint ?? k?.previousValue ?? null;
+      const priorPrint = ev.priorPrint ?? k?.priorPrint ?? null;
+      const released = ev.date && ev.date <= today;
+      return {
+        ...ev,
+        lastPrint,
+        priorPrint,
+        previous: lastPrint,
+        actual: ev.actual != null ? ev.actual : (released ? lastPrint : null),
+        expected: ev.expected ?? ev.consensus ?? null,
+        consensus: ev.consensus ?? ev.expected ?? null,
+        lastActualDate: ev.lastActualDate ?? k?.lastActualDate ?? null,
+        seriesId: ev.seriesId || k?.seriesId || null,
+      };
+    };
+    const economicEvents = (liveEconomicEvents.length > 0
+      ? liveEconomicEvents
+      : keyAsEvents
+    ).map(mergePrints);
     const keyReleases = liveKeyReleases.length > 0 ? liveKeyReleases : [];
+    // When macro calendars are offline, still surface real scheduled items
+    // (earnings + treasury auctions) in the economic-events panel so it is
+    // never left blank while other real feeds succeeded.
+    const earnings = earningsResult.status === 'fulfilled' ? earningsResult.value : [];
+    const auctions = treasuryResult.status === 'fulfilled' ? treasuryResult.value : null;
+    let filledEvents = economicEvents;
+    if (!filledEvents.length) {
+      const fromEarnings = (earnings || []).map(e => ({
+        date: e.date,
+        country: 'US',
+        event: `${e.ticker} earnings` + (e.name ? ` (${e.name})` : ''),
+        actual: null,
+        expected: e.epsEst ?? null,
+        previous: e.epsPrev ?? null,
+        importance: 1,
+        source: 'Yahoo Finance',
+      }));
+      const fromAuctions = (auctions || []).map(a => ({
+        date: a.date,
+        country: 'US',
+        event: `Treasury auction: ${a.type || 'Security'}`,
+        actual: null,
+        expected: a.amount ?? null,
+        previous: null,
+        importance: 2,
+        source: 'US Treasury',
+      }));
+      filledEvents = [...fromEarnings, ...fromAuctions].sort((a, b) => a.date.localeCompare(b.date));
+    }
+
+    // Strip null fields and empty datapoints — panels must not bind hollow rows.
+    const cleanEvents = filledEvents
+      .map((e) => omitNullFields({
+        ...e,
+        // Prefer lastPrint naming for FRED-backed rows
+        lastPrint: e.lastPrint ?? e.previous ?? null,
+        priorPrint: e.priorPrint ?? null,
+      }))
+      .filter((e) => e.date && e.event);
+
+    const rawBanks = cbRatesResult.status === 'fulfilled' ? (cbRatesResult.value || []) : [];
+    // Only ship banks with a live rate (no null % placeholders).
+    const centralBanks = rawBanks
+      .filter((cb) => cb?.bank && cb.rate != null && Number.isFinite(Number(cb.rate)))
+      .map((cb) => omitNullFields(cb));
+
+    const cleanEarnings = (earnings || [])
+      .filter((e) => e?.ticker && e?.date)
+      .map((e) => omitNullFields(e));
+
+    const cleanKeyReleases = (keyReleases || [])
+      .filter((r) => r?.date && r?.name)
+      .map((r) => omitNullFields(r));
+
+    const cleanAuctions = Array.isArray(auctions)
+      ? auctions.filter((a) => a?.date).map((a) => omitNullFields(a))
+      : (auctions || null);
 
     const result = {
-      economicEvents,
-      centralBanks:     cbRatesResult.status === 'fulfilled' ? cbRatesResult.value : [],
-      earningsSeason:   earningsResult.status === 'fulfilled' ? earningsResult.value : [],
-      keyReleases,
-      treasuryAuctions: treasuryResult.status === 'fulfilled' ? treasuryResult.value : null,
-      optionsExpiry,
+      economicEvents: cleanEvents,
+      centralBanks,
+      earningsSeason: cleanEarnings,
+      keyReleases: cleanKeyReleases,
+      treasuryAuctions: cleanAuctions,
+      optionsExpiry: Array.isArray(optionsExpiry) ? optionsExpiry.filter((o) => o?.date) : optionsExpiry,
       dividendCalendar: dividendResult.status === 'fulfilled' ? dividendResult.value : null,
       _sources: {
-        econEvents:        hasData(liveEconomicEvents),
+        econEvents:        hasData(cleanEvents),
+        econEventsFromFredReleases: liveEconomicEvents.length === 0 && keyAsEvents.length > 0,
+        econEventsFromEarningsAuctions: liveEconomicEvents.length === 0 && keyAsEvents.length === 0 && cleanEvents.length > 0,
         econEventsFallback: false,
-        centralBankRates:  hasData(cbRatesResult.status === 'fulfilled' ? cbRatesResult.value : null),
-        centralBankDateSources: cbRatesResult.status === 'fulfilled'
-          ? Object.fromEntries((cbRatesResult.value || []).map(cb => [cb.bank, cb.dateSource || 'staticFallback']))
-          : {},
-        earnings:          hasData(earningsResult.status === 'fulfilled' ? earningsResult.value : null),
+        centralBankRates:  centralBanks.length > 0,
+        centralBankDateSources: Object.fromEntries(centralBanks.map(cb => [cb.bank, cb.dateSource || 'staticFallback'])),
+        earnings:          cleanEarnings.length > 0,
         fredReleases:      hasData(liveKeyReleases),
         fredReleasesFallback: false,
-        treasuryAuctions:  hasData(treasuryResult.status === 'fulfilled' ? treasuryResult.value : null),
+        treasuryAuctions:  hasData(cleanAuctions),
         dividends:         hasData(dividendResult.status === 'fulfilled' ? dividendResult.value : null),
         econdb:            hasData(econdbResult.status === 'fulfilled' ? econdbResult.value : null),
       },
       lastUpdated: today,
     };
 
-    writeDailyCache('calendar', result);
-    cache.set(cacheKey, result, 300);
-    res.json({ ...result, fetchedOn: today, isCurrent: true });
+    result.isLive = computeIsLive(result, LIVE_FIELDS);
+
+    const merged = sanitizeMarketPayload(mergeWithPreviousCache('calendar', result));
+    // Recompute isLive after merge in case cache restored fields
+    merged.isLive = computeIsLive(merged, LIVE_FIELDS);
+    writeDailyCache('calendar', merged);
+    cache.set(cacheKey, merged, 300);
+    res.json({ ...merged, fetchedOn: today, isCurrent: true });
   } catch (error) {
     console.error('Calendar API error:', error);
-    const fallback = readLatestCache('calendar');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'calendar', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'calendar_data',
+    });
   }
 });
 

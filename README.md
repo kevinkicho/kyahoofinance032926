@@ -94,7 +94,7 @@ Caches survive 24h and can outlive a code change.
 
 | # | Market | Dashboard View | Accent | Live Data Sources |
 |---|--------|----------------|--------|-------------------|
-| 1 | **Equities** | Heatmap + Bar Race + List + Portfolio + Radar (early) + ML Explorer + Data Hub | Blue | Yahoo Finance (350+ stocks), Frankfurter FX |
+| 1 | **Equities** | Heatmap + Bar Race + List + Portfolio + Data Hub | Blue | Yahoo Finance (350+ stocks), Frankfurter FX |
 | 2 | **Bonds** | Yield Curve (8 countries), Credit Spreads, Duration Ladder, Breakevens, History Charts | Green `#10b981` | FRED (9 US tenors, intl 10yr, IG/HY/EM spreads, TIPS breakevens, DGS10 252d) |
 | 3 | **FX** | Rate Matrix, Carry Map, DXY Tracker, Top Movers | Amber `#f59e0b` | FRED (7 bilateral rates, DXY), Frankfurter API |
 | 4 | **Derivatives** | Vol Surface (SPX), VIX Term Structure, Options Flow | Purple `#a78bfa` | Yahoo (VIX term, SPY/QQQ options), FRED (VIXCLS 252d) |

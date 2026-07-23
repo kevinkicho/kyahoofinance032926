@@ -1,58 +1,127 @@
-import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense, useCallback } from 'react';
 import { MARKETS } from './markets.config';
 import { MARKET_PANELS } from '../data/marketPanels';
 import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import { useDataContext } from './DataContext';
 import { useCurrency } from './CurrencyContext';
+import {
+  evaluateAllMarkets,
+  countStatuses,
+} from './lib/panelHealthEval';
 import './SplashScreen.css';
 
 const TOTAL_PANELS = Object.values(MARKET_PANELS).reduce((sum, p) => sum + p.length, 0);
 
-const PANEL_TO_MARKET = {};
-for (const [mktId, panels] of Object.entries(MARKET_PANELS)) {
-  for (const p of panels) PANEL_TO_MARKET[p.id] = mktId;
+function GateRow({ ok, label, detail }) {
+  return (
+    <div className={`splash-gate-row ${ok ? 'splash-gate-row--ok' : 'splash-gate-row--bad'}`}>
+      <span className="splash-gate-icon" aria-hidden>{ok ? '✓' : '✗'}</span>
+      <div className="splash-gate-body">
+        <div className="splash-gate-label">{label}</div>
+        <div className="splash-gate-detail">{detail || (ok ? 'pass' : 'fail')}</div>
+      </div>
+    </div>
+  );
 }
 
-function scanAllPanels() {
-  const els = document.querySelectorAll('[data-panel-key]');
-  const result = {};
-  els.forEach(el => {
-    const key = el.getAttribute('data-panel-key');
-    if (!key) return;
-    const mktId = PANEL_TO_MARKET[key];
-    if (!mktId) return;
-    if (!result[mktId]) result[mktId] = {};
-    const text = el.textContent || '';
-    const footer = el.querySelector('.bento-footer, [class*="footer"]');
-    const footerText = footer?.textContent || '';
-    if (/stale/i.test(footerText)) {
-      result[mktId][key] = 'stale';
-    } else if (/\bno data\b|\bunavailable\b|\bnot available\b/i.test(text) && text.length < 200) {
-      result[mktId][key] = 'null';
-    } else {
-      result[mktId][key] = 'ok';
-    }
-  });
-  return result;
+function PanelDetailCard({ report, onClose }) {
+  if (!report) return null;
+  const green = report.status === 'ok';
+  return (
+    <div className="splash-detail" role="dialog" aria-modal="true" aria-label={`Panel ${report.title}`}>
+      <div className="splash-detail-header">
+        <div>
+          <div className="splash-detail-kicker">{report.marketId}</div>
+          <h2 className="splash-detail-title">{report.title || report.panelId}</h2>
+        </div>
+        <button type="button" className="splash-detail-close" onClick={onClose} aria-label="Close">×</button>
+      </div>
+      <div className={`splash-detail-verdict ${green ? 'is-green' : 'is-red'}`}>
+        {green ? 'GREEN — full stream verified' : 'NOT GREEN — incomplete stream'}
+      </div>
+      <p className="splash-detail-rule">
+        Green requires all three: data fetch success, UI display success, and on-display
+        values confirmed to match the fetched payload. Empty fetch + empty display is not green.
+      </p>
+      <GateRow ok={!!report.fetchOk} label="1. Data fetch success" detail={report.fetchDetail} />
+      <GateRow ok={!!report.displayOk} label="2. UI display success" detail={report.displayDetail} />
+      <GateRow ok={!!report.confirmOk} label="3. Display confirms fetched data" detail={report.confirmDetail} />
+      <dl className="splash-detail-meta">
+        {report.field && <><dt>Field</dt><dd><code>{report.field}</code></dd></>}
+        {report.fieldPath && <><dt>Path</dt><dd><code>{report.fieldPath}</code></dd></>}
+        {report.source && <><dt>Source</dt><dd>{report.source}</dd></>}
+        {report.fetchedOn && <><dt>Fetched on</dt><dd>{report.fetchedOn}</dd></>}
+        <dt>DOM</dt><dd>{report.elPresent ? 'mounted' : 'not mounted'}</dd>
+        <dt>Live</dt><dd>{report.isLive ? 'yes' : 'no'}</dd>
+      </dl>
+      {report.external?.length > 0 && (
+        <div className="splash-detail-external">
+          <div className="splash-detail-kicker">Upstream</div>
+          <ul>
+            {report.external.map((e, i) => (
+              <li key={i}>{e.name}{e.seriesIds?.length ? ` (${e.seriesIds.slice(0, 6).join(', ')})` : ''}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarketDetailCard({ marketId, label, reports, onSelectPanel, onClose }) {
+  const list = Object.values(reports || {});
+  const ok = list.filter(r => r.status === 'ok').length;
+  const bad = list.length - ok;
+  return (
+    <div className="splash-detail" role="dialog" aria-modal="true" aria-label={`${label} panels`}>
+      <div className="splash-detail-header">
+        <div>
+          <div className="splash-detail-kicker">Market</div>
+          <h2 className="splash-detail-title">{label}</h2>
+        </div>
+        <button type="button" className="splash-detail-close" onClick={onClose} aria-label="Close">×</button>
+      </div>
+      <p className="splash-detail-rule">
+        {ok} green · {bad} not green · click a panel for the three-gate breakdown
+      </p>
+      <div className="splash-detail-panel-list">
+        {list.map(r => (
+          <button
+            key={r.panelId}
+            type="button"
+            className={`splash-detail-panel-item ${r.status === 'ok' ? 'is-ok' : 'is-bad'}`}
+            onClick={() => onSelectPanel(r)}
+          >
+            <span className={`splash-chip-dot splash-chip-dot--${r.status}`} />
+            <span className="splash-detail-panel-title">{r.title || r.panelId}</span>
+            <span className="splash-detail-panel-flags">
+              {r.fetchOk ? 'F' : '·'}{r.displayOk ? 'D' : '·'}{r.confirmOk ? 'C' : '·'}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function SplashScreenInner({ onReady }) {
   const dataCtx = useDataContext();
-  const { getMarket } = dataCtx || {};
+  const { getMarket, markets: allMarkets } = dataCtx || {};
   const { currency, setCurrency } = useCurrency();
   const [elapsed, setElapsed] = useState(0);
   const [marketStatus, setMarketStatus] = useState(() =>
     Object.fromEntries(MARKETS.map(m => [m.id, 'pending']))
   );
-  const [panelsFound, setPanelsFound] = useState(0);
+  const [reportsByMarket, setReportsByMarket] = useState({});
+  const [scanTick, setScanTick] = useState(0);
+  const [readyToEnter, setReadyToEnter] = useState(false);
   const [fading, setFading] = useState(false);
+  const [selected, setSelected] = useState(null); // { type:'panel'|'market', ... }
   const startTimeRef = useRef(Date.now());
-  const cacheRef = useRef({});
   const dismissedRef = useRef(false);
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
 
-  // Timer
   useEffect(() => {
     const id = setInterval(() => {
       setElapsed(((Date.now() - startTimeRef.current) / 1000).toFixed(1));
@@ -60,26 +129,14 @@ function SplashScreenInner({ onReady }) {
     return () => clearInterval(id);
   }, []);
 
-  const dismiss = (cache) => {
+  const dismiss = useCallback((cache) => {
     if (dismissedRef.current) return;
     dismissedRef.current = true;
     setFading(true);
-    setTimeout(() => onReadyRef.current(cache), 600);
-  };
+    setTimeout(() => onReadyRef.current(cache || reportsByMarket), 500);
+  }, [reportsByMarket]);
 
-  // Timeout — force dismiss after 60s
-  useEffect(() => {
-    const id = setTimeout(() => {
-      const finalScan = scanAllPanels();
-      for (const [m, panels] of Object.entries(finalScan)) {
-        cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
-      }
-      dismiss(cacheRef.current);
-    }, 60000);
-    return () => clearTimeout(id);
-  }, []);
-
-  // Track market loading status
+  // Market load status
   useEffect(() => {
     if (!getMarket) return;
     const id = setInterval(() => {
@@ -88,84 +145,68 @@ function SplashScreenInner({ onReady }) {
         const ctx = getMarket(m.id);
         if (!ctx) next[m.id] = 'pending';
         else if (ctx.isLoading) next[m.id] = 'loading';
-        else if (ctx.error && !ctx.data) next[m.id] = 'error';
         else if (ctx.data) next[m.id] = 'ok';
+        else if (ctx.error) next[m.id] = 'error';
         else next[m.id] = 'pending';
       }
       setMarketStatus(next);
-    }, 500);
+    }, 400);
     return () => clearInterval(id);
   }, [getMarket]);
 
-  const allLoaded = useMemo(() =>
-    Object.values(marketStatus).every(s => s === 'ok' || s === 'error'),
+  const allLoaded = useMemo(
+    () => Object.values(marketStatus).every(s => s === 'ok' || s === 'error'),
     [marketStatus]
   );
 
-  // Continuously scan DOM every 1s while splash is visible
+  // Continuous strict scan
   useEffect(() => {
-    const id = setInterval(() => {
+    if (!getMarket) return;
+    const run = () => {
       if (dismissedRef.current) return;
-      const scan = scanAllPanels();
-      for (const [m, panels] of Object.entries(scan)) {
-        cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
+      try {
+        const cache = evaluateAllMarkets(getMarket, allMarkets || dataCtx?.markets);
+        setReportsByMarket(cache);
+        setScanTick(n => n + 1);
+      } catch (e) {
+        console.warn('[Splash] evaluate failed:', e);
       }
-      const totalPanels = Object.values(cacheRef.current).reduce((s, m) => s + Object.keys(m).length, 0);
-      setPanelsFound(totalPanels);
-    }, 1000);
+    };
+    run();
+    const id = setInterval(run, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [getMarket, allMarkets, dataCtx?.markets]);
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Dismiss after all markets loaded AND every panel in every market has been
-  // found in the DOM. This ensures the panel-health cache (used by the tab
-  // dropdown dots) is complete before the user sees the dashboard.
-  //
-  // WHY per-market completeness (not just total count):
-  //   A global total-count check can pass even when some markets have zero
-  //   panels scanned (others over-scanned). The dropdown for that market would
-  //   then show stale/wrong status because the cache is missing its entries.
-  //
-  // WHY a 30s max wait:
-  //   Some conditional panels never render (no data source). Without a timeout
-  //   the splash would hang forever. 30s is generous — data loads in ~5-10s.
-  //
-  // DO NOT REMOVE OR SIMPLIFY this logic without verifying that every market's
-  // panel-health cache is complete after dismiss. See usePanelHealth.js.
-  // ───────────────────────────────────────────────────────────────────────────
+  // Ready when markets loaded AND every panel has been evaluated at least once
+  // (status present). User must click Enter — we do NOT auto-dismiss.
   useEffect(() => {
     if (!allLoaded || dismissedRef.current) return;
-    const startedAt = Date.now();
-    const MAX_WAIT = 30000;
-    const check = () => {
-      if (dismissedRef.current) return;
-      const scan = scanAllPanels();
-      for (const [m, panels] of Object.entries(scan)) {
-        cacheRef.current[m] = { ...(cacheRef.current[m] || {}), ...panels };
-      }
-      const allComplete = MARKETS.every(m => {
-        const marketPanels = MARKET_PANELS[m.id] || [];
-        const scanned = cacheRef.current[m.id] || {};
-        return marketPanels.every(p => scanned[p.id] != null);
-      });
-      if (allComplete || Date.now() - startedAt > MAX_WAIT) {
-        dismiss(cacheRef.current);
-        return;
-      }
-      setTimeout(check, 1000);
-    };
-    const id = setTimeout(check, 3000);
-    return () => clearTimeout(id);
-  }, [allLoaded]);
+    const panels = MARKETS.every(m => {
+      const expected = MARKET_PANELS[m.id] || [];
+      const reports = reportsByMarket[m.id] || {};
+      return expected.every(p => reports[p.id] != null);
+    });
+    if (panels) setReadyToEnter(true);
+  }, [allLoaded, reportsByMarket, scanTick]);
 
+  // Soft timeout: allow Enter even if some panels never mount
+  useEffect(() => {
+    const id = setTimeout(() => setReadyToEnter(true), 45000);
+    return () => clearTimeout(id);
+  }, []);
+
+  const counts = useMemo(() => countStatuses(reportsByMarket), [reportsByMarket, scanTick]);
   const okCount = Object.values(marketStatus).filter(s => s === 'ok').length;
   const errorCount = Object.values(marketStatus).filter(s => s === 'error').length;
   const loadingCount = Object.values(marketStatus).filter(s => s === 'loading').length;
 
+  const handleEnter = () => {
+    dismiss(reportsByMarket);
+  };
+
   return (
     <div className="splash-screen">
-      {/* Markets render at full size behind frosted backdrop — DOM is fully painted */}
-      <div className="splash-backdrop">
+      <div className="splash-backdrop" aria-hidden>
         {MARKETS.map(m => {
           const Component = MARKET_COMPONENTS[m.id];
           const ctx = getMarket?.(m.id);
@@ -180,51 +221,71 @@ function SplashScreenInner({ onReady }) {
         })}
       </div>
 
-      {/* Frosted glass overlay */}
       <div className={`splash-overlay ${fading ? 'splash-fade-out' : ''}`}>
         <div className="splash-content">
           <div className="splash-header">
-            <div className="splash-logo">📊</div>
+            <div className="splash-logo" aria-hidden>📊</div>
             <h1 className="splash-title">Global Market Hub</h1>
             <p className="splash-subtitle">
-              Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {panelsFound} scanned
+              Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {counts.ok} green / {counts.bad} not green
             </p>
           </div>
 
           <div className="splash-progress-bar">
-            <div className="splash-progress-fill" style={{ width: `${((okCount + errorCount) / MARKETS.length) * 100}%` }} />
+            <div
+              className="splash-progress-fill"
+              style={{ width: `${TOTAL_PANELS ? (counts.ok / TOTAL_PANELS) * 100 : 0}%` }}
+            />
           </div>
 
           <div className="splash-stats">
-            <span className="splash-stat splash-stat-ok">{okCount} loaded</span>
-            {loadingCount > 0 && <span className="splash-stat splash-stat-loading">{loadingCount} fetching</span>}
-            {errorCount > 0 && <span className="splash-stat splash-stat-error">{errorCount} failed</span>}
+            <span className="splash-stat splash-stat-ok">{counts.ok} green</span>
+            <span className="splash-stat splash-stat-error">{counts.bad} not green</span>
+            {loadingCount > 0 && <span className="splash-stat splash-stat-loading">{loadingCount} markets fetching</span>}
             <span className="splash-stat splash-stat-time">{elapsed}s</span>
           </div>
+
+          <p className="splash-criteria">
+            Green = fetch success + UI display success + displayed values confirm the fetched stream.
+            Empty / null streams stay red. Click a market chip or panel dot for detail.
+          </p>
 
           <div className="splash-grid">
             {MARKETS.map(m => {
               const status = marketStatus[m.id];
               const panels = MARKET_PANELS[m.id] || [];
-              const scanned = cacheRef.current[m.id] ? Object.keys(cacheRef.current[m.id]).length : 0;
+              const reports = reportsByMarket[m.id] || {};
+              const greenN = panels.filter(p => reports[p.id]?.status === 'ok').length;
               return (
                 <div key={m.id} className={`splash-market splash-market--${status}`}>
-                  <div className="splash-market-header">
+                  <button
+                    type="button"
+                    className="splash-market-chip"
+                    onClick={() => setSelected({ type: 'market', marketId: m.id, label: m.label, reports })}
+                    title={`Open ${m.label} panel detail`}
+                  >
                     <span className="splash-market-icon">
                       {status === 'ok' ? '✅' : status === 'error' ? '❌' : '⏳'}
                     </span>
                     <span className="splash-market-name">{m.label}</span>
-                    <span className="splash-market-count">{scanned}/{panels.length}</span>
-                  </div>
-                  <div className="splash-panels">
+                    <span className="splash-market-count">{greenN}/{panels.length}</span>
+                  </button>
+                  <div className="splash-panels" role="list">
                     {panels.map(p => {
-                      const panelStatus = cacheRef.current[m.id]?.[p.id];
+                      const report = reports[p.id];
+                      const st = report?.status || (status === 'loading' ? 'loading' : 'pending');
                       return (
-                        <span
+                        <button
                           key={p.id}
-                          className={`splash-panel-dot splash-panel-dot--${panelStatus || status}`}
-                          title={`${p.title}${panelStatus ? ` (${panelStatus})` : ''}`}
-                        />
+                          type="button"
+                          role="listitem"
+                          className={`splash-panel-chip splash-panel-chip--${st}`}
+                          title={`${p.title}: ${st}${report ? ` (F${report.fetchOk ? '✓' : '✗'} D${report.displayOk ? '✓' : '✗'} C${report.confirmOk ? '✓' : '✗'})` : ''}`}
+                          onClick={() => setSelected({ type: 'panel', report: report || { panelId: p.id, title: p.title, marketId: m.id, status: st } })}
+                        >
+                          <span className={`splash-chip-dot splash-chip-dot--${st}`} />
+                          <span className="splash-panel-chip-label">{p.title}</span>
+                        </button>
                       );
                     })}
                   </div>
@@ -233,15 +294,50 @@ function SplashScreenInner({ onReady }) {
             })}
           </div>
 
-          {allLoaded && (
-            <div className="splash-done">
-              {panelsFound >= TOTAL_PANELS
-                ? `All ${TOTAL_PANELS} panels verified — opening dashboard`
-                : `Data loaded — scanning remaining panels…`
-              }
-            </div>
-          )}
+          <div className="splash-footer-actions">
+            {!readyToEnter && (
+              <div className="splash-done splash-done--wait">
+                {allLoaded
+                  ? 'Data loaded — verifying panel streams (fetch · display · confirm)…'
+                  : `Fetching markets… ${okCount + errorCount}/${MARKETS.length}`}
+              </div>
+            )}
+            {readyToEnter && (
+              <>
+                <div className="splash-done">
+                  Verification ready — {counts.ok}/{TOTAL_PANELS} panels green.
+                  Review red chips, then enter the app.
+                </div>
+                <button
+                  type="button"
+                  className="splash-enter-btn"
+                  onClick={handleEnter}
+                >
+                  Enter app — remove overlay &amp; lock in
+                </button>
+              </>
+            )}
+          </div>
         </div>
+
+        {selected && (
+          <div className="splash-detail-backdrop" onClick={() => setSelected(null)}>
+            <div onClick={e => e.stopPropagation()}>
+              {selected.type === 'panel' && (
+                <PanelDetailCard report={selected.report} onClose={() => setSelected(null)} />
+              )}
+              {selected.type === 'market' && (
+                <MarketDetailCard
+                  marketId={selected.marketId}
+                  label={selected.label}
+                  reports={selected.reports}
+                  onClose={() => setSelected(null)}
+                  onSelectPanel={(report) => setSelected({ type: 'panel', report })}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

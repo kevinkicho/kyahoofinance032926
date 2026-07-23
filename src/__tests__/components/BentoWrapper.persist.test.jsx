@@ -7,16 +7,28 @@ import { render, act } from '@testing-library/react';
 // props too so the test can assert the persistence-critical configuration:
 // every breakpoint gets the same layout AND every breakpoint uses 12 cols
 // (otherwise `correctBounds` clamps x when the lg→md fallback fires).
-const rglState = { onLayoutChange: null, lastLayouts: null, cols: null, breakpoints: null };
+const rglState = { onLayoutChange: null, lastLayouts: null, cols: null, breakpoints: null, onDragStop: null, onResizeStop: null };
+
+function MockResponsive({ layouts, onLayoutChange, onDragStop, onResizeStop, cols, breakpoints, children }) {
+  rglState.onLayoutChange = onLayoutChange;
+  rglState.onDragStop = onDragStop;
+  rglState.onResizeStop = onResizeStop;
+  rglState.lastLayouts = layouts;
+  rglState.cols = cols;
+  rglState.breakpoints = breakpoints;
+  return <div data-testid="rgl-mock">{children}</div>;
+}
+
 vi.mock('react-grid-layout', () => ({
   useContainerWidth: () => ({ width: 1200, mounted: true, containerRef: { current: null }, measureWidth: () => {} }),
-  ResponsiveGridLayout: ({ layouts, onLayoutChange, cols, breakpoints, children }) => {
-    rglState.onLayoutChange = onLayoutChange;
-    rglState.lastLayouts = layouts;
-    rglState.cols = cols;
-    rglState.breakpoints = breakpoints;
-    return <div data-testid="rgl-mock">{children}</div>;
-  },
+  ResponsiveGridLayout: MockResponsive,
+  Responsive: MockResponsive,
+}));
+
+// BentoWrapper imports Responsive from react-grid-layout/legacy
+vi.mock('react-grid-layout/legacy', () => ({
+  Responsive: MockResponsive,
+  ResponsiveGridLayout: MockResponsive,
 }));
 
 import BentoWrapper from '../../components/BentoWrapper';
@@ -93,7 +105,8 @@ describe('BentoWrapper persistence', () => {
     ];
     act(() => { rglState.onLayoutChange(dragged); });
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    expect(stored).toEqual(dragged);
+    // Geometry only is persisted (no static/isDraggable flags)
+    expect(stored).toEqual(dragged.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })));
   });
 
   it('rehydrates the saved layout on remount', () => {
@@ -142,6 +155,31 @@ describe('BentoWrapper persistence', () => {
     // If the bug were back, this would either throw (max update depth)
     // or render dozens of times. Allow a small startup margin.
     expect(renderCount).toBeLessThan(5);
+  });
+
+  it('never freezes a panel after a layout change that includes static/isDraggable:false', () => {
+    render(
+      <BentoWrapper layout={LAYOUT} storageKey={STORAGE_KEY}>
+        <div key="a" />
+        <div key="b" />
+      </BentoWrapper>
+    );
+    act(() => {
+      rglState.onLayoutChange([
+        { i: 'a', x: 0, y: 0, w: 6, h: 3, static: true, isDraggable: false },
+        { i: 'b', x: 6, y: 0, w: 6, h: 2, isDraggable: false },
+      ]);
+    });
+    const layouts = rglState.lastLayouts.lg;
+    for (const item of layouts) {
+      expect(item.static).toBe(false);
+      expect(item.isDraggable).toBeUndefined();
+    }
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    for (const item of stored) {
+      expect(item.static).toBeUndefined();
+      expect(item.isDraggable).toBeUndefined();
+    }
   });
 
   it('preserves user customization when a new conditional panel appears', () => {

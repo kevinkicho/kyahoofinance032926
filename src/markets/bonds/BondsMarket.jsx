@@ -5,42 +5,48 @@ import BondsDashboard from './components/BondsDashboard';
 import { normalizeBondsData } from '../../data/marketNormalizers';
 import './components/BondsDashboard.css';
 
-const CREDIT_RATINGS_FALLBACK = [
-  { country: 'US', name: 'United States',  sp: 'AA+', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
-  { country: 'DE', name: 'Germany',        sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
-  { country: 'GB', name: 'United Kingdom', sp: 'AA',  moodys: 'Aa2', fitch: 'AA-', region: 'Europe' },
-  { country: 'JP', name: 'Japan',          sp: 'A+',  moodys: 'A1',  fitch: 'A',   region: 'Asia-Pacific' },
-  { country: 'FR', name: 'France',         sp: 'AA-', moodys: 'Aa2', fitch: 'AA-', region: 'Europe' },
-  { country: 'AU', name: 'Australia',      sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Asia-Pacific' },
-  { country: 'CA', name: 'Canada',         sp: 'AAA', moodys: 'Aaa', fitch: 'AA+', region: 'Americas' },
-  { country: 'IT', name: 'Italy',          sp: 'BBB', moodys: 'Baa3', fitch: 'BBB', region: 'Europe' },
-  { country: 'CN', name: 'China',          sp: 'A+',  moodys: 'A1',  fitch: 'A+', region: 'Asia-Pacific' },
-  { country: 'NL', name: 'Netherlands',    sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
-  { country: 'SE', name: 'Sweden',         sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
-  { country: 'CH', name: 'Switzerland',    sp: 'AAA', moodys: 'Aaa', fitch: 'AAA', region: 'Europe' },
-];
-
-const DEFAULT_DURATION = [
-  { bucket: '0\u20132y', amount: null, pct: null },
-  { bucket: '2\u20135y', amount: null, pct: null },
-  { bucket: '5\u201310y', amount: null, pct: null },
-  { bucket: '10y+',  amount: null, pct: null },
-];
+function firstFinite(...vals) {
+  for (const v of vals) {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+  }
+  return null;
+}
 
 function getBondsProps(centralData) {
   const d = centralData.data || {};
   const normalized = normalizeBondsData(d);
+  // No fabricated ratings/duration — empty arrays → "No data" empty states.
+  // Rebuild US curve from normalized treasury rates when cache has null tenors
+  // but real FRED averages (notes/bills/bonds) still exist.
+  const tr = normalized.values.treasuryRates || {};
+  const rawUs = d.yieldCurveData?.US || {};
+  const filledUs = {
+    '3m': firstFinite(rawUs['3m'], tr.US3M),
+    '6m': firstFinite(rawUs['6m']),
+    '1y': firstFinite(rawUs['1y']),
+    '2y': firstFinite(rawUs['2y'], tr.US2Y),
+    '5y': firstFinite(rawUs['5y'], tr.US5Y),
+    '10y': firstFinite(rawUs['10y'], tr.US10Y),
+    '30y': firstFinite(rawUs['30y'], tr.US30Y),
+  };
+  const yieldCurveData = {
+    ...(d.yieldCurveData || {}),
+    US: filledUs,
+  };
+
   return {
-    yieldCurveData: d.yieldCurveData || {},
-    creditRatingsData: d.creditRatings?.countries || CREDIT_RATINGS_FALLBACK,
+    yieldCurveData,
+    creditRatingsData: d.creditRatings?.countries || [],
     creditRatingsAsOf: d.creditRatings?.asOf || null,
     spreadData: normalized.values.spreadData || { dates: [], IG: [], HY: [], EM: [], BBB: [], current: {} },
-    durationLadderData: d.durationLadder?.buckets || DEFAULT_DURATION,
+    durationLadderData: d.durationLadder?.buckets || [],
     durationLadderMeta: d.durationLadder ? { asOf: d.durationLadder.asOf, total: d.durationLadder.total, avgRate: d.durationLadder.avgRate } : null,
     breakevensData: normalized.values.breakevensData,
     fredYieldHistory: normalized.series.fredYieldHistory,
-    treasuryRates: normalized.values.treasuryRates,
-    fedFundsFutures: d.fedFundsFutures,
+    treasuryRates: tr,
+    fedFundsFutures: d.fedFundsFutures || {
+      m1: firstFinite(d.macroData?.fedFunds, tr.fedFunds, tr.US3M),
+    },
     yieldHistory: d.yieldHistory,
     mortgageSpread: d.mortgageSpread,
     tipsYields: normalized.values.tipsYields,

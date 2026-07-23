@@ -397,14 +397,20 @@ let emBondCountries = [];
       }
     }
 
-    const loanData = {
-      cloTranches,
-      indices: [
-        { name: 'BKLN NAV',                 value: etfs.find(e=>e.ticker==='BKLN')?.price ?? null, change1d: etfs.find(e=>e.ticker==='BKLN')?.change1d ?? null, spread: null },
-        { name: 'CS Lev Loan 100 Index',    value: null, change1d: null, spread: null },
-        { name: 'LL New Issue Vol ($B YTD)',  value: null,   change1d: null, spread: null },
-      ],
-    };
+    // Only real loan proxies — never ship proprietary/null index shells.
+    const bkln = etfs.find(e => e.ticker === 'BKLN');
+    const loanIndices = [];
+    if (bkln?.price != null) {
+      loanIndices.push({
+        name: 'BKLN NAV',
+        value: bkln.price,
+        change1d: bkln.change1d ?? undefined,
+      });
+    }
+    const liveClo = (cloTranches || []).filter(t => t.spread != null || t.yield != null);
+    const loanData = (liveClo.length || loanIndices.length)
+      ? { cloTranches: liveClo, indices: loanIndices }
+      : null;
 
     // Build defaultData.rates from real FRED charge-off data already fetched above,
     // supplemented with HY/CCC spread-derived indicators.

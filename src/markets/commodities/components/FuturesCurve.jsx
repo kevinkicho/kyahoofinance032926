@@ -45,9 +45,20 @@ function buildCurveOption(labels, prices, accentColor, unit, colors) {
   };
 }
 
+function finitePrices(prices) {
+  return (prices || []).filter((v) => typeof v === 'number' && Number.isFinite(v));
+}
+
 function spreadPct(prices) {
-  if (!prices || prices.length < 2) return null;
-  return Math.round((prices[prices.length - 1] / prices[0] - 1) * 1000) / 10;
+  const pts = finitePrices(prices);
+  if (pts.length < 2 || !pts[0]) return null;
+  return Math.round((pts[pts.length - 1] / pts[0] - 1) * 1000) / 10;
+}
+
+function resolveSpot(curve) {
+  if (typeof curve?.spotPrice === 'number' && Number.isFinite(curve.spotPrice)) return curve.spotPrice;
+  const pts = finitePrices(curve?.prices);
+  return pts.length ? pts[0] : null;
 }
 
 function structureLabel(spread) {
@@ -125,11 +136,25 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
   const wti = futuresCurveData || {};
   const gold = goldFuturesCurve || {};
 
+  const wtiSpot = resolveSpot(wti);
+  const goldSpot = resolveSpot(gold);
   const wtiSpread  = spreadPct(wti.prices);
   const goldSpread = spreadPct(gold.prices);
 
-  const wtiOption      = wti.labels?.length >= 2  ? buildCurveOption(wti.labels, wti.prices, '#ca8a04', wti.unit, colors) : null;
-  const goldOption     = gold.labels?.length >= 2 ? buildCurveOption(gold.labels, gold.prices, '#f59e0b', gold.unit, colors) : null;
+  // Charts: only plot finite points (align labels) so a null front-month doesn't blank the series.
+  const wtiPairs = (wti.labels || [])
+    .map((label, i) => ({ label, price: wti.prices?.[i] }))
+    .filter((p) => typeof p.price === 'number' && Number.isFinite(p.price));
+  const goldPairs = (gold.labels || [])
+    .map((label, i) => ({ label, price: gold.prices?.[i] }))
+    .filter((p) => typeof p.price === 'number' && Number.isFinite(p.price));
+
+  const wtiOption      = wtiPairs.length >= 2
+    ? buildCurveOption(wtiPairs.map((p) => p.label), wtiPairs.map((p) => p.price), '#ca8a04', wti.unit, colors)
+    : null;
+  const goldOption     = goldPairs.length >= 2
+    ? buildCurveOption(goldPairs.map((p) => p.label), goldPairs.map((p) => p.price), '#f59e0b', gold.unit, colors)
+    : null;
   const seasonalOption = buildSeasonalOption(seasonalPatterns, colors);
 
   // Dollar Index vs WTI overlay (dual Y-axis)
@@ -189,31 +214,31 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
       <div className="com-kpi-strip">
         <div className="com-kpi-pill">
           <span className="com-kpi-label">WTI Spot</span>
-          <span className="com-kpi-value"><MetricValue value={wti.spotPrice} seriesKey="wtiSpot" timestamp={lastUpdated} format={v => v != null ? `$${v.toFixed(2)}` : '—'} /></span>
+          <span className="com-kpi-value"><MetricValue value={wtiSpot} seriesKey="wtiSpot" timestamp={lastUpdated} format={v => v != null ? `$${Number(v).toFixed(2)}` : '—'} /></span>
           <span className="com-kpi-sub">{structureLabel(wtiSpread)} {wtiSpread != null ? <>(<MetricValue value={wtiSpread} seriesKey="wtiContango" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />)</> : ''}</span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Gold Spot</span>
-          <span className="com-kpi-value"><MetricValue value={gold.spotPrice} seriesKey="goldSpot" timestamp={lastUpdated} format={v => v != null ? `$${v.toLocaleString()}` : '—'} /></span>
+          <span className="com-kpi-value"><MetricValue value={goldSpot} seriesKey="goldSpot" timestamp={lastUpdated} format={v => v != null ? `$${Number(v).toLocaleString()}` : '—'} /></span>
           <span className="com-kpi-sub">{structureLabel(goldSpread)} {goldSpread != null ? <>(<MetricValue value={goldSpread} seriesKey="goldContango" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} />)</> : ''}</span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">WTI Contracts</span>
-          <span className="com-kpi-value">{wti.labels?.length ?? 0}</span>
+          <span className="com-kpi-value">{wtiPairs.length || wti.labels?.length || 0}</span>
           <span className="com-kpi-sub">months forward</span>
         </div>
         <div className="com-kpi-pill">
           <span className="com-kpi-label">Gold Contracts</span>
-          <span className="com-kpi-value">{gold.labels?.length ?? 0}</span>
+          <span className="com-kpi-value">{goldPairs.length || gold.labels?.length || 0}</span>
           <span className="com-kpi-sub">months forward</span>
         </div>
       </div>
 
       {/* Two curves side by side */}
       <div className="com-two-col" style={{ marginBottom: 8 }}>
-        {wtiOption && (
+        {wtiOption ? (
           <div className="com-chart-panel">
-            <div className="com-chart-title">WTI Crude Oil — {wti.labels?.length} Months ({wti.unit})</div>
+            <div className="com-chart-title">WTI Crude Oil — {wtiPairs.length} Months ({wti.unit || '$/bbl'})</div>
             <div className="com-mini-chart">
               <SafeECharts option={wtiOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'WTI Crude Oil Futures Curve', source: 'CME / Yahoo Finance', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
             </div>
@@ -223,10 +248,17 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
               </span>
             )}
           </div>
-        )}
-        {goldOption && (
+        ) : (
           <div className="com-chart-panel">
-            <div className="com-chart-title">Gold — {gold.labels?.length} Months ({gold.unit})</div>
+            <div className="com-chart-title">WTI Crude Oil Curve</div>
+            <div className="com-mini-chart" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textDim }}>
+              {wtiSpot != null ? `Spot $${Number(wtiSpot).toFixed(2)} — curve months unavailable` : 'No WTI curve data'}
+            </div>
+          </div>
+        )}
+        {goldOption ? (
+          <div className="com-chart-panel">
+            <div className="com-chart-title">Gold — {goldPairs.length} Months ({gold.unit || '$/oz'})</div>
             <div className="com-mini-chart">
               <SafeECharts option={goldOption} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Gold Futures Curve', source: 'CME / Yahoo Finance', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
             </div>
@@ -235,6 +267,13 @@ export default function FuturesCurve({ futuresCurveData, goldFuturesCurve, fredC
                 {goldSpread > 0 ? '▲ Contango' : '▼ Backwardation'} · <MetricValue value={Math.abs(goldSpread)} seriesKey="goldContango" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} />
               </span>
             )}
+          </div>
+        ) : (
+          <div className="com-chart-panel">
+            <div className="com-chart-title">Gold Curve</div>
+            <div className="com-mini-chart" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.textDim }}>
+              {goldSpot != null ? `Spot $${Number(goldSpot).toLocaleString()} — curve months unavailable` : 'No gold curve data'}
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
 
 const router = Router();
 
@@ -250,9 +251,11 @@ router.get('/', async (req, res) => {
     res.json({ ...result, fetchedOn: today, isCurrent: anySourceLive });
   } catch (err) {
     console.error('[EIA] route error:', err);
-    const fallback = readLatestCache('eia');
-    if (fallback) return res.json({ ...fallback.data, fetchedOn: fallback.fetchedOn, isCurrent: false });
-    res.status(500).json({ error: 'Internal server error' });
+    return sendCachedOrDegradedSync(res, 'eia', {
+      error,
+      memoryCache: req.app.locals.cache,
+      cacheKey: 'eia_data',
+    });
   }
 });
 

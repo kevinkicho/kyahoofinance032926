@@ -53,16 +53,16 @@ export default function MarketKpiStrip({
       )}
       <div className="market-kpi-strip">
         {kpis.map((kpi, i) => {
-          // If the caller provided a seriesKey + rawValue + format, wrap the
-          // value in MetricValue so users get the click-to-inspect popover.
+          // If the caller provided a seriesKey, wrap the value in MetricValue
+          // so users get the click-to-inspect provenance popover.
           // Otherwise fall back to plain text rendering for backward compat.
-          const valueNode = kpi.seriesKey && kpi.format
+          const valueNode = kpi.seriesKey
             ? (
               <MetricValue
-                value={kpi.rawValue ?? kpi.value}
+                value={kpi.rawValue != null ? kpi.rawValue : kpi.value}
                 seriesKey={kpi.seriesKey}
-                timestamp={timestamp}
-                format={kpi.format}
+                timestamp={kpi.timestamp || timestamp}
+                format={kpi.format || ((v) => (v == null ? '—' : String(v)))}
               />
             )
             : kpi.value;

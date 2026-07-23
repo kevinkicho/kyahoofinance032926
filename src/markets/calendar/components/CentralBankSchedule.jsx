@@ -1,10 +1,16 @@
 // src/markets/calendar/components/CentralBankSchedule.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 import '../CalendarMarket.css';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 
 const BANK_FLAGS = { Fed: '\u{1F1FA}\u{1F1F8}', ECB: '\u{1F1EA}\u{1F1FA}', BOE: '\u{1F1EC}\u{1F1E7}', BOJ: '\u{1F1EF}\u{1F1F5}' };
 const BANK_DOTS  = { Fed: 'cal-dot-fed', ECB: 'cal-dot-ecb', BOE: 'cal-dot-boe', BOJ: 'cal-dot-boj' };
+const BANK_SERIES_KEY = {
+  Fed: 'fedRate',
+  ECB: 'ecbRate',
+  BOE: 'boeRate',
+  BOJ: 'bojRate',
+};
 
 const ALL_MEETINGS = {
   Fed: ['2026-01-28','2026-03-18','2026-05-06','2026-06-17','2026-07-29','2026-09-16','2026-11-04','2026-12-16'],
@@ -13,21 +19,96 @@ const ALL_MEETINGS = {
   BOJ: ['2026-01-22','2026-03-12','2026-04-30','2026-06-18','2026-07-16','2026-09-17','2026-10-29','2026-12-17'],
 };
 
+function asNum(v) {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
+  return null;
+}
+
+function fmtPct(v, digits = 2) {
+  const n = asNum(v);
+  if (n == null) return '—';
+  return `${n.toFixed(digits)}%`;
+}
+
 function decisionBadge(rate, previousRate) {
-  if (previousRate == null || rate == null) return null;
-  const diff = Math.round((rate - previousRate) * 100);
-  if (diff > 0) return <span className="cal-cb-decision cal-cb-hike">HIKE +{diff}bp</span>;
-  if (diff < 0) return <span className="cal-cb-decision cal-cb-cut">CUT {diff}bp</span>;
+  const r = asNum(rate);
+  const p = asNum(previousRate);
+  if (r == null || p == null) return null;
+  const diffBp = Math.round((r - p) * 100);
+  if (diffBp > 0) return <span className="cal-cb-decision cal-cb-hike">HIKE +{diffBp}bp</span>;
+  if (diffBp < 0) return <span className="cal-cb-decision cal-cb-cut">CUT {diffBp}bp</span>;
   return <span className="cal-cb-decision cal-cb-hold">HOLD</span>;
 }
 
+function RateDisplay({ cb }) {
+  const rate = asNum(cb.rate);
+  const low = asNum(cb.rateLow);
+  const seriesKey = BANK_SERIES_KEY[cb.bank] || 'fedRate';
+
+  // Fed target range: low–high when both present
+  if (cb.bank === 'Fed' && low != null && rate != null && low !== rate) {
+    return (
+      <div className="cal-cb-rate">
+        <MetricValue
+          seriesKey={seriesKey}
+          value={rate}
+          format={() => `${low.toFixed(2)}–${rate.toFixed(2)}%`}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="cal-cb-rate">
+      {rate == null ? (
+        <span className="cal-cb-rate-missing">—</span>
+      ) : (
+        <MetricValue
+          seriesKey={seriesKey}
+          value={rate}
+          format={(v) => {
+            const n = asNum(v);
+            return n == null ? '—' : `${n.toFixed(2)}%`;
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function CentralBankSchedule({ centralBanks, section }) {
-  if (!centralBanks?.length) return <div className="cal-empty">No central bank data available</div>;
+  const banks = useMemo(() => {
+    return (centralBanks || []).map((cb) => {
+      let daysUntil = asNum(cb.daysUntil);
+      if (daysUntil == null && cb.nextMeeting) {
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        const meet = new Date(`${cb.nextMeeting}T12:00:00`);
+        daysUntil = Math.round((meet - today) / 86400000);
+      }
+      return {
+        ...cb,
+        rate: asNum(cb.rate),
+        rateLow: asNum(cb.rateLow),
+        previousRate: asNum(cb.previousRate),
+        daysUntil,
+      };
+    });
+  }, [centralBanks]);
 
-  const today = new Date().toISOString().split('T')[0];
+  if (!banks.length) return <div className="cal-empty">No central bank data available</div>;
 
-  const byBank = Object.fromEntries(centralBanks.map(cb => [cb.bank, cb]));
-  const timelineEntries = centralBanks
+  const today = (() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  })();
+
+  const byBank = Object.fromEntries(banks.map(cb => [cb.bank, cb]));
+  const timelineEntries = banks
     .filter(cb => cb.nextMeeting)
     .map(cb => ({ ...cb, date: cb.nextMeeting }));
   Object.entries(ALL_MEETINGS).forEach(([bank, dates]) => {
@@ -37,17 +118,43 @@ export default function CentralBankSchedule({ centralBanks, section }) {
       }
     });
   });
-  timelineEntries.sort((a, b) => a.date.localeCompare(b.date));
+  timelineEntries.sort((a, b) => String(a.date).localeCompare(String(b.date)));
 
   if (section === 'rates') {
     return (
       <div className="cal-cb-grid">
-        {centralBanks.map(cb => (
+        {banks.map(cb => (
           <div key={cb.bank} className="cal-cb-card">
-            <div className="cal-cb-bank">{BANK_FLAGS[cb.bank] || ''} {cb.bank}</div>
-            <div className="cal-cb-rate"><MetricValue seriesKey={cb.bank === 'Fed' ? 'fedRate' : cb.bank === 'ECB' ? 'ecbRate' : cb.bank === 'BOE' ? 'boeRate' : 'bojRate'} value={cb.rate} format={v => v != null ? v.toFixed(2) : '—'} />%</div>
-            <div className="cal-cb-next">Next: {cb.nextMeeting}</div>
-            <div className="cal-cb-countdown">{cb.daysUntil != null ? `${cb.daysUntil} days` : ''}</div>
+            <div className="cal-cb-bank">
+              <span className="cal-cb-flag">{BANK_FLAGS[cb.bank] || ''}</span>
+              <span>{cb.bank}</span>
+            </div>
+            <RateDisplay cb={cb} />
+            <div className="cal-cb-meta-row">
+              <span className="cal-cb-meta-label">Previous</span>
+              <span className="cal-cb-meta-val">{fmtPct(cb.previousRate)}</span>
+            </div>
+            {cb.previousRate != null && cb.rate != null && (
+              <div className="cal-cb-meta-row">
+                <span className="cal-cb-meta-label">Δ</span>
+                <span className="cal-cb-meta-val">
+                  {(() => {
+                    const bp = Math.round((cb.rate - cb.previousRate) * 100);
+                    return `${bp >= 0 ? '+' : ''}${bp} bp`;
+                  })()}
+                </span>
+              </div>
+            )}
+            <div className="cal-cb-next">Next: {cb.nextMeeting || '—'}</div>
+            <div className="cal-cb-countdown">
+              {cb.daysUntil != null ? `${cb.daysUntil} day${cb.daysUntil === 1 ? '' : 's'}` : ''}
+            </div>
+            {cb.rateLabel && (
+              <div className="cal-cb-series" title={cb.rateSeries || ''}>
+                {cb.rateLabel}
+                {cb.rateAsOf ? ` · as of ${cb.rateAsOf}` : ''}
+              </div>
+            )}
             {decisionBadge(cb.rate, cb.previousRate)}
           </div>
         ))}
@@ -60,12 +167,14 @@ export default function CentralBankSchedule({ centralBanks, section }) {
       <div className="cal-timeline">
         <div className="cal-timeline-title">Upcoming Meetings</div>
         {timelineEntries.slice(0, 12).map((e, i) => (
-          <div key={i} className="cal-timeline-row">
+          <div key={`${e.bank}-${e.date}-${i}`} className="cal-timeline-row">
             <span className={`cal-timeline-dot ${BANK_DOTS[e.bank] || ''}`} />
-            <span style={{ minWidth: 80, fontFamily: 'monospace' }}>{e.date}</span>
-            <span>{e.bank}</span>
-            {e.rate != null && <span className="cal-release-prev">{Number(e.rate).toFixed(2)}%</span>}
-            {e.daysUntil != null && <span className="cal-release-prev">{e.daysUntil}d</span>}
+            <span className="cal-timeline-date">{e.date}</span>
+            <span className="cal-timeline-bank">{e.bank}</span>
+            <span className="cal-timeline-rate">{fmtPct(e.rate)}</span>
+            {e.daysUntil != null && e.daysUntil >= 0 && (
+              <span className="cal-timeline-days">{e.daysUntil}d</span>
+            )}
             {decisionBadge(e.rate, e.previousRate)}
           </div>
         ))}
@@ -77,13 +186,13 @@ export default function CentralBankSchedule({ centralBanks, section }) {
     <div className="cal-panel">
       <div className="cal-panel-header">
         <span className="cal-panel-title">Central Bank Schedule</span>
-        <span className="cal-panel-subtitle">Policy rate decisions · Fed / ECB / BOE / BOJ · FRED live rates</span>
+        <span className="cal-panel-subtitle">Policy rates · Fed / ECB / BOE / BOJ · FRED</span>
       </div>
       <div className="cal-cb-grid">
-        {centralBanks.map(cb => (
+        {banks.map(cb => (
           <div key={cb.bank} className="cal-cb-card">
             <div className="cal-cb-bank">{BANK_FLAGS[cb.bank] || ''} {cb.bank}</div>
-            <div className="cal-cb-rate"><MetricValue seriesKey={cb.bank === 'Fed' ? 'fedRate' : cb.bank === 'ECB' ? 'ecbRate' : cb.bank === 'BOE' ? 'boeRate' : 'bojRate'} value={cb.rate} format={v => v != null ? v.toFixed(2) : '—'} />%</div>
+            <RateDisplay cb={cb} />
             <div className="cal-cb-next">Next: {cb.nextMeeting}</div>
             <div className="cal-cb-countdown">{cb.daysUntil != null ? `${cb.daysUntil} days` : ''}</div>
             {decisionBadge(cb.rate, cb.previousRate)}
@@ -93,18 +202,16 @@ export default function CentralBankSchedule({ centralBanks, section }) {
       <div className="cal-timeline">
         <div className="cal-timeline-title">Upcoming Meetings</div>
         {timelineEntries.slice(0, 12).map((e, i) => (
-          <div key={i} className="cal-timeline-row">
+          <div key={`${e.bank}-${e.date}-${i}`} className="cal-timeline-row">
             <span className={`cal-timeline-dot ${BANK_DOTS[e.bank] || ''}`} />
-            <span style={{ minWidth: 80, fontFamily: 'monospace' }}>{e.date}</span>
-            <span>{e.bank}</span>
-            {e.rate != null && <span className="cal-release-prev">{Number(e.rate).toFixed(2)}%</span>}
-            {e.daysUntil != null && <span className="cal-release-prev">{e.daysUntil}d</span>}
-            {decisionBadge(e.rate, e.previousRate)}
+            <span className="cal-timeline-date">{e.date}</span>
+            <span className="cal-timeline-bank">{e.bank}</span>
+            <span className="cal-timeline-rate">{fmtPct(e.rate)}</span>
           </div>
         ))}
       </div>
       <div className="cal-panel-footer">
-        Dates from 2026 published schedules · Rates from FRED (BOJ rate approximate)
+        Rates from FRED · BoE via SONIA · BOJ via OECD immediate rates
       </div>
     </div>
   );

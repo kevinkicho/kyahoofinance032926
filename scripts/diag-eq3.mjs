@@ -4,11 +4,9 @@ const browser = await chromium.launch();
 const VIEWS = [
   { name: 'heatmap', click: 'Heatmap' },
   { name: 'list', click: 'List View' },
-  { name: 'radar', click: 'Radar' },
   { name: 'race', click: 'Bar Race' },
   { name: 'portfolio', click: 'Portfolio' },
   { name: 'datahub', click: 'DataHub' },
-  { name: 'ml-explorer', click: 'ML Explorer' },
 ];
 
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });

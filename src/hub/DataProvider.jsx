@@ -1,76 +1,212 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import DataContext from './DataContext';
 import { useInterval } from '../hooks/useInterval';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
+import { putSnapshot, todayStr } from '../utils/snapshotDB';
+import { apiUrl } from '../lib/api';
+import { logDataFetch, logDataReceived, logError } from '../lib/logger';
 import { loadFromRTDB, listSnapshotDates } from './lib/rtdb';
 import { passesStructuralGuard, hasNonNullData, needsLiveRepair, STRUCTURAL_GUARDS } from './lib/guards';
 import { computeFreshnessReport } from './lib/freshness';
 import { computeAlerts, getDisabledRuleIds } from './lib/alerts';
-import { saveSnapshot, createInitialMarketState, FEDERATED_MARKETS } from './lib/snapshot';
+import { saveSnapshot, createInitialMarketState, FEDERATED_MARKETS, SNAPSHOT_KEY } from './lib/snapshot';
+// Canonical routing — shared/api-routing.json via marketEndpoints.js
+import {
+  MARKET_ENDPOINTS,
+  ALL_FETCH_IDS,
+  TAB_MARKET_IDS,
+  getMarketFetchPlan,
+} from './lib/marketEndpoints';
+import { publishMarketPayload } from './lib/panelHealthBus';
 
-export const MARKET_ENDPOINTS = {
-  analytics:         '/api/rate-limits',
-  equities:          '/api/equities',
-  bonds:             '/api/bonds',
-  fx:                '/api/fx',
-  derivatives:       '/api/derivatives',
-  realEstate:        '/api/realEstate',
-  insurance:         '/api/insurance',
-  commodities:       '/api/commoditiesEnhanced',
-  globalMacro:       '/api/globalMacro',
-  watchlist:            '/api/watchlist',
-  equitiesDeepDive:    '/api/equityDeepDive',
-  institutional:     '/api/institutional',
-  crypto:            '/api/crypto',
-  credit:            '/api/credit',
-  sentiment:         '/api/sentiment',
-  calendar:          '/api/calendar',
-  imf:               '/api/imf',
-  worldbank:         '/api/worldbank',
-  bls:               '/api/bls',
-  eia:               '/api/eia',
-  census:             '/api/census',
-  bea:               '/api/bea',
-  eurostat:          '/api/eurostat',
-  oecd:              '/api/oecd',
-  edgar:             '/api/edgar',
-  universeUpdates:   '/api/universeUpdates',
-  nyfed:             '/api/nyfed',
-  fdic:              '/api/fdic',
-  ecb:               '/api/ecb',
-  treasuryTIC:       '/api/treasuryTIC',
-  treasuryAuctions:  '/api/treasuryAuctions',
-  treasuryDTS:       '/api/treasuryDTS',
-  treasuryCost:      '/api/treasuryCost',
-  fedSEP:              '/api/fed/sep',
-  fedGDPNow:           '/api/fed/gdpnow',
-  fedInflationNowcast: '/api/fed/inflation-nowcast',
-  fedNewsSentiment:    '/api/fed/news-sentiment',
-  msrb:                '/api/msrb',
-  fema:                '/api/fema',
-  usgs:                '/api/usgs',
-  edgarInsurerRatios:  '/api/edgar/insurer-ratios',
-  edgarFilingActivity: '/api/edgar/filing-activity',
-  usda:                '/api/usda',
-  censusTrade:         '/api/censusTrade',
-  eiaPetroleum:        '/api/eiaPetroleum',
-  cftcTFF:             '/api/cftcTFF',
-  bisOTC:              '/api/bisOTC',
-  fao:                 '/api/fao',
-};
+export { MARKET_ENDPOINTS, ALL_FETCH_IDS, TAB_MARKET_IDS, getMarketFetchPlan };
 
-export const ALL_FETCH_IDS = Object.keys(MARKET_ENDPOINTS);
-
-// Re-export extracted helpers to maintain backward compatibility with test suites
+// Re-export extracted helpers for test suites / external callers
 export { computeFreshnessReport } from './lib/freshness';
 export { computeAlerts } from './lib/alerts';
 export { passesStructuralGuard, STRUCTURAL_GUARDS, hasNonNullData, needsLiveRepair } from './lib/guards';
 
 const dlog = import.meta.env.DEV ? console.log.bind(console) : () => {};
 
+const FETCH_SETTINGS = {
+  timeout: 60000,
+  retries: 2,
+  batchConcurrency: 3,
+  batchDelayMs: 500,
+};
+
+// Cache-first by default: serve today's server disk cache (fetchedOn=today)
+// so panels paint with 7/23 data immediately. Live upstream refresh is used
+// for user refresh, auto-refresh, and optional VITE_FORCE_LIVE=true.
+// Forcing live on every load stampedes FRED and leaves panels on stale snaps.
+const ALWAYS_FORCE_LIVE =
+  typeof import.meta !== 'undefined' && import.meta.env?.VITE_FORCE_LIVE === 'true';
+
+// Tab markets the splash screen tracks — retry these first if the initial
+// wave failed (slow FRED / Yahoo bursts often time out the first pass).
+// Source: shared/api-routing.json → tabMarkets (alerts is federated, no HTTP).
+const PRIMARY_MARKET_IDS = TAB_MARKET_IDS.filter(id => id !== 'alerts' && MARKET_ENDPOINTS[id]);
+
+// Local-first mode: do not seed from Firebase RTDB on live loads.
+// Historical date picker can still soft-try RTDB if a date is selected.
+const USE_RTDB_SEED = false;
+
 function tsNow() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function summarizeData(data) {
+  if (!data || typeof data !== 'object') return 'empty';
+  const keys = Object.keys(data).filter(k => !k.startsWith('_'));
+  return `${keys.length} keys`;
+}
+
+async function fetchMarket(marketId, forceLive = false) {
+  let path = MARKET_ENDPOINTS[marketId];
+  if (!path) {
+    console.warn(`[DataProvider] ⚠ No endpoint for "${marketId}"`);
+    return { marketId, data: null, ok: false, status: 0, duration: 0, error: `No endpoint for ${marketId}` };
+  }
+  const live = forceLive || ALWAYS_FORCE_LIVE;
+  if (live) {
+    path = `${path}${path.includes('?') ? '&' : '?'}refresh=true`;
+  }
+  const url = apiUrl(path);
+  const t0 = performance.now();
+  try {
+    dlog(`[DataProvider] → ${marketId} ${url}`);
+    const r = await fetchWithRetry(url, {
+      retries: FETCH_SETTINGS.retries,
+      timeout: FETCH_SETTINGS.timeout,
+      totalTimeout: 90000,
+      headers: live ? { 'X-Cache-Bypass': '1' } : undefined,
+    });
+    const data = await r.json();
+    const dur = Math.round(performance.now() - t0);
+    const requestId = r.headers?.get?.('X-Request-Id') || r.headers?.get?.('x-request-id') || null;
+    dlog(`[DataProvider] ✓ ${marketId} ${r.status} ${dur}ms — ${summarizeData(data)}`, data._sources || '');
+    logDataFetch(marketId, path, r.status, dur);
+    logDataReceived(marketId, Object.keys(data).filter(k => !k.startsWith('_')));
+    return { marketId, data, ok: true, status: r.status, duration: dur, requestId };
+  } catch (err) {
+    const dur = Math.round(performance.now() - t0);
+    const msg = `[DataProvider] ✗ ${marketId} failed (${dur}ms): ${err?.message || err}`;
+    if (['realEstate', 'insurance', 'globalMacro'].includes(marketId)) {
+      console.warn(msg);
+    } else {
+      console.error(msg);
+    }
+    logDataFetch(marketId, path, 0, dur);
+    logError('fetchMarket', msg, err?.stack);
+    return { marketId, data: null, ok: false, status: 0, duration: dur, error: err?.message || 'Fetch failed' };
+  }
+}
+
+export function applyResult(prev, result) {
+  const id = result.marketId;
+  const prior = prev[id] || {};
+  if (result.ok) {
+    const d = result.data;
+    const hasRealData = hasNonNullData(d, id);
+    const structuralOk = hasRealData && passesStructuralGuard(id, d);
+    // Keep any real payload so panels can render. Structural guard only
+    // controls the "live/complete" badge — never blank the whole market.
+    // CRITICAL: never replace a previously good payload with an empty one
+    // (rate-limit degraded shells / sparse aux feeds used to wipe tabs).
+    const keep = hasRealData;
+    const preservePrior = !keep && prior.data != null;
+    const ts = d?.lastUpdated || tsNow();
+    const isCurrent = keep ? (d?.isCurrent != null ? !!d.isCurrent : !!d?.isLive) : !!prior.isCurrent;
+    if (!hasRealData) {
+      console.warn(
+        preservePrior
+          ? `[DataProvider] ⚠ ${id} empty response — keeping previous payload`
+          : `[DataProvider] ⚠ ${id} returned data but hasNonNullData=false — treating as empty`
+      );
+    } else if (!structuralOk) {
+      console.warn(`[DataProvider] ⚠ ${id} partial payload (structural guard soft-fail) — keeping data for panels`);
+    }
+    dlog(`[DataProvider] ✓ ${id} keep=${keep} preservePrior=${preservePrior} structuralOk=${structuralOk} fetchedOn=${d?.fetchedOn || 'n/a'}`);
+    if (preservePrior) {
+      // Keep publishing prior payload for panel-health bus
+      try {
+        const nextPrev = { ...prev, [id]: { ...prior, isLoading: false } };
+        publishMarketPayload(id, prior.data, nextPrev);
+      } catch { /* ignore */ }
+      return {
+        ...prev,
+        [id]: {
+          ...prior,
+          isLoading: false,
+          // Soft warning only — panels keep rendering prior data.
+          error: null,
+          fetchLog: [{
+            time: tsNow(),
+            url: MARKET_ENDPOINTS[id],
+            status: result.status,
+            duration: result.duration,
+            requestId: result.requestId || null,
+            warning: 'empty response — kept previous',
+          }, ...(prior.fetchLog || [])].slice(0, 20),
+        },
+      };
+    }
+    const nextState = {
+      ...prev,
+      [id]: {
+        data: keep ? d : null,
+        isLoading: false,
+        isLive: structuralOk,
+        lastUpdated: keep ? ts : null,
+        fetchedOn: keep ? (d?.fetchedOn || null) : null,
+        isCurrent,
+        // Only hard-error when there is nothing usable for the UI.
+        error: keep ? null : 'API returned empty data',
+        fetchLog: [{
+          time: tsNow(),
+          url: MARKET_ENDPOINTS[id],
+          status: result.status,
+          duration: result.duration,
+          requestId: result.requestId || null,
+          sources: (keep && d?._sources) ? d._sources : null,
+          ...(keep && !structuralOk ? { warning: 'partial structural coverage' } : {}),
+          ...(!keep ? { warning: 'empty response' } : {}),
+        }, ...(prior.fetchLog || [])].slice(0, 20),
+        provenance: keep && d?._sources ? { sources: d._sources } : prior.provenance || {},
+      },
+    };
+    if (keep && d) {
+      try { publishMarketPayload(id, d, nextState); } catch { /* ignore */ }
+    }
+    return nextState;
+  }
+
+  const errMsg = `[DataProvider] ✗ ${id} fetch error: ${result.error}`;
+  if (['realEstate', 'insurance', 'globalMacro'].includes(id)) {
+    console.warn(errMsg);
+  } else {
+    console.error(errMsg);
+  }
+  // Preserve any previously good payload so a single failed refresh does not
+  // blank the tab (splash would otherwise mark the market as failed).
+  return {
+    ...prev,
+    [id]: {
+      ...prior,
+      isLoading: false,
+      error: prior.data ? null : result.error,
+      fetchLog: [{
+        time: tsNow(),
+        url: MARKET_ENDPOINTS[id],
+        status: 0,
+        duration: result.duration,
+        error: result.error,
+        requestId: result.requestId || null,
+      }, ...(prior.fetchLog || [])].slice(0, 20),
+    },
+  };
 }
 
 function maybeComputeFederated(prev, next) {
@@ -100,10 +236,30 @@ function maybeComputeFederated(prev, next) {
       isLive: true,
       fetchedOn: latestFetchedOn,
       lastUpdated: tsNow(),
-      fetchLog: [{ time: tsNow(), url: `federated:${fedId}`, status: 200, duration: 0, partial: !allReady, missing }, ...(prev[fedId]?.fetchLog || [])].slice(0, 20),
+      fetchLog: [{
+        time: tsNow(),
+        url: `federated:${fedId}`,
+        status: 200,
+        duration: 0,
+        partial: !allReady,
+        missing,
+      }, ...(prev[fedId]?.fetchLog || [])].slice(0, 20),
     };
+    try {
+      publishMarketPayload(fedId, next[fedId].data, next);
+    } catch { /* ignore */ }
   }
   return next;
+}
+
+function persistToIDB(result) {
+  if (!result?.ok || !result.data) return;
+  putSnapshot({
+    marketId: result.marketId,
+    date: todayStr(),
+    data: result.data,
+    fetchedAt: result.data.lastUpdated || new Date().toISOString(),
+  }).catch(() => {});
 }
 
 export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) {
@@ -125,9 +281,9 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     return () => { mountedRef.current = false; };
   }, []);
 
-  const fetchAllMarkets = useCallback(async () => {
+  const fetchAllMarkets = useCallback(async (forceLive = true) => {
     if (fetchingRef.current) {
-      pendingFetchRef.current = true;
+      pendingFetchRef.current = { forceLive: pendingFetchRef.current?.forceLive || forceLive };
       dlog('[DataProvider] Fetch already in progress — queueing follow-up');
       return;
     }
@@ -138,95 +294,255 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       const pending = pendingFetchRef.current;
       pendingFetchRef.current = null;
       if (pending) {
-        setTimeout(() => fetchAllMarkets(), 0);
+        setTimeout(() => fetchAllMarkets(pending.forceLive), 0);
       }
     };
 
-    const ids = ALL_FETCH_IDS;
+    // Tab markets first (panels the user sees), then auxiliary deps.
+    const primarySet = new Set(PRIMARY_MARKET_IDS);
+    const ids = [
+      ...PRIMARY_MARKET_IDS,
+      ...ALL_FETCH_IDS.filter(id => !primarySet.has(id)),
+    ];
     const effectiveDate = historicalDateRef.current;
     const fetchGeneration = fetchGenerationRef.current;
+    // Cache-first waves are cheap — fetch more in parallel so panels fill fast.
+    const concurrency = forceLive ? FETCH_SETTINGS.batchConcurrency : Math.max(FETCH_SETTINGS.batchConcurrency, 8);
+    const batchDelay = forceLive ? FETCH_SETTINGS.batchDelayMs : 100;
 
     setGlobalLoading(true);
 
-    const rtdbSeeds = await Promise.all(
-      ids.map(async (id) => {
-        const seed = await loadFromRTDB(id, effectiveDate);
-        return seed ? { id, seed } : null;
-      })
-    );
+    try {
 
-    if (fetchGeneration !== fetchGenerationRef.current || effectiveDate !== historicalDateRef.current) {
-      dlog('[DataProvider] Discarding stale fetch wave before applying RTDB seeds.');
-      completeFetch();
-      setGlobalLoading(false);
-      return;
+    // Optional RTDB seed (disabled in local-first mode). Historical dates still soft-try RTDB.
+    let seededIds = new Set();
+    if ((USE_RTDB_SEED || effectiveDate) && !forceLive) {
+      const rtdbSeeds = await Promise.all(
+        ids.map(async (id) => {
+          const seed = await loadFromRTDB(id, effectiveDate);
+          return seed ? { id, seed } : null;
+        })
+      );
+
+      if (fetchGeneration !== fetchGenerationRef.current || effectiveDate !== historicalDateRef.current) {
+        dlog('[DataProvider] Discarding stale fetch wave before applying RTDB seeds.');
+        return; // finally: completeFetch
+      }
+
+      seededIds = new Set(
+        rtdbSeeds.filter(Boolean).filter(s => {
+          if (!hasNonNullData(s.seed.data, s.id)) return false;
+          if (!passesStructuralGuard(s.id, s.seed.data)) return false;
+          if (needsLiveRepair(s.id, s.seed.data)) return false;
+          return true;
+        }).map(s => s.id)
+      );
+
+      setMarkets(prev => {
+        const next = { ...prev };
+        for (const item of rtdbSeeds) {
+          if (item && MARKET_ENDPOINTS[item.id] && seededIds.has(item.id)) {
+            const { seed } = item;
+            next[item.id] = {
+              ...next[item.id],
+              data: seed.data || next[item.id]?.data,
+              lastUpdated: seed.fetchedAt || next[item.id]?.lastUpdated,
+              fetchedOn: seed.fetchedAt || next[item.id]?.fetchedOn,
+              isLive: seed.isLive ?? next[item.id]?.isLive,
+              isCurrent: !effectiveDate,
+              isHistorical: !!effectiveDate,
+              asOfDate: effectiveDate || null,
+              isLoading: false,
+              error: null,
+              fetchLog: [{
+                time: seed.fetchedAt || tsNow(),
+                url: `${MARKET_ENDPOINTS[item.id]} (RTDB Snapshot)`,
+                status: 200,
+                duration: 0,
+                requestId: 'RTDB',
+                sources: seed.data?._sources || null,
+              }, ...(next[item.id]?.fetchLog || [])].slice(0, 20),
+            };
+          }
+        }
+        return maybeComputeFederated(prev, next);
+      });
+
+      if (effectiveDate) {
+        dlog(`[DataProvider] Historical mode for ${effectiveDate} — RTDB snapshots only.`);
+        setMarkets(prev => {
+          const next = { ...prev };
+          for (const id of ids) {
+            if (!next[id]) continue;
+            const hasSeed = seededIds.has(id);
+            next[id] = {
+              ...next[id],
+              data: hasSeed ? next[id].data : null,
+              isLoading: false,
+              isHistorical: true,
+              asOfDate: effectiveDate,
+              error: hasSeed ? null : `No historical snapshot for ${effectiveDate}`,
+            };
+          }
+          return maybeComputeFederated(prev, next);
+        });
+        return; // finally: completeFetch
+      }
     }
 
-    const seededIds = new Set(
-      rtdbSeeds.filter(Boolean).filter(s => {
-        if (!hasNonNullData(s.seed.data, s.id)) return false;
-        if (!passesStructuralGuard(s.id, s.seed.data)) return false;
-        if (needsLiveRepair(s.id, s.seed.data)) {
-          dlog(`[DataProvider] ${s.id} snapshot needs live repair — critical fields null`);
-          return false;
-        }
-        return true;
-      }).map(s => s.id)
-    );
+    // Live local API wave
+    const liveIds = forceLive || !USE_RTDB_SEED
+      ? ids
+      : ids.filter(id => !seededIds.has(id));
 
+    // Only flip isLoading for markets that still have nothing to show —
+    // avoids blanking every tab skeleton while later batches finish.
     setMarkets(prev => {
       const next = { ...prev };
-      for (const item of rtdbSeeds) {
-        if (item && MARKET_ENDPOINTS[item.id] && seededIds.has(item.id)) {
-          const { seed } = item;
-          const seedLog = {
-            time: seed.fetchedAt || tsNow(),
-            url: MARKET_ENDPOINTS[item.id] ? `${MARKET_ENDPOINTS[item.id]} (RTDB Snapshot)` : 'RTDB Snapshot',
-            status: 200,
-            duration: 0,
-            requestId: 'RTDB',
-            sources: seed.data?._sources || null
-          };
-          next[item.id] = {
-            ...next[item.id],
-            data: seed.data || next[item.id]?.data,
-            lastUpdated: seed.fetchedAt || next[item.id]?.lastUpdated,
-            fetchedOn: seed.fetchedAt || next[item.id]?.fetchedOn,
-            isLive: seed.isLive ?? next[item.id]?.isLive,
-            isCurrent: !effectiveDate,
-            isHistorical: !!effectiveDate,
-            asOfDate: effectiveDate || null,
-            isLoading: false,
-            error: null,
-            fetchLog: [seedLog, ...(next[item.id]?.fetchLog || [])].slice(0, 20),
-          };
+      for (const id of liveIds) {
+        if (MARKET_ENDPOINTS[id] && !next[id]?.data) {
+          next[id] = { ...next[id], isLoading: true, error: null };
         }
       }
-      for (const id of ids) {
-        if (MARKET_ENDPOINTS[id] && !seededIds.has(id)) {
-          next[id] = {
-            ...next[id],
-            data: null,
-            isLoading: false,
-            error: next[id]?.error || 'No RTDB snapshot available',
-          };
-        }
-      }
-      return maybeComputeFederated(prev, next);
+      return next;
     });
 
-    dlog(`[DataProvider] ✅ RTDB seed complete — ${seededIds.size}/${ids.length} markets loaded`);
-    completeFetch();
-    setGlobalLoading(false);
+    dlog(`[DataProvider] Fetching ${liveIds.length} markets (forceLive=${!!forceLive}) concurrency=${concurrency}…`);
+
+    // Track which ids still lack usable data after the first wave (for retry).
+    const stillEmpty = new Set(liveIds);
+
+    for (let i = 0; i < liveIds.length; i += concurrency) {
+      const batch = liveIds.slice(i, i + concurrency);
+      if (i > 0) await new Promise(r => setTimeout(r, batchDelay));
+
+      dlog(`[DataProvider] Batch ${Math.floor(i / concurrency) + 1}: [${batch.join(', ')}]`);
+      const results = await Promise.allSettled(batch.map(id => fetchMarket(id, forceLive)));
+
+      if (!mountedRef.current) return;
+      if (fetchGeneration !== fetchGenerationRef.current || effectiveDate !== historicalDateRef.current) {
+        dlog('[DataProvider] Discarding stale live fetch wave.');
+        return;
+      }
+
+      try {
+        setMarkets(prev => {
+          let next = { ...prev };
+          for (const settled of results) {
+            if (settled.status === 'fulfilled') {
+              next = applyResult(next, settled.value);
+            } else {
+              const mid = settled.reason?.marketId;
+              if (mid && next[mid]) {
+                next[mid] = { ...next[mid], isLoading: false, error: next[mid].data ? null : (settled.reason?.message || 'Fetch failed') };
+              }
+            }
+          }
+          // Clear isLoading for this batch even if applyResult path was skipped
+          for (const id of batch) {
+            if (next[id]?.isLoading && next[id]?.data) {
+              next[id] = { ...next[id], isLoading: false };
+            }
+          }
+          return maybeComputeFederated(prev, next);
+        });
+      } catch (err) {
+        console.error('[DataProvider] setMarkets error:', err);
+      }
+
+      for (const settled of results) {
+        if (settled.status === 'fulfilled') {
+          persistToIDB(settled.value);
+          const mid = settled.value.marketId;
+          if (settled.value.ok && hasNonNullData(settled.value.data, mid)) stillEmpty.delete(mid);
+          // Also clear when we got HTTP 200 with any object — panels need the attempt recorded
+          else if (settled.value.ok && settled.value.data && typeof settled.value.data === 'object') {
+            // applyResult may have preserved prior; stillEmpty only for no prior either
+          }
+        }
+      }
+    }
+
+    // Second pass: re-fetch primary tab markets that still have no data.
+    // Concurrent first-wave bursts often hit FRED/Yahoo timeouts; a short
+    // staggered retry recovers most of them without blanking the splash.
+    if (!effectiveDate) {
+      const failedPrimary = PRIMARY_MARKET_IDS.filter(id => stillEmpty.has(id) && MARKET_ENDPOINTS[id]);
+      if (failedPrimary.length) {
+        dlog(`[DataProvider] Retrying ${failedPrimary.length} primary markets without data: [${failedPrimary.join(', ')}]`);
+        for (const id of failedPrimary) {
+          if (!mountedRef.current) break;
+          if (fetchGeneration !== fetchGenerationRef.current) break;
+          await new Promise(r => setTimeout(r, 400));
+          try {
+            // Retry without force first (today's cache), then force live once.
+            let res = await fetchMarket(id, false);
+            if (!res.ok || !hasNonNullData(res.data, id)) {
+              res = await fetchMarket(id, true);
+            }
+            if (!mountedRef.current) break;
+            setMarkets(prev => maybeComputeFederated(prev, applyResult(prev, res)));
+            if (res.ok && hasNonNullData(res.data, id)) stillEmpty.delete(id);
+            if (res.ok) persistToIDB(res);
+          } catch (e) {
+            console.warn(`[DataProvider] retry ${id} failed:`, e?.message || e);
+          }
+        }
+      }
+    }
+
+    dlog('[DataProvider] ✅ All live fetches complete');
+
+    // Stale-while-revalidate: after a cache-first wave, quietly refresh
+    // primary tab markets one-by-one so we don't stampede FRED (120/min).
+    if (!forceLive && !effectiveDate && mountedRef.current) {
+      const gen = fetchGeneration;
+      setTimeout(async () => {
+        if (!mountedRef.current || gen !== fetchGenerationRef.current) return;
+        dlog(`[DataProvider] Background revalidate: ${PRIMARY_MARKET_IDS.length} primary markets`);
+        for (const id of PRIMARY_MARKET_IDS) {
+          if (!mountedRef.current || gen !== fetchGenerationRef.current) break;
+          if (!MARKET_ENDPOINTS[id]) continue;
+          try {
+            const res = await fetchMarket(id, true);
+            if (!mountedRef.current || gen !== fetchGenerationRef.current) break;
+            // applyResult preserves prior data if the live body is empty
+            if (res.ok) {
+              setMarkets(prev => maybeComputeFederated(prev, applyResult(prev, res)));
+              if (hasNonNullData(res.data, id)) persistToIDB(res);
+            }
+          } catch (e) {
+            console.warn(`[DataProvider] bg revalidate ${id}:`, e?.message || e);
+          }
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }, 1500);
+    }
+
+    } catch (err) {
+      console.error('[DataProvider] fetchAllMarkets failed:', err);
+    } finally {
+      completeFetch();
+      setGlobalLoading(false);
+    }
   }, []);
 
   const applySnapshotMode = useCallback(async (date = null) => {
-    const ids = ALL_FETCH_IDS;
-    const modeGeneration = fetchGenerationRef.current;
-    setGlobalLoading(true);
+    if (!date) {
+      setMarkets(prev => {
+        const next = { ...prev };
+        for (const id of ALL_FETCH_IDS) {
+          if (next[id]) next[id] = { ...next[id], isHistorical: false, asOfDate: null };
+        }
+        return next;
+      });
+      return;
+    }
 
+    setGlobalLoading(true);
+    const modeGeneration = fetchGenerationRef.current;
     const rtdbSeeds = await Promise.all(
-      ids.map(async (id) => {
+      ALL_FETCH_IDS.map(async (id) => {
         const seed = await loadFromRTDB(id, date);
         return seed ? { id, seed } : null;
       })
@@ -237,18 +553,13 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const seededIds = new Set(
       rtdbSeeds.filter(Boolean).filter(s => {
         if (!hasNonNullData(s.seed.data, s.id)) return false;
-        if (!passesStructuralGuard(s.id, s.seed.data)) return false;
-        if (needsLiveRepair(s.id, s.seed.data)) {
-          dlog(`[DataProvider] ${s.id} snapshot needs live repair — critical fields null`);
-          return false;
-        }
-        return true;
+        return passesStructuralGuard(s.id, s.seed.data);
       }).map(s => s.id)
     );
 
     setMarkets(prev => {
       const next = { ...prev };
-      for (const id of ids) {
+      for (const id of ALL_FETCH_IDS) {
         if (!next[id]) continue;
         const item = rtdbSeeds.find(s => s?.id === id);
         const hasSeed = item && seededIds.has(id);
@@ -259,10 +570,10 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             ...next[id],
             data: seed.data,
             isLoading: false,
-            isLive: !date,
-            isCurrent: !date,
-            isHistorical: !!date,
-            asOfDate: date || null,
+            isLive: false,
+            isCurrent: false,
+            isHistorical: true,
+            asOfDate: date,
             lastUpdated: fetchedAt,
             fetchedOn: fetchedAt,
             error: null,
@@ -275,7 +586,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
               sources: seed.data?._sources || null,
             }, ...(next[id]?.fetchLog || [])].slice(0, 20),
           };
-        } else if (date) {
+        } else {
           next[id] = {
             ...next[id],
             data: null,
@@ -288,88 +599,115 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             fetchedOn: null,
             error: `No historical snapshot for ${date}`,
           };
-        } else {
-          next[id] = { ...next[id], isLoading: false, isHistorical: false, asOfDate: null };
         }
       }
       return next;
     });
-
     setGlobalLoading(false);
   }, []);
 
-  const refetchAll = useCallback(() => { fetchAllMarkets(); }, [fetchAllMarkets]);
-  const refetchLatestSnapshots = useCallback(() => { fetchAllMarkets(); }, [fetchAllMarkets]);
+  const refetchAll = useCallback(() => fetchAllMarkets(true), [fetchAllMarkets]);
+  const refetchLatestSnapshots = useCallback(() => fetchAllMarkets(true), [fetchAllMarkets]);
 
-  const refetchSingle = useCallback(async (marketId) => {
+  const refetchSingle = useCallback(async (marketId, params = null) => {
     if (FEDERATED_MARKETS[marketId]) {
-      const config = FEDERATED_MARKETS[marketId];
-      const combined = {};
-      let latestFetchedOn = null;
-      for (const ep of config.endpoints) {
-        const mkt = marketsRef.current[ep];
-        if (mkt?.data) {
-          combined[ep] = mkt.data;
-          if (mkt.fetchedOn && (!latestFetchedOn || mkt.fetchedOn > latestFetchedOn)) latestFetchedOn = mkt.fetchedOn;
-        }
-      }
-      if (Object.keys(combined).length === 0) return;
       if (marketId === 'alerts') {
         const alertResult = computeAlerts(marketsRef.current, getDisabledRuleIds());
         setMarkets(prev => ({
           ...prev,
-          [marketId]: { ...prev[marketId], data: alertResult, isLoading: false, isLive: true, lastUpdated: tsNow(), fetchedOn: latestFetchedOn, fetchLog: [{ time: tsNow(), url: 'federated:alerts', status: 200, duration: 0 }, ...(prev[marketId]?.fetchLog || [])].slice(0, 20) },
+          [marketId]: {
+            ...prev[marketId],
+            data: alertResult,
+            isLoading: false,
+            isLive: true,
+            lastUpdated: tsNow(),
+            fetchLog: [{ time: tsNow(), url: 'federated:alerts', status: 200, duration: 0 }, ...(prev[marketId]?.fetchLog || [])].slice(0, 20),
+          },
         }));
       }
       return;
     }
 
-    setMarkets(prev => {
-      const next = { ...prev };
-      next[marketId] = { ...next[marketId], isLoading: true };
-      return next;
-    });
-
-    const seed = await loadFromRTDB(marketId, historicalDateRef.current);
-    setMarkets(prev => {
-      const next = { ...prev };
-      if (seed && hasNonNullData(seed.data, marketId) && passesStructuralGuard(marketId, seed.data)) {
-        const fetchedAt = seed.fetchedAt || tsNow();
-        next[marketId] = {
-          ...next[marketId],
-          data: seed.data,
-          isLoading: false,
-          isLive: seed.isLive,
-          isCurrent: !historicalDateRef.current,
-          lastUpdated: fetchedAt,
-          fetchedOn: fetchedAt,
-          error: null,
-          fetchLog: [{
-            time: fetchedAt,
-            url: `${MARKET_ENDPOINTS[marketId]} (RTDB Snapshot)`,
+    if (historicalDateRef.current) {
+      const seed = await loadFromRTDB(marketId, historicalDateRef.current);
+      setMarkets(prev => {
+        if (seed && hasNonNullData(seed.data, marketId) && passesStructuralGuard(marketId, seed.data)) {
+          return applyResult(prev, {
+            marketId,
+            data: seed.data,
+            ok: true,
             status: 200,
             duration: 0,
             requestId: 'RTDB',
-            sources: seed.data?._sources || null,
-          }, ...(next[marketId]?.fetchLog || [])].slice(0, 20),
+          });
+        }
+        return {
+          ...prev,
+          [marketId]: { ...prev[marketId], isLoading: false, error: 'No RTDB snapshot available' },
         };
-      } else {
-        next[marketId] = {
-          ...next[marketId],
-          isLoading: false,
-          error: 'No RTDB snapshot available',
-        };
-      }
-      return maybeComputeFederated(prev, next);
-    });
+      });
+      return;
+    }
+
+    setMarkets(prev => ({
+      ...prev,
+      [marketId]: { ...prev[marketId], isLoading: true, error: null },
+    }));
+
+    let path = MARKET_ENDPOINTS[marketId];
+    if (!path) {
+      setMarkets(prev => ({
+        ...prev,
+        [marketId]: { ...prev[marketId], isLoading: false, error: `No endpoint for ${marketId}` },
+      }));
+      return;
+    }
+    if (params) {
+      const query = new URLSearchParams(params).toString();
+      path = `${path}?${query}`;
+    } else {
+      path = `${path}${path.includes('?') ? '&' : '?'}refresh=true`;
+    }
+
+    const t0 = performance.now();
+    try {
+      const r = await fetchWithRetry(apiUrl(path), {
+        retries: FETCH_SETTINGS.retries,
+        timeout: FETCH_SETTINGS.timeout,
+        totalTimeout: 60000,
+      });
+      const data = await r.json();
+      const result = {
+        marketId,
+        data,
+        ok: true,
+        status: r.status,
+        duration: Math.round(performance.now() - t0),
+        requestId: r.headers?.get?.('X-Request-Id') || null,
+      };
+      setMarkets(prev => maybeComputeFederated(prev, applyResult(prev, result)));
+      persistToIDB(result);
+    } catch (err) {
+      setMarkets(prev => applyResult(prev, {
+        marketId,
+        data: null,
+        ok: false,
+        status: 0,
+        duration: Math.round(performance.now() - t0),
+        error: err?.message || 'Fetch failed',
+      }));
+    }
   }, []);
 
   const didInitialFetchRef = useRef(false);
   const didObserveHistoricalDateRef = useRef(false);
+
   useEffect(() => {
     if (didInitialFetchRef.current) return;
     didInitialFetchRef.current = true;
-    fetchAllMarkets();
+    // Cache-first: hit /api without ?refresh so today's daily_file is served
+    // immediately (fetchedOn = today). Background revalidate upgrades to live.
+    fetchAllMarkets(ALWAYS_FORCE_LIVE);
   }, [fetchAllMarkets]);
 
   useEffect(() => {
@@ -383,14 +721,16 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       applySnapshotMode(historicalDate);
     } else {
       applySnapshotMode(null);
-      fetchAllMarkets();
+      fetchAllMarkets(true);
     }
   }, [historicalDate, fetchAllMarkets, applySnapshotMode]);
 
   useEffect(() => {
-    if (refreshKey > 0) fetchAllMarkets();
+    if (refreshKey > 0) fetchAllMarkets(true);
   }, [refreshKey, fetchAllMarkets]);
-  useInterval(refetchAll, autoRefresh ? 300000 : null);
+
+  // Auto-refresh every 2 minutes when enabled (was 5 min) so "latest" stays fresher.
+  useInterval(refetchAll, autoRefresh ? 120000 : null);
 
   const saveTimerRef = useRef(null);
   useEffect(() => {
@@ -418,7 +758,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
           }
         }
         localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(slim));
-      } catch {}
+      } catch { /* ignore quota */ }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -437,8 +777,22 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     }
 
     const base = !m
-      ? { data: null, isLoading: false, isLive: false, lastUpdated: null, fetchedOn: null, isCurrent: false, isHistorical: !!historicalDate, asOfDate: historicalDate, error: null, fetchLog: [], refetch: (params) => refetchSingle(marketId, params), provenance: {} }
+      ? {
+          data: null,
+          isLoading: false,
+          isLive: false,
+          lastUpdated: null,
+          fetchedOn: null,
+          isCurrent: false,
+          isHistorical: !!historicalDate,
+          asOfDate: historicalDate,
+          error: null,
+          fetchLog: [],
+          refetch: (params) => refetchSingle(marketId, params),
+          provenance: {},
+        }
       : { ...m, refetch: (params) => refetchSingle(marketId, params) };
+
     if (historicalDate) {
       base.isHistorical = base.isHistorical ?? true;
       base.asOfDate = base.asOfDate || historicalDate;
@@ -470,21 +824,31 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
 
   const auditFreshness = useCallback(() => computeFreshnessReport(markets, new Date()), [markets]);
 
-  const value = React.useMemo(() => ({ 
-    markets, 
-    globalLoading, 
-    getMarket, 
-    refetchAll, 
+  const value = React.useMemo(() => ({
+    markets,
+    globalLoading,
+    getMarket,
+    refetchAll,
     refetchLatestSnapshots,
-    refetchSingle, 
-    auditFreshness, 
-    loadHistorical, 
+    refetchSingle,
+    auditFreshness,
+    loadHistorical,
     listSnapshotDates,
     historicalDate,
     setHistoricalDate,
     isHistorical: !!historicalDate,
-    asOfDate: historicalDate
-  }), [markets, globalLoading, getMarket, refetchAll, refetchLatestSnapshots, refetchSingle, auditFreshness, loadHistorical, listSnapshotDates, historicalDate, setHistoricalDate]);
+    asOfDate: historicalDate,
+  }), [
+    markets,
+    globalLoading,
+    getMarket,
+    refetchAll,
+    refetchLatestSnapshots,
+    refetchSingle,
+    auditFreshness,
+    loadHistorical,
+    historicalDate,
+  ]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }

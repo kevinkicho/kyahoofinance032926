@@ -87,17 +87,28 @@ export function fetchJSON(url, userAgent = DEFAULT_USER_AGENT, extraHeaders = {}
   };
 
   const withRetry = async () => {
-    const delays = [300, 900, 2000];
+    // FRED free tier: 120/min soft limit (we throttle) + occasional 403/429.
+    // Longer backoff on 429 so concurrent market routes don't stampede.
+    const delays = [300, 900, 2000, 5000];
     let lastErr;
     for (let i = 0; i <= delays.length; i++) {
       try { return await withRedirects(); }
       catch (e) {
         lastErr = e;
         const msg = String(e?.message || '');
-        const transient = /HTTP 5\d\d/.test(msg) || /HTTP 403/.test(msg) || /timeout/i.test(msg);
+        const is429 = /HTTP\s*429|rate[\s_-]?limit|too many requests/i.test(msg);
+        const transient =
+          is429 ||
+          /HTTP 5\d\d/.test(msg) ||
+          /HTTP 403/.test(msg) ||
+          /timeout/i.test(msg);
         if (!isFRED || !transient || i === delays.length) throw e;
-        const jitter = Math.floor(Math.random() * 250);
-        await new Promise(r => setTimeout(r, delays[i] + jitter));
+        const base = is429 ? Math.max(delays[i] || 5000, 8000) : delays[i];
+        const jitter = Math.floor(Math.random() * (is429 ? 1500 : 250));
+        if (is429) {
+          console.warn(`[FRED] 429/rate-limit — backoff ${Math.round((base + jitter) / 1000)}s (attempt ${i + 1})`);
+        }
+        await new Promise(r => setTimeout(r, base + jitter));
       }
     }
     throw lastErr;
