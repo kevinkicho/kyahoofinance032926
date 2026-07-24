@@ -1268,7 +1268,7 @@ function InsuranceDashboard({
           <BentoCard
             key="usgs-minerals"
             title="USGS Earthquake Activity (30d)"
-            subtitle={`${usgsCtx.data.eventsCount} M4.5+ events · feed + human-readable times`}
+            subtitle={`${usgsCtx?.data?.eventsCount ?? 0} M4.5+ events · feed + human-readable times`}
             accent="insurance"
             className="ins-bento-card"
             contentClassName="ins-panel-content usgs-eq-host"
@@ -1282,7 +1282,7 @@ function InsuranceDashboard({
           >
             <div className="usgs-eq-panel">
               <div className="usgs-eq-buckets">
-                {usgsCtx.data.magBuckets?.map((b) => (
+                {(usgsCtx?.data?.magBuckets || []).map((b) => (
                   <div key={b.range} className="usgs-eq-bucket">
                     <span className="usgs-eq-bucket-r">{b.range}</span>
                     <span
@@ -1320,7 +1320,7 @@ function InsuranceDashboard({
                     </tr>
                   </thead>
                   <tbody>
-                    {(usgsCtx.data.events || []).slice(0, 20).map((e) => {
+                    {(usgsCtx?.data?.events || []).slice(0, 20).map((e) => {
                       const ms = e.timeMs ?? (e.time ? Date.parse(e.time) : NaN);
                       const d = Number.isFinite(ms) ? new Date(ms) : null;
                       const localStr = d
@@ -1412,7 +1412,7 @@ function InsuranceDashboard({
               </div>
               <div className="usgs-eq-footer">
                 USGS GeoJSON M4.5+ month feed · times shown local + UTC · depth / lat-lon / felt / alert / significance from source
-                {usgsCtx.data.metadata?.generated
+                {usgsCtx?.data?.metadata?.generated
                   ? ` · feed generated ${new Date(usgsCtx.data.metadata.generated).toLocaleString()}`
                   : ''}
               </div>
