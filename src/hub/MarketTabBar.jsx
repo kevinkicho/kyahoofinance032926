@@ -141,7 +141,7 @@ function PanelDropdownItems({ marketId, onJump, panelHealth }) {
   });
 }
 
-export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, onPopout, autoRefresh, onToggleRefresh, onRefresh }) {
+export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, onPopout, autoRefresh, onToggleRefresh, onRefresh, isRefreshing = false }) {
   const { currency, setCurrency } = useCurrency();
   const dataCtx = useDataContext();
   const { addToast } = useToast();
@@ -516,12 +516,14 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
         )}
       </div>
       <button
-        className="hub-refresh-btn"
+        className={`hub-refresh-btn${isRefreshing ? ' is-refreshing' : ''}`}
         onClick={onRefresh}
-        title="Refresh data now"
-        aria-label="Refresh data now"
+        disabled={isRefreshing}
+        title={isRefreshing ? 'Refreshing data…' : 'Refresh data now (force live APIs)'}
+        aria-label={isRefreshing ? 'Refreshing data' : 'Refresh data now'}
+        aria-busy={isRefreshing}
       >
-        ▶
+        {isRefreshing ? '⟳' : '▶'}
       </button>
       <button
         className="hub-refresh-toggle"

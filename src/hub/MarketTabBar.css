@@ -190,10 +190,25 @@
   margin-left: 8px;
   transition: border-color 0.15s, background 0.15s;
   line-height: 1;
+  min-width: 32px;
 }
-.hub-refresh-btn:hover {
+.hub-refresh-btn:hover:not(:disabled) {
   border-color: var(--text-muted);
   background: var(--bg-card);
+}
+.hub-refresh-btn:disabled,
+.hub-refresh-btn.is-refreshing {
+  opacity: 0.85;
+  cursor: wait;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+.hub-refresh-btn.is-refreshing {
+  animation: hub-refresh-spin 0.9s linear infinite;
+}
+@keyframes hub-refresh-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 .hub-refresh-toggle {
   background: none;

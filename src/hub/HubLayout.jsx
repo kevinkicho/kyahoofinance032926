@@ -269,19 +269,24 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
   }, [addToast]);
 
   const handleRefresh = useCallback(async () => {
-    // Local-first: re-fetch all markets from the local Express API.
-    // No Firebase Auth / admin crawl required for localhost production.
+    // Force live re-fetch of every market (?refresh=true). Must await the full
+    // wave — a previous bug resolved immediately while another fetch held the
+    // lock, so the toast said "refreshing" without scheduling new upstream work.
+    if (dataCtx?.isRefreshing) {
+      addToast('Refresh already in progress…', 'info');
+      return;
+    }
     try {
-      addToast('Refreshing all markets from local API…', 'info');
+      addToast('Refreshing all markets from live APIs…', 'info');
       if (dataCtx?.refetchAll) {
         await dataCtx.refetchAll();
-        addToast('Market data refresh started.', 'success');
+        addToast('Market data updated.', 'success');
       } else if (dataCtx?.refetchLatestSnapshots) {
         await dataCtx.refetchLatestSnapshots();
-        addToast('Market data refresh started.', 'success');
+        addToast('Market data updated.', 'success');
       } else {
         setRefreshKey(k => k + 1);
-        addToast('Market data refresh started.', 'success');
+        addToast('Market data refresh queued.', 'success');
       }
     } catch (e) {
       console.error('[HubLayout] Refresh failed:', e);
@@ -358,6 +363,7 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
            autoRefresh={autoRefresh}
            onToggleRefresh={handleToggleRefresh}
            onRefresh={handleRefresh}
+           isRefreshing={!!dataCtx?.isRefreshing}
          />
         <HistoricalModeBanner />
         <main id="main-content" ref={contentRef} role="tabpanel" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>

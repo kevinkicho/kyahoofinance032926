@@ -136,7 +136,7 @@ export function applyResult(prev, result) {
     if (preservePrior) {
       // Keep publishing prior payload for panel-health bus
       try {
-        const nextPrev = { ...prev, [id]: { ...prior, isLoading: false } };
+        const nextPrev = { ...prev, [id]: { ...prior, isLoading: false, isRefreshing: false } };
         publishMarketPayload(id, prior.data, nextPrev);
       } catch { /* ignore */ }
       return {
@@ -144,6 +144,7 @@ export function applyResult(prev, result) {
         [id]: {
           ...prior,
           isLoading: false,
+          isRefreshing: false,
           // Soft warning only — panels keep rendering prior data.
           error: null,
           fetchLog: [{
@@ -162,9 +163,14 @@ export function applyResult(prev, result) {
       [id]: {
         data: keep ? d : null,
         isLoading: false,
+        isRefreshing: false,
         isLive: structuralOk,
-        lastUpdated: keep ? ts : null,
+        // Prefer server lastUpdated, but always stamp client receive time so
+        // a successful ▶ refresh visibly moves "as of" even when the day
+        // bucket (fetchedOn) is unchanged.
+        lastUpdated: keep ? (d?.lastUpdated || ts) : null,
         fetchedOn: keep ? (d?.fetchedOn || null) : null,
+        receivedAt: keep ? tsNow() : prior.receivedAt || null,
         isCurrent,
         // Only hard-error when there is nothing usable for the UI.
         error: keep ? null : 'API returned empty data',
@@ -200,6 +206,7 @@ export function applyResult(prev, result) {
     [id]: {
       ...prior,
       isLoading: false,
+      isRefreshing: false,
       error: prior.data ? null : result.error,
       fetchLog: [{
         time: tsNow(),
@@ -269,10 +276,15 @@ function persistToIDB(result) {
 export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) {
   const [markets, setMarkets] = useState(createInitialMarketState);
   const [globalLoading, setGlobalLoading] = useState(false);
+  // True only while a user-facing force-live wave is running (top-bar ▶).
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [historicalDate, setHistoricalDate] = useState(null);
   const mountedRef = useRef(true);
   const fetchingRef = useRef(false);
-  const pendingFetchRef = useRef(null);
+  /** @type {React.MutableRefObject<Promise<void> | null>} */
+  const fetchPromiseRef = useRef(null);
+  /** coalesce concurrent callers onto one forceLive flag */
+  const pendingForceLiveRef = useRef(false);
   const fetchGenerationRef = useRef(0);
   const marketsRef = useRef(markets);
   const historicalDateRef = useRef(historicalDate);
@@ -286,22 +298,28 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   }, []);
 
   const fetchAllMarkets = useCallback(async (forceLive = true) => {
-    if (fetchingRef.current) {
-      pendingFetchRef.current = { forceLive: pendingFetchRef.current?.forceLive || forceLive };
-      dlog('[DataProvider] Fetch already in progress — queueing follow-up');
+    // Coalesce force-live requests so a click during a cache-first wave still
+    // schedules an upstream refresh, and awaiters wait for real completion.
+    if (forceLive) pendingForceLiveRef.current = true;
+
+    if (fetchingRef.current && fetchPromiseRef.current) {
+      dlog('[DataProvider] Fetch in progress — waiting (forceLive=', !!forceLive, ')');
+      await fetchPromiseRef.current;
+      // Runner drains pendingForceLive; if another click arrived after it
+      // finished but before we resumed, start a new chain below.
+      if (!pendingForceLiveRef.current) return;
+    }
+
+    if (fetchingRef.current && fetchPromiseRef.current) {
+      await fetchPromiseRef.current;
       return;
     }
+
     fetchingRef.current = true;
+    let resolveFetch = () => {};
+    fetchPromiseRef.current = new Promise((r) => { resolveFetch = r; });
 
-    const completeFetch = () => {
-      fetchingRef.current = false;
-      const pending = pendingFetchRef.current;
-      pendingFetchRef.current = null;
-      if (pending) {
-        setTimeout(() => fetchAllMarkets(pending.forceLive), 0);
-      }
-    };
-
+    const runWave = async (waveForceLive) => {
     // Tab markets first (panels the user sees), then auxiliary deps.
     const primarySet = new Set(PRIMARY_MARKET_IDS);
     const ids = [
@@ -311,10 +329,12 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     const effectiveDate = historicalDateRef.current;
     const fetchGeneration = fetchGenerationRef.current;
     // Cache-first waves are cheap — fetch more in parallel so panels fill fast.
-    const concurrency = forceLive ? FETCH_SETTINGS.batchConcurrency : Math.max(FETCH_SETTINGS.batchConcurrency, 8);
-    const batchDelay = forceLive ? FETCH_SETTINGS.batchDelayMs : 100;
+    const concurrency = waveForceLive ? FETCH_SETTINGS.batchConcurrency : Math.max(FETCH_SETTINGS.batchConcurrency, 8);
+    const batchDelay = waveForceLive ? FETCH_SETTINGS.batchDelayMs : 100;
+    const forceLive = waveForceLive;
 
     setGlobalLoading(true);
+    if (forceLive) setIsRefreshing(true);
 
     try {
 
@@ -399,13 +419,16 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       ? ids
       : ids.filter(id => !seededIds.has(id));
 
-    // Only flip isLoading for markets that still have nothing to show —
-    // avoids blanking every tab skeleton while later batches finish.
+    // Empty markets: show skeleton. Force-live (▶ refresh): soft-refresh flag
+    // so footers can show "refreshing" without blanking existing panel data.
     setMarkets(prev => {
       const next = { ...prev };
       for (const id of liveIds) {
-        if (MARKET_ENDPOINTS[id] && !next[id]?.data) {
-          next[id] = { ...next[id], isLoading: true, error: null };
+        if (!MARKET_ENDPOINTS[id]) continue;
+        if (!next[id]?.data) {
+          next[id] = { ...next[id], isLoading: true, isRefreshing: !!forceLive, error: null };
+        } else if (forceLive) {
+          next[id] = { ...next[id], isRefreshing: true, error: null };
         }
       }
       return next;
@@ -438,14 +461,19 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
             } else {
               const mid = settled.reason?.marketId;
               if (mid && next[mid]) {
-                next[mid] = { ...next[mid], isLoading: false, error: next[mid].data ? null : (settled.reason?.message || 'Fetch failed') };
+                next[mid] = {
+                  ...next[mid],
+                  isLoading: false,
+                  isRefreshing: false,
+                  error: next[mid].data ? null : (settled.reason?.message || 'Fetch failed'),
+                };
               }
             }
           }
-          // Clear isLoading for this batch even if applyResult path was skipped
+          // Clear loading/refreshing for this batch
           for (const id of batch) {
-            if (next[id]?.isLoading && next[id]?.data) {
-              next[id] = { ...next[id], isLoading: false };
+            if (next[id] && (next[id].isLoading || next[id].isRefreshing)) {
+              next[id] = { ...next[id], isLoading: false, isRefreshing: false };
             }
           }
           return maybeComputeFederated(prev, next);
@@ -526,8 +554,41 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     } catch (err) {
       console.error('[DataProvider] fetchAllMarkets failed:', err);
     } finally {
-      completeFetch();
       setGlobalLoading(false);
+      if (forceLive) setIsRefreshing(false);
+      // Clear any leftover soft-refresh flags if a wave was aborted mid-batch
+      setMarkets(prev => {
+        let changed = false;
+        const next = { ...prev };
+        for (const id of Object.keys(next)) {
+          if (next[id]?.isRefreshing) {
+            next[id] = { ...next[id], isRefreshing: false, isLoading: false };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }
+    }; // end runWave
+
+    try {
+      // Drain coalesced force-live clicks. First pass uses pending flag
+      // (set above when forceLive=true) or runs a cache-first wave when idle.
+      do {
+        const live = pendingForceLiveRef.current;
+        pendingForceLiveRef.current = false;
+        // If nothing pending and this is the first call with forceLive=false
+        // (initial load), live is false → cache-first. If user clicked refresh,
+        // pending was true → live true.
+        await runWave(live);
+      } while (pendingForceLiveRef.current && mountedRef.current);
+    } finally {
+      fetchingRef.current = false;
+      const done = resolveFetch;
+      fetchPromiseRef.current = null;
+      setGlobalLoading(false);
+      setIsRefreshing(false);
+      done();
     }
   }, []);
 
@@ -720,7 +781,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       return;
     }
     fetchGenerationRef.current += 1;
-    pendingFetchRef.current = null;
+    pendingForceLiveRef.current = false;
     if (historicalDate) {
       applySnapshotMode(historicalDate);
     } else {
@@ -831,6 +892,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   const value = React.useMemo(() => ({
     markets,
     globalLoading,
+    isRefreshing,
     getMarket,
     refetchAll,
     refetchLatestSnapshots,
@@ -845,6 +907,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
   }), [
     markets,
     globalLoading,
+    isRefreshing,
     getMarket,
     refetchAll,
     refetchLatestSnapshots,
