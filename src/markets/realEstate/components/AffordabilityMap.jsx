@@ -12,9 +12,10 @@ function ptiColor(pti) {
 }
 
 function buildHistoryOption(history, colors) {
-  const dates = history.map(h => h.date.slice(0, 7));
-  const prices = history.map(h => h.medianPrice / 1000);
-  const ptis = history.map(h => h.priceToIncome);
+  const rows = Array.isArray(history) ? history : [];
+  const dates = rows.map(h => (h?.date != null ? String(h.date).slice(0, 7) : '—'));
+  const prices = rows.map(h => (h?.medianPrice != null ? h.medianPrice / 1000 : null));
+  const ptis = rows.map(h => h?.priceToIncome ?? null);
   return {
     animation: false, backgroundColor: 'transparent',
     tooltip: {
@@ -42,6 +43,8 @@ function buildHistoryOption(history, colors) {
 }
 
 function buildMedianPriceOption(medianHomePrice, colors) {
+  const dates = medianHomePrice?.dates || [];
+  const values = medianHomePrice?.values || [];
   return {
     animation: false, backgroundColor: 'transparent',
     tooltip: {
@@ -52,8 +55,8 @@ function buildMedianPriceOption(medianHomePrice, colors) {
     },
     grid: { top: 8, right: 16, bottom: 24, left: 8, containLabel: true },
     xAxis: {
-      type: 'category', data: medianHomePrice.dates,
-      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(medianHomePrice.dates.length / 6) },
+      type: 'category', data: dates,
+      axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(1, Math.floor(dates.length / 6)) },
       axisLine: { lineStyle: { color: colors.cardBg } },
     },
     yAxis: {
@@ -62,7 +65,7 @@ function buildMedianPriceOption(medianHomePrice, colors) {
       splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [{
-      type: 'line', data: medianHomePrice.values, symbol: 'none',
+      type: 'line', data: values, symbol: 'none',
       lineStyle: { color: '#34d399', width: 2 },
       areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(52,211,153,0.25)' }, { offset: 1, color: 'rgba(52,211,153,0)' }] } },
     }],
@@ -70,7 +73,7 @@ function buildMedianPriceOption(medianHomePrice, colors) {
 }
 
 function buildSupplyOption(supplyData, colors) {
-  const dates = supplyData.housingStarts.dates;
+  const dates = supplyData?.housingStarts?.dates || [];
   return {
     animation: false, backgroundColor: 'transparent',
     tooltip: {
@@ -91,8 +94,8 @@ function buildSupplyOption(supplyData, colors) {
       splitLine: { lineStyle: { color: colors.cardBg } },
     },
     series: [
-      { name: 'Housing Starts', type: 'line', data: supplyData.housingStarts.values, symbol: 'none', lineStyle: { color: '#60a5fa', width: 2 }, itemStyle: { color: '#60a5fa' } },
-      { name: 'Building Permits', type: 'line', data: supplyData.permits.values, symbol: 'none', lineStyle: { color: '#a78bfa', width: 2 }, itemStyle: { color: '#a78bfa' } },
+      { name: 'Housing Starts', type: 'line', data: supplyData?.housingStarts?.values || [], symbol: 'none', lineStyle: { color: '#60a5fa', width: 2 }, itemStyle: { color: '#60a5fa' } },
+      { name: 'Building Permits', type: 'line', data: supplyData?.permits?.values || [], symbol: 'none', lineStyle: { color: '#a78bfa', width: 2 }, itemStyle: { color: '#a78bfa' } },
     ],
   };
 }
@@ -115,18 +118,18 @@ export default function AffordabilityMap({ affordabilityData, mortgageRates, sup
         <span className="re-panel-subtitle">FRED · Median home price vs median household income + supply indicators</span>
       </div>
 
-      {mortgageRates && (
+      {mortgageRates && (mortgageRates.rate30y != null || mortgageRates.rate15y != null) && (
         <div className="afford-mortgage-banner">
           <div className="afford-mortgage-item">
             <span className="afford-mortgage-label">30-Year Fixed</span>
-            <span className="afford-mortgage-rate">{mortgageRates.rate30y.toFixed(2)}%</span>
+            <span className="afford-mortgage-rate">{mortgageRates.rate30y != null ? `${Number(mortgageRates.rate30y).toFixed(2)}%` : '—'}</span>
           </div>
           <div className="afford-mortgage-divider" />
           <div className="afford-mortgage-item">
             <span className="afford-mortgage-label">15-Year Fixed</span>
-            <span className="afford-mortgage-rate">{mortgageRates.rate15y.toFixed(2)}%</span>
+            <span className="afford-mortgage-rate">{mortgageRates.rate15y != null ? `${Number(mortgageRates.rate15y).toFixed(2)}%` : '—'}</span>
           </div>
-          <span className="afford-mortgage-source">FRED · as of {mortgageRates.asOf}</span>
+          <span className="afford-mortgage-source">FRED · as of {mortgageRates.asOf || '—'}</span>
         </div>
       )}
 

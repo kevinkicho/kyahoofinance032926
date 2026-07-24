@@ -819,7 +819,7 @@ function RealEstateDashboard({
             error={error}
           >
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
-              {reitData.slice(0, 8).map((r, i) => (
+              {(Array.isArray(reitData) ? reitData : []).slice(0, 8).map((r, i) => (
                 <div key={i} className="re-mini-row">
                   <span className="re-mini-name">{r.symbol}</span>
                   <span className="re-mini-value" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
@@ -827,6 +827,11 @@ function RealEstateDashboard({
                   </span>
                 </div>
               ))}
+              {!Array.isArray(reitData) || reitData.length === 0 ? (
+                <div className="re-mini-row" style={{ opacity: 0.7 }}>
+                  <span className="re-mini-name">No REIT performance rows yet</span>
+                </div>
+              ) : null}
             </div>
           </BentoCard>
         )}
@@ -905,12 +910,17 @@ function RealEstateDashboard({
             error={error}
           >
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
-              {capRateData.slice(0, 8).map((c, i) => (
+              {(Array.isArray(capRateData) ? capRateData : []).slice(0, 8).map((c, i) => (
                 <div key={i} className="re-mini-row">
                   <span className="re-mini-name">{c.sector}</span>
                   <span className="re-mini-value"><MetricValue value={c.impliedYieldPct ?? c.impliedYield ?? c.capRate} seriesKey="capRate" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toFixed(2)}%` : '—'} /></span>
                 </div>
               ))}
+              {!Array.isArray(capRateData) || capRateData.length === 0 ? (
+                <div className="re-mini-row" style={{ opacity: 0.7 }}>
+                  <span className="re-mini-name">No cap rate rows yet</span>
+                </div>
+              ) : null}
             </div>
           </BentoCard>
         )}
@@ -933,10 +943,18 @@ function RealEstateDashboard({
           >
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
               {(() => {
-                const cur = affordabilityData.current;
+                const cur = affordabilityData?.current;
                 if (!cur) {
                   // Fallback: show history-derived rows
-                  return (affordabilityData.history || []).slice(-8).map((h, i) => (
+                  const hist = (affordabilityData?.history || []).slice(-8);
+                  if (!hist.length) {
+                    return (
+                      <div className="re-mini-row" style={{ opacity: 0.7 }}>
+                        <span className="re-mini-name">No affordability data yet</span>
+                      </div>
+                    );
+                  }
+                  return hist.map((h, i) => (
                     <div key={i} className="re-mini-row">
                       <span className="re-mini-name">{h.date?.slice(0, 7) || `Period ${i+1}`}</span>
                       <span className="re-mini-value" style={{ color: h.priceToIncome > 5 ? '#f87171' : h.priceToIncome > 3.5 ? '#fbbf24' : '#4ade80' }}>
@@ -985,8 +1003,9 @@ function RealEstateDashboard({
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
               {(() => {
                 const rows = [];
-                const startsVals = supplyData.housingStarts?.values || [];
-                const permitsVals = supplyData.permits?.values || [];
+                const sd = supplyData || {};
+                const startsVals = sd.housingStarts?.values || [];
+                const permitsVals = sd.permits?.values || [];
                 if (startsVals.length > 0) {
                   const latest = startsVals.at(-1);
                   const prev = startsVals.at(-2);
@@ -999,11 +1018,18 @@ function RealEstateDashboard({
                   const trend = prev != null ? (latest > prev ? 'up' : latest < prev ? 'down' : 'flat') : 'flat';
                   rows.push({ metric: 'Building Permits', value: latest, trend, fmt: v => `${v != null ? v.toLocaleString() : '—'}` });
                 }
-                if (supplyData.monthsSupply != null) {
-                  rows.push({ metric: "Months' Supply", value: supplyData.monthsSupply, trend: 'flat', fmt: v => `${v.toFixed(1)} mo` });
+                if (sd.monthsSupply != null) {
+                  rows.push({ metric: "Months' Supply", value: sd.monthsSupply, trend: 'flat', fmt: v => `${v.toFixed(1)} mo` });
                 }
-                if (supplyData.activeListings != null) {
-                  rows.push({ metric: 'Active Listings', value: supplyData.activeListings, trend: 'flat', fmt: v => `${v.toLocaleString()}` });
+                if (sd.activeListings != null) {
+                  rows.push({ metric: 'Active Listings', value: sd.activeListings, trend: 'flat', fmt: v => `${v.toLocaleString()}` });
+                }
+                if (!rows.length) {
+                  return (
+                    <div className="re-mini-row" style={{ opacity: 0.7 }}>
+                      <span className="re-mini-name">No supply metrics yet</span>
+                    </div>
+                  );
                 }
                 return rows.slice(0, 8).map((s, i) => (
                   <div key={i} className="re-mini-row">
