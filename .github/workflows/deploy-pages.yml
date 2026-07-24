@@ -35,6 +35,9 @@ jobs:
 
       - name: Build
         env:
+          # GitHub Pages project site lives at /kyahoofinance032926/
+          GITHUB_PAGES: 'true'
+          VITE_BASE_PATH: /kyahoofinance032926/
           # Set this in the repo under Settings → Secrets and variables → Actions → Variables
           # Name: VITE_API_BASE_URL
           # Value: the root of your Firebase Functions deployment, e.g.

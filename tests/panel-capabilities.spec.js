@@ -16,7 +16,7 @@ const routing = JSON.parse(
   fs.readFileSync(path.join(process.cwd(), 'shared', 'api-routing.json'), 'utf8')
 );
 
-const BASE = '/kyahoofinance032926/';
+const BASE = process.env.VITE_BASE_PATH || '/';
 
 // Markets that should show real dashboard panels after load
 const CAPABILITY_TABS = [

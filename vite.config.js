@@ -76,8 +76,13 @@ function buildProxyConfig() {
   };
 }
 
+// GitHub Pages is served under /kyahoofinance032926/; App Hosting and local
+// serve from the site root. Override with VITE_BASE_PATH when needed.
+const basePath = process.env.VITE_BASE_PATH
+  || (process.env.GITHUB_PAGES === 'true' ? '/kyahoofinance032926/' : '/');
+
 export default defineConfig({
-  base: '/kyahoofinance032926/',
+  base: basePath,
   plugins: [
     react(),
     macroApiPlugin(),

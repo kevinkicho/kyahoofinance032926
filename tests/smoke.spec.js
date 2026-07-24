@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 
-const BASE = '/kyahoofinance032926/';
+// Match Vite base: root for local/App Hosting; GH Pages sets VITE_BASE_PATH.
+const BASE = process.env.VITE_BASE_PATH || '/';
 
 const MARKETS = [
   { id: 'equities',         label: 'Equities' },
