@@ -463,6 +463,34 @@ server = app.listen(port, host, () => {
   } catch (e) {
     console.warn('[WS/FX] start failed (non-fatal):', e?.message || e);
   }
+
+  // Warm primary tab markets in the background so the first browser wave hits
+  // daily disk/memory cache instead of racing cold FRED/Yahoo timeouts.
+  // Staggered to stay under FRED 120/min; non-blocking for listen health.
+  const WARM_MARKETS = [
+    'bonds', 'derivatives', 'realEstate', 'insurance', 'commodities',
+    'globalMacro', 'equityDeepDive', 'crypto', 'credit', 'sentiment',
+    'calendar', 'fx', 'macro',
+  ];
+  setTimeout(() => {
+    const base = `http://127.0.0.1:${actualPort}`;
+    console.log(`[warmup] Starting background cache warm for ${WARM_MARKETS.length} markets…`);
+    (async () => {
+      for (const m of WARM_MARKETS) {
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 120000);
+          const r = await fetch(`${base}/api/${m}`, { signal: ctrl.signal });
+          clearTimeout(t);
+          console.log(`[warmup] ${m} → ${r.status}`);
+        } catch (e) {
+          console.warn(`[warmup] ${m} failed:`, e?.message || e);
+        }
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      console.log('[warmup] Complete');
+    })().catch((e) => console.warn('[warmup] aborted:', e?.message || e));
+  }, 2000);
 });
 
 server.on('error', (err) => {

@@ -22,10 +22,12 @@ scripts:
 runConfig:
   runtime: nodejs24
   # Dashboard cold-start loads many routes; give the container room.
+  # minInstances: 1 keeps one warm container so ephemeral disk cache survives
+  # between visitors (minInstances: 0 wiped cache and left panels hollow).
   cpu: 1
   memoryMiB: 1024
   maxInstances: 10
-  minInstances: 0
+  minInstances: 1
   concurrency: 80
 
 env:

@@ -215,7 +215,9 @@ router.get('/', makeCachedRouteHandler({
   marketName: 'realEstate',
   cacheKey: 'realestate_data',
   cacheTtl: 900,
-  timeoutMs: 25000,
+  // Cold Cloud Run + ~40 BIS FRED series + Yahoo REITs regularly exceeds 25s.
+  // Allow enough time to finish and write daily cache for subsequent requests.
+  timeoutMs: 90000,
   fetchDataFn: async (req, _errors) => {
     const HUD_API_KEY = process.env.HUD_API_KEY || '';
     const CENSUS_API_KEY = process.env.CENSUS_API_KEY || '';
@@ -260,28 +262,33 @@ router.get('/', makeCachedRouteHandler({
     let priceIndexData = null;
     if (FRED_API_KEY) {
       try {
-        // Sequential + light delay: ~40 FRED series in parallel often 429.
+        // Parallel batches (not fully sequential): ~45 series one-by-one
+        // routinely blows the route budget under concurrent dashboard load.
         const collected = {};
         const entries = Object.entries(BIS_SERIES);
-        for (let i = 0; i < entries.length; i++) {
-          const [cc, sid] = entries[i];
-          try {
+        const BIS_BATCH = 8;
+        for (let i = 0; i < entries.length; i += BIS_BATCH) {
+          const chunk = entries.slice(i, i + BIS_BATCH);
+          const results = await Promise.allSettled(chunk.map(async ([cc, sid]) => {
             trackApiCall('FRED');
             const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${sid}&api_key=${FRED_API_KEY}&file_type=json&sort_order=asc&observation_start=2015-01-01`;
             const data = await fetchJSON(url);
             const obs = (data?.observations || []).filter((o) => o.value !== '.');
-            if (!obs.length) continue;
+            if (!obs.length) return null;
             const base = parseFloat(obs[0].value);
-            if (!base || Number.isNaN(base)) continue;
-            collected[cc] = obs.map((o) => ({
+            if (!base || Number.isNaN(base)) return null;
+            return [cc, obs.map((o) => ({
               label: bisQuarterLabel(o.date),
               value: Math.round((parseFloat(o.value) / base) * 100 * 10) / 10,
-            }));
-          } catch {
-            /* skip missing / rate-limited series */
+            }))];
+          }));
+          for (const r of results) {
+            if (r.status === 'fulfilled' && r.value) {
+              collected[r.value[0]] = r.value[1];
+            }
           }
-          if (i < entries.length - 1) {
-            await new Promise((r) => setTimeout(r, 60));
+          if (i + BIS_BATCH < entries.length) {
+            await new Promise((r) => setTimeout(r, 80));
           }
         }
 

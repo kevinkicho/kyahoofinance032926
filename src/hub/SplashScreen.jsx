@@ -189,9 +189,10 @@ function SplashScreenInner({ onReady }) {
     if (panels) setReadyToEnter(true);
   }, [allLoaded, reportsByMarket, scanTick]);
 
-  // Soft timeout: allow Enter even if some panels never mount
+  // Soft timeout: allow Enter even if some panels never mount.
+  // Hosted cold waves (FRED/Yahoo) often need 60–90s before primary tabs fill.
   useEffect(() => {
-    const id = setTimeout(() => setReadyToEnter(true), 45000);
+    const id = setTimeout(() => setReadyToEnter(true), 120000);
     return () => clearTimeout(id);
   }, []);
 

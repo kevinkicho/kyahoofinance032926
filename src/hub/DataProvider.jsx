@@ -28,11 +28,15 @@ export { passesStructuralGuard, STRUCTURAL_GUARDS, hasNonNullData, needsLiveRepa
 
 const dlog = import.meta.env.DEV ? console.log.bind(console) : () => {};
 
+// Hosted cold starts: realEstate/insurance/bonds often need 30–90s before
+// daily disk cache exists. Per-attempt budget must exceed those routes;
+// totalTimeout must cover one retry without aborting mid-flight.
 const FETCH_SETTINGS = {
-  timeout: 60000,
-  retries: 2,
-  batchConcurrency: 3,
-  batchDelayMs: 500,
+  timeout: 120000,
+  retries: 1,
+  batchConcurrency: 4,
+  batchDelayMs: 250,
+  totalTimeout: 180000,
 };
 
 // Cache-first by default: serve today's server disk cache (fetchedOn=today)
@@ -80,7 +84,7 @@ async function fetchMarket(marketId, forceLive = false) {
     const r = await fetchWithRetry(url, {
       retries: FETCH_SETTINGS.retries,
       timeout: FETCH_SETTINGS.timeout,
-      totalTimeout: 90000,
+      totalTimeout: FETCH_SETTINGS.totalTimeout,
       headers: live ? { 'X-Cache-Bypass': '1' } : undefined,
     });
     const data = await r.json();
@@ -674,7 +678,7 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
       const r = await fetchWithRetry(apiUrl(path), {
         retries: FETCH_SETTINGS.retries,
         timeout: FETCH_SETTINGS.timeout,
-        totalTimeout: 60000,
+        totalTimeout: FETCH_SETTINGS.totalTimeout,
       });
       const data = await r.json();
       const result = {
