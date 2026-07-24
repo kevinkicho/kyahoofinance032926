@@ -331,22 +331,22 @@ function CryptoDashboard({
           </BentoCard>
         )}
 
-        {/* Top Exchanges */}
-        {topExchanges?.length > 0 && (
-          <BentoCard
-            key="exchanges"
-            title="Top Exchanges"
-            accent="crypto"
-            className="crypto-bento-card"
-            contentClassName="crypto-panel-scroll"
-            source="CoinGecko"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        {/* Top Exchanges — always mounted for panel health / layout contract */}
+        <BentoCard
+          key="exchanges"
+          title="Top Exchanges"
+          accent="crypto"
+          className="crypto-bento-card"
+          contentClassName="crypto-panel-scroll"
+          source="CoinGecko"
+          timestamp={lastUpdated}
+          isLive={isLive}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          {topExchanges?.length > 0 ? (
             <div className="crypto-mini-table">
               {topExchanges.slice(0, 6).map((e) => (
                 <div key={e.name || e.id} className="crypto-mini-row">
@@ -355,8 +355,10 @@ function CryptoDashboard({
                 </div>
               ))}
             </div>
-          </BentoCard>
-        )}
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Exchange volume loading…</div>
+          )}
+        </BentoCard>
 
         {/* On-Chain Metrics */}
         {onChainData && (

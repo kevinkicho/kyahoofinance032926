@@ -224,22 +224,55 @@ router.get('/', async (req, res) => {
 
     let volPremium = null;
     try {
-      const atm1mIV = volSurfaceData?.grid?.[2]?.[4] ?? null;
-      if (atm1mIV != null) trackApiCall('Yahoo Finance');
-      const spyHistVol = atm1mIV != null ? await yf.historical('^GSPC', {
-        period1: (() => { const d = new Date(); d.setDate(d.getDate() - 45); return d.toISOString().split('T')[0]; })(),
+      // Prefer ATM 1M IV from vol surface (row index 2 ≈ 1M, col 4 = 100% strike).
+      // Yahoo often returns junk/near-zero IVs — walk nearby cells, then fall
+      // back to spot VIX as an implied-vol proxy so the panel never stays empty.
+      const grid = volSurfaceData?.grid;
+      let atm1mIV = null;
+      if (Array.isArray(grid)) {
+        const candidates = [];
+        for (const ri of [2, 1, 3, 0, 4]) {
+          const row = grid[ri];
+          if (!Array.isArray(row)) continue;
+          for (const ci of [4, 3, 5, 2, 6]) {
+            const v = row[ci];
+            if (typeof v === 'number' && v > 5 && v < 120) candidates.push(v);
+          }
+        }
+        if (candidates.length) atm1mIV = candidates[0];
+      }
+      if (atm1mIV == null) {
+        const vixSpot = bySym['^VIX']?.regularMarketPrice
+          ?? vixTermStructure?.values?.[1]
+          ?? vixTermStructure?.values?.[0]
+          ?? null;
+        if (vixSpot != null && vixSpot > 5) atm1mIV = Math.round(vixSpot * 10) / 10;
+      }
+
+      trackApiCall('Yahoo Finance');
+      const spyHistVol = await yf.historical('^GSPC', {
+        period1: (() => { const d = new Date(); d.setDate(d.getDate() - 50); return d.toISOString().split('T')[0]; })(),
         period2: new Date().toISOString().split('T')[0],
         interval: '1d',
-      }).catch(e => { console.warn('[Derivatives]', e.message || e); return []; }) : [];
-      const spyClosesCache = spyHistVol.map(d => d.close).filter(Boolean);
-      if (atm1mIV != null && spyClosesCache.length >= 31) {
+      }).catch(e => { console.warn('[Derivatives]', e.message || e); return []; });
+      const spyClosesCache = (spyHistVol || []).map(d => d.close).filter(Boolean);
+      if (atm1mIV != null && spyClosesCache.length >= 20) {
         const recentCloses = spyClosesCache.slice(-31);
         const logReturns = recentCloses.slice(1).map((c, i) => Math.log(c / recentCloses[i]));
-        const mean = logReturns.reduce((s, v) => s + v, 0) / logReturns.length;
-        const variance = logReturns.reduce((s, v) => s + (v - mean) ** 2, 0) / (logReturns.length - 1);
-        const realizedVol30d = Math.round(Math.sqrt(variance * 252) * 100 * 10) / 10;
-        const premium = Math.round((atm1mIV - realizedVol30d) * 10) / 10;
-        volPremium = { atm1mIV, realizedVol30d, premium };
+        if (logReturns.length >= 10) {
+          const mean = logReturns.reduce((s, v) => s + v, 0) / logReturns.length;
+          const variance = logReturns.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, logReturns.length - 1);
+          const realizedVol30d = Math.round(Math.sqrt(variance * 252) * 100 * 10) / 10;
+          const premium = Math.round((atm1mIV - realizedVol30d) * 10) / 10;
+          const surfaceHit = Array.isArray(grid)
+            && grid.flat().some((v) => typeof v === 'number' && Math.abs(v - atm1mIV) < 0.05);
+          volPremium = {
+            atm1mIV,
+            realizedVol30d,
+            premium,
+            _source: surfaceHit ? 'vol_surface' : 'vix_proxy',
+          };
+        }
       }
     } catch (e) { console.warn('[Derivatives]', e.message || e); _errors.volPremium = e.message; }
 
