@@ -1107,26 +1107,34 @@ function RealEstateDashboard({
         {true && (
           <BentoCard key="fhfa-hpi" title="FHFA House Price Index" accent="realEstate" className="re-bento-card" contentClassName="re-panel-content" source="FHFA (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <div style={{ height: '100%', minHeight: 0, padding: 8 }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 8 }}>
-                <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
-                  <MetricValue value={fhfaHpi.latest?.value} seriesKey="fhfaHpi" timestamp={fhfaHpi.latest?.date} format={v => v?.toFixed(1)} />
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)' }}>index · {fhfaHpi.latest?.date}</span>
-              </div>
-              <div style={{ height: 'calc(100% - 40px)', minHeight: 0 }}>
-                <SafeECharts
-                  option={{
-                    animation: false, backgroundColor: 'transparent',
-                    grid: { left: 40, right: 8, top: 8, bottom: 20 },
-                    xAxis: { type: 'category', data: fhfaHpi.dates, axisLabel: { fontSize: 9, color: '#888', interval: Math.floor(fhfaHpi.dates.length / 4) } },
-                    yAxis: { type: 'value', axisLabel: { fontSize: 9, color: '#888' }, splitLine: { lineStyle: { color: '#222' } } },
-                    tooltip: { trigger: 'axis' },
-                    series: [{ type: 'line', data: fhfaHpi.values, smooth: true, symbol: 'none', lineStyle: { color: '#42a5f5', width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#42a5f540' }, { offset: 1, color: '#42a5f505' }] } } }],
-                  }}
-                  style={{ height: '100%', width: '100%' }}
-                  sourceInfo={{ title: 'FHFA House Price Index', source: 'FHFA (via FRED)', endpoint: '/api/realEstate', series: [] }}
-                />
-              </div>
+              {fhfaHpi?.dates?.length ? (
+                <>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 8 }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
+                      <MetricValue value={fhfaHpi.latest?.value} seriesKey="fhfaHpi" timestamp={fhfaHpi.latest?.date} format={v => v?.toFixed(1)} />
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)' }}>index · {fhfaHpi.latest?.date || '—'}</span>
+                  </div>
+                  <div style={{ height: 'calc(100% - 40px)', minHeight: 0 }}>
+                    <SafeECharts
+                      option={{
+                        animation: false, backgroundColor: 'transparent',
+                        grid: { left: 40, right: 8, top: 8, bottom: 20 },
+                        xAxis: { type: 'category', data: fhfaHpi.dates || [], axisLabel: { fontSize: 9, color: '#888', interval: Math.max(1, Math.floor((fhfaHpi.dates?.length || 1) / 4)) } },
+                        yAxis: { type: 'value', axisLabel: { fontSize: 9, color: '#888' }, splitLine: { lineStyle: { color: '#222' } } },
+                        tooltip: { trigger: 'axis' },
+                        series: [{ type: 'line', data: fhfaHpi.values || [], smooth: true, symbol: 'none', lineStyle: { color: '#42a5f5', width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#42a5f540' }, { offset: 1, color: '#42a5f505' }] } } }],
+                      }}
+                      style={{ height: '100%', width: '100%' }}
+                      sourceInfo={{ title: 'FHFA House Price Index', source: 'FHFA (via FRED)', endpoint: '/api/realEstate', series: [] }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: 12, color: 'var(--text-muted, #888)', fontSize: 12 }}>
+                  FHFA HPI unavailable — FRED series not loaded yet.
+                </div>
+              )}
             </div>
           </BentoCard>
         )}

@@ -8,13 +8,15 @@ export default function MetroCaseShillerPanel() {
   const caseShillerData = data.caseShillerData;
 
   const metros = useMemo(() => {
-    if (!caseShillerData?.metros) return [];
-    return Object.entries(caseShillerData.metros).map(([name, info]) => ({
-      name,
-      latest: info.latest,
-      yoy: info.yoy,
-      seriesKey: name === 'San Francisco' ? 'caseShillerSF' : name === 'New York' ? 'caseShillerNY' : name === 'Los Angeles' ? 'caseShillerLA' : name === 'Miami' ? 'caseShillerMiami' : name === 'Chicago' ? 'caseShillerChicago' : 'caseShiller',
-    }));
+    if (!caseShillerData?.metros || typeof caseShillerData.metros !== 'object') return [];
+    return Object.entries(caseShillerData.metros)
+      .filter(([, info]) => info && typeof info === 'object')
+      .map(([name, info]) => ({
+        name,
+        latest: info.latest ?? null,
+        yoy: info.yoy ?? null,
+        seriesKey: name === 'San Francisco' ? 'caseShillerSF' : name === 'New York' ? 'caseShillerNY' : name === 'Los Angeles' ? 'caseShillerLA' : name === 'Miami' ? 'caseShillerMiami' : name === 'Chicago' ? 'caseShillerChicago' : 'caseShiller',
+      }));
   }, [caseShillerData]);
 
   if (!metros.length) {
