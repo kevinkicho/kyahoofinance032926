@@ -237,11 +237,16 @@ if (fs.existsSync(distPath)) {
   // Hashed build assets are immutable; index.html must revalidate so deploys
   // don't leave browsers stuck requesting old /assets/* hashes that no longer
   // exist (those would hit the SPA fallback and return text/html → MIME errors).
-  app.use('/assets', express.static(path.join(distPath, 'assets'), {
+  const assetsDir = path.join(distPath, 'assets');
+  app.use('/assets', express.static(assetsDir, {
     maxAge: '1y',
     immutable: true,
-    fallthrough: false, // 404 instead of falling through to index.html
+    fallthrough: true,
   }));
+  // Missing hashed files → plain 404 (not index.html, not error middleware 500).
+  app.use('/assets', (req, res) => {
+    res.status(404).type('text/plain').send(`Not found: ${req.originalUrl}`);
+  });
   app.use(express.static(distPath, {
     index: false,
     setHeaders: (res, filePath) => {
