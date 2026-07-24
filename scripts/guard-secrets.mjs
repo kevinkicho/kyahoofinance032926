@@ -14,6 +14,14 @@ const checks = [
     name: 'Firebase/Google API key',
     pattern: /AIza[0-9A-Za-z_-]{30,}/g,
   },
+  {
+    name: 'Firebase service-account private key PEM',
+    pattern: /-----BEGIN PRIVATE KEY-----/g,
+  },
+  {
+    name: 'Firebase service-account private_key field',
+    pattern: /"private_key"\s*:\s*"-----BEGIN/g,
+  },
 ];
 
 const findings = [];

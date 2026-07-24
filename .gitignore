@@ -33,6 +33,14 @@ lerna-debug.log*
 .env.local
 .env.*.local
 
+# Firebase / GCP service-account private keys (never commit)
+*-firebase-adminsdk-*.json
+*firebase-adminsdk*.json
+service-account*.json
+firebase-service-account.json
+secrets/
+*.pem
+
 # Local stock data cache (downloaded by scripts/fetch-universe.js, ~52MB)
 data/stocks/
 data/manifest.json

@@ -5,6 +5,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import NodeCache from "node-cache";
 import { createRequire } from "module";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { DIAGNOSTIC_MARKETS, SNAPSHOT_MARKETS } from "./lib/snapshotMarkets.js";
@@ -158,10 +159,38 @@ export const api = onRequest(
 //   firebase deploy --only functions,database
 //   (RTDB must be enabled; rules should allow public .read on marketSnapshots)
 
+// Prefer explicit service-account JSON (local gitignored key or secret env),
+// then Application Default Credentials on Cloud Functions / Cloud Run.
 if (!admin.apps || admin.apps.length === 0) {
-  admin.initializeApp({
-    databaseURL: process.env.FIREBASE_DATABASE_URL || "https://kfinance032926-default-rtdb.firebaseio.com",
-  });
+  const databaseURL =
+    process.env.FIREBASE_DATABASE_URL ||
+    "https://kfinance032926-default-rtdb.firebaseio.com";
+
+  let credential: ReturnType<typeof admin.credential.cert> | undefined;
+  try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      credential = admin.credential.cert(
+        JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
+      );
+    } else {
+      const keyPath =
+        process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+        process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      if (keyPath && fs.existsSync(keyPath)) {
+        const parsed = JSON.parse(fs.readFileSync(keyPath, "utf8"));
+        credential = admin.credential.cert(parsed);
+        console.log(`[firebase-admin] using key file: ${path.basename(keyPath)}`);
+      }
+    }
+  } catch (e: any) {
+    console.warn("[firebase-admin] service account load failed:", e?.message || e);
+  }
+
+  admin.initializeApp(
+    credential
+      ? { credential, databaseURL }
+      : { databaseURL } // ADC on GCP
+  );
 }
 
 const LIVE_FUNCTIONS_BASE = process.env.LIVE_FUNCTIONS_BASE || "https://api-4uzq3y2xva-uc.a.run.app";
