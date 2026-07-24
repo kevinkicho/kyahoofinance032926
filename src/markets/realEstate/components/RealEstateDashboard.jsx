@@ -730,7 +730,7 @@ function RealEstateDashboard({
           <BentoCard
             key="afford-stack"
             title="Housing Affordability Stack"
-            subtitle={`${affordabilityStack.stressLabel} payment burden · 80% LTV / 30Y fixed estimate`}
+            subtitle={`${affordabilityStack?.stressLabel || 'Partial'} payment burden · 80% LTV / 30Y fixed estimate`}
             accent="realEstate"
             className="re-bento-card"
             contentClassName="re-panel-scroll"
@@ -744,11 +744,11 @@ function RealEstateDashboard({
           >
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
               {[
-                ['Median Home', affordabilityStack.price, '#60a5fa', v => `$${(v / 1000).toFixed(0)}K`],
-                ['30Y Mortgage', affordabilityStack.rate, affordabilityStack.rate >= 7 ? '#f87171' : '#fbbf24', v => `${v.toFixed(2)}%`],
-                ['Est. Payment', affordabilityStack.payment, '#a78bfa', v => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo`],
-                ['Median Income', affordabilityStack.hudMedianIncome, '#22c55e', v => `$${(v / 1000).toFixed(0)}K`],
-                ['Payment Burden', affordabilityStack.annualBurden, affordabilityStack.annualBurden >= 40 ? '#f87171' : affordabilityStack.annualBurden >= 30 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(1)}%`],
+                ['Median Home', affordabilityStack?.price, '#60a5fa', v => `$${(v / 1000).toFixed(0)}K`],
+                ['30Y Mortgage', affordabilityStack?.rate, (affordabilityStack?.rate ?? 0) >= 7 ? '#f87171' : '#fbbf24', v => `${v.toFixed(2)}%`],
+                ['Est. Payment', affordabilityStack?.payment, '#a78bfa', v => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}/mo`],
+                ['Median Income', affordabilityStack?.hudMedianIncome, '#22c55e', v => `$${(v / 1000).toFixed(0)}K`],
+                ['Payment Burden', affordabilityStack?.annualBurden, (affordabilityStack?.annualBurden ?? 0) >= 40 ? '#f87171' : (affordabilityStack?.annualBurden ?? 0) >= 30 ? '#f59e0b' : '#22c55e', v => `${v.toFixed(1)}%`],
               ].map(([label, value, color, format]) => (
                 <div key={label} className="re-metric-card" style={{ minWidth: 0 }}>
                   <div className="re-metric-label">{label}</div>

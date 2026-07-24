@@ -9,6 +9,7 @@ vi.mock('../lib/cache.js', () => ({
   writeDailyCacheAsync: vi.fn(() => Promise.resolve()),
   mergeWithPreviousCache: vi.fn((_m, data) => data),
   readLatestCacheAsync: vi.fn(() => Promise.resolve(null)),
+  isStructurallyHollow: vi.fn(() => false),
   todayStr: vi.fn(() => '2026-04-22'),
 }));
 

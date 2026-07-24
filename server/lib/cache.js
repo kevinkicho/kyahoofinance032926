@@ -40,12 +40,43 @@ function countNonNullValues(obj, depth = 0) {
 }
 
 /** Market-specific "looks full but useless" payloads that poison panels all day. */
-function isStructurallyHollow(market, data) {
+export function isStructurallyHollow(market, data) {
   if (!data || typeof data !== 'object') return true;
   if (market === 'crypto') {
     const coins = data.coinMarketData?.coins;
     // Global stats alone is not enough — Top Cryptos panel needs coin rows.
     if (!Array.isArray(coins) || coins.length < 3) return true;
+  }
+  if (market === 'bonds') {
+    // Tenors alone are not enough — spread/history panels go blank.
+    const hasSpreads = !!(
+      data.spreadIndicators?.t10y2y != null
+      || data.spreadHistory?.dates?.length > 10
+      || data.spreadData?.history?.dates?.length > 10
+      || data.spreadData?.dates?.length > 10
+    );
+    const hasHist = !!(
+      data.yieldHistory?.dates?.length > 10
+      || data.fredYieldHistory?.dates?.length > 10
+      || data.breakevensData?.history?.dates?.length > 5
+      || data.cpiComponents?.dates?.length > 5
+    );
+    const us = data.yieldCurveData?.US;
+    const hasCurve = us && Object.values(us).filter((v) => v != null).length >= 4;
+    // Hollow if curve missing OR both spreads and histories missing
+    if (!hasCurve) return true;
+    if (!hasSpreads && !hasHist) return true;
+  }
+  if (market === 'insurance') {
+    // Need at least one rich series beyond a single OAS number
+    const hasRich = !!(
+      (Array.isArray(data.catBondSpreads) && data.catBondSpreads.length >= 3)
+      || (Array.isArray(data.sectorETF) && data.sectorETF.length >= 3)
+      || data.combinedRatioData?.quarters?.length > 0
+      || data.reserveAdequacyData?.lines?.length > 0
+      || data.reinsurancePricing?.length > 0
+    );
+    if (!hasRich && data.hyOAS == null) return true;
   }
   if (market === 'cftcTFF') {
     const contracts = data.contracts || {};
@@ -58,9 +89,57 @@ function isStructurallyHollow(market, data) {
     if (withSeries.length < 1) return true;
   }
   if (market === 'usda' || market === 'fao') {
-    if (data.commodities == null && data.foodPriceIndex == null && data.summary == null) return true;
+    if (data.commodities == null && data.foodPriceIndex == null && data.summary == null && !data.series?.length) return true;
   }
   return false;
+}
+
+/**
+ * When today's daily file is partial, fill null fields from older non-hollow
+ * cache files so panels keep last-known series until a full live rebuild.
+ */
+export function hydratePartialDaily(market, daily) {
+  if (!daily || typeof daily !== 'object') return daily;
+  try {
+    const today = todayStr();
+    const files = fs.readdirSync(CACHE_DIR)
+      .filter((f) => f.startsWith(`${market}-`) && f.endsWith('.json'))
+      .sort()
+      .reverse()
+      .slice(0, 14);
+    const out = { ...daily };
+    let filled = 0;
+    let fromDate = null;
+    for (const file of files) {
+      const fetchedOn = file.slice(market.length + 1, -5);
+      if (fetchedOn === today) continue; // skip self
+      let prior;
+      try {
+        prior = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, file), 'utf8'));
+      } catch {
+        continue;
+      }
+      if (!prior || typeof prior !== 'object') continue;
+      if (isStructurallyHollow(market, prior)) continue;
+      for (const [k, v] of Object.entries(prior)) {
+        if (k.startsWith('_') || k === 'lastUpdated' || k === 'fetchedOn') continue;
+        if (isEmptyField(out[k]) && !isEmptyField(v)) {
+          out[k] = v;
+          filled++;
+          fromDate = fetchedOn;
+        }
+      }
+      // One good prior day is usually enough
+      if (filled > 0) break;
+    }
+    if (filled) {
+      out._hydratedFrom = fromDate;
+      out._hydratedFields = filled;
+    }
+    return out;
+  } catch {
+    return daily;
+  }
 }
 
 export function readDailyCache(market) {
@@ -81,11 +160,19 @@ export function readDailyCache(market) {
         return null;
       }
       if (isStructurallyHollow(market, data)) {
+        // Prefer hydrating from an older good cache over returning null
+        // (null forces a full live stampede that often times out on Cloud Run).
+        const hydrated = hydratePartialDaily(market, data);
+        if (!isStructurallyHollow(market, hydrated)) {
+          console.warn(`[datacache] hydrated partial ${market} from prior day`);
+          return hydrated;
+        }
         console.warn(`[datacache] skipping hollow cache for ${market}: critical fields empty`);
         try { fs.unlinkSync(fp); } catch { /* ignore */ }
         return null;
       }
-      return data;
+      // Even non-hollow payloads may miss a few series — backfill nulls quietly.
+      return hydratePartialDaily(market, data);
     }
   } catch (e) { console.warn(`[datacache] readDailyCache failed for ${market}:`, e?.message); }
   return null;
@@ -181,17 +268,70 @@ export function mergeWithPreviousCache(market, incoming) {
 export function writeDailyCache(market, data) {
   try {
     if (!data || typeof data !== 'object') return;
-    const str = JSON.stringify(data);
+    const fp = path.join(CACHE_DIR, `${market}-${todayStr()}.json`);
+    // Never let null/empty fields from a partial concurrent fetch clobber a
+    // richer payload already on disk (Cloud Run often has overlapping rebuilds).
+    const existing = (() => {
+      try {
+        if (fs.existsSync(fp)) return JSON.parse(fs.readFileSync(fp, 'utf8'));
+      } catch { /* ignore */ }
+      return null;
+    })();
+
+    // Start from incoming, then fill empties from today's file (not the reverse:
+    // `{...existing, ...data}` would let nulls wipe good series).
+    let toWrite = { ...data };
+    if (existing && typeof existing === 'object') {
+      for (const [k, v] of Object.entries(existing)) {
+        if (k.startsWith('_') || k === 'lastUpdated' || k === 'fetchedOn') continue;
+        if (isEmptyField(toWrite[k]) && !isEmptyField(v)) {
+          toWrite[k] = v;
+        } else {
+          // Prefer longer history series when both present
+          const curEnd = seriesEndDate(toWrite[k]);
+          const prevEnd = seriesEndDate(v);
+          if (curEnd && prevEnd && prevEnd > curEnd) toWrite[k] = v;
+          if (
+            Array.isArray(toWrite[k]?.dates) && Array.isArray(v?.dates)
+            && v.dates.length > (toWrite[k].dates?.length || 0)
+            && !curEnd
+          ) {
+            toWrite[k] = v;
+          }
+        }
+      }
+    }
+    // Then fill any remaining empties from prior non-hollow days
+    toWrite = mergeWithPreviousCache(market, toWrite);
+
+    if (isStructurallyHollow(market, toWrite)) {
+      console.warn(`[datacache] refusing to write hollow ${market} cache`);
+      return;
+    }
+    // If we already have a non-hollow today file and the merge did not grow it,
+    // still write (may refresh lastUpdated) — but never shrink below existing.
+    if (existing && !isStructurallyHollow(market, existing)) {
+      const exLen = JSON.stringify(existing).length;
+      const newLen = JSON.stringify(toWrite).length;
+      // Allow small churn; block catastrophic shrink from a partial rebuild
+      if (newLen < exLen * 0.5 && exLen > 5000) {
+        console.warn(
+          `[datacache] refusing to shrink ${market} cache ${exLen}→${newLen} bytes (partial overwrite guard)`
+        );
+        return;
+      }
+    }
+    const str = JSON.stringify(toWrite);
     if (str.length < 200) {
       console.warn(`[datacache] skipping cache for ${market}: response too small (${str.length} bytes), likely empty`);
       return;
     }
-    const { total, nonNull } = countNonNullValues(data);
+    const { total, nonNull } = countNonNullValues(toWrite);
     if (total > 5 && nonNull / total < 0.15) {
       console.warn(`[datacache] skipping cache for ${market}: too many null values (${nonNull}/${total}), likely failed fetch`);
       return;
     }
-    fs.writeFileSync(path.join(CACHE_DIR, `${market}-${todayStr()}.json`), str, 'utf8');
+    fs.writeFileSync(fp, str, 'utf8');
   } catch (e) { console.warn(`[datacache] write failed for ${market}:`, e.message); }
 }
 
@@ -200,15 +340,18 @@ export function readLatestCache(market) {
     const files = fs.readdirSync(CACHE_DIR)
       .filter(f => f.startsWith(`${market}-`) && f.endsWith('.json'))
       .sort().reverse();
-    if (!files.length) return null;
-    const fetchedOn = files[0].slice(market.length + 1, -5);
-    const data = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, files[0]), 'utf8'));
-    const { total, nonNull } = countNonNullValues(data);
-    if (total > 5 && nonNull / total < 0.15) {
-      console.warn(`[datacache] skipping latest cache for ${market}: too many null values (${nonNull}/${total})`);
-      return null;
+    // Walk newest → older so a hollow "today" file does not hide a good prior day.
+    for (const file of files) {
+      try {
+        const fetchedOn = file.slice(market.length + 1, -5);
+        const data = JSON.parse(fs.readFileSync(path.join(CACHE_DIR, file), 'utf8'));
+        const { total, nonNull } = countNonNullValues(data);
+        if (total > 5 && nonNull / total < 0.15) continue;
+        if (isStructurallyHollow(market, data)) continue;
+        return { data, fetchedOn };
+      } catch { /* try older */ }
     }
-    return { data, fetchedOn };
+    return null;
   } catch { return null; }
 }
 
@@ -259,65 +402,19 @@ export function cleanOldCaches() {
 }
 
 export async function readDailyCacheAsync(market) {
-  if (shouldSkipCache()) return null;
-  try {
-    const fp = path.join(CACHE_DIR, `${market}-${todayStr()}.json`);
-    const content = await fs.promises.readFile(fp, 'utf8');
-    const data = JSON.parse(content);
-    const str = JSON.stringify(data);
-    if (str.length < 200) {
-      console.warn(`[datacache] skipping stale cache for ${market}: too small (${str.length} bytes)`);
-      return null;
-    }
-    const { total, nonNull } = countNonNullValues(data);
-    if (total > 5 && nonNull / total < 0.15) {
-      console.warn(`[datacache] skipping stale cache for ${market}: too many null values (${nonNull}/${total})`);
-      try { await fs.promises.unlink(fp); } catch {}
-      return null;
-    }
-    return data;
-  } catch (err) {
-    /* skip if file doesn't exist or is invalid */
-  }
-  return null;
+  // Keep async path identical to sync: hollow reject + prior-day hydrate.
+  // Many routes (routeFactory) only use the async helpers.
+  return readDailyCache(market);
 }
 
 export async function writeDailyCacheAsync(market, data) {
-  try {
-    if (!data || typeof data !== 'object') return;
-    const str = JSON.stringify(data);
-    if (str.length < 200) {
-      console.warn(`[datacache] skipping cache for ${market}: response too small (${str.length} bytes), likely empty`);
-      return;
-    }
-    const { total, nonNull } = countNonNullValues(data);
-    if (total > 5 && nonNull / total < 0.15) {
-      console.warn(`[datacache] skipping cache for ${market}: too many null values (${nonNull}/${total}), likely failed fetch`);
-      return;
-    }
-    const fp = path.join(CACHE_DIR, `${market}-${todayStr()}.json`);
-    await fs.promises.writeFile(fp, str, 'utf8');
-  } catch (e) {
-    console.warn(`[datacache] write failed for ${market}:`, e.message);
-  }
+  // Delegate to sync writer so hollow refusal + mergeWithPrevious apply once.
+  writeDailyCache(market, data);
 }
 
 export async function readLatestCacheAsync(market) {
-  try {
-    const files = (await fs.promises.readdir(CACHE_DIR))
-      .filter(f => f.startsWith(`${market}-`) && f.endsWith('.json'))
-      .sort().reverse();
-    if (!files.length) return null;
-    const fetchedOn = files[0].slice(market.length + 1, -5);
-    const content = await fs.promises.readFile(path.join(CACHE_DIR, files[0]), 'utf8');
-    const data = JSON.parse(content);
-    const { total, nonNull } = countNonNullValues(data);
-    if (total > 5 && nonNull / total < 0.15) {
-      console.warn(`[datacache] skipping latest cache for ${market}: too many null values (${nonNull}/${total})`);
-      return null;
-    }
-    return { data, fetchedOn };
-  } catch (e) { console.warn(`[datacache] readLatestCacheAsync failed for ${market}:`, e?.message); return null; }
+  // Same non-hollow walk as the sync helper.
+  return readLatestCache(market);
 }
 
 export async function readLatestCacheWithFieldAsync(market, fieldPath, lookbackDays = 14) {

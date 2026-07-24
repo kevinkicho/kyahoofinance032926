@@ -10,6 +10,7 @@ vi.mock('../lib/cache.js', () => ({
   writeDailyCache: vi.fn(),
   mergeWithPreviousCache: vi.fn((_m, data) => data),
   readLatestCache: vi.fn(() => null),
+  isStructurallyHollow: vi.fn(() => false),
   todayStr: vi.fn(() => '2026-04-22'),
 }));
 

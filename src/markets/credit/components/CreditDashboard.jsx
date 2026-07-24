@@ -452,12 +452,17 @@ function CreditDashboard({
             <>
               <div className="credit-mini-row">
                 <span className="credit-mini-name">AA 30-Day</span>
-                <span className="credit-mini-value"><MetricValue value={commercialPaper.rate} seriesKey="commercialPaper" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
+                <span className="credit-mini-value"><MetricValue value={commercialPaper?.rate} seriesKey="commercialPaper" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
               </div>
-              {commercialPaper.volume != null && (
+              {commercialPaper?.volume != null && (
                 <div className="credit-mini-row">
                   <span className="credit-mini-name">Volume</span>
                   <span className="credit-mini-value"><MetricValue value={commercialPaper.volume} seriesKey="commercialPaperVolume" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} /></span>
+                </div>
+              )}
+              {commercialPaper?.rate == null && commercialPaper?.financial3m == null && (
+                <div className="credit-mini-row" style={{ opacity: 0.7 }}>
+                  <span className="credit-mini-name">No commercial paper rate yet</span>
                 </div>
               )}
             </>
@@ -487,7 +492,10 @@ function CreditDashboard({
                 <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 60 }}>Yield</span>
                 <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 40 }}>LTV</span>
               </div>
-              {(loanData.cloTranches || loanData).slice(0, 8).map((l) => (
+              {(Array.isArray(loanData?.cloTranches)
+                ? loanData.cloTranches
+                : Array.isArray(loanData) ? loanData : []
+              ).slice(0, 8).map((l) => (
                 <div key={l.tranche || l.sector} className="credit-mini-row">
                   <span className="credit-mini-name">{l.tranche || l.sector}</span>
                   <span className="credit-mini-value" style={{ textAlign: 'right', minWidth: 60 }}>
@@ -501,6 +509,11 @@ function CreditDashboard({
                   </span>
                 </div>
               ))}
+              {!loanData?.cloTranches?.length && !Array.isArray(loanData) && (
+                <div className="credit-mini-row" style={{ opacity: 0.7 }}>
+                  <span className="credit-mini-name">No CLO tranche data yet</span>
+                </div>
+              )}
             </>
           </BentoCard>
         )}
@@ -534,7 +547,7 @@ function CreditDashboard({
                   </tr>
                 </thead>
                 <tbody>
-                  {(defaultData.rates || []).slice(0, 10).map((d) => {
+                  {(defaultData?.rates || []).slice(0, 10).map((d) => {
                     const unit = d.unit || '%';
                     const fmt = (v) => {
                       if (v == null || !Number.isFinite(Number(v))) return '—';
@@ -571,7 +584,7 @@ function CreditDashboard({
                   })}
                 </tbody>
               </table>
-              {defaultData.chargeoffs?.dates?.length > 1 && (
+              {defaultData?.chargeoffs?.dates?.length > 1 && (
                 <div className="credit-default-legend">
                   Charge-off history: {defaultData.chargeoffs.dates[0]} → {defaultData.chargeoffs.dates.at(-1)}
                   {defaultData.chargeoffs.commercial?.at(-1) != null && (

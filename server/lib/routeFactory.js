@@ -1,4 +1,11 @@
-import { readDailyCacheAsync, writeDailyCacheAsync, readLatestCacheAsync, todayStr, mergeWithPreviousCache } from './cache.js';
+import {
+  readDailyCacheAsync,
+  writeDailyCacheAsync,
+  readLatestCacheAsync,
+  todayStr,
+  mergeWithPreviousCache,
+  isStructurallyHollow,
+} from './cache.js';
 import { sendCachedOrDegraded, classifyUpstreamError } from './marketResponse.js';
 import { sanitizeMarketPayload } from './dataHygiene.js';
 
@@ -51,10 +58,10 @@ export function makeCachedRouteHandler({
         console.warn(`[routeFactory] Daily cache read failed for ${marketName}:`, e.message);
       }
 
-      // 2. Try in-memory cache
+      // 2. Try in-memory cache (skip structurally hollow shells)
       if (cache) {
         const cached = cache.get(cacheKey);
-        if (cached) {
+        if (cached && !isStructurallyHollow(marketName, cached)) {
           const clean = sanitizeMarketPayload(cached);
           const sources = buildSourcesFn ? buildSourcesFn(clean) : undefined;
           return res.json({
@@ -65,6 +72,9 @@ export function makeCachedRouteHandler({
             _cacheSource: 'memory',
             ...(sources ? { _sources: sources } : {}),
           });
+        }
+        if (cached && isStructurallyHollow(marketName, cached)) {
+          cache.del(cacheKey);
         }
       }
     } else if (cache) {
@@ -156,14 +166,29 @@ export function makeCachedRouteHandler({
         throw new Error(`${marketName} fetchDataFn returned no usable fields`);
       }
 
-      const result = sanitizeMarketPayload({
+      let result = sanitizeMarketPayload({
         ...mergeWithPreviousCache(marketName, resultData),
         lastUpdated: today,
       });
 
-      // 4. Save to daily file cache & memory cache
+      // If live+merge is still hollow, prefer a non-hollow prior cache for the
+      // response so panels keep last-known series instead of empty shells.
+      if (isStructurallyHollow(marketName, result)) {
+        try {
+          const prior = await readLatestCacheAsync(marketName);
+          if (prior?.data && !isStructurallyHollow(marketName, prior.data)) {
+            result = sanitizeMarketPayload({
+              ...mergeWithPreviousCache(marketName, { ...prior.data, ...resultData }),
+              lastUpdated: today,
+              _servedFromPriorCache: prior.fetchedOn,
+            });
+          }
+        } catch { /* keep live merge */ }
+      }
+
+      // 4. Save to daily file cache & memory cache (writer refuses hollow)
       await writeDailyCacheAsync(marketName, result);
-      if (cache) {
+      if (cache && !isStructurallyHollow(marketName, result)) {
         cache.set(cacheKey, result, cacheTtl);
       }
 
@@ -174,13 +199,15 @@ export function makeCachedRouteHandler({
         const rateLimited = Object.values(_errors).some(m =>
           /429|403|rate.?limit|throttl/i.test(String(m))
         );
+        const hollow = isStructurallyHollow(marketName, result);
         res.json({
           ...result,
           fetchedOn: today,
-          isCurrent: true,
-          isLive: true,
+          isCurrent: !hollow,
+          isLive: !hollow,
           _errors,
-          _cacheSource: 'live',
+          _cacheSource: result._servedFromPriorCache ? 'prior_merge' : 'live',
+          ...(hollow ? { _hollow: true } : {}),
           ...(rateLimited ? { _rateLimited: true } : {}),
           ...(sources ? { _sources: sources } : {}),
         });

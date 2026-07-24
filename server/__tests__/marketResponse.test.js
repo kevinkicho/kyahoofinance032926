@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../lib/cache.js', () => ({
   readLatestCache: vi.fn(),
   readLatestCacheAsync: vi.fn(),
+  isStructurallyHollow: vi.fn(() => false),
   todayStr: () => '2026-07-23',
 }));
 
