@@ -3,9 +3,10 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
 // Web app config for project kfinance032926 (App Hosting / client SDK).
-// Prefer VITE_* env at build time; fall back to the registered web app defaults.
+// apiKey must come from VITE_FIREBASE_API_KEY (local .env / CI vars / App Hosting
+// secrets) — never commit an AIza… value (guard:secrets).
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyB6jOnrcK86weNZrMCSeUaWijbqymM3_GI',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'kfinance032926.firebaseapp.com',
   databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || 'https://kfinance032926-default-rtdb.firebaseio.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kfinance032926',
