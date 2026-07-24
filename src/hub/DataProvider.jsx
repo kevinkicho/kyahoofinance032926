@@ -51,6 +51,18 @@ const ALWAYS_FORCE_LIVE =
 // Source: shared/api-routing.json → tabMarkets (alerts is federated, no HTTP).
 const PRIMARY_MARKET_IDS = TAB_MARKET_IDS.filter(id => id !== 'alerts' && MARKET_ENDPOINTS[id]);
 
+// Cross-market deps that power many "unavailable" panels when starved behind
+// the primary wave. Fetch immediately after tab markets so TIC/ECB/CFTC/etc.
+// land before the user opens those panels.
+const PRIORITY_DEP_IDS = [
+  'ecb', 'treasuryTIC', 'treasuryCost', 'treasuryAuctions', 'nyfed',
+  'cftcTFF', 'bisOTC', 'fema', 'usgs', 'worldbank', 'imf', 'bea',
+  'edgar', 'edgarInsurerRatios', 'edgarFilingActivity', 'institutional',
+  'fdic', 'msrb', 'census', 'censusTrade', 'eiaPetroleum', 'usda', 'fao',
+  'fedNewsSentiment', 'fedGDPNow', 'fedSEP', 'fedInflationNowcast',
+  'eurostat', 'oecd', 'universeUpdates', 'treasuryDTS',
+].filter((id) => MARKET_ENDPOINTS[id]);
+
 // Local-first mode: do not seed from Firebase RTDB on live loads.
 // Historical date picker can still soft-try RTDB if a date is selected.
 const USE_RTDB_SEED = false;
@@ -320,17 +332,19 @@ export function DataProvider({ children, autoRefresh = false, refreshKey = 0 }) 
     fetchPromiseRef.current = new Promise((r) => { resolveFetch = r; });
 
     const runWave = async (waveForceLive) => {
-    // Tab markets first (panels the user sees), then auxiliary deps.
+    // Tab markets first, then priority cross-deps (TIC/ECB/CFTC…), then the rest.
     const primarySet = new Set(PRIMARY_MARKET_IDS);
+    const depSet = new Set(PRIORITY_DEP_IDS);
     const ids = [
       ...PRIMARY_MARKET_IDS,
-      ...ALL_FETCH_IDS.filter(id => !primarySet.has(id)),
+      ...PRIORITY_DEP_IDS.filter((id) => !primarySet.has(id)),
+      ...ALL_FETCH_IDS.filter((id) => !primarySet.has(id) && !depSet.has(id)),
     ];
     const effectiveDate = historicalDateRef.current;
     const fetchGeneration = fetchGenerationRef.current;
     // Cache-first waves are cheap — fetch more in parallel so panels fill fast.
-    const concurrency = waveForceLive ? FETCH_SETTINGS.batchConcurrency : Math.max(FETCH_SETTINGS.batchConcurrency, 8);
-    const batchDelay = waveForceLive ? FETCH_SETTINGS.batchDelayMs : 100;
+    const concurrency = waveForceLive ? FETCH_SETTINGS.batchConcurrency : Math.max(FETCH_SETTINGS.batchConcurrency, 12);
+    const batchDelay = waveForceLive ? FETCH_SETTINGS.batchDelayMs : 50;
     const forceLive = waveForceLive;
 
     setGlobalLoading(true);

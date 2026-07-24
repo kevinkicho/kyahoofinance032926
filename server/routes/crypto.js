@@ -9,11 +9,17 @@ const router = Router();
 router.get('/', async (_req, res) => {
   const today = todayStr();
   const cache = _req.app.locals.cache;
-  const daily = readDailyCache('crypto');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+  const forceRefresh = _req.query?.refresh === 'true' || _req.query?.refresh === '1';
+  const daily = !forceRefresh ? readDailyCache('crypto') : null;
+  // Reject coin-less caches (common CoinGecko 429 snapshot) so we re-fetch.
+  if (daily && Array.isArray(daily.coinMarketData?.coins) && daily.coinMarketData.coins.length >= 3) {
+    return res.json({ ...daily, fetchedOn: today, isCurrent: true, _cacheSource: 'daily_file' });
+  }
   const cacheKey = 'crypto_data';
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+  const cached = !forceRefresh ? cache.get(cacheKey) : null;
+  if (cached && Array.isArray(cached.coinMarketData?.coins) && cached.coinMarketData.coins.length >= 3) {
+    return res.json({ ...cached, fetchedOn: today, isCurrent: true, _cacheSource: 'memory' });
+  }
 
   try {
     const cgCoinsUrl = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h%2C7d%2C30d';
@@ -34,8 +40,22 @@ router.get('/', async (_req, res) => {
     trackApiCall('DefiLlama');
     trackApiCall('Mempool.space');
     trackApiCall('Etherscan');
-    const [cgCoins, cgGlobal, cgExchanges, fng, defiProtocols, defiChains, defiStablecoins, mempoolFees, mempoolDiff, mempoolStats, mempoolHashrate, ethGasRaw] = await Promise.allSettled([
-      fetchJSON(cgCoinsUrl),
+    // CoinGecko first (most flaky under concurrency); then parallel the rest.
+    let cgCoins;
+    try {
+      cgCoins = { status: 'fulfilled', value: await fetchJSON(cgCoinsUrl) };
+    } catch (e) {
+      console.warn('[Crypto] CoinGecko markets failed:', e.message || e);
+      // Retry once after short delay (rate limit)
+      await new Promise((r) => setTimeout(r, 800));
+      try {
+        trackApiCall('CoinGecko');
+        cgCoins = { status: 'fulfilled', value: await fetchJSON(cgCoinsUrl) };
+      } catch (e2) {
+        cgCoins = { status: 'rejected', reason: e2 };
+      }
+    }
+    const [cgGlobal, cgExchanges, fng, defiProtocols, defiChains, defiStablecoins, mempoolFees, mempoolDiff, mempoolStats, mempoolHashrate, ethGasRaw] = await Promise.allSettled([
       fetchJSON(cgGlobalUrl),
       fetchJSON(cgExchangesUrl),
       fetchJSON(fngUrl),
@@ -65,6 +85,14 @@ router.get('/', async (_req, res) => {
         volumeB:    c.total_volume != null ? c.total_volume / 1e9 : null,
         dominance:  (totalMcap && c.market_cap) ? (c.market_cap / totalMcap) * 100 : null,
       }));
+    }
+    // Merge previous coin list if CoinGecko rate-limited this wave
+    if (coins.length < 3) {
+      const prev = daily || cached || readLatestCache('crypto')?.data;
+      if (Array.isArray(prev?.coinMarketData?.coins) && prev.coinMarketData.coins.length >= 3) {
+        coins = prev.coinMarketData.coins;
+        console.warn('[Crypto] using previous coin list (CoinGecko empty/rate-limited)');
+      }
     }
 
     let globalStats = {};

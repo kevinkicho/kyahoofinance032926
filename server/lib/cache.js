@@ -39,6 +39,30 @@ function countNonNullValues(obj, depth = 0) {
   return { total, nonNull };
 }
 
+/** Market-specific "looks full but useless" payloads that poison panels all day. */
+function isStructurallyHollow(market, data) {
+  if (!data || typeof data !== 'object') return true;
+  if (market === 'crypto') {
+    const coins = data.coinMarketData?.coins;
+    // Global stats alone is not enough — Top Cryptos panel needs coin rows.
+    if (!Array.isArray(coins) || coins.length < 3) return true;
+  }
+  if (market === 'cftcTFF') {
+    const contracts = data.contracts || {};
+    const withSeries = Object.values(contracts).filter((c) => Array.isArray(c?.series) && c.series.length > 0);
+    if (withSeries.length < 1) return true;
+  }
+  if (market === 'bisOTC') {
+    const cats = data.categories || {};
+    const withSeries = Object.values(cats).filter((c) => Array.isArray(c?.series) && c.series.length > 0);
+    if (withSeries.length < 1) return true;
+  }
+  if (market === 'usda' || market === 'fao') {
+    if (data.commodities == null && data.foodPriceIndex == null && data.summary == null) return true;
+  }
+  return false;
+}
+
 export function readDailyCache(market) {
   if (shouldSkipCache()) return null;
   try {
@@ -54,6 +78,11 @@ export function readDailyCache(market) {
       if (total > 5 && nonNull / total < 0.15) {
         console.warn(`[datacache] skipping stale cache for ${market}: too many null values (${nonNull}/${total})`);
         fs.unlinkSync(fp);
+        return null;
+      }
+      if (isStructurallyHollow(market, data)) {
+        console.warn(`[datacache] skipping hollow cache for ${market}: critical fields empty`);
+        try { fs.unlinkSync(fp); } catch { /* ignore */ }
         return null;
       }
       return data;

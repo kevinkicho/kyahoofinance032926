@@ -124,7 +124,26 @@ export function hasNonNullData(d, id) {
     if (d.supplyDemand && Object.values(d.supplyDemand).some(v => v != null)) return true;
   }
   if (id === 'crypto') {
-    if (d.coinMarketData?.coins?.length >= 1 || d.coins?.length >= 1 || d.fearGreedData != null) return true;
+    // Require real coin rows — globalStats alone leaves Top Cryptos empty.
+    if (d.coinMarketData?.coins?.length >= 1 || d.coins?.length >= 1) return true;
+    // Fear & greed alone is partial; still keep so F&G panel paints, but
+    // needsLiveRepair will re-pull coins.
+    if (d.fearGreedData != null && (d.fearGreedData.value != null || d.fearGreedData.history?.length)) return true;
+  }
+  if (id === 'ecb') {
+    if (d.policyRates || d.moneyMarket || d.m3Growth?.length || d.hicpDetail?.length) return true;
+  }
+  if (id === 'cftcTFF') {
+    if (d.contracts && Object.values(d.contracts).some((c) => c?.series?.length > 0)) return true;
+  }
+  if (id === 'bisOTC') {
+    if (d.categories && Object.values(d.categories).some((c) => c?.series?.length > 0)) return true;
+  }
+  if (id === 'treasuryCost') {
+    if (d.latest && Object.keys(d.latest).length > 0) return true;
+  }
+  if (id === 'treasuryTIC') {
+    if (d.latest?.length > 0 || (d.history && Object.keys(d.history).length > 0)) return true;
   }
   if (id === 'insurance') {
     if (d.reinsurers?.length > 0 || d.sectorETF || d.hyOAS != null || d.combinedRatioData) return true;

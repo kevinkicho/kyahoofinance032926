@@ -469,13 +469,16 @@ server = app.listen(port, host, () => {
   // Staggered to stay under FRED 120/min; non-blocking for listen health.
   // Primary tabs first (user-visible), then common cross-market panel deps.
   const WARM_PATHS = [
+    // Primary tabs (user-visible)
     'bonds', 'derivatives', 'realEstate', 'insurance', 'commodities/v2',
     'globalMacro', 'equityDeepDive', 'crypto', 'credit', 'sentiment',
     'calendar', 'fx', 'macro', 'equities',
-    // deps that power cross-tab panels
+    // Cross-market deps that fill "unavailable" panels when cold
     'treasuryTIC', 'nyfed', 'treasuryAuctions', 'ecb', 'treasuryCost',
-    'imf', 'worldbank', 'bea', 'edgar', 'institutional', 'fema', 'usgs',
-    'fdic', 'cftcTFF', 'bisOTC', 'bls', 'eia', 'census', 'oecd', 'eurostat',
+    'imf', 'worldbank', 'bea', 'edgar', 'edgar/insurer-ratios', 'edgar/filing-activity',
+    'institutional', 'fema', 'usgs', 'fdic', 'msrb', 'cftcTFF', 'bisOTC',
+    'bls', 'eia', 'eiaPetroleum', 'census', 'censusTrade', 'oecd', 'eurostat',
+    'fao', 'fed/news-sentiment', 'fed/gdpnow', 'fed/sep', 'universeUpdates',
   ];
   setTimeout(() => {
     const base = `http://127.0.0.1:${actualPort}`;
