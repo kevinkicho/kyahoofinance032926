@@ -70,3 +70,34 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # Server-side market data keys (runtime only — never bake into client bundle).
+  # Without these, panels fetch hollow payloads and splash shows mostly red.
+  - variable: FRED_API_KEY
+    secret: FRED_API_KEY
+    availability:
+      - RUNTIME
+  - variable: EIA_API_KEY
+    secret: EIA_API_KEY
+    availability:
+      - RUNTIME
+  - variable: BLS_API_KEY
+    secret: BLS_API_KEY
+    availability:
+      - RUNTIME
+  - variable: BEA_API_KEY
+    secret: BEA_API_KEY
+    availability:
+      - RUNTIME
+  - variable: EDGAR_USER_AGENT
+    secret: EDGAR_USER_AGENT
+    availability:
+      - RUNTIME
+  - variable: FINNHUB_API_KEY
+    secret: FINNHUB_API_KEY
+    availability:
+      - RUNTIME
+  - variable: FIREBASE_DATABASE_URL
+    secret: FIREBASE_DATABASE_URL
+    availability:
+      - RUNTIME
