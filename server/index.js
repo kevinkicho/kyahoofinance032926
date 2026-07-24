@@ -467,16 +467,21 @@ server = app.listen(port, host, () => {
   // Warm primary tab markets in the background so the first browser wave hits
   // daily disk/memory cache instead of racing cold FRED/Yahoo timeouts.
   // Staggered to stay under FRED 120/min; non-blocking for listen health.
-  const WARM_MARKETS = [
-    'bonds', 'derivatives', 'realEstate', 'insurance', 'commodities',
+  // Primary tabs first (user-visible), then common cross-market panel deps.
+  const WARM_PATHS = [
+    'bonds', 'derivatives', 'realEstate', 'insurance', 'commodities/v2',
     'globalMacro', 'equityDeepDive', 'crypto', 'credit', 'sentiment',
-    'calendar', 'fx', 'macro',
+    'calendar', 'fx', 'macro', 'equities',
+    // deps that power cross-tab panels
+    'treasuryTIC', 'nyfed', 'treasuryAuctions', 'ecb', 'treasuryCost',
+    'imf', 'worldbank', 'bea', 'edgar', 'institutional', 'fema', 'usgs',
+    'fdic', 'cftcTFF', 'bisOTC', 'bls', 'eia', 'census', 'oecd', 'eurostat',
   ];
   setTimeout(() => {
     const base = `http://127.0.0.1:${actualPort}`;
-    console.log(`[warmup] Starting background cache warm for ${WARM_MARKETS.length} markets…`);
+    console.log(`[warmup] Starting background cache warm for ${WARM_PATHS.length} routes…`);
     (async () => {
-      for (const m of WARM_MARKETS) {
+      for (const m of WARM_PATHS) {
         try {
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 120000);
@@ -486,7 +491,7 @@ server = app.listen(port, host, () => {
         } catch (e) {
           console.warn(`[warmup] ${m} failed:`, e?.message || e);
         }
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 800));
       }
       console.log('[warmup] Complete');
     })().catch((e) => console.warn('[warmup] aborted:', e?.message || e));

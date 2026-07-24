@@ -224,9 +224,13 @@ router.get('/', async (_req, res) => {
             progressPercent:      Math.round((diff.progressPercent ?? 0) * 10) / 10,
             difficultyChange:     Math.round((diff.difficultyChange ?? 0) * 10) / 10,
             remainingBlocks:      diff.remainingBlocks ?? null,
-            estimatedRetargetDate: diff.estimatedRetargetDate
-              ? new Date(diff.estimatedRetargetDate * 1000).toISOString().split('T')[0]
-              : null,
+            // mempool.space may return ms or seconds — normalize before Date.
+            estimatedRetargetDate: (() => {
+              const t = diff.estimatedRetargetDate;
+              if (t == null) return null;
+              const ms = t > 1e12 ? t : t * 1000;
+              try { return new Date(ms).toISOString().split('T')[0]; } catch { return null; }
+            })(),
           } : null,
           hashrate: hr?.hashrates ? {
             current: hr.currentHashrate

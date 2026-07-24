@@ -12,6 +12,14 @@ const router = Router();
 const VIX_TICKERS = ['^VIX9D', '^VIX', '^VIX3M', '^VIX6M'];
 const VIX_LABELS  = ['9D', '1M', '3M', '6M'];
 
+/** yahoo-finance2 returns expirationDates as Date objects (not unix seconds). */
+function toUnixSec(d) {
+  if (d == null) return null;
+  if (typeof d === 'number') return d > 1e12 ? Math.floor(d / 1000) : d;
+  const ms = d instanceof Date ? d.getTime() : new Date(d).getTime();
+  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+}
+
 async function buildVolAndGamma(spyPrice) {
   const targetDays  = [7, 14, 30, 60, 90, 180, 365, 730];
   const expLabels   = ['1W', '2W', '1M', '2M', '3M', '6M', '1Y', '2Y'];
@@ -22,8 +30,11 @@ async function buildVolAndGamma(spyPrice) {
   try {
     trackApiCall('Yahoo Finance');
     const idx = await yf.options('SPY');
-    expirations = idx.expirationDates || [];
+    expirations = (idx.expirationDates || [])
+      .map(toUnixSec)
+      .filter((n) => Number.isFinite(n));
   } catch (e) { console.warn('[Derivatives] buildVolAndGamma failed:', e?.message); return null; }
+  if (!expirations.length) return null;
 
   const now = Math.floor(Date.now() / 1000);
   const volGrid = [];
@@ -31,38 +42,40 @@ async function buildVolAndGamma(spyPrice) {
 
   for (const days of targetDays) {
     const target = now + days * 86400;
-    const nearest = expirations.reduce((best, d) =>
+    const nearestUnix = expirations.reduce((best, d) =>
       Math.abs(d - target) < Math.abs(best - target) ? d : best, expirations[0]);
     try {
       trackApiCall('Yahoo Finance');
-      const opts = await yf.options('SPY', { date: nearest });
+      // Pass Date or unix — library accepts both; prefer Date for consistency.
+      const opts = await yf.options('SPY', { date: new Date(nearestUnix * 1000) });
       const calls = opts.options[0]?.calls || [];
       const puts = opts.options[0]?.puts || [];
 
-      // Vol Surface Row
+      // Vol Surface Row — ignore near-zero junk IVs from Yahoo
       const row = strikePcts.map(pct => {
         const ts = Math.round(spyPrice * pct);
         const c  = calls.reduce((b, x) => Math.abs(x.strike - ts) < Math.abs((b?.strike ?? Infinity) - ts) ? x : b, null);
-        return c?.impliedVolatility ? Math.round(c.impliedVolatility * 1000) / 10 : null;
+        const iv = c?.impliedVolatility;
+        return iv != null && iv > 0.01 ? Math.round(iv * 1000) / 10 : null;
       });
       volGrid.push(row);
 
-      // GEX by strike. Yahoo option chains often omit greeks (gamma/delta),
-      // so fall back to an ATM-peaked gamma estimate from IV + open interest.
+      // GEX by strike. Yahoo often omits greeks and openInterest (esp. off-hours).
+      // Fall back: volume as liquidity proxy when OI is 0/missing.
       const addGex = (opt, side) => {
-        if (!opt?.openInterest || !opt.strike) return;
-        const iv = opt.impliedVolatility || 0.2;
+        if (!opt?.strike) return;
+        const size = (opt.openInterest > 0 ? opt.openInterest : 0) || (opt.volume > 0 ? opt.volume : 0);
+        if (!size) return;
+        const iv = (opt.impliedVolatility && opt.impliedVolatility > 0.01) ? opt.impliedVolatility : 0.2;
         const m = Math.log((spyPrice || opt.strike) / opt.strike);
         const estGamma =
           typeof opt.gamma === 'number' && opt.gamma > 0
             ? opt.gamma
             : Math.exp(-40 * m * m) / (Math.max(spyPrice, 1) * Math.max(iv, 0.05) * Math.sqrt(2 * Math.PI * 0.08));
-        // Dealer typically short gamma on customer long options: sign flipped by side
-        // call side=+1, put side=-1 → net dealer GEX approximation in $M notional units
         const gex =
           -side *
           estGamma *
-          opt.openInterest *
+          size *
           100 *
           spyPrice *
           spyPrice *
@@ -77,7 +90,7 @@ async function buildVolAndGamma(spyPrice) {
   }
 
   const total = volGrid.flat().filter(v => v != null).length;
-  if (total < 20) return null;
+  if (total < 8) return null;
 
   const gammaExposure = Object.entries(gexMap)
     .map(([strike, value]) => ({ strike: parseFloat(strike), value: Math.round((value / 1e6) * 100) / 100 }))
@@ -86,7 +99,7 @@ async function buildVolAndGamma(spyPrice) {
 
   return {
     volSurfaceData: { strikes, expiries: expLabels, grid: volGrid },
-    gammaExposure
+    gammaExposure: gammaExposure.length ? gammaExposure : null,
   };
 }
 
@@ -125,10 +138,16 @@ router.get('/', async (req, res) => {
     trackApiCall('Yahoo Finance');
     const vixQuotes = await yf.quote(VIX_TICKERS).catch(e => { console.warn('[Derivatives]', e.message || e); _errors.vixTermStructure = e.message; return []; });
     const vixArr = Array.isArray(vixQuotes) ? vixQuotes : [vixQuotes];
-    const vixTermStructure = VIX_LABELS.length === vixArr.length && vixArr.every(q => q?.regularMarketPrice) ? {
-      dates:      VIX_LABELS,
-      values:     vixArr.map(q => Math.round(q.regularMarketPrice * 10) / 10),
-      prevValues: vixArr.map(q => Math.round((q.regularMarketPreviousClose ?? q.regularMarketPrice) * 10) / 10),
+    // Map by symbol — yahoo-finance2 does not guarantee input order.
+    const bySym = Object.fromEntries(
+      vixArr.filter((q) => q?.symbol).map((q) => [q.symbol, q])
+    );
+    const ordered = VIX_TICKERS.map((t) => bySym[t]).filter((q) => q?.regularMarketPrice != null);
+    const vixTermStructure = ordered.length >= 3 ? {
+      dates:      VIX_TICKERS.map((t, i) => (bySym[t]?.regularMarketPrice != null ? VIX_LABELS[i] : null)).filter(Boolean),
+      values:     VIX_TICKERS.map((t) => bySym[t]?.regularMarketPrice).filter((p) => p != null).map((p) => Math.round(p * 10) / 10),
+      prevValues: VIX_TICKERS.map((t) => bySym[t]).filter((q) => q?.regularMarketPrice != null)
+        .map((q) => Math.round((q.regularMarketPreviousClose ?? q.regularMarketPrice) * 10) / 10),
     } : null;
 
     let vixEnrichment = null;
@@ -167,16 +186,19 @@ router.get('/', async (req, res) => {
       for (const [sym, opts] of [['SPY', spyOpts], ['QQQ', qqqOpts]]) {
         const exp = opts.options[0];
         if (!exp) continue;
-        const expLabel = new Date(opts.expirationDates[0] * 1000)
-          .toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: '2-digit' });
+        const expUnix = toUnixSec(opts.expirationDates?.[0]);
+        const expLabel = expUnix
+          ? new Date(expUnix * 1000).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: '2-digit' })
+          : 'n/a';
         for (const [type, arr] of [['C', exp.calls], ['P', exp.puts]]) {
           (arr || [])
-            .filter(o => o.volume > 0 && o.openInterest > 0)
-            .sort((a, b) => b.volume - a.volume)
-            .slice(0, 3)
+            // Yahoo often returns openInterest=0 even when volume is active.
+            .filter(o => (o.volume > 0) || (o.openInterest > 0))
+            .sort((a, b) => (b.volume || 0) - (a.volume || 0))
+            .slice(0, 4)
             .forEach(o => rows.push({
               ticker: sym, strike: o.strike, expiry: expLabel, type,
-              volume: o.volume, openInterest: o.openInterest,
+              volume: o.volume || 0, openInterest: o.openInterest || 0,
               premium: Math.round((o.lastPrice ?? o.ask ?? 0) * 100) / 100,
               sentiment: type === 'C' ? 'bullish' : 'bearish',
             }));
