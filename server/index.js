@@ -234,7 +234,23 @@ app.locals.cache = {
 // ── Serve Vite-built frontend in production ───────────────────────────────────
 const distPath = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
+  // Hashed build assets are immutable; index.html must revalidate so deploys
+  // don't leave browsers stuck requesting old /assets/* hashes that no longer
+  // exist (those would hit the SPA fallback and return text/html → MIME errors).
+  app.use('/assets', express.static(path.join(distPath, 'assets'), {
+    maxAge: '1y',
+    immutable: true,
+    fallthrough: false, // 404 instead of falling through to index.html
+  }));
+  app.use(express.static(distPath, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('index.html') || filePath.endsWith('version.json')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+      }
+    },
+  }));
 }
 
 // ── Inline health + cache status (tiny, no route module needed) ───────────────
@@ -392,10 +408,18 @@ app.use('/api', tickerRouter);
 // ── SPA catch-all: serve index.html for any non-API route (production) ────────
 // Express 5 / path-to-regexp v8 rejects bare `*` — use a middleware fallback
 // instead of app.get('*') so Cloud Run can boot.
+// Never SPA-fallback asset-like paths: a missing hashed file must 404, not
+// return HTML (browsers then report "MIME type text/html" for module scripts).
+const ASSET_EXT = /\.(js|mjs|cjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|txt|webmanifest)$/i;
 if (fs.existsSync(distPath)) {
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
     if (req.path.startsWith('/api') || req.path.startsWith('/ws')) return next();
+    if (req.path.startsWith('/assets/') || ASSET_EXT.test(req.path)) {
+      res.status(404).type('text/plain').send(`Not found: ${req.path}`);
+      return;
+    }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(distPath, 'index.html'), (err) => {
       if (err) next(err);
     });
