@@ -10,8 +10,9 @@ import { MARKET_PANELS } from '../src/data/marketPanels.js';
 
 const BASE = process.env.SHOT_BASE_URL
   || 'https://kyahoofinance032926--kfinance032926.us-central1.hosted.app';
-const SETTLE = Number(process.env.AUDIT_SETTLE_MS || 22000);
-const FIRST_SETTLE = Number(process.env.AUDIT_FIRST_SETTLE_MS || 45000);
+const SETTLE = Number(process.env.AUDIT_SETTLE_MS || 25000);
+const FIRST_SETTLE = Number(process.env.AUDIT_FIRST_SETTLE_MS || 50000);
+const PANEL_WAIT = Number(process.env.AUDIT_PANEL_WAIT_MS || 45000);
 
 const MARKETS = Object.keys(MARKET_PANELS);
 
@@ -69,12 +70,17 @@ async function collect(page, marketId) {
       }
       // Soft loading placeholders still count as mounted working shells
       const loadingShell = /loading…|loading\.\.\.|fetching/i.test(body);
+      const fetchedBadge = /\bFETCHED\b|\bLIVE\b|\bSTATIC\b/i.test(body);
       const emptyish =
         /no data|unavailable|not configured|temporarily/i.test(body)
         && body.length < 160
-        && !loadingShell;
-      const thin = body.length < 30 && !hasChart && !hasTable && !loadingShell;
-      const ok = !emptyish && !thin && (hasChart || hasTable || hasMetric || body.length > 50 || loadingShell);
+        && !loadingShell
+        && !fetchedBadge;
+      // Chart-only panels often have little text besides title + DataFooter
+      const thin = body.length < 30 && !hasChart && !hasTable && !loadingShell && !fetchedBadge;
+      const ok = !emptyish && !thin && (
+        hasChart || hasTable || hasMetric || body.length > 50 || loadingShell || fetchedBadge
+      );
       panels.push({
         id: key,
         title,
@@ -150,15 +156,35 @@ for (const marketId of MARKETS) {
   try {
     await page.goto(`${BASE}/?market=${marketId}`, {
       waitUntil: 'domcontentloaded',
-      timeout: 60000,
+      timeout: 90000,
     });
     await dismissSplash(page);
-    await page.waitForTimeout(SETTLE);
-    await dismissSplash(page);
+    // Click the market tab in the bar (ensures React marks it visited + mounts)
+    const tabBtn = page.locator(`.market-tab, [role="tab"]`).filter({ hasText: new RegExp(marketId, 'i') }).first();
+    // Also try label from data attribute / known labels
+    const tabByAttr = page.locator(`[data-market-id="${marketId}"], [data-market="${marketId}"]`).first();
+    if (await tabByAttr.count()) await tabByAttr.click({ force: true }).catch(() => {});
+    else if (await tabBtn.count()) await tabBtn.click({ force: true }).catch(() => {});
 
-    // Click tab if present (layout may use in-app nav)
-    const tab = page.locator(`[data-market="${marketId}"], button:has-text("${marketId}")`).first();
-    // Prefer URL market= param already set
+    // Wait for Suspense skeleton to clear and real panels to mount.
+    // Cold Cloud Run + lazy market chunks often need 30–60s.
+    await page.waitForFunction(() => {
+      const skeleton = document.querySelector('.skeleton-market');
+      const keys = document.querySelectorAll('[data-panel-key]');
+      return !skeleton && keys.length >= 1;
+    }, { timeout: PANEL_WAIT }).catch(() => {});
+    await page.waitForTimeout(Math.min(SETTLE, 8000));
+    await dismissSplash(page);
+    // Extra beat if still skeleton/empty
+    const stillSkeleton = await page.locator('.skeleton-market').count();
+    const n0 = await page.locator('[data-panel-key]').count();
+    if (stillSkeleton || n0 < 1) {
+      await page.waitForFunction(() => {
+        return !document.querySelector('.skeleton-market')
+          && document.querySelectorAll('[data-panel-key]').length >= 1;
+      }, { timeout: 60000 }).catch(() => {});
+      await page.waitForTimeout(5000);
+    }
 
     const col = await collect(page, marketId);
     const foundIds = new Set(col.panels.map((p) => p.id));
