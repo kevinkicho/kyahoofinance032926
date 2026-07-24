@@ -706,14 +706,33 @@ router.get('/', makeCachedRouteHandler({
       }
     }
 
-    // M2 History (for charting)
+    // M2 History (for charting). M2SL is often blocked by Akamai WAF on
+    // Cloud Run IPs — try weekly WM2NS then prior-day cache so the panel
+    // never stays a permanent empty shell.
     trackApiCall('FRED');
-    const m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] M2SL:', e.message || e); _errors.m2HistoryData = e.message; return null; });
+    let m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(e => {
+      console.warn('[Bonds] M2SL:', e.message || e);
+      _errors.m2HistoryData = e.message;
+      return null;
+    });
+    if (!m2History?.length) {
+      trackApiCall('FRED');
+      m2History = await fetchFredHistory('WM2NS', FRED_API_KEY, 52).catch(e => {
+        console.warn('[Bonds] WM2NS:', e.message || e);
+        _errors.m2HistoryData = [_errors.m2HistoryData, e.message].filter(Boolean).join('; ');
+        return null;
+      });
+      if (m2History?.length) {
+        console.warn('[Bonds] M2 using WM2NS weekly series (M2SL unavailable)');
+      }
+    }
     let m2HistoryData = null;
     if (m2History?.length > 0) {
+      // M2SL is monthly billions → /1000 trillions; WM2NS is weekly billions.
+      const scale = 1000;
       m2HistoryData = {
         dates: m2History.map(p => dateToMonthLabel(p.date)),
-        values: m2History.map(p => p.value / 1000), // Convert to trillions
+        values: m2History.map(p => p.value / scale),
       };
     } else {
       const fb = await readLatestCacheWithFieldAsync('bonds', 'm2HistoryData.dates');
