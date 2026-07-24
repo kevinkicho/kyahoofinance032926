@@ -44,8 +44,7 @@ function EquitiesDeepDiveMarket({ centralData, institutionalData: institutionalC
   if (!centralData) return <MarketSkeleton />;
   const props = getEquityDeepDiveProps(centralData, institutionalCtx);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
     // KPI strip + sidebar are passed into the Dashboard so they live as
     // real bento grid children alongside every other panel.
     const kpiPanel = (

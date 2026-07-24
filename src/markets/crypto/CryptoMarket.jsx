@@ -35,8 +35,7 @@ function CryptoMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getCryptoProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   // coinMarketData arrives in two shapes from upstream:
   //   1) flat array of coins (server's own /api/crypto)
   //   2) { coins: [...], globalStats, ... } envelope (CoinGecko-derived)

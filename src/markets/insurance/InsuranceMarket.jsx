@@ -50,8 +50,7 @@ function InsuranceMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getInsuranceProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     <div className="ins-market">
       <InsuranceDashboard

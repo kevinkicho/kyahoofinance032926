@@ -648,9 +648,11 @@ router.get('/', async (req, res) => {
       .filter((e) => e.date && e.event);
 
     const rawBanks = cbRatesResult.status === 'fulfilled' ? (cbRatesResult.value || []) : [];
-    // Only ship banks with a live rate (no null % placeholders).
+    // Prefer banks with a live rate; still include schedule-only rows so the
+    // Calendar KPI "Next CB Meeting" is never permanently empty when FRED
+    // rate series lag or time out.
     const centralBanks = rawBanks
-      .filter((cb) => cb?.bank && cb.rate != null && Number.isFinite(Number(cb.rate)))
+      .filter((cb) => cb?.bank && (cb.nextMeeting || cb.date || (cb.rate != null && Number.isFinite(Number(cb.rate)))))
       .map((cb) => omitNullFields(cb));
 
     const cleanEarnings = (earnings || [])

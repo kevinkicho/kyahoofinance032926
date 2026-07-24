@@ -77,8 +77,7 @@ function AlertsMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getAlertsProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     // Footers live on each BentoCard (not a market-level strip) so they sit
     // flush under panels like Bonds/Credit — no floating orphan bar.

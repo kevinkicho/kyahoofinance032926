@@ -452,8 +452,7 @@ function CommoditiesMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getCommoditiesProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   // CFTC sentiment route returns cftcData = { commodities: [{code, netPct, longK, shortK, oiK}, ...] }.
   // CotPositioning panel expects `cotData.commodities` (a flat array, not
   // a sector tree) where each item has at least { name, netPct, longK,

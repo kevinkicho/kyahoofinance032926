@@ -25,8 +25,7 @@ function BlsMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getBlsProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     <div className="bls-market">
       <BlsDashboard

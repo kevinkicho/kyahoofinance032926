@@ -36,8 +36,7 @@ function CreditMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getCreditProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
     // Server returns spreadData as { current: { igSpread, hySpread, ... },
     // history, etfs } — an object, not an array. Spreads are basis points.
     const cur = props.spreadData?.current || {};

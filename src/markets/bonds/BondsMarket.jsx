@@ -80,8 +80,7 @@ function BondsMarket({ centralData } = {}) {
   const { currency, currentSymbol, convert } = useCurrency();
   if (!centralData) return <MarketSkeleton />;
   const props = getBondsProps(centralData);
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     // KPIs (US 10Y/2Y/Fed Funds/etc.) now live as a real bento panel
     // inside BondsDashboard's BentoWrapper, so the loose strip here is

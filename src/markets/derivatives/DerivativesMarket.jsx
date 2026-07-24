@@ -154,8 +154,7 @@ function DerivativesMarket({ centralData } = {}) {
 
   if (!centralData) return <MarketSkeleton />;
   const props = getDerivativesProps(centralData);
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     // KPI strip is now a real bento child rendered inside
     // DerivativesDashboard's BentoWrapper (passed via the `kpis` prop).

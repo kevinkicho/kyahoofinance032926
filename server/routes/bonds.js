@@ -685,61 +685,63 @@ router.get('/', makeCachedRouteHandler({
       } catch (e) { console.warn('[Bonds] central bank rates:', e.message || e); }
     }
 
-    // Fed Balance Sheet History (for charting). WALCL and M2SL are the two
-    // FRED series Akamai's WAF blocks most often from this network — if the
-    // live fetch fails, walk back through historical caches and pick the
-    // most recent one that actually has the field. Without the per-field
-    // walkback, today's failed cache shadows yesterday's good cache.
-    trackApiCall('FRED');
-    const fedBalanceHistory = await fetchFredHistory('WALCL', FRED_API_KEY, 52).catch(e => { console.warn('[Bonds] WALCL:', e.message || e); _errors.fedBalanceSheetHistory = e.message; return null; });
+    // Fed Balance Sheet + M2 history — parallel with hard deadline so a WAF
+    // stall on WALCL/M2SL cannot hang the entire bonds route (was 180s+).
     let fedBalanceSheetHistory = null;
-    if (fedBalanceHistory?.length > 0) {
-      fedBalanceSheetHistory = {
-        dates: fedBalanceHistory.map(p => dateToMonthLabel(p.date)),
-        values: fedBalanceHistory.map(p => p.value / 1000), // Convert to trillions
-      };
-    } else {
-      const fb = await readLatestCacheWithFieldAsync('bonds', 'fedBalanceSheetHistory.dates');
-      if (fb?.data?.fedBalanceSheetHistory?.dates?.length) {
-        fedBalanceSheetHistory = fb.data.fedBalanceSheetHistory;
-        console.warn(`[Bonds] WALCL fallback to cache fetched ${fb.fetchedOn}`);
-      }
-    }
-
-    // M2 History (for charting). M2SL is often blocked by Akamai WAF on
-    // Cloud Run IPs — try weekly WM2NS then prior-day cache so the panel
-    // never stays a permanent empty shell.
-    trackApiCall('FRED');
-    let m2History = await fetchFredHistory('M2SL', FRED_API_KEY, 52).catch(e => {
-      console.warn('[Bonds] M2SL:', e.message || e);
-      _errors.m2HistoryData = e.message;
-      return null;
-    });
-    if (!m2History?.length) {
-      trackApiCall('FRED');
-      m2History = await fetchFredHistory('WM2NS', FRED_API_KEY, 52).catch(e => {
-        console.warn('[Bonds] WM2NS:', e.message || e);
-        _errors.m2HistoryData = [_errors.m2HistoryData, e.message].filter(Boolean).join('; ');
-        return null;
-      });
-      if (m2History?.length) {
-        console.warn('[Bonds] M2 using WM2NS weekly series (M2SL unavailable)');
-      }
-    }
     let m2HistoryData = null;
-    if (m2History?.length > 0) {
-      // M2SL is monthly billions → /1000 trillions; WM2NS is weekly billions.
-      const scale = 1000;
-      m2HistoryData = {
-        dates: m2History.map(p => dateToMonthLabel(p.date)),
-        values: m2History.map(p => p.value / scale),
-      };
-    } else {
-      const fb = await readLatestCacheWithFieldAsync('bonds', 'm2HistoryData.dates');
-      if (fb?.data?.m2HistoryData?.dates?.length) {
-        m2HistoryData = fb.data.m2HistoryData;
-        console.warn(`[Bonds] M2SL fallback to cache fetched ${fb.fetchedOn}`);
+    try {
+      trackApiCall('FRED');
+      trackApiCall('FRED');
+      const withTimeout = (p, ms, label) => Promise.race([
+        p,
+        new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timeout ${ms}ms`)), ms)),
+      ]);
+      const [fedBalanceHistory, m2sl, wm2] = await Promise.all([
+        withTimeout(fetchFredHistory('WALCL', FRED_API_KEY, 52), 12000, 'WALCL').catch((e) => {
+          console.warn('[Bonds] WALCL:', e.message || e);
+          _errors.fedBalanceSheetHistory = e.message;
+          return null;
+        }),
+        withTimeout(fetchFredHistory('M2SL', FRED_API_KEY, 52), 12000, 'M2SL').catch((e) => {
+          console.warn('[Bonds] M2SL:', e.message || e);
+          _errors.m2HistoryData = e.message;
+          return null;
+        }),
+        withTimeout(fetchFredHistory('WM2NS', FRED_API_KEY, 52), 12000, 'WM2NS').catch((e) => {
+          console.warn('[Bonds] WM2NS:', e.message || e);
+          return null;
+        }),
+      ]);
+      if (fedBalanceHistory?.length > 0) {
+        fedBalanceSheetHistory = {
+          dates: fedBalanceHistory.map(p => dateToMonthLabel(p.date)),
+          values: fedBalanceHistory.map(p => p.value / 1000),
+        };
+      } else {
+        const fb = await readLatestCacheWithFieldAsync('bonds', 'fedBalanceSheetHistory.dates');
+        if (fb?.data?.fedBalanceSheetHistory?.dates?.length) {
+          fedBalanceSheetHistory = fb.data.fedBalanceSheetHistory;
+          console.warn(`[Bonds] WALCL fallback to cache fetched ${fb.fetchedOn}`);
+        }
       }
+      const m2History = (m2sl?.length ? m2sl : null) || (wm2?.length ? wm2 : null);
+      if (m2History?.length > 0) {
+        if (!m2sl?.length && wm2?.length) {
+          console.warn('[Bonds] M2 using WM2NS weekly series (M2SL unavailable)');
+        }
+        m2HistoryData = {
+          dates: m2History.map(p => dateToMonthLabel(p.date)),
+          values: m2History.map(p => p.value / 1000),
+        };
+      } else {
+        const fb = await readLatestCacheWithFieldAsync('bonds', 'm2HistoryData.dates');
+        if (fb?.data?.m2HistoryData?.dates?.length) {
+          m2HistoryData = fb.data.m2HistoryData;
+          console.warn(`[Bonds] M2 fallback to cache fetched ${fb.fetchedOn}`);
+        }
+      }
+    } catch (e) {
+      console.warn('[Bonds] Fed BS / M2 block:', e.message || e);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

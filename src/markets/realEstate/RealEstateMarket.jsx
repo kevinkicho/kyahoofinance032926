@@ -57,8 +57,7 @@ function RealEstateMarket({ centralData } = {}) {
   const commoditiesData = props.commoditiesData || commoditiesCtx?.data;
   const censusData = censusCtx?.data;
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     // RealEstateDashboard's "Key Metrics" bento panel is a superset of the
     // old loose <RealEstateSidebar>, so the sidebar and the outer

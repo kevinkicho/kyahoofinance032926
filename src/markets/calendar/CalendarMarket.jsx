@@ -422,8 +422,7 @@ function CalendarMarket({ centralData } = {}) {
   }, [props]);
 
   if (!centralData || !props) return <MarketSkeleton />;
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     <div className="cal-market">
       <div className="cal-dashboard cal-dashboard--bento">

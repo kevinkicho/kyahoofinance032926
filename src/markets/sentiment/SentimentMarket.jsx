@@ -43,8 +43,7 @@ function SentimentMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getSentimentProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   return (
     // SentimentDashboard already wraps <SentimentSidebar> inside its
     // BentoWrapper as a real grid panel; the loose left-column copy

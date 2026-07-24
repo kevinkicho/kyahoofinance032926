@@ -53,8 +53,7 @@ function GlobalMacroMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getGlobalMacroProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   // KPI strip becomes a real bento child rendered inside the dashboard's
   // BentoWrapper (passed as `kpiSidebar`).
   const kpiSidebar = (

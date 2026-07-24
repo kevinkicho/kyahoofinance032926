@@ -184,14 +184,27 @@ function RentalAffordabilityMap({ data }) {
 
 const LAYOUT = {
   lg: [
-    { i: 'metrics',    x: 0,  y: 0, w: 3,  h: 5 },
-    { i: 'shiller',    x: 3,  y: 0, w: 3,  h: 3 },
-    { i: 'reitetf',    x: 6,  y: 0, w: 3,  h: 3 },
-    { i: 'reitperf',   x: 9,  y: 0, w: 3,  h: 3 },
-    { i: 'foreclosure', x: 3,  y: 3, w: 3,  h: 3 },
-    { i: 'mba',        x: 6,  y: 3, w: 3,  h: 3 },
-    { i: 'cre',        x: 9,  y: 3, w: 3,  h: 3 },
-  ]
+    { i: 'metrics', x: 0, y: 0, w: 3, h: 5 },
+    { i: 'shiller', x: 3, y: 0, w: 3, h: 3 },
+    { i: 'reitetf', x: 6, y: 0, w: 3, h: 3 },
+    { i: 'reitperf', x: 9, y: 0, w: 3, h: 3 },
+    { i: 'foreclosure', x: 3, y: 3, w: 3, h: 3 },
+    { i: 'mba', x: 6, y: 3, w: 3, h: 3 },
+    { i: 'cre', x: 9, y: 3, w: 3, h: 3 },
+    { i: 'caprate', x: 0, y: 6, w: 3, h: 3 },
+    { i: 'afford', x: 3, y: 6, w: 3, h: 3 },
+    { i: 'supply', x: 6, y: 6, w: 3, h: 3 },
+    { i: 'hud-afford', x: 9, y: 6, w: 3, h: 3 },
+    { i: 'afford-stack', x: 0, y: 9, w: 12, h: 3 },
+    { i: 'census-housing', x: 0, y: 12, w: 6, h: 3 },
+    { i: 'census-trade', x: 6, y: 12, w: 6, h: 3 },
+    { i: 'census-trends-housing', x: 0, y: 15, w: 6, h: 4 },
+    { i: 'census-trends-trade', x: 6, y: 15, w: 6, h: 4 },
+    { i: 'fhfa-hpi', x: 0, y: 19, w: 6, h: 3 },
+    { i: 'bis-property-prices', x: 6, y: 19, w: 6, h: 5 },
+    { i: 'metro-case-shiller', x: 0, y: 22, w: 6, h: 3 },
+    { i: 'hud-affordability-by-metro', x: 6, y: 24, w: 6, h: 3 },
+  ],
 };
 
 function RealEstateDashboard({
@@ -414,54 +427,8 @@ function RealEstateDashboard({
     return { price, rate, payment, hudMedianIncome, annualBurden, downPayment, stressLabel };
   }, [medianHomePriceLatest, mortgageRates, hudData]);
 
-  // Conditionally include optional panels
-  const layoutItems = [{ i: 'metrics', x: 0, y: 0, w: 3, h: 5 }];
-  let x = 3;
-  const chartH = 3;
-  if (shillerOption) { layoutItems.push({ i: 'shiller', x, y: 0, w: 3, h: chartH }); x += 3; }
-  if (reitOption) { layoutItems.push({ i: 'reitetf', x, y: 0, w: 3, h: chartH }); x += 3; }
-  if (reitData?.length > 0) { layoutItems.push({ i: 'reitperf', x, y: 0, w: 3, h: chartH }); x += 3; }
-  let x2 = 3;
-  if (foreclosureOption) { layoutItems.push({ i: 'foreclosure', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
-  if (mbaOption) { layoutItems.push({ i: 'mba', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
-  if (creOption) { layoutItems.push({ i: 'cre', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
-  if (capRateData?.length > 0) { layoutItems.push({ i: 'caprate', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
-  // affordabilityData is an object { current, history }, not an array —
-  // check for presence of current or history data instead of .length
-  if (affordabilityData && (affordabilityData.current != null || affordabilityData.history?.length > 0)) {
-    layoutItems.push({ i: 'afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3;
-  }
-  // supplyData is an object { housingStarts, permits, monthsSupply, activeListings }
-  if (supplyData && (supplyData.housingStarts?.values?.length > 0 || supplyData.permits?.values?.length > 0 || supplyData.monthsSupply != null)) {
-    layoutItems.push({ i: 'supply', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3;
-  }
-  if (hudData?.length > 0) { layoutItems.push({ i: 'hud-afford', x: x2, y: chartH, w: 3, h: chartH }); x2 += 3; }
-
-  // Census panels (merged from former Census tab) — placed below RE panels.
-  if (affordabilityStack) layoutItems.push({ i: 'afford-stack', x: 0, y: chartH * 2, w: 12, h: 3 });
-
-  const censusY = chartH * 3;
-  if (hasCensusHousingKpi) layoutItems.push({ i: 'census-housing', x: 0, y: censusY, w: 6, h: 3 });
-  if (hasCensusEcoKpi)     layoutItems.push({ i: 'census-trade',   x: 6, y: censusY, w: 6, h: 3 });
-  if (hasCensusHousingTrends) layoutItems.push({ i: 'census-trends-housing', x: 0, y: censusY + 3, w: 6, h: 4 });
-  if (hasCensusEcoTrends)     layoutItems.push({ i: 'census-trends-trade',   x: 6, y: censusY + 3, w: 6, h: 4 });
-
-  // FHFA HPI panel
-  // fhfaHpi is now received as a direct prop
-  if (fhfaHpi?.values?.length > 0) {
-    layoutItems.push({ i: 'fhfa-hpi', x: 0, y: censusY + 7, w: 6, h: 3 });
-  }
-  if (priceIndexData && Object.keys(priceIndexData).length > 0) {
-    layoutItems.push({ i: 'bis-property-prices', x: 6, y: censusY + 7, w: 6, h: 5 });
-  }
-  if (caseShillerData?.metros && Object.keys(caseShillerData.metros).length > 0) {
-    layoutItems.push({ i: 'metro-case-shiller', x: 0, y: censusY + 10, w: 6, h: 3 });
-  }
-  if (Array.isArray(hudData) && hudData.length > 0) {
-    layoutItems.push({ i: 'hud-affordability-by-metro', x: 6, y: censusY + 10, w: 6, h: 3 });
-  }
-
-  const dynamicLayout = { lg: layoutItems };
+  // Always mount MARKET_PANELS slots so cold/slow FRED does not hide ~15 panels.
+  const dynamicLayout = LAYOUT;
 
   return (
     <div className="re-dashboard re-dashboard--bento">
@@ -759,7 +726,7 @@ function RealEstateDashboard({
           </div>
         </BentoCard>
 
-        {affordabilityStack && (
+        {true && (
           <BentoCard
             key="afford-stack"
             title="Housing Affordability Stack"
@@ -798,7 +765,7 @@ function RealEstateDashboard({
         )}
 
         {/* Case-Shiller */}
-        {shillerOption && (
+        {true && (
           <BentoCard
             key="shiller"
             title="Case-Shiller Index"
@@ -817,7 +784,7 @@ function RealEstateDashboard({
         )}
 
         {/* REIT ETF */}
-        {reitOption && (
+        {true && (
           <BentoCard
             key="reitetf"
             title="REIT ETF (VNQ)"
@@ -836,7 +803,7 @@ function RealEstateDashboard({
         )}
 
         {/* REIT Performance */}
-        {reitData?.length > 0 && (
+        {true && (
           <BentoCard
             key="reitperf"
             title="REIT Performance"
@@ -865,7 +832,7 @@ function RealEstateDashboard({
         )}
 
         {/* Foreclosure */}
-        {foreclosureOption && (
+        {true && (
           <BentoCard
             key="foreclosure"
             title="Distress Indicators"
@@ -884,7 +851,7 @@ function RealEstateDashboard({
         )}
 
         {/* MBA Applications */}
-        {mbaOption && (
+        {true && (
           <BentoCard
             key="mba"
             title="MBA Applications"
@@ -903,7 +870,7 @@ function RealEstateDashboard({
         )}
 
         {/* CRE Delinquencies */}
-        {creOption && (
+        {true && (
           <BentoCard
             key="cre"
             title="CRE Delinquencies"
@@ -922,7 +889,7 @@ function RealEstateDashboard({
         )}
 
         {/* Cap Rates */}
-        {capRateData?.length > 0 && (
+        {true && (
           <BentoCard
             key="caprate"
             title="Cap Rates by Sector"
@@ -949,7 +916,7 @@ function RealEstateDashboard({
         )}
 
         {/* Affordability */}
-        {affordabilityData && (affordabilityData.current || affordabilityData.history?.length > 0) && (
+        {true && (
           <BentoCard
             key="afford"
             title="Affordability Index"
@@ -1000,7 +967,7 @@ function RealEstateDashboard({
         )}
 
         {/* Supply/Demand */}
-        {supplyData && (supplyData.housingStarts?.values?.length > 0 || supplyData.permits?.values?.length > 0 || supplyData.monthsSupply != null) && (
+        {true && (
           <BentoCard
             key="supply"
             title="Supply & Demand"
@@ -1052,7 +1019,7 @@ function RealEstateDashboard({
         )}
 
         {/* HUD Rental Affordability */}
-        {hudData?.length > 0 && (
+        {true && (
           <BentoCard
             key="hud-afford"
             title="Rental Affordability"
@@ -1091,27 +1058,27 @@ function RealEstateDashboard({
         )}
 
         {/* ── Census panels (merged from former Census tab) ── */}
-        {hasCensusHousingKpi && (
+        {true && (
           <BentoCard key="census-housing" title="Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusHousingPanel kpiData={censusKpiData} housingKeys={CENSUS_HOUSING_KEYS} />
           </BentoCard>
         )}
-        {hasCensusEcoKpi && (
+        {true && (
           <BentoCard key="census-trade" title="Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTradePanel kpiData={censusKpiData} ecoKeys={CENSUS_ECO_KEYS} />
           </BentoCard>
         )}
-        {hasCensusHousingTrends && (
+        {true && (
           <BentoCard key="census-trends-housing" title="Trends — Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTrendsHousingPanel housingSeries={censusHousingSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
           </BentoCard>
         )}
-        {hasCensusEcoTrends && (
+        {true && (
           <BentoCard key="census-trends-trade" title="Trends — Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTrendsTradePanel ecoSeries={censusEcoSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
           </BentoCard>
         )}
-        {fhfaHpi?.values?.length > 0 && (
+        {true && (
           <BentoCard key="fhfa-hpi" title="FHFA House Price Index" accent="realEstate" className="re-bento-card" contentClassName="re-panel-content" source="FHFA (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <div style={{ height: '100%', minHeight: 0, padding: 8 }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 8 }}>
@@ -1137,7 +1104,7 @@ function RealEstateDashboard({
             </div>
           </BentoCard>
         )}
-        {priceIndexData && Object.keys(priceIndexData).length > 0 && (
+        {true && (
           <BentoCard
             key="bis-property-prices"
             title="BIS Property Price Comparison"
@@ -1156,12 +1123,12 @@ function RealEstateDashboard({
             <BisPropertyPricePanel />
           </BentoCard>
         )}
-        {caseShillerData?.metros && Object.keys(caseShillerData.metros).length > 0 && (
+        {true && (
           <BentoCard key="metro-case-shiller" title="Metro Case-Shiller" subtitle="Metro-level home price indices" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="S&P CoreLogic / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <MetroCaseShillerPanel />
           </BentoCard>
         )}
-        {Array.isArray(hudData) && hudData.length > 0 && (
+        {true && (
           <BentoCard key="hud-affordability-by-metro" title="HUD Affordability by Metro" subtitle="Rent-to-income ratios and home values" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="HUD / Census" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <HudAffordabilityPanel />
           </BentoCard>

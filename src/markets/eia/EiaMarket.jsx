@@ -115,8 +115,7 @@ function EiaMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getEiaProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   const hasData = props.electricity.residential || props.electricity.commercial || props.electricity.industrial || props.co2Emissions.total || props.co2Emissions.bySector || props.petroleum?.wti || props.petroleum?.brent || props.naturalGas?.henryHub;
 
   if (!props.isLive && !hasData) {

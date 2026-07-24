@@ -123,8 +123,7 @@ function FXMarket({ centralData } = {}) {
   if (!centralData) return <MarketSkeleton />;
   const props = getFXProps(centralData);
 
-  if (props.isLoading) return <MarketSkeleton />;
-
+  
   const mergedSpotRates = wsRates ? { ...props.spotRates, ...wsRates } : props.spotRates;
 
   return (
