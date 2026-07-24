@@ -1,14 +1,38 @@
-# Firebase App Hosting — build/runtime env for kyahoofinance032926 backend.
-# Secrets were created with: firebase apphosting:secrets:set <NAME> --force
-# and granted to backend kyahoofinance032926.
+# Firebase App Hosting — kyahoofinance032926
+# https://firebase.google.com/docs/app-hosting/configure
 #
-# Client Firebase web config is public by design; values are still injected
-# via Secret Manager so builds stay consistent across environments.
+# Production must run the Express API (which also serves Vite dist/), NOT
+# scripts/start.js (that boots Vite dev + dual ports and fails Cloud Run's
+# PORT=8080 health check).
+
+# Keep enough of the repo for server + built SPA.
+outputFiles:
+  serverApp:
+    include:
+      - .
+
+scripts:
+  # Build the Vite SPA into dist/ (server serves it in production).
+  buildCommand: npm ci --legacy-peer-deps && npm run build
+  # Single process on $PORT (Cloud Run injects 8080).
+  runCommand: node server/index.js
 
 runConfig:
   runtime: nodejs24
+  # Dashboard cold-start loads many routes; give the container room.
+  cpu: 1
+  memoryMiB: 1024
+  maxInstances: 10
+  minInstances: 0
+  concurrency: 80
 
 env:
+  - variable: NODE_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
+
   - variable: VITE_FIREBASE_API_KEY
     secret: VITE_FIREBASE_API_KEY
     availability:

@@ -114,7 +114,11 @@ cleanOldCaches();
 })();
 
 const app = express();
-const port = parseInt(process.env.PORT, 10) || 0;
+// Cloud Run / App Hosting inject PORT (e.g. 8080). Locally default to 3001 so
+// Vite's proxy target stays stable; never use 0 in production (random ports
+// fail the Cloud Run health check that expects $PORT).
+const port = Number.parseInt(process.env.PORT, 10) || 3001;
+const host = process.env.HOST || '0.0.0.0';
 
 const localCache = new NodeCache({ stdTTL: 900 });
 
@@ -139,8 +143,13 @@ if (wantSecurity) {
   }
 }
 
-const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-app.use(cors({ origin: allowedOrigin }));
+// Same-origin SPA (production) needs no CORS. Dev Vite is on :5173.
+// When CORS_ORIGIN=* or production Cloud Run, reflect request origin.
+const corsOrigin = process.env.CORS_ORIGIN
+  || (process.env.K_SERVICE || process.env.NODE_ENV === 'production'
+    ? true
+    : 'http://localhost:5173');
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: '256kb' }));
 
 app.use((req, res, next) => {
@@ -396,16 +405,32 @@ app.use((err, req, res, _next) => {
   }
 });
 
-// Kick off snapshot index build at startup (non-blocking)
-buildSnapshotIndex();
+// Kick off snapshot index build at startup (non-blocking) — never block listen.
+buildSnapshotIndex().catch((e) => console.warn('[snapshot]', e?.message || e));
 
-server = app.listen(port, () => {
-  const actualPort = server.address().port;
-  const portFile = path.join(__dirname, '..', '.server-port');
-  fs.writeFileSync(portFile, String(actualPort));
+// Bind ASAP so Cloud Run health checks succeed (must listen on $PORT).
+server = app.listen(port, host, () => {
+  const actualPort = server.address()?.port ?? port;
+  try {
+    const portFile = path.join(__dirname, '..', '.server-port');
+    fs.writeFileSync(portFile, String(actualPort));
+  } catch (e) {
+    // Read-only FS on some hosts — fine; only used by local Vite proxy.
+    console.warn('[port-file] skip write:', e?.message || e);
+  }
   const files = fs.existsSync(DATA_DIR) ? fs.readdirSync(DATA_DIR).length : 0;
-  console.log(`Global Macro Backend running at http://localhost:${actualPort}`);
+  console.log(`Global Macro Backend listening on http://${host}:${actualPort}`);
   console.log(`  Local data cache: ${files} tickers in ${DATA_DIR}`);
+  console.log(`  dist SPA: ${fs.existsSync(distPath) ? 'yes' : 'no (API only)'}`);
   console.log(`  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/fx  /api/summary/:t  /api/history/:t  /api/analytics`);
-  startFxWebSocket(server);
+  try {
+    startFxWebSocket(server);
+  } catch (e) {
+    console.warn('[WS/FX] start failed (non-fatal):', e?.message || e);
+  }
+});
+
+server.on('error', (err) => {
+  console.error('[listen] failed:', err?.message || err);
+  process.exit(1);
 });
