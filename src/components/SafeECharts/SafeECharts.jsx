@@ -218,6 +218,22 @@ const SafeECharts = forwardRef(function SafeECharts({ option, style, className, 
     );
   }
 
+  // Force-mounted panels often pass option={null} until series load. ECharts
+  // throws "Cannot read properties of null (reading 'baseOption')" otherwise.
+  if (!option || typeof option !== 'object') {
+    return (
+      <div
+        ref={containerRef}
+        className={className}
+        style={containerStyle}
+      >
+        <div style={{ color: '#9ca3af', fontSize: 12, padding: 16, textAlign: 'center' }}>
+          Chart loading…
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
