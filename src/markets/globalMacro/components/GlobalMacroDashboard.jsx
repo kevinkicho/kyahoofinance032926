@@ -76,12 +76,12 @@ function GlobalMacroDashboard({
   const [selectedCountry, setSelectedCountry] = useState(null);
 
   const sortedByGdp = useMemo(() => {
-    if (!scorecardData) return [];
+    if (!Array.isArray(scorecardData)) return [];
     return [...scorecardData].sort((a, b) => (b.gdp ?? -999) - (a.gdp ?? -999));
   }, [scorecardData]);
 
   const sortedByCpi = useMemo(() => {
-    if (!scorecardData) return [];
+    if (!Array.isArray(scorecardData)) return [];
     return [...scorecardData].sort((a, b) => (a.cpi ?? 999) - (b.cpi ?? 999));
   }, [scorecardData]);
 
@@ -245,9 +245,11 @@ function GlobalMacroDashboard({
   }, [cfnai, colors]);
 
   const beaSummary = useMemo(() => {
-    const latestByDesc = (rows = [], match) => {
-      const found = rows.find(r => (r.desc || '').toLowerCase().includes(match));
-      return found || null;
+    // Partial/hollow BEA payloads often set fields to null (not undefined) —
+    // default params do not apply to null, so always coerce to an array.
+    const latestByDesc = (rows, match) => {
+      if (!Array.isArray(rows) || !match) return null;
+      return rows.find(r => (r.desc || '').toLowerCase().includes(match)) || null;
     };
     return {
       gdp: latestByDesc(beaData?.gdpComponents, 'gross domestic product'),
@@ -259,7 +261,7 @@ function GlobalMacroDashboard({
   }, [beaData]);
 
   const beaOption = useMemo(() => {
-    const rows = (beaData?.savingRate || [])
+    const rows = (Array.isArray(beaData?.savingRate) ? beaData.savingRate : [])
       .filter(r => (r.desc || '').toLowerCase().includes('personal saving as a percentage'))
       .slice()
       .reverse()
@@ -277,7 +279,7 @@ function GlobalMacroDashboard({
   }, [beaData, colors]);
 
   const beaIncomeRows = useMemo(() => {
-    const rows = beaData?.savingRate || [];
+    const rows = Array.isArray(beaData?.savingRate) ? beaData.savingRate : [];
     const latestPeriod = rows[0]?.period;
     return rows
       .filter(row => row.period === latestPeriod && row.value != null)
@@ -299,7 +301,7 @@ function GlobalMacroDashboard({
   }, [beaData]);
 
   const beaIncomeCycleOption = useMemo(() => {
-    const rows = (beaData?.savingRate || [])
+    const rows = (Array.isArray(beaData?.savingRate) ? beaData.savingRate : [])
       .filter(r => (r.desc || '').toLowerCase().includes('personal saving as a percentage'))
       .slice()
       .reverse()
@@ -343,9 +345,9 @@ function GlobalMacroDashboard({
 
   const eurostatOption = useMemo(() => {
     const rows = [
-      ...(eurostatData?.hicp || []).map(r => ({ ...r, metric: 'HICP' })),
-      ...(eurostatData?.unemployment || []).map(r => ({ ...r, metric: 'Unemployment' })),
-      ...(eurostatData?.govtDeficit || []).map(r => ({ ...r, metric: 'Govt Deficit' })),
+      ...(Array.isArray(eurostatData?.hicp) ? eurostatData.hicp : []).map(r => ({ ...r, metric: 'HICP' })),
+      ...(Array.isArray(eurostatData?.unemployment) ? eurostatData.unemployment : []).map(r => ({ ...r, metric: 'Unemployment' })),
+      ...(Array.isArray(eurostatData?.govtDeficit) ? eurostatData.govtDeficit : []).map(r => ({ ...r, metric: 'Govt Deficit' })),
     ];
     if (!rows.length) return null;
     const latest = ['HICP', 'Unemployment', 'Govt Deficit'].map(metric => [...rows].reverse().find(r => r.metric === metric)).filter(Boolean);
@@ -361,9 +363,11 @@ function GlobalMacroDashboard({
   }, [eurostatData, colors]);
 
   const oecdDirectRows = useMemo(() => {
-    return Object.entries(oecdData?.cli || {}).map(([code, rows]) => {
-      const latest = rows?.[rows.length - 1];
-      const prior = rows?.[Math.max(0, rows.length - 4)];
+    const cli = oecdData?.cli && typeof oecdData.cli === 'object' ? oecdData.cli : {};
+    return Object.entries(cli).map(([code, rows]) => {
+      const series = Array.isArray(rows) ? rows : [];
+      const latest = series[series.length - 1];
+      const prior = series[Math.max(0, series.length - 4)];
       return {
         code,
         value: latest?.value ?? null,
@@ -762,7 +766,7 @@ function GlobalMacroDashboard({
             key="cleveland"
             title="Cleveland Fed · Inflation Nowcast"
             subtitle={(() => {
-              const tables = cleveData?.tables || [];
+              const tables = Array.isArray(cleveData?.tables) ? cleveData.tables : [];
               const yoy = tables.find((t) => t.kind === 'yoy')?.rows?.[0]
                 || cleveData?.byKind?.yoy
                 || (tables.filter((t) => t.kind === 'mom').length > 1 ? tables[1]?.rows?.[0] : null)

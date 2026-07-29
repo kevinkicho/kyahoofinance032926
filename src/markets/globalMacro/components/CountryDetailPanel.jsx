@@ -17,13 +17,16 @@ export default function CountryDetailPanel({ country, onClose, centralBankData, 
 
   // Find matching data from other sources
   const rateInfo = useMemo(() => {
-    if (!centralBankData?.current) return null;
-    return centralBankData.current.find(c => c.code === country?.code);
+    if (!Array.isArray(centralBankData?.current)) return null;
+    return centralBankData.current.find(c => c.code === country?.code) || null;
   }, [centralBankData, country]);
 
   const rateHistory = useMemo(() => {
     if (!centralBankData?.history || !country) return null;
-    const series = centralBankData.history.series.find(s => s.code === country.code);
+    const seriesList = Array.isArray(centralBankData.history.series)
+      ? centralBankData.history.series
+      : [];
+    const series = seriesList.find(s => s.code === country.code);
     if (!series) return null;
     return {
       dates: centralBankData.history.dates,
@@ -32,13 +35,13 @@ export default function CountryDetailPanel({ country, onClose, centralBankData, 
   }, [centralBankData, country]);
 
   const cliInfo = useMemo(() => {
-    if (!oecdCli?.countries) return null;
-    return oecdCli.countries.find(c => c.code === country?.code);
+    if (!Array.isArray(oecdCli?.countries)) return null;
+    return oecdCli.countries.find(c => c.code === country?.code) || null;
   }, [oecdCli, country]);
 
   // Rank among peers
   const rankings = useMemo(() => {
-    if (!scorecardData || !country) return {};
+    if (!Array.isArray(scorecardData) || !country) return {};
     const byGdp = [...scorecardData].sort((a, b) => (b.gdp ?? -999) - (a.gdp ?? -999));
     const byCpi = [...scorecardData].sort((a, b) => (a.cpi ?? 999) - (b.cpi ?? 999));
     const byDebt = [...scorecardData].sort((a, b) => (b.debt ?? -999) - (a.debt ?? -999));

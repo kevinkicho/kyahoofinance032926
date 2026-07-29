@@ -45,7 +45,12 @@ export const STRUCTURAL_GUARDS = {
   imf:            d => (Array.isArray(d.countries) && d.countries.length >= 5) || d.reserves != null,
   worldbank:      d => (Array.isArray(d.countries) && d.countries.length >= 5) || d.indicators?.length > 0,
   bls:            d => d.series && Object.keys(d.series).length > 0,
-  eia:            d => d.electricity?.residential != null || d.co2Emissions?.total != null,
+  // Electricity OR petroleum/natgas (FRED fallback when EIA elec missing)
+  eia:            d => d.electricity?.residential != null
+    || d.co2Emissions?.total != null
+    || d.petroleum?.wti != null
+    || d.petroleum?.brent != null
+    || d.naturalGas?.henryHub != null,
   census:         d => d.series && Object.keys(d.series).length > 0,
 };
 

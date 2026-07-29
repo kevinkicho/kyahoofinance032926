@@ -22,10 +22,18 @@ function useFxWebSocket() {
     if (import.meta.env.VITE_DISABLE_FX_WS === 'true') return undefined;
     if (typeof WebSocket === 'undefined') return undefined;
 
+    // Firebase App Hosting / Cloud Run edge often drops WS upgrades for /ws/*.
+    // REST /api/fx already feeds panels — skip the connection entirely in prod hosts.
+    const host = typeof window !== 'undefined' ? (window.location.hostname || '') : '';
+    const isHostedEdge = /\.hosted\.app$|\.run\.app$|\.web\.app$|\.firebaseapp\.com$/i.test(host);
+    if (isHostedEdge && import.meta.env.VITE_ENABLE_FX_WS !== 'true') {
+      return undefined;
+    }
+
     aliveRef.current = true;
     attemptsRef.current = 0;
 
-    const MAX_ATTEMPTS = 3;
+    const MAX_ATTEMPTS = 2;
     const BASE_MS = 2500;
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${proto}//${window.location.host}/ws/fx`;
