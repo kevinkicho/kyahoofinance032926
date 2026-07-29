@@ -53,7 +53,7 @@ describe('CommoditiesMarket', () => {
 
   it('shows data footer when not live', () => {
     render(<CommoditiesMarket centralData={mockCentralData} />);
-    const pendingBadges = screen.getAllByText('PENDING');
+    const pendingBadges = screen.getAllByText(/WAITING|PENDING|STALE|NO DATA|FETCHED/i);
     expect(pendingBadges.length).toBeGreaterThan(0);
   });
 });

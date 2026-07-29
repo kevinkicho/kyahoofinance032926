@@ -75,10 +75,11 @@ describe('InsuranceMarket', () => {
     expect(getByTestId('market-skeleton')).toBeInTheDocument();
   });
 
-  it('renders MarketSkeleton when loading', () => {
+  it('mounts market shell while loading (no full-tab skeleton)', () => {
     const loadingData = { ...mockCentralData, isLoading: true };
-    const { getByTestId } = render(<InsuranceMarket centralData={loadingData} />);
-    expect(getByTestId('market-skeleton')).toBeInTheDocument();
+    const { container, queryByTestId } = render(<InsuranceMarket centralData={loadingData} />);
+    expect(queryByTestId('market-skeleton')).toBeNull();
+    expect(container.querySelector('.ins-market')).toBeInTheDocument();
   });
 
   it('extracts hyOAS from centralData and passes to dashboard', () => {

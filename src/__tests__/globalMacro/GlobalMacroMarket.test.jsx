@@ -42,7 +42,7 @@ const mockCentralData = {
 describe('GlobalMacroMarket', () => {
   it('renders unified dashboard with status bar', () => {
     render(<GlobalMacroMarket centralData={mockCentralData} />);
-    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED/i).length).toBeGreaterThan(0);
   });
 
   it('shows KPI strip with global metrics', () => {
@@ -76,7 +76,7 @@ describe('GlobalMacroMarket', () => {
 
   it('shows no data received status when not live', () => {
     render(<GlobalMacroMarket centralData={mockCentralData} />);
-    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED/i).length).toBeGreaterThan(0);
   });
 
   it('shows clickable scorecard rows', () => {

@@ -36,9 +36,10 @@ describe('CryptoMarket', () => {
     expect(container.querySelector('.skeleton-market')).toBeTruthy();
   });
 
-  it('renders skeleton when loading', () => {
+  it('mounts market shell while loading (no full-tab skeleton)', () => {
     const { container } = render(<CryptoMarket centralData={{ isLoading: true, data: null }} />);
-    expect(container.querySelector('.skeleton-market')).toBeTruthy();
+    expect(container.querySelector('.skeleton-market')).toBeFalsy();
+    expect(container.querySelector('.crypto-market')).toBeTruthy();
   });
 
   it('renders fetched status when live', () => {
@@ -49,7 +50,7 @@ describe('CryptoMarket', () => {
   it('renders unavailable message when not live', () => {
     const notLive = { ...mockCentralData, isLive: false, isCurrent: false, fetchedOn: null };
     render(<CryptoMarket centralData={notLive} />);
-    expect(screen.getAllByText(/PENDING/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/WAITING|PENDING|LOADING/i).length).toBeGreaterThan(0);
   });
 
   it('renders bitcoin price', () => {

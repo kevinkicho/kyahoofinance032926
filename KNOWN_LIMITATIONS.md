@@ -6,6 +6,23 @@ remove one of the items below, please update this file in the same PR.
 
 ---
 
+## Panel status badges (DataFooter)
+
+| Badge | Meaning |
+|---|---|
+| **FETCHED** | Live or same-day successful payload |
+| **LOADING** | Request in flight (`isLoading`) |
+| **STALE** | Serving prior cache (`fetchedOn` set, not current) |
+| **NO DATA** | Fetch finished with empty/error payload |
+| **UNAVAIL** | Source missing key / not configured / auth failure |
+| **WAITING** | Panel shell mounted; first fetch not finished yet (replaces **PENDING**) |
+
+Older docs may still say PENDING; UI and audits treat WAITING as the waiting state.
+After App Hosting deploys, run `npm run postdeploy:warm` so cold instances fill
+disk cache before users hit slow FRED routes.
+
+---
+
 ## 1. Mock / synthetic data
 
 The app follows a strict "no mock data" policy. When live data is unavailable,

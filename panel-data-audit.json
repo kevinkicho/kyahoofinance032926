@@ -1,0 +1,2484 @@
+{
+  "generatedAt": "2026-07-24T06:24:33.686Z",
+  "base": "https://kyahoofinance032926--kfinance032926.us-central1.hosted.app",
+  "summary": {
+    "totalPanels": 232,
+    "totalOk": 231,
+    "totalBad": 1
+  },
+  "markets": [
+    {
+      "marketId": "equities",
+      "primary": "/api/equities",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 399188,
+        "ok": true
+      },
+      "primaryKeys": 7,
+      "panelCount": 9,
+      "counts": {
+        "ok": 4,
+        "ok-cross": 5
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Key Indices",
+          "fieldStatus": "ok",
+          "detail": "indices=obj{^GSPC,^IXIC,^DJI,^RUT,^STOXX50E}",
+          "fieldPath": "indices",
+          "source": "/api/equities"
+        },
+        {
+          "id": "heatmap",
+          "title": "Equity Heatmap",
+          "fieldStatus": "ok",
+          "detail": "quotes=obj{1020,1024,1050,1180,1211}",
+          "fieldPath": "quotes",
+          "source": "/api/equities"
+        },
+        {
+          "id": "sidebar",
+          "title": "Market Summary",
+          "fieldStatus": "ok",
+          "detail": "quotes=obj{1020,1024,1050,1180,1211}",
+          "fieldPath": "quotes",
+          "source": "/api/equities"
+        },
+        {
+          "id": "portfolio",
+          "title": "Portfolio Tracker",
+          "fieldStatus": "ok",
+          "detail": "quotes=obj{1020,1024,1050,1180,1211}",
+          "fieldPath": "quotes",
+          "source": "/api/equities"
+        },
+        {
+          "id": "universe-updates",
+          "title": "Universe Expansion Queue",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/universeUpdates keys=1",
+          "fieldPath": "updates",
+          "source": "/api/universeUpdates"
+        },
+        {
+          "id": "sec-fundamentals",
+          "title": "SEC Fundamentals",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/edgar keys=1",
+          "fieldPath": "edgarCtx.data",
+          "source": "/api/edgar"
+        },
+        {
+          "id": "sec-filings",
+          "title": "SEC Filing Activity",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/edgar/filing-activity keys=8",
+          "fieldPath": "byType",
+          "source": "/api/edgar/filing-activity"
+        },
+        {
+          "id": "bea-corporate-profits",
+          "title": "BEA Corporate Profits",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/bea keys=4",
+          "fieldPath": "beaCtx.data.gdpComponents",
+          "source": "/api/bea"
+        },
+        {
+          "id": "wb-market-cap",
+          "title": "World Bank Market Cap",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/worldbank keys=4",
+          "fieldPath": "wbCtx.data.countries",
+          "source": "/api/worldbank"
+        }
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "primary": "/api/bonds",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 39757,
+        "ok": true
+      },
+      "primaryKeys": 24,
+      "panelCount": 20,
+      "counts": {
+        "ok-untracked": 2,
+        "ok": 12,
+        "ok-cross": 6
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Bonds Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/bonds"
+        },
+        {
+          "id": "yield",
+          "title": "Yield Curve",
+          "fieldStatus": "ok",
+          "detail": "yieldCurveData=obj{US,DE,JP,GB,IT}",
+          "fieldPath": "yieldCurveData",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "metrics",
+          "title": "Spread Monitor",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/bonds"
+        },
+        {
+          "id": "credit",
+          "title": "Credit Spreads",
+          "fieldStatus": "ok",
+          "detail": "spreadData=obj{dates,IG,HY,EM,BBB}",
+          "fieldPath": "spreadData",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "realYield",
+          "title": "Real Yields",
+          "fieldStatus": "ok",
+          "detail": "tipsYields=obj{5y,10y,30y}",
+          "fieldPath": "tipsYields",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "ratings",
+          "title": "Credit Ratings",
+          "fieldStatus": "ok",
+          "detail": "creditRatings.countries=arr[12]",
+          "fieldPath": "creditRatings.countries",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "curvespreads",
+          "title": "Curve Spreads",
+          "fieldStatus": "ok",
+          "detail": "spreadHistory.dates=arr[241]",
+          "fieldPath": "spreadHistory.dates",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "fed",
+          "title": "Fed Balance Sheet",
+          "fieldStatus": "ok",
+          "detail": "fedBalanceSheetHistory.dates=arr[52]",
+          "fieldPath": "fedBalanceSheetHistory.dates",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "m2",
+          "title": "M2 Money Supply",
+          "fieldStatus": "ok",
+          "detail": "m2HistoryData.dates=arr[52]",
+          "fieldPath": "m2HistoryData.dates",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "cpi",
+          "title": "CPI Components",
+          "fieldStatus": "ok",
+          "detail": "cpiComponents.dates=arr[47]",
+          "fieldPath": "cpiComponents.dates",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "debtgdp",
+          "title": "Debt-to-GDP",
+          "fieldStatus": "ok",
+          "detail": "debtToGdpHistory.dates=arr[80]",
+          "fieldPath": "debtToGdpHistory.dates",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "breakevens",
+          "title": "Breakeven Inflation",
+          "fieldStatus": "ok",
+          "detail": "breakevensData.current.be5y=2.29",
+          "fieldPath": "breakevensData.current.be5y",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "duration",
+          "title": "Duration Ladder",
+          "fieldStatus": "ok",
+          "detail": "durationLadder.buckets=arr[4]",
+          "fieldPath": "durationLadder.buckets",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "macro",
+          "title": "Macro Indicators",
+          "fieldStatus": "ok",
+          "detail": "macroData=obj{fedBalanceSheet,m2,federalDebt,surplusDeficit,unemployment}",
+          "fieldPath": "macroData",
+          "source": "/api/bonds"
+        },
+        {
+          "id": "foreign-holders",
+          "title": "Foreign Holders",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/treasuryTIC keys=2",
+          "fieldPath": "ticCtx.data.latest",
+          "source": "/api/treasuryTIC"
+        },
+        {
+          "id": "money-market",
+          "title": "Money Market",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/nyfed keys=3",
+          "fieldPath": "nyfedCtx.data.sofr.series",
+          "source": "/api/nyfed"
+        },
+        {
+          "id": "auctions",
+          "title": "Treasury Auctions",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/treasuryAuctions keys=2",
+          "fieldPath": "auctionCtx.data",
+          "source": "/api/treasuryAuctions"
+        },
+        {
+          "id": "ecb-yields",
+          "title": "ECB Policy Rates",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/ecb keys=4",
+          "fieldPath": null,
+          "source": "/api/ecb"
+        },
+        {
+          "id": "global-rates",
+          "title": "Global Central Bank Rates",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/ecb keys=4",
+          "fieldPath": null,
+          "source": "/api/ecb"
+        },
+        {
+          "id": "treasury-cost",
+          "title": "Treasury Avg Interest Cost",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/treasuryCost keys=2",
+          "fieldPath": null,
+          "source": "/api/treasuryCost"
+        }
+      ]
+    },
+    {
+      "marketId": "fx",
+      "primary": "/api/fx",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 48084,
+        "ok": true
+      },
+      "primaryKeys": 14,
+      "panelCount": 13,
+      "counts": {
+        "ok-untracked": 7,
+        "ok": 4,
+        "ok-cross": 2
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "FX Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/fx"
+        },
+        {
+          "id": "sidebar",
+          "title": "FX Dashboard",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/fx"
+        },
+        {
+          "id": "movers",
+          "title": "Top Movers",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/fx"
+        },
+        {
+          "id": "dxy",
+          "title": "DXY Tracker",
+          "fieldStatus": "ok",
+          "detail": "dxyHistory=obj{dates,values}",
+          "fieldPath": "dxyHistory",
+          "source": "/api/fx"
+        },
+        {
+          "id": "cot",
+          "title": "COT Positioning",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/fx"
+        },
+        {
+          "id": "corr",
+          "title": "Currency Correlation (30D)",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/fx"
+        },
+        {
+          "id": "reer",
+          "title": "REER Chart",
+          "fieldStatus": "ok",
+          "detail": "reer=obj{dates,US,JP,GB,CN}",
+          "fieldPath": "reer",
+          "source": "/api/fx"
+        },
+        {
+          "id": "ratediff",
+          "title": "Rate Differentials",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/fx"
+        },
+        {
+          "id": "carry",
+          "title": "Carry Map",
+          "fieldStatus": "ok",
+          "detail": "rateDifferentials=obj{fed,ecb,boe,boj,usFed_ecb}",
+          "fieldPath": "rateDifferentials",
+          "source": "/api/fx"
+        },
+        {
+          "id": "rate-dashboard",
+          "title": "Rate Dashboard",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/fx"
+        },
+        {
+          "id": "imf-cofer",
+          "title": "IMF COFER Reserves",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/imf keys=5",
+          "fieldPath": "imfReserves",
+          "source": "/api/imf"
+        },
+        {
+          "id": "treasury-tic",
+          "title": "Treasury TIC Holdings",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/treasuryTIC keys=2",
+          "fieldPath": "ticCtx.data.latest",
+          "source": "/api/treasuryTIC"
+        },
+        {
+          "id": "bis-reer",
+          "title": "BIS REER Comparison",
+          "fieldStatus": "ok",
+          "detail": "reer=obj{dates,US,JP,GB,CN}",
+          "fieldPath": "reer",
+          "source": "/api/fx"
+        }
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "primary": "/api/derivatives",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 20714,
+        "ok": true
+      },
+      "primaryKeys": 12,
+      "panelCount": 12,
+      "counts": {
+        "ok": 5,
+        "ok-untracked": 3,
+        "missing-field": 1,
+        "ok-cross": 3
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Derivatives Key Metrics",
+          "fieldStatus": "ok",
+          "detail": "vixTermStructure=obj{dates,values,prevValues}",
+          "fieldPath": "vixTermStructure",
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "metrics",
+          "title": "Key Metrics",
+          "fieldStatus": "ok",
+          "detail": "vixTermStructure=obj{dates,values,prevValues}",
+          "fieldPath": "vixTermStructure",
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "vixterm",
+          "title": "VIX Term Structure",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "vix1y",
+          "title": "VIX — 1 Year",
+          "fieldStatus": "ok",
+          "detail": "fredVixHistory=obj{dates,values}",
+          "fieldPath": "fredVixHistory",
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "skew",
+          "title": "Skew Index",
+          "fieldStatus": "ok",
+          "detail": "skewIndex=obj{value,interpretation,asOf}",
+          "fieldPath": "skewIndex",
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "volsurf",
+          "title": "Vol Surface",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "flow",
+          "title": "Options Flow",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "gamma",
+          "title": "Gamma Exposure",
+          "fieldStatus": "ok",
+          "detail": "gammaExposure=arr[284]",
+          "fieldPath": "gammaExposure",
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "volprem",
+          "title": "Vol Premium",
+          "fieldStatus": "missing-field",
+          "detail": "want volPremium; have vixTermStructure,optionsFlow,volSurfaceData,gammaExposure,vixEnrichment,volPremium,fredVixHistory,putCallRatio,skewIndex,skewHistory",
+          "fieldPath": "volPremium",
+          "source": "/api/derivatives"
+        },
+        {
+          "id": "cftc-tff",
+          "title": "CFTC Financial Futures",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/cftcTFF keys=1",
+          "fieldPath": "contracts",
+          "source": "/api/cftcTFF"
+        },
+        {
+          "id": "bis-otc",
+          "title": "BIS OTC Derivatives",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/bisOTC keys=1",
+          "fieldPath": "categories",
+          "source": "/api/bisOTC"
+        },
+        {
+          "id": "ecb-derivatives",
+          "title": "ECB Financial Market Data",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/ecb keys=4",
+          "fieldPath": "ecbCtx.data",
+          "source": "/api/ecb"
+        }
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "primary": "/api/realEstate",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 59522,
+        "ok": true
+      },
+      "primaryKeys": 20,
+      "panelCount": 20,
+      "counts": {
+        "ok-untracked": 12,
+        "ok-cross": 4,
+        "ok": 4
+      },
+      "panels": [
+        {
+          "id": "metrics",
+          "title": "Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "shiller",
+          "title": "Case-Shiller Index",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "reitetf",
+          "title": "REIT ETF (VNQ)",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "reitperf",
+          "title": "REIT Performance",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "foreclosure",
+          "title": "Distress Indicators",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "mba",
+          "title": "Mortgage Rates",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "cre",
+          "title": "CRE Delinquencies",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "caprate",
+          "title": "Cap Rates by Sector",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "afford",
+          "title": "Affordability Index",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "supply",
+          "title": "Supply & Demand",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "hud-afford",
+          "title": "HUD Rental Affordability",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "afford-stack",
+          "title": "Housing Affordability Stack",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "census-housing",
+          "title": "Census Housing KPI",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/census keys=1",
+          "fieldPath": null,
+          "source": "/api/census"
+        },
+        {
+          "id": "census-trade",
+          "title": "Census Trade KPI",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/censusTrade keys=3",
+          "fieldPath": null,
+          "source": "/api/censusTrade"
+        },
+        {
+          "id": "census-trends-housing",
+          "title": "Census Housing Trends",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/census keys=1",
+          "fieldPath": null,
+          "source": "/api/census"
+        },
+        {
+          "id": "census-trends-trade",
+          "title": "Census Trade Trends",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/censusTrade keys=3",
+          "fieldPath": null,
+          "source": "/api/censusTrade"
+        },
+        {
+          "id": "fhfa-hpi",
+          "title": "FHFA House Price Index",
+          "fieldStatus": "ok",
+          "detail": "fhfaHpi=obj{dates,values,latest}",
+          "fieldPath": "fhfaHpi",
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "bis-property-prices",
+          "title": "BIS Property Price Comparison",
+          "fieldStatus": "ok",
+          "detail": "priceIndexData=obj{US,UK,FR,CA,JP}",
+          "fieldPath": "priceIndexData",
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "metro-case-shiller",
+          "title": "Metro Case-Shiller",
+          "fieldStatus": "ok",
+          "detail": "caseShillerData.metros=obj{San Francisco,New York,Los Angeles,Miami,Chicago}",
+          "fieldPath": "caseShillerData.metros",
+          "source": "/api/realEstate"
+        },
+        {
+          "id": "hud-affordability-by-metro",
+          "title": "HUD Affordability by Metro",
+          "fieldStatus": "ok",
+          "detail": "hudData=arr[50]",
+          "fieldPath": "hudData",
+          "source": "/api/realEstate"
+        }
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "primary": "/api/insurance",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 19868,
+        "ok": true
+      },
+      "primaryKeys": 14,
+      "panelCount": 18,
+      "counts": {
+        "ok-untracked": 11,
+        "ok-cross": 7
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Insurance Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "hyoas",
+          "title": "HY OAS Spread",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "catloss",
+          "title": "Natural Catastrophe Losses",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "crhist",
+          "title": "Industry Combined Ratio",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "crline",
+          "title": "Combined Ratio by Line",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "reinsrates",
+          "title": "Reinsurance Pricing",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "reserves",
+          "title": "Reserve Adequacy",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "catbonds",
+          "title": "Cat Bond Spreads",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "etfs",
+          "title": "Sector / Industry Pulse",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "catastrophes",
+          "title": "Catastrophes (FEMA+USGS)",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fema keys=3",
+          "fieldPath": null,
+          "source": "/api/fema"
+        },
+        {
+          "id": "ins-penetration",
+          "title": "Insurance Penetration",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "combined-ratios",
+          "title": "Insurer Combined Ratios (EDGAR)",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/edgar/insurer-ratios keys=2",
+          "fieldPath": null,
+          "source": "/api/edgar/insurer-ratios"
+        },
+        {
+          "id": "cat-exposure",
+          "title": "Cat Exposure",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/insurance"
+        },
+        {
+          "id": "usgs-minerals",
+          "title": "USGS Earthquake Activity (30d)",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/usgs keys=5",
+          "fieldPath": null,
+          "source": "/api/usgs"
+        },
+        {
+          "id": "ecb-supervisory",
+          "title": "ECB Policy Rates",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/ecb keys=4",
+          "fieldPath": null,
+          "source": "/api/ecb"
+        },
+        {
+          "id": "wb-ins-penetration",
+          "title": "World Bank Insurance Penetration",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/worldbank keys=4",
+          "fieldPath": "wbCtx.data.countries",
+          "source": "/api/worldbank"
+        },
+        {
+          "id": "fema-disasters",
+          "title": "FEMA Disaster Declarations",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fema keys=3",
+          "fieldPath": "femaCtx.data.declarations",
+          "source": "/api/fema"
+        },
+        {
+          "id": "usgs-earthquakes",
+          "title": "USGS Earthquake Activity",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/usgs keys=5",
+          "fieldPath": "usgsCtx.data.events",
+          "source": "/api/usgs"
+        }
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "primary": "/api/commoditiesEnhanced",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 66598,
+        "ok": true
+      },
+      "primaryKeys": 9,
+      "panelCount": 21,
+      "counts": {
+        "ok-untracked": 14,
+        "ok": 4,
+        "ok-cross": 3
+      },
+      "panels": [
+        {
+          "id": "sidebar",
+          "title": "Market Summary",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "prices",
+          "title": "Commodity Prices",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "futures",
+          "title": "Futures Curve",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "sector",
+          "title": "Sector Performance",
+          "fieldStatus": "ok",
+          "detail": "eia=obj{henry_hub,brent_price,refinery_input,wti_price,refinery_utilization}",
+          "fieldPath": "sectorHeatmapData.commodities",
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "supply",
+          "title": "Supply & Demand",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "wti-brent",
+          "title": "WTI vs Brent Spread",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "cot",
+          "title": "COT Positioning",
+          "fieldStatus": "ok",
+          "detail": "eia=obj{henry_hub,brent_price,refinery_input,wti_price,refinery_utilization}",
+          "fieldPath": "cotData",
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "comfx",
+          "title": "Commodity FX (vs USD)",
+          "fieldStatus": "ok",
+          "detail": "eia=obj{henry_hub,brent_price,refinery_input,wti_price,refinery_utilization}",
+          "fieldPath": "commodityCurrencies",
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "usda-ag",
+          "title": "US Ag Commodity Prices",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/usda keys=2",
+          "fieldPath": null,
+          "source": "/api/usda"
+        },
+        {
+          "id": "eia-petrol",
+          "title": "Petroleum & Natural Gas",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/eiaPetroleum keys=3",
+          "fieldPath": null,
+          "source": "/api/eiaPetroleum"
+        },
+        {
+          "id": "physical-pressure",
+          "title": "Physical Pressure",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "materials-grid",
+          "title": "Strategic Materials Grid",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "criticality",
+          "title": "Criticality Leaderboard",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "battery-chain",
+          "title": "Battery Supply Chain",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "precious-complex",
+          "title": "Precious Metals Complex",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "regime",
+          "title": "Commodity Regime Dashboard",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "energy-stack",
+          "title": "Energy Stack",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "curve-board",
+          "title": "Curve Structure Board",
+          "fieldStatus": "ok",
+          "detail": "futuresCurveData.spotPrice=84.99",
+          "fieldPath": "futuresCurveData.spotPrice",
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "material-detail",
+          "title": "Strategic Material Detail",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "exposure-matrix",
+          "title": "Material-to-Sector Exposure Matrix",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/commoditiesEnhanced"
+        },
+        {
+          "id": "fao-prices",
+          "title": "FAO Food Price Index",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fao keys=2",
+          "fieldPath": null,
+          "source": "/api/fao"
+        }
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "primary": "/api/globalMacro",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 38744,
+        "ok": true
+      },
+      "primaryKeys": 14,
+      "panelCount": 23,
+      "counts": {
+        "ok-untracked": 10,
+        "ok": 1,
+        "ok-cross": 12
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Macro Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "sidebar",
+          "title": "Macro Summary",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "scorecard",
+          "title": "Scorecard",
+          "fieldStatus": "ok",
+          "detail": "scorecardData=arr[12]",
+          "fieldPath": "scorecardData",
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "gdp",
+          "title": "GDP Growth",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "cpi",
+          "title": "CPI Inflation",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "rates",
+          "title": "Central Bank Rates",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "debt",
+          "title": "Debt Monitor",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "activity",
+          "title": "Economic Activity",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "cli",
+          "title": "OECD Leading Indicators",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "imf-reserves",
+          "title": "IMF Reserves",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        },
+        {
+          "id": "imf-cofer",
+          "title": "IMF COFER",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/imf keys=5",
+          "fieldPath": null,
+          "source": "/api/imf"
+        },
+        {
+          "id": "wb-trade",
+          "title": "World Bank Trade Openness",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/worldbank keys=4",
+          "fieldPath": null,
+          "source": "/api/worldbank"
+        },
+        {
+          "id": "wb-dev",
+          "title": "World Bank GDP per Capita",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/worldbank keys=4",
+          "fieldPath": null,
+          "source": "/api/worldbank"
+        },
+        {
+          "id": "ecb-eur",
+          "title": "ECB Euro Area",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/ecb keys=4",
+          "fieldPath": null,
+          "source": "/api/ecb"
+        },
+        {
+          "id": "tga-balance",
+          "title": "TGA Cash Balance",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/treasuryDTS keys=2",
+          "fieldPath": null,
+          "source": "/api/treasuryDTS"
+        },
+        {
+          "id": "gdpnow",
+          "title": "GDPNow",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fed/gdpnow keys=4",
+          "fieldPath": null,
+          "source": "/api/fed/gdpnow"
+        },
+        {
+          "id": "fomc-sep",
+          "title": "FOMC SEP",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fed/sep keys=4",
+          "fieldPath": null,
+          "source": "/api/fed/sep"
+        },
+        {
+          "id": "cleveland",
+          "title": "Cleveland Inflation Nowcast",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fed/inflation-nowcast keys=3",
+          "fieldPath": null,
+          "source": "/api/fed/inflation-nowcast"
+        },
+        {
+          "id": "bea-accounts",
+          "title": "BEA National Accounts",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/bea keys=4",
+          "fieldPath": null,
+          "source": "/api/bea"
+        },
+        {
+          "id": "eurostat",
+          "title": "Eurostat Macro",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/eurostat keys=3",
+          "fieldPath": null,
+          "source": "/api/eurostat"
+        },
+        {
+          "id": "oecd-direct",
+          "title": "OECD Direct",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/oecd keys=1",
+          "fieldPath": null,
+          "source": "/api/oecd"
+        },
+        {
+          "id": "bea-income",
+          "title": "BEA Income",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/bea keys=4",
+          "fieldPath": null,
+          "source": "/api/bea"
+        },
+        {
+          "id": "global-liquidity",
+          "title": "BIS Global Liquidity",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/globalMacro"
+        }
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "primary": "/api/equityDeepDive",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 15656,
+        "ok": true
+      },
+      "primaryKeys": 9,
+      "panelCount": 12,
+      "counts": {
+        "ok-untracked": 11,
+        "ok-cross": 1
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Equity+ Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "sidebar",
+          "title": "Equity+ Summary",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "valuation",
+          "title": "Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "etf",
+          "title": "ETF Performance",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "factor-favor",
+          "title": "Factor In Favor",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "sector-beat",
+          "title": "Sector Beat Rate",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "shorted",
+          "title": "Most Shorted",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "scores",
+          "title": "Stock Factor Scores",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "earnings",
+          "title": "Upcoming Earnings",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "institutions",
+          "title": "Top Institutions",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/institutional keys=4",
+          "fieldPath": null,
+          "source": "/api/institutional"
+        },
+        {
+          "id": "insider",
+          "title": "Insider Trading",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        },
+        {
+          "id": "earnings-quality",
+          "title": "Earnings Quality & Revision Monitor",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/equityDeepDive"
+        }
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "primary": "/api/crypto",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 9507,
+        "ok": true
+      },
+      "primaryKeys": 9,
+      "panelCount": 11,
+      "counts": {
+        "ok-untracked": 5,
+        "ok": 6
+      },
+      "panels": [
+        {
+          "id": "sidebar",
+          "title": "Crypto Summary",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/crypto"
+        },
+        {
+          "id": "top-cryptos",
+          "title": "Top Cryptos",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/crypto"
+        },
+        {
+          "id": "fear-greed",
+          "title": "Fear & Greed Index",
+          "fieldStatus": "ok",
+          "detail": "fearGreedData=obj{value,label,history,correlations}",
+          "fieldPath": "fearGreedData",
+          "source": "/api/crypto"
+        },
+        {
+          "id": "funding",
+          "title": "Funding Rates",
+          "fieldStatus": "ok",
+          "detail": "fundingData=obj{rates,openInterestHistory}",
+          "fieldPath": "fundingData",
+          "source": "/api/crypto"
+        },
+        {
+          "id": "defi-tvl",
+          "title": "DeFi TVL by Chain",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/crypto"
+        },
+        {
+          "id": "exchanges",
+          "title": "Top Exchanges",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/crypto"
+        },
+        {
+          "id": "onchain",
+          "title": "On-Chain Metrics",
+          "fieldStatus": "ok",
+          "detail": "onChainData=obj{fees,mempool,difficulty,hashrate}",
+          "fieldPath": "onChainData",
+          "source": "/api/crypto"
+        },
+        {
+          "id": "onchain-chart",
+          "title": "BTC Hashrate (30d)",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/crypto"
+        },
+        {
+          "id": "stablecoin-composition",
+          "title": "Stablecoin Composition",
+          "fieldStatus": "ok",
+          "detail": "stablecoinMcap=309757763756.5518",
+          "fieldPath": "stablecoinMcap",
+          "source": "/api/crypto"
+        },
+        {
+          "id": "defi-tvl-trend",
+          "title": "DeFi TVL Trend",
+          "fieldStatus": "ok",
+          "detail": "defiData.chains=arr[10]",
+          "fieldPath": "defiData.chains",
+          "source": "/api/crypto"
+        },
+        {
+          "id": "btc-onchain",
+          "title": "BTC On-Chain Activity",
+          "fieldStatus": "ok",
+          "detail": "onChainData=obj{fees,mempool,difficulty,hashrate}",
+          "fieldPath": "onChainData",
+          "source": "/api/crypto"
+        }
+      ]
+    },
+    {
+      "marketId": "credit",
+      "primary": "/api/credit",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 21274,
+        "ok": true
+      },
+      "primaryKeys": 10,
+      "panelCount": 17,
+      "counts": {
+        "ok-untracked": 11,
+        "ok-cross": 5,
+        "ok": 1
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Credit Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "key-metrics",
+          "title": "Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "credit-spreads",
+          "title": "Credit Spreads",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "spread-summary",
+          "title": "Spread Summary",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "em-spread",
+          "title": "EM Spread History",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "em-yields",
+          "title": "EM ETF Yields",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "cp-rates",
+          "title": "Commercial Paper",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "clo-tranches",
+          "title": "CLO Tranches",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "default-rates",
+          "title": "Default Rates",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "delinquency",
+          "title": "Delinquency Rates",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "bank-sector",
+          "title": "US Banking Sector (FDIC)",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fdic keys=2",
+          "fieldPath": null,
+          "source": "/api/fdic"
+        },
+        {
+          "id": "muni-market",
+          "title": "US Municipal Bond Market (MSRB)",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/msrb keys=3",
+          "fieldPath": null,
+          "source": "/api/msrb"
+        },
+        {
+          "id": "bank-stress",
+          "title": "Bank Stress Monitor",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/credit"
+        },
+        {
+          "id": "ted-spread",
+          "title": "TED Spread",
+          "fieldStatus": "ok",
+          "detail": "tedSpread=obj{dates,values,latest}",
+          "fieldPath": "tedSpread",
+          "source": "/api/credit"
+        },
+        {
+          "id": "wb-debt",
+          "title": "World Bank Debt Statistics",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/worldbank keys=4",
+          "fieldPath": "wbCtx.data.countries",
+          "source": "/api/worldbank"
+        },
+        {
+          "id": "bis-total-credit",
+          "title": "BIS Total Credit",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/bisOTC keys=1",
+          "fieldPath": "bisCreditToGDP",
+          "source": "/api/bisOTC"
+        },
+        {
+          "id": "treasury-credit-holdings",
+          "title": "Treasury Credit Holdings",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/treasuryTIC keys=2",
+          "fieldPath": "ticCtx.data.latest",
+          "source": "/api/treasuryTIC"
+        }
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "primary": "/api/sentiment",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 15942,
+        "ok": true
+      },
+      "primaryKeys": 9,
+      "panelCount": 10,
+      "counts": {
+        "ok-untracked": 4,
+        "ok": 4,
+        "ok-cross": 2
+      },
+      "panels": [
+        {
+          "id": "sidebar",
+          "title": "Market Snapshot",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "key-metrics",
+          "title": "Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "fear-greed",
+          "title": "Fear & Greed Index",
+          "fieldStatus": "ok",
+          "detail": "fearGreedData=obj{score,label,altmeScore,history,indicators}",
+          "fieldPath": "fearGreedData",
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "fsi",
+          "title": "Financial Stress Index",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "cftc",
+          "title": "CFTC Positioning",
+          "fieldStatus": "ok",
+          "detail": "cftcData=obj{asOf,currencies,equities,rates,commodities}",
+          "fieldPath": "cftcData",
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "cross-asset",
+          "title": "Cross-Asset Returns",
+          "fieldStatus": "ok",
+          "detail": "returnsData=obj{asOf,assets}",
+          "fieldPath": "returnsData",
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "risk-dashboard",
+          "title": "Risk Dashboard",
+          "fieldStatus": "ok",
+          "detail": "riskData=obj{overallScore,overallLabel,signals,vix,vix3m}",
+          "fieldPath": "riskData",
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "leverage",
+          "title": "Leverage Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/sentiment"
+        },
+        {
+          "id": "news-sentiment",
+          "title": "Daily News Sentiment Index (SF Fed)",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fed/news-sentiment keys=2",
+          "fieldPath": null,
+          "source": "/api/fed/news-sentiment"
+        },
+        {
+          "id": "fed-risk-mood",
+          "title": "Fed Narrative & Risk Mood",
+          "fieldStatus": "ok-cross",
+          "detail": "/api/fed/news-sentiment keys=2",
+          "fieldPath": null,
+          "source": "/api/fed/news-sentiment"
+        }
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "primary": "/api/calendar",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 7427,
+        "ok": true
+      },
+      "primaryKeys": 7,
+      "panelCount": 11,
+      "counts": {
+        "ok-untracked": 10,
+        "ok": 1
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Calendar Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "economic",
+          "title": "Economic Calendar",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "sidebar",
+          "title": "Calendar Summary",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "cb-rates",
+          "title": "Central Bank Rates",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "cb-timeline",
+          "title": "Upcoming Meetings",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "earnings",
+          "title": "Earnings Season",
+          "fieldStatus": "ok",
+          "detail": "earningsSeason=arr[18]",
+          "fieldPath": "earningsSeason",
+          "source": "/api/calendar"
+        },
+        {
+          "id": "key-data",
+          "title": "Key US Releases",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "treasury",
+          "title": "Treasury Auctions",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "options",
+          "title": "Options Expiry",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "release-impact",
+          "title": "Release Impact Tracker",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        },
+        {
+          "id": "catalyst-wall",
+          "title": "Market Catalyst Wall",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/calendar"
+        }
+      ]
+    },
+    {
+      "marketId": "bls",
+      "primary": "/api/bls",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 19725,
+        "ok": true
+      },
+      "primaryKeys": 1,
+      "panelCount": 9,
+      "counts": {
+        "ok": 9
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Key Labor Market Indicators",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "trends-top",
+          "title": "Trends (3-Year) — Top",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "trends-bottom",
+          "title": "Trends (3-Year) — Bottom",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "jolts",
+          "title": "JOLTS",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "productivity",
+          "title": "Productivity",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "cpi-components",
+          "title": "CPI Components",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "ppi-by-industry",
+          "title": "PPI by Industry",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "eci",
+          "title": "Employment Cost Index",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        },
+        {
+          "id": "unemployment-duration",
+          "title": "Unemployment Duration",
+          "fieldStatus": "ok",
+          "detail": "series=obj{unemployment,laborParticipation,employmentPop,nonfarmPayrolls,cpi}",
+          "fieldPath": "series",
+          "source": "/api/bls"
+        }
+      ]
+    },
+    {
+      "marketId": "eia",
+      "primary": "/api/eia",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 11735,
+        "ok": true
+      },
+      "primaryKeys": 4,
+      "panelCount": 6,
+      "counts": {
+        "ok": 6
+      },
+      "panels": [
+        {
+          "id": "prices",
+          "title": "US Electricity Retail Prices",
+          "fieldStatus": "ok",
+          "detail": "electricity=obj{residential,commercial,industrial}",
+          "fieldPath": "electricity",
+          "source": "/api/eia"
+        },
+        {
+          "id": "consumption",
+          "title": "Electricity Consumption",
+          "fieldStatus": "ok",
+          "detail": "electricity=obj{residential,commercial,industrial}",
+          "fieldPath": "electricity",
+          "source": "/api/eia"
+        },
+        {
+          "id": "trends",
+          "title": "Price Trends (3-Year Monthly)",
+          "fieldStatus": "ok",
+          "detail": "electricity=obj{residential,commercial,industrial}",
+          "fieldPath": "electricity",
+          "source": "/api/eia"
+        },
+        {
+          "id": "co2",
+          "title": "CO₂ Emissions by Sector (US)",
+          "fieldStatus": "ok",
+          "detail": "co2Emissions=obj{total,bySector}",
+          "fieldPath": "co2Emissions",
+          "source": "/api/eia"
+        },
+        {
+          "id": "petroleum",
+          "title": "Petroleum",
+          "fieldStatus": "ok",
+          "detail": "petroleum=obj{wti,brent,gasoline,diesel,heatingOil}",
+          "fieldPath": "petroleum",
+          "source": "/api/eia"
+        },
+        {
+          "id": "natural-gas",
+          "title": "Natural Gas",
+          "fieldStatus": "ok",
+          "detail": "naturalGas=obj{henryHub}",
+          "fieldPath": "naturalGas",
+          "source": "/api/eia"
+        }
+      ]
+    },
+    {
+      "marketId": "alerts",
+      "primary": "federated",
+      "primaryMeta": {
+        "status": "n/a",
+        "bytes": 0
+      },
+      "primaryKeys": 0,
+      "panelCount": 3,
+      "counts": {
+        "federated": 3
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Alert Status",
+          "fieldStatus": "federated",
+          "detail": "computed client-side from other markets",
+          "fieldPath": null,
+          "source": "federated"
+        },
+        {
+          "id": "active-alerts",
+          "title": "Active Alerts",
+          "fieldStatus": "federated",
+          "detail": "computed client-side from other markets",
+          "fieldPath": null,
+          "source": "federated"
+        },
+        {
+          "id": "alert-rules",
+          "title": "Alert Rules",
+          "fieldStatus": "federated",
+          "detail": "computed client-side from other markets",
+          "fieldPath": null,
+          "source": "federated"
+        }
+      ]
+    },
+    {
+      "marketId": "watchlist",
+      "primary": "/api/watchlist",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 1610,
+        "ok": true
+      },
+      "primaryKeys": 1,
+      "panelCount": 3,
+      "counts": {
+        "ok-untracked": 3
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Watchlist Summary",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/watchlist"
+        },
+        {
+          "id": "my-tickers",
+          "title": "My Tickers",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/watchlist"
+        },
+        {
+          "id": "my-metrics",
+          "title": "My Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/watchlist"
+        }
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "primary": "/api/rate-limits",
+      "primaryMeta": {
+        "status": 200,
+        "bytes": 1158,
+        "ok": true
+      },
+      "primaryKeys": 2,
+      "panelCount": 14,
+      "counts": {
+        "ok-untracked": 14
+      },
+      "panels": [
+        {
+          "id": "kpi",
+          "title": "Analytics Key Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "provenance",
+          "title": "Provenance Audit",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "diagnostics",
+          "title": "API Health Diagnostics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "server",
+          "title": "Server Info",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "api-usage",
+          "title": "API Usage",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "source-health",
+          "title": "Data Source Health",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "endpoints",
+          "title": "Endpoint Metrics",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "freshness",
+          "title": "Data Freshness",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "error-log",
+          "title": "Error Log",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "mem-cache",
+          "title": "Memory Cache",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "cache-files",
+          "title": "File Cache",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "routes",
+          "title": "Express Routes",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "panel-trace",
+          "title": "Panel Trace Inspector",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        },
+        {
+          "id": "coverage-matrix",
+          "title": "Endpoint Coverage Matrix",
+          "fieldStatus": "ok-untracked",
+          "detail": "no panelRegistry field mapping",
+          "fieldPath": null,
+          "source": "/api/rate-limits"
+        }
+      ]
+    }
+  ],
+  "endpoints": {
+    "/api/universeUpdates": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1944,
+      "error": null
+    },
+    "/api/equities": {
+      "ok": true,
+      "status": 200,
+      "bytes": 399188,
+      "error": null
+    },
+    "/api/edgar": {
+      "ok": true,
+      "status": 200,
+      "bytes": 91787,
+      "error": null
+    },
+    "/api/edgar/filing-activity": {
+      "ok": true,
+      "status": 200,
+      "bytes": 236,
+      "error": null
+    },
+    "/api/worldbank": {
+      "ok": true,
+      "status": 200,
+      "bytes": 164567,
+      "error": null
+    },
+    "/api/bea": {
+      "ok": true,
+      "status": 200,
+      "bytes": 83480,
+      "error": null
+    },
+    "/api/bonds": {
+      "ok": true,
+      "status": 200,
+      "bytes": 39757,
+      "error": null
+    },
+    "/api/treasuryTIC": {
+      "ok": true,
+      "status": 200,
+      "bytes": 7160,
+      "error": null
+    },
+    "/api/nyfed": {
+      "ok": true,
+      "status": 200,
+      "bytes": 5824,
+      "error": null
+    },
+    "/api/treasuryCost": {
+      "ok": true,
+      "status": 200,
+      "bytes": 8919,
+      "error": null
+    },
+    "/api/treasuryAuctions": {
+      "ok": true,
+      "status": 200,
+      "bytes": 18214,
+      "error": null
+    },
+    "/api/ecb": {
+      "ok": true,
+      "status": 200,
+      "bytes": 39053,
+      "error": null
+    },
+    "/api/fx": {
+      "ok": true,
+      "status": 200,
+      "bytes": 48084,
+      "error": null
+    },
+    "/api/imf": {
+      "ok": true,
+      "status": 200,
+      "bytes": 5866,
+      "error": null
+    },
+    "/api/cftcTFF": {
+      "ok": true,
+      "status": 200,
+      "bytes": 15286,
+      "error": null
+    },
+    "/api/derivatives": {
+      "ok": true,
+      "status": 200,
+      "bytes": 20714,
+      "error": null
+    },
+    "/api/realEstate": {
+      "ok": true,
+      "status": 200,
+      "bytes": 59522,
+      "error": null
+    },
+    "/api/bisOTC": {
+      "ok": true,
+      "status": 200,
+      "bytes": 4803,
+      "error": null
+    },
+    "/api/fema": {
+      "ok": true,
+      "status": 200,
+      "bytes": 6443,
+      "error": null
+    },
+    "/api/census": {
+      "ok": true,
+      "status": 200,
+      "bytes": 6822,
+      "error": null
+    },
+    "/api/censusTrade": {
+      "ok": true,
+      "status": 200,
+      "bytes": 495,
+      "error": null
+    },
+    "/api/usgs": {
+      "ok": true,
+      "status": 200,
+      "bytes": 26706,
+      "error": null
+    },
+    "/api/insurance": {
+      "ok": true,
+      "status": 200,
+      "bytes": 19868,
+      "error": null
+    },
+    "/api/edgar/insurer-ratios": {
+      "ok": true,
+      "status": 200,
+      "bytes": 472,
+      "error": null
+    },
+    "/api/usda": {
+      "ok": true,
+      "status": 200,
+      "bytes": 232,
+      "error": null
+    },
+    "/api/commoditiesEnhanced": {
+      "ok": true,
+      "status": 200,
+      "bytes": 66598,
+      "error": null
+    },
+    "/api/eiaPetroleum": {
+      "ok": true,
+      "status": 200,
+      "bytes": 25579,
+      "error": null
+    },
+    "/api/globalMacro": {
+      "ok": true,
+      "status": 200,
+      "bytes": 38744,
+      "error": null
+    },
+    "/api/eia": {
+      "ok": true,
+      "status": 200,
+      "bytes": 11735,
+      "error": null
+    },
+    "/api/fao": {
+      "ok": true,
+      "status": 200,
+      "bytes": 148,
+      "error": null
+    },
+    "/api/oecd": {
+      "ok": true,
+      "status": 200,
+      "bytes": 4722,
+      "error": null
+    },
+    "/api/fed/gdpnow": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1517,
+      "error": null
+    },
+    "/api/eurostat": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1781,
+      "error": null
+    },
+    "/api/fed/sep": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1431,
+      "error": null
+    },
+    "/api/fed/inflation-nowcast": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1252,
+      "error": null
+    },
+    "/api/treasuryDTS": {
+      "ok": true,
+      "status": 200,
+      "bytes": 18096,
+      "error": null
+    },
+    "/api/crypto": {
+      "ok": true,
+      "status": 200,
+      "bytes": 9507,
+      "error": null
+    },
+    "/api/institutional": {
+      "ok": true,
+      "status": 200,
+      "bytes": 4162,
+      "error": null
+    },
+    "/api/equityDeepDive": {
+      "ok": true,
+      "status": 200,
+      "bytes": 15656,
+      "error": null
+    },
+    "/api/fdic": {
+      "ok": true,
+      "status": 200,
+      "bytes": 2082,
+      "error": null
+    },
+    "/api/credit": {
+      "ok": true,
+      "status": 200,
+      "bytes": 21274,
+      "error": null
+    },
+    "/api/msrb": {
+      "ok": true,
+      "status": 200,
+      "bytes": 897,
+      "error": null
+    },
+    "/api/calendar": {
+      "ok": true,
+      "status": 200,
+      "bytes": 7427,
+      "error": null
+    },
+    "/api/sentiment": {
+      "ok": true,
+      "status": 200,
+      "bytes": 15942,
+      "error": null
+    },
+    "/api/fed/news-sentiment": {
+      "ok": true,
+      "status": 200,
+      "bytes": 14969,
+      "error": null
+    },
+    "/api/bls": {
+      "ok": true,
+      "status": 200,
+      "bytes": 19725,
+      "error": null
+    },
+    "/api/rate-limits": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1158,
+      "error": null
+    },
+    "/api/watchlist": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1610,
+      "error": null
+    },
+    "/api/health": {
+      "ok": true,
+      "status": 200,
+      "bytes": 89,
+      "error": null
+    },
+    "/api/cache/status": {
+      "ok": true,
+      "status": 200,
+      "bytes": 1611,
+      "error": null
+    },
+    "/api/analytics": {
+      "ok": true,
+      "status": 200,
+      "bytes": 11669,
+      "error": null
+    }
+  }
+}

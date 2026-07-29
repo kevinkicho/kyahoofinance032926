@@ -316,7 +316,27 @@ function SourceExpand({ sourceKey, received }) {
   );
 }
 
-export default function DataFooter({ source, timestamp, isLive, fetchLog, error, fetchedOn, isCurrent, isHistorical, asOfDate }) {
+/**
+ * Status badge meanings (keep short — shown in every panel footer):
+ *   FETCHED  — live or same-day successful payload
+ *   LOADING  — request in flight (isLoading)
+ *   STALE    — serving prior cache (fetchedOn but not current)
+ *   NO DATA  — fetch finished with empty/error payload
+ *   UNAVAIL  — no free API / not configured (error mentions unavailable/key)
+ *   WAITING  — mounted shell, no fetch yet (was PENDING)
+ */
+export default function DataFooter({
+  source,
+  timestamp,
+  isLive,
+  fetchLog,
+  error,
+  fetchedOn,
+  isCurrent,
+  isHistorical,
+  asOfDate,
+  isLoading,
+}) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState(null);
   const [expandedEntry, setExpandedEntry] = useState(null);
@@ -374,13 +394,21 @@ export default function DataFooter({ source, timestamp, isLive, fetchLog, error,
   const toggleEntry = (i) => { setExpandedEntry(expandedEntry === i ? null : i); setExpandedSource(null); };
   const toggleSource = (k) => { setExpandedSource(expandedSource === k ? null : k); setExpandedEntry(null); };
 
+  const errText = error != null ? String(error) : '';
+  const unavail = /unavail|not configured|missing.?key|no free|403|401/i.test(errText);
   const badge = isHistorical
-    ? <span className="df-snapshot">SNAPSHOT</span>
-    : (isLive || isCurrent
-        ? <span className="df-fetched">FETCHED</span>
-        : (fetchedOn
-            ? <span className="df-snapshot">STALE</span>
-            : (fetchLog?.length > 0 ? <span className="df-static">NO DATA</span> : <span className="df-pending">PENDING</span>)));
+    ? <span className="df-snapshot" title="Historical snapshot">SNAPSHOT</span>
+    : isLoading
+      ? <span className="df-loading" title="Fetch in progress">LOADING</span>
+      : (isLive || isCurrent
+          ? <span className="df-fetched" title="Data received successfully">FETCHED</span>
+          : (fetchedOn
+              ? <span className="df-snapshot" title="Serving prior cache; not refreshed today">STALE</span>
+              : (unavail
+                  ? <span className="df-static" title={errText || 'Source unavailable or not configured'}>UNAVAIL</span>
+                  : (fetchLog?.length > 0
+                      ? <span className="df-static" title={errText || 'Fetch completed with no usable data'}>NO DATA</span>
+                      : <span className="df-pending" title="Panel mounted; waiting for first fetch">WAITING</span>))));
 
   const sources = fetchLog?.[0]?.sources;
 

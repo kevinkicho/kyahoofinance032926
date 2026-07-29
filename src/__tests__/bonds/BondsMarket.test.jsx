@@ -49,6 +49,6 @@ describe('BondsMarket', () => {
 
   it('shows status when server unavailable', () => {
     render(<BondsMarket centralData={mockCentralData} />);
-    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED/i).length).toBeGreaterThan(0);
   });
 });

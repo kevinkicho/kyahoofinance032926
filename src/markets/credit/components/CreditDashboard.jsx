@@ -342,7 +342,7 @@ function CreditDashboard({
         </BentoCard>
 
         {/* Credit Spreads Chart */}
-        {true && (
+        {(
           <BentoCard
             key="credit-spreads"
             title="Credit Spreads"
@@ -362,7 +362,7 @@ function CreditDashboard({
         )}
 
         {/* Spread Summary */}
-        {true && (
+        {(
           <BentoCard
             key="spread-summary"
             title="Spread Summary"
@@ -389,7 +389,7 @@ function CreditDashboard({
         )}
 
         {/* EM Spread History */}
-        {true && (
+        {(
           <BentoCard
             key="em-spread"
             title="EM Spread History"
@@ -434,7 +434,7 @@ function CreditDashboard({
         )}
 
         {/* Commercial Paper */}
-        {true && (
+        {(
           <BentoCard
             key="cp-rates"
             title="Commercial Paper"
@@ -470,7 +470,7 @@ function CreditDashboard({
         )}
 
         {/* CLO Tranches */}
-        {true && (
+        {(
           <BentoCard
             key="clo-tranches"
             title="CLO Tranches"
@@ -519,7 +519,7 @@ function CreditDashboard({
         )}
 
         {/* Default Rates — bank charge-offs & delinquencies (FRED; not proprietary Moody's HY TTM) */}
-        {true && (
+        {(
           <BentoCard
             key="default-rates"
             title="Default Rates"

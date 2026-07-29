@@ -10,9 +10,10 @@ const mockData = {
 };
 
 describe('YieldCurve', () => {
-  it('renders panel title', () => {
+  it('renders US 10Y KPI and curve section', () => {
     render(<YieldCurve yieldCurveData={mockData} />);
-    expect(screen.getByText('Yield Curve')).toBeInTheDocument();
+    expect(screen.getByText('US 10Y')).toBeInTheDocument();
+    expect(screen.getByText(/Curve shape/i)).toBeInTheDocument();
   });
 
   it('renders the echarts chart', () => {
@@ -20,14 +21,17 @@ describe('YieldCurve', () => {
     expect(screen.getByTestId('echarts-mock')).toBeInTheDocument();
   });
 
-  it('renders country count in subtitle', () => {
+  it('renders multi-country curve shape labels', () => {
     render(<YieldCurve yieldCurveData={mockData} />);
-    expect(screen.getByText(/2 countries/i)).toBeInTheDocument();
+    // Mock US + DE both have full tenor sets → both on curve shape legend.
+    expect(screen.getByText(/Curve shape · US, DE/i)).toBeInTheDocument();
   });
 
-  it('renders tenor axis labels in footer', () => {
+  it('renders US tenor labels', () => {
     render(<YieldCurve yieldCurveData={mockData} />);
-    expect(screen.getByText(/3m.*30y/i)).toBeInTheDocument();
+    expect(screen.getByText('3M')).toBeInTheDocument();
+    expect(screen.getByText('30Y')).toBeInTheDocument();
+    expect(screen.getByText('US yield by tenor')).toBeInTheDocument();
   });
 });
 
@@ -55,7 +59,7 @@ describe('YieldCurve — spreadIndicators', () => {
 
   it('renders without spreadIndicators (graceful null handling)', () => {
     render(<YieldCurve yieldCurveData={mockData} spreadIndicators={null} />);
-    expect(screen.getByText('Yield Curve')).toBeInTheDocument();
+    expect(screen.getByText('US 10Y')).toBeInTheDocument();
     // KPI strip always shows the 10Y-2Y label; with null spreadIndicators the value shows em-dash
     expect(screen.getAllByText(/10Y.{1,3}2Y/i).length).toBeGreaterThan(0);
   });

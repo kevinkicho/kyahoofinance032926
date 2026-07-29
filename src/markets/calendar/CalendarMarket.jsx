@@ -421,7 +421,7 @@ function CalendarMarket({ centralData } = {}) {
       .slice(0, 18);
   }, [props]);
 
-  if (!centralData || !props) return <MarketSkeleton />;
+  if (!centralData) return <MarketSkeleton />;
   
   return (
     <div className="cal-market">

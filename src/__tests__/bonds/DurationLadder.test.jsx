@@ -21,13 +21,15 @@ describe('DurationLadder', () => {
 
   it('shows the bucket detail table with one row per bucket', () => {
     render(<DurationLadder durationLadderData={MOCK_DATA} />);
-    expect(document.querySelectorAll('.bonds-rate-item').length).toBe(4);
+    expect(document.querySelectorAll('.dl-table-row').length).toBe(4);
   });
 
   it('renders em-dash placeholders in the rate column when no rates are supplied', () => {
     render(<DurationLadder durationLadderData={MOCK_DATA} />);
-    // Last column ("Avg Rate") falls back to em-dash for every bucket.
-    expect(document.querySelectorAll('.bonds-rate-item .dl-num').length).toBeGreaterThanOrEqual(4);
+    // Last column ("Avg rate") falls back to em-dash for every bucket.
+    const rateCells = [...document.querySelectorAll('.dl-table-row .dl-td-num:last-child')];
+    expect(rateCells.length).toBe(4);
+    expect(rateCells.every((el) => el.textContent.includes('—') || el.textContent.includes('–'))).toBe(true);
   });
 
   it('shows formatted rate values in the table when treasuryRates provided', () => {

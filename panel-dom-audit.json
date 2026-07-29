@@ -1,0 +1,4612 @@
+{
+  "generatedAt": "2026-07-24T04:14:25.327Z",
+  "base": "https://kyahoofinance032926--kfinance032926.us-central1.hosted.app",
+  "summary": {
+    "totalN": 442,
+    "totalOk": 440,
+    "totalBad": 0,
+    "totalThin": 0
+  },
+  "markets": [
+    {
+      "market": "equities",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key IndicesUS · Intl · China & HK · Risk · Sectors — live Yahoo Finance quotes · hover/click pill fo"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key IndicesUS · Intl · China & HK · Risk · Sectors — live Yahoo Finance quotes · hover/click pill fo"
+        },
+        {
+          "title": "heatmap",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Equity Heatmap833 equities · by marketGlobal MarketFETCHEDYahoo Finance · 2026-07-24▶"
+        },
+        {
+          "title": "heatmap",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Equity Heatmap833 equities · by marketGlobal MarketFETCHEDYahoo Finance · 2026-07-24▶"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market SummaryGlobal Market Cap (USD)$91,764 BEquities Tracked833Regions51Advancers / Decliners0 / 0"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market SummaryGlobal Market Cap (USD)$91,764 BEquities Tracked833Regions51Advancers / Decliners0 / 0"
+        },
+        {
+          "title": "sec-fundamentals",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "SEC Mega-Cap Fundamentals15 cos · 9/15 profitable · 2 grade AMargin19.0%ROE38.7%ROA12.7%Rev Gr-0.0%D"
+        },
+        {
+          "title": "sec-fundamentals",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "SEC Mega-Cap Fundamentals15 cos · 9/15 profitable · 2 grade AMargin19.0%ROE38.7%ROA12.7%Rev Gr-0.0%D"
+        },
+        {
+          "title": "universe-updates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Universe Expansion Queue8 discovered listings · review candidatesTickerCompanySectorIndustryMkt CapP"
+        },
+        {
+          "title": "universe-updates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Universe Expansion Queue8 discovered listings · review candidatesTickerCompanySectorIndustryMkt CapP"
+        },
+        {
+          "title": "bea-corporate-profits",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "BEA Corporate ProfitsCorporate profits · real GDP growth · personal saving rateReal GDP+2.1%q/q SAAR"
+        },
+        {
+          "title": "bea-corporate-profits",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "BEA Corporate ProfitsCorporate profits · real GDP growth · personal saving rateReal GDP+2.1%q/q SAAR"
+        },
+        {
+          "title": "wb-market-cap",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "World Bank Market CapListed equity market size · GDP · inflation · trade by countryListed mkt cap$14"
+        },
+        {
+          "title": "wb-market-cap",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "World Bank Market CapListed equity market size · GDP · inflation · trade by countryListed mkt cap$14"
+        }
+      ],
+      "errs": [],
+      "ok": 14,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "bonds",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsUS Treasury yields · Fed funds · curve spread · credit spreads · 5Y breakevenUS 10Y4.67%T"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsUS Treasury yields · Fed funds · curve spread · credit spreads · 5Y breakevenUS 10Y4.67%T"
+        },
+        {
+          "title": "yield",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Yield Curve21 markets · US multi-tenor + global 10YUS 10Y4.67%10Y−2Y+0.34%10Y−3M+0.76%SteepestUSCurv"
+        },
+        {
+          "title": "yield",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Yield Curve21 markets · US multi-tenor + global 10YUS 10Y4.67%10Y−2Y+0.34%10Y−3M+0.76%SteepestUSCurv"
+        },
+        {
+          "title": "metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsYields (US)3M3.89%2Y4.31%5Y4.41%10Y4.67%30Y5.15%SteepestUS (1bp)FlattestUS (1bp)Spreads2s"
+        },
+        {
+          "title": "metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsYields (US)3M3.89%2Y4.31%5Y4.41%10Y4.67%30Y5.15%SteepestUS (1bp)FlattestUS (1bp)Spreads2s"
+        },
+        {
+          "title": "credit",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit SpreadsIG · HY · EM · BBBSpread MonitorCredit spreads over US Treasuries · basis points (bps)"
+        },
+        {
+          "title": "credit",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit SpreadsIG · HY · EM · BBBSpread MonitorCredit spreads over US Treasuries · basis points (bps)"
+        },
+        {
+          "title": "realYield",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "TIPS Real YieldsFETCHEDFRED DFII5 / DFII10 · 2026-07-24"
+        },
+        {
+          "title": "realYield",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "TIPS Real YieldsFETCHEDFRED DFII5 / DFII10 · 2026-07-24"
+        },
+        {
+          "title": "ratings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit RatingsCredit MatrixSovereign ratings by S&P · Moody's · Fitch (as of Mar 2026)AAA/AA Rated9o"
+        },
+        {
+          "title": "ratings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit RatingsCredit MatrixSovereign ratings by S&P · Moody's · Fitch (as of Mar 2026)AAA/AA Rated9o"
+        },
+        {
+          "title": "curvespreads",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Curve Spreads2s10s · 10s3m · 5s30sFETCHEDFRED T10Y2Y / T10Y3M · 2026-07-24"
+        },
+        {
+          "title": "curvespreads",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Curve Spreads2s10s · 10s3m · 5s30sFETCHEDFRED T10Y2Y / T10Y3M · 2026-07-24"
+        },
+        {
+          "title": "fed",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fed Balance SheetFETCHEDFRED WALCL · 2026-07-24"
+        },
+        {
+          "title": "fed",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fed Balance SheetFETCHEDFRED WALCL · 2026-07-24"
+        },
+        {
+          "title": "m2",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "M2 Money SupplyFETCHEDFRED M2SL · 2026-07-24"
+        },
+        {
+          "title": "m2",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "M2 Money SupplyFETCHEDFRED M2SL · 2026-07-24"
+        },
+        {
+          "title": "cpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CPI Components (YoY)FETCHEDFRED CPIAUCSL / CPILFESL · 2026-07-24"
+        },
+        {
+          "title": "cpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CPI Components (YoY)FETCHEDFRED CPIAUCSL / CPILFESL · 2026-07-24"
+        },
+        {
+          "title": "debtgdp",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Debt-to-GDPFETCHEDFRED GFDEBTN / GDP · 2026-07-24"
+        },
+        {
+          "title": "debtgdp",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Debt-to-GDPFETCHEDFRED GFDEBTN / GDP · 2026-07-24"
+        },
+        {
+          "title": "breakevens",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Breakeven InflationTIPS Breakevens & Real YieldsMarket-implied inflation expectations · FRED5Y Break"
+        },
+        {
+          "title": "breakevens",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Breakeven InflationTIPS Breakevens & Real YieldsMarket-implied inflation expectations · FRED5Y Break"
+        },
+        {
+          "title": "duration",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Duration LadderUS Treasury marketable debt by maturity (as of Jun 2026)Total marketable$28.20TLarges"
+        },
+        {
+          "title": "duration",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Duration LadderUS Treasury marketable debt by maturity (as of Jun 2026)Total marketable$28.20TLarges"
+        },
+        {
+          "title": "foreign-holders",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Foreign HoldersTop-5 + All Other · 12-month rotation · USD billionsFETCHEDUS Treasury TIC · 2026-07-"
+        },
+        {
+          "title": "foreign-holders",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Foreign HoldersTop-5 + All Other · 12-month rotation · USD billionsFETCHEDUS Treasury TIC · 2026-07-"
+        },
+        {
+          "title": "money-market",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Money MarketSOFR (left) · ON RRP volume (right) · last 30 daysFETCHEDNY Fed Markets · 2026-07-24"
+        },
+        {
+          "title": "money-market",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Money MarketSOFR (left) · ON RRP volume (right) · last 30 daysFETCHEDNY Fed Markets · 2026-07-24"
+        },
+        {
+          "title": "auctions",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Recent AuctionsStable demand · avg BTC 2.69 · indirect 55%DemandStableAvg BTC2.69Indirect55%Dealer29"
+        },
+        {
+          "title": "auctions",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Recent AuctionsStable demand · avg BTC 2.69 · indirect 55%DemandStableAvg BTC2.69Indirect55%Dealer29"
+        },
+        {
+          "title": "macro",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Macro IndicatorsFed balance sheet · money · labor · growth · policy ratesUS macro snapshotFed balanc"
+        },
+        {
+          "title": "macro",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Macro IndicatorsFed balance sheet · money · labor · growth · policy ratesUS macro snapshotFed balanc"
+        },
+        {
+          "title": "ecb-yields",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "ECB Policy RatesKey rates · €STR · EURIBOR · M3/HICPKey ECB interest rateseff. 2026-06-17DFR2.25%Dep"
+        },
+        {
+          "title": "ecb-yields",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "ECB Policy RatesKey rates · €STR · EURIBOR · M3/HICPKey ECB interest rateseff. 2026-06-17DFR2.25%Dep"
+        },
+        {
+          "title": "global-rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Global Central Bank Policy RatesOvernight / policy rates · FRED + ECB28 economiesrates · live FRED /"
+        },
+        {
+          "title": "global-rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Global Central Bank Policy RatesOvernight / policy rates · FRED + ECB28 economiesrates · live FRED /"
+        },
+        {
+          "title": "treasury-cost",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury Avg Interest CostMarketable3.71%Non-marketable7.58%Interest-bearing Debt3.41%FETCHEDUS Trea"
+        },
+        {
+          "title": "treasury-cost",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury Avg Interest CostMarketable3.71%Non-marketable7.58%Interest-bearing Debt3.41%FETCHEDUS Trea"
+        }
+      ],
+      "errs": [],
+      "ok": 40,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "fx",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "FX Key MetricsSpot rates · DXY · G10 averageEUR/USD1.1392+0.00%USD/JPY163.47+0.00%GBP/USD1.3352+0.00"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "FX Key MetricsSpot rates · DXY · G10 averageEUR/USD1.1392+0.00%USD/JPY163.47+0.00%GBP/USD1.3352+0.00"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "FX DashboardKey PairsEUR/USD1.1392 +0.00%USD/JPY163.4700 +0.00%GBP/USD1.3352 +0.00%USD/CHF0.8159 +0."
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "FX DashboardKey PairsEUR/USD1.1392 +0.00%USD/JPY163.4700 +0.00%GBP/USD1.3352 +0.00%USD/CHF0.8159 +0."
+        },
+        {
+          "title": "movers",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top Movers vs USD1AUD+0.000%2BRL+0.000%3CAD+0.000%4CHF+0.000%5CNY+0.000%6CZK+0.000%7DKK+0.000%8EUR+0"
+        },
+        {
+          "title": "movers",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top Movers vs USD1AUD+0.000%2BRL+0.000%3CAD+0.000%4CHF+0.000%5CNY+0.000%6CZK+0.000%7DKK+0.000%8EUR+0"
+        },
+        {
+          "title": "dxy",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "DXY Dollar IndexFETCHEDFRED DTWEXBGS · 2026-07-24"
+        },
+        {
+          "title": "dxy",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "DXY Dollar IndexFETCHEDFRED DTWEXBGS · 2026-07-24"
+        },
+        {
+          "title": "cot",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CFTC COT PositioningFETCHEDCFTC / Server · 2026-07-24"
+        },
+        {
+          "title": "cot",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CFTC COT PositioningFETCHEDCFTC / Server · 2026-07-24"
+        },
+        {
+          "title": "corr",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Currency Correlation (30D)1.000.840.030.700.500.910.841.00-0.260.350.770.850.03-0.261.000.59-0.470.1"
+        },
+        {
+          "title": "corr",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Currency Correlation (30D)1.000.840.030.700.500.910.841.00-0.260.350.770.850.03-0.261.000.59-0.470.1"
+        },
+        {
+          "title": "reer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Real Effective Exchange RatesUS107.8JP65.3GB111.4CN92.2United StatesJapanUnited KingdomChinaFETCHEDF"
+        },
+        {
+          "title": "reer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Real Effective Exchange RatesUS107.8JP65.3GB111.4CN92.2United StatesJapanUnited KingdomChinaFETCHEDF"
+        },
+        {
+          "title": "ratediff",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Rate Differentialsfed+3.63%ecb+2.40%boj+0.30%usFed_ecb+1.23%usFed_boj+3.33%FETCHEDFRED / Server · 20"
+        },
+        {
+          "title": "ratediff",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Rate Differentialsfed+3.63%ecb+2.40%boj+0.30%usFed_ecb+1.23%usFed_boj+3.33%FETCHEDFRED / Server · 20"
+        },
+        {
+          "title": "carry",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Carry MapInterest rate differential (long base − short quote). Positive = earn positive carry.Highes"
+        },
+        {
+          "title": "carry",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Carry MapInterest rate differential (long base − short quote). Positive = earn positive carry.Highes"
+        },
+        {
+          "title": "rate-dashboard",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Rate Differential DashboardFed policy vs ECB / BoE / BoJ · spot 1D / 1MFed3.63%ECB2.40%BoJ0.30%PairF"
+        },
+        {
+          "title": "rate-dashboard",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Rate Differential DashboardFed policy vs ECB / BoE / BoJ · spot 1D / 1MFed3.63%ECB2.40%BoJ0.30%PairF"
+        },
+        {
+          "title": "imf-cofer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "IMF COFER ReservesCurrency composition of official FX reservesOfficial FX reserve sharesAs of 2025-Q"
+        },
+        {
+          "title": "imf-cofer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "IMF COFER ReservesCurrency composition of official FX reservesOfficial FX reserve sharesAs of 2025-Q"
+        },
+        {
+          "title": "treasury-tic",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury TIC HoldingsTop foreign holders of US Treasury securitiesTotal foreign holdings$9.3TTop 12 "
+        },
+        {
+          "title": "treasury-tic",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury TIC HoldingsTop foreign holders of US Treasury securitiesTotal foreign holdings$9.3TTop 12 "
+        },
+        {
+          "title": "bis-reer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS REER ComparisonReal effective exchange rates for major economiesReal Effective Exchange Rates (B"
+        },
+        {
+          "title": "bis-reer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS REER ComparisonReal effective exchange rates for major economiesReal Effective Exchange Rates (B"
+        }
+      ],
+      "errs": [],
+      "ok": 26,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "derivatives",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Derivatives Key MetricsVIX18.70+12.65%VolatilityVIX 3M20.60TermPut/Call1.20RatioSkew146.0SKEWGamma E"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Derivatives Key MetricsVIX18.70+12.65%VolatilityVIX 3M20.60TermPut/Call1.20RatioSkew146.0SKEWGamma E"
+        },
+        {
+          "title": "metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsVIX & VolatilitySpot18.2Contango+23.6%VVIX102.2Market DynamicsPut/Call1.20ATM 1M IV22.2%V"
+        },
+        {
+          "title": "metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsVIX & VolatilitySpot18.2Contango+23.6%VVIX102.2Market DynamicsPut/Call1.20ATM 1M IV22.2%V"
+        },
+        {
+          "title": "vixterm",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "VIX Term StructureFETCHEDCBOE / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "vixterm",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "VIX Term StructureFETCHEDCBOE / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "vix1y",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "VIX — 1 YearFETCHEDFRED / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "vix1y",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "VIX — 1 YearFETCHEDFRED / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "skew",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "SKEW Index146.0 · Elevated tail riskSpot146.0RegimeElevated tail risk1Y range132–162FETCHEDCBOE / Ya"
+        },
+        {
+          "title": "skew",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "SKEW Index146.0 · Elevated tail riskSpot146.0RegimeElevated tail risk1Y range132–162FETCHEDCBOE / Ya"
+        },
+        {
+          "title": "volsurf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Vol Surface (SPX)FETCHEDCBOE / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "volsurf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Vol Surface (SPX)FETCHEDCBOE / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "flow",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Options FlowTop contracts by volume · SPY / QQQContractVolOIBiasSPYC$740exp Sep 07, 29 · $2.29 · vol"
+        },
+        {
+          "title": "flow",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Options FlowTop contracts by volume · SPY / QQQContractVolOIBiasSPYC$740exp Sep 07, 29 · $2.29 · vol"
+        },
+        {
+          "title": "gamma",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Gamma Exposure (GEX)Total$26,813.6BCall GEX$21,644.9BPut GEX$5,168.7BNet GEX+$16,476.2BFETCHEDYahoo "
+        },
+        {
+          "title": "gamma",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Gamma Exposure (GEX)Total$26,813.6BCall GEX$21,644.9BPut GEX$5,168.7BNet GEX+$16,476.2BFETCHEDYahoo "
+        },
+        {
+          "title": "volprem",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Vol PremiumATM IV vs 30d realizedATM 1M IV22.2%30d Realized13.8%IV − Realized+8.4%IV rich vs realize"
+        },
+        {
+          "title": "volprem",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Vol PremiumATM IV vs 30d realizedATM 1M IV22.2%30d Realized13.8%IV − Realized+8.4%IV rich vs realize"
+        },
+        {
+          "title": "cftc-tff",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CFTC Financial Futures PositioningTraders in Financial Futures · non-commercialVIX Futures2026-07-14"
+        },
+        {
+          "title": "cftc-tff",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CFTC Financial Futures PositioningTraders in Financial Futures · non-commercialVIX Futures2026-07-14"
+        },
+        {
+          "title": "bis-otc",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS OTC Derivatives - Global Notional OutstandingUSD trillions · semi-annual · BIS WS_OTC_DERIV2Tota"
+        },
+        {
+          "title": "bis-otc",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS OTC Derivatives - Global Notional OutstandingUSD trillions · semi-annual · BIS WS_OTC_DERIV2Tota"
+        },
+        {
+          "title": "ecb-derivatives",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "ECB Financial Market DataPolicy · €STR · EURIBOR · M3 · HICP · historyDFR2.25%Deposit facilityΔ +0.2"
+        },
+        {
+          "title": "ecb-derivatives",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "ECB Financial Market DataPolicy · €STR · EURIBOR · M3 · HICP · historyDFR2.25%Deposit facilityΔ +0.2"
+        }
+      ],
+      "errs": [],
+      "ok": 24,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "realEstate",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsPrices · rates · activity · distressHome pricesCase-Shiller330.9idxMedian price$403,200US"
+        },
+        {
+          "title": "metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsPrices · rates · activity · distressHome pricesCase-Shiller330.9idxMedian price$403,200US"
+        },
+        {
+          "title": "afford-stack",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Housing Affordability StackManageable payment burden · 80% LTV / 30Y fixed estimateMedian Home$403K3"
+        },
+        {
+          "title": "afford-stack",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Housing Affordability StackManageable payment burden · 80% LTV / 30Y fixed estimateMedian Home$403K3"
+        },
+        {
+          "title": "shiller",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Case-Shiller IndexFETCHEDFRED CSUSHPISA · 2026-07-24"
+        },
+        {
+          "title": "shiller",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Case-Shiller IndexFETCHEDFRED CSUSHPISA · 2026-07-24"
+        },
+        {
+          "title": "reitetf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "REIT ETF (VNQ)FETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "reitetf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "REIT ETF (VNQ)FETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "reitperf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "REIT Performance+0.29%-0.85%+0.47%-0.45%+0.82%+0.28%+0.64%+1.06%FETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "reitperf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "REIT Performance+0.29%-0.85%+0.47%-0.45%+0.82%+0.28%+0.64%+1.06%FETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "foreclosure",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Distress IndicatorsFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "foreclosure",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Distress IndicatorsFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "mba",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "MBA ApplicationsFETCHEDFRED MORTGAGE30US · 2026-07-24"
+        },
+        {
+          "title": "mba",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "MBA ApplicationsFETCHEDFRED MORTGAGE30US · 2026-07-24"
+        },
+        {
+          "title": "cre",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CRE DelinquenciesFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "cre",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CRE DelinquenciesFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "caprate",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cap Rates by SectorGaming6.77%Net Lease5.00%Cell Towers4.20%Office4.15%Retail3.89%Self-Storage3.85%R"
+        },
+        {
+          "title": "caprate",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cap Rates by SectorGaming6.77%Net Lease5.00%Cell Towers4.20%Office4.15%Retail3.89%Self-Storage3.85%R"
+        },
+        {
+          "title": "afford",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Affordability IndexMedian Price$403KMedian Income$84KPrice/Income4.8xMortgage/Income29.5%30Y Rate6.5"
+        },
+        {
+          "title": "afford",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Affordability IndexMedian Price$403KMedian Income$84KPrice/Income4.8xMortgage/Income29.5%30Y Rate6.5"
+        },
+        {
+          "title": "supply",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Supply & DemandHousing Starts1,427Building Permits1,410Months' Supply10.3 moActive Listings1,102,615"
+        },
+        {
+          "title": "supply",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Supply & DemandHousing Starts1,427Building Permits1,410Months' Supply10.3 moActive Listings1,102,615"
+        },
+        {
+          "title": "hud-afford",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Rental AffordabilityChartMapFETCHEDHUD User / US Census · 2026-07-24"
+        },
+        {
+          "title": "hud-afford",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Rental AffordabilityChartMapFETCHEDHUD User / US Census · 2026-07-24"
+        },
+        {
+          "title": "census-housing",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Housing & ConstructionHousing Starts1,427 K+19.0% MoMMay 2026Building Permits1,367 K-3.0% MoMMay 202"
+        },
+        {
+          "title": "census-housing",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Housing & ConstructionHousing Starts1,427 K+19.0% MoMMay 2026Building Permits1,367 K-3.0% MoMMay 202"
+        },
+        {
+          "title": "census-trade",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trade & ConsumptionRetail Sales$769B M$+0.2% MoMMay 2026Durable Goods Orders$332B M$-4.5% MoMApr 202"
+        },
+        {
+          "title": "census-trade",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trade & ConsumptionRetail Sales$769B M$+0.2% MoMMay 2026Durable Goods Orders$332B M$-4.5% MoMApr 202"
+        },
+        {
+          "title": "census-trends-housing",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trends — Housing & ConstructionHousing Starts (K)Building Permits (K)New Home Sales (K)Construction "
+        },
+        {
+          "title": "census-trends-housing",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trends — Housing & ConstructionHousing Starts (K)Building Permits (K)New Home Sales (K)Construction "
+        },
+        {
+          "title": "census-trends-trade",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trends — Trade & ConsumptionRetail Sales (M$)Durable Goods Orders (M$)Trade Balance (M$)FETCHEDUS Ce"
+        },
+        {
+          "title": "census-trends-trade",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trends — Trade & ConsumptionRetail Sales (M$)Durable Goods Orders (M$)Trade Balance (M$)FETCHEDUS Ce"
+        },
+        {
+          "title": "fhfa-hpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "FHFA House Price Index713.1index · 2026-01FETCHEDFHFA (via FRED) · 2026-07-24"
+        },
+        {
+          "title": "fhfa-hpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "FHFA House Price Index713.1index · 2026-01FETCHEDFHFA (via FRED) · 2026-07-24"
+        },
+        {
+          "title": "bis-property-prices",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS Property Price ComparisonResidential PPI · 40+ economies · FRED/BIS33 economiesmedian YoY +1.9%A"
+        },
+        {
+          "title": "bis-property-prices",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS Property Price ComparisonResidential PPI · 40+ economies · FRED/BIS33 economiesmedian YoY +1.9%A"
+        },
+        {
+          "title": "metro-case-shiller",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Metro Case-ShillerMetro-level home price indicesMetro Home Price IndicesMetroIndexYoY %San Francisco"
+        },
+        {
+          "title": "metro-case-shiller",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Metro Case-ShillerMetro-level home price indicesMetro Home Price IndicesMetroIndexYoY %San Francisco"
+        },
+        {
+          "title": "hud-affordability-by-metro",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "HUD Affordability by MetroRent-to-income ratios and home valuesRent-to-income by metro · estimated ("
+        },
+        {
+          "title": "hud-affordability-by-metro",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "HUD Affordability by MetroRent-to-income ratios and home valuesRent-to-income by metro · estimated ("
+        }
+      ],
+      "errs": [],
+      "ok": 40,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "insurance",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Insurance Key MetricsRNR$317.41-0.71%ReinsurerACGL$100.10+1.49%ReinsurerAXS$114.62+0.85%ReinsurerHY "
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Insurance Key MetricsRNR$317.41-0.71%ReinsurerACGL$100.10+1.49%ReinsurerAXS$114.62+0.85%ReinsurerHY "
+        },
+        {
+          "title": "hyoas",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "HY OAS SpreadFETCHEDFRED / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "hyoas",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "HY OAS SpreadFETCHEDFRED / Yahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "reserves",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Reserve Adequacy10 insurers · assets / liabilities coverageInsurerLiab $MEquity $MCoverPRUPrudential"
+        },
+        {
+          "title": "reserves",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Reserve Adequacy10 insurers · assets / liabilities coverageInsurerLiab $MEquity $MCoverPRUPrudential"
+        },
+        {
+          "title": "catbonds",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cat Bond Spreads26 series · FRED credit / Treasury / Fed stress (no Yahoo)SeriesGroupLevelUS CCC HY "
+        },
+        {
+          "title": "catbonds",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cat Bond Spreads26 series · FRED credit / Treasury / Fed stress (no Yahoo)SeriesGroupLevelUS CCC HY "
+        },
+        {
+          "title": "etfs",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Sector / Industry Pulse26 official series · Fed · BLS · BEA · Census (FRED)SeriesLevelChgFinancialsS"
+        },
+        {
+          "title": "etfs",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Sector / Industry Pulse26 official series · Fed · BLS · BEA · Census (FRED)SeriesLevelChgFinancialsS"
+        },
+        {
+          "title": "catastrophes",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Recent US Catastrophes25 FEMA declarations · most-common: Fire · 559 M4.5+ quakes globally (30d)FEMA"
+        },
+        {
+          "title": "catastrophes",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Recent US Catastrophes25 FEMA declarations · most-common: Fire · 559 M4.5+ quakes globally (30d)FEMA"
+        },
+        {
+          "title": "ins-penetration",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Insurance PenetrationLife + Non-life premium / GDP · World Bank GFDD (latest available)FETCHEDWorld "
+        },
+        {
+          "title": "ins-penetration",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Insurance PenetrationLife + Non-life premium / GDP · World Bank GFDD (latest available)FETCHEDWorld "
+        },
+        {
+          "title": "combined-ratios",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "US P&C Insurer Combined RatiosAvg 69.5% across 2 issuers · latest FY 2025-12-31FETCHEDSEC EDGAR XBRL"
+        },
+        {
+          "title": "combined-ratios",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "US P&C Insurer Combined RatiosAvg 69.5% across 2 issuers · latest FY 2025-12-31FETCHEDSEC EDGAR XBRL"
+        },
+        {
+          "title": "cat-exposure",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Catastrophe Exposure MonitorWatch · FEMA declarations · USGS seismicity · credit & underwritingExpos"
+        },
+        {
+          "title": "cat-exposure",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Catastrophe Exposure MonitorWatch · FEMA declarations · USGS seismicity · credit & underwritingExpos"
+        },
+        {
+          "title": "usgs-minerals",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "USGS Earthquake Activity (30d)559 M4.5+ events · feed + human-readable times4.5–4.93765.0–5.91686.0–"
+        },
+        {
+          "title": "usgs-minerals",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "USGS Earthquake Activity (30d)559 M4.5+ events · feed + human-readable times4.5–4.93765.0–5.91686.0–"
+        },
+        {
+          "title": "ecb-supervisory",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "ECB Policy RatesPolicy corridor · €STR · EURIBOR · M3 · HICP · ECB SDWKey ECB interest rateseff. 202"
+        },
+        {
+          "title": "ecb-supervisory",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "ECB Policy RatesPolicy corridor · €STR · EURIBOR · M3 · HICP · ECB SDWKey ECB interest rateseff. 202"
+        }
+      ],
+      "errs": [],
+      "ok": 22,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "commodities",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market SummaryKey PricesWTI Crude84.38—IndicatorsGold/Oil Ratio—DBC ETF30.31+1.51%WTI CurveBackwarda"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market SummaryKey PricesWTI Crude84.38—IndicatorsGold/Oil Ratio—DBC ETF30.31+1.51%WTI CurveBackwarda"
+        },
+        {
+          "title": "prices",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Commodity PricesLive futures + EIA + FRED · 5m agoTableChartsWTI Crude$84.38— todayGold$—— todayBren"
+        },
+        {
+          "title": "prices",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Commodity PricesLive futures + EIA + FRED · 5m agoTableChartsWTI Crude$84.38— todayGold$—— todayBren"
+        },
+        {
+          "title": "futures",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Futures CurveFutures CurvesForward contract pricing — term structureWTI Spot$84.99Backwardation (-6."
+        },
+        {
+          "title": "futures",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Futures CurveFutures CurvesForward contract pricing — term structureWTI Spot$84.99Backwardation (-6."
+        },
+        {
+          "title": "sector",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Sector PerformanceHeatmapTableNo sector performance data availableFETCHEDFRED / Yahoo Finance · 2026"
+        },
+        {
+          "title": "sector",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Sector PerformanceHeatmapTableNo sector performance data availableFETCHEDFRED / Yahoo Finance · 2026"
+        },
+        {
+          "title": "supply",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Supply & DemandSupply & Demand MonitorEIA weekly data + FRED gold historyCrude Stocks411.7M-18.0M vs"
+        },
+        {
+          "title": "supply",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Supply & DemandSupply & Demand MonitorEIA weekly data + FRED gold historyCrude Stocks411.7M-18.0M vs"
+        },
+        {
+          "title": "wti-brent",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "WTI vs Brent Crude1 Year (FRED daily)FETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "wti-brent",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "WTI vs Brent Crude1 Year (FRED daily)FETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "cot",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "COT PositioningCOT PositioningCFTC Commitments of Traders · speculative vs commercialWTI Spec Net0K+"
+        },
+        {
+          "title": "cot",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "COT PositioningCOT PositioningCFTC Commitments of Traders · speculative vs commercialWTI Spec Net0K+"
+        },
+        {
+          "title": "comfx",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Commodity FX (vs USD)CurrencyRate1d %CADCanada · oil / lumber1.4075+0.00%AUDAustralia · metals / coa"
+        },
+        {
+          "title": "comfx",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Commodity FX (vs USD)CurrencyRate1d %CADCanada · oil / lumber1.4075+0.00%AUDAustralia · metals / coa"
+        },
+        {
+          "title": "eia-petrol",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Petroleum & Natural GasGasoline $4.00/gal (+28% YoY) · NG $2.80/MMBtu (-20% YoY) · Crude stocks 723M"
+        },
+        {
+          "title": "eia-petrol",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Petroleum & Natural GasGasoline $4.00/gal (+28% YoY) · NG $2.80/MMBtu (-20% YoY) · Crude stocks 723M"
+        },
+        {
+          "title": "physical-pressure",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Physical Supply Pressure3 physical and trade indicators from current snapshotsIndicatorLatestPressur"
+        },
+        {
+          "title": "physical-pressure",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Physical Supply Pressure3 physical and trade indicators from current snapshotsIndicatorLatestPressur"
+        },
+        {
+          "title": "materials-grid",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Strategic Materials Periodic Grid47 materials · live prices shown where futures/proxies existPreciou"
+        },
+        {
+          "title": "materials-grid",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Strategic Materials Periodic Grid47 materials · live prices shown where futures/proxies existPreciou"
+        },
+        {
+          "title": "criticality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Criticality LeaderboardSupply-risk score + import reliance#MaterialScoreImportTop ProducerRisk1Dy Dy"
+        },
+        {
+          "title": "criticality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Criticality LeaderboardSupply-risk score + import reliance#MaterialScoreImportTop ProducerRisk1Dy Dy"
+        },
+        {
+          "title": "battery-chain",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Battery Supply ChainEV, grid, and cathode/anode mineralsMaterialProxyLatestRiskEVGridDefenseLi Lithi"
+        },
+        {
+          "title": "battery-chain",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Battery Supply ChainEV, grid, and cathode/anode mineralsMaterialProxyLatestRiskEVGridDefenseLi Lithi"
+        },
+        {
+          "title": "precious-complex",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Precious Metals ComplexMonetary metals, PGMs · waiting for Yahoo futuresGold / Silver—Platinum / Gol"
+        },
+        {
+          "title": "precious-complex",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Precious Metals ComplexMonetary metals, PGMs · waiting for Yahoo futuresGold / Silver—Platinum / Gol"
+        },
+        {
+          "title": "regime",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Commodity Regime DashboardEnergy, metals, agriculture, and breadthCurrent RegimeMixedCross-commodity"
+        },
+        {
+          "title": "regime",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Commodity Regime DashboardEnergy, metals, agriculture, and breadthCurrent RegimeMixedCross-commodity"
+        },
+        {
+          "title": "energy-stack",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Energy StackCrude, products, natural gas, and inventoriesSignalLatestMoveReadWTI crude84.38-No live "
+        },
+        {
+          "title": "energy-stack",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Energy StackCrude, products, natural gas, and inventoriesSignalLatestMoveReadWTI crude84.38-No live "
+        },
+        {
+          "title": "curve-board",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Curve Structure BoardContango/backwardation as inventory tightness proxyWTI crude5 contractsBackward"
+        },
+        {
+          "title": "curve-board",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Curve Structure BoardContango/backwardation as inventory tightness proxyWTI crude5 contractsBackward"
+        },
+        {
+          "title": "material-detail",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Strategic Material DetailClick a material in the periodic gridLiLithiumBatteryCriticality92 / 100Imp"
+        },
+        {
+          "title": "material-detail",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Strategic Material DetailClick a material in the periodic gridLiLithiumBatteryCriticality92 / 100Imp"
+        },
+        {
+          "title": "exposure-matrix",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Material-to-Sector Exposure MatrixWhich materials matter to EVs, grid, defense, chips, solar, and nu"
+        },
+        {
+          "title": "exposure-matrix",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Material-to-Sector Exposure MatrixWhich materials matter to EVs, grid, defense, chips, solar, and nu"
+        }
+      ],
+      "errs": [],
+      "ok": 38,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "globalMacro",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Macro Key Metrics🇺🇸 US GDP2.2%↑YoY🇪🇺 EU GDP1.4%→YoY🇨🇳 CN GDP5.0%→YoYFed Rate3.63%FOMCDXY120.53"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Macro Key Metrics🇺🇸 US GDP2.2%↑YoY🇪🇺 EU GDP1.4%→YoY🇨🇳 CN GDP5.0%→YoYFed Rate3.63%FOMCDXY120.53"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Quick IndicatorsGDP Growth🇮🇳7.6%🇨🇳5.0%🇧🇷2.3%🇺🇸2.2%🇨🇦1.7%🇸🇪1.5%🇪🇺1.4%🇬🇧1.4%Inflation\ud83c"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Quick IndicatorsGDP Growth🇮🇳7.6%🇨🇳5.0%🇧🇷2.3%🇺🇸2.2%🇨🇦1.7%🇸🇪1.5%🇪🇺1.4%🇬🇧1.4%Inflation\ud83c"
+        },
+        {
+          "title": "scorecard",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Country ScorecardClick row for detailsCountryGDPCPIRateUnempDebt🇺🇸US2.2%2.9%3.63%4.2%116%🇪🇺EA1.4"
+        },
+        {
+          "title": "scorecard",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Country ScorecardClick row for detailsCountryGDPCPIRateUnempDebt🇺🇸US2.2%2.9%3.63%4.2%116%🇪🇺EA1.4"
+        },
+        {
+          "title": "gdp",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "GDP Growth🇮🇳7.6%🇨🇳5.0%🇧🇷2.3%🇺🇸2.2%🇨🇦1.7%🇸🇪1.5%🇪🇺1.4%🇬🇧1.4%FETCHEDWorld Bank / FRED /"
+        },
+        {
+          "title": "gdp",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "GDP Growth🇮🇳7.6%🇨🇳5.0%🇧🇷2.3%🇺🇸2.2%🇨🇦1.7%🇸🇪1.5%🇪🇺1.4%🇬🇧1.4%FETCHEDWorld Bank / FRED /"
+        },
+        {
+          "title": "cpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CPI Inflation🇨🇳0.1%🇸🇪0.7%🇨🇦2.1%🇰🇷2.1%🇮🇳2.4%🇪🇺2.5%🇺🇸2.9%🇦🇺2.9%FETCHEDFRED · 2026-07-2"
+        },
+        {
+          "title": "cpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CPI Inflation🇨🇳0.1%🇸🇪0.7%🇨🇦2.1%🇰🇷2.1%🇮🇳2.4%🇪🇺2.5%🇺🇸2.9%🇦🇺2.9%FETCHEDFRED · 2026-07-2"
+        },
+        {
+          "title": "rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Policy Rates🇧🇷14.25%🇲🇽6.50%🇮🇳5.25%🇦🇺4.35%🇬🇧3.75%🇺🇸3.63%🇨🇳3.00%🇰🇷2.50%FETCHEDFRED / B"
+        },
+        {
+          "title": "rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Policy Rates🇧🇷14.25%🇲🇽6.50%🇮🇳5.25%🇦🇺4.35%🇬🇧3.75%🇺🇸3.63%🇨🇳3.00%🇰🇷2.50%FETCHEDFRED / B"
+        },
+        {
+          "title": "debt",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Debt / GDP🇬🇧131%🇺🇸116%🇧🇷82%🇨🇦64%🇦🇺58%🇲🇽50%🇰🇷48%🇮🇳47%FETCHEDWorld Bank / FRED / BIS ·"
+        },
+        {
+          "title": "debt",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Debt / GDP🇬🇧131%🇺🇸116%🇧🇷82%🇨🇦64%🇦🇺58%🇲🇽50%🇰🇷48%🇮🇳47%FETCHEDWorld Bank / FRED / BIS ·"
+        },
+        {
+          "title": "activity",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Economic ActivityCFNAI-0.05Below Trend10Y-2Y Spread0.34%FETCHEDFRED / BIS · 2026-07-24"
+        },
+        {
+          "title": "activity",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Economic ActivityCFNAI-0.05Below Trend10Y-2Y Spread0.34%FETCHEDFRED / BIS · 2026-07-24"
+        },
+        {
+          "title": "cli",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "OECD Leading IndicatorsAmplitude-adjusted CLI · 100 = trend🇺🇸100.8↗🇪🇺98.0↘🇬🇧100.3↗🇯🇵100.3↗🇨"
+        },
+        {
+          "title": "cli",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "OECD Leading IndicatorsAmplitude-adjusted CLI · 100 = trend🇺🇸100.8↗🇪🇺98.0↘🇬🇧100.3↗🇯🇵100.3↗🇨"
+        },
+        {
+          "title": "imf-reserves",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "International ReservesCentral-bank FX reserves · USD billions · IMF IFSFETCHEDIMF IFS (RAXFSFX) · 20"
+        },
+        {
+          "title": "imf-reserves",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "International ReservesCentral-bank FX reserves · USD billions · IMF IFSFETCHEDIMF IFS (RAXFSFX) · 20"
+        },
+        {
+          "title": "imf-cofer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "COFER Currency SharesGlobal FX reserves by currency · IMF COFER · quarterlyFETCHEDIMF COFER · 2026-0"
+        },
+        {
+          "title": "imf-cofer",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "COFER Currency SharesGlobal FX reserves by currency · IMF COFER · quarterlyFETCHEDIMF COFER · 2026-0"
+        },
+        {
+          "title": "wb-trade",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trade Openness(Exports + Imports) / GDP · World Bank WDIFETCHEDWorld Bank WDI · 2026-07-24"
+        },
+        {
+          "title": "wb-trade",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Trade Openness(Exports + Imports) / GDP · World Bank WDIFETCHEDWorld Bank WDI · 2026-07-24"
+        },
+        {
+          "title": "wb-dev",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "GDP per Capita vs GrowthBubble = population · World Bank WDIFETCHEDWorld Bank WDI · 2026-07-24"
+        },
+        {
+          "title": "wb-dev",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "GDP per Capita vs GrowthBubble = population · World Bank WDIFETCHEDWorld Bank WDI · 2026-07-24"
+        },
+        {
+          "title": "ecb-eur",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Euro Area · ECBPolicy rates · HICP inflation · M3 monetary aggregatePolicy RatesDeposit Facility (DF"
+        },
+        {
+          "title": "ecb-eur",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Euro Area · ECBPolicy rates · HICP inflation · M3 monetary aggregatePolicy RatesDeposit Facility (DF"
+        },
+        {
+          "title": "tga-balance",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "US Treasury · TGA Cash BalanceClosing $835B · net $-40B (2026-07-22)FETCHEDUS Treasury Fiscal Data ·"
+        },
+        {
+          "title": "tga-balance",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "US Treasury · TGA Cash BalanceClosing $835B · net $-40B (2026-07-22)FETCHEDUS Treasury Fiscal Data ·"
+        },
+        {
+          "title": "gdpnow",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "GDPNow · 26:Q2Latest 4.30% (Industrial production)FETCHEDAtlanta Fed · 2026-07-24"
+        },
+        {
+          "title": "gdpnow",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "GDPNow · 26:Q2Latest 4.30% (Industrial production)FETCHEDAtlanta Fed · 2026-07-24"
+        },
+        {
+          "title": "fomc-sep",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "FOMC Summary of Economic ProjectionsMedian forecasts · 2026-06-17 releaseVariableChange in real GDP2"
+        },
+        {
+          "title": "fomc-sep",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "FOMC Summary of Economic ProjectionsMedian forecasts · 2026-06-17 releaseVariableChange in real GDP2"
+        },
+        {
+          "title": "cleveland",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cleveland Fed · Inflation NowcastJuly 2026 YoY · CPI 3.37% · Core 2.52% · PCE 3.63%NowcastJuly 2026U"
+        },
+        {
+          "title": "cleveland",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cleveland Fed · Inflation NowcastJuly 2026 YoY · CPI 3.37% · Core 2.52% · PCE 3.63%NowcastJuly 2026U"
+        },
+        {
+          "title": "bea-accounts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "BEA National AccountsSaving rate 3.0% · 2026M05GDP5.8Consumption0.5Investment7.9Personal Income1.7FE"
+        },
+        {
+          "title": "bea-accounts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "BEA National AccountsSaving rate 3.0% · 2026M05GDP5.8Consumption0.5Investment7.9Personal Income1.7FE"
+        },
+        {
+          "title": "eurostat",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Euro Area MacroHICP · unemployment · government deficitFETCHEDEurostat · 2026-07-24"
+        },
+        {
+          "title": "eurostat",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Euro Area MacroHICP · unemployment · government deficitFETCHEDEurostat · 2026-07-24"
+        },
+        {
+          "title": "bea-income",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "BEA Income & Savings CycleLatest saving rate 3.0% · 2026M05LineLatestPersonal income2026M0526,916,37"
+        },
+        {
+          "title": "bea-income",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "BEA Income & Savings CycleLatest saving rate 3.0% · 2026M05LineLatestPersonal income2026M0526,916,37"
+        },
+        {
+          "title": "global-liquidity",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Global Liquidity DashboardNeutral backdrop · TGA, ECB M3, saving rate, GDPNowLiquidity backdrop+9Neu"
+        },
+        {
+          "title": "global-liquidity",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Global Liquidity DashboardNeutral backdrop · TGA, ECB M3, saving rate, GDPNowLiquidity backdrop+9Neu"
+        }
+      ],
+      "errs": [],
+      "ok": 44,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "equitiesDeepDive",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Equity+ Key MetricsSector ETFs · factor rotation · vs SPYSector ETFs · 1M (vs SPY)Factor RotationMom"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Equity+ Key MetricsSector ETFs · factor rotation · vs SPYSector ETFs · 1M (vs SPY)Factor RotationMom"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Equity+ SummarySectors · factors · earnings · short interestBest sectorEnergy+9.00%Worst sectorTechn"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Equity+ SummarySectors · factors · earnings · short interestBest sectorEnergy+9.00%Worst sectorTechn"
+        },
+        {
+          "title": "valuation",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsSector PerformanceBestEnergyWorstConsumer Disc.SPY+0.6%Factor LeadersTop FactorLow-VolTop"
+        },
+        {
+          "title": "valuation",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsSector PerformanceBestEnergyWorstConsumer Disc.SPY+0.6%Factor LeadersTop FactorLow-VolTop"
+        },
+        {
+          "title": "etf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "ETF Performance1-month % vs SPYFETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "etf",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "ETF Performance1-month % vs SPYFETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "factor-favor",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Factor In FavorAverage composite by factorFETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "factor-favor",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Factor In FavorAverage composite by factorFETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "shorted",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Most Shorted% of float short · days to coverFETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "shorted",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Most Shorted% of float short · days to coverFETCHEDYahoo Finance · 2026-07-24"
+        },
+        {
+          "title": "scores",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Stock Factor ScoresTop 10 by compositeTickerValueMomentumQualityCompositeNVDA84.053.089.063.0MSFT68."
+        },
+        {
+          "title": "scores",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Stock Factor ScoresTop 10 by compositeTickerValueMomentumQualityCompositeNVDA84.053.089.063.0MSFT68."
+        },
+        {
+          "title": "earnings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Upcoming EarningsNext 10 reportsDateTickerEPS EstDir2026-07-28V$3.23▼2026-07-29MSFT$4.24▼2026-07-29M"
+        },
+        {
+          "title": "earnings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Upcoming EarningsNext 10 reportsDateTickerEPS EstDir2026-07-28V$3.23▼2026-07-29MSFT$4.24▼2026-07-29M"
+        },
+        {
+          "title": "institutions",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top InstitutionsBy total AUM (13F)Berkshire Hathaway$0.3TBlackRock$4.5TVanguard Group$8.5TFidelity ("
+        },
+        {
+          "title": "institutions",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top InstitutionsBy total AUM (13F)Berkshire Hathaway$0.3TBlackRock$4.5TVanguard Group$8.5TFidelity ("
+        },
+        {
+          "title": "insider",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Insider TradingForm 4 filingsInsider TradingRecent insider buys/sells from SEC Form 4 filingsBuys0$0"
+        },
+        {
+          "title": "insider",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Insider TradingForm 4 filingsInsider TradingRecent insider buys/sells from SEC Form 4 filingsBuys0$0"
+        },
+        {
+          "title": "factor-rankings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Factor RankingsPercentile scores · composite · breadth divergence · ERPFactor RankingsPercentile sco"
+        },
+        {
+          "title": "factor-rankings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Factor RankingsPercentile scores · composite · breadth divergence · ERPFactor RankingsPercentile sco"
+        },
+        {
+          "title": "earnings-quality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Earnings Quality & Revision MonitorUpcoming reports, beat-rate breadth, factor leadershipNext Report"
+        },
+        {
+          "title": "earnings-quality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Earnings Quality & Revision MonitorUpcoming reports, beat-rate breadth, factor leadershipNext Report"
+        }
+      ],
+      "errs": [],
+      "ok": 24,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "crypto",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CryptoBTC / ETHBTC$65,378-1.2%ETH$1,879.08-3.2%MarketGlobal Cap—BTC Dom56.8%Stables$310BETH Gas—Fear"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CryptoBTC / ETHBTC$65,378-1.2%ETH$1,879.08-3.2%MarketGlobal Cap—BTC Dom56.8%Stables$310BETH Gas—Fear"
+        },
+        {
+          "title": "top-cryptos",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top Cryptos1BTC$65378.00-1.2%2ETH$1879.08-3.2%3USDT$1.00+0.0%4BNB$569.19-0.7%5USDC$1.00+0.0%6XRP$1.1"
+        },
+        {
+          "title": "top-cryptos",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top Cryptos1BTC$65378.00-1.2%2ETH$1879.08-3.2%3USDT$1.00+0.0%4BNB$569.19-0.7%5USDC$1.00+0.0%6XRP$1.1"
+        },
+        {
+          "title": "fear-greed",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fear & Greed IndexFear · 28/10028Fear0 Fear · 100 GreedFETCHEDAlternative.me · 2026-07-24"
+        },
+        {
+          "title": "fear-greed",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fear & Greed IndexFear · 28/10028Fear0 Fear · 100 GreedFETCHEDAlternative.me · 2026-07-24"
+        },
+        {
+          "title": "funding",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Funding RatesBTC+0.010%+10.95% APR$18.0B OIETH+0.010%+10.95% APR$8.0B OIFETCHEDBybit · 2026-07-24"
+        },
+        {
+          "title": "funding",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Funding RatesBTC+0.010%+10.95% APR$18.0B OIETH+0.010%+10.95% APR$8.0B OIFETCHEDBybit · 2026-07-24"
+        },
+        {
+          "title": "defi-tvl",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "DeFi TVL by ChainEthereum$41.23BSolana$4.90BTron$4.82BBSC$4.77BBase$4.59BBitcoin$4.26BProvenance$1.7"
+        },
+        {
+          "title": "defi-tvl",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "DeFi TVL by ChainEthereum$41.23BSolana$4.90BTron$4.82BBSC$4.77BBase$4.59BBitcoin$4.26BProvenance$1.7"
+        },
+        {
+          "title": "exchanges",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top ExchangesBinance$0.0BKraken$0.0BOKX$0.0BCoinbase Exchange$0.0BBitget$0.0BGate$0.0BFETCHEDCoinGec"
+        },
+        {
+          "title": "exchanges",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Top ExchangesBinance$0.0BKraken$0.0BOKX$0.0BCoinbase Exchange$0.0BBitget$0.0BGate$0.0BFETCHEDCoinGec"
+        },
+        {
+          "title": "onchain",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "On-Chain MetricsDifficulty Progress87.2%-0.9% · 258 blocksBTC Fees2 sat/vB1 sat · 1 sat · 1 satFETCH"
+        },
+        {
+          "title": "onchain",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "On-Chain MetricsDifficulty Progress87.2%-0.9% · 258 blocksBTC Fees2 sat/vB1 sat · 1 sat · 1 satFETCH"
+        },
+        {
+          "title": "stablecoin-composition",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Stablecoin CompositionTotal market cap and dominanceTotal Stablecoin Market Cap$309.9BCompositionSta"
+        },
+        {
+          "title": "stablecoin-composition",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Stablecoin CompositionTotal market cap and dominanceTotal Stablecoin Market Cap$309.9BCompositionSta"
+        },
+        {
+          "title": "defi-tvl-trend",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "DeFi TVL TrendTVL by chain with 7d changeTVL by ChainChainTVL ($B)7d ChgEthereum41.2+0.0%Solana4.9+0"
+        },
+        {
+          "title": "defi-tvl-trend",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "DeFi TVL TrendTVL by chain with 7d changeTVL by ChainChainTVL ($B)7d ChgEthereum41.2+0.0%Solana4.9+0"
+        },
+        {
+          "title": "btc-onchain",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BTC On-Chain ActivityHashrate, mempool, difficulty, feesDifficulty Change-0.9%Fees (fastest)2 sat/vB"
+        },
+        {
+          "title": "btc-onchain",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BTC On-Chain ActivityHashrate, mempool, difficulty, feesDifficulty Change-0.9%Fees (fastest)2 sat/vB"
+        }
+      ],
+      "errs": [],
+      "ok": 20,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "credit",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit Key MetricsIG/HY/EM OAS · charge-offs · commercial paperIG OAS78 bpsInvestment GradeHY OAS268"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit Key MetricsIG/HY/EM OAS · charge-offs · commercial paperIG OAS78 bpsInvestment GradeHY OAS268"
+        },
+        {
+          "title": "key-metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsCredit SpreadsIG OAS78 bpsHY OAS268 bpsEM Spread143 bpsDefault WatchDefault Rate1.49%Mort"
+        },
+        {
+          "title": "key-metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsCredit SpreadsIG OAS78 bpsHY OAS268 bpsEM Spread143 bpsDefault WatchDefault Rate1.49%Mort"
+        },
+        {
+          "title": "bank-stress",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Bank Stress MonitorContained credit cycle · spread, default, funding, and FDIC signalsStress Score8/"
+        },
+        {
+          "title": "bank-stress",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Bank Stress MonitorContained credit cycle · spread, default, funding, and FDIC signalsStress Score8/"
+        },
+        {
+          "title": "credit-spreads",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit SpreadsFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "credit-spreads",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit SpreadsFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "spread-summary",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Spread SummaryIG OAS78 bpsHY OAS268 bpsEM OAS143 bpsBBB OAS96 bpsFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "spread-summary",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Spread SummaryIG OAS78 bpsHY OAS268 bpsEM OAS143 bpsBBB OAS96 bpsFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "em-spread",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "EM Spread HistoryFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "em-spread",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "EM Spread HistoryFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "em-yields",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "EM ETF YieldsBrazilEWZ2.46%MexicoEWW1.14%TurkeyTUR—South AfricaEZA3.84%IndonesiaEIDO0.00%IndiaINDA0."
+        },
+        {
+          "title": "em-yields",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "EM ETF YieldsBrazilEWZ2.46%MexicoEWW1.14%TurkeyTUR—South AfricaEZA3.84%IndonesiaEIDO0.00%IndiaINDA0."
+        },
+        {
+          "title": "clo-tranches",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CLO TranchesTrancheSpreadYieldLTVAAA38 bps—65%AA88 bps—72%A128 bps—78%BBB96 bps5.74%83%BB458 bps9.36"
+        },
+        {
+          "title": "clo-tranches",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "CLO TranchesTrancheSpreadYieldLTVAAA38 bps—65%AA88 bps—72%A128 bps—78%BBB96 bps5.74%83%BB458 bps9.36"
+        },
+        {
+          "title": "default-rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Default RatesBank charge-offs & delinquencies · FRED quarterlyIndicatorLatestPriorΔPeakC&I Charge-Of"
+        },
+        {
+          "title": "default-rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Default RatesBank charge-offs & delinquencies · FRED quarterlyIndicatorLatestPriorΔPeakC&I Charge-Of"
+        },
+        {
+          "title": "delinquency",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Delinquency RatesMortgage Charge-Off Rate1.89%All Loans Delinquency1.48%FETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "delinquency",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Delinquency RatesMortgage Charge-Off Rate1.89%All Loans Delinquency1.48%FETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "bank-sector",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "US Banking SectorFDIC aggregate + recent failuresAggregate ($B, thousands of banks)2025$75775.1T$602"
+        },
+        {
+          "title": "bank-sector",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "US Banking SectorFDIC aggregate + recent failuresAggregate ($B, thousands of banks)2025$75775.1T$602"
+        },
+        {
+          "title": "credit-quality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit Quality PremiumBaa-Aaa spread: 42 bps · Aaa 5.83% / Baa 6.25% (2026-07-22)FETCHEDFRED · Moody"
+        },
+        {
+          "title": "credit-quality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Credit Quality PremiumBaa-Aaa spread: 42 bps · Aaa 5.83% / Baa 6.25% (2026-07-22)FETCHEDFRED · Moody"
+        },
+        {
+          "title": "muni-market",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "US Municipal Bond Market71,393 trades / $18,462M par · YTD 5,741 issues / $319.7BTrade Activity (lat"
+        },
+        {
+          "title": "muni-market",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "US Municipal Bond Market71,393 trades / $18,462M par · YTD 5,741 issues / $319.7BTrade Activity (lat"
+        },
+        {
+          "title": "ted-spread",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "TED Spread (LIBOR − T-Bill)0.09%bps · 2022-01-21FETCHEDFRED (TEDRATE) · 2026-07-24"
+        },
+        {
+          "title": "ted-spread",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "TED Spread (LIBOR − T-Bill)0.09%bps · 2022-01-21FETCHEDFRED (TEDRATE) · 2026-07-24"
+        },
+        {
+          "title": "wb-debt",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "World Bank Debt StatisticsGDP growth and trade openness by countryKey Indicators by CountryCountryGD"
+        },
+        {
+          "title": "wb-debt",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "World Bank Debt StatisticsGDP growth and trade openness by countryKey Indicators by CountryCountryGD"
+        },
+        {
+          "title": "bis-total-credit",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS Total CreditCredit-to-GDP ratios for major economiesTotal credit to non-financial sector (% of G"
+        },
+        {
+          "title": "bis-total-credit",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "BIS Total CreditCredit-to-GDP ratios for major economiesTotal credit to non-financial sector (% of G"
+        },
+        {
+          "title": "treasury-credit-holdings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury Credit HoldingsTop foreign holders of US Treasury securitiesTop Foreign Holders of US Treas"
+        },
+        {
+          "title": "treasury-credit-holdings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury Credit HoldingsTop foreign holders of US Treasury securitiesTop Foreign Holders of US Treas"
+        }
+      ],
+      "errs": [],
+      "ok": 34,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "sentiment",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market SnapshotRegime · F&G · vol · credit · leverageRisk regimeRisk-Onscore 65Fear & Greed67GreedF&"
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market SnapshotRegime · F&G · vol · credit · leverageRisk regimeRisk-Onscore 65Fear & Greed67GreedF&"
+        },
+        {
+          "title": "key-metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsRegime · vol complex · leverageRisk RegimeRisk Score65/100RegimeRisk-OnFear & Greed67/100"
+        },
+        {
+          "title": "key-metrics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key MetricsRegime · vol complex · leverageRisk RegimeRisk Score65/100RegimeRisk-OnFear & Greed67/100"
+        },
+        {
+          "title": "fear-greed",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fear & Greed IndexGreed · 67/10067Greed0 Fear · 100 GreedAlt.me raw: 5014 componentsComponentValueSi"
+        },
+        {
+          "title": "fear-greed",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fear & Greed IndexGreed · 67/10067Greed0 Fear · 100 GreedAlt.me raw: 5014 componentsComponentValueSi"
+        },
+        {
+          "title": "fsi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Financial Stress IndexFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "fsi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Financial Stress IndexFETCHEDFRED · 2026-07-24"
+        },
+        {
+          "title": "cross-asset",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cross-Asset ReturnsS&P 500-1.23%Nasdaq 100-1.90%EM Equities-0.60%Long Bonds-0.32%Gold-2.00%US Dollar"
+        },
+        {
+          "title": "cross-asset",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cross-Asset ReturnsS&P 500-1.23%Nasdaq 100-1.90%EM Equities-0.60%Long Bonds-0.32%Gold-2.00%US Dollar"
+        },
+        {
+          "title": "cftc",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CFTC PositioningNet speculative position as % of open interest · green = net long · red = net shortM"
+        },
+        {
+          "title": "cftc",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "CFTC PositioningNet speculative position as % of open interest · green = net long · red = net shortM"
+        },
+        {
+          "title": "risk-dashboard",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Risk DashboardCross-asset risk-on / risk-off · VIX · credit · curve · stressRisk appetite65Risk-OnRi"
+        },
+        {
+          "title": "risk-dashboard",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Risk DashboardCross-asset risk-on / risk-off · VIX · credit · curve · stressRisk appetite65Risk-OnRi"
+        },
+        {
+          "title": "leverage",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Leverage MetricsFINRA margin · consumer credit · mutual fund cashMargin Debt$622B+2.1%Consumer Credi"
+        },
+        {
+          "title": "leverage",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Leverage MetricsFINRA margin · consumer credit · mutual fund cashMargin Debt$622B+2.1%Consumer Credi"
+        },
+        {
+          "title": "news-sentiment",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Daily News Sentiment IndexLatest +0.011 (2026-07-19) · 30d avg +0.066FETCHEDSF Fed · 2026-07-24"
+        },
+        {
+          "title": "news-sentiment",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Daily News Sentiment IndexLatest +0.011 (2026-07-19) · 30d avg +0.066FETCHEDSF Fed · 2026-07-24"
+        },
+        {
+          "title": "fed-risk-mood",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fed Narrative & Risk MoodRisk-On · composite +24Composite+24Risk-OnFed News Tone+0.011SF Fed daily i"
+        },
+        {
+          "title": "fed-risk-mood",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Fed Narrative & Risk MoodRisk-On · composite +24Composite+24Risk-OnFed News Tone+0.011SF Fed daily i"
+        }
+      ],
+      "errs": [],
+      "ok": 20,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "calendar",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Calendar Key MetricsNext 7d High Impact11 macro eventsNext CB Meeting5dFed · 3.75%Earnings 7d616 on "
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Calendar Key MetricsNext 7d High Impact11 macro eventsNext CB Meeting5dFed · 3.75%Earnings 7d616 on "
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Calendar Summary1 macro · 16 earnings · 4 CBsToday00 high impactNext 7 days11 high · 6 earnsNext 30 "
+        },
+        {
+          "title": "sidebar",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Calendar Summary1 macro · 16 earnings · 4 CBsToday00 high impactNext 7 days11 high · 6 earnsNext 30 "
+        },
+        {
+          "title": "economic",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Economic CalendarHigh-importance macro releases · next 30 days · low coverageTotal1Upcoming1With las"
+        },
+        {
+          "title": "economic",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Economic CalendarHigh-importance macro releases · next 30 days · low coverageTotal1Upcoming1With las"
+        },
+        {
+          "title": "cb-rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Central Bank RatesFed / ECB / BOE / BOJ🇺🇸Fed3.50–3.75%Previous3.75%Δ+0 bpNext: 2026-07-295 daysFed"
+        },
+        {
+          "title": "cb-rates",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Central Bank RatesFed / ECB / BOE / BOJ🇺🇸Fed3.50–3.75%Previous3.75%Δ+0 bpNext: 2026-07-295 daysFed"
+        },
+        {
+          "title": "cb-timeline",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Upcoming MeetingsUpcoming Meetings2026-07-29Fed3.75%5dHOLD2026-08-06BOE3.73%13dHOLD2026-09-10ECB2.25"
+        },
+        {
+          "title": "cb-timeline",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Upcoming MeetingsUpcoming Meetings2026-07-29Fed3.75%5dHOLD2026-08-06BOE3.73%13dHOLD2026-09-10ECB2.25"
+        },
+        {
+          "title": "earnings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Earnings SeasonMega-cap earnings · next 60 daysTotal Reports16This Week0Largest Mkt CapAAPL $4724.3B"
+        },
+        {
+          "title": "earnings",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Earnings SeasonMega-cap earnings · next 60 daysTotal Reports16This Week0Largest Mkt CapAAPL $4724.3B"
+        },
+        {
+          "title": "key-data",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key US ReleasesScheduled macro dataTotal Releases4Next Release2026-08-12Top CategoryInflation# Categ"
+        },
+        {
+          "title": "key-data",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Key US ReleasesScheduled macro dataTotal Releases4Next Release2026-08-12Top CategoryInflation# Categ"
+        },
+        {
+          "title": "treasury",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury AuctionsUS Treasury scheduleNo upcoming treasury auctions scheduledFETCHEDUS Treasury · 202"
+        },
+        {
+          "title": "treasury",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Treasury AuctionsUS Treasury scheduleNo upcoming treasury auctions scheduledFETCHEDUS Treasury · 202"
+        },
+        {
+          "title": "options",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Options ExpiryMonthly expiry dates#DateTypeDays12026-08-21Monthly Options Expiry (3rd Friday)28d2202"
+        },
+        {
+          "title": "options",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Options ExpiryMonthly expiry dates#DateTypeDays12026-08-21Monthly Options Expiry (3rd Friday)28d2202"
+        },
+        {
+          "title": "release-impact",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Release Impact Tracker5 US data releases · last print from FRED (no consensus feed)DateReleaseCatego"
+        },
+        {
+          "title": "release-impact",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Release Impact Tracker5 US data releases · last print from FRED (no consensus feed)DateReleaseCatego"
+        },
+        {
+          "title": "catalyst-wall",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market Catalyst Wall18 cross-market catalysts from current calendar snapshotDateTypeCatalystMarket C"
+        },
+        {
+          "title": "catalyst-wall",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Market Catalyst Wall18 cross-market catalysts from current calendar snapshotDateTypeCatalystMarket C"
+        }
+      ],
+      "errs": [],
+      "ok": 22,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "bls",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Key Labor Market IndicatorsUnemployment Rate4.2-2.3%Labor Force Participation61.5-0.5%Employment-Pop"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Key Labor Market IndicatorsUnemployment Rate4.2-2.3%Labor Force Participation61.5-0.5%Employment-Pop"
+        },
+        {
+          "title": "trends-top",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Trends (3-Year) — LaborUnemployment Rate (%)Labor Force Participation (%)Employment-Population Ratio"
+        },
+        {
+          "title": "trends-top",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Trends (3-Year) — LaborUnemployment Rate (%)Labor Force Participation (%)Employment-Population Ratio"
+        },
+        {
+          "title": "trends-bottom",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Trends (3-Year) — Prices & JobsCPI (All Urban) (index)PPI (Final Demand) (index)Job Openings (thousa"
+        },
+        {
+          "title": "trends-bottom",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Trends (3-Year) — Prices & JobsCPI (All Urban) (index)PPI (Final Demand) (index)Job Openings (thousa"
+        },
+        {
+          "title": "jolts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "JOLTS — Job Openings, Hires, Quits & LayoffsJob Openings (K)4.3MJune 2026Hires (K)5.2MMay 2026Quits "
+        },
+        {
+          "title": "jolts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "JOLTS — Job Openings, Hires, Quits & LayoffsJob Openings (K)4.3MJune 2026Hires (K)5.2MMay 2026Quits "
+        },
+        {
+          "title": "productivity",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Productivity & Unit Labor CostsOutput per Hour (%)0.3% · 1st Quarter 2026Unit Labor Costs (%)1.8% · "
+        },
+        {
+          "title": "productivity",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Productivity & Unit Labor CostsOutput per Hour (%)0.3% · 1st Quarter 2026Unit Labor Costs (%)1.8% · "
+        },
+        {
+          "title": "cpi-components",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "CPI Components — Food, Energy, ShelterCPI · All Items (index)334.0June 2026CPI · Food (index)349.7Ju"
+        },
+        {
+          "title": "cpi-components",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "CPI Components — Food, Energy, ShelterCPI · All Items (index)334.0June 2026CPI · Food (index)349.7Ju"
+        },
+        {
+          "title": "ppi-by-industry",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "PPI by Industry — Final, Intermediate, ServicesPPI · Final Demand (index)286.7June 2026PPI · Interme"
+        },
+        {
+          "title": "ppi-by-industry",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "PPI by Industry — Final, Intermediate, ServicesPPI · Final Demand (index)286.7June 2026PPI · Interme"
+        },
+        {
+          "title": "eci",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Employment Cost IndexTotal Compensation (%)175.0% · 1st Quarter 2026Wages & Salaries (%)177.5% · 1st"
+        },
+        {
+          "title": "eci",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Employment Cost IndexTotal Compensation (%)175.0% · 1st Quarter 2026Wages & Salaries (%)177.5% · 1st"
+        },
+        {
+          "title": "unemployment-duration",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Unemployment by Duration< 5 Weeks (K)2.2MJune 20265-14 Weeks (K)0.0MJune 2026"
+        },
+        {
+          "title": "unemployment-duration",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Unemployment by Duration< 5 Weeks (K)2.2MJune 20265-14 Weeks (K)0.0MJune 2026"
+        }
+      ],
+      "errs": [],
+      "ok": 18,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "eia",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "prices",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "US Electricity Retail PricesResidential18.44 ¢/kWh-2.1%2026-05Commercial13.54 ¢/kWh+0.2%2026-05Indus"
+        },
+        {
+          "title": "prices",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "US Electricity Retail PricesResidential18.44 ¢/kWh-2.1%2026-05Commercial13.54 ¢/kWh+0.2%2026-05Indus"
+        },
+        {
+          "title": "consumption",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Electricity ConsumptionResidential106.7 B kWhRevenue: $19.7B · 2026-05Commercial124.0 B kWhRevenue: "
+        },
+        {
+          "title": "consumption",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Electricity ConsumptionResidential106.7 B kWhRevenue: $19.7B · 2026-05Commercial124.0 B kWhRevenue: "
+        },
+        {
+          "title": "trends",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Price Trends (3-Year Monthly)Residential Price (¢/kWh)Commercial Price (¢/kWh)Industrial Price (¢/kW"
+        },
+        {
+          "title": "trends",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Price Trends (3-Year Monthly)Residential Price (¢/kWh)Commercial Price (¢/kWh)Industrial Price (¢/kW"
+        },
+        {
+          "title": "co2",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "CO₂ Emissions by Sector (US)Commercial carbon dioxide emissions260.6million metric tons of CO2 (2022"
+        },
+        {
+          "title": "co2",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "CO₂ Emissions by Sector (US)Commercial carbon dioxide emissions260.6million metric tons of CO2 (2022"
+        },
+        {
+          "title": "petroleum",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Petroleum PricesWTI Crude84.81$/bbl · 2026-06Brent Crude85.40$/bbl · 2026-06Heating Oil3.30$/gal · 2"
+        },
+        {
+          "title": "petroleum",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Petroleum PricesWTI Crude84.81$/bbl · 2026-06Brent Crude85.40$/bbl · 2026-06Heating Oil3.30$/gal · 2"
+        },
+        {
+          "title": "natural-gas",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Natural Gas — Henry Hub Spot2.79$/MMBTU · 2026-07-17"
+        },
+        {
+          "title": "natural-gas",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "none",
+          "bodyPeek": "Natural Gas — Henry Hub Spot2.79$/MMBTU · 2026-07-17"
+        }
+      ],
+      "errs": [],
+      "ok": 12,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "alerts",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Alert StatusActive0Rules8/8High0SeverityHigh0Medium0Low0Evaluated5:00:00 PMRule HealthVIX SpikeYield"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Alert StatusActive0Rules8/8High0SeverityHigh0Medium0Low0Evaluated5:00:00 PMRule HealthVIX SpikeYield"
+        },
+        {
+          "title": "active-alerts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Active Alerts✓All Clear0 anomalies · 8 rules onlineAll monitored thresholds are within normal ranges"
+        },
+        {
+          "title": "active-alerts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Active Alerts✓All Clear0 anomalies · 8 rules onlineAll monitored thresholds are within normal ranges"
+        },
+        {
+          "title": "alert-rules",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Alert Rules8 / 8 rules enabledONVIX SpikehighONYield Curve InversionhighONHY Spread WideningmediumON"
+        },
+        {
+          "title": "alert-rules",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": true,
+          "badgeKind": "fetched",
+          "bodyPeek": "Alert Rules8 / 8 rules enabledONVIX SpikehighONYield Curve InversionhighONHY Spread WideningmediumON"
+        }
+      ],
+      "errs": [],
+      "ok": 6,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "watchlist",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Watchlist Key MetricsVIX18.70VolatilityDXY120.53US DollarUS 10Y4.67%TreasuryBTC$65,378CryptoFETCHEDN"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Watchlist Key MetricsVIX18.70VolatilityDXY120.53US DollarUS 10Y4.67%TreasuryBTC$65,378CryptoFETCHEDN"
+        },
+        {
+          "title": "ticker-list",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "My Tickers0/20AddNo tickers added yet. Type a symbol above to start tracking.FETCHEDNo tickers yet ·"
+        },
+        {
+          "title": "ticker-list",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "My Tickers0/20AddNo tickers added yet. Type a symbol above to start tracking.FETCHEDNo tickers yet ·"
+        },
+        {
+          "title": "cross-alerts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cross-Market Alert Board1 active watch signalsSignalValueReadSeverityVolatility18.70Elevated watchme"
+        },
+        {
+          "title": "cross-alerts",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "fetched",
+          "bodyPeek": "Cross-Market Alert Board1 active watch signalsSignalValueReadSeverityVolatility18.70Elevated watchme"
+        }
+      ],
+      "errs": [],
+      "ok": 6,
+      "bad": 0,
+      "thin": 0
+    },
+    {
+      "market": "analytics",
+      "splash": "none",
+      "panels": [
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Analytics Key MetricsEndpoints48TrackedLast Fetch—Across marketsCache Hit0%In-memoryHot Limits0> 80%"
+        },
+        {
+          "title": "kpi",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Analytics Key MetricsEndpoints48TrackedLast Fetch—Across marketsCache Hit0%In-memoryHot Limits0> 80%"
+        },
+        {
+          "title": "provenance",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Provenance AuditCross-reference _sources with FRED0 sources · 0 received · 0 optional · 0 missing(gl"
+        },
+        {
+          "title": "provenance",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Provenance AuditCross-reference _sources with FRED0 sources · 0 received · 0 optional · 0 missing(gl"
+        },
+        {
+          "title": "diagnostics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "API Health DiagnosticsProbe structural integrity and latencyNo saved diagnostics report available ye"
+        },
+        {
+          "title": "diagnostics",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "API Health DiagnosticsProbe structural integrity and latencyNo saved diagnostics report available ye"
+        },
+        {
+          "title": "server",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "ServerPID 1Nodev24.16.0Platformlinux x64CPUs2Memory1 / 1 GB freeEnvproductionHostlocalhostPID1Uptime"
+        },
+        {
+          "title": "server",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "ServerPID 1Nodev24.16.0Platformlinux x64CPUs2Memory1 / 1 GB freeEnvproductionHostlocalhostPID1Uptime"
+        },
+        {
+          "title": "api-usage",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "API Usage0 calls todayTotal Calls0Sources22Near Limit0Exhausted0Yahoo Finance0/2000FRED0/172800CoinG"
+        },
+        {
+          "title": "api-usage",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "API Usage0 calls todayTotal Calls0Sources22Near Limit0Exhausted0Yahoo Finance0/2000FRED0/172800CoinG"
+        },
+        {
+          "title": "source-health",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Data Source Health0 calls today Yahoo Finance0 / 2000 (0%)▶ FRED0 / 172800 (0%)▶ CoinGecko0 / 30 (0%"
+        },
+        {
+          "title": "source-health",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Data Source Health0 calls today Yahoo Finance0 / 2000 (0%)▶ FRED0 / 172800 (0%)▶ CoinGecko0 / 30 (0%"
+        },
+        {
+          "title": "endpoints",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Endpoint Metrics0 routesRouteCallsAvgP50MaxErr"
+        },
+        {
+          "title": "endpoints",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Endpoint Metrics0 routesRouteCallsAvgP50MaxErr"
+        },
+        {
+          "title": "freshness",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Data Freshness0/16 currentMarketFetchedAgeSizeKeys▶bonds————▶derivatives————▶realEstate————▶insuranc"
+        },
+        {
+          "title": "freshness",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Data Freshness0/16 currentMarketFetchedAgeSizeKeys▶bonds————▶derivatives————▶realEstate————▶insuranc"
+        },
+        {
+          "title": "error-log",
+          "status": "unknown",
+          "kind": "card",
+          "hasData": false,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Error Log0 entriesNo errors recorded"
+        },
+        {
+          "title": "error-log",
+          "status": "unknown",
+          "kind": "card",
+          "hasData": false,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Error Log0 entriesNo errors recorded"
+        },
+        {
+          "title": "mem-cache",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Memory Cache0 keys · 0% hitKeys0Hits0Misses0Hit Rate0%Cache keys:"
+        },
+        {
+          "title": "mem-cache",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Memory Cache0 keys · 0% hitKeys0Hits0Misses0Hit Rate0%Cache keys:"
+        },
+        {
+          "title": "cache-files",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "File Cache0 files · 0 KBFileSizeModifiedNo cache files"
+        },
+        {
+          "title": "cache-files",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "File Cache0 files · 0 KBFileSizeModifiedNo cache files"
+        },
+        {
+          "title": "routes",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Express Routes76 routesMethodPathGET/api/healthGET/api/cache/statusGET/api/rate-limitsPOST/^/api/sto"
+        },
+        {
+          "title": "routes",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Express Routes76 routesMethodPathGET/api/healthGET/api/cache/statusGET/api/rate-limitsPOST/^/api/sto"
+        },
+        {
+          "title": "panel-trace",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Panel Trace InspectorTrace data flow: frontend panel → backend field → external APIBondsFxCryptoEqui"
+        },
+        {
+          "title": "panel-trace",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Panel Trace InspectorTrace data flow: frontend panel → backend field → external APIBondsFxCryptoEqui"
+        },
+        {
+          "title": "coverage-matrix",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Endpoint Coverage Matrix42/48 markets with source coverageMarketRouteStatusSourcesKeysFetchedAnalyti"
+        },
+        {
+          "title": "coverage-matrix",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Endpoint Coverage Matrix42/48 markets with source coverageMarketRouteStatusSourcesKeysFetchedAnalyti"
+        },
+        {
+          "title": "data-quality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Data Quality ScoreAvg 0 / 1000Avg Score0Current0Stale16No DataMarketScoreStatusFetchedbonds0Aged—der"
+        },
+        {
+          "title": "data-quality",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Data Quality ScoreAvg 0 / 1000Avg Score0Current0Stale16No DataMarketScoreStatusFetchedbonds0Aged—der"
+        },
+        {
+          "title": "visibility-audit",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Panel Visibility AuditAudit DOM visibility of grid panelsAudit rendering state of grid components (c"
+        },
+        {
+          "title": "visibility-audit",
+          "status": "ok",
+          "kind": "card",
+          "hasData": true,
+          "isEmpty": false,
+          "hasChart": false,
+          "badgeKind": "none",
+          "bodyPeek": "Panel Visibility AuditAudit DOM visibility of grid panelsAudit rendering state of grid components (c"
+        }
+      ],
+      "errs": [],
+      "ok": 30,
+      "bad": 0,
+      "thin": 0
+    }
+  ]
+}

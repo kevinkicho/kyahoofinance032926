@@ -65,9 +65,13 @@ describe('CalendarMarket', () => {
     expect(container.querySelector('.skeleton-market')).toBeTruthy();
   });
 
-  it('renders skeleton when loading', () => {
-    const { container } = render(<CalendarMarket centralData={{ isLoading: true, data: null }} />);
-    expect(container.querySelector('.skeleton-market')).toBeTruthy();
+  it('mounts market shell while loading (no full-tab skeleton)', () => {
+    // Provide empty data shell so props/values resolve; panels stay mounted.
+    const { container } = render(
+      <CalendarMarket centralData={{ isLoading: true, data: {}, isLive: false, fetchLog: [] }} />
+    );
+    expect(container.querySelector('.skeleton-market')).toBeFalsy();
+    expect(container.querySelector('.cal-market')).toBeTruthy();
   });
 
   it('renders all bento panel titles', () => {

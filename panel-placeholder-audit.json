@@ -1,0 +1,3788 @@
+{
+  "generatedAt": "2026-07-23T16:45:10.560Z",
+  "minFillRateForGreen": 0.85,
+  "summary": {
+    "panels": 235,
+    "panelsFull": 235,
+    "panelsPartial": 0,
+    "panelsEmpty": 0,
+    "panelsNoCatalog": 0,
+    "totalPlaceholders": 304,
+    "filledPlaceholders": 304,
+    "emptyPlaceholders": 0,
+    "overallFillPct": 100,
+    "note": "full = fillRate >= minFillRate; partial = some but below threshold; empty = zero filled"
+  },
+  "supplyDemandExample": {
+    "marketId": "commodities",
+    "panelId": "supply",
+    "title": "Supply & Demand",
+    "total": 15,
+    "filled": 15,
+    "empty": 0,
+    "fillRate": 1,
+    "fillPct": "100%",
+    "status": "full",
+    "emptySlots": [],
+    "filledSlots": [
+      "kpi.crudeStocks.latest",
+      "kpi.crudeStocks.avg5yr",
+      "kpi.natGas.latest",
+      "kpi.natGas.avg5yr",
+      "kpi.crudeProduction.latest",
+      "kpi.gold.latest",
+      "series.crudeStocks",
+      "series.natGasStorage",
+      "series.crudeProduction",
+      "series.gasolineStocks",
+      "series.distillateStocks",
+      "table.crude.latest",
+      "table.gasoline.latest",
+      "table.distillate.latest",
+      "table.natGas.latest"
+    ]
+  },
+  "byMarket": {
+    "commodities": {
+      "panels": 21,
+      "full": 21,
+      "partial": 0,
+      "empty": 0,
+      "slots": 53,
+      "filled": 53
+    },
+    "bonds": {
+      "panels": 20,
+      "full": 20,
+      "partial": 0,
+      "empty": 0,
+      "slots": 36,
+      "filled": 36
+    },
+    "fx": {
+      "panels": 13,
+      "full": 13,
+      "partial": 0,
+      "empty": 0,
+      "slots": 19,
+      "filled": 19
+    },
+    "insurance": {
+      "panels": 18,
+      "full": 18,
+      "partial": 0,
+      "empty": 0,
+      "slots": 29,
+      "filled": 29
+    },
+    "globalMacro": {
+      "panels": 23,
+      "full": 23,
+      "partial": 0,
+      "empty": 0,
+      "slots": 25,
+      "filled": 25
+    },
+    "derivatives": {
+      "panels": 12,
+      "full": 12,
+      "partial": 0,
+      "empty": 0,
+      "slots": 14,
+      "filled": 14
+    },
+    "equities": {
+      "panels": 11,
+      "full": 11,
+      "partial": 0,
+      "empty": 0,
+      "slots": 11,
+      "filled": 11
+    },
+    "realEstate": {
+      "panels": 20,
+      "full": 20,
+      "partial": 0,
+      "empty": 0,
+      "slots": 20,
+      "filled": 20
+    },
+    "equitiesDeepDive": {
+      "panels": 12,
+      "full": 12,
+      "partial": 0,
+      "empty": 0,
+      "slots": 12,
+      "filled": 12
+    },
+    "crypto": {
+      "panels": 11,
+      "full": 11,
+      "partial": 0,
+      "empty": 0,
+      "slots": 11,
+      "filled": 11
+    },
+    "credit": {
+      "panels": 18,
+      "full": 18,
+      "partial": 0,
+      "empty": 0,
+      "slots": 18,
+      "filled": 18
+    },
+    "sentiment": {
+      "panels": 10,
+      "full": 10,
+      "partial": 0,
+      "empty": 0,
+      "slots": 10,
+      "filled": 10
+    },
+    "calendar": {
+      "panels": 11,
+      "full": 11,
+      "partial": 0,
+      "empty": 0,
+      "slots": 11,
+      "filled": 11
+    },
+    "bls": {
+      "panels": 9,
+      "full": 9,
+      "partial": 0,
+      "empty": 0,
+      "slots": 9,
+      "filled": 9
+    },
+    "eia": {
+      "panels": 6,
+      "full": 6,
+      "partial": 0,
+      "empty": 0,
+      "slots": 6,
+      "filled": 6
+    },
+    "alerts": {
+      "panels": 3,
+      "full": 3,
+      "partial": 0,
+      "empty": 0,
+      "slots": 3,
+      "filled": 3
+    },
+    "watchlist": {
+      "panels": 3,
+      "full": 3,
+      "partial": 0,
+      "empty": 0,
+      "slots": 3,
+      "filled": 3
+    },
+    "analytics": {
+      "panels": 14,
+      "full": 14,
+      "partial": 0,
+      "empty": 0,
+      "slots": 14,
+      "filled": 14
+    }
+  },
+  "worstPanels": [],
+  "allPanels": [
+    {
+      "marketId": "commodities",
+      "panelId": "supply",
+      "title": "Supply & Demand",
+      "total": 15,
+      "filled": 15,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "kpi.crudeStocks.latest",
+        "kpi.crudeStocks.avg5yr",
+        "kpi.natGas.latest",
+        "kpi.natGas.avg5yr",
+        "kpi.crudeProduction.latest",
+        "kpi.gold.latest",
+        "series.crudeStocks",
+        "series.natGasStorage",
+        "series.crudeProduction",
+        "series.gasolineStocks",
+        "series.distillateStocks",
+        "table.crude.latest",
+        "table.gasoline.latest",
+        "table.distillate.latest",
+        "table.natGas.latest"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "prices",
+      "title": "Commodity Prices",
+      "total": 6,
+      "filled": 6,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wti",
+        "brent",
+        "natgas",
+        "gold",
+        "silver",
+        "copper"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "kpi",
+      "title": "Bonds Key Metrics",
+      "total": 5,
+      "filled": 5,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "us.3m",
+        "us.2y",
+        "us.10y",
+        "us.30y",
+        "fedFunds"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "yield",
+      "title": "Yield Curve",
+      "total": 4,
+      "filled": 4,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "us",
+        "de",
+        "jp",
+        "gb"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "kpi",
+      "title": "FX Key Metrics",
+      "total": 4,
+      "filled": 4,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "EUR",
+        "JPY",
+        "GBP",
+        "dxy"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "kpi",
+      "title": "Insurance Key Metrics",
+      "total": 4,
+      "filled": 4,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "hyOAS",
+        "igOAS",
+        "industryAvg",
+        "sectorETF"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "sidebar",
+      "title": "Market Summary",
+      "total": 4,
+      "filled": 4,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dbc.price",
+        "gold.price",
+        "wti.price",
+        "natgas.price"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "credit",
+      "title": "Credit Spreads",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "ig",
+        "hy",
+        "em"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "imf-cofer",
+      "title": "IMF COFER Reserves",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "reserves",
+        "usdShare",
+        "eurShare"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "crhist",
+      "title": "Industry Combined Ratio",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "history",
+        "industryAvg",
+        "lines"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "futures",
+      "title": "Futures Curve",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "curve.labels",
+        "curve.prices",
+        "curve.spot"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "physical-pressure",
+      "title": "Physical Pressure",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "crudeStocks",
+        "natGas",
+        "eia"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "precious-complex",
+      "title": "Precious Metals Complex",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "gold",
+        "silver",
+        "copper"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "energy-stack",
+      "title": "Energy Stack",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wti",
+        "natgas",
+        "gasoline"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "global-liquidity",
+      "title": "BIS Global Liquidity",
+      "total": 3,
+      "filled": 3,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "bis",
+        "m2",
+        "scorecard"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "metrics",
+      "title": "Spread Monitor",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "t10y2y",
+        "t10y3m"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "realYield",
+      "title": "Real Yields",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "tips5",
+        "tips10"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "curvespreads",
+      "title": "Curve Spreads",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dates",
+        "t10y2y"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "fed",
+      "title": "Fed Balance Sheet",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dates",
+        "values"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "m2",
+      "title": "M2 Money Supply",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dates",
+        "values"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "cpi",
+      "title": "CPI Components",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dates",
+        "all"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "debtgdp",
+      "title": "Debt-to-GDP",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dates",
+        "values"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "dxy",
+      "title": "DXY Tracker",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dates",
+        "values"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "kpi",
+      "title": "Derivatives Key Metrics",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "vixTerm",
+        "vix"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "skew",
+      "title": "Skew Index",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "spot",
+        "history"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "hyoas",
+      "title": "HY OAS Spread",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "hyLatest",
+        "hyHistory"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "crline",
+      "title": "Combined Ratio by Line",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quarters",
+        "lines"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "reinsrates",
+      "title": "Reinsurance Pricing",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "pricing",
+        "reinsurers"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "reserves",
+      "title": "Reserve Adequacy",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "lines",
+        "adequacy"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "catbonds",
+      "title": "Cat Bond Spreads",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "proxy",
+        "spreads"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "etfs",
+      "title": "Sector ETF (KIE)",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "price",
+        "change"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "wti-brent",
+      "title": "WTI vs Brent Spread",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wti",
+        "brent"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "curve-board",
+      "title": "Curve Structure Board",
+      "total": 2,
+      "filled": 2,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "labels",
+        "prices"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "kpi",
+      "title": "Key Indices",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "indices"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "heatmap",
+      "title": "Equity Heatmap",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "sidebar",
+      "title": "Market Summary",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "ml-explorer",
+      "title": "ML Explorer",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "portfolio",
+      "title": "Portfolio Tracker",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "radar",
+      "title": "Factor Radar",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "universe-updates",
+      "title": "Universe Expansion Queue",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "u"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "sec-fundamentals",
+      "title": "SEC Fundamentals",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "edgar"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "sec-filings",
+      "title": "SEC Filing Activity",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "filings"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "bea-corporate-profits",
+      "title": "BEA Corporate Profits",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "bea"
+      ]
+    },
+    {
+      "marketId": "equities",
+      "panelId": "wb-market-cap",
+      "title": "World Bank Market Cap",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wb"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "ratings",
+      "title": "Credit Ratings",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "countries"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "breakevens",
+      "title": "Breakeven Inflation",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "be5y"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "duration",
+      "title": "Duration Ladder",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "buckets"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "macro",
+      "title": "Macro Indicators",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "macro"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "foreign-holders",
+      "title": "Foreign Holders",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "latest"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "money-market",
+      "title": "Money Market",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sofr"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "auctions",
+      "title": "Treasury Auctions",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "auctions"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "ecb-yields",
+      "title": "ECB Policy Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "policyRates"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "global-rates",
+      "title": "Global Central Bank Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "curve"
+      ]
+    },
+    {
+      "marketId": "bonds",
+      "panelId": "treasury-cost",
+      "title": "Treasury Avg Interest Cost",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "latest"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "sidebar",
+      "title": "FX Dashboard",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "spotRates"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "movers",
+      "title": "Top Movers",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "changes1d"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "cot",
+      "title": "COT Positioning",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cotHistory"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "corr",
+      "title": "Currency Correlation (30D)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "history"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "reer",
+      "title": "REER Chart",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "reer"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "ratediff",
+      "title": "Rate Differentials",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "rateDifferentials"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "carry",
+      "title": "Carry Map",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "rateDifferentials"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "rate-dashboard",
+      "title": "Rate Dashboard",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "rateDifferentials"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "treasury-tic",
+      "title": "Treasury TIC Holdings",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "latest"
+      ]
+    },
+    {
+      "marketId": "fx",
+      "panelId": "bis-reer",
+      "title": "BIS REER Comparison",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "reer"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "metrics",
+      "title": "Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "enrich"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "vixterm",
+      "title": "VIX Term Structure",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "vixTermStructure"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "vix1y",
+      "title": "VIX — 1 Year",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fredVixHistory"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "volsurf",
+      "title": "Vol Surface",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "volSurfaceData"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "flow",
+      "title": "Options Flow",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "optionsFlow"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "gamma",
+      "title": "Gamma Exposure",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "gammaExposure"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "volprem",
+      "title": "Vol Premium",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "volPremium"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "cftc-tff",
+      "title": "CFTC Financial Futures",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "contracts"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "bis-otc",
+      "title": "BIS OTC Derivatives",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "otc"
+      ]
+    },
+    {
+      "marketId": "derivatives",
+      "panelId": "ecb-derivatives",
+      "title": "ECB Financial Market Data",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "policyRates"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "metrics",
+      "title": "Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "mtg"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "shiller",
+      "title": "Case-Shiller Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cs"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "reitetf",
+      "title": "REIT ETF (VNQ)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "vnq"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "reitperf",
+      "title": "REIT Performance",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "reitData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "foreclosure",
+      "title": "Distress Indicators",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "foreclosureData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "mba",
+      "title": "Mortgage Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "mtg"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "cre",
+      "title": "CRE Delinquencies",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "creDelinquencies"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "caprate",
+      "title": "Cap Rates by Sector",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "capRateData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "afford",
+      "title": "Affordability Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "affordabilityData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "supply",
+      "title": "Supply & Demand",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "supplyData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "hud-afford",
+      "title": "HUD Rental Affordability",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "hud"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "afford-stack",
+      "title": "Housing Affordability Stack",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "affordabilityData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "census-housing",
+      "title": "Census Housing KPI",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "census-trade",
+      "title": "Census Trade KPI",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "census-trends-housing",
+      "title": "Census Housing Trends",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "census-trends-trade",
+      "title": "Census Trade Trends",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "fhfa-hpi",
+      "title": "FHFA House Price Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fhfaHpi"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "bis-property-prices",
+      "title": "BIS Property Price Comparison",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "priceIndexData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "metro-case-shiller",
+      "title": "Metro Case-Shiller",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "caseShillerData"
+      ]
+    },
+    {
+      "marketId": "realEstate",
+      "panelId": "hud-affordability-by-metro",
+      "title": "HUD Affordability by Metro",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "hud"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "catloss",
+      "title": "Natural Catastrophe Losses",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "catStream"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "catastrophes",
+      "title": "Catastrophes (FEMA+USGS)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fema"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "ins-penetration",
+      "title": "Insurance Penetration",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wb"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "combined-ratios",
+      "title": "Insurer Combined Ratios (EDGAR)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "edgar"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "cat-exposure",
+      "title": "Cat Exposure",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cat"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "usgs-minerals",
+      "title": "USGS Earthquake Activity (30d)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "usgs"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "ecb-supervisory",
+      "title": "ECB Policy Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "ecb"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "wb-ins-penetration",
+      "title": "World Bank Insurance Penetration",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wb"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "fema-disasters",
+      "title": "FEMA Disaster Declarations",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fema"
+      ]
+    },
+    {
+      "marketId": "insurance",
+      "panelId": "usgs-earthquakes",
+      "title": "USGS Earthquake Activity",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "usgs"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "sector",
+      "title": "Sector Performance",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "futures.map"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "cot",
+      "title": "COT Positioning",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cot"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "comfx",
+      "title": "Commodity FX (vs USD)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dollar"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "usda-ag",
+      "title": "US Ag Commodity Prices",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "ag"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "eia-petrol",
+      "title": "Petroleum & Natural Gas",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "petroleum"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "materials-grid",
+      "title": "Strategic Materials Grid",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "metals"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "criticality",
+      "title": "Criticality Leaderboard",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fred"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "battery-chain",
+      "title": "Battery Supply Chain",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "copper"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "regime",
+      "title": "Commodity Regime Dashboard",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "yahoo"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "material-detail",
+      "title": "Strategic Material Detail",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fred"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "exposure-matrix",
+      "title": "Material-to-Sector Exposure Matrix",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "yahoo"
+      ]
+    },
+    {
+      "marketId": "commodities",
+      "panelId": "fao-prices",
+      "title": "FAO Food Price Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "food"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "kpi",
+      "title": "Macro Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "scorecard"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "sidebar",
+      "title": "Macro Summary",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "scorecard"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "scorecard",
+      "title": "Scorecard",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "scorecard"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "gdp",
+      "title": "GDP Growth",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "growth"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "cpi",
+      "title": "CPI Inflation",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "growth"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "rates",
+      "title": "Central Bank Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cb"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "debt",
+      "title": "Debt Monitor",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "debt"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "activity",
+      "title": "Economic Activity",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "act"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "cli",
+      "title": "OECD Leading Indicators",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "oecdCli"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "imf-reserves",
+      "title": "IMF Reserves",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "ifs"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "imf-cofer",
+      "title": "IMF COFER",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cofer"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "wb-trade",
+      "title": "World Bank Trade Openness",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wb"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "wb-dev",
+      "title": "World Bank GDP per Capita",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "wb"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "ecb-eur",
+      "title": "ECB Euro Area",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "ecb"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "tga-balance",
+      "title": "TGA Cash Balance",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "dts"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "gdpnow",
+      "title": "GDPNow",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "gdpnow"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "fomc-sep",
+      "title": "FOMC SEP",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sep"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "cleveland",
+      "title": "Cleveland Inflation Nowcast",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "nowcast"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "bea-accounts",
+      "title": "BEA National Accounts",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "bea"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "eurostat",
+      "title": "Eurostat Macro",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "euro"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "oecd-direct",
+      "title": "OECD Direct",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "oecd"
+      ]
+    },
+    {
+      "marketId": "globalMacro",
+      "panelId": "bea-income",
+      "title": "BEA Income",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "bea"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "kpi",
+      "title": "Equity+ Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sectorData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "sidebar",
+      "title": "Equity+ Summary",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sectorData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "valuation",
+      "title": "Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "val"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "etf",
+      "title": "ETF Performance",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sectorData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "factor-favor",
+      "title": "Factor In Favor",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "factorData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "sector-beat",
+      "title": "Sector Beat Rate",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sectorData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "shorted",
+      "title": "Most Shorted",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "shortData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "scores",
+      "title": "Stock Factor Scores",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "factorData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "earnings",
+      "title": "Upcoming Earnings",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "earningsData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "institutions",
+      "title": "Top Institutions",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "inst"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "insider",
+      "title": "Insider Trading",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "insiderData"
+      ]
+    },
+    {
+      "marketId": "equitiesDeepDive",
+      "panelId": "earnings-quality",
+      "title": "Earnings Quality & Revision Monitor",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "earningsData"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "sidebar",
+      "title": "Crypto Summary",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "coins"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "top-cryptos",
+      "title": "Top Cryptos",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "coins"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "fear-greed",
+      "title": "Fear & Greed Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fg"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "funding",
+      "title": "Funding Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "funding"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "defi-tvl",
+      "title": "DeFi TVL by Chain",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "defi"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "exchanges",
+      "title": "Top Exchanges",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "exchanges"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "onchain",
+      "title": "On-Chain Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "onchain"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "onchain-chart",
+      "title": "BTC Hashrate (30d)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "onchain"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "stablecoin-composition",
+      "title": "Stablecoin Composition",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "stablecoinMcap"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "defi-tvl-trend",
+      "title": "DeFi TVL Trend",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "defi"
+      ]
+    },
+    {
+      "marketId": "crypto",
+      "panelId": "btc-onchain",
+      "title": "BTC On-Chain Activity",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "onchain"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "kpi",
+      "title": "Credit Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "spread"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "key-metrics",
+      "title": "Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "spread"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "credit-spreads",
+      "title": "Credit Spreads",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "spread"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "spread-summary",
+      "title": "Spread Summary",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "spread"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "em-spread",
+      "title": "EM Spread History",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "em"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "em-yields",
+      "title": "EM ETF Yields",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "em"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "cp-rates",
+      "title": "Commercial Paper",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cp"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "clo-tranches",
+      "title": "CLO Tranches",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "loan"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "default-rates",
+      "title": "Default Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "default"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "delinquency",
+      "title": "Delinquency Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "delinq"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "bank-sector",
+      "title": "US Banking Sector (FDIC)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fdic"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "credit-quality",
+      "title": "Credit Quality Premium (Moody's)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cq"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "muni-market",
+      "title": "US Municipal Bond Market (MSRB)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "msrb"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "bank-stress",
+      "title": "Bank Stress Monitor",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "lend"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "ted-spread",
+      "title": "TED Spread",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "ted"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "wb-debt",
+      "title": "World Bank Debt Statistics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "countries"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "bis-total-credit",
+      "title": "BIS Total Credit",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "credit"
+      ]
+    },
+    {
+      "marketId": "credit",
+      "panelId": "treasury-credit-holdings",
+      "title": "Treasury Credit Holdings",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "tic"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "sidebar",
+      "title": "Market Snapshot",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fg"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "key-metrics",
+      "title": "Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "riskData"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "fear-greed",
+      "title": "Fear & Greed Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fearGreedData"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "fsi",
+      "title": "Financial Stress Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "fsi"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "cftc",
+      "title": "CFTC Positioning",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cftcData"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "cross-asset",
+      "title": "Cross-Asset Returns",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "returnsData"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "risk-dashboard",
+      "title": "Risk Dashboard",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "riskData"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "leverage",
+      "title": "Leverage Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "lev"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "news-sentiment",
+      "title": "Daily News Sentiment Index (SF Fed)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "news"
+      ]
+    },
+    {
+      "marketId": "sentiment",
+      "panelId": "fed-risk-mood",
+      "title": "Fed Narrative & Risk Mood",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "news"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "kpi",
+      "title": "Calendar Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "events"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "economic",
+      "title": "Economic Calendar",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "events"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "sidebar",
+      "title": "Calendar Summary",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cb"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "cb-rates",
+      "title": "Central Bank Rates",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cb"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "cb-timeline",
+      "title": "Upcoming Meetings",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "cb"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "earnings",
+      "title": "Earnings Season",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "earnings"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "key-data",
+      "title": "Key US Releases",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "kr"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "treasury",
+      "title": "Treasury Auctions",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "ta"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "options",
+      "title": "Options Expiry",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "options"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "release-impact",
+      "title": "Release Impact Tracker",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "kr"
+      ]
+    },
+    {
+      "marketId": "calendar",
+      "panelId": "catalyst-wall",
+      "title": "Market Catalyst Wall",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "events"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "kpi",
+      "title": "Key Labor Market Indicators",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "trends-top",
+      "title": "Trends (3-Year) — Top",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "trends-bottom",
+      "title": "Trends (3-Year) — Bottom",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "jolts",
+      "title": "JOLTS",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "productivity",
+      "title": "Productivity",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "cpi-components",
+      "title": "CPI Components",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "ppi-by-industry",
+      "title": "PPI by Industry",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "eci",
+      "title": "Employment Cost Index",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "bls",
+      "panelId": "unemployment-duration",
+      "title": "Unemployment Duration",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "series"
+      ]
+    },
+    {
+      "marketId": "eia",
+      "panelId": "prices",
+      "title": "US Electricity Retail Prices",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "p"
+      ]
+    },
+    {
+      "marketId": "eia",
+      "panelId": "consumption",
+      "title": "Electricity Consumption",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "c"
+      ]
+    },
+    {
+      "marketId": "eia",
+      "panelId": "trends",
+      "title": "Price Trends (3-Year Monthly)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "t"
+      ]
+    },
+    {
+      "marketId": "eia",
+      "panelId": "co2",
+      "title": "CO₂ Emissions by Sector (US)",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "co2"
+      ]
+    },
+    {
+      "marketId": "eia",
+      "panelId": "petroleum",
+      "title": "Petroleum",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "petroleum"
+      ]
+    },
+    {
+      "marketId": "eia",
+      "panelId": "natural-gas",
+      "title": "Natural Gas",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "naturalGas"
+      ]
+    },
+    {
+      "marketId": "alerts",
+      "panelId": "kpi",
+      "title": "Alert Status",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "alerts"
+      ]
+    },
+    {
+      "marketId": "alerts",
+      "panelId": "active-alerts",
+      "title": "Active Alerts",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "alerts"
+      ]
+    },
+    {
+      "marketId": "alerts",
+      "panelId": "alert-rules",
+      "title": "Alert Rules",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "rules"
+      ]
+    },
+    {
+      "marketId": "watchlist",
+      "panelId": "kpi",
+      "title": "Watchlist Summary",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "watchlist",
+      "panelId": "my-tickers",
+      "title": "My Tickers",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "watchlist",
+      "panelId": "my-metrics",
+      "title": "My Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "quotes"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "kpi",
+      "title": "Analytics Key Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "a"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "provenance",
+      "title": "Provenance Audit",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "diagnostics",
+      "title": "API Health Diagnostics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "server",
+      "title": "Server Info",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "a"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "api-usage",
+      "title": "API Usage",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "source-health",
+      "title": "Data Source Health",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "endpoints",
+      "title": "Endpoint Metrics",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "freshness",
+      "title": "Data Freshness",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "a"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "error-log",
+      "title": "Error Log",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "mem-cache",
+      "title": "Memory Cache",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "a"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "cache-files",
+      "title": "File Cache",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "a"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "routes",
+      "title": "Express Routes",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "panel-trace",
+      "title": "Panel Trace Inspector",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    },
+    {
+      "marketId": "analytics",
+      "panelId": "coverage-matrix",
+      "title": "Endpoint Coverage Matrix",
+      "total": 1,
+      "filled": 1,
+      "empty": 0,
+      "fillRate": 1,
+      "fillPct": "100%",
+      "status": "full",
+      "emptySlots": [],
+      "filledSlots": [
+        "sources"
+      ]
+    }
+  ]
+}

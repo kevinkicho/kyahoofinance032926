@@ -30,9 +30,11 @@ describe('BlsMarket', () => {
     expect(container.querySelector('.skeleton-market')).toBeTruthy();
   });
 
-  it('renders skeleton when loading', () => {
+  it('mounts dashboard shell while loading (no full-tab skeleton)', () => {
+    // Markets keep bento shells mounted so cold FRED does not hide panels.
     const { container } = render(<BlsMarket centralData={{ isLoading: true, data: null }} />);
-    expect(container.querySelector('.skeleton-market')).toBeTruthy();
+    expect(container.querySelector('.skeleton-market')).toBeFalsy();
+    expect(container.querySelector('.bls-market')).toBeTruthy();
   });
 
   it('renders fetched status when live', () => {

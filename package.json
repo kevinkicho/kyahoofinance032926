@@ -23,7 +23,9 @@
     "test:regress": "node scripts/regress.mjs",
     "test:validate": "node scripts/validate.mjs",
     "guard:secrets": "node scripts/guard-secrets.mjs",
-    "setup": "node scripts/setup-env.js"
+    "setup": "node scripts/setup-env.js",
+    "postdeploy:warm": "node scripts/post-deploy-warm.mjs",
+    "postdeploy:traffic": "node scripts/post-deploy-warm.mjs --traffic-only"
   },
   "dependencies": {
     "compression": "^1.8.1",

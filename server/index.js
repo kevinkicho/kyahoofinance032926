@@ -466,39 +466,77 @@ server = app.listen(port, host, () => {
 
   // Warm primary tab markets in the background so the first browser wave hits
   // daily disk/memory cache instead of racing cold FRED/Yahoo timeouts.
-  // Staggered to stay under FRED 120/min; non-blocking for listen health.
-  // Primary tabs first (user-visible), then common cross-market panel deps.
-  const WARM_PATHS = [
-    // Primary tabs (user-visible)
-    'bonds', 'derivatives', 'realEstate', 'insurance', 'commodities/v2',
-    'globalMacro', 'equityDeepDive', 'crypto', 'credit', 'sentiment',
-    'calendar', 'fx', 'macro', 'equities',
-    // Cross-market deps that fill "unavailable" panels when cold
+  // Priority order: slow FRED-heavy tabs first (bonds/RE/insurance), then
+  // remaining tabs, then cross-market deps. Non-blocking for listen health.
+  const WARM_PRIORITY = [
+    'bonds', 'realEstate', 'insurance', 'credit', 'fx', 'globalMacro',
+  ];
+  const WARM_TABS = [
+    'derivatives', 'commodities/v2', 'equityDeepDive', 'crypto', 'sentiment',
+    'calendar', 'macro', 'equities', 'bls', 'eia',
+  ];
+  const WARM_DEPS = [
     'treasuryTIC', 'nyfed', 'treasuryAuctions', 'ecb', 'treasuryCost',
     'imf', 'worldbank', 'bea', 'edgar', 'edgar/insurer-ratios', 'edgar/filing-activity',
     'institutional', 'fema', 'usgs', 'fdic', 'msrb', 'cftcTFF', 'bisOTC',
-    'bls', 'eia', 'eiaPetroleum', 'census', 'censusTrade', 'oecd', 'eurostat',
+    'eiaPetroleum', 'census', 'censusTrade', 'oecd', 'eurostat',
     'fao', 'fed/news-sentiment', 'fed/gdpnow', 'fed/sep', 'universeUpdates',
   ];
+  const WARM_PATHS = [...WARM_PRIORITY, ...WARM_TABS, ...WARM_DEPS];
+
+  async function warmPath(base, m, timeoutMs = 180000) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const r = await fetch(`${base}/api/${m}`, { signal: ctrl.signal });
+      console.log(`[warmup] ${m} → ${r.status}`);
+      return r.status;
+    } catch (e) {
+      console.warn(`[warmup] ${m} failed:`, e?.message || e);
+      return 0;
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  // Public ops endpoint: POST /api/warm (optional header x-warm-token)
+  // Used by scripts/post-deploy-warm.mjs after Cloud Run traffic switch.
+  app.post('/api/warm', async (req, res) => {
+    const token = process.env.WARM_TOKEN || '';
+    if (token && req.get('x-warm-token') !== token) {
+      return res.status(401).json({ ok: false, error: 'unauthorized' });
+    }
+    const paths = Array.isArray(req.body?.paths) && req.body.paths.length
+      ? req.body.paths
+      : WARM_PRIORITY;
+    res.json({ ok: true, started: paths.length, paths });
+    const base = `http://127.0.0.1:${actualPort}`;
+    (async () => {
+      for (const m of paths) {
+        await warmPath(base, m);
+        await new Promise((r) => setTimeout(r, 400));
+      }
+      console.log('[warmup] /api/warm batch complete');
+    })().catch((e) => console.warn('[warmup] /api/warm failed:', e?.message || e));
+  });
+
   setTimeout(() => {
     const base = `http://127.0.0.1:${actualPort}`;
     console.log(`[warmup] Starting background cache warm for ${WARM_PATHS.length} routes…`);
     (async () => {
-      for (const m of WARM_PATHS) {
-        try {
-          const ctrl = new AbortController();
-          const t = setTimeout(() => ctrl.abort(), 120000);
-          const r = await fetch(`${base}/api/${m}`, { signal: ctrl.signal });
-          clearTimeout(t);
-          console.log(`[warmup] ${m} → ${r.status}`);
-        } catch (e) {
-          console.warn(`[warmup] ${m} failed:`, e?.message || e);
-        }
-        await new Promise((r) => setTimeout(r, 800));
+      // Sequential priority (bonds alone can take 60–120s)
+      for (const m of WARM_PRIORITY) {
+        await warmPath(base, m, 200000);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      // Remaining tabs + deps staggered
+      for (const m of [...WARM_TABS, ...WARM_DEPS]) {
+        await warmPath(base, m, 120000);
+        await new Promise((r) => setTimeout(r, 600));
       }
       console.log('[warmup] Complete');
     })().catch((e) => console.warn('[warmup] aborted:', e?.message || e));
-  }, 2000);
+  }, 1500);
 });
 
 server.on('error', (err) => {

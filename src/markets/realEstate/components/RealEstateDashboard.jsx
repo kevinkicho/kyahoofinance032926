@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { safeSlice } from '../../../utils/panelGuards';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
@@ -726,7 +727,7 @@ function RealEstateDashboard({
           </div>
         </BentoCard>
 
-        {true && (
+        {(
           <BentoCard
             key="afford-stack"
             title="Housing Affordability Stack"
@@ -765,7 +766,7 @@ function RealEstateDashboard({
         )}
 
         {/* Case-Shiller */}
-        {true && (
+        {(
           <BentoCard
             key="shiller"
             title="Case-Shiller Index"
@@ -784,7 +785,7 @@ function RealEstateDashboard({
         )}
 
         {/* REIT ETF */}
-        {true && (
+        {(
           <BentoCard
             key="reitetf"
             title="REIT ETF (VNQ)"
@@ -803,7 +804,7 @@ function RealEstateDashboard({
         )}
 
         {/* REIT Performance */}
-        {true && (
+        {(
           <BentoCard
             key="reitperf"
             title="REIT Performance"
@@ -819,7 +820,7 @@ function RealEstateDashboard({
             error={error}
           >
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
-              {(Array.isArray(reitData) ? reitData : []).slice(0, 8).map((r, i) => (
+              {safeSlice(reitData, 0, 8).map((r, i) => (
                 <div key={i} className="re-mini-row">
                   <span className="re-mini-name">{r.symbol}</span>
                   <span className="re-mini-value" style={{ color: (r.changePct || 0) >= 0 ? '#4ade80' : '#f87171' }}>
@@ -837,7 +838,7 @@ function RealEstateDashboard({
         )}
 
         {/* Foreclosure */}
-        {true && (
+        {(
           <BentoCard
             key="foreclosure"
             title="Distress Indicators"
@@ -856,7 +857,7 @@ function RealEstateDashboard({
         )}
 
         {/* MBA Applications */}
-        {true && (
+        {(
           <BentoCard
             key="mba"
             title="MBA Applications"
@@ -875,7 +876,7 @@ function RealEstateDashboard({
         )}
 
         {/* CRE Delinquencies */}
-        {true && (
+        {(
           <BentoCard
             key="cre"
             title="CRE Delinquencies"
@@ -894,7 +895,7 @@ function RealEstateDashboard({
         )}
 
         {/* Cap Rates */}
-        {true && (
+        {(
           <BentoCard
             key="caprate"
             title="Cap Rates by Sector"
@@ -910,7 +911,7 @@ function RealEstateDashboard({
             error={error}
           >
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
-              {(Array.isArray(capRateData) ? capRateData : []).slice(0, 8).map((c, i) => (
+              {safeSlice(capRateData, 0, 8).map((c, i) => (
                 <div key={i} className="re-mini-row">
                   <span className="re-mini-name">{c.sector}</span>
                   <span className="re-mini-value"><MetricValue value={c.impliedYieldPct ?? c.impliedYield ?? c.capRate} seriesKey="capRate" timestamp={lastUpdated} format={v => typeof v === 'number' ? `${v.toFixed(2)}%` : '—'} /></span>
@@ -926,7 +927,7 @@ function RealEstateDashboard({
         )}
 
         {/* Affordability */}
-        {true && (
+        {(
           <BentoCard
             key="afford"
             title="Affordability Index"
@@ -985,7 +986,7 @@ function RealEstateDashboard({
         )}
 
         {/* Supply/Demand */}
-        {true && (
+        {(
           <BentoCard
             key="supply"
             title="Supply & Demand"
@@ -1045,7 +1046,7 @@ function RealEstateDashboard({
         )}
 
         {/* HUD Rental Affordability */}
-        {true && (
+        {(
           <BentoCard
             key="hud-afford"
             title="Rental Affordability"
@@ -1084,27 +1085,27 @@ function RealEstateDashboard({
         )}
 
         {/* ── Census panels (merged from former Census tab) ── */}
-        {true && (
+        {(
           <BentoCard key="census-housing" title="Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusHousingPanel kpiData={censusKpiData} housingKeys={CENSUS_HOUSING_KEYS} />
           </BentoCard>
         )}
-        {true && (
+        {(
           <BentoCard key="census-trade" title="Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTradePanel kpiData={censusKpiData} ecoKeys={CENSUS_ECO_KEYS} />
           </BentoCard>
         )}
-        {true && (
+        {(
           <BentoCard key="census-trends-housing" title="Trends — Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTrendsHousingPanel housingSeries={censusHousingSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
           </BentoCard>
         )}
-        {true && (
+        {(
           <BentoCard key="census-trends-trade" title="Trends — Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <CensusTrendsTradePanel ecoSeries={censusEcoSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
           </BentoCard>
         )}
-        {true && (
+        {(
           <BentoCard key="fhfa-hpi" title="FHFA House Price Index" accent="realEstate" className="re-bento-card" contentClassName="re-panel-content" source="FHFA (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <div style={{ height: '100%', minHeight: 0, padding: 8 }}>
               {fhfaHpi?.dates?.length ? (
@@ -1138,7 +1139,7 @@ function RealEstateDashboard({
             </div>
           </BentoCard>
         )}
-        {true && (
+        {(
           <BentoCard
             key="bis-property-prices"
             title="BIS Property Price Comparison"
@@ -1157,12 +1158,12 @@ function RealEstateDashboard({
             <BisPropertyPricePanel />
           </BentoCard>
         )}
-        {true && (
+        {(
           <BentoCard key="metro-case-shiller" title="Metro Case-Shiller" subtitle="Metro-level home price indices" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="S&P CoreLogic / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <MetroCaseShillerPanel />
           </BentoCard>
         )}
-        {true && (
+        {(
           <BentoCard key="hud-affordability-by-metro" title="HUD Affordability by Metro" subtitle="Rent-to-income ratios and home values" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="HUD / Census" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
             <HudAffordabilityPanel />
           </BentoCard>

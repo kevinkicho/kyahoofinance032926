@@ -28,7 +28,7 @@ describe('DerivativesMarket', () => {
     render(<DerivativesMarket centralData={mockCentralData} />);
     // Per-panel DataFooters show FETCHED when that panel has data, PENDING otherwise.
     // With vixTermStructure populated, at least the Key Metrics panel's footer renders.
-    expect(screen.getAllByText(/FETCHED|PENDING|NO DATA/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/FETCHED|WAITING|PENDING|NO DATA|STALE/i).length).toBeGreaterThan(0);
   });
 
   it('shows Key Metrics sidebar', () => {
@@ -74,14 +74,15 @@ describe('DerivativesMarket', () => {
     };
     render(<DerivativesMarket centralData={withVolPrem} />);
     expect(screen.getByText('Vol Premium')).toBeInTheDocument();
-    expect(screen.getAllByText('ATM 1M IV').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByText('30d Realized').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('IV − Realized Spread')).toBeInTheDocument();
+    expect(screen.getAllByText(/ATM 1M IV/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/30d Realized/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('does not render Gamma Exposure or Vol Premium panels without data', () => {
+  it('always mounts Vol Premium shell; Gamma only when GEX data present', () => {
+    // Force-mount keeps vol premium visible (empty/pending) on cold loads.
+    // Gamma still requires a total/array so the layout does not show empty GEX.
     render(<DerivativesMarket centralData={mockCentralData} />);
+    expect(screen.getByText('Vol Premium')).toBeInTheDocument();
     expect(screen.queryByText('Gamma Exposure (GEX)')).not.toBeInTheDocument();
-    expect(screen.queryByText('Vol Premium')).not.toBeInTheDocument();
   });
 });

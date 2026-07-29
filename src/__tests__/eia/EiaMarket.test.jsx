@@ -32,9 +32,10 @@ describe('EiaMarket', () => {
     expect(container.querySelector('.skeleton-market')).toBeTruthy();
   });
 
-  it('renders skeleton when loading', () => {
+  it('mounts market shell while loading (no full-tab skeleton)', () => {
     const { container } = render(<EiaMarket centralData={{ isLoading: true, data: null }} />);
-    expect(container.querySelector('.skeleton-market')).toBeTruthy();
+    expect(container.querySelector('.skeleton-market')).toBeFalsy();
+    expect(container.querySelector('.eia-market')).toBeTruthy();
   });
 
   it('renders fetched status when live', () => {

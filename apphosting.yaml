@@ -24,11 +24,12 @@ runConfig:
   # Dashboard cold-start loads many routes; give the container room.
   # minInstances: 1 keeps one warm container so ephemeral disk cache survives
   # between visitors (minInstances: 0 wiped cache and left panels hollow).
-  # maxInstances kept low: each instance has its own disk cache; high fan-out
-  # leaves some replicas serving hollow partials while others hold full data.
+  # maxInstances: 1 keeps a single warm disk cache (Cloud Run disk is
+  # per-instance). Multiple replicas caused hollow/full cache split-brain.
+  # concurrency still allows many parallel browser requests on one instance.
   cpu: 1
   memoryMiB: 1024
-  maxInstances: 2
+  maxInstances: 1
   minInstances: 1
   concurrency: 80
 

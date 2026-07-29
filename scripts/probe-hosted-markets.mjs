@@ -46,7 +46,7 @@ async function main() {
       const keys = [...new Set(cards.map((c) => c.getAttribute('data-panel-key')))];
       const body = document.body?.innerText || '';
       const crashed = /crashed|something went wrong|ErrorBoundary/i.test(body);
-      const pending = cards.filter((c) => /PENDING/i.test(c.textContent || '')).length;
+      const pending = cards.filter((c) => /PENDING|WAITING|LOADING/i.test(c.textContent || '')).length;
       const empty = cards.filter((c) => {
         const t = (c.textContent || '').replace(/\s+/g, ' ');
         return /no data|unavailable|not configured/i.test(t) && t.length < 180;

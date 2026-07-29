@@ -61,6 +61,7 @@ const BentoCard = React.forwardRef(function BentoCard({
   fetchedOn,
   fetchLog,
   error,
+  isLoading,
   bare = false,
   titleActions,
   className = '',
@@ -128,6 +129,7 @@ const BentoCard = React.forwardRef(function BentoCard({
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
+          isLoading={isLoading}
         />
       )}
     </div>

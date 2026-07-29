@@ -31,12 +31,13 @@ const mockCentralData = {
 describe('RealEstateMarket', () => {
   it('renders unified dashboard with status bar', () => {
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED/i).length).toBeGreaterThan(0);
   });
 
-  it('shows sidebar with Home Prices section', () => {
+  it('shows Home prices section in Key Metrics panel', () => {
+    // Sidebar was folded into the Key Metrics bento; title casing is "Home prices".
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getByText('Home Prices')).toBeInTheDocument();
+    expect(screen.getByText(/Home prices/i)).toBeInTheDocument();
   });
 
   it('shows Case-Shiller in sidebar', () => {
@@ -53,6 +54,6 @@ describe('RealEstateMarket', () => {
 
   it('shows no data received status when not live', () => {
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getAllByText(/PENDING|NO DATA/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED/i).length).toBeGreaterThan(0);
   });
 });

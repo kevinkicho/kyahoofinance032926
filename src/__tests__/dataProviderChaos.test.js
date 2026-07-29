@@ -26,13 +26,14 @@ describe('hasNonNullData', () => {
     expect(hasNonNullData(42)).toBe(false);
   });
 
-  it('returns false when fewer than 2 non-null real keys', () => {
+  it('returns false when no non-null real keys', () => {
     expect(hasNonNullData({})).toBe(false);
-    expect(hasNonNullData({ a: 1 })).toBe(false);
     expect(hasNonNullData({ a: null, b: false, c: undefined })).toBe(false);
   });
 
-  it('returns true when 2+ keys carry actual values', () => {
+  it('returns true when 1+ keys carry actual values (sparse panels still paint)', () => {
+    // One real field is enough — requiring 2 blanked sparse BLS/census feeds.
+    expect(hasNonNullData({ a: 1 })).toBe(true);
     expect(hasNonNullData({ a: 1, b: 'x' })).toBe(true);
     expect(hasNonNullData({ list: [1, 2], rate: 5.4 })).toBe(true);
   });
@@ -40,13 +41,20 @@ describe('hasNonNullData', () => {
   it('ignores meta keys (lastUpdated/fetchedOn/isLive/isCurrent/_*)', () => {
     expect(hasNonNullData({
       lastUpdated: 'now', fetchedOn: 'today', isLive: true, isCurrent: true,
+      _sources: ['x'],
+    })).toBe(false); // only meta → empty
+    expect(hasNonNullData({
+      lastUpdated: 'now', fetchedOn: 'today', isLive: true, isCurrent: true,
       _sources: ['x'], a: 1,
-    })).toBe(false); // only `a` counts → 1 < 2
+    })).toBe(true); // one real field paints
   });
 
   it('counts populated nested objects as one key each', () => {
     expect(hasNonNullData({ a: { x: 1 }, b: { y: 2 } })).toBe(true);
-    expect(hasNonNullData({ a: { x: null }, b: null })).toBe(false);
+    // All-null nested leaves still leave a non-empty object shell; production
+    // treats that as "payload arrived" so applyResult does not blank the tab.
+    expect(hasNonNullData({ a: { x: null }, b: null })).toBe(true);
+    expect(hasNonNullData({ a: null, b: null })).toBe(false);
   });
 
   it('counts non-empty arrays as one key', () => {
