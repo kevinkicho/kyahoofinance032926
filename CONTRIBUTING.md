@@ -1,20 +1,40 @@
 # Contributing to kyahoofinance032926
 
-Thank you for your interest in contributing to this project!
+Thank you for your interest in contributing to this project.
 
 ## How to Contribute
 
-1. **Fork the repository**: Create your own copy of the project.
-2. **Create a feature branch**: Use a descriptive name for your branch (e.g., `feature/add-api-endpoint`).
-3. **Commit your changes**: Ensure your commit messages are clear and concise.
-4. **Submit a Pull Request**: Describe your changes and link any relevant issues.
+1. **Fork / branch** — use a descriptive branch name (e.g. `feature/add-api-endpoint`).
+2. **Install** — `npm install` (also wires git hooks via `prepare` → `.githooks/`).
+3. **Develop** — follow existing style and naming.
+4. **Quality gate before push** (required):
+
+   ```bash
+   npm run preflight          # secrets + workflow lint + vitest
+   # for deploy / large changes:
+   npm run preflight:full
+   ```
+
+5. **Commit** with a clear message. Pre-commit runs secret guard + workflow lint.
+6. **Push** — pre-push runs full preflight. Do not use `--no-verify` unless you intentionally accept risk.
+7. **Open a PR** (or push `master` if that is your workflow) and describe the change.
 
 ## Coding Standards
 
-- Follow the existing project style and naming conventions.
-- Ensure all new code is tested and documented.
-- Keep PRs focused on a single logical change.
+- Follow existing project style and naming conventions.
+- Prefer tests for new behavior (`npm test` / Vitest).
+- Never commit API keys, PEMs, or service-account JSON (`npm run guard:secrets`).
+- Never use `if: secrets.NAME != ''` in GitHub Actions — use `vars.*` feature flags (`npm run lint:workflows`).
+
+## Docs
+
+| Doc | Purpose |
+|-----|---------|
+| [`AGENTS.md`](AGENTS.md) | Rules for AI agents |
+| [`docs/CI_PREFLIGHT_GUIDE.md`](docs/CI_PREFLIGHT_GUIDE.md) | Preflight / hooks detail |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | App Hosting deploy + warm |
+| [`docs/PANELS.md`](docs/PANELS.md) | Panel inventory |
 
 ## Feedback
 
-If you have questions or suggestions, please open an issue or contact the project maintainers.
+Open an issue or contact the project maintainers.

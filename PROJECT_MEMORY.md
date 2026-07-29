@@ -4,6 +4,7 @@
 Build a financial dashboard app with complete data provenance transparency. Every data point must show its source, timestamp down to seconds with UTC offset, and provide clickable links to verify data via the original API. Never display mock/deceptive data.
 
 ## Key Rules
+- **Before every push:** `npm run preflight` (secrets + `lint:workflows` + vitest). Git hooks in `.githooks/` enforce this when installed (`npm run hooks:install`). Agents: see `AGENTS.md`. Unit tests do **not** catch GHA YAML policy bugs — `lint:workflows` does.
 - Never use "Live" label for REST API data — only "LIVE" for real-time streaming, "FETCHED" for fetched data, "NO DATA" or "PENDING" otherwise
 - Never display mock/deceptive data — show "—" or empty state if no data
 - Every data value should be hoverable/clickable to reveal source (FRED series ID, API endpoint URL), timestamp, and link to reproduce

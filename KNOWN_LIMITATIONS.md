@@ -21,6 +21,13 @@ Older docs may still say PENDING; UI and audits treat WAITING as the waiting sta
 After App Hosting deploys, run `npm run postdeploy:warm` so cold instances fill
 disk cache before users hit slow FRED routes.
 
+### Local preflight vs GitHub Actions
+
+`npm run preflight` (and git pre-push) catches secrets leaks, invalid workflow
+YAML patterns, and unit-test regressions. It does **not** prove live secrets,
+environment protection rules, or hosted cache warm state. Those still need a
+real Actions run and/or `postdeploy:warm`.
+
 ### Shared GCS cache (enabled in production)
 
 Production sets `MARKET_CACHE_BUCKET=kfinance032926-market-cache`. Daily market

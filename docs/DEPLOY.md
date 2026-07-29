@@ -12,13 +12,24 @@
 
 Push to `master` triggers App Hosting build + rollout.
 
+### Before every push (local gate)
+
+```bash
+npm run preflight          # secrets + workflow lint + vitest (also runs on git pre-push)
+npm run preflight:full     # + vite build + functions build (deploy-heavy changes)
+```
+
+Hooks live in `.githooks/` (`npm run hooks:install`). Agents must follow [`AGENTS.md`](../AGENTS.md).  
+Workflow YAML policy (e.g. never `if: secrets.X != ''`) is enforced by `npm run lint:workflows` — see [`CI_PREFLIGHT_GUIDE.md`](./CI_PREFLIGHT_GUIDE.md).
+
 After a new revision is healthy:
 
 ```bash
 npm run postdeploy:warm
+# or GitHub Actions → "Post-deploy warm (App Hosting)" (default: warm-only HTTP)
 ```
 
-This routes 100% traffic to the newest Ready revision and warms priority market APIs (seeds local disk + GCS).
+This warms priority market APIs (seeds local disk + GCS). Optional traffic routing requires repo variable `ENABLE_GCLOUD_TRAFFIC=true` and secret `GCP_SA_KEY`.
 
 ### Scheduled warm (enabled)
 

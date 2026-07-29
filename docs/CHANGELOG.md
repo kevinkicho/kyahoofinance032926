@@ -2,6 +2,16 @@
 
 This file tracks user-visible dashboard and data-contract changes. For exact diffs, use `git log`.
 
+## 2026-07-29
+
+### Enforced local quality gates (preflight + git hooks)
+
+- **`npm run preflight`** — mandatory local gate: secret scan, GitHub Actions workflow lint, Vitest (~500 tests).
+- **`npm run lint:workflows`** — blocks GHA patterns that fail only on GitHub (e.g. `if: secrets.FOO != ''`).
+- **`.githooks/`** — pre-commit (secrets + workflow lint) and pre-push (full preflight); installed via `npm prepare` / `npm run hooks:install`.
+- **`AGENTS.md`** — binding agent policy: run preflight before push; never skip hooks without explicit user order.
+- Updated [`docs/CI_PREFLIGHT_GUIDE.md`](./CI_PREFLIGHT_GUIDE.md) to document enforcement (was documentation-only before).
+
 ## 2026-07-07
 
 ### Performance & Reliability Optimizations (Phase 1)

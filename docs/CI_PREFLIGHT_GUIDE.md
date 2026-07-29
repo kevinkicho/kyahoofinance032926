@@ -1,66 +1,105 @@
 # CI Preflight & Quality Gate Guide
 
-This guide establishes the mandatory pre-flight checks and quality gates required to ensure that all local changes compile, run, and pass automated tests before pushing commits to GitHub.
+This guide is the **enforced** local quality gate for humans and AI agents.  
+It exists because documentation alone was not enough: agents kept pushing changes that failed on GitHub.
 
 ---
 
-## 1. Requirement checklist
+## Why “precommit” did not stop past failures
 
-Before performing `git push`, the codebase **must** satisfy the following 5 requirements:
+| Expectation | Reality (before this enforcement) |
+|---|---|
+| Pre-commit hooks block bad commits | Only Git’s **`.sample`** hooks existed — **nothing ran** on commit/push |
+| `docs/CI_PREFLIGHT_GUIDE.md` is mandatory | It was a manual checklist; agents could ignore it |
+| `npm test` green means CI green | **False** for GitHub Actions YAML policy bugs (e.g. `if: secrets.X != ''`) |
+| “CI” = unit tests | Many red runs were **workflow validation** or deploy/env, not Vitest |
 
-| Check | Command | Context / Description |
+Unit tests never parse `.github/workflows/*.yml`. A workflow that GitHub rejects still “passes” Vitest.
+
+---
+
+## Enforced local gates (now)
+
+| When | What runs | Command |
 |---|---|---|
-| **1. Secret Guard** | `npm run guard:secrets` | Scans tracked files for leaked API keys or Firebase secrets. |
-| **2. Frontend Compilation** | `npm run build` | Compiles the production assets in `dist/` using Vite. |
-| **3. Unit Tests & Coverage** | `npm test` | Runs the Vitest suite; must maintain **>= 40% coverage** on all metrics. |
-| **4. Cloud Functions Build** | `cd functions; npm run build` | Compiles TypeScript functions to `lib/index.js` for Firebase deployment. |
-| **5. E2E & Layout Audits** | `npm run test:audit` | Runs Playwright tests to verify data binding across all tabs. |
+| **pre-commit** (git hook) | Secret scan + workflow lint | automatic via `.githooks/pre-commit` |
+| **pre-push** (git hook) | Full preflight | automatic via `.githooks/pre-push` |
+| **Manual / agents** | Same as pre-push | `npm run preflight` |
+| **Deploy-heavy changes** | Preflight + builds | `npm run preflight:full` |
 
----
+### Install hooks (once per clone)
 
-## 2. CI Verification & Test Suites
-
-The codebase includes three main testing layers that verify correctness:
-
-### A. Vitest Unit Test Layer
-Tests state transitions, data providers, route factory logic, and backend helpers.
-- Run tests: `npm test`
-- Run coverage verification: `npx vitest run --coverage`
-
-### B. Playwright E2E & Audit Layer
-Fires up a headless browser to audit runtime layout and state binding on the dashboards.
-- **Whole Suite**: `npx playwright test`
-- **Data Binding Audit**: `npm run test:audit` (checks all 21 markets for proper data binding)
-- **Panel Status Coverage**: `npm run test:coverage` (audits panels status indicators and loads)
-- **Settings Persistence**: `npm run test:persist` (ensures theme and currency choices persist)
-
-### C. Offline Validation Layer
-Spins up a local browser, visits all dashboard tabs, takes full-page screenshots, and compiles a structural report.
-- Run validation: `npm run test:validate` (Generates screenshot output in `test-results/validate/` and markdown report in `test-results/validate.md`)
-- Run regression comparison: `npm run test:regress`
-
----
-
-## 3. Pre-push Verification Procedure
-
-To run the preflight checklist locally in a single command, execute the following PowerShell command in the project root:
-
-```powershell
-# Run static validation, build checks, and unit tests
-npm run guard:secrets && npm run build && cd functions && npm install --ignore-scripts && npm run build && cd .. && npm test
+```bash
+npm run hooks:install
+# also runs automatically on npm install via the "prepare" script
 ```
 
-If any step in the chain fails, **resolve the failure before pushing to the repository**.
+This sets `git config core.hooksPath .githooks`.
+
+**Do not use `git push --no-verify`** unless you deliberately accept shipping untested work.
 
 ---
 
-## 4. Troubleshooting CI Environment Failures
+## Preflight contents
 
-If the **Build** job succeeds on GitHub Actions but the **Deploy** job fails with a message similar to:
-> *Branch "master" is not allowed to deploy to github-pages due to environment protection rules.*
+### Default — `npm run preflight`
 
-This is a GitHub repository settings issue, not a codebase compilation error. To resolve this:
-1. Go to your repository on GitHub.
-2. Navigate to **Settings → Environments → github-pages**.
-3. Under **Deployment branches and tags**, change the selection to **"All branches"**, or add `master` as an approved deployment branch.
+1. **Secret Guard** — `npm run guard:secrets`  
+2. **Workflow lint** — `npm run lint:workflows`  
+   - Blocks `if: secrets.FOO != ''` and similar GitHub-rejected patterns  
+3. **Unit tests** — `npm test` (Vitest)
 
+### Full — `npm run preflight:full`
+
+Everything above, plus:
+
+4. **Frontend build** — `npm run build`  
+5. **Cloud Functions build** — `cd functions && npm run build` (if present)
+
+### One-liner (PowerShell / bash)
+
+```bash
+npm run preflight
+# or
+npm run preflight:full
+```
+
+If any step fails, **fix before push**.
+
+---
+
+## What still cannot be caught locally
+
+| Failure class | Why local gates miss it | Mitigation |
+|---|---|---|
+| Missing GitHub secret / wrong env | Needs live Actions | Document required secrets; keep warm path secret-free by default |
+| Repo environment protection rules | GitHub settings | Settings → Environments |
+| Hosted cold start / hollow cache | Needs live App Hosting | `npm run postdeploy:warm`, scheduler, GCS cache |
+| Live third-party API outages | Network | Cache + hollow guards |
+
+---
+
+## Extra suites (not in default preflight)
+
+Use when changing panels, layout, or data binding:
+
+| Layer | Command |
+|---|---|
+| Playwright E2E | `npm run test:e2e` |
+| Data-binding audit | `npm run test:audit` |
+| Panel coverage | `npm run test:coverage` |
+| Offline validate / regress | `npm run test:validate` / `npm run test:regress` |
+
+Default preflight stays fast enough that agents actually run it on every push.
+
+---
+
+## Agent policy
+
+See root **`AGENTS.md`**: agents must run preflight before push and must not skip hooks.
+
+---
+
+## Troubleshooting older “Pages deploy” failures
+
+If a **Build** job succeeds but a **Deploy** job fails with environment protection on `github-pages`, that is repository settings — and **Pages is no longer the canonical host** (App Hosting is). Prefer the App Hosting + `postdeploy-warm` path described in `docs/DEPLOY.md`.
