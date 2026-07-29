@@ -1,6 +1,89 @@
 import { Router } from 'express';
 import { yf } from '../lib/yahoo.js';
-import { readBestFile, readLocalData, adaptCompact, periodCutoff, snapshotIndex, snapshotBuilding, buildSnapshotIndex, REGION_SUFFIX, getYahooTicker } from '../lib/stocks.js';
+import {
+  readBestFile,
+  readLocalData,
+  adaptCompact,
+  periodCutoff,
+  snapshotIndex,
+  snapshotBuilding,
+  buildSnapshotIndex,
+  REGION_SUFFIX,
+  getYahooTicker,
+  isCryptoTicker,
+} from '../lib/stocks.js';
+
+/** Equity quoteSummary modules (fail on crypto). */
+const EQUITY_SUMMARY_MODULES = [
+  'financialData',
+  'defaultKeyStatistics',
+  'earningsTrend',
+  'recommendationTrend',
+  'majorHoldersBreakdown',
+  'incomeStatementHistory',
+  'cashflowStatementHistory',
+  'balanceSheetHistory',
+];
+
+/** Crypto-safe modules (price + market stats only). */
+const CRYPTO_SUMMARY_MODULES = ['price', 'summaryDetail'];
+
+/**
+ * Build a quoteSummary-shaped payload from yf.quote when modules fail.
+ * DetailPanel mainly needs quote fields via /api/stocks; summary is secondary.
+ */
+function summaryFromQuote(q) {
+  if (!q || typeof q !== 'object') return null;
+  return {
+    price: {
+      regularMarketPrice: q.regularMarketPrice,
+      regularMarketChange: q.regularMarketChange,
+      regularMarketChangePercent: q.regularMarketChangePercent,
+      regularMarketVolume: q.regularMarketVolume,
+      marketCap: q.marketCap,
+      shortName: q.shortName,
+      longName: q.longName,
+      currency: q.currency,
+      exchange: q.exchange,
+    },
+    summaryDetail: {
+      previousClose: q.regularMarketPreviousClose ?? q.previousClose,
+      open: q.regularMarketOpen ?? q.open,
+      dayLow: q.regularMarketDayLow ?? q.dayLow,
+      dayHigh: q.regularMarketDayHigh ?? q.dayHigh,
+      volume: q.regularMarketVolume ?? q.volume,
+      averageVolume: q.averageDailyVolume3Month ?? q.averageVolume,
+      marketCap: q.marketCap,
+      fiftyTwoWeekLow: q.fiftyTwoWeekLow,
+      fiftyTwoWeekHigh: q.fiftyTwoWeekHigh,
+    },
+    financialData: null,
+    defaultKeyStatistics: {},
+    _crypto: true,
+    _sources: { yahooQuote: true },
+  };
+}
+
+async function fetchSummaryPayload(yahooTicker, crypto) {
+  if (crypto) {
+    try {
+      const data = await yf.quoteSummary(yahooTicker, { modules: CRYPTO_SUMMARY_MODULES });
+      return {
+        ...data,
+        financialData: data?.financialData ?? null,
+        defaultKeyStatistics: data?.defaultKeyStatistics || {},
+        _crypto: true,
+      };
+    } catch (e) {
+      console.warn(`[summary] crypto modules failed for ${yahooTicker}: ${e.message}`);
+      const q = await yf.quote(yahooTicker);
+      const shaped = summaryFromQuote(q);
+      if (!shaped) throw e;
+      return shaped;
+    }
+  }
+  return yf.quoteSummary(yahooTicker, { modules: EQUITY_SUMMARY_MODULES });
+}
 
 const router = Router();
 
@@ -41,15 +124,16 @@ router.get('/summary/:ticker', async (req, res) => {
 
   try {
     const yahooTicker = getYahooTicker(ticker, region);
-    const data = await yf.quoteSummary(yahooTicker, {
-      modules: ['financialData','defaultKeyStatistics','earningsTrend',
-                'recommendationTrend','majorHoldersBreakdown',
-                'incomeStatementHistory','cashflowStatementHistory','balanceSheetHistory']
-    });
+    const crypto = isCryptoTicker(ticker, region);
+    const data = await fetchSummaryPayload(yahooTicker, crypto);
     cache.set(cacheKey, data, 1800);
-    const sources = { yahooSummary: true, cached: false };
+    const sources = {
+      yahooSummary: !data?._crypto || !!data?.summaryDetail,
+      yahooQuote: !!data?._crypto,
+      crypto: crypto || undefined,
+    };
     res.set('X-Data-Sources', JSON.stringify(sources));
-    res.json({ ...data, _sources: sources });
+    res.json({ ...data, _sources: { ...sources, ...(data._sources || {}) } });
   } catch (error) {
     console.warn(`Summary unavailable for ${ticker}: ${error.message}`);
     res.status(404).json({ error: `No summary data for ${ticker}`, ticker });

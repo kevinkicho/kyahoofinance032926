@@ -140,19 +140,35 @@ export const STATIC_TICKER_MAP = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'data', 'tickerMap.json'), 'utf8')
 );
 
+/** Spot crypto bases on Yahoo as BASE-USD (no equity fundamentals). */
+export const CRYPTO_TICKERS = new Set([
+  'BTC', 'ETH', 'XRP', 'BNB', 'SOL', 'DOGE', 'ADA', 'TRX', 'AVAX', 'LINK', 'DOT', 'LTC', 'UNI', 'POL', 'ATOM',
+  'BCH', 'XLM', 'NEAR', 'APT', 'ARB', 'OP', 'SUI', 'PEPE', 'SHIB', 'TON', 'ICP', 'HBAR', 'FIL', 'AAVE', 'MKR',
+]);
+
+export function isCryptoTicker(ticker, region = '') {
+  if (region === 'Crypto') return true;
+  if (!ticker || typeof ticker !== 'string') return false;
+  const t = ticker.toUpperCase();
+  if (t.endsWith('-USD') && CRYPTO_TICKERS.has(t.replace(/-USD$/, ''))) return true;
+  return CRYPTO_TICKERS.has(t);
+}
+
 export function mapToYahooTicker(ticker) {
   if (!ticker || typeof ticker !== 'string') return ticker;
   if (ticker.includes('.')) return ticker;
-  const CRYPTO_TICKERS = new Set([
-    'BTC','ETH','XRP','BNB','SOL','DOGE','ADA','TRX','AVAX','LINK','DOT','LTC','UNI','POL','ATOM',
-  ]);
-  if (CRYPTO_TICKERS.has(ticker)) return `${ticker}-USD`;
+  const upper = ticker.toUpperCase();
+  if (CRYPTO_TICKERS.has(upper)) return `${upper}-USD`;
+  if (upper.endsWith('-USD') && CRYPTO_TICKERS.has(upper.replace(/-USD$/, ''))) return upper;
   return STATIC_TICKER_MAP[ticker] || ticker;
 }
 
 export function getYahooTicker(ticker, region) {
   if (!ticker || typeof ticker !== 'string') return ticker;
   if (ticker.includes('.')) return ticker;
+  if (isCryptoTicker(ticker, region)) {
+    return mapToYahooTicker(ticker.replace(/-USD$/i, '').toUpperCase());
+  }
   const suffix = REGION_SUFFIX[region];
   if (suffix) return `${ticker}.${suffix}`;
   return mapToYahooTicker(ticker);

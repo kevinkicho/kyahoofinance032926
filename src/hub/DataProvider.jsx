@@ -112,7 +112,10 @@ async function fetchMarket(marketId, forceLive = false) {
   } catch (err) {
     const dur = Math.round(performance.now() - t0);
     const msg = `[DataProvider] ✗ ${marketId} failed (${dur}ms): ${err?.message || err}`;
-    if (['realEstate', 'insurance', 'globalMacro'].includes(marketId)) {
+    // Cold App Hosting waves often exceed totalTimeout for FRED-heavy tabs;
+    // keep them as warn so the console is not filled with red noise when
+    // later retries or disk/GCS cache succeed.
+    if (['realEstate', 'insurance', 'globalMacro', 'bonds', 'credit', 'calendar'].includes(marketId)) {
       console.warn(msg);
     } else {
       console.error(msg);
