@@ -20,23 +20,22 @@ npm run postdeploy:warm
 
 This routes 100% traffic to the newest Ready revision and warms priority market APIs (seeds local disk + GCS).
 
-### Scheduled warm (recommended)
+### Scheduled warm (enabled)
 
-Cloud Scheduler → HTTP POST to your hosted `/api/warm` every 6 hours (or daily before market open):
+Cloud Scheduler job **`market-cache-warm`** (us-central1):
+
+| Field | Value |
+|-------|--------|
+| Schedule | `0 */6 * * *` (America/New_York) |
+| Target | `POST …/api/warm` |
+| Body | priority market paths (bonds, realEstate, insurance, …) |
 
 ```bash
-# Example (adjust URL / OIDC as needed for your project)
-gcloud scheduler jobs create http market-cache-warm \
-  --location=us-central1 \
-  --schedule="0 */6 * * *" \
-  --uri="https://kyahoofinance032926--kfinance032926.us-central1.hosted.app/api/warm" \
-  --http-method=POST \
-  --headers="Content-Type=application/json" \
-  --message-body='{"paths":["bonds","realEstate","insurance","credit","fx","globalMacro"]}' \
-  --project=kfinance032926
+gcloud scheduler jobs describe market-cache-warm --location=us-central1 --project=kfinance032926
+gcloud scheduler jobs run market-cache-warm --location=us-central1 --project=kfinance032926
 ```
 
-If `WARM_TOKEN` is set on the service, add header `x-warm-token: <token>`.
+If `WARM_TOKEN` is set on the service, update the job headers with `x-warm-token`.
 
 ---
 
@@ -44,11 +43,11 @@ If `WARM_TOKEN` is set on the service, add header `x-warm-token: <token>`.
 
 ### GitHub Pages + Cloud Functions
 
-Still present for archival / optional static demos:
+Archived / non-production:
 
-- Workflow: `.github/workflows/deploy-pages.yml`
-- Requires `VITE_API_BASE_URL` pointing at Functions or App Hosting API
-- **Not** the canonical product path — prefer App Hosting
+- Workflow moved to `.github/workflows/archive/deploy-pages.yml.legacy` (not active)
+- Requires `VITE_API_BASE_URL` if revived
+- **Not** the canonical product path
 
 ### Firebase Functions (`functions/`)
 

@@ -127,10 +127,10 @@ Build a financial dashboard app with complete data provenance transparency. Ever
 
 ### Remaining work (lower priority)
 
-1. DetailPanel.jsx full shared DataFooter + MetricValue on fundamentals tabs  
-2. ListView optional MetricValue (was removed for performance — re-enable selectively)  
-3. Further split EquitiesMarket / Insurance / Commodities mega-files  
-4. Optional: retire Functions snapshot writers if unused  
+1. Optional: retire Functions snapshot writers entirely if unused  
+2. Optional: further thin Insurance/Commodities layout files  
+3. ~~DetailPanel / ListView MetricValue~~ done  
+4. ~~Scheduled warm / Pages archive~~ done  
 
 ### 2. Watchlist Tab — `src/markets/watchlist/WatchlistMarket.jsx`
 **Status: INTEGRATED (see table above)**

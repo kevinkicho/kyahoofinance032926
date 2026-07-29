@@ -7,12 +7,8 @@ import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import { fmtChangePct } from './insuranceHelpers';
 import './InsuranceDashboard.css';
-
-function fmtChangePct(v) {
-  if (v == null) return '';
-  return v >= 0 ? `+${v.toFixed(2)}%` : `${v.toFixed(2)}%`;
-}
 
 function InsuranceDashboard({
   catBondSpreads, combinedRatioData, reserveAdequacyData,

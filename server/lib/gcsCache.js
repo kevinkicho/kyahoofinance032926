@@ -197,6 +197,51 @@ export async function gcsWriteJson(market, dateStr, data) {
 }
 
 /**
+ * Generic object read/write under market-cache/ prefix (or absolute object path).
+ */
+export async function gcsReadObject(objectPath) {
+  const bucket = getCacheBucket();
+  if (!bucket) return null;
+  try {
+    const token = await getAccessToken();
+    if (!token) return null;
+    const name = encodeURIComponent(objectPath.startsWith(PREFIX) ? objectPath : `${PREFIX}/${objectPath}`);
+    const url = `https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(bucket)}/o/${name}?alt=media`;
+    const r = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function gcsWriteObject(objectPath, data) {
+  const bucket = getCacheBucket();
+  if (!bucket || data == null) return false;
+  try {
+    const token = await getAccessToken();
+    if (!token) return false;
+    const name = objectPath.startsWith(PREFIX) ? objectPath : `${PREFIX}/${objectPath}`;
+    const url = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(bucket)}/o?uploadType=media&name=${encodeURIComponent(name)}`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(20000),
+    });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Try today's object, then latest, then previous N calendar days by name.
  * @returns {Promise<{ data: object, fetchedOn: string }|null>}
  */

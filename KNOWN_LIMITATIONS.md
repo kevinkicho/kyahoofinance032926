@@ -30,10 +30,11 @@ stampede. See [`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md) and
 
 ### Rate-limit counters
 
-`server/lib/rateLimits.js` tracks upstream call counts on **local disk** only.
-With multiple Cloud Run instances the counters can diverge (last writer wins).
-They do not hard-block traffic; treat them as diagnostics, not a global quota
-store. Shared Redis would be required for multi-instance enforcement.
+`server/lib/rateLimits.js` tracks upstream call counts on local disk and, when
+`MARKET_CACHE_BUCKET` is set, **max-merges** with a shared GCS object
+(`market-cache/rate-limits-YYYY-MM-DD.json`). That approximates global usage
+across instances without Redis. Counters still do **not** hard-block traffic;
+they are diagnostics / soft visibility into free-tier usage.
 
 ---
 

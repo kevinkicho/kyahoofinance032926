@@ -1,9 +1,12 @@
 // Daily API-call counter per source. Persisted to disk so counts survive
 // restarts within the same UTC day; resets automatically at the next UTC midnight.
+// When MARKET_CACHE_BUCKET is set, counters are also merged/maxed with a shared
+// GCS object so multi-instance Cloud Run sees approximate global usage.
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isGcsCacheEnabled, gcsReadObject, gcsWriteObject } from './gcsCache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CACHE_DIR = path.join(__dirname, '..', 'datacache');
@@ -12,6 +15,7 @@ const counters = {};
 const dailyDate = { value: '' };
 let loaded = false;
 let writeTimer = null;
+let gcsPullPromise = null;
 const WRITE_DEBOUNCE_MS = 2000;
 
 function todayKey() {
@@ -20,6 +24,10 @@ function todayKey() {
 
 function fileFor(date) {
   return path.join(CACHE_DIR, `rate-limits-${date}.json`);
+}
+
+function gcsObjectFor(date) {
+  return `rate-limits-${date}.json`;
 }
 
 function loadFromDisk(date) {
@@ -33,13 +41,34 @@ function loadFromDisk(date) {
   return {};
 }
 
+function mergeMax(into, from) {
+  if (!from || typeof from !== 'object') return into;
+  for (const [k, v] of Object.entries(from)) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) continue;
+    into[k] = Math.max(Number(into[k]) || 0, n);
+  }
+  return into;
+}
+
 function scheduleWrite() {
   if (writeTimer) return;
   writeTimer = setTimeout(() => {
     writeTimer = null;
     try {
       if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
-      fs.writeFileSync(fileFor(dailyDate.value), JSON.stringify(counters), 'utf8');
+      const payload = { ...counters };
+      fs.writeFileSync(fileFor(dailyDate.value), JSON.stringify(payload), 'utf8');
+      if (isGcsCacheEnabled()) {
+        // Max-merge with remote before write so we do not clobber peer instances.
+        gcsReadObject(gcsObjectFor(dailyDate.value))
+          .then((remote) => {
+            const merged = mergeMax({ ...payload }, remote);
+            Object.assign(counters, merged);
+            return gcsWriteObject(gcsObjectFor(dailyDate.value), { ...counters });
+          })
+          .catch((e) => console.warn('[rateLimits] gcs persist failed:', e?.message || e));
+      }
     } catch (e) { console.warn('[rateLimits] persist failed:', e.message); }
   }, WRITE_DEBOUNCE_MS);
   writeTimer.unref?.();
@@ -52,6 +81,15 @@ function ensureToday() {
     dailyDate.value = today;
     Object.assign(counters, loadFromDisk(today));
     loaded = true;
+    // Async pull from GCS — does not block the request path.
+    if (isGcsCacheEnabled() && !gcsPullPromise) {
+      gcsPullPromise = gcsReadObject(gcsObjectFor(today))
+        .then((remote) => {
+          if (remote) mergeMax(counters, remote);
+        })
+        .catch(() => {})
+        .finally(() => { gcsPullPromise = null; });
+    }
   } else if (!loaded) {
     Object.assign(counters, loadFromDisk(today));
     loaded = true;

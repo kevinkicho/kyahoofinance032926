@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import './ListView.css';
 import { useTheme } from '../../hub/ThemeContext';
+import MetricValue from '../MetricValue/MetricValue';
 
 const SECTOR_COLORS = {
   'Technology':  '#3b82f6',
@@ -51,6 +52,27 @@ const ListView = ({
 }) => {
   const { colors } = useTheme();
   const metricMeta = METRIC_META[rankMetric] || METRIC_META.marketCap;
+
+  // Stable formatters (recreated only when currency/metric changes) so MetricValue
+  // does not thrash list rows with new closures every paint.
+  const formatMetricValue = useCallback((item) => {
+    return metricMeta.fmt(item, currentRate, currentSymbol);
+  }, [metricMeta, currentRate, currentSymbol]);
+
+  const formatChangePct = useCallback((v) => {
+    if (v == null || !Number.isFinite(Number(v))) return '—';
+    const n = Number(v);
+    return `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
+  }, []);
+
+  const rawMetric = useCallback((item) => {
+    if (rankMetric === 'marketCap') return (item.adjustedValue || item.value || 0) * currentRate;
+    if (rankMetric === 'revenue') return item.revenue != null ? item.revenue * currentRate : null;
+    if (rankMetric === 'netIncome') return item.netIncome != null ? item.netIncome * currentRate : null;
+    if (rankMetric === 'pe') return item.pe ?? null;
+    if (rankMetric === 'divYield') return item.divYield ?? null;
+    return (item.adjustedValue || item.value || 0) * currentRate;
+  }, [rankMetric, currentRate]);
 
   // Memoized sort handlers
   const onSortTicker = useCallback(() => handleSort('ticker'), [handleSort]);
@@ -185,7 +207,7 @@ const ListView = ({
               }
 
               const { item } = row;
-              const metricStr = metricMeta.fmt(item, currentRate, currentSymbol);
+              const metricRaw = rawMetric(item);
 
               // % change vs today (adjustedValue vs marketCap baseline)
               let changePct = null;
@@ -227,15 +249,25 @@ const ListView = ({
                     </span>
                   </td>
                   <td className="text-right lv-metric">
-                    {/* Plain text — MetricValue on every row was expensive and
-                        re-created format closures each render (list flicker). */}
-                    {metricStr}
+                    {metricRaw != null && Number.isFinite(Number(metricRaw)) ? (
+                      <MetricValue
+                        value={metricRaw}
+                        seriesKey={rankMetric === 'marketCap' ? 'stockMarketCap' : rankMetric === 'pe' ? 'stockPE' : 'equityListMetric'}
+                        timestamp={dataTimestamp}
+                        format={() => formatMetricValue(item)}
+                      />
+                    ) : '—'}
                   </td>
                   {showChange && (
                     <td className={`text-right lv-change ${changePct === null ? '' : changePct >= 0 ? 'text-green' : 'text-red'}`}>
-                      {changePct !== null
-                        ? `${changePct >= 0 ? '+' : ''}${changePct.toFixed(1)}%`
-                        : '—'}
+                      {changePct !== null ? (
+                        <MetricValue
+                          value={changePct}
+                          seriesKey="equityListChangePct"
+                          timestamp={dataTimestamp}
+                          format={formatChangePct}
+                        />
+                      ) : '—'}
                     </td>
                   )}
                 </tr>

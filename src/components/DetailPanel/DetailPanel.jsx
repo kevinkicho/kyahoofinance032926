@@ -170,7 +170,11 @@ const ChartTab = ({ historyData, sym }) => {
       <div className="chart-header">
         <span className="chart-period-label">{PERIOD_LABEL[period]} Performance</span>
         <span className={`chart-pct ${isUp ? 'text-green' : 'text-red'}`}>
-          {isUp ? '+' : ''}{changePct.toFixed(2)}%
+          <MetricValue
+            value={changePct}
+            seriesKey="stockPrice"
+            format={(v) => `${v >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`}
+          />
         </span>
       </div>
 
@@ -443,10 +447,17 @@ const MacroIndicators = ({ macroData }) => {
           return (
             <div key={k} className="macro-cell">
               <span className="macro-label">{meta.label}</span>
-              <strong className="macro-value">{meta.fmt(m.latest)}</strong>
+              <strong className="macro-value">
+                <MetricValue value={m.latest} seriesKey="macroIndicator" timestamp={m.date} format={meta.fmt} />
+              </strong>
               {diffPct != null && (
                 <span className={`macro-delta ${diffPct > 0 ? 'text-red' : diffPct < 0 ? 'text-green' : ''}`}>
-                  {diffPct > 0 ? '+' : ''}{diffPct.toFixed(2)}%
+                  <MetricValue
+                    value={diffPct}
+                    seriesKey="macroIndicator"
+                    timestamp={m.date}
+                    format={(v) => `${v > 0 ? '+' : ''}${Number(v).toFixed(2)}%`}
+                  />
                 </span>
               )}
               <span className="macro-date">{m.date}</span>
@@ -469,7 +480,9 @@ const FxRates = ({ rates, currency }) => {
         {shown.map(([ccy, rate]) => (
           <div key={ccy} className="fx-cell">
             <span className="fx-label">{currency}/{ccy}</span>
-            <strong className="fx-value">{rate.toFixed(4)}</strong>
+            <strong className="fx-value">
+              <MetricValue value={rate} seriesKey="fxSpot" format={(v) => Number(v).toFixed(4)} />
+            </strong>
           </div>
         ))}
       </div>
