@@ -1,8 +1,10 @@
-name: Deploy to GitHub Pages
+# LEGACY — not the canonical production host.
+# Production is Firebase App Hosting (apphosting.yaml). Use this workflow only
+# for optional static demos that point VITE_API_BASE_URL at a remote API.
+name: "[Legacy] Deploy to GitHub Pages"
 
 on:
-  push:
-    branches: ['master']
+  # Disabled on push — App Hosting is canonical. Re-enable with workflow_dispatch only.
   workflow_dispatch:
 
 permissions:

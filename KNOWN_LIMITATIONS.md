@@ -21,12 +21,19 @@ Older docs may still say PENDING; UI and audits treat WAITING as the waiting sta
 After App Hosting deploys, run `npm run postdeploy:warm` so cold instances fill
 disk cache before users hit slow FRED routes.
 
-### Shared GCS cache (optional)
+### Shared GCS cache (enabled in production)
 
-Set `MARKET_CACHE_BUCKET` so market JSON is mirrored to Google Cloud Storage.
-New Cloud Run revisions can hydrate without a full FRED stampede. See
-[`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md). When unset, cache is local disk
-only (`maxInstances` should stay low).
+Production sets `MARKET_CACHE_BUCKET=kfinance032926-market-cache`. Daily market
+JSON is mirrored to GCS so new Cloud Run revisions hydrate without a full FRED
+stampede. See [`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md) and
+[`docs/DEPLOY.md`](docs/DEPLOY.md). When unset locally, cache is disk-only.
+
+### Rate-limit counters
+
+`server/lib/rateLimits.js` tracks upstream call counts on **local disk** only.
+With multiple Cloud Run instances the counters can diverge (last writer wins).
+They do not hard-block traffic; treat them as diagnostics, not a global quota
+store. Shared Redis would be required for multi-instance enforcement.
 
 ---
 

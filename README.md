@@ -57,7 +57,7 @@ That's it. Dashboards auto-fetch on first load — no need to click refresh.
 - [`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md) — optional GCS shared market cache for Cloud Run
 - After App Hosting deploys: `npm run postdeploy:warm` (route traffic + warm priority APIs)
 
-**Troubleshooting** — if a tab still shows "PENDING" / "NO DATA" after a code change:
+**Troubleshooting** — if a tab still shows "WAITING" / "NO DATA" after a code change:
 ```bash
 del server\datacache\*.json     # Windows
 rm  server/datacache/*.json     # mac/linux
@@ -555,11 +555,12 @@ Every data point in the app is traceable to its source. Two provenance component
 | Layer | Technology |
 |---|---|
 | Frontend | React 18, Vite 5, ECharts (`echarts-for-react`), `html2canvas`, PapaParse |
-| Backend | Firebase Functions v2, Express 4, `yahoo-finance2`, `node-cache` |
-| Data | Firebase RTDB snapshots, Yahoo Finance, FRED API, CoinGecko, DeFiLlama, Bybit, CFTC Socrata, EIA, USDA NASS, IMF WEO/IFS/COFER, World Bank WDI, BLS, US Census Bureau, Treasury Fiscal Data, BEA, ECB, OECD, Eurostat, mempool.space, Frankfurter |
+| Backend | **Firebase App Hosting** (Express on Cloud Run) — same-origin `/api/*` |
+| Cache | Daily disk cache + optional **GCS** shared mirror (`MARKET_CACHE_BUCKET`) |
+| Data | Yahoo Finance, FRED, CoinGecko, DeFiLlama, Bybit, CFTC, EIA, USDA, IMF, World Bank, BLS, Census, Treasury, BEA, ECB, OECD, Eurostat, Frankfurter; RTDB optional for history only |
 | Styling | Plain CSS with CSS variables (dark/light themes), responsive breakpoints |
-| Tests | Vitest 4, @testing-library/react — ~350 tests across 60+ files |
-| Deploy | GitHub Pages frontend + Firebase Functions backend; Docker files remain for local/legacy workflows |
+| Tests | Vitest 4, @testing-library/react — ~500 tests |
+| Deploy | **Canonical: App Hosting** (push `master`). Post-deploy: `npm run postdeploy:warm`. Legacy: GitHub Pages + Functions — see [`docs/DEPLOY.md`](docs/DEPLOY.md) |
 
 ## Getting Started
 
@@ -598,7 +599,7 @@ npm run dev          # Frontend only
 cd server && node index.js  # Backend only
 ```
 
-Dashboards auto-hydrate from RTDB latest snapshots on first load. The top-bar play/refresh control is admin-only and triggers a live refresh through Firebase Functions.
+Dashboards fetch live market APIs via the Express backend (disk/GCS cache first). The top-bar refresh forces upstream re-fetch (`?refresh=true`).
 
 ### 4. Run tests
 
@@ -619,56 +620,20 @@ npm run build
 docker-compose up --build   # http://localhost:3001
 ```
 
-### 7. Deploy frontend to GitHub Pages + Firebase Functions backend (the live setup)
+### 7. Deploy to production (Firebase App Hosting)
 
-This app is a static SPA. When deployed to GitHub Pages (or any static host) it has **no local backend**, so all data must come from the Firebase Functions deployment.
-
-**One-time setup (do this in the GitHub repo UI):**
-
-1. Go to your repo → **Settings → Secrets and variables → Actions → Variables** (tab).
-2. Add a new **Variable**:
-   - Name: `VITE_API_BASE_URL`
-   - Value: the root URL of your `api` Cloud Function. After running the deploy command below you will see it printed. Typical value for this project:
-     ```
-     https://us-central1-kfinance032926.cloudfunctions.net/api
-     ```
-   (If you ever change regions or use a custom domain / Cloud Run direct URL, just update this variable.)
-
-**Deploy steps (run locally or via the workflow):**
+**Canonical host:** App Hosting serves the Vite SPA **and** Express API together.
 
 ```bash
-# 1. Make sure your Firebase Functions are up to date and note the printed URL
-firebase deploy --only functions
-
-# 2. (Optional but recommended) Set the VITE_API_BASE_URL variable in the repo
-#    (see "One-time setup" above). The GitHub Action will pick it up automatically.
-
-# 3. Push to main (or use "Run workflow" from the Actions tab)
-git push origin main
+git push origin master          # triggers App Hosting build
+npm run postdeploy:warm         # traffic → latest revision + warm caches
 ```
 
-The workflow (`.github/workflows/deploy-pages.yml`) will:
-- Build the Vite app (injecting `VITE_API_BASE_URL` if present)
-- Deploy the `dist/` folder to GitHub Pages
+Live URL: https://kyahoofinance032926--kfinance032926.us-central1.hosted.app  
 
-After the Pages deployment finishes, hard-refresh the live site. All the previous 404s for `/api/*` should be gone because `DataProvider` and the other data layers now use the full external backend URL in production.
+Health: `/api/health` · Shared cache: see [`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md) · Full guide: [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
-**Verifying the live backend from the browser:**
-
-Open DevTools → Console. You should see lines like:
-```
-[DataProvider] → bonds
-[DataProvider] ✓ bonds 200 ...
-```
-
-You can also call the health endpoint directly:
-```
-https://us-central1-kfinance032926.cloudfunctions.net/api/api/health
-```
-
-**Updating the backend URL later**
-
-Just change the `VITE_API_BASE_URL` repository variable and re-run the Pages workflow (or push an empty commit). No code change required.
+**Legacy (optional):** GitHub Pages + Cloud Functions still exist under `.github/workflows/deploy-pages.yml` and `functions/`. Prefer App Hosting; Pages requires `VITE_API_BASE_URL` and has no co-located API.
 
 ### 8. (Optional) Pre-fetch equity data
 

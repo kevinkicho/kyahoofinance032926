@@ -110,33 +110,32 @@ Build a financial dashboard app with complete data provenance transparency. Ever
 
 ---
 
-## REMAINING WORK (3 tabs not yet integrated)
+## Migration status (2026-07-29)
 
-### 1. Equities (Main) Tab — `src/markets/equities/EquitiesMarket.jsx`
-**Status: NOT INTEGRATED**
+**Canonical production:** Firebase App Hosting + GCS market cache.  
+**Live UI:** API disk/GCS (`USE_RTDB_SEED` off). RTDB optional for historical dates only.  
+**Deploy:** `docs/DEPLOY.md`, `npm run postdeploy:warm`.
 
-This is the most complex tab. It uses a different architecture from other tabs (no separate Dashboard component; all UI is inline in EquitiesMarket.jsx). It has:
-- **No `<MetricValue>` import or usage** — All numeric data (S&P 500 price, P/E ratio, market cap, change %, volume, sector performance) rendered as raw formatted strings
-- **No `<DataFooter>` usage** — Uses custom `<div className="eq-panel-footer">` with inline text like `Data as of {dataTimestamp}` instead of the standardized DataFooter component
-- **Charts** — ECharts treemap (HeatmapView.jsx), bar race (BarRaceView.jsx) — no sourceInfo prop
-- **DetailPanel.jsx** — Has its own local `DataFooter` component (minimal, no fetch log or FRED links), displays stock fundamentals, analyst targets, fair value model — all unwrapped
-- **ListView.jsx** — Table of stocks with price, change, change% — all unwrapped
-- **HeatmapView.jsx** — ECharts treemap with tooltip formatters — these can't use MetricValue but the panel should have DataFooter + the chart should have sourceInfo
+### Provenance tabs
 
-To integrate this tab:
-1. Add `import MetricValue from '../../components/MetricValue/MetricValue'` and `import DataFooter from '../../components/DataFooter/DataFooter'`
-2. Replace custom `eq-panel-footer` divs with `<DataFooter>` components
-3. Wrap prices, change%, P/E, market cap, volume values with `<MetricValue>`
-4. Add `sourceInfo` to HeatmapView and BarRaceView SafeECharts
-5. Update DetailPanel.jsx — replace local DataFooter with shared DataFooter, wrap fundamentals/targets/fair-value outputs with MetricValue
-6. Update ListView.jsx — wrap price, change, change% with MetricValue
-7. Need `useDataStatus` or equivalent hook to provide `fetchLog`, `isLive`, `lastUpdated` to the tab
-8. The equities tab has its own data flow (Yahoo Finance API, possibly WebSocket for live prices) — may need new SERIES_MAP entries like `sp500Price`, `stockPE`, `stockMarketCap`, etc.
+| Tab | Status |
+|-----|--------|
+| Bonds, Credit, Crypto, RE, Insurance, Macro, … | Integrated (MetricValue + DataFooter + sourceInfo) |
+| **Equities** | **Mostly integrated** — MetricValue on summary KPIs; DataFooter on bento cards; Heatmap `sourceInfo`. List rows use plain text for perf (documented). Detail panel still has some local footers. |
+| **Watchlist** | **Integrated** — MetricValue on prices/changes; BentoCard DataFooter props wired. |
+| Analytics | ProvenanceAudit live; some polish leftover |
+
+### Remaining work (lower priority)
+
+1. DetailPanel.jsx full shared DataFooter + MetricValue on fundamentals tabs  
+2. ListView optional MetricValue (was removed for performance — re-enable selectively)  
+3. Further split EquitiesMarket / Insurance / Commodities mega-files  
+4. Optional: retire Functions snapshot writers if unused  
 
 ### 2. Watchlist Tab — `src/markets/watchlist/WatchlistMarket.jsx`
-**Status: NOT INTEGRATED**
+**Status: INTEGRATED (see table above)**
 
-Simpler tab — displays user's watchlist of stocks with price, change, change%. Has:
+Historical notes (superseded):
 - **No `<MetricValue>` import or usage** — All 3 numeric columns rendered as raw formatted strings
 - **No `<DataFooter>` usage** — No footer at all
 - **No charts** — Just a table of watched tickers

@@ -25,6 +25,11 @@ import WorldBankMarketCapPanel from './components/WorldBankMarketCapPanel';
 import SecMegaCapFundamentalsPanel from './components/SecMegaCapFundamentalsPanel';
 import SecFilingActivityPanel from './components/SecFilingActivityPanel';
 
+import {
+  INDEX_TICKERS, INDEX_LABELS,
+  INDEX_TICKERS_US, INDEX_TICKERS_DEV, INDEX_TICKERS_EM, INDEX_TICKERS_CN,
+  INDEX_TICKERS_RISK, INDEX_TICKERS_COMM, INDEX_TICKERS_SECTORS,
+} from './equitiesIndexUniverse';
 import './EquitiesDashboard.css';
 
 const stopDrag = (e) => e.stopPropagation();
@@ -64,46 +69,6 @@ function usePersistedState(key, defaultValue) {
 
 const STORAGE_KEY = 'equities-view';
 
-const INDEX_TICKERS_US = ['^GSPC', '^IXIC', '^DJI', '^RUT'];
-// Global developed markets — Europe + Japan + India + Australia + Canada.
-const INDEX_TICKERS_DEV = ['^STOXX50E', '^GDAXI', '^FTSE', '^FCHI', '^N225', '^NSEI', '^AXJO', '^GSPTSE'];
-// Emerging markets — broad EM + key country ETFs + single-country indices.
-const INDEX_TICKERS_EM = ['EEM', 'VWO', 'FM', '^JKSE', '^BVSP', '^KS11', '^TWII'];
-// China & HK strip: 3 native indices + 3 US-listed China ETFs that trade
-// during NY hours, so we have something live while the mainland is closed.
-const INDEX_TICKERS_CN = ['^HSI', '000300.SS', '000001.SS', 'ASHR', 'FXI', 'KWEB'];
-// Risk & macro — VIX (vol), 10Y Treasury yield (rates), DX=F (DXY dollar
-// futures), Gold (safe haven), Crude Oil (energy/global growth proxy).
-const INDEX_TICKERS_RISK = ['^VIX', '^TNX', 'DX=F', 'GC=F', 'CL=F'];
-// Commodities — precious metals + energy + agriculture benchmark.
-const INDEX_TICKERS_COMM = ['SI=F', 'NG=F', 'DBC'];
-// Sectors — broad SPDR sector rotation + semiconductors + defensive.
-const INDEX_TICKERS_SECTORS = ['XLK', 'XLF', 'XLE', 'XLV', 'XLY', 'XLI', 'XLB', 'XLRE', 'XLC', 'XLU', 'XLP', 'SMH'];
-const INDEX_TICKERS = [
-  ...INDEX_TICKERS_US,
-  ...INDEX_TICKERS_DEV,
-  ...INDEX_TICKERS_EM,
-  ...INDEX_TICKERS_CN,
-  ...INDEX_TICKERS_RISK,
-  ...INDEX_TICKERS_COMM,
-  ...INDEX_TICKERS_SECTORS,
-];
-const INDEX_LABELS = {
-  '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', '^DJI': 'Dow Jones', '^RUT': 'Russell 2K',
-  '^STOXX50E': 'Euro STOXX 50', '^GDAXI': 'DAX 40', '^FTSE': 'FTSE 100', '^FCHI': 'CAC 40',
-  '^N225': 'Nikkei 225', '^NSEI': 'NIFTY 50', '^AXJO': 'ASX 200', '^GSPTSE': 'S&P/TSX',
-  'EEM': 'MSCI EM', 'VWO': 'FTSE EM', 'FM': 'Frontier Mkts',
-  '^JKSE': 'Jakarta', '^BVSP': 'Bovespa', '^KS11': 'KOSPI', '^TWII': 'TAIEX',
-  '^HSI': 'Hang Seng', '000300.SS': 'CSI 300', '000001.SS': 'Shanghai',
-  'ASHR': 'ASHR (CSI 300)', 'FXI': 'FXI (China LgCap)', 'KWEB': 'KWEB (China Internet)',
-  '^VIX': 'VIX', '^TNX': '10Y Yield', 'DX=F': 'Dollar Index',
-  'GC=F': 'Gold', 'CL=F': 'WTI Crude',
-  'SI=F': 'Silver', 'NG=F': 'Nat Gas', 'DBC': 'Commodity Index',
-  'XLK': 'XLK · Tech', 'XLF': 'XLF · Financials', 'XLE': 'XLE · Energy', 'XLV': 'XLV · Healthcare',
-  'XLY': 'XLY · Consumer Disc', 'XLI': 'XLI · Industrials', 'XLB': 'XLB · Materials',
-  'XLRE': 'XLRE · Real Estate', 'XLC': 'XLC · Comms', 'XLU': 'XLU · Utilities', 'XLP': 'XLP · Consumer Staples',
-  'SMH': 'SMH · Semis',
-};
 // Currency hint per ticker — used to suffix the price formatter so a
 // JPY or INR index doesn't get read as USD. VIX/^TNX have no currency
 // (they're index points / yield %) so leave blank.
@@ -908,22 +873,28 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       />
     );
 
-    const sidebarFooter = (
-      <div className="eq-panel-footer">
-        {selectedTicker
-          ? (selectedTicker.isLoading ? 'Loading live data…' : (selectedTicker.isLive ? `Fetched · Yahoo Finance` : 'Static data · Click ticker for quote'))
-          : <>{`Data as of ${dataTimestamp} · FX: ${ratesLive ? 'Fetched (ECB)' : 'Fallback'}`} <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button></>}
-        {commonFooter}
-      </div>
-    );
     const sidebarPanel = (
       <BentoCard
         key="sidebar"
         title="Market Summary"
+        subtitle={selectedTicker
+          ? (selectedTicker.isLoading ? 'Loading live quote…' : (selectedTicker.isLive ? 'Live Yahoo quote' : 'Static fundamentals'))
+          : `FX ${ratesLive ? 'live' : 'fallback'}`}
         accent="equities"
         className="eq-bento-card"
         contentClassName="eq-panel-content"
-        footer={sidebarFooter}
+        footer={commonFooter}
+        titleActions={(
+          <button
+            type="button"
+            className="eq-refresh-btn"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            title="Refresh market data"
+          >
+            {isRefreshing ? '⟳' : '▶'}
+          </button>
+        )}
       >
         {selectedTicker ? (
           <DetailPanel

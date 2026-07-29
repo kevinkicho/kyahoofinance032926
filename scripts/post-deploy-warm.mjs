@@ -58,15 +58,42 @@ async function main() {
   console.log(`Service: ${SERVICE} (${REGION}/${PROJECT})`);
 
   if (!WARM_ONLY) {
-    // Prefer --to-latest; fall back to naming latest revision if needed.
-    const code = run('gcloud', [
-      'run', 'services', 'update-traffic', SERVICE,
+    // Prefer routing 100% to the newest Ready revision by name.
+    // `--to-latest` often fails with ALREADY_EXISTS on App Hosting tag routing.
+    const list = spawnSync('gcloud', [
+      'run', 'revisions', 'list',
+      `--service=${SERVICE}`,
       `--region=${REGION}`,
       `--project=${PROJECT}`,
-      '--to-latest',
-    ]);
-    if (code !== 0) {
-      console.warn('[traffic] update-traffic --to-latest failed (may already be latest or ALREADY_EXISTS)');
+      '--format=value(metadata.name)',
+      '--limit=5',
+    ], { encoding: 'utf8', shell: true });
+    const rev = (list.stdout || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean)[0];
+    if (rev) {
+      console.log(`[traffic] routing 100% → ${rev}`);
+      const code = run('gcloud', [
+        'run', 'services', 'update-traffic', SERVICE,
+        `--region=${REGION}`,
+        `--project=${PROJECT}`,
+        `--to-revisions=${rev}=100`,
+      ]);
+      if (code !== 0) {
+        console.warn('[traffic] update-traffic by revision failed; trying --to-latest');
+        run('gcloud', [
+          'run', 'services', 'update-traffic', SERVICE,
+          `--region=${REGION}`,
+          `--project=${PROJECT}`,
+          '--to-latest',
+        ]);
+      }
+    } else {
+      console.warn('[traffic] could not list revisions; trying --to-latest');
+      run('gcloud', [
+        'run', 'services', 'update-traffic', SERVICE,
+        `--region=${REGION}`,
+        `--project=${PROJECT}`,
+        '--to-latest',
+      ]);
     }
   }
 

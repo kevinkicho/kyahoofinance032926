@@ -1,0 +1,55 @@
+# After App Hosting builds from master, route Cloud Run traffic + warm caches.
+# Requires repo secrets / vars (optional for warm-only if gcloud not configured):
+#   GCP_SA_KEY          — JSON key for a deploy SA with run.admin + storage
+#   HOSTED_URL          — https://…hosted.app (defaults in script)
+# Skip traffic with: workflow_dispatch inputs
+
+name: Post-deploy warm (App Hosting)
+
+on:
+  workflow_dispatch:
+    inputs:
+      warm_only:
+        description: 'Skip traffic routing (warm APIs only)'
+        required: false
+        default: 'false'
+  # Manual only by default — App Hosting deploys are async and not GitHub-gated.
+  # Operators can also run: npm run postdeploy:warm
+
+permissions:
+  contents: read
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Auth gcloud
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: kfinance032926
+
+      - name: Warm hosted APIs
+        env:
+          SHOT_BASE_URL: ${{ vars.HOSTED_URL }}
+          WARM_TOKEN: ${{ secrets.WARM_TOKEN }}
+        run: |
+          export SHOT_BASE_URL="${SHOT_BASE_URL:-https://kyahoofinance032926--kfinance032926.us-central1.hosted.app}"
+          if [ "${{ github.event.inputs.warm_only }}" = "true" ] || [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            export WARM_ONLY=1
+          fi
+          node scripts/post-deploy-warm.mjs

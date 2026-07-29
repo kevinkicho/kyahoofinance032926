@@ -1,16 +1,19 @@
 # API Endpoint Inventory
 
-Last updated: 2026-06-22
+Last updated: 2026-07-29
 
-This is the agent-facing map of API routes, frontend usage, and RTDB snapshot coverage.
+This is the agent-facing map of API routes, frontend usage, and optional RTDB history.
 
-Production frontend is GitHub Pages. Production backend is Firebase Functions v2:
+## Production (canonical)
 
-```text
-https://us-central1-kfinance032926.cloudfunctions.net/api
-```
+| Item | Value |
+|---|---|
+| Host | **Firebase App Hosting** (Cloud Run) |
+| URL | https://kyahoofinance032926--kfinance032926.us-central1.hosted.app |
+| API | Same-origin `/api/*` (no `VITE_API_BASE_URL` on App Hosting) |
+| Cache | Local `server/datacache` + GCS `MARKET_CACHE_BUCKET` |
 
-The helper in `src/lib/api.js` builds URLs. In development it returns `/api/...` so Vite can proxy. In production it prefixes the configured `VITE_API_BASE_URL`.
+`src/lib/api.js` returns `/api/...` for same-origin deploys. Set `VITE_API_BASE_URL` only for **legacy** static hosts (GitHub Pages) that call a remote API.
 
 ## Sources Of Truth
 
@@ -18,9 +21,10 @@ Keep these files aligned when adding or renaming routes:
 
 | File | Purpose |
 |---|---|
-| `src/hub/DataProvider.jsx` | Frontend `MARKET_ENDPOINTS`; controls automatic RTDB hydration and live fallback fetches. |
-| `functions/src/lib/snapshotMarkets.ts` | Scheduled/admin snapshot registry; controls daily RTDB `latest` and `history/YYYY-MM-DD` writes. |
-| `functions/src/index.ts` | Express mount table inside the Firebase Function. |
+| `src/hub/DataProvider.jsx` | Frontend `MARKET_ENDPOINTS`; live fetch + optional historical RTDB. |
+| `shared/api-routing.json` | Canonical market → path map. |
+| `server/index.js` | Express mount table on App Hosting. |
+| `functions/src/lib/snapshotMarkets.ts` | **Legacy/optional** RTDB snapshot writers. |
 | `docs/API_ENDPOINTS.md` | Human/agent-facing route inventory. |
 
 ## Frontend Market Endpoints
@@ -91,7 +95,9 @@ marketSnapshots/{id}/history/{YYYY-MM-DD}
 | `cacheStatus` | `/api/cache/status` | Diagnostics disabled. |
 | `universeUpdates` | `/api/universeUpdates` | Diagnostics disabled. |
 
-Normal UI loads read RTDB `latest` first. Live API fetch is fallback or admin force-refresh. Historical topbar playback reads RTDB `history/YYYY-MM-DD`; no backfill is assumed.
+**Live UI loads** call App Hosting `/api/*` (disk/GCS cache first).  
+`USE_RTDB_SEED` defaults **off** (`VITE_USE_RTDB_SEED=true` only for offline demos).  
+**Historical** topbar playback may still read RTDB `history/YYYY-MM-DD` when a past date is selected.
 
 ## Additional Mounted Routes
 

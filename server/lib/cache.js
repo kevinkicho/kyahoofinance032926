@@ -144,6 +144,22 @@ export function isStructurallyHollow(market, data) {
   if (market === 'usda' || market === 'fao') {
     if (data.commodities == null && data.foodPriceIndex == null && data.summary == null && !data.series?.length) return true;
   }
+  if (market === 'realEstate') {
+    // A shell with only metadata / null series must not poison GCS or disk.
+    const hasPrices = !!(
+      data.caseShillerData?.national?.values?.length > 3
+      || data.caseShillerData?.values?.length > 3
+      || data.medianHomePrice?.values?.length > 3
+      || data.priceIndexData
+    );
+    const hasRates = data.mortgageRates?.rate30y != null || data.mortgageRates?.rate15y != null;
+    const hasReits = Array.isArray(data.reitData) && data.reitData.length >= 2;
+    const hasSupply = !!(
+      data.housingStarts?.values?.length > 3
+      || data.supplyData?.housingStarts?.values?.length > 3
+    );
+    if (!hasPrices && !hasRates && !hasReits && !hasSupply) return true;
+  }
   return false;
 }
 

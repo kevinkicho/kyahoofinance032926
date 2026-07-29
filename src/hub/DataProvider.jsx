@@ -63,9 +63,12 @@ const PRIORITY_DEP_IDS = [
   'eurostat', 'oecd', 'universeUpdates', 'treasuryDTS',
 ].filter((id) => MARKET_ENDPOINTS[id]);
 
-// Local-first mode: do not seed from Firebase RTDB on live loads.
-// Historical date picker can still soft-try RTDB if a date is selected.
-const USE_RTDB_SEED = false;
+// Live path is App Hosting Express + disk/GCS cache — do not seed RTDB on
+// load (stale snapshots used to blank panels). Historical date picker can
+// still soft-try RTDB when a past date is selected (see loadFromRTDB below).
+// Set VITE_USE_RTDB_SEED=true only for offline demos.
+const USE_RTDB_SEED =
+  typeof import.meta !== 'undefined' && import.meta.env?.VITE_USE_RTDB_SEED === 'true';
 
 function tsNow() {
   const d = new Date();
