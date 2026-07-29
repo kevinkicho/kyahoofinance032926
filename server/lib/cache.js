@@ -160,6 +160,26 @@ export function isStructurallyHollow(market, data) {
     );
     if (!hasPrices && !hasRates && !hasReits && !hasSupply) return true;
   }
+  if (market === 'eia') {
+    // Empty-green shell (all null electricity/petroleum) must not count as success.
+    const hasElec = !!(
+      data.electricity?.residential?.latest?.price != null
+      || data.electricity?.commercial?.latest?.price != null
+      || data.electricity?.industrial?.latest?.price != null
+    );
+    const hasPetro = !!(
+      (data.petroleum?.wti?.values?.length >= 2)
+      || (data.petroleum?.brent?.values?.length >= 2)
+      || (data.petroleum?.wti?.latest?.value != null)
+    );
+    const hasNg = !!(data.naturalGas?.henryHub?.values?.length >= 2
+      || data.naturalGas?.henryHub?.latest?.value != null);
+    const hasCo2 = !!(
+      (Array.isArray(data.co2Emissions?.total) && data.co2Emissions.total.length > 0)
+      || (Array.isArray(data.co2Emissions?.bySector) && data.co2Emissions.bySector.length > 0)
+    );
+    if (!hasElec && !hasPetro && !hasNg && !hasCo2) return true;
+  }
   return false;
 }
 

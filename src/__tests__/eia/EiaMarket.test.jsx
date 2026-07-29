@@ -38,24 +38,32 @@ describe('EiaMarket', () => {
     expect(container.querySelector('.eia-market')).toBeTruthy();
   });
 
-  it('renders fetched status when live', () => {
-    render(<EiaMarket centralData={mockCentralData} />);
-    expect(screen.getByText(/EIA.*Energy Information Administration/)).toBeInTheDocument();
-  });
-
-  it('renders unavailable message when not live and no data', () => {
-    const notLive = {
-      ...mockCentralData,
+  it('always mounts bento panels even with empty data (panel-health contract)', () => {
+    const empty = {
+      isLoading: false,
       isLive: false,
       data: {
         electricity: { residential: null, commercial: null, industrial: null },
         co2Emissions: { total: null, bySector: null },
-        _sources: {},
-        lastUpdated: null,
+        petroleum: {},
+        naturalGas: {},
       },
+      fetchLog: [],
+      refetch: () => {},
     };
-    render(<EiaMarket centralData={notLive} />);
-    expect(screen.getByText(/Data source temporarily unavailable/i)).toBeInTheDocument();
+    const { container } = render(<EiaMarket centralData={empty} />);
+    expect(container.querySelector('.eia-market')).toBeTruthy();
+    expect(container.querySelector('[data-testid="bento-wrapper"]')).toBeTruthy();
+    // Titles still present so smoke/panel-health never see 0 panels
+    expect(screen.getByText(/US Electricity Retail Prices/i)).toBeInTheDocument();
+    expect(screen.getByText(/Petroleum Prices/i)).toBeInTheDocument();
+    expect(screen.getByText(/Natural Gas — Henry Hub Spot/i)).toBeInTheDocument();
+    expect(container.querySelectorAll('.bento-panel-title').length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('renders fetched status when live', () => {
+    render(<EiaMarket centralData={mockCentralData} />);
+    expect(screen.getByText(/EIA.*Energy Information Administration/)).toBeInTheDocument();
   });
 
   it('renders electricity price', () => {

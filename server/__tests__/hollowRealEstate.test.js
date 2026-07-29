@@ -1,6 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import { isStructurallyHollow } from '../lib/cache.js';
 
+describe('isStructurallyHollow eia', () => {
+  it('treats all-null electricity/petroleum shell as hollow', () => {
+    expect(isStructurallyHollow('eia', {
+      electricity: { residential: null, commercial: null, industrial: null },
+      co2Emissions: { total: null, bySector: null },
+      petroleum: { wti: null, brent: null },
+      naturalGas: { henryHub: null },
+      _sources: { eia: false },
+    })).toBe(true);
+  });
+  it('accepts electricity price series', () => {
+    expect(isStructurallyHollow('eia', {
+      electricity: {
+        residential: { latest: { price: 17.4, period: '2026-01' }, price: { values: [17, 16] } },
+      },
+    })).toBe(false);
+  });
+});
+
 describe('isStructurallyHollow realEstate', () => {
   it('treats empty shell as hollow', () => {
     expect(isStructurallyHollow('realEstate', { lastUpdated: '2026-07-29', isLive: false })).toBe(true);

@@ -4,6 +4,12 @@ This file tracks user-visible dashboard and data-contract changes. For exact dif
 
 ## 2026-07-29
 
+### EIA Energy tab + strict panel API health
+
+- **EIA route**: prefer non-hollow disk cache; FRED fallback for WTI/Brent/gasoline/diesel/Henry Hub when EIA series missing; never treat all-null shells as success (`isStructurallyHollow('eia')`).
+- **EiaMarket**: always mount all six bento panels (empty placeholders when loading/missing) so smoke/panel-health never see 0 panels.
+- **panel-api-routing Playwright**: fail empty-green payloads (degraded, hollow, sparse non-null, all `_sources` false).
+
 ### Enforced local quality gates (preflight + git hooks)
 
 - **`npm run preflight`** — mandatory local gate: secret scan, GitHub Actions workflow lint, Vitest (~500 tests).

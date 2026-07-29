@@ -22,6 +22,8 @@
     "test:persist": "playwright test tests/persistence.spec.js --reporter=list",
     "test:regress": "node scripts/regress.mjs",
     "test:validate": "node scripts/validate.mjs",
+    "api:health": "node scripts/api-health.mjs",
+    "api:health:list": "node scripts/api-health.mjs",
     "guard:secrets": "node scripts/guard-secrets.mjs",
     "lint:workflows": "node scripts/lint-workflows.mjs",
     "preflight": "node scripts/preflight.mjs",

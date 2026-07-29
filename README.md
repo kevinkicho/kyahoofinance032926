@@ -50,6 +50,7 @@ That's it. Dashboards auto-fetch on first load — no need to click refresh.
 | `npm run preflight:full` | Preflight + production build + functions build |
 | `npm run lint:workflows` | Blocks invalid GitHub Actions patterns (e.g. `secrets.X != ''`) |
 | `npm run hooks:install` | Point git at `.githooks/` (pre-commit + pre-push) |
+| `npm run api:health` | **Strict** hosted API probe (~100+ routes). HTTP 200 with empty/hollow data **fails** |
 | `npm run postdeploy:warm` | After App Hosting deploy — warm priority `/api/*` routes |
 
 **Quality gates** — pre-commit runs secrets + workflow lint; pre-push runs full `preflight`. Agents: see [`AGENTS.md`](AGENTS.md). Details: [`docs/CI_PREFLIGHT_GUIDE.md`](docs/CI_PREFLIGHT_GUIDE.md).
