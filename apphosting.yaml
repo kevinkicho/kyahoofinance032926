@@ -24,12 +24,12 @@ runConfig:
   # Dashboard cold-start loads many routes; give the container room.
   # minInstances: 1 keeps one warm container so ephemeral disk cache survives
   # between visitors (minInstances: 0 wiped cache and left panels hollow).
-  # maxInstances: 1 keeps a single warm disk cache (Cloud Run disk is
-  # per-instance). Multiple replicas caused hollow/full cache split-brain.
-  # concurrency still allows many parallel browser requests on one instance.
+  # With MARKET_CACHE_BUCKET (GCS shared cache) maxInstances can be >1.
+  # Without GCS, prefer 1 so ephemeral disks do not diverge. Default 2 when
+  # shared cache is configured in secrets; otherwise operators should set 1.
   cpu: 1
   memoryMiB: 1024
-  maxInstances: 1
+  maxInstances: 2
   minInstances: 1
   concurrency: 80
 
@@ -104,5 +104,13 @@ env:
       - RUNTIME
   - variable: FIREBASE_DATABASE_URL
     secret: FIREBASE_DATABASE_URL
+    availability:
+      - RUNTIME
+  # Shared market JSON cache — GCS bucket name (optional). When set, daily
+  # market payloads are mirrored to GCS so new revisions hydrate without a
+  # FRED stampede. Create the bucket and grant the App Hosting runtime SA
+  # roles/storage.objectAdmin. Empty string = local disk only.
+  - variable: MARKET_CACHE_BUCKET
+    value: ""
     availability:
       - RUNTIME

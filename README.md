@@ -54,6 +54,8 @@ That's it. Dashboards auto-fetch on first load — no need to click refresh.
 - [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md) — end-to-end pipeline diagram (external APIs → server routes → DataProvider → panels), caching strategy, cross-market enrichment
 - [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) — current frontend endpoint map, Firebase Functions route aliases, RTDB snapshot coverage, and cross-market bindings
 - [`docs/CHANGELOG.md`](docs/CHANGELOG.md) — user-visible dashboard/data-contract changes by date
+- [`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md) — optional GCS shared market cache for Cloud Run
+- After App Hosting deploys: `npm run postdeploy:warm` (route traffic + warm priority APIs)
 
 **Troubleshooting** — if a tab still shows "PENDING" / "NO DATA" after a code change:
 ```bash

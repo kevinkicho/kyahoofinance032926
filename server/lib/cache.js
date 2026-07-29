@@ -2,11 +2,64 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import { AsyncLocalStorage } from 'async_hooks';
+import {
+  isGcsCacheEnabled,
+  gcsReadJson,
+  gcsWriteJson,
+  gcsReadLatest,
+} from './gcsCache.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const CACHE_DIR = path.join(__dirname, '..', 'datacache');
 
 if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+
+/** Fire-and-forget GCS upload so route handlers stay fast. */
+function scheduleGcsWrite(market, data) {
+  if (!isGcsCacheEnabled() || !data) return;
+  const day = todayStr();
+  setImmediate(() => {
+    gcsWriteJson(market, day, data).catch((e) => {
+      console.warn(`[datacache] gcs write ${market}:`, e?.message || e);
+    });
+  });
+}
+
+/**
+ * Seed local disk from GCS when local miss/hollow. Sync-looking API uses a
+ * deasync-free approach: only async readers call this; sync readers still
+ * work from local files (and async path is what routeFactory uses).
+ */
+async function hydrateFromGcs(market) {
+  if (!isGcsCacheEnabled()) return null;
+  try {
+    const today = todayStr();
+    let remote = await gcsReadJson(market, today);
+    let fetchedOn = today;
+    if (!remote) {
+      const latest = await gcsReadLatest(market, 5);
+      if (latest?.data) {
+        remote = latest.data;
+        fetchedOn = latest.fetchedOn;
+      }
+    }
+    if (!remote || typeof remote !== 'object') return null;
+    if (isStructurallyHollow(market, remote)) return null;
+    // Seed local so subsequent sync reads are instant
+    try {
+      const fp = path.join(CACHE_DIR, `${market}-${today}.json`);
+      if (!fs.existsSync(fp)) {
+        const toSeed = { ...remote, _hydratedFromGcs: fetchedOn };
+        fs.writeFileSync(fp, JSON.stringify(toSeed), 'utf8');
+        console.warn(`[datacache] seeded local ${market} from GCS (${fetchedOn})`);
+      }
+    } catch { /* ignore disk */ }
+    return remote;
+  } catch (e) {
+    console.warn(`[datacache] gcs hydrate ${market}:`, e?.message || e);
+    return null;
+  }
+}
 
 /**
  * Per-request context. When skipCache is true (client sent ?refresh=true),
@@ -332,6 +385,7 @@ export function writeDailyCache(market, data) {
       return;
     }
     fs.writeFileSync(fp, str, 'utf8');
+    scheduleGcsWrite(market, toWrite);
   } catch (e) { console.warn(`[datacache] write failed for ${market}:`, e.message); }
 }
 
@@ -402,19 +456,30 @@ export function cleanOldCaches() {
 }
 
 export async function readDailyCacheAsync(market) {
-  // Keep async path identical to sync: hollow reject + prior-day hydrate.
-  // Many routes (routeFactory) only use the async helpers.
-  return readDailyCache(market);
+  // Local first (hollow reject + prior-day hydrate), then shared GCS.
+  const local = readDailyCache(market);
+  if (local) return local;
+  if (shouldSkipCache()) return null;
+  return hydrateFromGcs(market);
 }
 
 export async function writeDailyCacheAsync(market, data) {
   // Delegate to sync writer so hollow refusal + mergeWithPrevious apply once.
+  // Writer also schedules GCS upload when MARKET_CACHE_BUCKET is set.
   writeDailyCache(market, data);
 }
 
 export async function readLatestCacheAsync(market) {
-  // Same non-hollow walk as the sync helper.
-  return readLatestCache(market);
+  const local = readLatestCache(market);
+  if (local) return local;
+  if (!isGcsCacheEnabled()) return null;
+  try {
+    const remote = await gcsReadLatest(market, 7);
+    if (!remote?.data || isStructurallyHollow(market, remote.data)) return null;
+    return remote;
+  } catch {
+    return null;
+  }
 }
 
 export async function readLatestCacheWithFieldAsync(market, fieldPath, lookbackDays = 14) {

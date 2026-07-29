@@ -21,6 +21,13 @@ Older docs may still say PENDING; UI and audits treat WAITING as the waiting sta
 After App Hosting deploys, run `npm run postdeploy:warm` so cold instances fill
 disk cache before users hit slow FRED routes.
 
+### Shared GCS cache (optional)
+
+Set `MARKET_CACHE_BUCKET` so market JSON is mirrored to Google Cloud Storage.
+New Cloud Run revisions can hydrate without a full FRED stampede. See
+[`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md). When unset, cache is local disk
+only (`maxInstances` should stay low).
+
 ---
 
 ## 1. Mock / synthetic data
