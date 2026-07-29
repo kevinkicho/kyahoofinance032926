@@ -16,6 +16,20 @@
   background: var(--bg-deep);
 }
 
+/* Keep-alive equities subviews (heatmap/list/race/portfolio).
+   Hiding instead of unmounting avoids RGL remount thrash ("twitching")
+   when switching List View ↔ Heatmap ↔ other submenus. */
+.eq-view-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.eq-view-pane:not(.is-active) {
+  display: none;
+}
+
 .eq-history-notice {
   margin: 6px 12px 0;
   padding: 6px 10px;

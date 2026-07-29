@@ -303,10 +303,32 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   // sneak into the v4 layout merge as a degenerate 1×1.
   purgeStaleLayoutKeys();
   const [viewMode, setViewMode] = usePersistedState(`${STORAGE_KEY}-viewMode`, 'heatmap');
+  // Keep-alive: once a submenu has been opened, keep its RGL tree mounted
+  // (hidden) so switching back does not remount and twitch.
+  const [visitedViews, setVisitedViews] = useState(() => ({
+    heatmap: true,
+    list: false,
+    race: false,
+    portfolio: false,
+  }));
   // Removed sub-tabs (ML Explorer, Radar) — remap stale localStorage so users land on Heatmap.
   useEffect(() => {
     if (viewMode === 'ml-explorer' || viewMode === 'radar') setViewMode('heatmap');
   }, [viewMode, setViewMode]);
+  useEffect(() => {
+    if (viewMode === 'datahub') return;
+    const key = ['list', 'heatmap', 'race', 'portfolio'].includes(viewMode) ? viewMode : 'heatmap';
+    setVisitedViews((v) => (v[key] ? v : { ...v, [key]: true }));
+  }, [viewMode]);
+  // After switching submenu, nudge width measure so a keep-alive pane that
+  // was display:none gets a correct container width without layout thrash.
+  useEffect(() => {
+    if (viewMode === 'datahub') return undefined;
+    const id = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [viewMode]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'value', direction: 'descending' });
   const [selectedTicker, setSelectedTicker] = useState(null);
@@ -873,7 +895,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       />
     );
 
-    const sidebarPanel = (
+    // Factory (not a shared element) — keep-alive mounts multiple view trees.
+    const renderSidebarPanel = () => (
       <BentoCard
         key="sidebar"
         title="Market Summary"
@@ -970,9 +993,6 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       </BentoCard>
     );
 
-  // KPI strip becomes a real bento child rendered as the first item of
-  // each view-mode's BentoWrapper. Same content regardless of view mode,
-  // so render it once into a variable and reuse.
   // Build pills for a single ticker. Carries `ticker` + `currency` so the
   // KeyIndicesStrip popover can fetch /api/history and label units.
   const buildPill = (tk) => {
@@ -1014,7 +1034,9 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   // bottom of the card, like every other panel). KeyIndicesStrip itself
   // no longer renders a footer — pass `source` to it as undefined so the
   // internal footer is suppressed.
-  const kpiBentoCard = (
+  // Fresh element tree per keep-alive pane (cannot reuse one React element
+  // in four simultaneous BentoWrappers).
+  const renderKpiBentoCard = () => (
     <BentoCard
       key="kpi"
       title="Key Indices"
@@ -1206,221 +1228,224 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
           currency={currency}
           onRowClick={handleSelectTicker}
         />
-      ) : viewMode === 'list' ? (
-        // Always mount detail-sidebar (empty or DetailPanel). Conditional
-        // mount/unmount on selectedTicker made RGL re-compact and twitch.
-        <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v9">
-          {kpiBentoCard}
-          <div key="list-main" className="eq-bento-card">
-            <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">Equity List</span>
-              <span className="eq-panel-subtitle">
-                {processedData.length} equities · click a row for detail
-                {snapshotDate ? ` · snapshot ${snapshotDate}` : ''}
-              </span>
-            </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <ListView
-                processedData={processedData}
-                handleSort={handleSort}
-                renderSortIndicator={renderSortIndicator}
-                handleSelectTicker={handleSelectTicker}
-                currentRate={currentRate}
-                currentSymbol={currentSymbol}
-                currency={currency}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                rankMetric={rankMetric}
-                groupBy={groupBy}
-                dataTimestamp={dataTimestamp}
-                snapshotDate={snapshotDate}
-              />
-            </div>
-            <div className="eq-panel-footer">
-              {commonFooter}
-              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
-            </div>
-          </div>
-          <div key="detail-sidebar" className="eq-bento-card eq-list-detail">
-            <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">
-                {selectedTicker
-                  ? `Detail · ${selectedTicker.ticker || selectedTicker.fullName || '—'}`
-                  : 'Detail'}
-              </span>
-              {selectedTicker && (
-                <span className="eq-panel-subtitle">
-                  {selectedTicker.isLoading ? 'loading…' : selectedTicker.fullName || ''}
-                </span>
-              )}
-            </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              {selectedTicker ? (
-                <DetailPanel
-                  selectedTicker={selectedTicker}
-                  setSelectedTicker={setSelectedTicker}
-                  currentRate={currentRate}
-                  currentSymbol={currentSymbol}
-                />
-              ) : (
-                <div className="eq-summary">
-                  <div className="eq-hint" style={{ padding: '24px 12px', fontStyle: 'normal' }}>
-                    Select a ticker from the list to load live quote, fundamentals, and history.
-                  </div>
-                  <div className="eq-stat-card">
-                    <div className="eq-stat-label">Equities in view</div>
-                    <div className="eq-stat-value">{processedData.length}</div>
-                  </div>
-                  <div className="eq-stat-card">
-                    <div className="eq-stat-label">Global mkt cap ({currency})</div>
-                    <div className="eq-stat-value">
-                      {currentSymbol}{(globalValCap * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} B
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </BentoWrapper>
-      ) : viewMode === 'heatmap' ? (
-        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v9">
-          {kpiBentoCard}
-          <div key="heatmap" className="eq-bento-card">
-            <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">Equity Heatmap</span>
-              <span className="eq-panel-subtitle">{flatData.length} equities · {groupBy === 'sectorGlobal' ? 'global sectors' : groupBy === 'sectorInMarket' ? 'sectors by market' : 'by market'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
-            </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <HeatmapView
-                data={heatmapData}
-                currentRate={currentRate}
-                currentSymbol={currentSymbol}
-                currency={currency}
-                rankMetric={rankMetric}
-                groupBy={groupBy}
-                colorByPerf={colorByPerf}
-                onSelect={handleSelectTicker}
-              />
-            </div>
-            <div className="eq-panel-footer">
-              {commonFooter}
-              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
-            </div>
-          </div>
-          {sidebarPanel}
-          {secFundamentalsCard}
-          {secFilingsCard}
-          {universeUpdatesCard}
-          <BentoCard
-            key="bea-corporate-profits"
-            title="BEA Corporate Profits"
-            subtitle="Corporate profits · real GDP growth · personal saving rate"
-            accent="equities"
-            className="eq-bento-card"
-            contentClassName="eq-panel-content"
-            source="Bureau of Economic Analysis (NIPA)"
-            timestamp={dataTimestamp}
-            isLive={true}
-            isCurrent={!snapshotDate}
-            fetchedOn={dataTimestamp}
-            fetchLog={quotesFetchLog}
-          >
-            <BeaCorporateProfitsPanel />
-          </BentoCard>
-          <BentoCard
-            key="wb-market-cap"
-            title="World Bank Market Cap"
-            subtitle="Listed equity market size · GDP · inflation · trade by country"
-            accent="equities"
-            className="eq-bento-card"
-            contentClassName="eq-panel-content"
-            source="World Bank WDI"
-            timestamp={dataTimestamp}
-            isLive={true}
-            isCurrent={!snapshotDate}
-            fetchedOn={dataTimestamp}
-            fetchLog={quotesFetchLog}
-          >
-            <WorldBankMarketCapPanel />
-          </BentoCard>
-        </BentoWrapper>
-      ) : viewMode === 'portfolio' ? (
-        // PORTFOLIO_LAYOUT only has 'kpi' + 'portfolio' — no sidebar (avoids 1×1 RGL stubs).
-        <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v9">
-          {kpiBentoCard}
-          <BentoCard
-            key="portfolio"
-            title="Portfolio Tracker"
-            subtitle="Add holdings · live Yahoo quotes · allocation"
-            accent="equities"
-            className="eq-bento-card"
-            contentClassName="eq-panel-content pf-tracker-host"
-            source="Yahoo Finance"
-            timestamp={dataTimestamp}
-            isLive={true}
-            isCurrent={!snapshotDate}
-            noFooter={false}
-          >
-            <PortfolioTracker
-              universeQuotes={displayUniverse}
-              onTickerSelect={handleSelectTicker}
-            />
-          </BentoCard>
-        </BentoWrapper>
-      ) : viewMode === 'race' ? (
-        <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v9">
-          {kpiBentoCard}
-          <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">Bar Race</span>
-              <span className="eq-panel-subtitle">Top 30 by market cap · colored by {groupBy === 'market' ? 'region' : 'sector'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
-            </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-              <TimeTravel onSnapshotSelect={handleSnapshotSelect} isActive={viewMode === 'race'} />
-              <BarRaceView
-                flatData={flatData}
-                currentRate={currentRate}
-                currentSymbol={currentSymbol}
-                currency={currency}
-                groupBy={groupBy}
-                snapshotDate={snapshotDate}
-              />
-            </div>
-            <div className="eq-panel-footer">
-              {commonFooter}
-              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
-            </div>
-          </div>
-          {sidebarPanel}
-        </BentoWrapper>
       ) : (
-        // Fallback (unknown viewMode) → heatmap
-        <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v9">
-          {kpiBentoCard}
-          <div key="heatmap" className="eq-bento-card">
-            <div className="eq-panel-title-row bento-panel-title-row">
-              <span className="eq-panel-title">Equity Heatmap</span>
-              <span className="eq-panel-subtitle">{flatData.length} equities</span>
-            </div>
-            <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
-              <HeatmapView
-                data={heatmapData}
-                currentRate={currentRate}
-                currentSymbol={currentSymbol}
-                currency={currency}
-                rankMetric={rankMetric}
-                groupBy={groupBy}
-                colorByPerf={colorByPerf}
-                onSelect={handleSelectTicker}
-              />
-            </div>
-            <div className="eq-panel-footer">
-              {commonFooter}
-              <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
-            </div>
+        <>
+          {/* Keep-alive RGL panes: hide inactive views instead of unmounting.
+              Unmount/remount on every List↔Heatmap switch was the main "twitch". */}
+          {visitedViews.list && (
+          <div
+            className={`eq-view-pane${viewMode === 'list' ? ' is-active' : ''}`}
+            aria-hidden={viewMode !== 'list'}
+          >
+            {/* Always mount detail-sidebar (empty or DetailPanel). Conditional
+                mount/unmount on selectedTicker made RGL re-compact and twitch. */}
+            <BentoWrapper layout={LIST_LAYOUT} storageKey="equities-list-layout-v9">
+              {renderKpiBentoCard()}
+              <div key="list-main" className="eq-bento-card">
+                <div className="eq-panel-title-row bento-panel-title-row">
+                  <span className="eq-panel-title">Equity List</span>
+                  <span className="eq-panel-subtitle">
+                    {processedData.length} equities · click a row for detail
+                    {snapshotDate ? ` · snapshot ${snapshotDate}` : ''}
+                  </span>
+                </div>
+                <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+                  <ListView
+                    processedData={processedData}
+                    handleSort={handleSort}
+                    renderSortIndicator={renderSortIndicator}
+                    handleSelectTicker={handleSelectTicker}
+                    currentRate={currentRate}
+                    currentSymbol={currentSymbol}
+                    currency={currency}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    rankMetric={rankMetric}
+                    groupBy={groupBy}
+                    dataTimestamp={dataTimestamp}
+                    snapshotDate={snapshotDate}
+                  />
+                </div>
+                <div className="eq-panel-footer">
+                  {commonFooter}
+                  <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
+                </div>
+              </div>
+              <div key="detail-sidebar" className="eq-bento-card eq-list-detail">
+                <div className="eq-panel-title-row bento-panel-title-row">
+                  <span className="eq-panel-title">
+                    {selectedTicker
+                      ? `Detail · ${selectedTicker.ticker || selectedTicker.fullName || '—'}`
+                      : 'Detail'}
+                  </span>
+                  {selectedTicker && (
+                    <span className="eq-panel-subtitle">
+                      {selectedTicker.isLoading ? 'loading…' : selectedTicker.fullName || ''}
+                    </span>
+                  )}
+                </div>
+                <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+                  {selectedTicker ? (
+                    <DetailPanel
+                      selectedTicker={selectedTicker}
+                      setSelectedTicker={setSelectedTicker}
+                      currentRate={currentRate}
+                      currentSymbol={currentSymbol}
+                    />
+                  ) : (
+                    <div className="eq-summary">
+                      <div className="eq-hint" style={{ padding: '24px 12px', fontStyle: 'normal' }}>
+                        Select a ticker from the list to load live quote, fundamentals, and history.
+                      </div>
+                      <div className="eq-stat-card">
+                        <div className="eq-stat-label">Equities in view</div>
+                        <div className="eq-stat-value">{processedData.length}</div>
+                      </div>
+                      <div className="eq-stat-card">
+                        <div className="eq-stat-label">Global mkt cap ({currency})</div>
+                        <div className="eq-stat-value">
+                          {currentSymbol}{(globalValCap * currentRate).toLocaleString(undefined, { maximumFractionDigits: 0 })} B
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </BentoWrapper>
           </div>
-          {sidebarPanel}
-        </BentoWrapper>
+          )}
+
+          {visitedViews.heatmap && (
+          <div
+            className={`eq-view-pane${viewMode === 'heatmap' ? ' is-active' : ''}`}
+            aria-hidden={viewMode !== 'heatmap'}
+          >
+            <BentoWrapper layout={HEATMAP_LAYOUT} storageKey="equities-heatmap-layout-v9">
+              {renderKpiBentoCard()}
+              <div key="heatmap" className="eq-bento-card">
+                <div className="eq-panel-title-row bento-panel-title-row">
+                  <span className="eq-panel-title">Equity Heatmap</span>
+                  <span className="eq-panel-subtitle">{flatData.length} equities · {groupBy === 'sectorGlobal' ? 'global sectors' : groupBy === 'sectorInMarket' ? 'sectors by market' : 'by market'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
+                </div>
+                <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag}>
+                  <HeatmapView
+                    data={heatmapData}
+                    currentRate={currentRate}
+                    currentSymbol={currentSymbol}
+                    currency={currency}
+                    rankMetric={rankMetric}
+                    groupBy={groupBy}
+                    colorByPerf={colorByPerf}
+                    onSelect={handleSelectTicker}
+                  />
+                </div>
+                <div className="eq-panel-footer">
+                  {commonFooter}
+                  <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
+                </div>
+              </div>
+              {renderSidebarPanel()}
+              {secFundamentalsCard}
+              {secFilingsCard}
+              {universeUpdatesCard}
+              <BentoCard
+                key="bea-corporate-profits"
+                title="BEA Corporate Profits"
+                subtitle="Corporate profits · real GDP growth · personal saving rate"
+                accent="equities"
+                className="eq-bento-card"
+                contentClassName="eq-panel-content"
+                source="Bureau of Economic Analysis (NIPA)"
+                timestamp={dataTimestamp}
+                isLive={true}
+                isCurrent={!snapshotDate}
+                fetchedOn={dataTimestamp}
+                fetchLog={quotesFetchLog}
+              >
+                <BeaCorporateProfitsPanel />
+              </BentoCard>
+              <BentoCard
+                key="wb-market-cap"
+                title="World Bank Market Cap"
+                subtitle="Listed equity market size · GDP · inflation · trade by country"
+                accent="equities"
+                className="eq-bento-card"
+                contentClassName="eq-panel-content"
+                source="World Bank WDI"
+                timestamp={dataTimestamp}
+                isLive={true}
+                isCurrent={!snapshotDate}
+                fetchedOn={dataTimestamp}
+                fetchLog={quotesFetchLog}
+              >
+                <WorldBankMarketCapPanel />
+              </BentoCard>
+            </BentoWrapper>
+          </div>
+          )}
+
+          {visitedViews.portfolio && (
+          <div
+            className={`eq-view-pane${viewMode === 'portfolio' ? ' is-active' : ''}`}
+            aria-hidden={viewMode !== 'portfolio'}
+          >
+            <BentoWrapper layout={PORTFOLIO_LAYOUT} storageKey="equities-portfolio-layout-v9">
+              {renderKpiBentoCard()}
+              <BentoCard
+                key="portfolio"
+                title="Portfolio Tracker"
+                subtitle="Add holdings · live Yahoo quotes · allocation"
+                accent="equities"
+                className="eq-bento-card"
+                contentClassName="eq-panel-content pf-tracker-host"
+                source="Yahoo Finance"
+                timestamp={dataTimestamp}
+                isLive={true}
+                isCurrent={!snapshotDate}
+                noFooter={false}
+              >
+                <PortfolioTracker
+                  universeQuotes={displayUniverse}
+                  onTickerSelect={handleSelectTicker}
+                />
+              </BentoCard>
+            </BentoWrapper>
+          </div>
+          )}
+
+          {visitedViews.race && (
+          <div
+            className={`eq-view-pane${viewMode === 'race' ? ' is-active' : ''}`}
+            aria-hidden={viewMode !== 'race'}
+          >
+            <BentoWrapper layout={RACE_LAYOUT} storageKey="equities-race-layout-v9">
+              {renderKpiBentoCard()}
+              <div key="race" className="eq-bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="eq-panel-title-row bento-panel-title-row">
+                  <span className="eq-panel-title">Bar Race</span>
+                  <span className="eq-panel-subtitle">Top 30 by market cap · colored by {groupBy === 'market' ? 'region' : 'sector'}{snapshotDate ? ` · ${snapshotDate}` : ''}</span>
+                </div>
+                <div className="eq-panel-content bento-panel-content" onMouseDown={stopDrag} style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                  <TimeTravel onSnapshotSelect={handleSnapshotSelect} isActive={viewMode === 'race'} />
+                  <BarRaceView
+                    flatData={flatData}
+                    currentRate={currentRate}
+                    currentSymbol={currentSymbol}
+                    currency={currency}
+                    groupBy={groupBy}
+                    snapshotDate={snapshotDate}
+                  />
+                </div>
+                <div className="eq-panel-footer">
+                  {commonFooter}
+                  <button className="eq-refresh-btn" onClick={handleRefresh} disabled={isRefreshing} title="Refresh market data">{isRefreshing ? '⟳' : '▶'}</button>
+                </div>
+              </div>
+              {renderSidebarPanel()}
+            </BentoWrapper>
+          </div>
+          )}
+        </>
       )}
     </div>
   );

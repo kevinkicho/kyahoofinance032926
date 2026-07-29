@@ -138,7 +138,8 @@
 .fx-dashboard--bento .react-grid-item,
 .credit-dashboard--bento .react-grid-item,
 .sent-dashboard--bento .react-grid-item,
-.alerts-dashboard--bento .react-grid-item {
+.alerts-dashboard--bento .react-grid-item,
+.eq-dashboard--bento .react-grid-item {
   transition: none !important;
 }
 
@@ -147,7 +148,8 @@
 .fx-dashboard--bento .react-grid-item.cssTransforms,
 .credit-dashboard--bento .react-grid-item.cssTransforms,
 .sent-dashboard--bento .react-grid-item.cssTransforms,
-.alerts-dashboard--bento .react-grid-item.cssTransforms {
+.alerts-dashboard--bento .react-grid-item.cssTransforms,
+.eq-dashboard--bento .react-grid-item.cssTransforms {
   transition: none !important;
 }
 

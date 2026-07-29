@@ -156,6 +156,11 @@ function layoutSignature(layout) {
 export default function BentoWrapper({ children, layout, className = '', storageKey, draggableHandle = '.bento-panel-title-row' }) {
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: 1200 });
   const lastSavedRef = useRef(null);
+  // Ignore RGL's burst of onLayoutChange on mount / width settle — that loop
+  // is what makes panels "twitch" when equities submenus remount a grid.
+  // Vitest drives onLayoutChange immediately; skip the settle gate there.
+  const SETTLE_MS = import.meta.env?.MODE === 'test' ? 0 : 180;
+  const settleOkRef = useRef(SETTLE_MS === 0);
   const defaultsByKey = useRef(new Map());
   defaultsByKey.current = new Map(
     (layout?.lg || []).map((d) => [normalizeLayoutKey(d.i), { ...d, i: normalizeLayoutKey(d.i) }]),
@@ -181,10 +186,25 @@ export default function BentoWrapper({ children, layout, className = '', storage
     if (!storageKey) return;
     if (lastSigRef.current === layoutSig) return;
     lastSigRef.current = layoutSig;
+    settleOkRef.current = SETTLE_MS === 0;
     const saved = loadLayout(storageKey);
     if (saved) setCurrentLayout(mergeLayoutWithDefaults(saved, layout.lg));
     else setCurrentLayout(normalizeLayout(layout.lg, defaultsByKey.current));
-  }, [layoutSig, storageKey, layout]);
+    if (SETTLE_MS === 0) return undefined;
+    const t = window.setTimeout(() => { settleOkRef.current = true; }, SETTLE_MS);
+    return () => clearTimeout(t);
+  }, [layoutSig, storageKey, layout, SETTLE_MS]);
+
+  // First mount settle window
+  useEffect(() => {
+    settleOkRef.current = SETTLE_MS === 0;
+    if (SETTLE_MS === 0) return undefined;
+    const t = window.setTimeout(() => { settleOkRef.current = true; }, SETTLE_MS);
+    return () => {
+      clearTimeout(t);
+      settleOkRef.current = false;
+    };
+  }, [storageKey, SETTLE_MS]);
 
   // Global mouseup/blur recovery — accidental drag that ends off-window
   // can leave react-draggable classes/cursors that make panels feel "stuck".
@@ -217,6 +237,8 @@ export default function BentoWrapper({ children, layout, className = '', storage
     //
     // Never persist static/isDraggable:false — accidental drags were
     // freezing panels until a hard layout reset.
+    if (!settleOkRef.current) return;
+
     const sanitized = normalizeLayout(newLayout, defaultsByKey.current);
 
     setCurrentLayout((prev) => {
