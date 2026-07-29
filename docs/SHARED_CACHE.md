@@ -17,34 +17,32 @@ On read (async path used by `routeFactory`):
 
 On write: local write, then fire-and-forget GCS upload.
 
-## Setup (one-time)
+## Setup (done for this project)
+
+| Item | Value |
+|------|--------|
+| Bucket | `gs://kfinance032926-market-cache` (us-central1) |
+| Runtime SA | `firebase-app-hosting-compute@kfinance032926.iam.gserviceaccount.com` |
+| Role | `roles/storage.objectAdmin` |
+| App Hosting env | `MARKET_CACHE_BUCKET=kfinance032926-market-cache` |
+
+Recreate if needed:
 
 ```bash
-# Bucket (regional, near App Hosting)
 gcloud storage buckets create gs://kfinance032926-market-cache \
   --project=kfinance032926 \
   --location=us-central1 \
-  --uniform-bucket-level-access
+  --uniform-bucket-level-access \
+  --public-access-prevention
 
-# Runtime service account for App Hosting / Cloud Run
-# (replace with the SA shown on your Cloud Run service)
-SA="service-989678779159@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"
-
+SA="firebase-app-hosting-compute@kfinance032926.iam.gserviceaccount.com"
 gcloud storage buckets add-iam-policy-binding gs://kfinance032926-market-cache \
   --member="serviceAccount:${SA}" \
-  --role="roles/storage.objectAdmin"
+  --role="roles/storage.objectAdmin" \
+  --project=kfinance032926
 ```
 
-Set the env in `apphosting.yaml`:
-
-```yaml
-  - variable: MARKET_CACHE_BUCKET
-    value: kfinance032926-market-cache
-    availability:
-      - RUNTIME
-```
-
-Redeploy, then:
+After deploy:
 
 ```bash
 npm run postdeploy:warm

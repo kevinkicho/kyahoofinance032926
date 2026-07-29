@@ -106,11 +106,11 @@ env:
     secret: FIREBASE_DATABASE_URL
     availability:
       - RUNTIME
-  # Shared market JSON cache — GCS bucket name (optional). When set, daily
-  # market payloads are mirrored to GCS so new revisions hydrate without a
-  # FRED stampede. Create the bucket and grant the App Hosting runtime SA
-  # roles/storage.objectAdmin. Empty string = local disk only.
+  # Shared market JSON cache (GCS). Created via gcloud:
+  #   gs://kfinance032926-market-cache  (us-central1)
+  # SA: firebase-app-hosting-compute@kfinance032926.iam.gserviceaccount.com
+  #     → roles/storage.objectAdmin
   - variable: MARKET_CACHE_BUCKET
-    value: ""
+    value: kfinance032926-market-cache
     availability:
       - RUNTIME
