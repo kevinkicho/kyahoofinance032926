@@ -394,10 +394,12 @@ function GlobalMacroDashboard({
     };
   }, [oecdDirectRows, colors]);
 
-  if (!scorecardData?.length) return null;
+  // Always mount the bento shell. Returning null when scorecard is empty made
+  // Macro look "crashed" (blank mac-market) while other tabs still worked.
+  const scorecard = Array.isArray(scorecardData) ? scorecardData : [];
 
   return (
-    <div className="mac-dashboard mac-dashboard--bento">
+    <div className="mac-dashboard mac-dashboard--bento" data-market="globalMacro">
       {/* GlobalKpiStrip is rendered in GlobalMacroMarket above this component to avoid duplication */}
 
       <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v10">
@@ -456,7 +458,7 @@ function GlobalMacroDashboard({
           <BentoCard
             key="scorecard"
             title="Country Scorecard"
-            subtitle="Click row for details"
+            subtitle={scorecard.length ? 'Click row for details' : 'Waiting for country scorecard data…'}
             accent="globalMacro"
             className="mac-bento-card"
             contentClassName="mac-panel-scroll"
@@ -478,7 +480,11 @@ function GlobalMacroDashboard({
                   <div className="mac-scorecell">Unemp</div>
                   <div className="mac-scorecell">Debt</div>
                 </div>
-                {scorecardData.map(country => (
+                {scorecard.length === 0 ? (
+                  <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted, #888)', fontSize: '0.85rem' }}>
+                    Scorecard unavailable — other macro panels still load when data arrives
+                  </div>
+                ) : scorecard.map(country => (
                   <div
                     key={country.code}
                     className={`mac-scorecard-row ${selectedCountry?.code === country.code ? 'selected' : ''}`}
@@ -541,7 +547,7 @@ function GlobalMacroDashboard({
             <div className="mac-cli-mini-grid">
               {(oecdCliDetail?.countries?.length ? oecdCliDetail.countries : Object.entries(oecdCli || {}).map(([code, entry]) => ({ code, value: entry?.value, cli: entry?.value, date: entry?.date }))).map((entry) => {
                 const code = entry.code;
-                const meta = scorecardData?.find(sc => sc.code === code);
+                const meta = scorecard.find(sc => sc.code === code);
                 const v = entry?.value ?? entry?.cli;
                 return (
                   <div key={code} className="mac-cli-mini-card">

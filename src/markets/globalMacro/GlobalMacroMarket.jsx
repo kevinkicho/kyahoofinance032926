@@ -12,7 +12,8 @@ function getGlobalMacroProps(centralData) {
   const normalized = normalizeGlobalMacroData(d);
   const values = normalized.values;
   return {
-    scorecardData: values.scorecardData,
+    // Always an array so the dashboard never bails with return null
+    scorecardData: Array.isArray(values.scorecardData) ? values.scorecardData : [],
     growthInflationData: values.growthInflationData,
     centralBankData: values.centralBankData,
     debtData: values.debtData,
