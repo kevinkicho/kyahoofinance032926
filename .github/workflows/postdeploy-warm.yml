@@ -29,7 +29,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       # Never compare secrets to '' in if: — GitHub rejects that and fails the run.
       # Use a public repo variable as the feature flag instead.
