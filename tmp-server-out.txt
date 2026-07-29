@@ -1,9 +1,0 @@
-◇ injecting env (27) from .env // tip: ⌘ suppress logs { quiet: true }
-[security] helmet middleware enabled
-Building snapshot index from data/stocks/ …
-Global Macro Backend listening on http://127.0.0.1:8080
-  Local data cache: 0 tickers in C:\Users\kevin\workspace\kyahoofinance032926\data\stocks
-  dist SPA: yes
-  Endpoints: /api/health  /api/stocks  /api/macro  /api/insurance  /api/commodities  /api/fx  /api/summary/:t  /api/history/:t  /api/analytics
-[WS/FX] WebSocket server started at /ws/fx
-[32m[GET][0m /api/health 200 6ms 1d2abfe8-e00e-4130-a2a3-f5367771fa73

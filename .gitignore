@@ -86,3 +86,13 @@ scripts/*.backup
 # User screenshots
 /screenshots/discardable/
 
+
+# Local audit / probe artifacts
+.server-test.out
+panel-*-audit.json
+playwright-*.png
+playwright-hosted-audit.json
+tmp-*.json
+tmp-server-*.txt
+tmp-vitest.json
+screenshots/debug-*.png
