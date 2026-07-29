@@ -31,10 +31,20 @@ async function loadAnalyticsFromRTDB(date = null) {
   }
 }
 
-async function loadDiagnosticsReport(date = null) {
+/** Admin-only: requires Firebase ID token. Never call unauthenticated (401 noise). */
+async function loadDiagnosticsReport(date = null, idToken = null) {
+  if (!idToken) return null;
   try {
     const qs = date ? `?date=${encodeURIComponent(date)}` : '';
-    return await api.get(`/api/admin/diagnostics-report${qs}`);
+    const res = await fetch(apiUrl(`/api/admin/diagnostics-report${qs}`), {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+    if (res.status === 401 || res.status === 403) return null;
+    if (!res.ok) return null;
+    return await res.json();
   } catch {
     return null;
   }
@@ -659,15 +669,26 @@ function ApiDiagnosticsCard() {
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
-    const r = await loadDiagnosticsReport();
-    if (r) {
-      setReport(r);
-      setErr(null);
-    } else {
-      setErr('No saved diagnostics report available yet.');
+    setErr(null);
+    // Do not hit admin APIs without a signed-in admin — causes console 401 noise.
+    if (!isAdmin || !auth?.currentUser) {
+      setReport(null);
+      setLoading(false);
+      return;
+    }
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const r = await loadDiagnosticsReport(null, token);
+      if (r) {
+        setReport(r);
+      } else {
+        setErr('No saved diagnostics report available yet. Run live diagnostics as admin.');
+      }
+    } catch {
+      setErr('Could not load diagnostics report.');
     }
     setLoading(false);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchReport();
@@ -697,6 +718,16 @@ function ApiDiagnosticsCard() {
       setRunning(false);
     }
   };
+
+  if (!isAdmin) {
+    return (
+      <div className="ana-diagnostics">
+        <div className="ana-err-detail" style={{ margin: '8px 0', color: 'var(--text-muted, #888)' }}>
+          Sign in as admin to view or run API health diagnostics.
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return <div className="ana-loading">Loading diagnostics report...</div>;
 

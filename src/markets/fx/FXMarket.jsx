@@ -4,39 +4,91 @@ import FXDashboard from './components/FXDashboard';
 // Static exchange-rate tables intentionally removed — empty live data must
 // show "—" placeholders, never fabricated FX levels.
 
+/**
+ * Optional live FX overlay via WebSocket.
+ * REST /api/fx (DataProvider) is the source of truth; WS is a best-effort
+ * refresh. On App Hosting / some proxies, wss upgrade fails — do not spam
+ * reconnects or log red network errors forever.
+ */
 function useFxWebSocket() {
   const [wsRates, setWsRates] = useState(null);
   const wsRef = useRef(null);
+  const aliveRef = useRef(true);
+  const attemptsRef = useRef(0);
+  const timerRef = useRef(null);
 
   useEffect(() => {
+    // Explicit opt-out (build flag) or browsers without WebSocket
+    if (import.meta.env.VITE_DISABLE_FX_WS === 'true') return undefined;
+    if (typeof WebSocket === 'undefined') return undefined;
+
+    aliveRef.current = true;
+    attemptsRef.current = 0;
+
+    const MAX_ATTEMPTS = 3;
+    const BASE_MS = 2500;
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const url = `${proto}//${host}/ws/fx`;
+    const url = `${proto}//${window.location.host}/ws/fx`;
+
+    function scheduleReconnect() {
+      if (!aliveRef.current) return;
+      if (attemptsRef.current >= MAX_ATTEMPTS) {
+        // REST path already powers panels; stay quiet after cap.
+        if (import.meta.env.DEV) {
+          console.info('[FX] WebSocket unavailable after retries — using /api/fx only');
+        }
+        return;
+      }
+      const delay = Math.min(30_000, BASE_MS * 2 ** Math.max(0, attemptsRef.current - 1));
+      timerRef.current = setTimeout(connect, delay);
+    }
 
     function connect() {
-      const ws = new WebSocket(url);
+      if (!aliveRef.current) return;
+      attemptsRef.current += 1;
+      let ws;
+      try {
+        ws = new WebSocket(url);
+      } catch {
+        scheduleReconnect();
+        return;
+      }
       wsRef.current = ws;
+
+      ws.onopen = () => {
+        // Successful open: allow future reconnects if the socket drops later.
+        attemptsRef.current = 0;
+      };
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type === 'fx-rates') {
+          if (msg.type === 'fx-rates' && msg.rates) {
             setWsRates(msg.rates);
           }
-        } catch {}
+        } catch {
+          /* ignore malformed frames */
+        }
+      };
+
+      ws.onerror = () => {
+        // Browser already logs the failed upgrade; avoid extra noise.
+        try { ws.close(); } catch { /* ignore */ }
       };
 
       ws.onclose = () => {
-        setTimeout(connect, 5000);
+        if (wsRef.current === ws) wsRef.current = null;
+        scheduleReconnect();
       };
-
-      ws.onerror = () => {};
     }
 
     connect();
 
     return () => {
-      if (wsRef.current) wsRef.current.close();
+      aliveRef.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      try { wsRef.current?.close(); } catch { /* ignore */ }
+      wsRef.current = null;
     };
   }, []);
 
