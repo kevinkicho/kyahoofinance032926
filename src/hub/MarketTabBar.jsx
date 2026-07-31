@@ -34,15 +34,15 @@ function reportStatus(entry) {
 
 function PanelHealthPopover({ report, onClose, onJump }) {
   if (!report) return null;
-  const green = report.status === 'ok';
+  const ok = report.status === 'ok';
   return (
     <div className="panel-health-popover" role="dialog" onClick={e => e.stopPropagation()}>
       <div className="panel-health-popover-head">
         <strong>{report.title || report.panelId}</strong>
         <button type="button" className="panel-health-popover-close" onClick={onClose} aria-label="Close">×</button>
       </div>
-      <div className={`panel-health-popover-verdict ${green ? 'is-green' : 'is-red'}`}>
-        {green ? 'GREEN — fetch + display + confirm' : 'NOT GREEN'}
+      <div className={`panel-health-popover-verdict ${ok ? 'is-ok' : 'is-bad'}`}>
+        {ok ? 'OK — fetch · display · confirm' : 'Incomplete'}
       </div>
       <ul className="panel-health-popover-gates">
         <li className={report.fetchOk ? 'ok' : 'bad'}>
@@ -55,9 +55,6 @@ function PanelHealthPopover({ report, onClose, onJump }) {
           <span>{report.confirmOk ? '✓' : '✗'}</span> Confirm: {report.confirmDetail || (report.confirmOk ? 'ok' : 'fail')}
         </li>
       </ul>
-      <p className="panel-health-popover-note">
-        Null fetch + null display is not green. Full requested stream must be fetched, shown, and matched on screen.
-      </p>
       {onJump && (
         <button type="button" className="panel-health-popover-jump" onClick={() => onJump(report.marketId, report.panelId)}>
           Jump to panel
@@ -73,30 +70,46 @@ function PanelDropdownItems({ marketId, onJump, panelHealth }) {
   return panels.map(p => {
     const report = panelHealth?.[p.id];
     const status = reportStatus(report);
-    // Strict: only full three-gate success is green
-    const isOk = status === 'ok' && (typeof report === 'string' || (report?.fetchOk && report?.displayOk && report?.confirmOk));
+    // Green ONLY when all three gates pass on a live object report — never
+    // from a legacy string status or splash-cache pending.
+    const isOk = !!(
+      report
+      && typeof report === 'object'
+      && status === 'ok'
+      && report.fetchOk
+      && report.displayOk
+      && report.confirmOk
+      && report.elPresent !== false
+    );
     const isStale = status === 'stale';
-    const isBad = !isOk && (status === 'null' || status === 'empty' || status === 'not-rendered' || status === 'error');
-    const isUnknown = !isOk && !isBad && (status === 'unknown' || status === 'loading' || status === 'pending');
+    const isPending = status === 'pending' || status === 'loading';
+    const isBad = !isOk && !isStale && !isPending && (
+      status === 'null' || status === 'empty' || status === 'missing' ||
+      status === 'not-rendered' || status === 'error' ||
+      (report && typeof report === 'object' && (
+        report.fetchOk === false || report.displayOk === false || report.confirmOk === false
+      ))
+    );
+    const isUnknown = !isOk && !isBad && !isStale;
     const tooltip = isOk
-      ? 'Green: fetch + display + confirm all passed'
+      ? 'Fetch · display · confirm all passed'
       : isStale
         ? 'Stale data'
         : isBad
-          ? `Not green — F${report?.fetchOk ? '✓' : '✗'} D${report?.displayOk ? '✓' : '✗'} C${report?.confirmOk ? '✓' : '✗'}`
+          ? `F${report?.fetchOk ? '✓' : '✗'} D${report?.displayOk ? '✓' : '✗'} C${report?.confirmOk ? '✓' : '✗'}`
           : 'Loading / not evaluated';
     const showDetail = detailId === p.id;
     return (
       <div key={p.id} className="market-panel-dropdown-row">
         <button
           type="button"
-          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isUnknown ? ' panel-status-unknown' : ''}${isOk ? ' panel-status-ok' : ''}`}
+          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isPending ? ' panel-status-loading' : ''}${isUnknown && !isPending ? ' panel-status-unknown' : ''}${isOk ? ' panel-status-ok' : ''}`}
           onClick={() => onJump(marketId, p.id)}
           title={`${p.title} — ${tooltip}`}
         >
           <span
             className="panel-dropdown-status-dot"
-            data-status={isOk ? 'ok' : isStale ? 'stale' : isBad ? 'null' : 'unknown'}
+            data-status={isOk ? 'ok' : isStale ? 'stale' : isPending ? 'loading' : isBad ? 'null' : 'unknown'}
             role="button"
             tabIndex={0}
             title="Click for panel health detail"
@@ -114,9 +127,6 @@ function PanelDropdownItems({ marketId, onJump, panelHealth }) {
             }}
           />
           <span className="panel-dropdown-title">{p.title}</span>
-          {isOk && <span className="panel-dropdown-badge panel-badge-ok">verified</span>}
-          {isBad && <span className="panel-dropdown-badge">not green</span>}
-          {isStale && <span className="panel-dropdown-badge panel-badge-stale">stale</span>}
         </button>
         {showDetail && (
           <PanelHealthPopover
@@ -141,7 +151,7 @@ function PanelDropdownItems({ marketId, onJump, panelHealth }) {
   });
 }
 
-export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, onPopout, autoRefresh, onToggleRefresh, onRefresh, isRefreshing = false }) {
+export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, onExportData, onPopout, onRefresh, isRefreshing = false }) {
   const { currency, setCurrency } = useCurrency();
   const dataCtx = useDataContext();
   const { addToast } = useToast();
@@ -169,18 +179,8 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   const panelDropdownRef = useRef(null);
 
   const [user, setUser] = useState(null);
-  const [adminEmail, setAdminEmail] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const profileRef = useRef(null);
-  const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const isAdmin = isLocalhost || (user?.email && adminEmail && user.email === adminEmail);
-
-  useEffect(() => {
-    fetch('/api/admin/config')
-      .then(res => res.json())
-      .then(data => setAdminEmail(data.adminEmail || ''))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (auth) {
@@ -189,11 +189,6 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       });
     }
   }, []);
-
-  useEffect(() => {
-    if (!adminEmail && !isLocalhost && user) return;
-    if (autoRefresh && !isAdmin) onToggleRefresh();
-  }, [autoRefresh, isAdmin, isLocalhost, user, adminEmail, onToggleRefresh]);
 
   const handleSignOut = useCallback(async () => {
     if (auth) {
@@ -219,14 +214,6 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       addToast('Firebase Auth is not configured in this build.', 'error');
     }
   }, [addToast]);
-
-  const handleToggleRefresh = useCallback(() => {
-    if (!isAdmin) {
-      addToast('Admin account required to enable auto-refresh.', 'error');
-      return;
-    }
-    onToggleRefresh();
-  }, [addToast, isAdmin, onToggleRefresh]);
 
   // Global historical date picker (drives DataProvider.setHistoricalDate which seeds all markets from RTDB /history/{date})
   const [histDates, setHistDates] = useState([]);
@@ -519,20 +506,11 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
         className={`hub-refresh-btn${isRefreshing ? ' is-refreshing' : ''}`}
         onClick={onRefresh}
         disabled={isRefreshing}
-        title={isRefreshing ? 'Refreshing data…' : 'Refresh data now (force live APIs)'}
-        aria-label={isRefreshing ? 'Refreshing data' : 'Refresh data now'}
+        title={isRefreshing ? 'Mass refresh in progress…' : 'Refresh all markets (same wave as load, force live)'}
+        aria-label={isRefreshing ? 'Refreshing all markets' : 'Refresh all markets'}
         aria-busy={isRefreshing}
       >
         {isRefreshing ? '⟳' : '▶'}
-      </button>
-      <button
-        className="hub-refresh-toggle"
-        onClick={handleToggleRefresh}
-        disabled={!isAdmin}
-        title={isAdmin ? (autoRefresh ? 'Auto-refresh ON (5 min)' : 'Auto-refresh OFF') : 'Admin sign-in required'}
-        aria-label={autoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh'}
-      >
-        {autoRefresh ? 'On' : 'Off'}
       </button>
 
       {/* Global Time Travel / Historical snapshot picker — drives setHistoricalDate so DataProvider seeds from RTDB history for the whole app */}

@@ -26,7 +26,7 @@ function GateRow({ ok, label, detail }) {
 
 function PanelDetailCard({ report, onClose }) {
   if (!report) return null;
-  const green = report.status === 'ok';
+  const ok = report.status === 'ok';
   return (
     <div className="splash-detail" role="dialog" aria-modal="true" aria-label={`Panel ${report.title}`}>
       <div className="splash-detail-header">
@@ -36,16 +36,12 @@ function PanelDetailCard({ report, onClose }) {
         </div>
         <button type="button" className="splash-detail-close" onClick={onClose} aria-label="Close">×</button>
       </div>
-      <div className={`splash-detail-verdict ${green ? 'is-green' : 'is-red'}`}>
-        {green ? 'GREEN — full stream verified' : 'NOT GREEN — incomplete stream'}
+      <div className={`splash-detail-verdict ${ok ? 'is-ok' : 'is-bad'}`}>
+        {ok ? 'OK — fetch · display · confirm' : 'Incomplete'}
       </div>
-      <p className="splash-detail-rule">
-        Green requires all three: data fetch success, UI display success, and on-display
-        values confirmed to match the fetched payload. Empty fetch + empty display is not green.
-      </p>
-      <GateRow ok={!!report.fetchOk} label="1. Data fetch success" detail={report.fetchDetail} />
-      <GateRow ok={!!report.displayOk} label="2. UI display success" detail={report.displayDetail} />
-      <GateRow ok={!!report.confirmOk} label="3. Display confirms fetched data" detail={report.confirmDetail} />
+      <GateRow ok={!!report.fetchOk} label="1. Data fetch" detail={report.fetchDetail} />
+      <GateRow ok={!!report.displayOk} label="2. UI display" detail={report.displayDetail} />
+      <GateRow ok={!!report.confirmOk} label="3. Display confirms data" detail={report.confirmDetail} />
       <dl className="splash-detail-meta">
         {report.field && <><dt>Field</dt><dd><code>{report.field}</code></dd></>}
         {report.fieldPath && <><dt>Path</dt><dd><code>{report.fieldPath}</code></dd></>}
@@ -82,7 +78,7 @@ function MarketDetailCard({ marketId, label, reports, onSelectPanel, onClose }) 
         <button type="button" className="splash-detail-close" onClick={onClose} aria-label="Close">×</button>
       </div>
       <p className="splash-detail-rule">
-        {ok} green · {bad} not green · click a panel for the three-gate breakdown
+        {ok} ok · {bad} incomplete · click a panel for the three-gate breakdown
       </p>
       <div className="splash-detail-panel-list">
         {list.map(r => (
@@ -228,7 +224,7 @@ function SplashScreenInner({ onReady }) {
             <div className="splash-logo" aria-hidden>📊</div>
             <h1 className="splash-title">Global Market Hub</h1>
             <p className="splash-subtitle">
-              Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {counts.ok} green / {counts.bad} not green
+              Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {counts.ok} ok / {counts.bad} incomplete
             </p>
           </div>
 
@@ -240,15 +236,14 @@ function SplashScreenInner({ onReady }) {
           </div>
 
           <div className="splash-stats">
-            <span className="splash-stat splash-stat-ok">{counts.ok} green</span>
-            <span className="splash-stat splash-stat-error">{counts.bad} not green</span>
+            <span className="splash-stat splash-stat-ok">{counts.ok} ok</span>
+            <span className="splash-stat splash-stat-error">{counts.bad} incomplete</span>
             {loadingCount > 0 && <span className="splash-stat splash-stat-loading">{loadingCount} markets fetching</span>}
             <span className="splash-stat splash-stat-time">{elapsed}s</span>
           </div>
 
           <p className="splash-criteria">
-            Green = fetch success + UI display success + displayed values confirm the fetched stream.
-            Empty / null streams stay red. Click a market chip or panel dot for detail.
+            Dot status = fetch + display + confirm. Missing panels stay red. Click a market or panel for detail.
           </p>
 
           <div className="splash-grid">
@@ -256,7 +251,7 @@ function SplashScreenInner({ onReady }) {
               const status = marketStatus[m.id];
               const panels = MARKET_PANELS[m.id] || [];
               const reports = reportsByMarket[m.id] || {};
-              const greenN = panels.filter(p => reports[p.id]?.status === 'ok').length;
+              const okN = panels.filter(p => reports[p.id]?.status === 'ok').length;
               return (
                 <div key={m.id} className={`splash-market splash-market--${status}`}>
                   <button
@@ -269,7 +264,7 @@ function SplashScreenInner({ onReady }) {
                       {status === 'ok' ? '✅' : status === 'error' ? '❌' : '⏳'}
                     </span>
                     <span className="splash-market-name">{m.label}</span>
-                    <span className="splash-market-count">{greenN}/{panels.length}</span>
+                    <span className="splash-market-count">{okN}/{panels.length}</span>
                   </button>
                   <div className="splash-panels" role="list">
                     {panels.map(p => {
@@ -306,7 +301,7 @@ function SplashScreenInner({ onReady }) {
             {readyToEnter && (
               <>
                 <div className="splash-done">
-                  Verification ready — {counts.ok}/{TOTAL_PANELS} panels green.
+                  Verification ready — {counts.ok}/{TOTAL_PANELS} panels ok.
                   Review red chips, then enter the app.
                 </div>
                 <button

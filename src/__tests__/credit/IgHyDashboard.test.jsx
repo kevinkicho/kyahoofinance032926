@@ -86,8 +86,10 @@ describe('IgHyDashboard', () => {
     expect(screen.getByText('12-Month Spread History')).toBeInTheDocument();
   });
 
-  it('returns null when spreadData is not provided', () => {
+  it('keeps a mounted empty shell when spreadData is not provided', () => {
+    // Always-mount contract: empty panels stay visible for health / layout.
     const { container } = render(<IgHyDashboard spreadData={null} lastUpdated="2026-04-22" />);
-    expect(container.firstChild).toBeNull();
+    expect(container.firstChild).not.toBeNull();
+    expect(container.querySelector('.credit-panel')).toBeTruthy();
   });
 });

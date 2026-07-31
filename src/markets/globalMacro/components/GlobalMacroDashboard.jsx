@@ -52,7 +52,8 @@ const LAYOUT = {
     { i: 'eurostat',     x: 6, y: 40, w: 6,  h: 4 },
     { i: 'oecd-direct',  x: 0, y: 44, w: 12, h: 4 },
     { i: 'bea-income',   x: 0, y: 48, w: 12, h: 4 },
-    { i: 'global-liquidity', x: 0, y: 52, w: 12, h: 4 },
+    // KPI strip + 2×2 chart grid (rowHeight 120 → ~720px usable).
+    { i: 'global-liquidity', x: 0, y: 52, w: 12, h: 6 },
   ]
 };
 
@@ -333,15 +334,197 @@ function GlobalMacroDashboard({
     const m3Latest = ecbData?.m3Growth?.at?.(-1);
     const saving = beaSummary.saving;
     const gdpNow = gdpNowData?.latest?.gdp ?? gdpNowData?.evolution?.at?.(-1)?.gdp;
-    const drainScore = [
-      tgaChange5d != null ? Math.max(-25, Math.min(25, -tgaChange5d / 10)) : 0,
-      m3Latest?.value != null ? Math.max(-20, Math.min(20, (m3Latest.value - 3) * 4)) : 0,
-      saving?.value != null ? Math.max(-15, Math.min(15, (Number(saving.value) - 4) * -3)) : 0,
-      gdpNow != null ? Math.max(-20, Math.min(20, (gdpNow - 2) * 4)) : 0,
-    ].reduce((sum, v) => sum + v, 0);
+    const contrib = {
+      tga: tgaChange5d != null ? Math.max(-25, Math.min(25, -tgaChange5d / 10)) : 0,
+      m3: m3Latest?.value != null ? Math.max(-20, Math.min(20, (m3Latest.value - 3) * 4)) : 0,
+      saving: saving?.value != null ? Math.max(-15, Math.min(15, (Number(saving.value) - 4) * -3)) : 0,
+      gdpNow: gdpNow != null ? Math.max(-20, Math.min(20, (gdpNow - 2) * 4)) : 0,
+    };
+    const drainScore = contrib.tga + contrib.m3 + contrib.saving + contrib.gdpNow;
     const label = drainScore >= 15 ? 'Supportive' : drainScore <= -15 ? 'Tightening' : 'Neutral';
-    return { tgaLatest, tgaChange5d, m3Latest, saving, gdpNow, drainScore, label };
+    return { tgaLatest, tgaChange5d, m3Latest, saving, gdpNow, drainScore, label, contrib };
   }, [dtsData, ecbData, beaSummary, gdpNowData]);
+
+  // Compact chart options for Global Liquidity (reuse series, denser grids).
+  const liqTgaOption = useMemo(() => {
+    const series = (dtsData?.series || []).slice(-60);
+    if (!series.length) return null;
+    const dates = series.map(p => p.date);
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: (ps) => {
+          const i = ps[0]?.dataIndex;
+          const r = series[i];
+          if (!r) return '';
+          return `<b>${r.date}</b><br/>Close: $${r.closeB?.toFixed(0)}B<br/>Net: ${r.netB > 0 ? '+' : ''}$${r.netB?.toFixed(0)}B`;
+        },
+      },
+      grid: { top: 8, right: 8, bottom: 18, left: 36, containLabel: false },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLabel: { color: colors.textMuted, fontSize: 8, interval: Math.max(0, Math.floor(dates.length / 4)) },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        scale: true,
+        axisLabel: { color: colors.textMuted, fontSize: 8, formatter: v => `$${v}` },
+        splitLine: { lineStyle: { color: colors.cardBg, type: 'dashed' } },
+      },
+      series: [{
+        type: 'line',
+        data: series.map(p => p.closeB),
+        symbol: 'none',
+        smooth: true,
+        lineStyle: { color: '#22d3ee', width: 1.75 },
+        areaStyle: { color: 'rgba(34, 211, 238, 0.12)' },
+      }],
+    };
+  }, [dtsData, colors]);
+
+  const liqM3Option = useMemo(() => {
+    const series = (ecbData?.m3Growth || []).slice(-24);
+    if (!series.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        formatter: (ps) => {
+          const p = ps[0];
+          return p ? `${p.axisValue}<br/>M3 YoY: ${Number(p.value).toFixed(2)}%` : '';
+        },
+      },
+      grid: { top: 8, right: 8, bottom: 18, left: 32, containLabel: false },
+      xAxis: {
+        type: 'category',
+        data: series.map(p => p.period),
+        axisLabel: { color: colors.textMuted, fontSize: 8, interval: Math.max(0, Math.floor(series.length / 5)) },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: { color: colors.textMuted, fontSize: 8, formatter: v => `${v}%` },
+        splitLine: { lineStyle: { color: colors.cardBg, type: 'dashed' } },
+      },
+      series: [{
+        type: 'bar',
+        data: series.map(p => ({
+          value: p.value,
+          itemStyle: {
+            color: p.value >= 3 ? '#22c55e' : p.value >= 1.5 ? '#f59e0b' : '#f87171',
+            borderRadius: [2, 2, 0, 0],
+          },
+        })),
+        barMaxWidth: 10,
+      }],
+    };
+  }, [ecbData, colors]);
+
+  const liqSavingOption = useMemo(() => {
+    const rows = (Array.isArray(beaData?.savingRate) ? beaData.savingRate : [])
+      .filter(r => (r.desc || '').toLowerCase().includes('personal saving as a percentage'))
+      .slice()
+      .reverse()
+      .slice(-36);
+    if (!rows.length) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: v => (v != null ? `${Number(v).toFixed(1)}%` : '—'),
+      },
+      grid: { top: 8, right: 8, bottom: 18, left: 32, containLabel: false },
+      xAxis: {
+        type: 'category',
+        data: rows.map(r => r.period),
+        axisLabel: { color: colors.textMuted, fontSize: 8, interval: Math.max(0, Math.floor(rows.length / 5)) },
+        axisLine: { lineStyle: { color: colors.cardBg } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        scale: true,
+        axisLabel: { color: colors.textMuted, fontSize: 8, formatter: '{value}%' },
+        splitLine: { lineStyle: { color: colors.cardBg, type: 'dashed' } },
+      },
+      series: [{
+        type: 'line',
+        data: rows.map(r => r.value),
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { color: '#a78bfa', width: 1.75 },
+        areaStyle: { color: 'rgba(167, 139, 250, 0.12)' },
+      }],
+    };
+  }, [beaData, colors]);
+
+  const liqContribOption = useMemo(() => {
+    const c = globalLiquidity.contrib;
+    if (!c) return null;
+    const rows = [
+      { name: 'TGA flow', value: c.tga },
+      { name: 'ECB M3', value: c.m3 },
+      { name: 'Saving', value: c.saving },
+      { name: 'GDPNow', value: c.gdpNow },
+    ];
+    if (!rows.some(r => Number.isFinite(r.value) && r.value !== 0) && globalLiquidity.drainScore == null) return null;
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (ps) => {
+          const p = ps[0];
+          if (!p) return '';
+          const v = Number(p.value);
+          return `${p.name}<br/>Contribution: ${v >= 0 ? '+' : ''}${v.toFixed(1)}`;
+        },
+      },
+      grid: { top: 8, right: 12, bottom: 8, left: 64, containLabel: false },
+      xAxis: {
+        type: 'value',
+        axisLabel: { color: colors.textMuted, fontSize: 8 },
+        splitLine: { lineStyle: { color: colors.cardBg, type: 'dashed' } },
+      },
+      yAxis: {
+        type: 'category',
+        data: rows.map(r => r.name),
+        axisLabel: { color: colors.textSecondary, fontSize: 9 },
+        axisLine: { show: false },
+        axisTick: { show: false },
+      },
+      series: [{
+        type: 'bar',
+        data: rows.map(r => ({
+          value: r.value,
+          itemStyle: {
+            color: r.value > 0 ? '#22c55e' : r.value < 0 ? '#f87171' : '#94a3b8',
+            borderRadius: r.value >= 0 ? [0, 3, 3, 0] : [3, 0, 0, 3],
+          },
+        })),
+        barWidth: 12,
+        label: {
+          show: true,
+          position: 'right',
+          formatter: (p) => {
+            const v = Number(p.value);
+            return `${v >= 0 ? '+' : ''}${v.toFixed(0)}`;
+          },
+          color: colors.textMuted,
+          fontSize: 9,
+        },
+      }],
+    };
+  }, [globalLiquidity, colors]);
 
   const eurostatOption = useMemo(() => {
     const rows = [
@@ -928,7 +1111,7 @@ function GlobalMacroDashboard({
             subtitle={`${globalLiquidity.label} backdrop · TGA, ECB M3, saving rate, GDPNow`}
             accent="globalMacro"
             className="mac-bento-card"
-            contentClassName="mac-panel-scroll"
+            contentClassName="mac-panel-scroll mac-liq-panel"
             source="US Treasury / ECB / BEA / Atlanta Fed"
             timestamp={dtsLastUpdated || ecbLastUpdated || beaLastUpdated || gdpNowLastUpdated || lastUpdated}
             isLive={!!(dtsData?.series?.length || ecbData?.m3Growth?.length || beaData?.savingRate?.length)}
@@ -938,76 +1121,154 @@ function GlobalMacroDashboard({
             error={error}
           >
             <div className="mac-liq">
-              <div className={`mac-liq-hero mac-liq-tone-${globalLiquidity.label === 'Supportive' ? 'supportive' : globalLiquidity.label === 'Tightening' ? 'tight' : 'neutral'}`}>
-                <span className="mac-liq-hero-label">Liquidity backdrop</span>
-                <strong className="mac-liq-hero-value">
-                  {Number.isFinite(globalLiquidity.drainScore)
-                    ? `${globalLiquidity.drainScore >= 0 ? '+' : ''}${globalLiquidity.drainScore.toFixed(0)}`
-                    : '—'}
-                </strong>
-                <em className="mac-liq-hero-regime">{globalLiquidity.label}</em>
-                <span className="mac-liq-hero-hint">Composite of TGA flow, euro-area M3, saving rate, GDPNow</span>
+              <div className="mac-liq-top">
+                <div className={`mac-liq-hero mac-liq-tone-${globalLiquidity.label === 'Supportive' ? 'supportive' : globalLiquidity.label === 'Tightening' ? 'tight' : 'neutral'}`}>
+                  <span className="mac-liq-hero-label">Liquidity score</span>
+                  <div className="mac-liq-hero-main">
+                    <strong className="mac-liq-hero-value">
+                      {Number.isFinite(globalLiquidity.drainScore)
+                        ? `${globalLiquidity.drainScore >= 0 ? '+' : ''}${globalLiquidity.drainScore.toFixed(0)}`
+                        : '—'}
+                    </strong>
+                    <em className="mac-liq-hero-regime">{globalLiquidity.label}</em>
+                  </div>
+                  <span className="mac-liq-hero-hint">TGA · M3 · saving · GDPNow</span>
+                </div>
+
+                <div className="mac-liq-cards">
+                  {[
+                    {
+                      key: 'tga',
+                      label: 'TGA Close',
+                      value: globalLiquidity.tgaLatest?.closeB,
+                      format: v => `$${Number(v).toFixed(0)}B`,
+                      sub: globalLiquidity.tgaLatest?.date || 'Treasury cash',
+                      tone: 'info',
+                    },
+                    {
+                      key: 'tga5d',
+                      label: 'TGA 5D Flow',
+                      value: globalLiquidity.tgaChange5d,
+                      format: v => `${Number(v) >= 0 ? '+' : ''}$${Number(v).toFixed(0)}B`,
+                      sub: Number.isFinite(globalLiquidity.tgaChange5d)
+                        ? (globalLiquidity.tgaChange5d <= 0 ? 'Drain → risk-on bias' : 'Rebuild → tighter')
+                        : '5-session Δ',
+                      tone: Number.isFinite(globalLiquidity.tgaChange5d)
+                        ? (globalLiquidity.tgaChange5d <= 0 ? 'pos' : 'neg')
+                        : 'muted',
+                    },
+                    {
+                      key: 'm3',
+                      label: 'ECB M3 YoY',
+                      value: globalLiquidity.m3Latest?.value,
+                      format: v => `${Number(v).toFixed(1)}%`,
+                      sub: globalLiquidity.m3Latest?.period || 'Euro broad money',
+                      tone: Number.isFinite(globalLiquidity.m3Latest?.value)
+                        ? (globalLiquidity.m3Latest.value >= 3 ? 'pos' : globalLiquidity.m3Latest.value >= 1.5 ? 'warn' : 'neg')
+                        : 'muted',
+                    },
+                    {
+                      key: 'saving',
+                      label: 'Saving Rate',
+                      value: globalLiquidity.saving?.value != null ? Number(globalLiquidity.saving.value) : null,
+                      format: v => `${Number(v).toFixed(1)}%`,
+                      sub: globalLiquidity.saving?.period || 'BEA personal',
+                      tone: 'info',
+                    },
+                    {
+                      key: 'gdpnow',
+                      label: 'GDPNow',
+                      value: globalLiquidity.gdpNow,
+                      format: v => `${Number(v).toFixed(1)}%`,
+                      sub: 'Atlanta Fed',
+                      tone: Number.isFinite(globalLiquidity.gdpNow)
+                        ? (globalLiquidity.gdpNow >= 2 ? 'pos' : globalLiquidity.gdpNow >= 0 ? 'warn' : 'neg')
+                        : 'muted',
+                    },
+                  ].map(card => (
+                    <div key={card.key} className={`mac-liq-card mac-liq-card--${card.tone}`}>
+                      <span className="mac-liq-card-label">{card.label}</span>
+                      <strong className="mac-liq-card-value">
+                        {typeof card.value === 'number' && Number.isFinite(card.value) ? card.format(card.value) : '—'}
+                      </strong>
+                      <span className="mac-liq-card-sub">{card.sub}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="mac-liq-cards">
-                {[
-                  {
-                    key: 'tga',
-                    label: 'TGA Close',
-                    value: globalLiquidity.tgaLatest?.closeB,
-                    format: v => `$${Number(v).toFixed(0)}B`,
-                    sub: globalLiquidity.tgaLatest?.date || globalLiquidity.tgaLatest?.period || 'Treasury General Account',
-                    tone: 'info',
-                  },
-                  {
-                    key: 'tga5d',
-                    label: 'TGA 5D Flow',
-                    value: globalLiquidity.tgaChange5d,
-                    format: v => `${Number(v) >= 0 ? '+' : ''}$${Number(v).toFixed(0)}B`,
-                    sub: Number.isFinite(globalLiquidity.tgaChange5d)
-                      ? (globalLiquidity.tgaChange5d <= 0 ? 'TGA drain → risk-on bias' : 'TGA rebuild → drain risk')
-                      : '5-session change',
-                    tone: Number.isFinite(globalLiquidity.tgaChange5d)
-                      ? (globalLiquidity.tgaChange5d <= 0 ? 'pos' : 'neg')
-                      : 'muted',
-                  },
-                  {
-                    key: 'm3',
-                    label: 'ECB M3 YoY',
-                    value: globalLiquidity.m3Latest?.value,
-                    format: v => `${Number(v).toFixed(1)}%`,
-                    sub: globalLiquidity.m3Latest?.period || 'Euro-area broad money',
-                    tone: Number.isFinite(globalLiquidity.m3Latest?.value)
-                      ? (globalLiquidity.m3Latest.value >= 3 ? 'pos' : globalLiquidity.m3Latest.value >= 1.5 ? 'warn' : 'neg')
-                      : 'muted',
-                  },
-                  {
-                    key: 'saving',
-                    label: 'Saving Rate',
-                    value: globalLiquidity.saving?.value != null ? Number(globalLiquidity.saving.value) : null,
-                    format: v => `${Number(v).toFixed(1)}%`,
-                    sub: globalLiquidity.saving?.period || 'BEA personal saving',
-                    tone: 'info',
-                  },
-                  {
-                    key: 'gdpnow',
-                    label: 'GDPNow',
-                    value: globalLiquidity.gdpNow,
-                    format: v => `${Number(v).toFixed(1)}%`,
-                    sub: 'Atlanta Fed nowcast',
-                    tone: Number.isFinite(globalLiquidity.gdpNow)
-                      ? (globalLiquidity.gdpNow >= 2 ? 'pos' : globalLiquidity.gdpNow >= 0 ? 'warn' : 'neg')
-                      : 'muted',
-                  },
-                ].map(card => (
-                  <div key={card.key} className={`mac-liq-card mac-liq-card--${card.tone}`}>
-                    <span className="mac-liq-card-label">{card.label}</span>
-                    <strong className="mac-liq-card-value">
-                      {typeof card.value === 'number' && Number.isFinite(card.value) ? card.format(card.value) : '—'}
-                    </strong>
-                    <span className="mac-liq-card-sub">{card.sub}</span>
+              <div className="mac-liq-charts">
+                <div className="mac-liq-chart-cell">
+                  <div className="mac-liq-chart-head">
+                    <span className="mac-liq-chart-title">TGA balance</span>
+                    <span className="mac-liq-chart-meta">60 sessions · $B</span>
                   </div>
-                ))}
+                  <div className="mac-liq-chart-body">
+                    {liqTgaOption
+                      ? (
+                        <SafeECharts
+                          option={liqTgaOption}
+                          style={{ height: '100%', width: '100%' }}
+                          sourceInfo={{ title: 'TGA Cash Balance', source: 'US Treasury DTS', endpoint: '/api/treasury/dts', series: [], updatedAt: dtsLastUpdated || lastUpdated }}
+                        />
+                      )
+                      : <div className="mac-liq-chart-empty">No TGA series</div>}
+                  </div>
+                </div>
+
+                <div className="mac-liq-chart-cell">
+                  <div className="mac-liq-chart-head">
+                    <span className="mac-liq-chart-title">ECB M3 growth</span>
+                    <span className="mac-liq-chart-meta">24 months · YoY %</span>
+                  </div>
+                  <div className="mac-liq-chart-body">
+                    {liqM3Option
+                      ? (
+                        <SafeECharts
+                          option={liqM3Option}
+                          style={{ height: '100%', width: '100%' }}
+                          sourceInfo={{ title: 'Euro Area M3', source: 'ECB SDW', endpoint: '/api/ecb', series: [{ id: 'M.U2.N.V.M30.X.I.U2.2300.Z01.A' }], updatedAt: ecbLastUpdated || lastUpdated }}
+                        />
+                      )
+                      : <div className="mac-liq-chart-empty">No M3 series</div>}
+                  </div>
+                </div>
+
+                <div className="mac-liq-chart-cell">
+                  <div className="mac-liq-chart-head">
+                    <span className="mac-liq-chart-title">Personal saving rate</span>
+                    <span className="mac-liq-chart-meta">BEA · %</span>
+                  </div>
+                  <div className="mac-liq-chart-body">
+                    {liqSavingOption
+                      ? (
+                        <SafeECharts
+                          option={liqSavingOption}
+                          style={{ height: '100%', width: '100%' }}
+                          sourceInfo={{ title: 'US Personal Saving Rate', source: 'BEA', endpoint: '/api/bea', series: [], updatedAt: beaLastUpdated || lastUpdated }}
+                        />
+                      )
+                      : <div className="mac-liq-chart-empty">No saving-rate series</div>}
+                  </div>
+                </div>
+
+                <div className="mac-liq-chart-cell">
+                  <div className="mac-liq-chart-head">
+                    <span className="mac-liq-chart-title">Score contributions</span>
+                    <span className="mac-liq-chart-meta">Supportive → right</span>
+                  </div>
+                  <div className="mac-liq-chart-body">
+                    {liqContribOption
+                      ? (
+                        <SafeECharts
+                          option={liqContribOption}
+                          style={{ height: '100%', width: '100%' }}
+                          sourceInfo={{ title: 'Liquidity Score Contributions', source: 'Composite', endpoint: '/api/globalMacro', series: [], updatedAt: lastUpdated }}
+                        />
+                      )
+                      : <div className="mac-liq-chart-empty">Waiting for inputs</div>}
+                  </div>
+                </div>
               </div>
             </div>
           </BentoCard>

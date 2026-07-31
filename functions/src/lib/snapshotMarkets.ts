@@ -2,6 +2,8 @@ export type SnapshotMarket = {
   id: string;
   path: string;
   diagnostics?: boolean;
+  /** If true, a failed fetch does not fail the nightly job (optional API keys). */
+  optional?: boolean;
 };
 
 // Keep this list aligned with src/hub/DataProvider.jsx MARKET_ENDPOINTS plus
@@ -51,7 +53,9 @@ export const SNAPSHOT_MARKETS: SnapshotMarket[] = [
   { id: "fema", path: "/api/fema" },
   { id: "usgs", path: "/api/usgs" },
   { id: "edgarInsurerRatios", path: "/api/edgar/insurer-ratios" },
-  { id: "usda", path: "/api/usda" },
+  // Requires USDA_NASS_API_KEY on App Hosting; optional so a missing key does not
+  // fail the entire nightly RTDB job. Set the secret for full coverage.
+  { id: "usda", path: "/api/usda", optional: true },
   { id: "censusTrade", path: "/api/censusTrade" },
   { id: "eiaPetroleum", path: "/api/eiaPetroleum" },
   { id: "treasuryCost", path: "/api/treasuryCost" },

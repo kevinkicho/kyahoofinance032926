@@ -242,8 +242,8 @@ export default function YieldCurve({
 
   if (!yieldCurveData || !Object.keys(yieldCurveData).some((k) => hasAnyYield(yieldCurveData[k]))) {
     return (
-      <div className="yc-panel yc-panel--empty">
-        No yield curve data — FRED Treasury series unavailable.
+      <div className="yc-panel yc-panel--empty" data-panel-empty="1">
+        No data available — FRED Treasury series unavailable.
       </div>
     );
   }

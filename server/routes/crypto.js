@@ -171,13 +171,42 @@ router.get('/', async (_req, res) => {
 
     let topExchanges = null;
     try {
-      if (cgExchanges.status === 'fulfilled' && Array.isArray(cgExchanges.value)) {
-        topExchanges = cgExchanges.value.slice(0, 10).map(ex => ({
+      let exRaw = cgExchanges.status === 'fulfilled' ? cgExchanges.value : null;
+      // CoinGecko often 429s exchanges while /coins still works — one retry.
+      if (!Array.isArray(exRaw) || !exRaw.length) {
+        await new Promise((r) => setTimeout(r, 600));
+        try {
+          trackApiCall('CoinGecko');
+          exRaw = await fetchJSON(cgExchangesUrl);
+        } catch (e2) {
+          console.warn('[Crypto] exchanges retry failed:', e2.message || e2);
+        }
+      }
+      if (Array.isArray(exRaw) && exRaw.length) {
+        topExchanges = exRaw.slice(0, 10).map(ex => ({
           name:      ex.name,
           volume24h: ex.trade_volume_24h_btc != null ? Math.round(ex.trade_volume_24h_btc * 10) / 10 : null,
         }));
       }
     } catch (e) { console.warn('[Crypto]', e.message || e); }
+    // Prefer prior cache over empty panel when CoinGecko is rate-limited
+    if (!topExchanges?.length) {
+      const prior = !forceRefresh ? (readLatestCache('crypto') || daily) : null;
+      if (Array.isArray(prior?.topExchanges) && prior.topExchanges.length) {
+        topExchanges = prior.topExchanges;
+      }
+    }
+    // Last resort: named major venues so the Exchanges panel stays mounted with labels
+    if (!topExchanges?.length) {
+      topExchanges = [
+        { name: 'Binance', volume24h: null },
+        { name: 'Coinbase Exchange', volume24h: null },
+        { name: 'OKX', volume24h: null },
+        { name: 'Bybit', volume24h: null },
+        { name: 'Kraken', volume24h: null },
+        { name: 'Bitfinex', volume24h: null },
+      ];
+    }
 
     let ethGas = null;
     try {

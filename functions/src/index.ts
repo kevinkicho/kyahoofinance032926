@@ -193,8 +193,20 @@ if (!admin.apps || admin.apps.length === 0) {
   );
 }
 
-const LIVE_FUNCTIONS_BASE = process.env.LIVE_FUNCTIONS_BASE || "https://api-4uzq3y2xva-uc.a.run.app";
+// Canonical live API for snapshots: App Hosting (warm disk/GCS cache).
+// Override with LIVE_FUNCTIONS_BASE / SNAPSHOT_API_BASE only for emergencies.
+const APP_HOSTING_BASE =
+  "https://kyahoofinance032926--kfinance032926.us-central1.hosted.app";
+const LIVE_API_BASE = (
+  process.env.LIVE_FUNCTIONS_BASE ||
+  process.env.SNAPSHOT_API_BASE ||
+  APP_HOSTING_BASE
+).replace(/\/$/, "");
+
 const RTDB_KEY_INVALID_CHARS = /[.#$/[\]]/g;
+const SNAPSHOT_FETCH_ATTEMPTS = Number(process.env.SNAPSHOT_FETCH_ATTEMPTS || 3);
+const SNAPSHOT_FETCH_TIMEOUT_MS = Number(process.env.SNAPSHOT_FETCH_TIMEOUT_MS || 180000);
+const SNAPSHOT_CONCURRENCY = Number(process.env.SNAPSHOT_CONCURRENCY || 3);
 
 function sanitizeForRTDB(value: any): any {
   if (Array.isArray(value)) return value.map(sanitizeForRTDB);
@@ -208,71 +220,213 @@ function sanitizeForRTDB(value: any): any {
   return out;
 }
 
-async function mapWithConcurrency<T>(
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Reject empty / error-only shells so we never stamp hollow "success". */
+function hasUsableSnapshotPayload(data: any): boolean {
+  if (data == null) return false;
+  if (typeof data !== "object") return true;
+  if (Array.isArray(data)) return data.length > 0;
+  const meta = new Set([
+    "error", "message", "ok", "isLive", "isCurrent", "fetchedOn", "lastUpdated",
+    "lastError", "staleAsOf", "source",
+  ]);
+  const keys = Object.keys(data).filter((k) => !k.startsWith("_") && !meta.has(k));
+  if (keys.length === 0) return false;
+  if (data.ok === false && data.error) return false;
+  // Config/API failure shells: error set and every _sources flag false
+  if (data.error && data._sources && typeof data._sources === "object") {
+    const flags = Object.values(data._sources);
+    if (flags.length && flags.every((v) => v === false)) return false;
+  }
+  // All data keys null/empty with an error
+  if (data.error) {
+    const anySubstance = keys.some((k) => {
+      const v = data[k];
+      if (v == null || v === false || v === "") return false;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === "object") return Object.keys(v).length > 0;
+      return true;
+    });
+    if (!anySubstance) return false;
+  }
+  return true;
+}
+
+async function mapWithConcurrency<T, R>(
   items: T[],
   limit: number,
-  worker: (item: T) => Promise<void>
-) {
+  worker: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
   let cursor = 0;
   const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
     while (cursor < items.length) {
-      const item = items[cursor++];
-      await worker(item);
+      const idx = cursor++;
+      results[idx] = await worker(items[idx]);
     }
   });
-  await Promise.allSettled(runners);
+  await Promise.all(runners);
+  return results;
+}
+
+async function fetchMarketJson(path: string): Promise<any> {
+  let lastErr: Error | null = null;
+  for (let attempt = 1; attempt <= SNAPSHOT_FETCH_ATTEMPTS; attempt++) {
+    const t0 = Date.now();
+    try {
+      const res = await fetch(`${LIVE_API_BASE}${path}`, {
+        headers: {
+          "User-Agent": "scheduled-snapshot-refresher",
+          Accept: "application/json",
+        },
+        signal: AbortSignal.timeout(SNAPSHOT_FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!hasUsableSnapshotPayload(data)) {
+        throw new Error(
+          data?.error
+            ? `unusable payload: ${String(data.error).slice(0, 120)}`
+            : "unusable empty payload"
+        );
+      }
+      console.log(
+        `[scheduled] fetch ok ${path} attempt=${attempt} ${Date.now() - t0}ms`
+      );
+      return data;
+    } catch (e: any) {
+      lastErr = e instanceof Error ? e : new Error(String(e?.message || e));
+      console.warn(
+        `[scheduled] fetch fail ${path} attempt=${attempt}/${SNAPSHOT_FETCH_ATTEMPTS}: ${lastErr.message}`
+      );
+      if (attempt < SNAPSHOT_FETCH_ATTEMPTS) {
+        await sleep(1500 * attempt * attempt);
+      }
+    }
+  }
+  throw lastErr || new Error(`fetch failed for ${path}`);
 }
 
 export const refreshMarketSnapshots = onSchedule(
   {
     schedule: "0 0 * * *",
-    timeoutSeconds: 540,
-    memory: "512MiB",
+    // ~50 markets × retries; App Hosting is warm but FRED waves can still be slow.
+    timeoutSeconds: 1800,
+    memory: "1GiB",
   },
-  async (event) => {
+  async () => {
   const db = admin.database();
   const now = new Date().toISOString();
   const dateKey = now.substring(0, 10); // YYYY-MM-DD for history keys
-  console.log(`[scheduled] refreshMarketSnapshots starting at ${now} (dateKey=${dateKey})`);
+  console.log(
+    `[scheduled] refreshMarketSnapshots starting at ${now} (dateKey=${dateKey}) base=${LIVE_API_BASE}`
+  );
 
-  // Pre-warm: trigger a lightweight request to ensure the Cloud Run service is not cold.
-  // With minInstances: 1 this should be fast, but the extra safety net costs ~100ms.
+  // Pre-warm App Hosting so first heavy markets hit disk/GCS cache.
   try {
-    const warmupRes = await fetch(`${LIVE_FUNCTIONS_BASE}/api/health`, {
+    const warmupRes = await fetch(`${LIVE_API_BASE}/api/health`, {
       signal: AbortSignal.timeout(30000),
     });
-    console.log(`[scheduled] pre-warm health check: ${warmupRes.status}`);
+    console.log(`[scheduled] pre-warm health: ${warmupRes.status}`);
   } catch (e: any) {
-    console.warn(`[scheduled] pre-warm health check failed (non-fatal):`, e?.message || e);
+    console.warn(`[scheduled] pre-warm health failed (non-fatal):`, e?.message || e);
+  }
+  try {
+    const warmPaths = SNAPSHOT_MARKETS.slice(0, 16).map((m) =>
+      m.path.replace(/^\/api\//, "")
+    );
+    const warmRes = await fetch(`${LIVE_API_BASE}/api/warm`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "scheduled-snapshot-refresher",
+        ...(process.env.WARM_TOKEN ? { "x-warm-token": process.env.WARM_TOKEN } : {}),
+      },
+      body: JSON.stringify({ paths: warmPaths }),
+      signal: AbortSignal.timeout(30000),
+    });
+    console.log(`[scheduled] pre-warm /api/warm: ${warmRes.status}`);
+    // Give background warm a head start on priority routes.
+    await sleep(8000);
+  } catch (e: any) {
+    console.warn(`[scheduled] pre-warm /api/warm failed (non-fatal):`, e?.message || e);
   }
 
-  await mapWithConcurrency(SNAPSHOT_MARKETS, 5, async ({ id, path }) => {
+  type SnapResult = { id: string; ok: boolean; optional?: boolean; error?: string };
+
+  async function snapshotOne(market: {
+    id: string;
+    path: string;
+    optional?: boolean;
+  }): Promise<SnapResult> {
+    const { id, path, optional } = market;
     try {
-      const url = `${LIVE_FUNCTIONS_BASE}${path}`;
-      const res = await fetch(url, {
-        headers: { "User-Agent": "scheduled-snapshot-refresher" },
-        signal: AbortSignal.timeout(120000) // 120s — generous for cold starts
+      let data = await fetchMarketJson(path);
+
+      // universeUpdates is a *rolling* Finnhub IPO window. Nightly jobs used to
+      // overwrite RTDB latest wholesale, so names that fell out of the 45-day
+      // calendar (e.g. SPCX after 2026-07-27) vanished from the equities heatmap
+      // injection path. Merge prior discoveries for 90 days so the sidecar is
+      // sticky until names are promoted into stockUniverse.js.
+      if (id === "universeUpdates" && data && typeof data === "object") {
+        try {
+          const prevSnap = await db.ref(`marketSnapshots/${id}/latest`).once("value");
+          const prevUpdates = prevSnap.val()?.data?.updates;
+          const fresh = Array.isArray(data.updates) ? data.updates : [];
+          if (Array.isArray(prevUpdates) && prevUpdates.length) {
+            const byName = new Map<string, any>();
+            const maxAgeMs = 90 * 24 * 60 * 60 * 1000;
+            const nowMs = Date.now();
+            for (const u of prevUpdates) {
+              const name = u?.name ? String(u.name).toUpperCase() : "";
+              if (!name) continue;
+              const discovered = Date.parse(u.discoveryDate || u.discoverydate || "");
+              if (Number.isFinite(discovered) && nowMs - discovered > maxAgeMs) continue;
+              byName.set(name, { ...u, name });
+            }
+            for (const u of fresh) {
+              const name = u?.name ? String(u.name).toUpperCase() : "";
+              if (!name) continue;
+              byName.set(name, { ...u, name }); // fresh quote wins
+            }
+            data = {
+              ...data,
+              updates: Array.from(byName.values()),
+              _mergedPriorDiscoveries: true,
+              _priorCount: prevUpdates.length,
+              _freshCount: fresh.length,
+            };
+            console.log(
+              `[scheduled] universeUpdates merge: fresh=${fresh.length} prior=${prevUpdates.length} → ${byName.size}`
+            );
+          }
+        } catch (mergeErr: any) {
+          console.warn(
+            `[scheduled] universeUpdates prior-merge failed (using fresh only):`,
+            mergeErr?.message || mergeErr
+          );
+        }
+      }
+
+      const payload = sanitizeForRTDB({
+        data,
+        fetchedAt: now,
+        source: "scheduled",
+        apiBase: LIVE_API_BASE,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      const payload = sanitizeForRTDB({ data, fetchedAt: now, source: "scheduled" });
-
-      // Historical entry — this makes the DB grow day by day instead of overwriting.
       await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(payload);
-
-      // Latest pointer for fast current access (used by DataProvider seed + normal UI).
       await db.ref(`marketSnapshots/${id}/latest`).set(payload);
-
       console.log(`[scheduled] wrote snapshot for ${id} (history/${dateKey} + latest)`);
+      return { id, ok: true, optional };
     } catch (e: any) {
-      console.warn(`[scheduled] failed snapshot for ${id}:`, e?.message || e);
-      const errPayload = { at: now, message: String(e?.message || e) };
+      const message = String(e?.message || e);
+      console.warn(`[scheduled] failed snapshot for ${id}:`, message);
+      const errPayload = { at: now, message, apiBase: LIVE_API_BASE };
 
-      // Preserve History coverage even when a live refresh flakes out. If a
-      // previous good snapshot exists, copy it into today's history and attach
-      // the refresh error so diagnostics can show a warning instead of a hard
-      // missing-data hole.
+      // Keep last-good data; never leave latest as error-only if we had data.
       try {
         const latestSnap = await db.ref(`marketSnapshots/${id}/latest`).once("value");
         const latestPayload = latestSnap.val();
@@ -285,18 +439,71 @@ export const refreshMarketSnapshots = onSchedule(
             lastError: errPayload,
           });
           await db.ref(`marketSnapshots/${id}/history/${dateKey}`).set(fallbackPayload);
+          await db.ref(`marketSnapshots/${id}/latest`).set(fallbackPayload);
         } else {
           await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
+          await db.ref(`marketSnapshots/${id}/latest/lastError`).set(errPayload);
         }
       } catch (fallbackErr: any) {
-        console.warn(`[scheduled] failed stale fallback for ${id}:`, fallbackErr?.message || fallbackErr);
+        console.warn(
+          `[scheduled] failed stale fallback for ${id}:`,
+          fallbackErr?.message || fallbackErr
+        );
         await db.ref(`marketSnapshots/${id}/history/${dateKey}/lastError`).set(errPayload);
+        await db.ref(`marketSnapshots/${id}/latest/lastError`).set(errPayload);
       }
-
-      // Also surface on latest so UI can show "last known + error on latest attempt"
-      await db.ref(`marketSnapshots/${id}/latest/lastError`).set(errPayload);
+      return { id, ok: false, optional: !!optional, error: message };
     }
-  });
+  }
+
+  // Pass 1: all markets
+  let results = await mapWithConcurrency(
+    SNAPSHOT_MARKETS,
+    SNAPSHOT_CONCURRENCY,
+    snapshotOne
+  );
+
+  // Pass 2: only failures (fresh attempts — often succeeds after cache warm)
+  const failedFirst = results.filter((r) => !r.ok).map((r) => r.id);
+  if (failedFirst.length) {
+    console.warn(
+      `[scheduled] pass1 failures (${failedFirst.length}): ${failedFirst.join(", ")} — retrying`
+    );
+    await sleep(5000);
+    const retryMarkets = SNAPSHOT_MARKETS.filter((m) => failedFirst.includes(m.id));
+    const retryResults = await mapWithConcurrency(
+      retryMarkets,
+      Math.max(1, Math.min(2, SNAPSHOT_CONCURRENCY)),
+      snapshotOne
+    );
+    const byId = new Map(results.map((r) => [r.id, r]));
+    for (const r of retryResults) byId.set(r.id, r);
+    results = SNAPSHOT_MARKETS.map((m) => byId.get(m.id)!);
+  }
+
+  const okIds = results.filter((r) => r.ok).map((r) => r.id);
+  const hardFailIds = results.filter((r) => !r.ok && !r.optional).map((r) => r.id);
+  const softFailIds = results.filter((r) => !r.ok && r.optional).map((r) => r.id);
+  const summary = {
+    at: now,
+    dateKey,
+    apiBase: LIVE_API_BASE,
+    total: results.length,
+    ok: okIds.length,
+    failed: hardFailIds.length,
+    optionalFailed: softFailIds.length,
+    failedIds: hardFailIds,
+    optionalFailedIds: softFailIds,
+    errors: results
+      .filter((r) => !r.ok)
+      .map((r) => ({ id: r.id, optional: !!r.optional, error: r.error })),
+  };
+  await db.ref(`marketSnapshots/_meta/lastRun`).set(summary);
+  console.log(
+    `[scheduled] snapshot summary: ${summary.ok}/${summary.total} ok` +
+      (hardFailIds.length ? ` failed=[${hardFailIds.join(", ")}]` : "") +
+      (softFailIds.length ? ` optionalFailed=[${softFailIds.join(", ")}]` : "")
+  );
 
   // Run daily diagnostics to check health and save report to RTDB
   try {
@@ -306,10 +513,19 @@ export const refreshMarketSnapshots = onSchedule(
   }
 
   // Optional light retention — prunes history older than keepDays.
-  // Safe to leave enabled; only runs after successful daily write.
   await cleanupOldHistory(db, dateKey, 365);
 
-  console.log("[scheduled] refreshMarketSnapshots complete");
+  if (hardFailIds.length) {
+    // Fail the Cloud Scheduler run so it is visible / can auto-retry.
+    throw new Error(
+      `refreshMarketSnapshots incomplete: ${hardFailIds.length} required market(s) failed (${hardFailIds.slice(0, 12).join(", ")}${hardFailIds.length > 12 ? "…" : ""})`
+    );
+  }
+
+  console.log(
+    "[scheduled] refreshMarketSnapshots complete — all required markets succeeded" +
+      (softFailIds.length ? ` (optional misses: ${softFailIds.join(", ")})` : "")
+  );
 });
 
 // Run structural checks on all endpoints and save report to RTDB

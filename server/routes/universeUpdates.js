@@ -1,12 +1,24 @@
 import { Router } from 'express';
 import { yf, chunkArray } from '../lib/yahoo.js';
 import { trackApiCall } from '../lib/rateLimits.js';
+import { stockUniverseData } from '../../src/data/stockUniverse.js';
 
 const router = Router();
 
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY || '';
 const MIN_MARKET_CAP = 2000000000; // 2 Billion
 const LOOKBACK_DAYS = 45;
+
+/** Tickers already on the equities heatmap — never re-surface as "discovered". */
+const EXISTING_UNIVERSE_TICKERS = (() => {
+  const set = new Set();
+  for (const region of stockUniverseData || []) {
+    for (const child of region.children || []) {
+      if (child?.name) set.add(String(child.name).toUpperCase());
+    }
+  }
+  return set;
+})();
 
 function getYYYYMMDD(date) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -48,8 +60,12 @@ router.get('/', async (req, res) => {
     
     ipoCalendar.forEach(ipo => {
       const exch = ipo.exchange ? ipo.exchange.toUpperCase() : '';
-      if (ipo.symbol && validExchanges.some(ve => exch.includes(ve))) {
-        candidates.add(ipo.symbol);
+      const sym = ipo.symbol ? String(ipo.symbol).toUpperCase() : '';
+      if (!sym) return;
+      // Skip names already in the static heatmap universe (e.g. SPCX).
+      if (EXISTING_UNIVERSE_TICKERS.has(sym)) return;
+      if (validExchanges.some(ve => exch.includes(ve))) {
+        candidates.add(sym);
       }
     });
 
@@ -73,14 +89,15 @@ router.get('/', async (req, res) => {
         
         arr.forEach(quote => {
           if (!quote || !quote.symbol) return;
-          
+          const sym = String(quote.symbol).toUpperCase();
+          if (EXISTING_UNIVERSE_TICKERS.has(sym)) return;
+
           // 5. Filter by Market Cap > $2B
           if (quote.marketCap && quote.marketCap >= MIN_MARKET_CAP) {
-            
             // Format into the structure the frontend ECharts expects
             const stockEntry = {
-              name: quote.symbol,
-              fullName: quote.longName || quote.shortName || quote.symbol,
+              name: sym,
+              fullName: quote.longName || quote.shortName || sym,
               marketCap: quote.marketCap / 1e9, // Convert to Billions
               revenue: 0.1, // Default minimum since quote might not have it
               netIncome: 0.1,
@@ -89,9 +106,9 @@ router.get('/', async (req, res) => {
               sector: 'Industrials', // Default sector, could be mapped or enhanced later
               value: quote.marketCap / 1e9,
               isDiscovered: true, // Tag to identify dynamically added stocks
-              discoveryDate: today.toISOString()
+              discoveryDate: today.toISOString(),
             };
-            
+
             confirmedUpdates.push(stockEntry);
           }
         });

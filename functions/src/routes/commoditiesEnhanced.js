@@ -424,34 +424,184 @@ router.get('/', async (req, res) => {
       console.warn('Yahoo DBC fetch failed:', e.message);
     }
 
-    // Fetch major commodity futures - split from DBC so one failure doesn't kill the other
-    const futuresSymbols = [
-      'CL=F', 'BZ=F', 'GC=F', 'SI=F', 'PL=F', 'PA=F', 'NG=F',
-      'ZC=F', 'ZW=F', 'ZO=F', 'ZS=F', 'ZL=F', 'ZM=F',
-      'KC=F', 'CT=F', 'SB=F', 'LE=F', 'GF=F', 'HE=F', 'HG=F', 'HO=F',
-    ];
+    // Fetch major commodity futures. Batch quote() often returns empty for
+    // continuous contracts — chunk quotes and fall back to chart closes.
+    const FUTURES_META = {
+      'CL=F': { name: 'WTI Crude Oil', sector: 'Energy', unit: '$/bbl' },
+      'BZ=F': { name: 'Brent Crude', sector: 'Energy', unit: '$/bbl' },
+      'NG=F': { name: 'Natural Gas', sector: 'Energy', unit: '$/MMBtu' },
+      'HO=F': { name: 'Heating Oil', sector: 'Energy', unit: '$/gal' },
+      'GC=F': { name: 'Gold', sector: 'Precious Metals', unit: '$/oz' },
+      'SI=F': { name: 'Silver', sector: 'Precious Metals', unit: '$/oz' },
+      'PL=F': { name: 'Platinum', sector: 'Precious Metals', unit: '$/oz' },
+      'PA=F': { name: 'Palladium', sector: 'Precious Metals', unit: '$/oz' },
+      'HG=F': { name: 'Copper', sector: 'Industrial Metals', unit: '$/lb' },
+      'ZC=F': { name: 'Corn', sector: 'Grains', unit: '¢/bu' },
+      'ZW=F': { name: 'Wheat', sector: 'Grains', unit: '¢/bu' },
+      'ZO=F': { name: 'Oats', sector: 'Grains', unit: '¢/bu' },
+      'ZS=F': { name: 'Soybeans', sector: 'Grains', unit: '¢/bu' },
+      'ZL=F': { name: 'Soybean Oil', sector: 'Grains', unit: '¢/lb' },
+      'ZM=F': { name: 'Soybean Meal', sector: 'Grains', unit: '$/st' },
+      'KC=F': { name: 'Coffee', sector: 'Softs', unit: '¢/lb' },
+      'CT=F': { name: 'Cotton', sector: 'Softs', unit: '¢/lb' },
+      'SB=F': { name: 'Sugar', sector: 'Softs', unit: '¢/lb' },
+      'LE=F': { name: 'Live Cattle', sector: 'Livestock', unit: '¢/lb' },
+      'GF=F': { name: 'Feeder Cattle', sector: 'Livestock', unit: '¢/lb' },
+      'HE=F': { name: 'Lean Hogs', sector: 'Livestock', unit: '¢/lb' },
+    };
+    const futuresSymbols = Object.keys(FUTURES_META);
+    const HEATMAP_SECTOR = {
+      Energy: 'Energy',
+      'Precious Metals': 'Metals',
+      'Industrial Metals': 'Metals',
+      Grains: 'Agriculture',
+      Softs: 'Agriculture',
+      Livestock: 'Livestock',
+    };
+    yahooData.futures = {};
     try {
       trackApiCall('Yahoo Finance');
-      const futuresQuotes = await yf.quote(futuresSymbols);
-      const futuresArr = Array.isArray(futuresQuotes) ? futuresQuotes : [futuresQuotes];
-      yahooData.futures = {};
-      futuresArr.forEach(q => {
-        if (q?.symbol) {
-          yahooData.futures[q.symbol] = {
-            symbol: q.symbol,
-            name: q.shortName || q.longName,
-            price: q.regularMarketPrice,
-            change: q.regularMarketChangePercent,
-            _source: 'Yahoo Finance',
-            _lastUpdated: new Date().toISOString(),
-            _updateFrequency: 'Real-time (delayed)',
-          };
+      const chunkSize = 8;
+      for (let i = 0; i < futuresSymbols.length; i += chunkSize) {
+        const chunk = futuresSymbols.slice(i, i + chunkSize);
+        try {
+          const futuresQuotes = await yf.quote(chunk);
+          const futuresArr = Array.isArray(futuresQuotes) ? futuresQuotes : [futuresQuotes];
+          futuresArr.forEach(q => {
+            if (!q?.symbol) return;
+            yahooData.futures[q.symbol] = {
+              symbol: q.symbol,
+              name: FUTURES_META[q.symbol]?.name || q.shortName || q.longName || q.symbol,
+              price: q.regularMarketPrice ?? null,
+              change: q.regularMarketChangePercent ?? null,
+              change1w: null,
+              change1m: null,
+              _source: 'Yahoo Finance',
+              _lastUpdated: new Date().toISOString(),
+              _updateFrequency: 'Real-time (delayed)',
+            };
+          });
+        } catch (chunkErr) {
+          console.warn('Yahoo futures quote chunk failed:', chunkErr.message);
         }
-      });
+      }
     } catch (e) {
       console.warn('Yahoo futures fetch failed:', e.message);
     }
+
+    const needChart = futuresSymbols.filter(t => {
+      const f = yahooData.futures[t];
+      return !f || f.price == null || f.change == null;
+    });
+    if (needChart.length > 0) {
+      const histStart = (() => { const d = new Date(); d.setDate(d.getDate() - 35); return d.toISOString().split('T')[0]; })();
+      const histEnd = new Date().toISOString().split('T')[0];
+      trackApiCall('Yahoo Finance');
+      const chartResults = await Promise.allSettled(
+        needChart.map(ticker =>
+          yf.chart(ticker, { period1: histStart, period2: histEnd, interval: '1d' })
+            .then(data => {
+              const closes = (data.quotes || []).map(q => q.close).filter(v => v != null && Number.isFinite(v));
+              return { ticker, closes };
+            })
+        )
+      );
+      for (const r of chartResults) {
+        if (r.status !== 'fulfilled' || !r.value.closes?.length) continue;
+        const { ticker, closes } = r.value;
+        const len = closes.length;
+        const last = closes[len - 1];
+        const prev = len >= 2 ? closes[len - 2] : null;
+        const change1d = prev != null && prev !== 0
+          ? Math.round(((last - prev) / prev) * 10000) / 100
+          : null;
+        const change1w = len >= 6 && closes[len - 6]
+          ? Math.round(((last - closes[len - 6]) / closes[len - 6]) * 1000) / 10
+          : null;
+        const change1m = len >= 2 && closes[0]
+          ? Math.round(((last - closes[0]) / closes[0]) * 1000) / 10
+          : null;
+        const existing = yahooData.futures[ticker] || {};
+        yahooData.futures[ticker] = {
+          symbol: ticker,
+          name: existing.name || FUTURES_META[ticker]?.name || ticker,
+          price: existing.price ?? last,
+          change: existing.change ?? change1d,
+          change1w: existing.change1w ?? change1w,
+          change1m: existing.change1m ?? change1m,
+          _source: existing.price != null ? (existing._source || 'Yahoo Finance') : 'Yahoo Finance (chart)',
+          _lastUpdated: new Date().toISOString(),
+          _updateFrequency: 'Daily (chart fallback)',
+        };
+      }
+    }
+
+    const crossFill = [
+      { ticker: 'CL=F', eia: 'wti_price', fred: 'wti' },
+      { ticker: 'BZ=F', eia: 'brent_price', fred: 'brent' },
+      { ticker: 'NG=F', eia: 'henry_hub', fred: 'natgas' },
+      { ticker: 'HG=F', fred: 'copper' },
+      { ticker: 'ZW=F', fred: 'wheat' },
+      { ticker: 'ZC=F', fred: 'corn' },
+      { ticker: 'ZS=F', fred: 'soybeans' },
+    ];
+    for (const row of crossFill) {
+      const cur = yahooData.futures[row.ticker];
+      if (cur?.price != null) continue;
+      const eia = row.eia ? eiaData[row.eia] : null;
+      const fred = row.fred ? fredData[row.fred] : null;
+      const src = eia?.value != null ? eia : (fred?.value != null ? fred : null);
+      if (!src) continue;
+      yahooData.futures[row.ticker] = {
+        symbol: row.ticker,
+        name: FUTURES_META[row.ticker]?.name || row.ticker,
+        price: src.value,
+        change: null,
+        change1w: null,
+        change1m: null,
+        _source: src._source || (eia ? 'EIA' : 'FRED'),
+        _lastUpdated: src._lastUpdated || new Date().toISOString(),
+        _updateFrequency: src._updateFrequency || 'Daily',
+      };
+    }
+
     result.yahoo = yahooData;
+
+    {
+      const sectorOrder = ['Energy', 'Precious Metals', 'Industrial Metals', 'Grains', 'Softs', 'Livestock'];
+      const sectorGroups = Object.fromEntries(sectorOrder.map(s => [s, []]));
+      const heatmapRows = [];
+      for (const [ticker, meta] of Object.entries(FUTURES_META)) {
+        const q = yahooData.futures[ticker];
+        if (!q || q.price == null) continue;
+        const row = {
+          ticker,
+          name: meta.name,
+          unit: meta.unit,
+          price: q.price,
+          change1d: q.change ?? null,
+          change1w: q.change1w ?? null,
+          change1m: q.change1m ?? null,
+          _source: q._source,
+          _lastUpdated: q._lastUpdated,
+        };
+        if (sectorGroups[meta.sector]) sectorGroups[meta.sector].push(row);
+        heatmapRows.push({
+          ticker,
+          name: meta.name,
+          sector: HEATMAP_SECTOR[meta.sector] || meta.sector,
+          d1: q.change ?? null,
+          w1: q.change1w ?? null,
+          m1: q.change1m ?? null,
+        });
+      }
+      result.priceDashboardData = sectorOrder
+        .map(sector => ({ sector, commodities: sectorGroups[sector] }))
+        .filter(s => s.commodities.length > 0);
+      if (heatmapRows.length > 0) {
+        result.sectorHeatmapData = { commodities: heatmapRows, columns: ['d1', 'w1', 'm1'] };
+      }
+    }
 
     // 4b. Futures-curve fetch — Yahoo lists each CME contract under its
     // own ticker (e.g. CLN26.NYM = WTI July 2026). Pull the next 6 months

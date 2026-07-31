@@ -129,9 +129,8 @@ function buildChargeoffOption(chargeoffs, colors) {
 }
 
 export default function DefaultWatch({ defaultData, delinquencyRates, lendingStandards, lastUpdated }) {
-  if (!defaultData) return null;
   const { colors } = useTheme();
-  const { rates = [], chargeoffs = { dates:[], commercial:[], consumer:[] }, defaultHistory = { dates:[], hy:[], loan:[] } } = defaultData;
+  const { rates = [], chargeoffs = { dates:[], commercial:[], consumer:[] }, defaultHistory = { dates:[], hy:[], loan:[] } } = defaultData || {};
 
   const kpis = useMemo(() => {
     const hyRate       = defaultHistory.hy?.length   ? defaultHistory.hy[defaultHistory.hy.length - 1]     : null;
@@ -140,6 +139,14 @@ export default function DefaultWatch({ defaultData, delinquencyRates, lendingSta
     const deteriorating = rates.filter(r => r.value > r.prev).length;
     return { hyRate, loanRate, consumerCO, deteriorating };
   }, [rates, chargeoffs, defaultHistory]);
+
+  if (!defaultData) {
+    return (
+      <div className="credit-panel" data-panel-empty="1" style={{ opacity: 0.3, padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
+        No default watch data available
+      </div>
+    );
+  }
 
   return (
     <div className="credit-panel">

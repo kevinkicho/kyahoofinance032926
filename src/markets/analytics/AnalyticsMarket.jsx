@@ -888,7 +888,6 @@ export default function AnalyticsMarket({ onNavigate }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
   const [expandedEp, setExpandedEp] = useState(null);
   const [epDetail, setEpDetail] = useState(null);
   const [expandedMarket, setExpandedMarket] = useState(null);
@@ -921,21 +920,6 @@ export default function AnalyticsMarket({ onNavigate }) {
   }, [histDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const id = setInterval(fetchData, 30000);
-    return () => clearInterval(id);
-  }, [autoRefresh, fetchData]);
-
-  useEffect(() => {
-    if (autoRefresh && !isAdmin) setAutoRefresh(false);
-  }, [autoRefresh, isAdmin]);
-
-  const handleAutoRefreshToggle = useCallback(() => {
-    if (!isAdmin) return;
-    setAutoRefresh(r => !r);
-  }, [isAdmin]);
 
   const handleForceLiveRefresh = useCallback(() => {
     if (!isAdmin) return;
@@ -1021,20 +1005,12 @@ export default function AnalyticsMarket({ onNavigate }) {
         <span>RSS {up.rssMB || 0} MB</span>
         <span>MemCache {mc.keyCount || 0} keys ({mc.hitRate || 0}% hit)</span>
         <button
-          className={`ana-refresh-btn${autoRefresh ? ' active' : ''}`}
-          onClick={handleAutoRefreshToggle}
-          disabled={!isAdmin}
-          title={isAdmin ? 'Auto-refresh analytics every 30 seconds' : 'Admin sign-in required'}
-        >
-          {autoRefresh ? 'Auto 30s' : 'Auto-refresh'}
-        </button>
-        <button
           className="ana-refresh-btn"
           onClick={handleForceLiveRefresh}
           disabled={!isAdmin}
-          title={isAdmin ? 'Bypass RTDB and fetch live analytics' : 'Admin sign-in required'}
+          title={isAdmin ? 'Refresh analytics once (force live)' : 'Admin sign-in required'}
         >
-          Refresh (force live)
+          ▶ Refresh
         </button>
         {/* Audit controls (date-aware) live inside the "Provenance Audit" bento card below — supports global History picker + per-audit date select. */}
       </div>

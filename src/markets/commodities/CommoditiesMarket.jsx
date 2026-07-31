@@ -251,8 +251,15 @@ function mapV2ToLegacy(d) {
   if (d.yahoo?.dbc) result.dbcEtf = { price: d.yahoo.dbc.price, changePct: d.yahoo.dbc.change, ytd: d.yahoo.dbc.ytd ?? null, history: d.yahoo.dbc.history ?? null, _source: d.yahoo.dbc._source, _lastUpdated: d.yahoo.dbc._lastUpdated };
 
   // ─── Yahoo futures → priceDashboardData + sectorHeatmapData ───
-  // Server returns yahoo.futures as a flat map keyed by ticker. The UI
-  // panels expect data grouped by sector with computed sector averages.
+  // Prefer server-built shapes (commoditiesEnhanced now emits these after
+  // quote+chart fallback). Otherwise map yahoo.futures client-side.
+  if (Array.isArray(d.priceDashboardData) && d.priceDashboardData.some(s => (s.commodities || []).length > 0)) {
+    result.priceDashboardData = d.priceDashboardData;
+  }
+  if (d.sectorHeatmapData?.commodities?.length > 0) {
+    result.sectorHeatmapData = d.sectorHeatmapData;
+  }
+
   if (d.yahoo?.futures && Object.keys(d.yahoo.futures).length > 0) {
     const futures = d.yahoo.futures;
     const sectorEntries = [];
@@ -263,21 +270,35 @@ function mapV2ToLegacy(d) {
           ticker: t,
           name: FUTURES_NAMES[t] || futures[t].name || t,
           price: futures[t].price,
-          change1d: futures[t].change ?? null,
-          _source: 'Yahoo Finance',
+          change1d: futures[t].change ?? futures[t].change1d ?? null,
+          change1w: futures[t].change1w ?? null,
+          change1m: futures[t].change1m ?? null,
+          _source: futures[t]._source || 'Yahoo Finance',
           _lastUpdated: futures[t]._lastUpdated,
         }));
       if (commodities.length > 0) sectorEntries.push({ sector, commodities });
     }
     if (sectorEntries.length > 0) {
-      // Merge with the eia-derived energy entry (if any) — stitch by sector.
+      // Merge with existing dashboard rows (server-built or EIA).
       if (result.priceDashboardData) {
         const merged = [...result.priceDashboardData];
         for (const se of sectorEntries) {
           const existing = merged.find(s => s.sector === se.sector);
           if (existing) {
-            const seen = new Set(existing.commodities.map(c => c.ticker));
-            existing.commodities.push(...se.commodities.filter(c => !seen.has(c.ticker)));
+            const byTicker = new Map(existing.commodities.map(c => [c.ticker, c]));
+            for (const c of se.commodities) {
+              const prev = byTicker.get(c.ticker);
+              if (!prev) {
+                existing.commodities.push(c);
+              } else if (prev.price == null && c.price != null) {
+                Object.assign(prev, c);
+              } else {
+                // Prefer Yahoo change fields when legacy/server row is bare.
+                if (prev.change1d == null && c.change1d != null) prev.change1d = c.change1d;
+                if (prev.change1w == null && c.change1w != null) prev.change1w = c.change1w;
+                if (prev.change1m == null && c.change1m != null) prev.change1m = c.change1m;
+              }
+            }
           } else {
             merged.push(se);
           }
@@ -287,24 +308,125 @@ function mapV2ToLegacy(d) {
         result.priceDashboardData = sectorEntries;
       }
 
-      // Sector heatmap expects a FLAT commodities array with a `sector`
-      // field per row plus column keys (d1/w1/m1). We only have d1 from
-      // yahoo's regular-market change, so w1 and m1 stay null.
-      const flat = [];
-      for (const se of sectorEntries) {
-        const heatmapSector = HEATMAP_SECTOR[se.sector] || se.sector;
-        for (const c of se.commodities) {
-          flat.push({
-            sector: heatmapSector,
-            ticker: c.ticker,
-            name: c.name,
-            d1: c.change1d,
-            w1: null,
-            m1: null,
-          });
+      if (!result.sectorHeatmapData?.commodities?.length) {
+        // Sector heatmap expects a FLAT commodities array with a `sector`
+        // field per row plus column keys (d1/w1/m1).
+        const flat = [];
+        for (const se of sectorEntries) {
+          const heatmapSector = HEATMAP_SECTOR[se.sector] || se.sector;
+          for (const c of se.commodities) {
+            flat.push({
+              sector: heatmapSector,
+              ticker: c.ticker,
+              name: c.name,
+              d1: c.change1d,
+              w1: c.change1w ?? null,
+              m1: c.change1m ?? null,
+            });
+          }
+        }
+        result.sectorHeatmapData = { commodities: flat, columns: ['d1', 'w1', 'm1'] };
+      }
+    }
+  }
+
+  // FRED/EIA sector fallback when Yahoo futures still sparse — keeps Sector
+  // Performance + Regime panels from rendering empty shells.
+  if (!result.sectorHeatmapData?.commodities?.length || !(result.priceDashboardData || []).some(s => (s.commodities || []).length > 2)) {
+    const fredFallback = [];
+    const pushFred = (ticker, name, sector, series) => {
+      if (!series || series.value == null) return;
+      const hist = Array.isArray(series.history) ? series.history : [];
+      let change1m = null;
+      if (hist.length >= 2) {
+        const a = hist[hist.length - 1]?.value;
+        const b = hist[0]?.value;
+        if (Number.isFinite(a) && Number.isFinite(b) && b !== 0) {
+          change1m = Math.round(((a - b) / b) * 1000) / 10;
         }
       }
-      result.sectorHeatmapData = { commodities: flat, columns: ['d1', 'w1', 'm1'] };
+      fredFallback.push({
+        ticker,
+        name,
+        sector,
+        price: series.value,
+        change1d: null,
+        change1w: null,
+        change1m,
+        d1: null,
+        w1: null,
+        m1: change1m,
+        _source: series._source || 'FRED',
+        _lastUpdated: series._lastUpdated,
+      });
+    };
+    const fred = d.fred || {};
+    const eia = d.eia || {};
+    if (eia.wti_price?.value != null) {
+      fredFallback.push({
+        ticker: 'CL=F', name: 'WTI Crude Oil', sector: 'Energy',
+        price: eia.wti_price.value, change1d: null, d1: null, w1: null, m1: null,
+        _source: 'EIA', _lastUpdated: eia.wti_price._lastUpdated,
+      });
+    } else {
+      pushFred('CL=F', 'WTI Crude Oil', 'Energy', fred.wti);
+    }
+    if (eia.brent_price?.value != null) {
+      fredFallback.push({
+        ticker: 'BZ=F', name: 'Brent Crude', sector: 'Energy',
+        price: eia.brent_price.value, change1d: null, d1: null, w1: null, m1: null,
+        _source: 'EIA', _lastUpdated: eia.brent_price._lastUpdated,
+      });
+    } else {
+      pushFred('BZ=F', 'Brent Crude', 'Energy', fred.brent);
+    }
+    if (eia.henry_hub?.value != null || eia.natgas?.value != null) {
+      const ng = eia.henry_hub || eia.natgas;
+      fredFallback.push({
+        ticker: 'NG=F', name: 'Natural Gas', sector: 'Energy',
+        price: ng.value, change1d: null, d1: null, w1: null, m1: null,
+        _source: 'EIA', _lastUpdated: ng._lastUpdated,
+      });
+    } else {
+      pushFred('NG=F', 'Natural Gas', 'Energy', fred.natgas);
+    }
+    pushFred('HG=F', 'Copper', 'Metals', fred.copper);
+    pushFred('ZW=F', 'Wheat', 'Agriculture', fred.wheat);
+    pushFred('ZC=F', 'Corn', 'Agriculture', fred.corn);
+    pushFred('ZS=F', 'Soybeans', 'Agriculture', fred.soybeans);
+
+    if (fredFallback.length > 0 && !result.sectorHeatmapData?.commodities?.length) {
+      result.sectorHeatmapData = {
+        commodities: fredFallback.map(c => ({
+          sector: c.sector,
+          ticker: c.ticker,
+          name: c.name,
+          d1: c.d1,
+          w1: c.w1,
+          m1: c.m1,
+        })),
+        columns: ['d1', 'w1', 'm1'],
+      };
+    }
+    if (fredFallback.length > 0 && !(result.priceDashboardData || []).some(s => (s.commodities || []).length > 2)) {
+      const bySector = {};
+      for (const c of fredFallback) {
+        const fine = c.sector === 'Metals' ? 'Industrial Metals'
+          : c.sector === 'Agriculture' ? 'Grains'
+          : c.sector;
+        if (!bySector[fine]) bySector[fine] = [];
+        bySector[fine].push({
+          ticker: c.ticker,
+          name: c.name,
+          price: c.price,
+          change1d: c.change1d,
+          change1w: c.change1w,
+          change1m: c.change1m,
+          _source: c._source,
+          _lastUpdated: c._lastUpdated,
+        });
+      }
+      result.priceDashboardData = Object.entries(bySector).map(([sector, commodities]) => ({ sector, commodities }));
     }
   }
   const goldPrice = d.fred?.gold_am?.value || d.yahoo?.futures?.['GC=F']?.price;

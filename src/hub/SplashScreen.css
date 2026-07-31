@@ -358,11 +358,13 @@
   border-radius: 8px;
   margin-bottom: 8px;
 }
+.splash-detail-verdict.is-ok,
 .splash-detail-verdict.is-green {
   color: #86efac;
   background: rgba(34, 197, 94, 0.12);
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
+.splash-detail-verdict.is-bad,
 .splash-detail-verdict.is-red {
   color: #fca5a5;
   background: rgba(239, 68, 68, 0.12);

@@ -78,6 +78,17 @@
   color: #a855f7;
 }
 
+.density-btn.active {
+  background: rgba(20, 184, 166, 0.15);
+  border-color: #14b8a6;
+  color: #14b8a6;
+}
+
+.density-btn:hover {
+  border-color: #14b8a6;
+  color: #14b8a6;
+}
+
 .ranking-hint {
   font-size: 0.68rem;
   color: var(--text-dim);

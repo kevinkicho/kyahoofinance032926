@@ -1,6 +1,8 @@
 # Panel Reference
 
-Every tab in the Hub, every panel inside it, and what each is for. Use this as the canonical "what does this thing do" lookup. For the data flow that powers them, see [`DATA_PIPELINE.md`](DATA_PIPELINE.md).
+Every tab in the Hub, every panel inside it, and what each is for. Use this as the canonical "what does this thing do" lookup.
+
+Doc map: [`README.md`](./README.md). Pipeline: [`DATA_PIPELINE.md`](DATA_PIPELINE.md).
 
 Panel keys (e.g. `kpi`, `yield`, `metrics`) are the `key` props on bento children — they map to layout positions in `BentoWrapper` and to `localStorage` slots when a user drags them.
 
@@ -363,27 +365,31 @@ Tickers persisted to localStorage. Adding a ticker triggers a `POST /api/watchli
 
 ## Cross-cutting features
 
-**DataFooter** — every panel has a footer showing `FETCHED / NO DATA / PENDING` plus the source name. Click it to open a popover listing every API call that produced this panel's data, with FRED series IDs, "Open in FRED" links, and a copyable raw JSON URL for verification.
+**DataFooter** — badge vocabulary: `FETCHED` / `LOADING` / `STALE` / `NO DATA` /
+`UNAVAIL` / `WAITING`. Click for provenance (sources, FRED links, fetch log).
 
-**MetricValue** — every numeric value rendered in the app is clickable. The popover shows the FRED series ID (or other source), provenance trail, and an "Open source" link. This makes every chart number traceable back to its origin.
+**MetricValue** — major numbers are clickable for series ID / source trail.
 
-**BentoWrapper** — every panel is a draggable, resizable bento card. Drag the title row, drop anywhere; resize from the bottom-right corner. Position + size persisted to `localStorage` per market with a versioned key (`<market>-layout-vN`).
+**BentoWrapper** — draggable/resizable cards; layout in `localStorage` via
+versioned `storageKey` (bump when defaults change — see `layout-keys.md`).
 
-**Currency converter** — top-bar dropdown converts every USD value in the app to the selected currency on the fly using FX rates from the FX route.
+**Currency** — top-bar currency picker; panels that convert call `useCurrency()`
+explicitly (not a global rewrite of every number).
 
-**Theme** — light/dark toggle in top bar. CSS vars drive all colors.
+**Theme** — light/dark toggle.
 
-**Time travel** — snapshot date selector replays the dashboard with cached data from any prior day. Powered by daily JSON snapshots in `server/datacache/`.
+**Historical date** — topbar date picker can load RTDB `history/YYYY-MM-DD` when
+a past day is selected (nightly snapshots).
 
 ---
 
-## When a panel says "PENDING" / "NO DATA" / em-dashes
+## Empty / red panels
 
-| Symptom | Most-likely cause |
+| Symptom | Likely cause |
 |---|---|
-| `PENDING` (grey) — never resolves | DataProvider's wave hasn't reached this market yet (rare). Hard refresh. |
-| `NO DATA` (red) | The route fetched but the validator rejected the shape, or upstream returned 4xx/5xx. Click the badge → see actual fetch log. |
-| `FETCHED` but values are em-dashes | The route succeeded but a specific FRED/Yahoo series within it failed — usually a transient upstream 5xx. The page recovers on next refresh. |
-| Whole tab missing | Likely missing API key (`FRED`/`EIA`/`BLS`). Run `npm run setup`. |
+| `WAITING` | Wave still in flight for that market |
+| `NO DATA` | Shape guard failed or upstream empty/error — check DataFooter fetch log |
+| `FETCHED` but "—" values | Specific series missing inside a successful payload |
+| Missing key panels | `FRED` / `EIA` / `BLS` keys — run `npm run setup` |
 
-For a programmatic check, run `npm run test:validate` — it will dump every empty panel into `test-results/validate.md`.
+Programmatic crawl: `npm run test:validate` → `test-results/validate.md`.

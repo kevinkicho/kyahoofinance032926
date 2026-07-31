@@ -1,8 +1,9 @@
 # Known Limitations
 
-This document tracks behavior that is intentional-but-constrained, not bugs.
-Grounded in actual code paths as of the current `main`. When you change or
-remove one of the items below, please update this file in the same PR.
+Intentional constraints (not bugs). **Last reviewed: 2026-07-30.**  
+Update this file when you change any of these behaviors.
+
+Doc map: [`docs/README.md`](docs/README.md).
 
 ---
 
@@ -11,256 +12,99 @@ remove one of the items below, please update this file in the same PR.
 | Badge | Meaning |
 |---|---|
 | **FETCHED** | Live or same-day successful payload |
-| **LOADING** | Request in flight (`isLoading`) |
-| **STALE** | Serving prior cache (`fetchedOn` set, not current) |
-| **NO DATA** | Fetch finished with empty/error payload |
-| **UNAVAIL** | Source missing key / not configured / auth failure |
-| **WAITING** | Panel shell mounted; first fetch not finished yet (replaces **PENDING**) |
+| **LOADING** | Request in flight |
+| **STALE** | Serving prior cache (`isCurrent: false`) |
+| **NO DATA** | Fetch finished empty/error |
+| **UNAVAIL** | Missing key / not configured |
+| **WAITING** | Shell mounted; first fetch not finished |
 
-Older docs may still say PENDING; UI and audits treat WAITING as the waiting state.
-After App Hosting deploys, run `npm run postdeploy:warm` so cold instances fill
-disk cache before users hit slow FRED routes.
+**Tab health dots** (separate): green only when fetch + display + confirm pass on
+the **mounted** tab. Inactive tabs must not stay green from splash cache alone.
 
-### Local preflight vs GitHub Actions
+After App Hosting deploys: `npm run postdeploy:warm`.
 
-`npm run preflight` (and git pre-push) catches secrets leaks, invalid workflow
-YAML patterns, and unit-test regressions. It does **not** prove live secrets,
-environment protection rules, or hosted cache warm state. Those still need a
-real Actions run and/or `postdeploy:warm`.
-
-### Shared GCS cache (enabled in production)
-
-Production sets `MARKET_CACHE_BUCKET=kfinance032926-market-cache`. Daily market
-JSON is mirrored to GCS so new Cloud Run revisions hydrate without a full FRED
-stampede. See [`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md) and
-[`docs/DEPLOY.md`](docs/DEPLOY.md). When unset locally, cache is disk-only.
-
-### Rate-limit counters
-
-`server/lib/rateLimits.js` tracks upstream call counts on local disk and, when
-`MARKET_CACHE_BUCKET` is set, **max-merges** with a shared GCS object
-(`market-cache/rate-limits-YYYY-MM-DD.json`). That approximates global usage
-across instances without Redis. Counters still do **not** hard-block traffic;
-they are diagnostics / soft visibility into free-tier usage.
+`npm run preflight` does **not** prove live secrets, env protection, or hosted
+cache warm state — those need Actions and/or post-deploy warm.
 
 ---
 
-## 1. Mock / synthetic data
+## Shared GCS cache
 
-The app follows a strict "no mock data" policy. When live data is unavailable,
-panels display "—" or empty states rather than fabricated numbers.
+Production: `MARKET_CACHE_BUCKET=kfinance032926-market-cache`. See
+[`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md). Locally, cache is disk-only unless
+the env var is set.
 
-- **`src/utils/dataHelpers.js` — `getExtendedDetails(tickerInfo, rates)`**
-  Returns `null`. Previously generated deterministic fake prices/P/E/volume
-  for the equities detail panel; now returns `null` so the UI shows "—"
-  until live Yahoo Finance data arrives. The `EquitiesMarket` detail panel
-  only populates after a successful `/api/stocks` or `/api/summary/:ticker` call.
-- **Sidebar macro indicators** (`src/components/Sidebar/Sidebar.jsx`) show
-  a `(Mock)` label whenever `macroLive` is false — i.e. the `/api/macro`
-  call failed or is unresolved. Values default to `null` (rendering "—")
-  until the macro route responds.
-- **Institutional holdings** (`server/routes/institutional.js`) returns
-  curated 13F snapshot data, not live SEC EDGAR data. The `_sources`
-  field reports `{ secEdgar: false, curated: true }`.
-- **Insurance cat bonds & reinsurance** and **credit CLO/EM/default data**
-  include algorithmically generated or hardcoded values where no free API
-  source exists. These are flagged in `_sources` accordingly.
+---
 
-## 2. External-API rate limits (free tiers)
+## Rate-limit counters
 
-Enumerated in `server/lib/rateLimits.js` (`KNOWN_LIMITS`, requests/day):
+`server/lib/rateLimits.js` tracks upstream call counts (disk + optional GCS
+max-merge). Counters are **diagnostic only** — they do not hard-block traffic.
+Free-tier daily caps (approximate) are listed in that file under `KNOWN_LIMITS`.
 
-| Source | Daily cap |
+---
+
+## Data policy gaps (not live market data)
+
+| Area | Behavior |
+|------|----------|
+| Missing live payload | Show "—" / empty shell — never invent prices as live |
+| Equities detail extras | `getExtendedDetails` returns `null` until Yahoo summary arrives |
+| Institutional holdings | Curated 13F snapshot; `_sources` marks `curated: true` |
+| Insurance cat/reinsurance, credit CLO/EM/default shells | Hardcoded or algorithmic where no free API exists; flagged in `_sources` |
+| IMF WEO/IFS/COFER | Live first; static snapshots if IMF fails |
+
+---
+
+## Required env keys
+
+| Env var | Missing behavior |
 |---|---|
-| Yahoo Finance | 2,000 |
-| FRED | 172,800 |
-| CoinGecko | 30 |
-| Alternative.me | 100 |
-| CFTC Socrata | 1,000 |
-| DefiLlama | 300 |
-| Mempool.space | 300 |
-| Etherscan | 100 |
-| EIA | 1,000 |
-| World Bank | 500 |
-| FRED Economic Events | 500 |
-| Treasury Fiscal Data | 1,000 |
-| Bybit | 600 |
-| BLS | 500 |
-| ECB (Frankfurter) | 86,400 |
-| BIS | 1,000 |
-| IMF WEO | 50 |
-| IMF IFS | 50 |
-| IMF COFER | 50 |
-| SEC EDGAR | 1,000 |
-| OECD | 500 |
-| Econdb | 1,000 |
+| `FRED_API_KEY` | FRED-backed series skipped; `census` may 503 |
+| `EIA_API_KEY` | EIA series skipped |
+| `BLS_API_KEY` | `bls` may 503; macro employment series skipped |
 
-The counter persists to `server/datacache/rate-limits-YYYY-MM-DD.json`
-(debounced 2 s) and reloads on boot, so restarts no longer zero the
-counts within the same UTC day. Remaining caveats:
+Startup logs which keys are missing (`warnOnMissingKeys` in `server/index.js`).
 
-- Running multiple server processes races on the shared file; last
-  write wins. Not safe for horizontally-scaled deployments.
-- The counter **does not enforce** the cap — it only tracks what was
-  fired. Hitting a remote 429 is handled per-route via catch-blocks that
-  return `isCurrent: false` with the most recent cached snapshot.
-- Counts between the last debounced flush and a hard kill are lost
-  (worst case ~2 s of activity).
+---
 
-## 3. Caching layers & staleness
+## Caching
 
-Three caches, each with different failure modes:
+| Layer | Notes |
+|-------|--------|
+| Daily files `server/datacache/` | Hollow/sparse payloads rejected; pruned after 7 days; prior-day fallback sets `isCurrent: false` |
+| In-process NodeCache | Per-route TTL; lost on restart |
+| Client IndexedDB / localStorage | Optional paint/persist; unavailable in some private WebViews |
 
-### Server: `server/datacache/<market>-YYYY-MM-DD.json`
-- Populated by `writeDailyCache`, read by `readDailyCache` and
-  `readLatestCache` (`server/lib/cache.js`).
-- Quality gates: cache is discarded if the JSON string is **< 200 bytes**
-  or if **< 15 % of leaf values are non-null** (depth 4). This means a
-  genuinely sparse response (e.g. a tiny new indicator) can be
-  mis-flagged as "stale" and refused.
-- `cleanOldCaches()` deletes files **older than 7 days**. Disk is
-  bounded but snapshots don't survive past that window.
-- When today's cache is missing, most routes fall back to the latest
-  prior snapshot and return `isCurrent: false`.
+---
 
-### Server: in-process `node-cache` (`req.app.locals.cache`)
-- TTL is per-route; evaporates on restart. Not a durable store.
+## FX conversion
 
-### Client: IndexedDB (`src/utils/snapshotDB.js`)
-- Database name `hub-snapshots`, object store `snapshots`, schema v1.
-- Rejects with `IndexedDB unavailable` in environments without the API
-  (private Safari windows historically, some WebViews, SSR).
-- No size eviction; relies on the browser's storage quota.
+`CurrencyProvider` uses Frankfurter (with retry). On failure, static rates from
+`src/utils/constants.js` (hand-maintained; can drift). Conversion is **explicit
+at render** in panels that need it — not a recursive rewrite of every number.
 
-## 4. Required environment variables
+FX dashboard may show a static-rate banner when live rates are unavailable;
+changes display as 0% in that mode.
 
-Routes silently degrade or return 503 when these are absent:
+---
 
-| Env var | Consumers | Missing behavior |
-|---|---|---|
-| `FRED_API_KEY` | `bonds`, `commodities`, `credit`, `derivatives`, `equityDeepDive`, `fx`, `globalMacro`, `insurance`, `macro`, `realEstate`, `sentiment`, `census` | `census` returns 503; others skip FRED-backed series but still return partial data |
-| `EIA_API_KEY` | `commodities`, `eia` | Skips EIA-backed series |
-| `BLS_API_KEY` | `bls`, `globalMacro` | `bls` returns 503; `globalMacro` skips employment series |
+## Upstream / response shape
 
-The server now logs a yellow warning at startup listing any missing
-keys and which routes will be degraded (`warnOnMissingKeys` in
-`server/index.js`).
+- Many routes catch upstream errors and return `field: null` with HTTP 200 and
+  `console.warn`. Panel Trace (Analytics) shows null fields; it does not always
+  surface the raw upstream error string.
+- Real Estate / Insurance may **omit** panels from the layout when data fails a
+  truthiness check (hidden, not empty shell).
+- CFTC COT history in FX uses a fixed `$limit`; large expansions can truncate.
+- Public `/api/*` is open by design. Admin routes (`/api/admin/*`) require a
+  Firebase ID token and per-IP rate limits.
 
-## 5. Upstream-API fragility (swallowed errors)
+---
 
-The IMF (`server/routes/imf.js`) sub-fetchers `fetchWEOIndicator`,
-`fetchIFSData`, and `fetchCOFER` each wrap their network/parse logic in
-`try/catch` and return `{}` / `null` on failure with only a
-`console.warn`. The route still responds, but silently with fewer
-indicators. The WEO path has a static snapshot fallback; **IFS and COFER
-now also have static snapshot fallbacks** (`server/dataSources/ifsCofeSnapshot.js`).
-When live IMF API calls fail, the route serves recent-quarter estimates
-from the snapshot, with `_sources.imfIFS_snapshot` and
-`_sources.imfCOFER_snapshot` set to `true`.
+## Tests vs production
 
-Other routes follow the same pattern (warn + partial response); see any
-`.catch(e => { console.warn(...); return null; })` block in `server/routes/`.
-
-## 6. FX rates
-
-`src/hub/CurrencyContext.jsx` provides FX rates globally via React context,
-backed by `src/utils/useFrankfurterRates.js`:
-
-- Primary: `api.frankfurter.dev/v1/latest?base=USD`, routed through
-  `fetchWithRetry` (2 retries, 8 s per attempt, 20 s total budget).
-- On ultimate failure or malformed payload, falls back to the **static
-  `exchangeRates` table in `src/utils/constants.js`**, which is
-  hand-maintained and drifts from the market over time.
-- Rates are fetched once on mount and shared via `CurrencyProvider` context.
-  No background refresh if the session outlives the ECB daily publication.
-- `useCurrency()` hook provides `{ currency, setCurrency, rates, currentRate,
-  currentSymbol, convert, convertAndFormat, ratesLive }` to all markets.
-- **Conversion happens at render time, in the panel that owns the value.**
-  Markets that display currency-denominated numbers (bonds, crypto, credit,
-  insurance, globalMacro country-detail) call `useCurrency().convert(value)`
-  or `convertAndFormat(value, 'USD', decimals)` explicitly. There is
-  intentionally NO automatic provider-level conversion, because at the
-  provider layer we cannot distinguish currency fields from yields,
-  percentages, ratios, indices, or counts. A previous experiment that
-  recursively rewrote every numeric field via `convert()` was removed
-  for that reason (see commit history).
-- Independence from `DataProvider`: `CurrencyProvider` wraps `DataProvider`
-  in the React tree, but uses its own `useFrankfurterRates` fetch — so
-  there is no circular dependency on the FX market's wave fetch.
-
-## 7. Browser baseline
-
-`src/utils/fetchWithRetry.js` uses `AbortSignal.any()` with a **runtime
-polyfill** that adds `AbortSignal.any` if missing. This extends support to:
-
-- Chrome / Edge ≥ 93 (Jul 2021)
-- Firefox ≥ 100 (May 2022)
-- Safari ≥ 15.4 (Mar 2022)
-- Node ≥ 16.14 (server-side consumers are Node 24)
-
-Browsers older than these cutoffs will still fail with
-`TypeError: AbortSignal.any is not a function`.
-
-## 8. Retry / timeout semantics
-
-`fetchWithRetry(url, opts)`:
-
-- `retries` is zeroed in `NODE_ENV=test` so tests don't wait through
-  backoffs. Production retry math is `backoff * (attempt + 1)`.
-- `totalTimeout` (default 30 s) is a hard ceiling across **all**
-  attempts, enforced via the combined abort signal. When it fires, the
-  thrown error is a `DOMException` with `name === 'AbortError'` and
-  `message === 'Total timeout exceeded'`, so upstream handlers that
-  match `err.name === 'AbortError'` will behave correctly.
-
-## 9. CFTC COT history
-
-`server/routes/fx.js` — `fetchCOTHistory` queries
-`publicreporting.cftc.gov/resource/jun7-fc8e.json` with `$limit=400`.
-That's enough for ~8 contracts × 52 weeks, but if CFTC adds contracts or
-widens the window it silently truncates.
-
-## 10. Not covered
-
-- No structured monitoring / alerting on cache fallback frequency. The
-  only signal that the app is serving stale data is `isCurrent: false`
-  in the JSON payload.
-- **Radar view** (new) is in early implementation; may have layout or data
-  binding inconsistencies across different screen sizes. Its scatter plot
-  uses raw `flatData` fields which may be null for some tickers—these are
-  rendered at the origin (0,0).
-- **Calendar Econdb gap**: The Calendar view is not currently wired to
-  Econdb; only a subset of manually curated or FRED-based events are displayed.
-  Economic events from FRED have no consensus/expected values (expected is
-  always null) because the FRED releases API provides dates but not survey
-  estimates.
-- **Watchlist My Metrics**: Live values depend on the `DataProvider` context.
-  If a particular market hasn't been fetched yet (i.e. the user has not visited
-  the market or clicked the play button), corresponding metrics display "—".
-- No end-to-end tests; coverage is unit/component (Vitest + RTL) only.
-- Server is intended for local / trusted-network use. Admin endpoints
-  (`/api/admin/*`) verify Firebase ID tokens via Google's identity toolkit
-  REST API and enforce per-IP rate limiting (20 req / 15 min). Public
-  `/api/*` routes remain open (no auth/rate-limit) by design. Deploy behind
-  Firebase Functions + App Check or an API gateway for production hardening.
-- **Conditional layout panels**: Real Estate and Insurance dashboards use
-  dynamic layouts where panels are only added if their data passes a
-  truthiness check. If data is missing, the panel is **hidden entirely**
-  (not shown as empty). The `needsLiveRepair` function catches stale RTDB
-  snapshots, but type-mismatch bugs (e.g. `Object.length` on a dict) can
-  still hide panels with valid data. Use the Panel Trace Inspector in the
-  Analytics tab to diagnose.
-- **FX static fallback**: When live Frankfurter/FRED rates are unavailable,
-  the FX dashboard falls back to hardcoded static rates from `constants.js`
-  with a visible warning banner. All changes will show 0% in this mode.
-- **needsLiveRepair coverage**: 10 of 21 markets have critical-field
-  lists that force a live fetch when fields are null in the RTDB snapshot.
-  Markets without critical fields (equities, analytics, watchlist, eia, bls,
-  census, imf, worldbank) rely on their structural guard alone. See
-  `docs/plans/panel-diagnostics-expansion.md` for the full audit.
-- **Silent null-on-catch**: All 124 panel fields across 44 routes silently
-  become `null` inside try/catch blocks with `console.warn`. The HTTP
-  response stays `200 OK` with `field: null`. The Panel Trace Inspector
-  shows which fields are null, but does not yet surface the actual upstream
-  error message. A planned `_errors` object in route responses (Phase 2.4)
-  will address this.
+- Unit: Vitest (`npm test` / preflight).
+- UI smoke: Playwright scripts (`test:validate`, `test:coverage`, etc.) — not in
+  default preflight.
+- Hosted cold start and third-party outages are not fully covered by local gates.

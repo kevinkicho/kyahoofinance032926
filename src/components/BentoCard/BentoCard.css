@@ -73,3 +73,44 @@
 .bento-card--alerts           { --bento-accent-color: #f43f5e; }
 .bento-card--watchlist        { --bento-accent-color: #22c55e; }
 .bento-card--analytics        { --bento-accent-color: #94a3b8; }
+
+/* ── Disabled / empty shell — stay mounted, signal "not live" ── */
+.bento-card--disabled {
+  opacity: 0.3;
+  filter: grayscale(0.25);
+}
+
+.bento-card--disabled .bento-panel-content {
+  pointer-events: none;
+}
+
+.bento-panel-disabled-badge {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  opacity: 0.9;
+  letter-spacing: 0.04em;
+}
+
+.bento-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 72px;
+  padding: 16px 12px;
+  text-align: center;
+  gap: 4px;
+}
+
+.bento-panel-empty-message {
+  font-size: 0.82rem;
+  color: var(--text-muted, #888);
+}
+
+.bento-panel-empty-reason {
+  font-size: 0.7rem;
+  color: var(--text-muted, #666);
+  max-width: 28ch;
+}

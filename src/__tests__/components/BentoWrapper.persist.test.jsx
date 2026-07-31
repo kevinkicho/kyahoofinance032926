@@ -60,6 +60,18 @@ beforeEach(() => {
 });
 
 describe('BentoWrapper persistence', () => {
+  it('always mounts layout slots even when a child is missing', () => {
+    const { container } = render(
+      <BentoWrapper layout={LAYOUT} storageKey={STORAGE_KEY} panelTitles={{ a: 'Panel A', b: 'Panel B' }}>
+        <div key="a">only a</div>
+        {/* key "b" intentionally omitted */}
+      </BentoWrapper>
+    );
+    expect(container.querySelector('[data-panel-key="a"]')).toBeTruthy();
+    expect(container.querySelector('[data-panel-key="b"]')).toBeTruthy();
+    expect(container.querySelector('.bento-card--disabled')).toBeTruthy();
+  });
+
   it('uses 12 cols at every breakpoint (so correctBounds never clamps x)', () => {
     // The original "drag x-position lost on reload" bug came from RGL's
     // breakpoint fallback: when actual container width drops below 1200px

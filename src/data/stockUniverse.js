@@ -63,6 +63,9 @@ export const stockUniverseData = [
       s('AMD',   'Advanced Micro Devices', 355, 25,  0.9, 278, 0,   'Technology'),
       s('CSCO',  'Cisco Systems',          312, 55,  10,  23,  3.5, 'Technology'),
       s('GE',    'GE Aerospace',           294, 68,  9.3, 25,  0.6, 'Industrials'),
+      // Space / aerospace — permanent heatmap members (not IPO-queue only)
+      s('SPCX',  'Space Exploration Technologies', 1478, 19.3, 0.1, 999, 0, 'Industrials'),
+      s('RKLB',  'Rocket Lab Corporation', 40, 0.5, 0.1, 999, 0, 'Industrials'),
       // ── Additional US Stocks for Sector Coverage ──
       s('CVX',   'Chevron Corp.',              250, 196, 17,  15,  4.2, 'Energy'),
       s('COP',   'ConocoPhillips',             130, 56,  9.8, 13,  3.1, 'Energy'),

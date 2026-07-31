@@ -1,4 +1,10 @@
-export const RTDB_BASE = 'https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots';
+// Plain REST — not the Firebase client SDK. Used for historical date
+// playback and optional VITE_USE_RTDB_SEED demos only.
+const RTDB_ROOT =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FIREBASE_DATABASE_URL)
+  || 'https://kfinance032926-default-rtdb.firebaseio.com';
+
+export const RTDB_BASE = `${String(RTDB_ROOT).replace(/\/$/, '')}/marketSnapshots`;
 
 /**
  * Load a market snapshot from the public RTDB REST endpoint.

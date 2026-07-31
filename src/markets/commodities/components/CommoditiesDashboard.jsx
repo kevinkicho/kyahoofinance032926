@@ -422,43 +422,56 @@ function CommoditiesDashboard({
     return Object.fromEntries(allCommodities.map(item => [item.ticker, item]));
   }, [allCommodities]);
 
+  // Prefer 1d change; fall back to 1w / 1m when Yahoo quote change is null
+  // (chart-only or FRED rows). Keeps Sector pulse + Regime from all zeros.
+  const rowChange = (row) => {
+    const v = row?.change1d ?? row?.change ?? row?.d1 ?? row?.change1w ?? row?.w1 ?? row?.change1m ?? row?.m1;
+    return finiteNumber(v);
+  };
+
   const sectorPulseRows = useMemo(() => {
     return (priceDashboardData || []).map(sector => {
       const commodities = sector.commodities || [];
-      const avg1d = avgNumeric(commodities.map(row => row.change1d));
-      const advancers = commodities.filter(row => Number(row.change1d) > 0).length;
+      const changes = commodities.map(rowChange).filter(v => v != null);
+      const avg1d = avgNumeric(changes);
+      const advancers = changes.filter(v => v > 0).length;
       return {
         sector: sector.sector,
         count: commodities.length,
         avg1d,
-        breadth: commodities.length ? (advancers / commodities.length) * 100 : null,
+        breadth: changes.length ? (advancers / changes.length) * 100 : null,
       };
     }).filter(row => row.count > 0);
   }, [priceDashboardData]);
 
   const regimeSnapshot = useMemo(() => {
-    const energy = avgNumeric((priceDashboardData || []).filter(s => s.sector === 'Energy').flatMap(s => (s.commodities || []).map(c => c.change1d)));
-    const metals = avgNumeric((priceDashboardData || []).filter(s => ['Precious Metals', 'Industrial Metals', 'Metals'].includes(s.sector)).flatMap(s => (s.commodities || []).map(c => c.change1d)));
-    const ag = avgNumeric((priceDashboardData || []).filter(s => ['Grains', 'Softs', 'Agriculture'].includes(s.sector)).flatMap(s => (s.commodities || []).map(c => c.change1d)));
-    const gold = Number(commodityByTicker['GC=F']?.change1d ?? 0);
-    const copper = Number(commodityByTicker['HG=F']?.change1d ?? 0);
-    const crude = Number(commodityByTicker['CL=F']?.change1d ?? 0);
+    const sectorAvg = (names) => avgNumeric(
+      (priceDashboardData || [])
+        .filter(s => names.includes(s.sector))
+        .flatMap(s => (s.commodities || []).map(rowChange))
+    );
+    const energy = sectorAvg(['Energy']);
+    const metals = sectorAvg(['Precious Metals', 'Industrial Metals', 'Metals']);
+    const ag = sectorAvg(['Grains', 'Softs', 'Agriculture']);
+    const gold = rowChange(commodityByTicker['GC=F']) ?? 0;
+    const copper = rowChange(commodityByTicker['HG=F']) ?? 0;
+    const crude = rowChange(commodityByTicker['CL=F']) ?? 0;
     const breadth = avgNumeric(sectorPulseRows.map(row => row.breadth));
     let label = 'Mixed';
     let read = 'Cross-commodity signals are not aligned.';
     if ((energy ?? 0) > 1 && (metals ?? 0) > 0.5) {
       label = 'Inflationary';
       read = 'Energy and metals are rising together.';
-    } else if ((crude ?? 0) > 1.5 && (copper ?? 0) < 0) {
+    } else if ((crude ?? 0) > 1.5 && copper < 0) {
       label = 'Supply Shock';
       read = 'Oil strength is not confirmed by growth metals.';
-    } else if (gold > 0.75 && (copper ?? 0) < 0) {
+    } else if (gold > 0.75 && copper < 0) {
       label = 'Safe Haven';
       read = 'Precious metals are leading cyclicals.';
     } else if ((energy ?? 0) < -1 && (metals ?? 0) < -0.5 && (ag ?? 0) < 0) {
       label = 'Disinflationary';
       read = 'Major commodity groups are soft together.';
-    } else if ((copper ?? 0) > 0.75 && (breadth ?? 0) >= 55) {
+    } else if (copper > 0.75 && (breadth ?? 0) >= 55) {
       label = 'Growth-Led';
       read = 'Cyclical metals and breadth are constructive.';
     }

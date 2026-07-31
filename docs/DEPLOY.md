@@ -1,94 +1,93 @@
 # Deploy — Global Market Hub
 
-## Canonical production: Firebase App Hosting
+Doc map: [`README.md`](./README.md).
+
+## Production: Firebase App Hosting
 
 | Item | Value |
 |------|--------|
 | URL | https://kyahoofinance032926--kfinance032926.us-central1.hosted.app |
-| Runtime | Cloud Run (Node) — `runCommand: node server/index.js` |
+| Runtime | Cloud Run — `runCommand: node server/index.js` |
 | Config | [`apphosting.yaml`](../apphosting.yaml) |
-| API | Same origin `/api/*` (no `VITE_API_BASE_URL` required) |
+| API | Same origin `/api/*` |
 | Shared cache | GCS `MARKET_CACHE_BUCKET=kfinance032926-market-cache` |
 
 Push to `master` triggers App Hosting build + rollout.
 
-### Before every push (local gate)
+### Nightly RTDB snapshots
+
+Cloud Scheduler runs **daily 00:00 UTC** (`refreshMarketSnapshots`): fetches every
+market from **App Hosting**, writes:
+
+- `marketSnapshots/{id}/latest`
+- `marketSnapshots/{id}/history/YYYY-MM-DD`
+
+Code: `functions/src/index.ts` (`LIVE_API_BASE` defaults to the App Hosting URL).
 
 ```bash
-npm run preflight          # secrets + workflow lint + vitest (also runs on git pre-push)
-npm run preflight:full     # + vite build + functions build (deploy-heavy changes)
+cd functions && npm run build
+firebase deploy --only functions:refreshMarketSnapshots
 ```
 
-Hooks live in `.githooks/` (`npm run hooks:install`). Agents must follow [`AGENTS.md`](../AGENTS.md).  
-Workflow YAML policy (e.g. never `if: secrets.X != ''`) is enforced by `npm run lint:workflows` — see [`CI_PREFLIGHT_GUIDE.md`](./CI_PREFLIGHT_GUIDE.md).
+Verify after midnight UTC (or manual scheduler run): `marketSnapshots/_meta/lastRun`
+should show `ok` equal to `total`. Job throws if any market fails after retries.
 
-After a new revision is healthy:
+Optional keys (e.g. `USDA_NASS_API_KEY`) must exist on App Hosting or that market fails.
+
+### Local quality gate
+
+```bash
+npm run preflight          # secrets + workflow lint + vitest
+npm run preflight:full     # + vite build + functions build
+```
+
+Hooks: `.githooks/` (`npm run hooks:install`). Agents: [`AGENTS.md`](../AGENTS.md).  
+Workflow policy: [`CI_PREFLIGHT_GUIDE.md`](./CI_PREFLIGHT_GUIDE.md).
+
+### After a healthy revision
 
 ```bash
 npm run postdeploy:warm
-# or GitHub Actions → "Post-deploy warm (App Hosting)" (default: warm-only HTTP)
+# or GitHub Actions → "Post-deploy warm (App Hosting)"
 ```
 
-This warms priority market APIs (seeds local disk + GCS). Optional traffic routing requires repo variable `ENABLE_GCLOUD_TRAFFIC=true` and secret `GCP_SA_KEY`.
+Warms priority `/api/*` (disk + GCS). Optional traffic routing needs
+`ENABLE_GCLOUD_TRAFFIC=true` and secret `GCP_SA_KEY`.
 
-### Scheduled warm (enabled)
+### Scheduled warm
 
-Cloud Scheduler job **`market-cache-warm`** (us-central1):
-
-| Field | Value |
-|-------|--------|
-| Schedule | `0 */6 * * *` (America/New_York) |
-| Target | `POST …/api/warm` |
-| Body | priority market paths (bonds, realEstate, insurance, …) |
+Cloud Scheduler **`market-cache-warm`** (us-central1): `0 */6 * * *` America/New_York,
+`POST …/api/warm` with priority market paths.
 
 ```bash
 gcloud scheduler jobs describe market-cache-warm --location=us-central1 --project=kfinance032926
 gcloud scheduler jobs run market-cache-warm --location=us-central1 --project=kfinance032926
 ```
 
-If `WARM_TOKEN` is set on the service, update the job headers with `x-warm-token`.
+If `WARM_TOKEN` is set, include header `x-warm-token` on the job.
 
----
+### Functions scope
 
-## Legacy (not production)
-
-### GitHub Pages + Cloud Functions
-
-Archived / non-production:
-
-- Workflow moved to `.github/workflows/archive/deploy-pages.yml.legacy` (not active)
-- Requires `VITE_API_BASE_URL` if revived
-- **Not** the canonical product path
-
-### Firebase Functions (`functions/`)
-
-Used historically for:
-
-- Scheduled RTDB market snapshots
-- Admin refresh
-
-Live UI loads use **App Hosting Express** + **GCS/disk cache**, with `USE_RTDB_SEED = false`.  
-RTDB can remain for historical date-picker / analytics only.
+`functions/` hosts the snapshot scheduler and related admin paths. Live UI data
+loads use **App Hosting Express** + disk/GCS. RTDB is for historical dates /
+nightly history, not the primary live paint.
 
 ```bash
-# Only if you still need snapshot writers
-firebase deploy --only functions
+firebase deploy --only functions   # when changing Functions code
 ```
 
-### Local Docker
+### Local Docker (optional)
 
 ```bash
 docker-compose up --build   # http://localhost:3001
 ```
 
----
-
 ## Secrets (App Hosting)
 
-Configured in Firebase console / `apphosting.yaml` as secrets:
+Firebase console / `apphosting.yaml`:
 
 - `FRED_API_KEY`, `EIA_API_KEY`, `BLS_API_KEY`, `BEA_API_KEY`, …
 - Firebase web config (`VITE_FIREBASE_*`)
-- `MARKET_CACHE_BUCKET` (plain env, not secret)
+- `MARKET_CACHE_BUCKET` (plain env)
 
-See [`SHARED_CACHE.md`](./SHARED_CACHE.md) for GCS setup.
+See [`SHARED_CACHE.md`](./SHARED_CACHE.md).

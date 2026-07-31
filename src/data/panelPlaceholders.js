@@ -52,10 +52,11 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:prices': [
     any('wti', ['eia.wti_price.value', 'fred.wti.value', 'yahoo.futures.CL=F.price']),
     any('brent', ['eia.brent_price.value', 'fred.brent.value', 'yahoo.futures.BZ=F.price']),
-    any('natgas', ['eia.natgas.value', 'fred.natgas.value', 'yahoo.futures.NG=F.price']),
-    any('gold', ['yahoo.futures.GC=F.price', 'fred.gold_am.value']),
-    any('silver', ['yahoo.futures.SI=F.price', 'fred.silver.value']),
-    any('copper', ['yahoo.futures.HG=F.price', 'fred.copper.value']),
+    any('natgas', ['eia.henry_hub.value', 'eia.natgas.value', 'fred.natgas.value', 'yahoo.futures.NG=F.price']),
+    any('copper', ['fred.copper.value', 'yahoo.futures.HG=F.price', 'fred.copper']),
+    // Gold/silver often missing without Yahoo futures — optional so energy metals still green
+    any('gold', ['yahoo.futures.GC=F.price', 'fred.gold_am.value', 'fred.gold_am'], { required: false }),
+    any('silver', ['yahoo.futures.SI=F.price', 'fred.silver.value', 'fred.silver'], { required: false }),
   ],
   'commodities:futures': [
     p('curve.labels', 'futuresCurveData.labels'),
@@ -66,7 +67,15 @@ export const PANEL_PLACEHOLDERS = {
     any('gold.spot', ['goldFuturesCurve.spotPrice', 'yahoo.futures.GC=F.price']),
   ],
   'commodities:sector': [
-    any('futures.map', ['yahoo.futures', 'fred']),
+    // Require actual heatmap rows (not merely any FRED object → false green).
+    any('heatmap.rows', ['sectorHeatmapData.commodities', 'priceDashboardData']),
+    any('energy.or.metals', [
+      'yahoo.futures.CL=F.price',
+      'yahoo.futures.GC=F.price',
+      'eia.wti_price.value',
+      'fred.wti.value',
+      'fred.copper.value',
+    ]),
   ],
   'commodities:wti-brent': [
     any('wti', ['eia.wti_price.value', 'fred.wti.value', 'yahoo.futures.CL=F.price']),
@@ -88,31 +97,49 @@ export const PANEL_PLACEHOLDERS = {
     p('prices', 'futuresCurveData.prices'),
   ],
   'commodities:precious-complex': [
-    any('gold', ['yahoo.futures.GC=F.price', 'yahoo.futures.GC=F', 'priceDashboardData']),
-    any('silver', ['yahoo.futures.SI=F.price', 'yahoo.futures.SI=F', 'priceDashboardData']),
-    any('platinum', ['yahoo.futures.PL=F.price', 'yahoo.futures.PL=F']),
-    any('palladium', ['yahoo.futures.PA=F.price', 'yahoo.futures.PA=F']),
+    // Monetary metals are required; PGMs optional (less liquid / often quote-null).
+    any('gold', ['yahoo.futures.GC=F.price', 'yahoo.futures.GC=F']),
+    any('silver', ['yahoo.futures.SI=F.price', 'yahoo.futures.SI=F']),
+    any('platinum', ['yahoo.futures.PL=F.price', 'yahoo.futures.PL=F'], { required: false }),
+    any('palladium', ['yahoo.futures.PA=F.price', 'yahoo.futures.PA=F'], { required: false }),
   ],
   'commodities:eia-petrol': [
-    any('petroleum', ['eia.petroleum', 'eia.wti_price', 'eiaPetroleum.gasoline']),
+    any('petroleum', ['eia.wti_price.value', 'eia.wti_price', 'eia.gasoline_regular.value', 'eiaPetroleum.gasoline']),
   ],
   'commodities:physical-pressure': [
     p('crudeStocks', 'supplyDemand.crudeStocks.latest'),
     p('natGas', 'supplyDemand.natGasStorage.latest'),
-    any('eia', ['eia.crude_stocks', 'eia.natgas_storage', 'eia']),
+    any('eia.stocks', ['eia.crude_stocks.value', 'eia.crude_stocks', 'eia.natgas_storage.value', 'eia.natgas_storage']),
   ],
   'commodities:usda-ag': [
-    any('ag', ['fred.wheat', 'fred.rice', 'fred.corn', 'worldBank', 'usda.commodities']),
+    any('ag', ['fred.wheat.value', 'fred.rice.value', 'fred.corn.value', 'fred.wheat', 'fred.corn', 'usda.commodities']),
   ],
   'commodities:fao-prices': [
-    any('food', ['fao.foodPriceIndex', 'worldBank', 'fred.wheat']),
+    any('food', ['fao.foodPriceIndex.value', 'fao.foodPriceIndex', 'fred.wheat.value', 'fred.wheat']),
   ],
-  'commodities:materials-grid': [any('metals', ['fred', 'yahoo.futures'])],
-  'commodities:criticality': [any('fred', ['fred'])],
-  'commodities:battery-chain': [any('copper', ['fred.copper', 'fred'])],
-  'commodities:regime': [any('yahoo', ['yahoo', 'fred'])],
-  'commodities:material-detail': [any('fred', ['fred'])],
-  'commodities:exposure-matrix': [any('yahoo', ['yahoo.futures', 'yahoo'])],
+  // Never bind health to whole `fred` / `yahoo` bags — any sibling series greened hollow panels.
+  'commodities:materials-grid': [
+    any('copper', ['fred.copper.value', 'fred.copper', 'yahoo.futures.HG=F.price']),
+    any('aluminum', ['fred.aluminum.value', 'fred.aluminum'], { required: false }),
+  ],
+  'commodities:criticality': [
+    any('copper', ['fred.copper.value', 'fred.copper']),
+    any('wti', ['fred.wti.value', 'eia.wti_price.value'], { required: false }),
+  ],
+  'commodities:battery-chain': [
+    any('copper', ['fred.copper.value', 'fred.copper', 'yahoo.futures.HG=F.price']),
+  ],
+  'commodities:regime': [
+    any('dashboard', ['priceDashboardData', 'sectorHeatmapData.commodities', 'yahoo.futures']),
+    any('energy', ['yahoo.futures.CL=F.price', 'eia.wti_price.value', 'fred.wti.value']),
+  ],
+  'commodities:material-detail': [
+    any('copper', ['fred.copper.value', 'fred.copper']),
+    any('aluminum', ['fred.aluminum.value', 'fred.aluminum'], { required: false }),
+  ],
+  'commodities:exposure-matrix': [
+    any('futures', ['yahoo.futures.CL=F.price', 'yahoo.futures.GC=F.price', 'yahoo.futures']),
+  ],
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BONDS
@@ -125,19 +152,24 @@ export const PANEL_PLACEHOLDERS = {
     any('fedFunds', ['treasuryRates.fedFunds', 'macroData.centralBankRates.US']),
   ],
   'bonds:yield': [
+    // US multi-tenor curve is the primary panel; intl 10Y overlays are best-effort
     p('us', 'yieldCurveData.US'),
-    p('de', 'yieldCurveData.DE'),
-    p('jp', 'yieldCurveData.JP'),
-    p('gb', 'yieldCurveData.GB'),
+    any('us.10y', ['yieldCurveData.US.10y', 'treasuryRates.US10Y']),
+    any('us.2y', ['yieldCurveData.US.2y', 'treasuryRates.US2Y']),
+    p('de', 'yieldCurveData.DE', { required: false }),
+    p('jp', 'yieldCurveData.JP', { required: false }),
+    p('gb', 'yieldCurveData.GB', { required: false }),
   ],
   'bonds:metrics': [
     any('t10y2y', ['spreadIndicators.t10y2y', 'spreadIndicators.T10Y2Y', 'spreadHistory.t10y2y']),
     any('t10y3m', ['spreadIndicators.t10y3m', 'spreadIndicators.T10Y3M', 'spreadHistory.t10y3m']),
   ],
   'bonds:credit': [
-    any('ig', ['spreadData.current.igSpread', 'spreadData.current.IG', 'spreadData.IG']),
-    any('hy', ['spreadData.current.hySpread', 'spreadData.current.HY', 'spreadData.HY']),
-    any('em', ['spreadData.current.emSpread', 'spreadData.current.EM', 'spreadData.EM']),
+    // IG is the reliable BAML series; HY/EM often null under FRED rate limits
+    any('ig', ['spreadData.current.igSpread', 'spreadData.current.IG', 'spreadData.IG', 'creditIndices.baa10y']),
+    any('hy', ['spreadData.current.hySpread', 'spreadData.current.HY', 'spreadData.HY'], { required: false }),
+    any('em', ['spreadData.current.emSpread', 'spreadData.current.EM', 'spreadData.EM'], { required: false }),
+    any('bbb', ['spreadData.current.bbbSpread', 'spreadData.BBB'], { required: false }),
   ],
   'bonds:realYield': [
     any('tips5', ['tipsYields.5y', 'tipsYields.dfii5', 'tipsYields']),
@@ -250,29 +282,31 @@ export const PANEL_PLACEHOLDERS = {
   'insurance:kpi': [
     p('hyOAS', 'hyOAS'),
     p('igOAS', 'igOAS'),
-    any('industryAvg', ['industryAvgCombinedRatio', 'combinedRatioData']),
-    any('sectorETF', ['sectorETF.price', 'sectorETF']),
+    any('industryAvg', ['industryAvgCombinedRatio', 'combinedRatioData.industryAvg', 'combinedRatioData']),
+    // sectorETF is often an array of holdings — accept whole list, not only .price
+    any('sectorETF', ['sectorETF', 'sectorETF.price', 'sectorETF.0.price'], { required: false }),
   ],
   'insurance:hyoas': [
     any('hyLatest', ['hyOAS']),
     any('hyHistory', ['fredHyOasHistory.values', 'fredHyOasHistory']),
   ],
   'insurance:catloss': [
-    // Either FRED $ losses or FEMA declaration stream is enough for this panel
-    any('catStream', ['catLosses.values', 'catLosses', 'fema.declarations', 'fema.byType', 'fema.summary']),
+    // FRED $ losses preferred; FEMA cross-market is the live proxy when NPORCT missing
+    any('catStream', ['catLosses.values', 'catLosses'], { required: false }),
+    any('femaDecls', ['declarations', 'byType', 'summary'], { crossMarket: 'fema' }),
   ],
   'insurance:crhist': [
-    any('history', ['combinedRatioHistory.values', 'combinedRatioHistory']),
-    any('industryAvg', ['industryAvgCombinedRatio']),
-    any('lines', ['combinedRatioData.lines', 'combinedRatioData']),
+    any('history', ['combinedRatioHistory.values', 'combinedRatioHistory', 'combinedRatioData.quarters']),
+    any('industryAvg', ['industryAvgCombinedRatio'], { required: false }),
+    any('lines', ['combinedRatioData.lines', 'combinedRatioData.byLine', 'combinedRatioData']),
   ],
   'insurance:crline': [
-    p('quarters', 'combinedRatioData.quarters'),
-    p('lines', 'combinedRatioData.lines'),
+    any('byLine', ['combinedRatioData.byLine', 'combinedRatioData.lines']),
+    any('quarters', ['combinedRatioData.quarters'], { required: false }),
   ],
   'insurance:reinsrates': [
-    any('pricing', ['reinsurancePricing']),
-    any('reinsurers', ['reinsurers']),
+    // Equity proxies (array) or legacy byCategory
+    any('pricing', ['reinsurancePricing.byCategory', 'reinsurancePricing', 'reinsurers']),
   ],
   'insurance:reserves': [
     p('lines', 'reserveAdequacyData.lines'),
@@ -340,9 +374,10 @@ export const PANEL_PLACEHOLDERS = {
   'globalMacro:oecd-direct': [p('oecd', 'cli', { crossMarket: 'oecd' })],
   'globalMacro:bea-income': [p('bea', 'personalIncome', { crossMarket: 'bea' })],
   'globalMacro:global-liquidity': [
-    any('bis', ['bisCreditToGDP']),
-    any('m2', ['m2Growth']),
-    any('scorecard', ['scorecardData']),
+    // Panel is TGA + ECB M3 + BEA saving + GDPNow composite (cross-market).
+    any('tga', ['latest.closeB', 'series'], { crossMarket: 'treasuryDTS' }),
+    any('m3', ['m3Growth', 'm3Growth.0'], { crossMarket: 'ecb' }),
+    any('saving', ['savingRate', 'savingRate.0'], { crossMarket: 'bea' }),
   ],
 
   'equities:kpi': [p('indices', 'indices')],
@@ -369,7 +404,15 @@ export const PANEL_PLACEHOLDERS = {
   'equitiesDeepDive:scores': [p('factorData', 'factorData')],
   'equitiesDeepDive:earnings': [p('earningsData', 'earningsData')],
   'equitiesDeepDive:institutions': [p('inst', 'institutions', { crossMarket: 'institutional' })],
-  'equitiesDeepDive:insider': [p('insiderData', 'insiderData')],
+  'equitiesDeepDive:insider': [
+    // Yahoo shape often returns hollow rows (shares only). Require filer identity
+    // + size so health is not green on empty name/type/shares columns.
+    p('tx.ticker', 'insiderData.transactions.0.ticker'),
+    p('tx.shares', 'insiderData.transactions.0.shares'),
+    p('tx.name', 'insiderData.transactions.0.name'),
+    any('tx.type', ['insiderData.transactions.0.type', 'insiderData.transactions.0.text']),
+    any('holders.shares', ['insiderData.holders.0.shares'], { required: false }),
+  ],
   'equitiesDeepDive:earnings-quality': [p('earningsData', 'earningsData')],
 
   'sentiment:sidebar': [any('fg', ['fearGreedData', 'riskData'])],
@@ -399,23 +442,53 @@ export const PANEL_PLACEHOLDERS = {
   'calendar:release-impact': [any('kr', ['keyReleases', 'economicEvents'])],
   'calendar:catalyst-wall': [p('events', 'economicEvents')],
 
-  'bls:kpi': [p('series', 'series')],
-  'bls:trends-top': [p('series', 'series')],
-  'bls:trends-bottom': [p('series', 'series')],
-  'bls:jolts': [p('series', 'series')],
-  'bls:productivity': [p('series', 'series')],
-  'bls:cpi-components': [p('series', 'series')],
-  'bls:ppi-by-industry': [p('series', 'series')],
-  'bls:eci': [p('series', 'series')],
-  'bls:unemployment-duration': [p('series', 'series')],
+  // BLS: bind to concrete series leaves — never the whole `series` catalog bag.
+  'bls:kpi': [
+    any('unemployment', ['series.unemployment.latest.value', 'series.unemployment.latest', 'series.unemployment']),
+    any('payrolls', ['series.nonfarmPayrolls.latest.value', 'series.nonfarmPayrolls.latest', 'series.nonfarmPayrolls'], { required: false }),
+    any('cpi', ['series.cpi.latest.value', 'series.cpi.latest', 'series.cpi'], { required: false }),
+  ],
+  'bls:trends-top': [
+    any('unemployment', ['series.unemployment.history.values', 'series.unemployment.latest.value', 'series.unemployment']),
+    any('participation', ['series.laborParticipation.history.values', 'series.laborParticipation'], { required: false }),
+  ],
+  'bls:trends-bottom': [
+    any('cpi', ['series.cpi.history.values', 'series.cpi.latest.value', 'series.cpi']),
+    any('jobOpenings', ['series.jobOpenings.history.values', 'series.jobOpenings'], { required: false }),
+  ],
+  'bls:jolts': [
+    any('openings', ['series.jobOpenings.latest.value', 'series.jobOpenings.history.values', 'series.jobOpenings']),
+    any('hires', ['series.joltsHires.latest.value', 'series.joltsHires'], { required: false }),
+  ],
+  'bls:productivity': [
+    any('output', ['series.outputPerHour.latest.value', 'series.outputPerHour.history.values', 'series.outputPerHour']),
+    any('ulc', ['series.unitLaborCosts.latest.value', 'series.unitLaborCosts'], { required: false }),
+  ],
+  'bls:cpi-components': [
+    any('cpi', ['series.cpi.latest.value', 'series.cpi']),
+    any('food', ['series.cpiFood.latest.value', 'series.cpiFood'], { required: false }),
+  ],
+  'bls:ppi-by-industry': [
+    any('ppi', ['series.ppi.latest.value', 'series.ppi']),
+    any('intermediate', ['series.ppiIntermediate.latest.value', 'series.ppiIntermediate'], { required: false }),
+  ],
+  'bls:eci': [
+    any('total', ['series.eciTotal.latest.value', 'series.eciTotal.history.values', 'series.eciTotal']),
+    any('wages', ['series.eciWages.latest.value', 'series.eciWages'], { required: false }),
+  ],
+  'bls:unemployment-duration': [
+    any('lt5', ['series.unempLess5Weeks.latest.value', 'series.unempLess5Weeks']),
+    any('27p', ['series.unemp27PlusWeeks.latest.value', 'series.unemp27PlusWeeks'], { required: false }),
+  ],
 
-  'eia:kpi': [p('petroleum', 'petroleum')],
-  'eia:prices': [any('p', ['petroleum', 'naturalGas'])],
-  'eia:electricity': [p('electricity', 'electricity')],
-  'eia:petroleum': [p('petroleum', 'petroleum')],
-  'eia:natural-gas': [p('naturalGas', 'naturalGas')],
-  'eia:co2': [p('co2', 'co2Emissions')],
-  'eia:consumption': [any('c', ['electricity', 'petroleum'])],
+  // EIA: leaf series, not whole sector bags when avoidable
+  'eia:kpi': [any('pet', ['petroleum.price', 'petroleum.latest', 'petroleum'])],
+  'eia:prices': [any('p', ['petroleum.price', 'petroleum.latest', 'petroleum', 'naturalGas.price', 'naturalGas'])],
+  'eia:electricity': [any('e', ['electricity.price', 'electricity.latest', 'electricity'])],
+  'eia:petroleum': [any('p', ['petroleum.price', 'petroleum.latest', 'petroleum'])],
+  'eia:natural-gas': [any('g', ['naturalGas.price', 'naturalGas.latest', 'naturalGas'])],
+  'eia:co2': [any('c', ['co2Emissions.latest', 'co2Emissions.value', 'co2Emissions'])],
+  'eia:consumption': [any('c', ['electricity.consumption', 'electricity', 'petroleum.consumption', 'petroleum'])],
   'eia:trends': [any('t', ['petroleum', 'naturalGas', 'electricity'])],
   'eia:summary': [p('petroleum', 'petroleum')],
 
@@ -454,7 +527,9 @@ export const PANEL_PLACEHOLDERS = {
  * Minimum fill rate for a panel to be considered "green" on the data stream.
  * Partial fill (e.g. 2/15 slots) is NOT success.
  */
-export const MIN_PLACEHOLDER_FILL_RATE = 0.85;
+// Require essentially full required-slot fill. Partial bags were a major
+// false-green source (e.g. 3/4 slots still looked "mostly ready").
+export const MIN_PLACEHOLDER_FILL_RATE = 1.0;
 
 export function getPanelPlaceholders(marketId, panelId) {
   return PANEL_PLACEHOLDERS[`${marketId}:${panelId}`] || null;

@@ -1,39 +1,18 @@
 /**
  * In-memory panel health bus.
  * DataProvider records which markets have non-empty field streams.
- * Splash / topbar combine bus + DOM scan so panels go green as soon as
- * the payload is ready — even if a grid has not painted yet.
+ * Used for loading UX only — evaluatePanelHealth does NOT free-pass fetch
+ * from bus (that caused false greens for years).
  */
 
 import { MARKET_PANELS } from '../../data/marketPanels';
 import { getPanelFieldSpec } from '../../data/panelFieldMap';
+import { getPanelPlaceholders } from '../../data/panelPlaceholders';
+import { resolvePath, hasSubstance, placeholderValueOk } from './panelHealthUtils.js';
 
 /** marketId -> { panelId -> { fetchOk, samples, fieldPath, updatedAt } } */
 const bus = new Map();
 const listeners = new Set();
-
-// Local helpers (avoid circular import with panelHealthEval)
-function resolvePath(obj, path) {
-  if (obj == null || path == null || path === '') return obj;
-  let cur = obj;
-  for (const p of String(path).split('.').filter(Boolean)) {
-    if (cur == null) return null;
-    cur = cur[p];
-  }
-  return cur;
-}
-function hasSubstance(v, depth = 0) {
-  if (v == null || v === false || v === '') return false;
-  if (depth > 5) return true;
-  if (typeof v === 'number') return Number.isFinite(v);
-  if (typeof v === 'string') return v.trim().length > 0 && v !== '—';
-  if (Array.isArray(v)) return v.length > 0 && v.some(x => hasSubstance(x, depth + 1));
-  if (typeof v === 'object') {
-    const keys = Object.keys(v).filter(k => !k.startsWith('_'));
-    return keys.length > 0 && keys.some(k => hasSubstance(v[k], depth + 1));
-  }
-  return true;
-}
 
 function resolveOne(spec, data, allMarkets) {
   if (!spec) return undefined;
@@ -73,11 +52,57 @@ function collectNums(val, out = [], depth = 0) {
   return out;
 }
 
+function placeholderFetchOk(marketId, panelId, marketData, allData) {
+  const placeholders = getPanelPlaceholders(marketId, panelId);
+  if (!placeholders?.length) return null;
+  let requiredTotal = 0;
+  let requiredFilled = 0;
+  for (const slot of placeholders) {
+    if (slot.required === false) continue;
+    requiredTotal += 1;
+    let v = null;
+    let usedPath = slot.path || '';
+    if (slot.crossMarket) {
+      const dep = allData[slot.crossMarket];
+      if (dep) {
+        if (slot.path) {
+          v = resolvePath(dep, slot.path);
+          usedPath = slot.path;
+        } else if (slot.anyOf) {
+          for (const pth of slot.anyOf) {
+            const cand = resolvePath(dep, pth);
+            if (placeholderValueOk(cand, pth)) {
+              v = cand;
+              usedPath = pth;
+              break;
+            }
+          }
+        } else {
+          v = dep;
+          usedPath = slot.crossMarket;
+        }
+      }
+    } else if (slot.anyOf) {
+      for (const pth of slot.anyOf) {
+        const cand = resolvePath(marketData, pth);
+        if (placeholderValueOk(cand, pth)) {
+          v = cand;
+          usedPath = pth;
+          break;
+        }
+      }
+    } else if (slot.path) {
+      v = resolvePath(marketData, slot.path);
+      usedPath = slot.path;
+    }
+    if (placeholderValueOk(v, usedPath)) requiredFilled += 1;
+  }
+  if (requiredTotal === 0) return null;
+  return requiredFilled / requiredTotal >= 0.85;
+}
+
 /**
  * Record fetch health for every panel in a market from its payload.
- * @param {string} marketId
- * @param {object|null} marketData
- * @param {object} allMarkets - map of marketId -> { data } or raw data
  */
 export function publishMarketPayload(marketId, marketData, allMarkets = {}) {
   if (!marketId) return;
@@ -85,7 +110,6 @@ export function publishMarketPayload(marketId, marketData, allMarkets = {}) {
   const entry = bus.get(marketId) || {};
   const now = Date.now();
 
-  // Normalize allMarkets to raw data maps
   const allData = {};
   for (const [id, m] of Object.entries(allMarkets || {})) {
     allData[id] = m?.data !== undefined ? m.data : m;
@@ -93,21 +117,26 @@ export function publishMarketPayload(marketId, marketData, allMarkets = {}) {
   if (marketData) allData[marketId] = marketData;
 
   for (const p of panels) {
-    const spec = getPanelFieldSpec(marketId, p.id);
     let fetchOk = false;
     let fieldValue = null;
-    if (spec) {
-      fieldValue = resolveOne(spec, marketData, allData);
-      fetchOk = hasSubstance(fieldValue);
-    } else if (marketData && typeof marketData === 'object') {
-      const keys = Object.keys(marketData).filter(k => !k.startsWith('_'));
-      fetchOk = keys.some(k => hasSubstance(marketData[k]));
-      fieldValue = marketData;
+
+    const ph = placeholderFetchOk(marketId, p.id, marketData, allData);
+    if (ph != null) {
+      fetchOk = ph;
+    } else {
+      const spec = getPanelFieldSpec(marketId, p.id);
+      if (spec) {
+        fieldValue = resolveOne(spec, marketData, allData);
+        fetchOk = hasSubstance(fieldValue);
+      } else {
+        fetchOk = false;
+      }
     }
+
     entry[p.id] = {
       fetchOk,
       samples: fetchOk ? collectNums(fieldValue) : [],
-      fieldPath: spec?.fieldPath || spec?.field || null,
+      fieldPath: getPanelFieldSpec(marketId, p.id)?.fieldPath || null,
       updatedAt: now,
       title: p.title,
     };

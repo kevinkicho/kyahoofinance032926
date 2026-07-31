@@ -784,33 +784,32 @@ function EquitiesDeepDiveDashboard({
           </BentoCard>
         )}
 
-        {/* Insider Trading */}
-        {insiderData && (insiderHolders.length > 0 || insiderTransactions.length > 0) && (
-          <BentoCard
-            key="insider"
-            title="Insider Trading"
-            subtitle="Form 4 filings"
-            accent="equitiesDeepDive"
-            className="eqd-bento-card"
-            source="SEC EDGAR / Yahoo Finance"
-            timestamp={lastUpdated}
+        {/* Insider Trading — always mounted; shell dims when Yahoo rows are hollow */}
+        <BentoCard
+          key="insider"
+          title="Insider Trading"
+          subtitle="Form 4 filings · mega-cap sample"
+          accent="equitiesDeepDive"
+          className="eqd-bento-card"
+          contentClassName="eqd-panel-scroll"
+          source="SEC EDGAR / Yahoo Finance"
+          timestamp={lastUpdated}
+          isLive={isLive && (insiderHolders.length > 0 || insiderTransactions.length > 0)}
+          isCurrent={isCurrent}
+          fetchedOn={fetchedOn}
+          fetchLog={fetchLog}
+          error={error}
+        >
+          <InsiderTrading
+            insiderData={insiderData}
             isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
+            lastUpdated={lastUpdated}
             fetchLog={fetchLog}
             error={error}
-          >
-            <InsiderTrading
-              insiderData={insiderData}
-              isLive={isLive}
-              lastUpdated={lastUpdated}
-              fetchLog={fetchLog}
-              error={error}
-              fetchedOn={fetchedOn}
-              isCurrent={isCurrent}
-            />
-          </BentoCard>
-        )}
+            fetchedOn={fetchedOn}
+            isCurrent={isCurrent}
+          />
+        </BentoCard>
 
         {/* Factor Rankings */}
         <BentoCard

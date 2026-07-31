@@ -477,10 +477,7 @@
 .panel-status-ok .panel-dropdown-title {
   color: inherit;
 }
-.panel-badge-ok {
-  color: #86efac !important;
-  background: rgba(34, 197, 94, 0.12) !important;
-}
+/* Status is the green/red dot only — no "Verified" text badge. */
 .panel-health-popover {
   margin: 0 4px 6px;
   padding: 10px;
@@ -513,10 +510,12 @@
   border-radius: 4px;
   margin-bottom: 6px;
 }
+.panel-health-popover-verdict.is-ok,
 .panel-health-popover-verdict.is-green {
   color: #86efac;
   background: rgba(34, 197, 94, 0.12);
 }
+.panel-health-popover-verdict.is-bad,
 .panel-health-popover-verdict.is-red {
   color: #fca5a5;
   background: rgba(239, 68, 68, 0.12);
@@ -571,15 +570,6 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.panel-dropdown-badge {
-  font-size: 9px;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  margin-left: 4px;
-  flex-shrink: 0;
 }
 .market-panel-dropdown-item.panel-status-null {
   opacity: 0.55;

@@ -334,6 +334,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const [selectedTicker, setSelectedTicker] = useState(null);
   const [rankMetric, setRankMetric] = usePersistedState(`${STORAGE_KEY}-rankMetric`, 'marketCap');
   const [groupBy, setGroupBy] = usePersistedState(`${STORAGE_KEY}-groupBy`, 'market');
+  const [sizeDensity, setSizeDensity] = usePersistedState(`${STORAGE_KEY}-sizeDensity`, 'auto');
   const [colorByPerf, setColorByPerf] = useState(false);
   const [hydrated] = useState(hydrateInitialState);
   const [marketUniverse, setMarketUniverse] = useState(hydrated.universe);
@@ -422,34 +423,45 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   }, [centralSnapshot]);
 
   React.useEffect(() => {
-    // Auto-discovery sidecar: fetch recently listed IPOs from the nightly RTDB job
+    // Auto-discovery sidecar: inject IPO discoveries from the nightly RTDB job.
+    // Only *latest* is read — names that fall out of Finnhub's 45-day window
+    // used to disappear on the next refresh (SPCX vanished 2026-07-28). Promote
+    // permanent names into stockUniverse.js; the scheduled job now also merges
+    // prior discoveries for 90 days so the sidecar is sticky.
     fetch('https://kfinance032926-default-rtdb.firebaseio.com/marketSnapshots/universeUpdates/latest.json')
       .then(res => res.json())
       .then(payload => {
         if (!payload || !payload.data || !payload.data.updates || !payload.data.updates.length) return;
-        
+
         setMarketUniverse(prevUniverse => {
           const newUniverse = [...prevUniverse];
-          // Default to injecting into the main US region (where most tracked IPOs happen)
           const usRegionIndex = newUniverse.findIndex(r => r.name.includes('USA'));
           if (usRegionIndex === -1) return prevUniverse;
 
           const usRegion = { ...newUniverse[usRegionIndex], children: [...newUniverse[usRegionIndex].children] };
-          
+
           const existingTickers = new Set();
-          newUniverse.forEach(r => r.children.forEach(c => existingTickers.add(c.name)));
+          newUniverse.forEach(r => r.children.forEach(c => {
+            if (c?.name) existingTickers.add(String(c.name).toUpperCase());
+          }));
 
           let added = 0;
           payload.data.updates.forEach(newStock => {
-            if (!existingTickers.has(newStock.name)) {
-              if (!newStock.itemStyle) {
-                // Highlight newly discovered stocks with a distinct neon cyan border
-                newStock.itemStyle = { color: 'transparent', borderWidth: 2, borderColor: '#06b6d4', borderType: 'dashed' };
-              }
-              usRegion.children.push(newStock);
-              existingTickers.add(newStock.name);
-              added++;
-            }
+            const sym = String(newStock?.name || '').toUpperCase();
+            if (!sym || existingTickers.has(sym)) return;
+            const entry = {
+              ...newStock,
+              name: sym,
+              itemStyle: newStock.itemStyle || {
+                color: 'transparent',
+                borderWidth: 2,
+                borderColor: '#06b6d4',
+                borderType: 'dashed',
+              },
+            };
+            usRegion.children.push(entry);
+            existingTickers.add(sym);
+            added++;
           });
 
           if (added > 0) {
@@ -864,7 +876,21 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     const gradeA = edgarRows.filter(r => r.quality === 'A').length;
     return { avgMargin, profitable, count: edgarRows.length, avgRoa, avgRoe, avgRevGrowth, avgDe, gradeA };
   }, [edgarRows]);
-  const universeUpdates = universeCtx?.data?.updates || [];
+  // Expansion queue: only show names not already in the static heatmap universe
+  // (or already injected). Avoids "SPCX is a candidate" when it is already listed.
+  const universeUpdates = useMemo(() => {
+    const known = new Set();
+    for (const region of marketUniverse || []) {
+      for (const child of region.children || []) {
+        if (child?.name) known.add(String(child.name).toUpperCase());
+      }
+    }
+    const raw = universeCtx?.data?.updates || [];
+    return raw.filter((row) => {
+      const t = String(row?.name || row?.symbol || '').toUpperCase();
+      return t && !known.has(t);
+    });
+  }, [universeCtx?.data?.updates, marketUniverse]);
 
     // Synthetic fetchLog so DataFooter's click-to-open popover has something
     // to render. Without this, open() bails on `fetchLog.length === 0` and
@@ -1214,6 +1240,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
         rankMetric={rankMetric} setRankMetric={setRankMetric}
         groupBy={groupBy} setGroupBy={setGroupBy}
         colorByPerf={colorByPerf} setColorByPerf={setColorByPerf}
+        sizeDensity={sizeDensity} setSizeDensity={setSizeDensity}
       />
       {historyNotice && (
         <div className="eq-history-notice" role="status">
@@ -1336,6 +1363,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
                     rankMetric={rankMetric}
                     groupBy={groupBy}
                     colorByPerf={colorByPerf}
+                    density={sizeDensity}
                     onSelect={handleSelectTicker}
                   />
                 </div>

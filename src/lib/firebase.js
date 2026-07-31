@@ -1,17 +1,15 @@
-// src/lib/firebase.js
+// Firebase client — Auth only (Google sign-in for admin refresh / analytics).
+// Market data does not use the client SDK; live path is Express /api + cache.
+// Historical snapshots use plain REST in hub/lib/rtdb.js (not this module).
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 
-// Web app config for project kfinance032926 (App Hosting / client SDK).
-// apiKey must come from VITE_FIREBASE_API_KEY (local .env / CI vars / App Hosting
-// secrets) — never commit an AIza… value (guard:secrets).
+// apiKey must come from VITE_FIREBASE_API_KEY (local .env / CI / App Hosting)
+// — never commit an AIza… value (guard:secrets).
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'kfinance032926.firebaseapp.com',
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || 'https://kfinance032926-default-rtdb.firebaseio.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'kfinance032926',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'kfinance032926.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '989678779159',
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:989678779159:web:2ef6f19ec34b5d99281552',
 };
 

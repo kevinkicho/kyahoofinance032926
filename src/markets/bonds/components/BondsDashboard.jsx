@@ -4,7 +4,9 @@ import { useCurrency } from '../../../hub/CurrencyContext';
 import { useMarketData } from '../../../hub/DataContext';
 import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
+import EmptyPanelBody from '../../../components/BentoCard/EmptyPanelBody';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
+import { MARKET_PANELS } from '../../../data/marketPanels';
 import YieldCurve from './YieldCurve';
 import SpreadMonitor from './SpreadMonitor';
 import DurationLadder from './DurationLadder';
@@ -281,7 +283,12 @@ function BondsDashboard({
 
   return (
     <div className="bonds-dashboard bonds-dashboard--bento">
-      <BentoWrapper layout={layout} storageKey="bonds-layout-v9">
+      <BentoWrapper
+        layout={layout}
+        storageKey="bonds-layout-v9"
+        accent="bonds"
+        panelTitles={Object.fromEntries((MARKET_PANELS.bonds || []).map(p => [p.id, p.title]))}
+      >
         {/* KPI strip — first bento child, full-width across row 0. Each
             pill is clickable (MetricValue popover with FRED series ID). */}
         <BentoCard
@@ -478,23 +485,31 @@ function BondsDashboard({
         </BentoCard>
 
         {/* Credit Ratings */}
-        <BentoCard key="ratings" title="Credit Ratings" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="S&P / Moody's / Fitch" timestamp={lastUpdated} isLive={!!creditRatingsAsOf} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {creditRatingsData && <CreditMatrix creditRatingsData={creditRatingsData} creditRatingsAsOf={creditRatingsAsOf} lastUpdated={lastUpdated} />}
+        <BentoCard key="ratings" title="Credit Ratings" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="S&P / Moody's / Fitch" timestamp={lastUpdated} isLive={!!creditRatingsAsOf} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error} disabled={!creditRatingsData?.length}>
+          {creditRatingsData?.length
+            ? <CreditMatrix creditRatingsData={creditRatingsData} creditRatingsAsOf={creditRatingsAsOf} lastUpdated={lastUpdated} />
+            : <EmptyPanelBody message="No credit ratings data" />}
         </BentoCard>
 
         {/* Curve Spreads */}
-        <BentoCard key="curvespreads" title="Curve Spreads" subtitle="2s10s · 10s3m · 5s30s" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED T10Y2Y / T10Y3M" timestamp={lastUpdated} isLive={spreadHistory?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {spreadHistoryOption && <SafeECharts option={spreadHistoryOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spread History', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'T10Y2Y' }], updatedAt: lastUpdated }} />}
+        <BentoCard key="curvespreads" title="Curve Spreads" subtitle="2s10s · 10s3m · 5s30s" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED T10Y2Y / T10Y3M" timestamp={lastUpdated} isLive={spreadHistory?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error} disabled={!spreadHistoryOption}>
+          {spreadHistoryOption
+            ? <SafeECharts option={spreadHistoryOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spread History', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'T10Y2Y' }], updatedAt: lastUpdated }} />
+            : <EmptyPanelBody message="No curve spread history" />}
         </BentoCard>
 
         {/* Fed Balance Sheet */}
-        <BentoCard key="fed" title="Fed Balance Sheet" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED WALCL" timestamp={lastUpdated} isLive={fedBalanceSheetHistory?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {fedBalanceOption && <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fed Balance Sheet', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'WALCL' }], updatedAt: lastUpdated }} />}
+        <BentoCard key="fed" title="Fed Balance Sheet" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED WALCL" timestamp={lastUpdated} isLive={fedBalanceSheetHistory?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error} disabled={!fedBalanceOption}>
+          {fedBalanceOption
+            ? <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fed Balance Sheet', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'WALCL' }], updatedAt: lastUpdated }} />
+            : <EmptyPanelBody message="No Fed balance sheet data" />}
         </BentoCard>
 
         {/* M2 Money Supply */}
-        <BentoCard key="m2" title="M2 Money Supply" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED M2SL" timestamp={lastUpdated} isLive={m2HistoryData?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {m2Option && <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'M2 Money Supply', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'M2SL' }], updatedAt: lastUpdated }} />}
+        <BentoCard key="m2" title="M2 Money Supply" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED M2SL" timestamp={lastUpdated} isLive={m2HistoryData?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error} disabled={!m2Option}>
+          {m2Option
+            ? <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'M2 Money Supply', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'M2SL' }], updatedAt: lastUpdated }} />
+            : <EmptyPanelBody message="No M2 data" />}
         </BentoCard>
 
         {/* CPI Components */}
@@ -503,13 +518,17 @@ function BondsDashboard({
         </BentoCard>
 
         {/* Debt-to-GDP */}
-        <BentoCard key="debtgdp" title="Debt-to-GDP" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED GFDEBTN / GDP" timestamp={lastUpdated} isLive={debtToGdpHistory?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {debtToGdpOption && <SafeECharts option={debtToGdpOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Debt-to-GDP', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'GFDEBTN' }], updatedAt: lastUpdated }} />}
+        <BentoCard key="debtgdp" title="Debt-to-GDP" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED GFDEBTN / GDP" timestamp={lastUpdated} isLive={debtToGdpHistory?.dates?.length > 0} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error} disabled={!debtToGdpOption}>
+          {debtToGdpOption
+            ? <SafeECharts option={debtToGdpOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Debt-to-GDP', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'GFDEBTN' }], updatedAt: lastUpdated }} />
+            : <EmptyPanelBody message="No debt-to-GDP data" />}
         </BentoCard>
 
         {/* Breakevens */}
-        <BentoCard key="breakevens" title="Breakeven Inflation" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={!!breakevensData?.current?.be5y} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          {breakevensData && <BreakevenMonitor breakevensData={breakevensData} lastUpdated={lastUpdated} />}
+        <BentoCard key="breakevens" title="Breakeven Inflation" accent="bonds" className="bonds-bento-card" contentClassName="bonds-panel-content" source="FRED DFII5 / DFII10" timestamp={lastUpdated} isLive={!!breakevensData?.current?.be5y} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error} disabled={!breakevensData}>
+          {breakevensData
+            ? <BreakevenMonitor breakevensData={breakevensData} lastUpdated={lastUpdated} />
+            : <EmptyPanelBody message="No breakeven data" />}
         </BentoCard>
 
         {/* Duration Ladder — US Treasury debt by maturity */}

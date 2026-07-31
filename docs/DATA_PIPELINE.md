@@ -1,422 +1,218 @@
 # Data Pipeline
 
-How a number gets from a public-data API into a panel on the Global Market Hub.
+How a number gets from a public API into a panel.
 
-This is the end-to-end picture: external APIs → Firebase Functions routes → RTDB snapshots → DataProvider →
-`useMarketData` hook → market panel → DataFooter provenance. Read it once and the rest
-of the codebase becomes self-explanatory.
+**Last reviewed: 2026-07-30.** Index: [`README.md`](./README.md).
+
+External APIs → **App Hosting Express** (`server/`) → disk/GCS cache →
+DataProvider → `useMarketData` → market panel → DataFooter / panel health.
 
 ---
 
-## 1. The 30-second view
+## 1. Overview
 
 ```mermaid
 flowchart LR
-    subgraph EXT["External Data APIs"]
-        FRED["FRED<br/>120/min throttled"]
-        YF["Yahoo Finance<br/>(yahoo-finance2)"]
-        EIA["EIA"]
-        BLS["BLS"]
-        CEN["US Census"]
-        IMF["IMF IFS / COFER"]
-        WB["World Bank"]
-        CG["CoinGecko"]
-        MEM["Mempool.space"]
-        DL["DefiLlama"]
-        ETH["Etherscan"]
-        CFTC["CFTC COT"]
-        CNN["CNN F&G"]
-        TFD["Treasury Fiscal Data"]
-        ALT["Alternative.me"]
+    subgraph EXT["External APIs"]
+        FRED["FRED"]
+        YF["Yahoo"]
+        GOV["EIA / BLS / IMF / …"]
     end
 
-    subgraph SRV["Firebase Functions v2<br/>Express app"]
-        ROUTES["route modules<br/>/api/bonds, /api/fx, …"]
-        MEM_CACHE["NodeCache<br/>stdTTL = 15min"]
-        RTDB["RTDB snapshots<br/>marketSnapshots/{id}/latest + history"]
+    subgraph SRV["App Hosting · Express"]
+        ROUTES["/api/*"]
+        DISK["disk datacache"]
+        GCS["GCS bucket"]
+        MEM["NodeCache"]
     end
 
-    subgraph CLI["Browser (Vite dev / dist)"]
-        DP["DataProvider<br/>(wave fetch, batches of 4)"]
-        SNAP["localStorage snapshot<br/>+ IndexedDB"]
-        HOOK["useMarketData(id)"]
-        PANELS["Market panels<br/>(18 tabs)"]
-        FOOTER["DataFooter<br/>provenance + freshness"]
+    subgraph OPT["Optional"]
+        FN["Functions snapshots"]
+        RTDB["RTDB latest/history"]
+    end
+
+    subgraph CLI["Browser"]
+        DP["DataProvider"]
+        HOOK["useMarketData"]
+        PANELS["Dashboards"]
+        HEALTH["Panel health"]
     end
 
     EXT --> ROUTES
-    ROUTES <--> MEM_CACHE
-    ROUTES <--> RTDB
-    ROUTES -- "JSON + _sources" --> DP
-    DP --> SNAP
-    DP --> HOOK
-    HOOK --> PANELS
-    PANELS --> FOOTER
+    ROUTES <--> DISK
+    ROUTES <--> GCS
+    ROUTES <--> MEM
+    ROUTES --> DP
+    FN --> ROUTES
+    FN --> RTDB
+    DP --> HOOK --> PANELS
+    PANELS --> HEALTH
 ```
 
-The whole system is **read-mostly and idempotent**. Production uses Firebase
-Functions for live fetches and Firebase RTDB for fast `latest` plus daily
-`history/YYYY-MM-DD` snapshots. Browser panels hydrate RTDB first and only use
-live API calls as fallback or admin-triggered refresh.
+Historical date picker can read RTDB `history/` when a past date is selected.
 
 ---
 
-## 2. External APIs (what we pull from)
+## 2. External sources (summary)
 
-| Source | Auth | Used by |
+| Source | Auth | Used by (examples) |
 | --- | --- | --- |
-| **FRED** (St. Louis Fed) | API key (`FRED_API_KEY`) | bonds, fx, credit, derivatives, sentiment, commodities, equityDeepDive, globalMacro, insurance, realEstate, calendar, macro |
-| **Yahoo Finance** (yahoo-finance2) | none | equities, bonds (ETFs), fx, derivatives, realEstate (REITs), insurance, commodities (futures), equityDeepDive, credit (ETFs), sentiment (cross-asset returns), calendar (earnings) |
-| **EIA** | API key (`EIA_API_KEY`) | eia, commodities (oil/gas) |
-| **BLS** | API key (`BLS_API_KEY`) | bls, globalMacro (employment) |
-| **US Census Bureau** | optional key | realEstate (housing/construction starts via FRED mirrors), census |
-| **IMF IFS** | none | globalMacro (international reserves RAXFSFX) |
-| **IMF COFER** | none | globalMacro (FX reserve currency shares) |
-| **World Bank** | none | globalMacro (GDP, CPI, debt, trade openness) |
-| **CoinGecko** | none | crypto |
-| **Mempool.space** | none | crypto (BTC mempool, hashrate) |
-| **DefiLlama** | none | crypto (TVL, stablecoins) |
-| **Alternative.me** | none | crypto (Crypto F&G) |
-| **Etherscan** | none / optional key | crypto (gas) |
-| **CFTC COT** | none | sentiment (positioning), commodities (cross-market enrichment) |
-| **CNN Fear & Greed** | none | sentiment |
-| **Treasury Fiscal Data** | none | bonds (avg interest rates), calendar (auctions) |
-| **CBOE / BIS** | derived from FRED | derivatives, globalMacro |
+| FRED | `FRED_API_KEY` | bonds, fx, credit, sentiment, commodities, real estate, calendar, … |
+| Yahoo Finance | none | equities, futures, options, REITs, ETFs |
+| EIA / BLS | API keys | eia, bls, commodities energy |
+| IMF / World Bank | none | imf, worldbank, macro enrichments |
+| CoinGecko, DeFiLlama, CFTC, Treasury, … | mostly none | crypto, sentiment, bonds calendar |
 
-Per-source `items` are catalogued in `src/hub/dataSources.js` and surfaced in the
-DataFooter on every panel.
+Provenance catalog: `src/hub/dataSources.js` (DataFooter).
 
 ---
 
-## 3. Firebase Functions routes
+## 3. Express routes
 
-Mounted in `functions/src/index.ts`. The current route inventory lives in
-[`API_ENDPOINTS.md`](API_ENDPOINTS.md); keep it aligned with
-`src/hub/DataProvider.jsx` and `functions/src/lib/snapshotMarkets.ts`.
+Mounted in `server/index.js`. Inventory: [`API_ENDPOINTS.md`](API_ENDPOINTS.md).
+Align with `src/hub/DataProvider.jsx` and `shared/api-routing.json`.
 
-Common routes:
-
-```
-/api/health                  — liveness probe (5-min Cache-Control)
-/api/cache/status            — per-market freshness map
-/api/rate-limits             — analytics dashboard data
-/api/equities                — global equity universe / heatmap data
-/api/stocks                  — POST batch quotes and stock helpers
-/api/macro                   — legacy macro (kept for transitional callers)
-/api/bonds                   — yield curves, spreads, breakevens, mortgage
-/api/derivatives             — VIX, SKEW, vol surface
-/api/realEstate              — REITs, house prices, housing starts, retail
-/api/insurance               — combined ratios, cat-bond proxy
-/api/commodities             — legacy commodity payload
-/api/commoditiesEnhanced     — current commodity payload (Yahoo + EIA + FRED)
-/api/commodities/v2          — alias for commoditiesEnhanced
-/api/globalMacro             — scorecard, central banks, OECD CLI, COFER
-/api/equityDeepDive          — sectors, factors, ERP, breadth, insiders
-/api/crypto                  — coins, BTC dom, exchanges, defi, gas
-/api/credit                  — IG/HY/EM/BBB/CCC, charge-offs, LSO C&I
-/api/sentiment               — F&G, COT, cross-asset, VVIX
-/api/calendar                — econ events, central banks, earnings, auctions
-/api/fx                      — rates, DXY, REER, central-bank diffs
-/api/institutional           — Form 13F (when available)
-/api/analytics               — endpoint metrics for Analytics tab
-/api/watchlist               — user watchlist stub (read)
-/api/fred                    — generic FRED proxy
-/api/imf                     — IMF IFS/COFER passthrough
-/api/worldbank               — World Bank passthrough
-/api/bls                     — BLS series passthrough
-/api/eia                     — EIA series passthrough
-/api/census                  — Census/FRED-mirror passthrough
-/api/summary/:ticker         — single-ticker quote (yahoo-finance2)
-/api/history/:ticker         — OHLC history
-/api/snapshot                — bulk snapshot
-```
-
-Additional satellite routes include `/api/bea`, `/api/eurostat`, `/api/oecd`,
-`/api/ecb`, `/api/nyfed`, `/api/fdic`, `/api/fed/*`, `/api/fema`, `/api/usgs`,
-`/api/usda`, `/api/censusTrade`, and `/api/eiaPetroleum`.
-
-Every route returns JSON shaped like:
+Typical response shape:
 
 ```jsonc
 {
-  "lastUpdated": "2026-05-01 09:30:01",
-  "fetchedOn":   "2026-05-01",
-  "isLive":      true,
-  "isCurrent":   true,
-  // …market-specific keys…
-  "_sources": [
-    { "name": "FRED", "url": "https://fred.stlouisfed.org", "items": "…" },
-    { "name": "Yahoo Finance", "url": "https://finance.yahoo.com", "items": "…" }
-  ]
+  "lastUpdated": "…",
+  "fetchedOn": "YYYY-MM-DD",
+  "isLive": true,
+  "isCurrent": true,
+  "_sources": [{ "name": "FRED", "url": "…", "items": "…" }]
 }
 ```
 
-`_sources` is the provenance trail that DataFooter renders.
-
 ---
 
-## 4. Server caching and RTDB snapshots
+## 4. Caching
 
 ```mermaid
 flowchart TB
-    REQ["GET /api/bonds"] --> NC{"NodeCache<br/>15-min TTL"}
-    NC -- hit --> OUT["JSON response"]
-    NC -- miss --> FETCH["External API fan-out"]
+    REQ["GET /api/<market>"] --> NC{"NodeCache"}
+    NC -- hit --> OUT["JSON"]
+    NC -- miss --> DISK{"disk / GCS daily"}
+    DISK -- hit --> OUT
+    DISK -- miss --> FETCH["Upstream fan-out"]
     FETCH --> OUT
-    SCHED["scheduled/admin refresh"] --> FETCH2["fetch registered endpoints"]
-    FETCH2 --> RTDB["write RTDB<br/>latest + history/YYYY-MM-DD"]
-    UI["DataProvider"] --> RTDB
-    UI -- "fallback/admin force live" --> REQ
+    SCHED["refreshMarketSnapshots"] --> RTDB["RTDB latest + history"]
+    UI["DataProvider"] --> REQ
+    UI -. "past date" .-> RTDB
 ```
 
-- **NodeCache**: in-memory cache in the Firebase Function process, TTL 900s.
-- **RTDB snapshots**: `marketSnapshots/{id}/latest` and
-  `marketSnapshots/{id}/history/{YYYY-MM-DD}` written by scheduled/admin refresh.
-- **Frontend fast path**: DataProvider reads RTDB snapshots first so GitHub Pages
-  can render without asking every live upstream on every page load.
-- **Live fallback**: if a snapshot is missing/corrupt, DataProvider can fetch the
-  matching `/api/...` route. Admin refresh can force live fetches.
-
-### FRED throttling and retry
-
-`server/lib/fetch.js` enforces:
-
-- **120 calls/min sliding window** across the entire process. The 121st call
-  sleeps until a slot opens.
-- **Retry once on 5xx** with 750ms backoff (FRED only). 5xx during a cold-cache
-  fan-out used to nuke whole panels when 20+ series fired simultaneously.
+- **Primary live path:** DataProvider force-fetches App Hosting `/api/*` on load/refresh.
+- **RTDB:** nightly/admin snapshots for history and optional seed demos (`VITE_USE_RTDB_SEED`).
+- **FRED throttle:** `server/lib/fetch.js` — process-wide sliding window + limited retry on 5xx.
+- **GCS:** [`SHARED_CACHE.md`](./SHARED_CACHE.md).
 
 ---
 
-## 5. DataProvider — the client-side wave fetcher
+## 5. DataProvider & refresh policy
 
-`src/hub/DataProvider.jsx` is the single source of truth for every panel. It
-hydrates RTDB snapshots when the app mounts, preserves browser snapshots, and
-uses live API calls for missing/corrupt snapshots or admin-triggered refresh.
+`src/hub/DataProvider.jsx` wave-fetches registered markets (batches of 4, ~250ms gap).
+Optional localStorage slim snapshot can paint first; `/api/*` overwrites.
 
-```mermaid
-sequenceDiagram
-    participant Mount as App mount
-    participant DP as DataProvider
-    participant LS as localStorage
-    participant API as Server
-    participant IDB as IndexedDB
-    participant UI as Panels
+**This is not a real-time streaming app.** Data does not auto-poll after load.
 
-    Mount->>LS: loadSnapshot()
-    LS-->>DP: hydrate prior data (instant)
-    DP->>UI: render with snapshot (PENDING badges where empty)
-    DP->>DP: didInitialFetchRef → fetchAllMarkets()
-    loop batches of 4, 300ms gap
-        DP->>API: GET /api/<market> when fallback/force-live needed
-        API-->>DP: JSON + _sources
-        DP->>DP: hasNonNullData? structural guard?
-        DP->>UI: setMarkets({ id: { data, isLive, isCurrent } })
-        DP->>IDB: persistToIDB (per-market)
-    end
-    DP->>DP: maybeComputeFederated → alerts
-    Note over DP,UI: snapshot saved to localStorage on idle (500ms debounce)<br/>and on beforeunload
-```
+| Trigger | Behavior |
+| --- | --- |
+| App load | **One** wave, cache-first (serve today's disk/GCS; no `?refresh`) |
+| Topbar ▶ | Same full wave with force-live (`?refresh=true` + cache bypass) |
+| BentoCard footer ▶ | Force-live for **that market only** (`refetchSingle`) |
 
-Key knobs (`src/hub/DataProvider.jsx`):
+No interval auto-refresh. No background revalidate after the first wave.
 
-| Constant | Value | Why |
+**Concurrency / reliability**
+
+- One full-wave **mutex** (`fetchPromiseRef`). Concurrent topbar ▶ waiters
+  join; any force-live request is drained by the runner (may run a second
+  force-live wave, never overlapping waves).
+- Panel ▶ uses **per-market serialization** + generation so rapid clicks do not
+  apply stale responses out of order.
+- Empty primary tabs get **one** cache-first then force-live retry after the
+  main wave — only if the client still has no usable data (no re-hit of painted
+  markets).
+- Failed or empty HTTP bodies **preserve prior payload** (`applyResult`).
+
+| Setting | Typical | Role |
 | --- | --- | --- |
-| `FETCH_SETTINGS.timeout` | 30 000 ms | Cold FRED fan-outs can run >15s |
-| `FETCH_SETTINGS.retries` | 1 | Avoid storming flaky upstreams |
-| `FETCH_SETTINGS.batchConcurrency` | 4 | Below FRED 120/min ceiling at any realistic cadence |
-| `FETCH_SETTINGS.batchDelayMs` | 300 | Smooths burst into rate-limit windows |
-| `PRIORITY_MARKETS` | equities, bonds, fx, crypto, sentiment | (Defined for future ordering — currently fetches in `MARKET_ENDPOINTS` order.) |
+| timeout | 120s | Cold FRED fan-outs on App Hosting |
+| retries | 1 | Avoid storms |
+| batchConcurrency | 4 | Rate-limit friendly (force-live) |
+| batchDelayMs | 250 | Smooth bursts |
 
-### Live vs current vs empty
+### Live vs current
 
-Two flags drive every panel's badge:
+- **`isLive`** — payload passes `hasNonNullData` + market `STRUCTURAL_GUARDS`.
+- **`isCurrent`** — `fetchedOn === today` (false when serving older cache).
 
-- **`isLive`** — the response passed `hasNonNullData` AND its market-specific
-  `STRUCTURAL_GUARDS` check (e.g. bonds requires ≥3 yield-curve countries with
-  data; commodities requires ≥2 COT entries; calendar requires events OR
-  earnings OR central-bank meetings). If false, the panel renders "NO DATA" and
-  the response is dropped.
-- **`isCurrent`** — `fetchedOn === today`. False on stale-served caches, e.g.
-  the server fell back to yesterday's snapshot because the upstream API failed.
-  Panel still renders, but DataFooter labels the data as stale.
+### Federated
 
-Both flags are surfaced through `useMarketData(id)` and consumed by every
-DataFooter.
-
-### Federated markets
-
-Some panels or "markets" don't have a dedicated backend route — they're computed on the client from
-other markets' data:
-
-| Federated id | Inputs | Computed by |
+| Id | Inputs | Notes |
 | --- | --- | --- |
-| `alerts` | sentiment, bonds, credit, crypto, commodities, fx | `computeAlerts()` — runs 8 rule checks (VIX spike, curve inversion, HY widening, F&G extremes, BTC large move, gold rally, DXY shift). Recomputed every time any input lands. |
-| Commodities COT/FX/materials | sentiment, fx, commodities, local strategic-material catalog | Commodities composes CFTC positioning, commodity-bloc FX, and strategic mineral metadata without duplicating backend work. |
+| `alerts` | sentiment, bonds, credit, crypto, commodities, fx | Client rules; no dedicated route |
 
-### Persistence layers (client)
+Some commodities panels also read `sentiment` / `fx` via `useMarketData`.
 
-1. **localStorage** (`hub-markets-snapshot-v1`) — slim per-market `{data,
-   lastUpdated, fetchedOn, isLive, isCurrent, provenance}`. Saved on idle (500
-   ms debounce) and `beforeunload`. Hydrated synchronously on mount so panels
-   don't flash empty.
-2. **IndexedDB** (`putSnapshot` / `snapshotDB.js`) — full-fidelity per-market
-   per-day archive. Used by tools that backfill or compare across days.
+### Client persistence
+
+1. **localStorage** slim snapshot (idle save).
+2. **IndexedDB** full per-market day archive when enabled.
 
 ---
 
-## 6. Cross-market enrichment
+## 6. Cross-market reads
 
-Some panels need data from other markets. They consume it through
-`useMarketData(otherMarketId)` rather than re-fetching.
-
-```mermaid
-flowchart LR
-    fx[fx]
-    sentiment[sentiment]
-    imf[imf]
-    worldbank[worldbank]
-    census[census]
-    commodities[commodities]
-    derivatives[derivatives]
-    equityDeepDive[equityDeepDive]
-    crypto[crypto]
-    bonds[bonds]
-    credit[credit]
-    watchlist[watchlist]
-
-    fx --> commodities
-    sentiment --> commodities
-    fx --> globalMacro
-    imf --> globalMacro
-    worldbank --> globalMacro
-    census --> realEstate
-    commodities --> realEstate
-    equityDeepDive --> equities
-    derivatives --> derivatives
-    bonds --> watchlist
-    commodities --> watchlist
-    credit --> watchlist
-    crypto --> watchlist
-    derivatives --> watchlist
-    equityDeepDive --> watchlist
-    fx --> watchlist
-    sentiment --> watchlist
-```
-
-Examples:
-
-- **Commodities → COT panel** reads `sentiment.cotData` (CFTC positions live in
-  the sentiment payload because that's where their primary use-case is — risk).
-- **Commodities → currency overlay** reads `fx.fredFxRates` for CAD/AUD/NOK
-  (commodity currencies).
-- **Macro → International Reserves & COFER** read `imf.*` directly.
-- **Macro → Trade Openness, GDP per capita** read `worldbank.countries`.
-- **Real Estate → Housing & Construction & Trade** reads the `census` payload
-  (which itself wraps FRED mirrors of Census series).
-- **Equities → factor panels** read `equitiesDeepDive` for sector/factor breakdowns.
-
-Cross-market reads have one consequence: a panel that depends on market B will
-appear PENDING until B has resolved its wave fetch, even if A's own fetch
-landed. The DataFooter on A still reports A's freshness — the dependent panel
-shows its own empty state.
+Panels may call `useMarketData(otherId)` instead of duplicating backend work
+(e.g. commodities COT from sentiment, macro from imf/worldbank). Dependent
+panels stay empty until the source market lands.
 
 ---
 
-## 7. The hook layer — `useMarketData`
+## 7. `useMarketData` + DataFooter
 
 ```js
 const { data, isLoading, isLive, isCurrent, lastUpdated, fetchedOn, error,
         provenance, refetch } = useMarketData('bonds');
 ```
 
-What it does on top of `DataContext`:
-
-- **Currency conversion**: numeric values in `data` are run through the active
-  currency converter in `CurrencyContext`. Strings, dates, and metadata pass
-  through. Conversion is best-effort — series that aren't denominated in USD
-  shouldn't be auto-converted, so panels currency-format at render time using
-  `MetricValue`/`formatNumber` rather than relying on this layer.
-- **Refetch**: `refetch()` re-runs only that market (not the full wave).
+Currency conversion is **at render** via `CurrencyContext` where panels need it.
+Every panel should expose provenance through DataFooter / MetricValue.
 
 ---
 
-## 8. DataFooter — provenance contract
+## 8. Verification scripts
 
-Every panel renders `<DataFooter market="…" />`. It pulls:
-
-- `lastUpdated`, `fetchedOn`, `isLive`, `isCurrent` from `useMarketData(market)`
-- `provenance.sources` (which is `data._sources` from the route response)
-- A static fallback from `src/hub/dataSources.js` if the route didn't supply
-  `_sources`
-
-The footer is the user's contract: every number on screen has a clickable link
-back to a public source. If a panel renders without one, it's a bug.
-
----
-
-## 9. Validators (regression harness)
-
-Two scripts under `scripts/` use the live server and a Playwright browser to
-verify the pipeline end-to-end.
-
-- **`npm run test:regress`** → `scripts/regress.mjs`
-  - Reads `.server-port`, hits each `/api/<market>` directly, asserts response
-    shape per `STRUCTURAL_GUARDS` mirror.
-- **`npm run test:validate`** → `scripts/validate.mjs`
-  - Spins up Playwright, mounts each tab, walks panels, asserts that no panel
-    is stuck on PENDING/NO DATA when the server side has a live response.
-- **`npm run test:audit`** → cache + freshness audit against
-  `/api/cache/status`.
-- **`npm run test:persist`** → drag-and-drop layout, reload, assert layout
-  persisted (the BentoWrapper saves under all breakpoint keys with cols=12).
-
-Validator output lands in `test-results/` and is gitignored.
-
----
-
-## 10. The four-layer cache, summarized
-
-| Layer | Where | TTL | Survives restart? | Purpose |
-| --- | --- | --- | --- | --- |
-| HTTP `Cache-Control` | response header | 15 min (`max-age=900`, SWR 60) | n/a | browser/proxy cache; reduces re-fetch on tab focus |
-| NodeCache | server memory | 15 min | no | dedupe in-process fan-out |
-| Daily JSON snapshot | `server/datacache/<market>-YYYY-MM-DD.json` | 1 day (rolling), pruned >7d | yes | restart-warm; stale-fallback when upstream APIs fail |
-| Browser snapshot | localStorage + IndexedDB | indefinite | yes | first-paint hydration; cross-session continuity |
-
-Mental model: **the server caches network calls, the browser caches the UI
-state**. The two never share a key space.
-
----
-
-## 11. End-to-end timing budget (cold-cache, all keys present)
-
-| Phase | Budget |
+| Command | Role |
 | --- | --- |
-| Browser → server `/api/bonds` (TTFB) | 50–500 ms (warm cache) |
-| Server cold-fetch fan-out for one market | 2–10 s (FRED 20+ series, throttled) |
-| Full DataProvider wave (24 routes, batch 4, 300 ms gap) | 8–25 s (cold) / <2 s (warm cache) |
-| Per-panel render after data lands | <100 ms |
+| `npm run test:regress` | API shape against live server |
+| `npm run test:validate` | Playwright tab/panel crawl |
+| `npm run test:audit` | Cache / freshness audit |
+| `npm run test:persist` | Bento layout persist |
 
-If a wave takes longer than 30 s the per-route 30 s timeout starts firing and
-panels go red. That's the signal that either FRED is degraded, an API key is
-wrong, or `server/datacache/` is poisoned and needs to be cleared.
+Default push gate remains `npm run preflight` (Vitest + secrets + workflow lint).
 
 ---
 
-## 12. Adding a new market — the checklist
+## 9. Cache layers (summary)
 
-1. **Backend route**: new file under `server/routes/<id>.js`, mount in
-   `server/index.js`. Return `{ lastUpdated, fetchedOn, isLive, _sources, … }`.
-   Use `readDailyCache`/`writeDailyCache` and `localCache`.
-2. **Endpoint registry**: add to `MARKET_ENDPOINTS` in
-   `src/hub/DataProvider.jsx`.
-3. **Structural guard** (if the route's "non-empty" condition is non-trivial):
-   add to `STRUCTURAL_GUARDS` in `DataProvider.jsx`.
-4. **Static sources** (fallback for DataFooter): add to `src/hub/dataSources.js`.
-5. **Tab config**: add to `MARKETS` and `SEARCH_INDEX` in
-   `src/hub/markets.config.js`.
-6. **Market component**: `src/markets/<id>/<Id>Market.jsx` using
-   `useMarketData('<id>')` + `BentoWrapper`.
-7. **Panel doc**: add a section to `docs/PANELS.md`.
-8. **Validator**: rerun `npm run test:validate`.
+| Layer | Where | Survives restart |
+| --- | --- | --- |
+| HTTP Cache-Control | Response headers | n/a |
+| NodeCache | Server memory | no |
+| Daily JSON | `server/datacache/` (+ GCS) | yes |
+| Browser snapshot | localStorage / IndexedDB | yes |
+
+Clear poisoned disk cache: delete `server/datacache/*.json`.
+
+---
+
+## 10. Adding a market
+
+1. Route under `server/routes/`, mount in `server/index.js`.
+2. Register in `MARKET_ENDPOINTS` / `shared/api-routing.json`.
+3. Structural guard if needed; sources in `dataSources.js`.
+4. Tab in `markets.config.js` + market component + `docs/PANELS.md`.
+5. Snapshot list in `functions/src/lib/snapshotMarkets.ts` if RTDB should cover it.
+6. `npm run preflight` (+ validate if UI-heavy).

@@ -50,9 +50,10 @@ describe('BlsMarket', () => {
 
   it('renders KPI labels and values', () => {
     render(<BlsMarket centralData={mockCentralData} />);
-    // Master-detail layout: the selected metric's label appears both in the
-    // tile-rail and the detail pane header. getAllByText accepts >=1 match.
+    // Master-detail layout: selected metric label/value appear in the tile
+    // rail and again in the detail header (and in Trends when the same
+    // series is reused). Accept multiple matches.
     expect(screen.getAllByText('Unemployment Rate').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('4.3')).toBeInTheDocument();
+    expect(screen.getAllByText('4.3').length).toBeGreaterThanOrEqual(1);
   });
 });

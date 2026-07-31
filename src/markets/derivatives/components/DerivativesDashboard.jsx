@@ -500,7 +500,6 @@ function DerivativesDashboard({
             gexNet = gammaExposure.netGamma ?? (gexCall - gexPut);
             hasGex = true;
           }
-          if (!hasGex) return null;
           return (
             <BentoCard
               key="gamma"
@@ -510,12 +509,15 @@ function DerivativesDashboard({
               contentClassName="deriv-panel-scroll"
               source="Yahoo Finance / SpotGamma"
               timestamp={lastUpdated}
-              isLive={true}
+              isLive={hasGex}
               isCurrent={isCurrent}
               fetchedOn={fetchedOn}
               fetchLog={fetchLog}
               error={error}
+              disabled={!hasGex}
+              emptyMessage="Gamma exposure unavailable"
             >
+              {hasGex ? (
               <div className="deriv-sidebar-section" style={{ borderBottom: 'none' }}>
                 <div className="deriv-metric-card">
                   <div className="deriv-metric-row">
@@ -550,6 +552,7 @@ function DerivativesDashboard({
                   </div>
                 </div>
               </div>
+              ) : null}
             </BentoCard>
           );
         })()}

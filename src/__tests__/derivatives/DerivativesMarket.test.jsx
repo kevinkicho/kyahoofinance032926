@@ -78,11 +78,10 @@ describe('DerivativesMarket', () => {
     expect(screen.getAllByText(/30d Realized/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('always mounts Vol Premium shell; Gamma only when GEX data present', () => {
-    // Force-mount keeps vol premium visible (empty/pending) on cold loads.
-    // Gamma still requires a total/array so the layout does not show empty GEX.
+  it('always mounts Vol Premium and Gamma shells even without GEX rows', () => {
+    // Always-mount contract: empty panels stay visible for health / layout.
     render(<DerivativesMarket centralData={mockCentralData} />);
     expect(screen.getByText('Vol Premium')).toBeInTheDocument();
-    expect(screen.queryByText('Gamma Exposure (GEX)')).not.toBeInTheDocument();
+    expect(screen.getByText('Gamma Exposure (GEX)')).toBeInTheDocument();
   });
 });

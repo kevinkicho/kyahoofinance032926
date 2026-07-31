@@ -43,24 +43,33 @@
   gap: 8px;
 }
 
-/* Master-detail layout: compact selectable tile-rail on the left, full
-   3-year chart on the right. Tile-rail flows into multiple columns at
-   wide widths via auto-fit, then collapses to 1 column on narrow. */
+/* Master-detail layout (shared by every Labor panel): compact selectable
+   tile-rail on the left, full history chart on the right. */
 .bls-master-detail {
   display: grid;
-  grid-template-columns: minmax(220px, 30%) 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(168px, 32%) 1fr;
+  gap: 10px;
   height: 100%;
   min-height: 0;
 }
 
 .bls-tile-rail {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: 1fr;
   gap: 6px;
   align-content: start;
   overflow-y: auto;
   min-height: 0;
+  padding-right: 2px;
+}
+
+/* Full-width KPI: multi-column tiles so all 8 indicators stay visible */
+.bls-master-detail--wide {
+  grid-template-columns: minmax(240px, 34%) 1fr;
+}
+
+.bls-tile-rail--wide {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .bls-tile {
@@ -139,7 +148,17 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.bls-detail-header-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .bls-detail-title {
@@ -148,19 +167,60 @@
   color: var(--text-primary, #ddd);
 }
 
+.bls-detail-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  line-height: 1;
+}
+
 .bls-detail-meta {
   font-size: 0.7rem;
   color: var(--text-muted, #888);
+  white-space: nowrap;
 }
 
 .bls-detail-chart { flex: 1; min-height: 0; }
+
+.bls-empty {
+  height: 100%;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #888);
+  font-size: 12px;
+  text-align: center;
+  padding: 12px;
+}
+
+.bls-empty--page {
+  padding: 40px;
+  min-height: 200px;
+}
 
 @media (max-width: 720px) {
   .bls-master-detail {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
   }
-  .bls-tile-rail { max-height: 220px; }
+  .bls-tile-rail {
+    max-height: 200px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+/* Half-width panels: keep a single-column rail so labels stay readable */
+@container panel-content (max-width: 640px) {
+  .bls-master-detail {
+    grid-template-columns: minmax(140px, 38%) 1fr;
+    gap: 8px;
+  }
+  .bls-tile {
+    padding: 6px 8px;
+  }
+  .bls-tile-value { font-size: 0.92rem; }
 }
 
 .bls-kpi-card {

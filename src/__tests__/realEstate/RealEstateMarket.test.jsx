@@ -31,7 +31,8 @@ const mockCentralData = {
 describe('RealEstateMarket', () => {
   it('renders unified dashboard with status bar', () => {
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED/i).length).toBeGreaterThan(0);
+    // Without DataProvider, footer may show LOADING (context default) or WAITING/STALE/etc.
+    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED|LOADING|UNAVAIL/i).length).toBeGreaterThan(0);
   });
 
   it('shows Home prices section in Key Metrics panel', () => {
@@ -54,6 +55,6 @@ describe('RealEstateMarket', () => {
 
   it('shows no data received status when not live', () => {
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED|LOADING|UNAVAIL/i).length).toBeGreaterThan(0);
   });
 });

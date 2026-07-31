@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 // Width hook is v2; Responsive must come from /legacy so v1 flat props
 // (layouts, cols, breakpoints, draggableHandle, …) still work. Importing
 // Responsive from the main package uses the v2 API and silently ignores
@@ -7,7 +7,17 @@ import { useContainerWidth } from 'react-grid-layout';
 import { Responsive as ResponsiveGridLayout } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
+import BentoCard from './BentoCard/BentoCard';
+import EmptyPanelBody from './BentoCard/EmptyPanelBody';
 import './BentoWrapper.css';
+
+/** "foreign-holders" → "Foreign Holders" when no explicit title map. */
+function humanizePanelKey(key) {
+  return String(key || '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    || 'Panel';
+}
 
 /**
  * React Grid Layout / React 19 can surface child keys as ".$kpi" (internal
@@ -153,7 +163,16 @@ function layoutSignature(layout) {
     .join('|');
 }
 
-export default function BentoWrapper({ children, layout, className = '', storageKey, draggableHandle = '.bento-panel-title-row' }) {
+export default function BentoWrapper({
+  children,
+  layout,
+  className = '',
+  storageKey,
+  draggableHandle = '.bento-panel-title-row',
+  /** Optional map of layout key → title for missing-slot shells */
+  panelTitles = null,
+  accent = null,
+}) {
   const { width, containerRef, mounted } = useContainerWidth({ initialWidth: 1200 });
   const lastSavedRef = useRef(null);
   // Ignore RGL's burst of onLayoutChange on mount / width settle — that loop
@@ -277,6 +296,30 @@ export default function BentoWrapper({ children, layout, className = '', storage
   // until useContainerWidth mounts.
   const effectiveWidth = width > 0 ? width : 1200;
 
+  // Map provided children by layout key. Missing keys still get a disabled
+  // shell so panels never "disappear" when data/components return null.
+  const childByKey = useMemo(() => {
+    const map = new Map();
+    for (const child of React.Children.toArray(children)) {
+      if (!React.isValidElement(child) || child.key == null) continue;
+      const k = normalizeLayoutKey(child.key);
+      if (k) map.set(k, child);
+    }
+    return map;
+  }, [children]);
+
+  const layoutKeys = useMemo(() => {
+    const fromDefaults = (layout?.lg || []).map((d) => normalizeLayoutKey(d.i)).filter(Boolean);
+    // Also include any children not in layout (shouldn't happen, but safe).
+    const extra = [...childByKey.keys()].filter((k) => !fromDefaults.includes(k));
+    return [...fromDefaults, ...extra];
+  }, [layout, childByKey]);
+
+  const titleFor = useCallback((key) => {
+    if (panelTitles && panelTitles[key]) return panelTitles[key];
+    return humanizePanelKey(key);
+  }, [panelTitles]);
+
   return (
     <div ref={containerRef} className={`com-bento-root ${className}`} style={!mounted ? { minHeight: 400 } : undefined}>
       <ResponsiveGridLayout
@@ -305,17 +348,16 @@ export default function BentoWrapper({ children, layout, className = '', storage
         onResizeStop={handleResizeStop}
       >
         {/*
-          Use Children.toArray + Array#map (NOT Children.map).
+          Use layout keys as the source of truth (NOT only children).
           Children.map re-namespaces keys (e.g. ".$kpi"), and RGL matches
           layout.i to String(child.key) exactly — any mismatch creates a
           permanent synthetic 1×1 cell.
+          Missing children → disabled BentoCard shell (opacity), never unmount.
         */}
-        {React.Children.toArray(children)
-          .filter(React.isValidElement)
-          .map((child) => {
-            const cleanedKey = child.key != null ? normalizeLayoutKey(child.key) : undefined;
-            if (!cleanedKey) return child;
+        {layoutKeys.map((cleanedKey) => {
+          const child = childByKey.get(cleanedKey);
 
+          if (child) {
             const isDomElement = typeof child.type === 'string';
             const extraProps = isDomElement
               ? {
@@ -338,7 +380,29 @@ export default function BentoWrapper({ children, layout, className = '', storage
                 {React.cloneElement(child, extraProps)}
               </div>
             );
-          })}
+          }
+
+          return (
+            <div
+              key={cleanedKey}
+              data-panel-key={cleanedKey}
+              className="bento-grid-slot bento-grid-slot--empty"
+              style={{ height: '100%', width: '100%', minHeight: 0, minWidth: 0 }}
+            >
+              <BentoCard
+                panelKey={cleanedKey}
+                title={titleFor(cleanedKey)}
+                accent={accent || undefined}
+                disabled
+                emptyMessage="No data available"
+                noFooter
+                style={{ height: '100%' }}
+              >
+                <EmptyPanelBody message="No data available" />
+              </BentoCard>
+            </div>
+          );
+        })}
       </ResponsiveGridLayout>
     </div>
   );

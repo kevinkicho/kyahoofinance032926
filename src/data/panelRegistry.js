@@ -365,7 +365,7 @@ export const PANEL_REGISTRY = {
     { id: 'factor-rankings', title: 'Factor Rankings', field: 'factorData', fieldPath: 'factorData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'factorData && factorData.length > 0' },
     { id: 'earnings-watch', title: 'Earnings Watch', field: 'earningsData', fieldPath: 'earningsData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'earningsData && earningsData.length > 0' },
     { id: 'short-interest', title: 'Short Interest', field: 'shortData', fieldPath: 'shortData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'shortData && shortData.length > 0' },
-    { id: 'insider', title: 'Insider Trading', field: 'insiderData', fieldPath: 'insiderData', source: 'equityDeepDive.js', external: [{ name: 'SEC EDGAR', seriesIds: [] }], renderCheck: 'insiderData && insiderData.length > 0' },
+    { id: 'insider', title: 'Insider Trading', field: 'insiderData', fieldPath: 'insiderData.transactions', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance / SEC Form 4', seriesIds: [] }], renderCheck: 'insiderData && (insiderData.transactions?.length > 0 || insiderData.holders?.length > 0)' },
     { id: 'sec-13f', title: 'SEC 13F Holdings', field: 'holdings', fieldPath: 'holdings', crossMarket: 'institutional', source: 'institutional.js', external: [{ name: 'SEC 13F', seriesIds: [] }], renderCheck: 'instCtx?.data?.holdings?.length > 0' },
   ],
 

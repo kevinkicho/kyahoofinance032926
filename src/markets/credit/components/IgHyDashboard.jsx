@@ -44,8 +44,14 @@ function buildSpreadHistoryOption(history, colors) {
 }
 
 export default function IgHyDashboard({ spreadData, commercialPaper, lastUpdated, delinquencyRates, defaultData }) {
-  if (!spreadData) return null;
   const { colors } = useTheme();
+  if (!spreadData) {
+    return (
+      <div className="credit-panel" data-panel-empty="1" style={{ opacity: 0.3, padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
+        No credit spread data available
+      </div>
+    );
+  }
   const { current = {}, history = {}, etfs = [] } = spreadData;
 
   const creditMetrics = [

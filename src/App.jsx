@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import './index.css';
 import { ThemeProvider } from './hub/ThemeContext';
 import { ToastProvider } from './hub/ToastContext';
@@ -17,34 +17,11 @@ function PopoutView({ marketId }) {
   const MarketComponent = MARKET_COMPONENTS[marketId];
   const label = marketMeta ? marketMeta.label : marketId;
   const marketCtx = useMarketData(marketId);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-
   useEffect(() => {
     document.title = label + ' — Market Hub';
   }, [label]);
 
-  const hasRefetched = useRef(false);
-  useEffect(() => {
-    if (!hasRefetched.current && !marketCtx?.data && !marketCtx?.isLoading) {
-      hasRefetched.current = true;
-      marketCtx?.refetch?.();
-    }
-  }, [marketCtx]);
-
-  const refetchRef = useRef(marketCtx?.refetch);
-  useEffect(() => {
-    refetchRef.current = marketCtx?.refetch;
-  }, [marketCtx?.refetch]);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      refetchRef.current?.();
-    }, 300000);
-    return () => clearInterval(interval);
-  }, [autoRefresh]);
-
+  // Popout rides the parent DataProvider wave — only user ▶ re-fetches this market.
   if (!MarketComponent) {
     return (
       <div style={{ padding: 40, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
@@ -74,11 +51,13 @@ function PopoutView({ marketId }) {
           {marketCtx?.isLive && !marketCtx?.isLoading && !marketCtx?.isHistorical && <span style={{ fontSize: 10, color: '#10b981' }}>● Live</span>}
         </span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => marketCtx?.refetch?.()} title="Refresh data" style={{ fontSize: 12, background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
-            ▶ Refresh
-          </button>
-          <button onClick={() => setAutoRefresh(r => !r)} title={autoRefresh ? 'Auto-refresh ON (5 min)' : 'Auto-refresh OFF'} style={{ fontSize: 12, background: autoRefresh ? 'rgba(16,185,129,0.15)' : 'var(--bg-card)', color: autoRefresh ? '#10b981' : 'var(--text-secondary)', border: '1px solid ' + (autoRefresh ? '#10b981' : 'var(--border-color)'), borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
-            {autoRefresh ? 'Auto ✓' : 'Auto'}
+          <button
+            onClick={() => marketCtx?.refetch?.()}
+            disabled={!!marketCtx?.isLoading}
+            title="Refresh this market only"
+            style={{ fontSize: 12, background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}
+          >
+            {marketCtx?.isLoading ? '⟳' : '▶'} Refresh
           </button>
           <a
             href="/"
@@ -119,7 +98,7 @@ export default function App() {
       <ThemeProvider>
         <ToastProvider>
           <CurrencyProvider initialCurrency="USD">
-            <DataProvider autoRefresh={false} refreshKey={0}>
+            <DataProvider>
               <ErrorBoundary type="global" name="Market Hub">
                 <PopoutView marketId={popoutId} />
               </ErrorBoundary>

@@ -383,6 +383,46 @@ router.get('/', async (req, res) => {
       );
       const holders = [];
       const transactions = [];
+      const yfDate = (v) => {
+        if (v == null || v === '') return '';
+        if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString().split('T')[0];
+        if (typeof v === 'object') {
+          if (v.fmt) return String(v.fmt).slice(0, 10);
+          if (v.raw != null) {
+            const n = Number(v.raw);
+            if (Number.isFinite(n) && n > 0) {
+              const ms = n < 1e12 ? n * 1000 : n;
+              const d = new Date(ms);
+              if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
+            }
+          }
+        }
+        const s = String(v);
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        const d = new Date(s);
+        return Number.isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+      };
+      const yfNum = (v) => {
+        if (v == null || v === '') return null;
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (typeof v === 'object' && v.raw != null) {
+          const n = Number(v.raw);
+          return Number.isFinite(n) ? n : null;
+        }
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      const inferTxType = (t) => {
+        const raw = t.transactionType || t.type || t.transactionText || t.text || '';
+        const s = String(raw).toLowerCase();
+        if (!s) return '';
+        if (s.includes('purchase') || s.includes('buy') || s.includes('acquisition')) return 'Purchase';
+        if (s.includes('sale') || s.includes('sell') || s.includes('disposition')) return 'Sale';
+        if (s.includes('gift')) return 'Gift';
+        if (s.includes('award') || s.includes('option') || s.includes('exercise')) return 'Award/Exercise';
+        return String(raw).slice(0, 48);
+      };
+
       insiderResults.forEach(r => {
         if (r.status !== 'fulfilled') return;
         const s = r.value;
@@ -390,25 +430,38 @@ router.get('/', async (req, res) => {
         const ih = s.insiderHolders || {};
         const it = s.insiderTransactions || {};
         (ih.holders || []).forEach(h => {
+          const shares = yfNum(h.positionDirect)
+            ?? yfNum(h.positionIndirect)
+            ?? yfNum(h.numberOfSharesHeld)
+            ?? yfNum(h.shares);
+          const name = h.name || h.fullName || '';
+          if (!name && shares == null) return;
           holders.push({
             ticker,
-            name: h.name || h.fullName || '',
-            title: h.positionTitle || h.title || '',
-            shares: h.numberOfSharesHeld?.raw ?? h.numberOfSharesHeld ?? null,
-            date: h.latestTransDate?.fmt || h.latestTransDate || '',
+            name,
+            title: h.positionTitle || h.title || h.relation || '',
+            shares,
+            date: yfDate(h.latestTransDate || h.positionDirectDate),
             relation: h.relation || '',
+            lastTx: h.transactionDescription || '',
           });
         });
         (it.transactions || []).forEach(t => {
+          const shares = yfNum(t.shares);
+          const value = yfNum(t.value);
+          const name = t.filerName || t.insiderName || t.name || '';
+          const type = inferTxType(t);
+          if (shares == null && value == null && !name) return;
           transactions.push({
             ticker,
-            name: t.insiderName || t.name || '',
-            title: t.positionTitle || t.title || '',
-            relation: t.relation || '',
-            shares: t.shares?.raw ?? t.shares ?? null,
-            value: t.value?.raw ?? t.value ?? null,
-            date: t.startDate?.fmt || t.startDate || '',
-            type: t.transactionType || t.type || '',
+            name,
+            title: t.positionTitle || t.title || t.filerRelation || t.relation || '',
+            relation: t.filerRelation || t.relation || '',
+            shares,
+            value: value === 0 ? null : value,
+            date: yfDate(t.startDate),
+            type,
+            text: t.transactionText || t.moneyText || '',
           });
         });
       });
@@ -416,7 +469,11 @@ router.get('/', async (req, res) => {
         const va = a.shares ?? 0; const vb = b.shares ?? 0;
         return vb - va;
       });
-      transactions.sort((a, b) => b.date.localeCompare(a.date));
+      transactions.sort((a, b) => {
+        const da = a.date ? String(a.date) : '';
+        const db = b.date ? String(b.date) : '';
+        return db.localeCompare(da);
+      });
       insiderData = { holders: holders.slice(0, 30), transactions: transactions.slice(0, 40) };
     } catch (e) {
       console.warn('Insider trading fetch failed:', e.message);

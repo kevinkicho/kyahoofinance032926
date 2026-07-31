@@ -336,6 +336,8 @@ export default function DataFooter({
   isHistorical,
   asOfDate,
   isLoading,
+  onRefresh,
+  isRefreshing,
 }) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState(null);
@@ -344,6 +346,7 @@ export default function DataFooter({
   const rootRef = useRef(null);
   const popoverRef = useRef(null);
   const [measured, setMeasured] = useState(false);
+  const busy = !!(isLoading || isRefreshing);
 
   const open = useCallback(() => {
     if (!fetchLog || fetchLog.length === 0) return;
@@ -414,6 +417,13 @@ export default function DataFooter({
 
   const histSuffix = isHistorical && asOfDate ? ` · as of ${asOfDate}` : '';
 
+  const handleRefreshClick = useCallback((e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (busy || !onRefresh) return;
+    onRefresh();
+  }, [busy, onRefresh]);
+
   return (
     <>
       <div
@@ -427,6 +437,19 @@ export default function DataFooter({
         <span className="df-label">{source}{timestamp ? ` \u00b7 ${timestamp}` : ''}{histSuffix}</span>
         {!isLive && error && <span className="df-error-text">\u25cb {error}</span>}
         {isHistorical && <span className="df-hist-pill">historical RTDB</span>}
+        {typeof onRefresh === 'function' && (
+          <button
+            type="button"
+            className={`df-refresh-btn${busy ? ' is-busy' : ''}`}
+            onClick={handleRefreshClick}
+            onMouseDown={e => e.stopPropagation()}
+            disabled={busy}
+            title={busy ? 'Refreshing this market…' : 'Refresh this market only (panel play)'}
+            aria-label={busy ? 'Refreshing market data' : 'Refresh market data for this panel'}
+          >
+            {busy ? '⟳' : '▶'}
+          </button>
+        )}
       </div>
       {show && pos && fetchLog?.length > 0 && createPortal(
         <div

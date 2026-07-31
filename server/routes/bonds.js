@@ -312,7 +312,29 @@ router.get('/', makeCachedRouteHandler({
       }
       return null;
     };
-    const spreadData = windowDates.length >= 2 ? {
+    // Latest-only FRED probes when history windows came back empty (rate limits
+    // often drop secondary BAML series while IG still has history).
+    let hyLatestBps = lastBps(hyMap);
+    let emLatestBps = lastBps(emMap);
+    let bbbLatestBps = lastBps(bbbMap);
+    if (hyLatestBps == null || emLatestBps == null || bbbLatestBps == null) {
+      const extra = await Promise.allSettled([
+        hyLatestBps == null ? fetchFredLatest(SPREAD_SERIES.HY, FRED_API_KEY) : Promise.resolve(null),
+        emLatestBps == null ? fetchFredLatest(SPREAD_SERIES.EM, FRED_API_KEY) : Promise.resolve(null),
+        bbbLatestBps == null ? fetchFredLatest(SPREAD_SERIES.BBB, FRED_API_KEY) : Promise.resolve(null),
+      ]);
+      if (hyLatestBps == null && extra[0].status === 'fulfilled' && extra[0].value != null) {
+        hyLatestBps = toBps(Number(extra[0].value));
+      }
+      if (emLatestBps == null && extra[1].status === 'fulfilled' && extra[1].value != null) {
+        emLatestBps = toBps(Number(extra[1].value));
+      }
+      if (bbbLatestBps == null && extra[2].status === 'fulfilled' && extra[2].value != null) {
+        bbbLatestBps = toBps(Number(extra[2].value));
+      }
+    }
+
+    const spreadData = windowDates.length >= 2 || lastBps(igMap) != null || hyLatestBps != null ? {
       dates: windowDates.map((d) => dateToMonthLabel(d)),
       IG: windowDates.map((d) => igMap.get(d) ?? null),
       HY: windowDates.map((d) => hyMap.get(d) ?? null),
@@ -320,9 +342,9 @@ router.get('/', makeCachedRouteHandler({
       BBB: windowDates.map((d) => bbbMap.get(d) ?? null),
       current: {
         igSpread: lastBps(igMap),
-        hySpread: lastBps(hyMap),
-        emSpread: lastBps(emMap),
-        bbbSpread: lastBps(bbbMap),
+        hySpread: hyLatestBps,
+        emSpread: emLatestBps,
+        bbbSpread: bbbLatestBps,
       },
     } : null;
 

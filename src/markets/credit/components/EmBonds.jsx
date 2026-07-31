@@ -59,9 +59,8 @@ function buildRegionOption(regions, colors) {
 }
 
 export default function EmBonds({ emBondData, lastUpdated }) {
-  if (!emBondData) return null;
   const { colors } = useTheme();
-  const { countries = [], regions = [] } = emBondData;
+  const { countries = [], regions = [] } = emBondData || {};
 
   const kpis = useMemo(() => {
     if (!countries.length) return null;
@@ -77,6 +76,14 @@ export default function EmBonds({ emBondData, lastUpdated }) {
     }).length;
     return { tightest, widest, avgSpread, igCount };
   }, [countries]);
+
+  if (!emBondData) {
+    return (
+      <div className="credit-panel" data-panel-empty="1" style={{ opacity: 0.3, padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
+        No EM bond data available
+      </div>
+    );
+  }
 
   return (
     <div className="credit-panel">

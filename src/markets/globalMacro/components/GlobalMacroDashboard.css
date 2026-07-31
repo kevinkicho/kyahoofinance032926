@@ -539,24 +539,44 @@
   padding: 0 2px;
 }
 
-/* ── Global Liquidity Dashboard cards ── */
+/* ── Global Liquidity Dashboard ──
+   Top: score hero + 5 KPI cards in one row (uses full width).
+   Bottom: 2×2 chart grid fills remaining height. */
+.mac-liq-panel.mac-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden; /* charts own the space; avoid double scroll */
+  flex: 1;
+}
 .mac-liq {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-height: 0;
   height: 100%;
+  flex: 1;
+  width: 100%;
+}
+.mac-liq-top {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.9fr) minmax(0, 5fr);
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: stretch;
 }
 .mac-liq-hero {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
+  gap: 4px;
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-primary);
   border-left: 3px solid #f59e0b;
-  flex-shrink: 0;
+  min-width: 0;
 }
 .mac-liq-tone-supportive { border-left-color: #22c55e; }
 .mac-liq-tone-tight { border-left-color: #f87171; }
@@ -568,11 +588,17 @@
   text-transform: uppercase;
   color: var(--text-muted);
 }
+.mac-liq-hero-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .mac-liq-hero-value {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 800;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  line-height: 1.1;
+  line-height: 1;
   color: var(--text-primary);
 }
 .mac-liq-tone-supportive .mac-liq-hero-value { color: #4ade80; }
@@ -585,23 +611,25 @@
   color: var(--text-secondary);
 }
 .mac-liq-hero-hint {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted);
-  margin-top: 2px;
+  line-height: 1.2;
 }
 .mac-liq-cards {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
   min-height: 0;
-  flex: 1;
 }
 .mac-liq-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 3px;
   min-width: 0;
-  padding: 10px 10px 8px;
+  min-height: 0;
+  padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-primary);
@@ -623,30 +651,98 @@
   text-overflow: ellipsis;
 }
 .mac-liq-card-value {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
-  line-height: 1.15;
+  line-height: 1.1;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .mac-liq-card--pos .mac-liq-card-value { color: #4ade80; }
 .mac-liq-card--neg .mac-liq-card-value { color: #f87171; }
 .mac-liq-card--warn .mac-liq-card-value { color: #fbbf24; }
 .mac-liq-card--info .mac-liq-card-value { color: #38bdf8; }
 .mac-liq-card-sub {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted);
-  line-height: 1.25;
+  line-height: 1.2;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Chart grid — fills leftover panel height */
+.mac-liq-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+.mac-liq-chart-cell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 10px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.mac-liq-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.mac-liq-chart-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mac-liq-chart-meta {
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mac-liq-chart-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.mac-liq-chart-empty {
+  height: 100%;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 /* ── 16. Responsive ── */
+@container bento-card (max-width: 900px) {
+  .mac-liq-top { grid-template-columns: 1fr; }
+  .mac-liq-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
 @container bento-card (max-width: 720px) {
   .mac-liq-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mac-liq-charts { grid-template-columns: 1fr; grid-template-rows: none; }
+  .mac-liq-chart-cell { min-height: 140px; }
+  .mac-liq-panel { overflow: auto; }
 }
 @container bento-card (max-width: 500px) {
   .mac-scorecard-compact { grid-template-columns: 32px 48px repeat(3, 1fr); font-size: 10px; }

@@ -30,7 +30,9 @@ Thank you for your interest in contributing to this project.
 
 | Doc | Purpose |
 |-----|---------|
+| [`docs/README.md`](docs/README.md) | **Index** — current docs |
 | [`AGENTS.md`](AGENTS.md) | Rules for AI agents |
+| [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md) | Short current conventions |
 | [`docs/CI_PREFLIGHT_GUIDE.md`](docs/CI_PREFLIGHT_GUIDE.md) | Preflight / hooks detail |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | App Hosting deploy + warm |
 | [`docs/PANELS.md`](docs/PANELS.md) | Panel inventory |

@@ -129,27 +129,16 @@ describe('AnalyticsMarket', () => {
     });
   });
 
-  it('renders auto-refresh toggle button', async () => {
+  it('renders manual refresh button (no auto-refresh)', async () => {
     mockFetch.mockResolvedValue(jsonResponse({
       endpoints: [], apiUsage: { sources: [] }, environment: {},
       uptime: { seconds: 100 }, memCache: { keyCount: 0, hitRate: 0 }, routes: [],
     }));
     render(<AnalyticsMarket />);
     await waitFor(() => {
-      expect(screen.getByText('Auto-refresh')).toBeInTheDocument();
+      expect(screen.getByText(/Refresh/i)).toBeInTheDocument();
     });
-  });
-
-  it('toggles auto-refresh when button clicked', async () => {
-    mockFetch.mockResolvedValue(jsonResponse({
-      endpoints: [], apiUsage: { sources: [] }, environment: {},
-      uptime: { seconds: 100 }, memCache: { keyCount: 0, hitRate: 0 }, routes: [],
-    }));
-    render(<AnalyticsMarket />);
-    await waitFor(() => {
-      expect(screen.getByText('Auto-refresh')).toBeInTheDocument();
-    });
-    await userEvent.click(screen.getByText('Auto-refresh'));
-    expect(screen.getByText('Auto 30s')).toBeInTheDocument();
+    expect(screen.queryByText('Auto-refresh')).toBeNull();
+    expect(screen.queryByText('Auto 30s')).toBeNull();
   });
 });

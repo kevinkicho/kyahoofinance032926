@@ -59,7 +59,7 @@ function MarketFallback() {
   );
 }
 
-function ActiveMarketWrapper({ activeMarket, currency, setCurrency, snapshotDate, setSnapshotDate, autoRefresh, refreshKey, onNavigate }) {
+function ActiveMarketWrapper({ activeMarket, currency, setCurrency, snapshotDate, setSnapshotDate, onNavigate }) {
   const ActiveMarket = MARKET_COMPONENTS[activeMarket];
   const marketCtx = useMarketData(activeMarket);
   const dataCtx = useDataContext();
@@ -100,7 +100,7 @@ function HistoricalModeBanner() {
   );
 }
 
-function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey }) {
+function HubLayoutInner({ refreshKey, setRefreshKey }) {
   const [activeMarket, setActiveMarket] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get('market');
@@ -188,10 +188,6 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
     document.title = 'Global Market Hub';
   }, []);
 
-  useEffect(() => { localStorage.setItem('hub-auto-refresh', autoRefresh ? 'on' : 'off'); }, [autoRefresh]);
-
-  const ActiveMarket = MARKET_COMPONENTS[activeMarket];
-
   const handlePopout = useCallback(() => {
     const url = new URL(window.location.href);
     url.searchParams.set('popout', activeMarket);
@@ -240,10 +236,6 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
     }
   }, [activeMarket, addToast]);
 
-  const handleToggleRefresh = useCallback(() => {
-    setAutoRefresh(r => !r);
-  }, []);
-
   const dataCtx = useDataContext();
 
   useEffect(() => {
@@ -277,16 +269,13 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
       return;
     }
     try {
-      addToast('Refreshing all markets from live APIs…', 'info');
+      addToast('Mass refresh: all markets (force live)…', 'info');
       if (dataCtx?.refetchAll) {
         await dataCtx.refetchAll();
-        addToast('Market data updated.', 'success');
-      } else if (dataCtx?.refetchLatestSnapshots) {
-        await dataCtx.refetchLatestSnapshots();
-        addToast('Market data updated.', 'success');
+        addToast('All markets updated.', 'success');
       } else {
         setRefreshKey(k => k + 1);
-        addToast('Market data refresh queued.', 'success');
+        addToast('Mass refresh queued.', 'success');
       }
     } catch (e) {
       console.error('[HubLayout] Refresh failed:', e);
@@ -360,8 +349,6 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
            onExport={handleExport}
            onExportData={handleExportData}
            onPopout={handlePopout}
-           autoRefresh={autoRefresh}
-           onToggleRefresh={handleToggleRefresh}
            onRefresh={handleRefresh}
            isRefreshing={!!dataCtx?.isRefreshing}
          />
@@ -371,10 +358,14 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
             const isVisited = visitedMarkets.includes(m.id);
             if (!isVisited) return null;
             return (
-              <div key={m.id} style={{ display: m.id === activeMarket ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+              <div
+                key={m.id}
+                data-market-id={m.id}
+                style={{ display: m.id === activeMarket ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}
+              >
                 <ErrorBoundary type="tab" name={m.label}>
                   <Suspense fallback={<MarketFallback />}>
-                    <ActiveMarketWrapper activeMarket={m.id} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} autoRefresh={autoRefresh} refreshKey={refreshKey} onNavigate={setActiveMarket} />
+                    <ActiveMarketWrapper activeMarket={m.id} currency={currency} setCurrency={setCurrency} snapshotDate={snapshotDate} setSnapshotDate={setSnapshotDate} onNavigate={setActiveMarket} />
                   </Suspense>
                 </ErrorBoundary>
               </div>
@@ -387,14 +378,11 @@ function HubLayoutInner({ autoRefresh, setAutoRefresh, refreshKey, setRefreshKey
 }
 
 export default function HubLayout() {
-  const [autoRefresh, setAutoRefresh] = useState(() => localStorage.getItem('hub-auto-refresh') === 'on');
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
-    <DataProvider autoRefresh={autoRefresh} refreshKey={refreshKey}>
+    <DataProvider refreshKey={refreshKey}>
       <HubLayoutInner
-        autoRefresh={autoRefresh}
-        setAutoRefresh={setAutoRefresh}
         refreshKey={refreshKey}
         setRefreshKey={setRefreshKey}
       />

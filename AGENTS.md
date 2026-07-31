@@ -52,8 +52,12 @@ npm run postdeploy:warm    # after App Hosting ships (HTTP warm)
 
 ## Canonical deploy path
 
-- **Production**: Firebase App Hosting (Cloud Run), not GitHub Pages.
+- **Production**: Firebase App Hosting (Cloud Run).
 - Warm APIs: `scripts/post-deploy-warm.mjs` / workflow `postdeploy-warm.yml`.
 - Shared cache: `MARKET_CACHE_BUCKET` + `docs/SHARED_CACHE.md`.
 
-See also: `docs/CI_PREFLIGHT_GUIDE.md`, `docs/DEPLOY.md`.
+## Docs
+
+Start at [`docs/README.md`](docs/README.md). Conventions: [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md).
+Deploy: [`docs/DEPLOY.md`](docs/DEPLOY.md). Pipeline: [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md).
+CI: [`docs/CI_PREFLIGHT_GUIDE.md`](docs/CI_PREFLIGHT_GUIDE.md).

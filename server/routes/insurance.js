@@ -515,16 +515,18 @@ router.get('/', async (req, res) => {
       _errors.catLosses = e.message;
     }
   }
-  // Soft proxy when FRED cat series unavailable: FEMA declaration counts by year from cache
+  // Soft proxy when FRED cat series unavailable: FEMA declaration counts from cache
   if (!catLosses) {
     try {
       const femaFb = readLatestCache('fema');
-      const decls = femaFb?.data?.declarations || femaFb?.data?.byType;
+      const decls = femaFb?.data?.declarations;
       if (Array.isArray(decls) && decls.length) {
-        // Aggregate by year if objects have date fields
+        // OpenFEMA rows use firstDeclared / incidentBegin (not declarationDate)
         const byYear = {};
         for (const d of decls) {
-          const y = String(d.declarationDate || d.date || d.year || '').slice(0, 4);
+          const y = String(
+            d.declarationDate || d.firstDeclared || d.incidentBegin || d.date || d.year || ''
+          ).slice(0, 4);
           if (/^\d{4}$/.test(y)) byYear[y] = (byYear[y] || 0) + 1;
         }
         const years = Object.keys(byYear).sort();
@@ -533,11 +535,52 @@ router.get('/', async (req, res) => {
             dates: years,
             values: years.map(y => byYear[y]),
             seriesId: 'FEMA_DECL_COUNT',
+            unit: 'declarations',
+            _note: 'Proxy: FEMA declaration counts by year (not $ losses)',
+          };
+        } else if (years.length === 1) {
+          // Single year of activity — still plottable
+          catLosses = {
+            dates: years,
+            values: years.map(y => byYear[y]),
+            seriesId: 'FEMA_DECL_COUNT',
+            unit: 'declarations',
             _note: 'Proxy: FEMA declaration counts by year (not $ losses)',
           };
         }
       }
+      // Type breakdown when year aggregation is thin
+      if (!catLosses && Array.isArray(femaFb?.data?.byType) && femaFb.data.byType.length) {
+        const rows = femaFb.data.byType.filter((r) => r?.type && r.count != null);
+        if (rows.length) {
+          catLosses = {
+            dates: rows.map((r) => r.type),
+            values: rows.map((r) => Number(r.count) || 0),
+            seriesId: 'FEMA_BY_TYPE',
+            unit: 'declarations',
+            _note: 'Proxy: FEMA declaration counts by disaster type (not $ losses)',
+          };
+        }
+      }
     } catch { /* ignore */ }
+  }
+
+  // Latest non-null ratio per insurer line (for "Combined Ratio by Line" panel)
+  if (combinedRatioData?.lines && typeof combinedRatioData.lines === 'object') {
+    const byLine = [];
+    for (const [line, arr] of Object.entries(combinedRatioData.lines)) {
+      if (!Array.isArray(arr)) continue;
+      let ratio = null;
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (arr[i] != null && Number.isFinite(Number(arr[i]))) {
+          ratio = Number(arr[i]);
+          break;
+        }
+      }
+      if (ratio != null) byLine.push({ line, ratio });
+    }
+    byLine.sort((a, b) => b.ratio - a.ratio);
+    combinedRatioData.byLine = byLine;
   }
 
   // Combined Ratio History (calculated from existing data)
@@ -555,6 +598,7 @@ router.get('/', async (req, res) => {
 
   // Reinsurance pricing — no free public treaty-rate feed; bind panel from
   // listed reinsurer equity quotes (price + 1d change) as market proxies.
+  // Emit both array form and byCategory (dashboard legacy shape).
   let reinsurancePricing = [];
   if (reinsurers.length) {
     reinsurancePricing = reinsurers
@@ -564,8 +608,22 @@ router.get('/', async (req, res) => {
         name: r.name || r.ticker,
         price: r.price,
         changePct: r.changePct ?? null,
+        category: r.ticker || r.name,
+        // Rate-of-line proxy: use absolute price change as display signal when
+        // true treaty ROL % is unavailable (UI accepts rate or rol).
+        rate: r.changePct != null ? Math.abs(Number(r.changePct)) : null,
+        rol: r.changePct != null ? Math.abs(Number(r.changePct)) : null,
         _note: 'Equity proxy for reinsurance pricing conditions',
       }));
+    reinsurancePricing.byCategory = reinsurancePricing.map((r) => ({
+      category: r.category,
+      peril: r.name,
+      rate: r.rate,
+      rol: r.rol,
+      price: r.price,
+      changePct: r.changePct,
+      ticker: r.ticker,
+    }));
   }
 
   // Cat bond / risk-spread panel — pure governmental/intergovernmental via FRED.

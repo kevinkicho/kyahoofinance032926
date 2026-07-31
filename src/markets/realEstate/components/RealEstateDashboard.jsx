@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { safeSlice } from '../../../utils/panelGuards';
 import { useTheme } from '../../../hub/ThemeContext';
+import { useMarketData } from '../../../hub/DataContext';
 import SafeECharts from '../../../components/SafeECharts';
 import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
@@ -35,16 +36,66 @@ const LAYOUT = {
     { i: 'supply', x: 6, y: 6, w: 3, h: 3 },
     { i: 'hud-afford', x: 9, y: 6, w: 3, h: 3 },
     { i: 'afford-stack', x: 0, y: 9, w: 12, h: 3 },
-    { i: 'census-housing', x: 0, y: 12, w: 6, h: 3 },
-    { i: 'census-trade', x: 6, y: 12, w: 6, h: 3 },
-    { i: 'census-trends-housing', x: 0, y: 15, w: 6, h: 4 },
-    { i: 'census-trends-trade', x: 6, y: 15, w: 6, h: 4 },
-    { i: 'fhfa-hpi', x: 0, y: 19, w: 6, h: 3 },
-    { i: 'bis-property-prices', x: 6, y: 19, w: 6, h: 5 },
-    { i: 'metro-case-shiller', x: 0, y: 22, w: 6, h: 3 },
-    { i: 'hud-affordability-by-metro', x: 6, y: 24, w: 6, h: 3 },
+    // Taller grids so dense KPI cards fit (Housing & Construction / Trade & Consumption)
+    { i: 'census-housing', x: 0, y: 12, w: 6, h: 5 },
+    { i: 'census-trade', x: 6, y: 12, w: 6, h: 5 },
+    { i: 'census-trends-housing', x: 0, y: 17, w: 6, h: 4 },
+    { i: 'census-trends-trade', x: 6, y: 17, w: 6, h: 4 },
+    { i: 'fhfa-hpi', x: 0, y: 21, w: 6, h: 3 },
+    { i: 'bis-property-prices', x: 6, y: 21, w: 6, h: 5 },
+    { i: 'metro-case-shiller', x: 0, y: 24, w: 6, h: 3 },
+    { i: 'hud-affordability-by-metro', x: 6, y: 26, w: 6, h: 3 },
   ],
 };
+
+/** Last non-null point from {dates,values} or scalar. */
+function seriesPoint(s) {
+  if (s == null) return null;
+  if (typeof s === 'number' && Number.isFinite(s)) return { value: s, date: null, prev: null };
+  if (s.latest?.value != null) {
+    return { value: Number(s.latest.value), date: s.latest.date || null, prev: s.previous?.value != null ? Number(s.previous.value) : null };
+  }
+  if (Array.isArray(s.values) && s.values.length) {
+    for (let i = s.values.length - 1; i >= 0; i--) {
+      if (s.values[i] != null && Number.isFinite(Number(s.values[i]))) {
+        let prev = null;
+        for (let j = i - 1; j >= 0; j--) {
+          if (s.values[j] != null && Number.isFinite(Number(s.values[j]))) {
+            prev = Number(s.values[j]);
+            break;
+          }
+        }
+        return { value: Number(s.values[i]), date: s.dates?.[i] || null, prev };
+      }
+    }
+  }
+  if (typeof s.value === 'number' && Number.isFinite(s.value)) {
+    return { value: s.value, date: s.date || null, prev: null };
+  }
+  return null;
+}
+
+function momChange(curr, prev) {
+  if (curr == null || prev == null || prev === 0) return null;
+  return { pct: ((curr - prev) / Math.abs(prev)) * 100, label: 'MoM' };
+}
+
+function card(key, label, pt, { format, unit, seriesKey, sublabel } = {}) {
+  if (!pt || pt.value == null || !Number.isFinite(Number(pt.value))) return null;
+  const change = momChange(pt.value, pt.prev);
+  return {
+    key,
+    label,
+    value: pt.value,
+    date: pt.date,
+    unit,
+    format,
+    seriesKey: seriesKey || key,
+    change,
+    changeClass: change ? (change.pct >= 0 ? 'positive' : 'negative') : undefined,
+    sublabel: sublabel || (pt.date ? String(pt.date).slice(0, 10) : undefined),
+  };
+}
 
 function RealEstateDashboard({
   priceIndexData, reitData, affordabilityData, capRateData, mortgageRates,
@@ -61,6 +112,183 @@ function RealEstateDashboard({
   const hasCensusEcoKpi = censusKpiData.some(k => CENSUS_ECO_KEYS.includes(k.key));
   const hasCensusHousingTrends = censusHousingSeries.length > 0;
   const hasCensusEcoTrends = censusEcoSeries.length > 0;
+
+  // Cross-market series for denser Housing / Trade KPI cards
+  const beaCtx = useMarketData('bea');
+  const censusTradeCtx = useMarketData('censusTrade');
+  const macroCtx = useMarketData('globalMacro');
+
+  const housingExtraCards = useMemo(() => {
+    const fmtK = (v) => (v != null ? Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—');
+    const fmtM = (v) => (v != null ? `${(Number(v) / 1e6).toFixed(2)}M` : '—');
+    const fmtUsd = (v) => (v != null ? `$${Number(v).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—');
+    const fmtPct = (v) => (v != null ? `${Number(v).toFixed(1)}%` : '—');
+    const fmtIdx = (v) => (v != null ? Number(v).toFixed(1) : '—');
+    const fmtRate = (v) => (v != null ? `${Number(v).toFixed(2)}%` : '—');
+
+    const starts =
+      seriesPoint(housingStarts)
+      || seriesPoint(supplyData?.housingStarts)
+      || seriesPoint(censusSeries?.housingStarts);
+    const permits =
+      seriesPoint(supplyData?.permits)
+      || seriesPoint(supplyData?.buildingPermits)
+      || seriesPoint(censusSeries?.buildingPermits);
+    const ehs = seriesPoint(existingHomeSales);
+    // existing home sales often in absolute units (4e6) → show millions
+    const ehsCard = ehs
+      ? card('existingHomeSales', 'Existing Home Sales', ehs.value >= 1e5 ? { ...ehs, value: ehs.value / 1e6, prev: ehs.prev != null ? ehs.prev / 1e6 : null } : ehs, {
+        format: (v) => `${Number(v).toFixed(2)}M`,
+        seriesKey: 'existingHomeSales',
+        unit: 'SAAR',
+      })
+      : null;
+    const medPrice = seriesPoint(medianHomePrice);
+    const csNat = seriesPoint(caseShillerData?.national) || seriesPoint(caseShillerData);
+    const fhfa = fhfaHpi?.latest?.value != null
+      ? { value: Number(fhfaHpi.latest.value), date: fhfaHpi.latest.date, prev: null }
+      : seriesPoint(fhfaHpi);
+    const rent = seriesPoint(rentCpi);
+    const mbaPurch = seriesPoint(mbaApplications?.purchase);
+    const mbaRefi = seriesPoint(mbaApplications?.refi);
+    const fc = seriesPoint(foreclosureData?.foreclosures) || seriesPoint(foreclosureData?.delinquencies);
+    const months = supplyData?.monthsSupply != null && typeof supplyData.monthsSupply === 'number'
+      ? { value: supplyData.monthsSupply, date: null, prev: null }
+      : seriesPoint(supplyData?.monthsSupply);
+    const listings = seriesPoint(supplyData?.activeListings);
+
+    return [
+      card('housingStarts', 'Housing Starts', starts, { format: fmtK, unit: 'K', seriesKey: 'housingStarts' }),
+      card('buildingPermits', 'Building Permits', permits, { format: fmtK, unit: 'K', seriesKey: 'buildingPermits' }),
+      card('newHomeSales', 'New Home Sales', seriesPoint(censusSeries?.newHomeSales), {
+        format: fmtK, unit: 'K', seriesKey: 'newHomeSales',
+      }),
+      card('constructionSpending', 'Construction $', seriesPoint(censusSeries?.constructionSpending), {
+        format: (v) => `$${(Number(v) / 1000).toFixed(0)}B`,
+        seriesKey: 'constructionSpending',
+      }),
+      ehsCard,
+      card('medianHomePrice', 'Median Home Price', medPrice, { format: fmtUsd, seriesKey: 'medianHomePrice' }),
+      card('caseShiller', 'Case-Shiller US', csNat, { format: fmtIdx, seriesKey: 'caseShiller' }),
+      card('fhfaHpi', 'FHFA HPI', fhfa, { format: fmtIdx, seriesKey: 'fhfaHpi' }),
+      card('mortgage30', '30Y Mortgage', mortgageRates?.rate30y != null ? { value: mortgageRates.rate30y, date: mortgageRates.asOf, prev: null } : null, {
+        format: fmtRate, seriesKey: 'mortgage30y', sublabel: mortgageRates?.asOf || 'Freddie Mac',
+      }),
+      card('mortgage15', '15Y Mortgage', mortgageRates?.rate15y != null ? { value: mortgageRates.rate15y, date: mortgageRates.asOf, prev: null } : null, {
+        format: fmtRate, seriesKey: 'mortgage15y', sublabel: mortgageRates?.asOf || 'Freddie Mac',
+      }),
+      card('rentalVacancy', 'Rental Vacancy', rentalVacancy != null ? { value: Number(rentalVacancy), date: null, prev: null } : null, {
+        format: fmtPct, seriesKey: 'rentalVacancy',
+      }),
+      card('homeownership', 'Homeownership', homeownershipRate != null ? { value: Number(homeownershipRate), date: null, prev: null } : null, {
+        format: fmtPct, seriesKey: 'homeownershipRate',
+      }),
+      card('rentCpi', 'Rent CPI', rent, { format: fmtIdx, seriesKey: 'rentCpi' }),
+      card('monthsSupply', 'Months Supply', months, { format: (v) => Number(v).toFixed(1), unit: 'mo', seriesKey: 'monthsSupply' }),
+      card('activeListings', 'Active Listings', listings, { format: fmtM, seriesKey: 'activeListings' }),
+      card('mbaPurchase', 'MBA Purchase Idx', mbaPurch, { format: fmtK, seriesKey: 'mbaPurchase' }),
+      card('mbaRefi', 'MBA Refi Idx', mbaRefi, { format: fmtK, seriesKey: 'mbaRefi' }),
+      card('foreclosure', 'Foreclosure Rate', fc, { format: fmtPct, seriesKey: 'foreclosureRate' }),
+      card('treasury10y', '10Y Treasury', treasury10y != null ? { value: Number(treasury10y), date: null, prev: null } : null, {
+        format: fmtRate, seriesKey: 'treasury10y', sublabel: 'Funding benchmark',
+      }),
+    ].filter(Boolean);
+  }, [
+    housingStarts, supplyData, censusSeries, existingHomeSales, medianHomePrice,
+    caseShillerData, fhfaHpi, rentCpi, mbaApplications, foreclosureData,
+    mortgageRates, rentalVacancy, homeownershipRate, treasury10y,
+  ]);
+
+  const tradeExtraCards = useMemo(() => {
+    const fmtRetail = (v) => (v != null ? `$${(Number(v) / 1000).toFixed(0)}B` : '—');
+    const fmtM = (v) => (v != null ? `$${(Number(v) / 1000).toFixed(1)}B` : '—');
+    const fmtPct = (v) => (v != null ? `${Number(v).toFixed(1)}%` : '—');
+    const fmtIdx = (v) => (v != null ? Number(v).toFixed(1) : '—');
+    const fmtBn = (v) => {
+      if (v == null) return '—';
+      const n = Number(v);
+      // BEA personal income tables are often in millions → show $T
+      if (Math.abs(n) > 1e6) return `$${(n / 1e6).toFixed(2)}T`;
+      if (Math.abs(n) > 1e3) return `$${(n / 1e3).toFixed(1)}B`;
+      return n.toLocaleString();
+    };
+
+    const bea = beaCtx?.data;
+    const pickBea = (pred) => {
+      const rows = Array.isArray(bea?.savingRate) ? bea.savingRate : [];
+      // Prefer latest period matching description
+      const hit = rows.find((r) => pred(r) && r.period && String(r.period).startsWith('202'));
+      // Prefer most recent month for matching line
+      const matches = rows.filter((r) => pred(r) && r.value != null);
+      if (!matches.length) return null;
+      matches.sort((a, b) => String(b.period).localeCompare(String(a.period)));
+      return { value: Number(matches[0].value), date: matches[0].period, prev: matches[1] ? Number(matches[1].value) : null };
+    };
+    const pce = pickBea((r) => /personal consumption expenditures/i.test(r.desc || '') && r.unit === 'Level');
+    const dpi = pickBea((r) => /Equals: Disposable personal income/i.test(r.desc || '') && r.unit === 'Level');
+    const savingPct = pickBea((r) => /Personal saving as a percentage/i.test(r.desc || ''));
+    const personalIncome = pickBea((r) => r.desc === 'Personal income' && r.unit === 'Level');
+    const outlaysChg = pickBea((r) => /Personal outlays, current dollars/i.test(r.desc || '') && /Percent change/i.test(r.unit || ''));
+
+    const ct = censusTradeCtx?.data;
+    const ctSummary = ct?.summary || ct?.latest;
+    const goodsExports = ctSummary?.exports ?? ctSummary?.totalExports ?? null;
+    const goodsImports = ctSummary?.imports ?? ctSummary?.totalImports ?? null;
+    const goodsBalance = ctSummary?.balance ?? ctSummary?.tradeBalance ?? null;
+
+    const macro = macroCtx?.data;
+    const tradeBal = seriesPoint(macro?.tradeBalance);
+    const sentiment = seriesPoint(macro?.consumerSentiment);
+    const industrial = seriesPoint(macro?.industrialProd);
+
+    return [
+      card('retailSales', 'Retail Sales', seriesPoint(censusSeries?.retailSales), {
+        format: fmtRetail, seriesKey: 'retailSales', unit: 'SA',
+      }),
+      card('durableGoods', 'Durable Goods Orders', seriesPoint(censusSeries?.durableGoods), {
+        format: fmtM, seriesKey: 'durableGoods',
+      }),
+      card('tradeBalance', 'Goods Trade Balance', seriesPoint(censusSeries?.tradeBalance) || tradeBal, {
+        format: fmtM, seriesKey: 'tradeBalance',
+      }),
+      card('pce', 'Personal Consumption', pce, {
+        format: fmtBn, seriesKey: 'beaPce', sublabel: pce?.date ? `BEA ${pce.date}` : 'BEA',
+      }),
+      card('dpi', 'Disposable Income', dpi, {
+        format: fmtBn, seriesKey: 'beaDpi', sublabel: dpi?.date ? `BEA ${dpi.date}` : 'BEA',
+      }),
+      card('personalIncome', 'Personal Income', personalIncome, {
+        format: fmtBn, seriesKey: 'beaPi', sublabel: personalIncome?.date ? `BEA ${personalIncome.date}` : 'BEA',
+      }),
+      card('savingRate', 'Personal Saving %', savingPct, {
+        format: fmtPct, seriesKey: 'beaSavingRate', sublabel: 'of DPI',
+      }),
+      card('outlaysChg', 'Outlays MoM', outlaysChg, {
+        format: fmtPct, seriesKey: 'beaOutlaysChg', sublabel: outlaysChg?.date || 'BEA',
+      }),
+      card('goodsExports', 'Goods Exports', goodsExports != null ? { value: Number(goodsExports), date: ct?.fetchedOn, prev: null } : null, {
+        format: fmtBn, seriesKey: 'censusTradeExports', sublabel: 'Census Trade',
+      }),
+      card('goodsImports', 'Goods Imports', goodsImports != null ? { value: Number(goodsImports), date: ct?.fetchedOn, prev: null } : null, {
+        format: fmtBn, seriesKey: 'censusTradeImports', sublabel: 'Census Trade',
+      }),
+      card('goodsBalance', 'Goods Balance', goodsBalance != null ? { value: Number(goodsBalance), date: ct?.fetchedOn, prev: null } : null, {
+        format: fmtBn, seriesKey: 'censusTradeBalance', sublabel: 'Census Trade',
+      }),
+      card('consumerSentiment', 'Consumer Sentiment', sentiment, {
+        format: fmtIdx, seriesKey: 'consumerSentiment', sublabel: 'U. Michigan / macro',
+      }),
+      card('industrialProd', 'Industrial Production', industrial, {
+        format: fmtIdx, seriesKey: 'industrialProd', sublabel: 'Fed / macro',
+      }),
+      card('rentCpiTrade', 'Rent CPI', seriesPoint(rentCpi), {
+        format: fmtIdx, seriesKey: 'rentCpi', sublabel: 'Housing services',
+      }),
+      card('mortgage30Trade', '30Y Mortgage', mortgageRates?.rate30y != null ? { value: mortgageRates.rate30y, date: mortgageRates.asOf, prev: null } : null, {
+        format: (v) => `${Number(v).toFixed(2)}%`, seriesKey: 'mortgage30y', sublabel: 'Credit conditions',
+      }),
+    ].filter(Boolean);
+  }, [censusSeries, beaCtx?.data, censusTradeCtx?.data, macroCtx?.data, rentCpi, mortgageRates]);
 
   const hudOption = useMemo(() => {
     if (!hudData || hudData.length === 0) return null;
@@ -922,15 +1150,53 @@ function RealEstateDashboard({
           </BentoCard>
         )}
 
-        {/* ── Census panels (merged from former Census tab) ── */}
+        {/* ── Census panels (merged from former Census tab) — dense KPI grids ── */}
         {(
-          <BentoCard key="census-housing" title="Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-            <CensusHousingPanel kpiData={censusKpiData} housingKeys={CENSUS_HOUSING_KEYS} />
+          <BentoCard
+            key="census-housing"
+            title="Housing & Construction"
+            subtitle={`${housingExtraCards.length} indicators · Census + FRED + MBA + FHFA`}
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-scroll"
+            source="Census / FRED / Freddie Mac / FHFA / MBA"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+            disabled={housingExtraCards.length === 0 && !hasCensusHousingKpi}
+          >
+            <CensusHousingPanel
+              kpiData={censusKpiData}
+              housingKeys={CENSUS_HOUSING_KEYS}
+              extraCards={housingExtraCards}
+            />
           </BentoCard>
         )}
         {(
-          <BentoCard key="census-trade" title="Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-            <CensusTradePanel kpiData={censusKpiData} ecoKeys={CENSUS_ECO_KEYS} />
+          <BentoCard
+            key="census-trade"
+            title="Trade & Consumption"
+            subtitle={`${tradeExtraCards.length} indicators · Census + BEA + macro`}
+            accent="realEstate"
+            className="re-bento-card"
+            contentClassName="re-panel-scroll"
+            source="Census / BEA / FRED"
+            timestamp={lastUpdated}
+            isLive={isLive}
+            isCurrent={isCurrent}
+            fetchedOn={fetchedOn}
+            fetchLog={fetchLog}
+            error={error}
+            disabled={tradeExtraCards.length === 0 && !hasCensusEcoKpi}
+          >
+            <CensusTradePanel
+              kpiData={censusKpiData}
+              ecoKeys={CENSUS_ECO_KEYS}
+              extraCards={tradeExtraCards}
+            />
           </BentoCard>
         )}
         {(

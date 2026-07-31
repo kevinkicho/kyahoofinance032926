@@ -171,8 +171,9 @@ export const PANEL_FIELD_MAP = {
     { field: 'goldFuturesCurve', fieldPath: 'goldFuturesCurve' },
   ] },
   'commodities:sector': { anyOf: [
+    { field: 'sectorHeatmapData', fieldPath: 'sectorHeatmapData.commodities' },
+    { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
     { field: 'yahoo', fieldPath: 'yahoo.futures' },
-    { field: 'fred', fieldPath: 'fred' },
   ] },
   'commodities:supply': { anyOf: [
     { field: 'supplyDemand', fieldPath: 'supplyDemand' },
@@ -215,13 +216,14 @@ export const PANEL_FIELD_MAP = {
     { field: 'fred', fieldPath: 'fred' },
   ] },
   'commodities:precious-complex': { anyOf: [
+    { field: 'yahoo', fieldPath: 'yahoo.futures.GC=F' },
+    { field: 'yahoo', fieldPath: 'yahoo.futures.SI=F' },
     { field: 'yahoo', fieldPath: 'yahoo.futures' },
-    { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
-    { field: 'fred', fieldPath: 'fred' },
   ] },
   'commodities:regime': { anyOf: [
-    { field: 'yahoo', fieldPath: 'yahoo' },
-    { field: 'fred', fieldPath: 'fred' },
+    { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
+    { field: 'sectorHeatmapData', fieldPath: 'sectorHeatmapData.commodities' },
+    { field: 'yahoo', fieldPath: 'yahoo.futures' },
   ] },
   'commodities:energy-stack': { field: 'eia', fieldPath: 'eia' },
   'commodities:curve-board': { anyOf: [
@@ -271,9 +273,9 @@ export const PANEL_FIELD_MAP = {
   'globalMacro:oecd-direct': { field: 'cli', fieldPath: 'cli', crossMarket: 'oecd' },
   'globalMacro:bea-income': { field: 'personalIncome', fieldPath: 'personalIncome', crossMarket: 'bea' },
   'globalMacro:global-liquidity': { anyOf: [
-    { field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP' },
-    { field: 'm2Growth', fieldPath: 'm2Growth' },
-    { field: 'scorecardData', fieldPath: 'scorecardData' },
+    { field: 'series', fieldPath: 'series', crossMarket: 'treasuryDTS' },
+    { field: 'm3Growth', fieldPath: 'm3Growth', crossMarket: 'ecb' },
+    { field: 'savingRate', fieldPath: 'savingRate', crossMarket: 'bea' },
   ] },
 
   // ── Equity+ ──
@@ -292,7 +294,11 @@ export const PANEL_FIELD_MAP = {
   'equitiesDeepDive:scores': { field: 'factorData', fieldPath: 'factorData' },
   'equitiesDeepDive:earnings': { field: 'earningsData', fieldPath: 'earningsData' },
   'equitiesDeepDive:institutions': { field: 'institutions', fieldPath: 'institutions', crossMarket: 'institutional' },
-  'equitiesDeepDive:insider': { field: 'insiderData', fieldPath: 'insiderData' },
+  'equitiesDeepDive:insider': { anyOf: [
+    { field: 'insiderData', fieldPath: 'insiderData.transactions' },
+    { field: 'insiderData', fieldPath: 'insiderData.holders' },
+    { field: 'insiderData', fieldPath: 'insiderData' },
+  ] },
   'equitiesDeepDive:earnings-quality': { field: 'earningsData', fieldPath: 'earningsData' },
 
   // ── Crypto ──

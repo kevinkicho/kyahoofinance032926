@@ -384,6 +384,48 @@ router.get('/', async (req, res) => {
       );
       const holders = [];
       const transactions = [];
+      const yfDate = (v) => {
+        if (v == null || v === '') return '';
+        if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString().split('T')[0];
+        if (typeof v === 'object') {
+          if (v.fmt) return String(v.fmt).slice(0, 10);
+          if (v.raw != null) {
+            const n = Number(v.raw);
+            // Yahoo epoch seconds vs ms
+            if (Number.isFinite(n) && n > 0) {
+              const ms = n < 1e12 ? n * 1000 : n;
+              const d = new Date(ms);
+              if (!Number.isNaN(d.getTime())) return d.toISOString().split('T')[0];
+            }
+          }
+        }
+        const s = String(v);
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        const d = new Date(s);
+        return Number.isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+      };
+      const yfNum = (v) => {
+        if (v == null || v === '') return null;
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (typeof v === 'object' && v.raw != null) {
+          const n = Number(v.raw);
+          return Number.isFinite(n) ? n : null;
+        }
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
+      // Yahoo transactionText e.g. "Sale at price 295.14 per share." / "Purchase…"
+      const inferTxType = (t) => {
+        const raw = t.transactionType || t.type || t.transactionText || t.text || '';
+        const s = String(raw).toLowerCase();
+        if (!s) return '';
+        if (s.includes('purchase') || s.includes('buy') || s.includes('acquisition')) return 'Purchase';
+        if (s.includes('sale') || s.includes('sell') || s.includes('disposition')) return 'Sale';
+        if (s.includes('gift')) return 'Gift';
+        if (s.includes('award') || s.includes('option') || s.includes('exercise')) return 'Award/Exercise';
+        return String(raw).slice(0, 48);
+      };
+
       insiderResults.forEach(r => {
         if (r.status !== 'fulfilled') return;
         const s = r.value;
@@ -391,41 +433,41 @@ router.get('/', async (req, res) => {
         const ih = s.insiderHolders || {};
         const it = s.insiderTransactions || {};
         (ih.holders || []).forEach(h => {
-          let dateStr = '';
-          if (h.latestTransDate) {
-            if (h.latestTransDate instanceof Date) {
-              dateStr = h.latestTransDate.toISOString().split('T')[0];
-            } else {
-              dateStr = h.latestTransDate.fmt || String(h.latestTransDate);
-            }
-          }
+          // yahoo-finance2 shape (2025+): positionDirect / positionDirectDate;
+          // legacy: numberOfSharesHeld { raw }.
+          const shares = yfNum(h.positionDirect)
+            ?? yfNum(h.positionIndirect)
+            ?? yfNum(h.numberOfSharesHeld)
+            ?? yfNum(h.shares);
+          const name = h.name || h.fullName || '';
+          if (!name && shares == null) return;
           holders.push({
             ticker,
-            name: h.name || h.fullName || '',
-            title: h.positionTitle || h.title || '',
-            shares: h.numberOfSharesHeld?.raw ?? h.numberOfSharesHeld ?? null,
-            date: dateStr,
+            name,
+            title: h.positionTitle || h.title || h.relation || '',
+            shares,
+            date: yfDate(h.latestTransDate || h.positionDirectDate),
             relation: h.relation || '',
+            lastTx: h.transactionDescription || '',
           });
         });
         (it.transactions || []).forEach(t => {
-          let dateStr = '';
-          if (t.startDate) {
-            if (t.startDate instanceof Date) {
-              dateStr = t.startDate.toISOString().split('T')[0];
-            } else {
-              dateStr = t.startDate.fmt || String(t.startDate);
-            }
-          }
+          const shares = yfNum(t.shares);
+          const value = yfNum(t.value);
+          const name = t.filerName || t.insiderName || t.name || '';
+          const type = inferTxType(t);
+          // Drop hollow rows (no size and no identity).
+          if (shares == null && value == null && !name) return;
           transactions.push({
             ticker,
-            name: t.insiderName || t.name || '',
-            title: t.positionTitle || t.title || '',
-            relation: t.relation || '',
-            shares: t.shares?.raw ?? t.shares ?? null,
-            value: t.value?.raw ?? t.value ?? null,
-            date: dateStr,
-            type: t.transactionType || t.type || '',
+            name,
+            title: t.positionTitle || t.title || t.filerRelation || t.relation || '',
+            relation: t.filerRelation || t.relation || '',
+            shares,
+            value: value === 0 ? null : value, // Yahoo often sends 0 for non-cash
+            date: yfDate(t.startDate),
+            type,
+            text: t.transactionText || t.moneyText || '',
           });
         });
       });

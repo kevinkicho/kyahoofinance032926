@@ -1,13 +1,13 @@
 /**
- * Strict panel health evaluation.
+ * Panel health evaluation — three independent gates, no free passes.
  *
- * GREEN (`ok`) only when ALL three gates pass:
- *   1. fetchOk   — requested field stream is present and non-empty in market payload
- *   2. displayOk — panel DOM rendered real UI (not empty-state / missing)
- *   3. confirmOk — values on display match samples from the fetched payload
- *                  (or echarts series bound to that stream for canvas charts)
+ * status `ok` only when ALL pass:
+ *   1. fetchOk   — field/placeholder stream present and non-empty in payload
+ *   2. displayOk — panel node exists in DOM with real UI substance
+ *   3. confirmOk — displayed values (or chart series) match fetch samples
  *
- * null fetch + null display is NOT green.
+ * Missing panel DOM never passes display or confirm, even if fetch is ready.
+ * Title-only shells and "will bind later" shortcuts are not success.
  */
 
 import { PANEL_REGISTRY } from '../../data/panelRegistry';
@@ -15,33 +15,16 @@ import { MARKET_PANELS } from '../../data/marketPanels';
 import { getPanelFieldSpec } from '../../data/panelFieldMap';
 import { getPanelPlaceholders, MIN_PLACEHOLDER_FILL_RATE } from '../../data/panelPlaceholders';
 import { getBusPanel } from './panelHealthBus.js';
+import {
+  resolvePath as resolvePathUtil,
+  hasSubstance as hasSubstanceUtil,
+  countNumericLeaves,
+  placeholderValueOk,
+} from './panelHealthUtils.js';
 
-export function resolvePath(obj, path) {
-  if (obj == null || path == null || path === '') return obj;
-  if (typeof path !== 'string') return null;
-  if (path.startsWith('(')) return null;
-  const parts = path.split('.').filter(Boolean);
-  let cur = obj;
-  for (const p of parts) {
-    if (cur == null) return null;
-    cur = cur[p];
-  }
-  return cur;
-}
-
-export function hasSubstance(v, depth = 0) {
-  if (v == null || v === false || v === '') return false;
-  if (depth > 5) return true;
-  if (typeof v === 'number') return Number.isFinite(v);
-  if (typeof v === 'string') return v.trim().length > 0 && v !== '—' && v !== '-';
-  if (Array.isArray(v)) return v.length > 0 && v.some(x => hasSubstance(x, depth + 1));
-  if (typeof v === 'object') {
-    const keys = Object.keys(v).filter(k => !k.startsWith('_'));
-    if (keys.length === 0) return false;
-    return keys.some(k => hasSubstance(v[k], depth + 1));
-  }
-  return true;
-}
+export const resolvePath = resolvePathUtil;
+export const hasSubstance = hasSubstanceUtil;
+export { placeholderValueOk };
 
 export function getRegistryEntry(marketId, panelId) {
   const regKey = marketId === 'equitiesDeepDive' ? 'equityDeepDive' : marketId;
@@ -111,7 +94,10 @@ function collectSamples(val, out = [], depth = 0) {
   }
   if (typeof val === 'string') {
     const t = val.trim();
-    if (t.length >= 2 && t.length <= 40 && t !== '—' && !t.startsWith('_')) out.push(t);
+    // Skip pure taxonomy tokens and years for confirm (too easy to false-match)
+    if (t.length >= 2 && t.length <= 40 && t !== '—' && !t.startsWith('_') && !/^\d{4}$/.test(t)) {
+      out.push(t);
+    }
     return out;
   }
   if (Array.isArray(val)) {
@@ -120,15 +106,29 @@ function collectSamples(val, out = [], depth = 0) {
     return out;
   }
   if (typeof val === 'object') {
+    // Prefer metric fields first so confirm samples match what UI shows
+    for (const prefer of ['value', 'price', 'latest', 'close', 'closeB', 'change', 'change1d', 'gdp', 'rate', 'spread']) {
+      if (prefer in val) collectSamples(val[prefer], out, depth + 1);
+      if (out.length >= 20) return out;
+    }
     if (Array.isArray(val.values)) collectSamples(val.values, out, depth + 1);
+    if (Array.isArray(val.history)) collectSamples(val.history, out, depth + 1);
     if (Array.isArray(val.coins)) collectSamples(val.coins, out, depth + 1);
     for (const [k, v] of Object.entries(val)) {
-      if (k.startsWith('_') || k === 'dates') continue;
+      if (k.startsWith('_') || k === 'dates' || k === 'labels' || k === 'columns') continue;
       collectSamples(v, out, depth + 1);
       if (out.length >= 20) break;
     }
   }
   return out;
+}
+
+/** Prefer the deepest / most metric-specific filled slot for confirm samples. */
+function scoreFieldCandidate(path, v) {
+  if (!placeholderValueOk(v, path)) return -1;
+  const depth = String(path || '').split('.').filter(Boolean).length;
+  const nums = countNumericLeaves(v).n;
+  return depth * 10 + Math.min(nums, 9);
 }
 
 function textHasSample(text, sample) {
@@ -151,14 +151,22 @@ function textHasSample(text, sample) {
       candidates.add((sample / 1e9).toFixed(1));
       candidates.add((sample / 1e9).toFixed(2));
     }
-    // bps style (0.78 → 78)
-    if (abs > 0 && abs < 20) candidates.add(String(Math.round(sample * 100)));
+    // Do NOT invent bps-style alternates (0.78 → 78) — that false-matched years,
+    // layout numbers, and unrelated metrics across panels.
     for (const c of [...candidates]) {
       if (!c) continue;
-      candidates.add(c.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1'));
+      // Only strip trailing zeros from decimals, keep integer forms as-is
+      if (c.includes('.')) {
+        candidates.add(c.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1'));
+      }
     }
     for (const c of candidates) {
-      if (c && text.includes(c)) return true;
+      // Ignore trivial single-digit matches (too common in chrome / counts)
+      if (c && c.length >= 2 && text.includes(c)) return true;
+      if (c && c.length === 1 && abs < 10 && abs === Math.floor(abs)) {
+        // allow single digit only when sample is that exact integer and appears as standalone
+        if (new RegExp(`(?<![\\d.])${c}(?![\\d.])`).test(text)) return true;
+      }
     }
   }
   return false;
@@ -234,69 +242,82 @@ export function confirmDisplayMatchesFetch(el, fieldValue) {
   if (!hasSubstance(fieldValue)) {
     return { ok: false, detail: 'fetched field is empty/null — cannot confirm', matched: 0, samples: 0 };
   }
-  const samples = collectSamples(fieldValue);
+  const samples = collectSamples(fieldValue).filter((s) => {
+    if (typeof s === 'number') return Number.isFinite(s);
+    // Only keep distinctive strings (names) — skip short tokens
+    return typeof s === 'string' && s.length >= 4;
+  });
   if (samples.length === 0) {
     return { ok: false, detail: 'no leaf samples to confirm', matched: 0, samples: 0 };
   }
 
-  const text = getPanelDisplayText(el);
+  const content = el.querySelector?.('.bento-panel-content') || el;
+  const text = getPanelDisplayText(content);
   // "All Clear" / zero-anomaly is a valid healthy state for alert panels
-  if (/\ball clear\b/i.test(text) && /\d/.test(text)) {
+  if (/\ball clear\b/i.test(text) && content.querySelector?.('[data-metric-value], table, [data-series-samples]')) {
     return { ok: true, detail: 'all-clear status with metrics', matched: 1, samples: samples.length, via: 'all-clear' };
   }
-  if (/\bno data\b|\bunavailable\b|\bnot available\b/i.test(text) && text.length < 320) {
+  if (/\bno data\b|\bunavailable\b|\bnot available\b|\bwaiting for\b/i.test(text) && text.length < 320) {
     return { ok: false, detail: 'panel shows empty-state text', matched: 0, samples: samples.length };
   }
 
-  let matched = 0;
+  // Prefer stamped metric values (authoritative) over free-text scanning
+  const stampNums = [...content.querySelectorAll?.('[data-metric-value]') || []]
+    .map((n) => Number(n.getAttribute('data-metric-value')))
+    .filter((n) => Number.isFinite(n));
+  const stampHits = samplesMatch(samples, stampNums);
+
+  const chartSamples = getChartSeriesSamples(content);
+  const chartHits = samplesMatch(samples, chartSamples);
+
+  let textMatched = 0;
   const hits = [];
   for (const s of samples) {
-    if (textHasSample(text, s)) {
-      matched++;
+    if (typeof s === 'number' && stampNums.some((t) => Math.abs(t - s) < Math.max(1e-6, Math.abs(s) * 1e-3))) {
+      textMatched++;
       hits.push(s);
-      if (matched >= 4) break;
+      continue;
+    }
+    if (textHasSample(text, s)) {
+      textMatched++;
+      hits.push(s);
+      if (textMatched >= 4) break;
     }
   }
 
-  // Canvas charts: SafeECharts stamps data-series-samples from the bound option.
-  if (matched < 1) {
-    const chartSamples = getChartSeriesSamples(el);
-    if (chartSamples.length > 0) {
-      const chartHits = samplesMatch(samples, chartSamples);
-      if (chartHits >= 1) {
-        return {
-          ok: true,
-          detail: `confirmed ${chartHits} sample(s) via chart series binding`,
-          matched: chartHits,
-          samples: samples.length,
-          hits: samples.filter(s => typeof s === 'number').slice(0, 4),
-          via: 'data-series-samples',
-        };
-      }
-      // Chart is bound to a non-empty series and fetch also has substance —
-      // treat as confirmed stream if chart samples count is meaningful.
-      // (Values may be transformed for display; binding proves stream rendered.)
-      if (chartSamples.length >= 2 && samples.length >= 1) {
-        return {
-          ok: true,
-          detail: `chart bound with ${chartSamples.length} series points; fetch stream non-empty`,
-          matched: chartSamples.length,
-          samples: samples.length,
-          via: 'chart-bound',
-        };
-      }
-    }
+  // Authoritative paths first
+  if (stampHits >= 1) {
+    return {
+      ok: true,
+      detail: `confirmed ${stampHits} sample(s) via metric stamps`,
+      matched: stampHits,
+      samples: samples.length,
+      hits: samples.filter((s) => typeof s === 'number').slice(0, 4),
+      via: 'data-metric-value',
+    };
+  }
+  if (chartHits >= 1) {
+    return {
+      ok: true,
+      detail: `confirmed ${chartHits} sample(s) via chart series binding`,
+      matched: chartHits,
+      samples: samples.length,
+      hits: samples.filter((s) => typeof s === 'number').slice(0, 4),
+      via: 'data-series-samples',
+    };
   }
 
-  const need = samples.length === 1 ? 1 : Math.min(2, samples.length);
-  // For small scalar payloads (≤3 numbers) one DOM match is enough
-  const ok = matched >= need || (matched >= 1 && samples.filter(s => typeof s === 'number').length <= 3);
+  // Text-only confirm is last resort and requires stronger evidence + non-hollow body
+  const hollowMarks = (text.match(/—|–|\bN\/A\b/g) || []).length;
+  const numericSamples = samples.filter((s) => typeof s === 'number');
+  const need = numericSamples.length <= 1 ? 1 : 2;
+  const textOk = textMatched >= need && hollowMarks < 3;
   return {
-    ok,
-    detail: ok
-      ? `confirmed ${matched}/${samples.length} sample(s) in DOM`
-      : `only ${matched}/${samples.length} sample(s) matched (need ${need})`,
-    matched,
+    ok: textOk,
+    detail: textOk
+      ? `confirmed ${textMatched}/${samples.length} sample(s) in DOM text`
+      : `only ${textMatched}/${samples.length} sample(s) matched (need ${need}; stamps=${stampHits} chart=${chartHits})`,
+    matched: textMatched,
     samples: samples.length,
     hits: hits.slice(0, 4),
   };
@@ -304,61 +325,93 @@ export function confirmDisplayMatchesFetch(el, fieldValue) {
 
 export function classifyPanelDisplay(el, { fetchOk = false } = {}) {
   if (!el) return { ok: false, detail: 'panel not in DOM', kind: 'missing' };
-  const text = getPanelDisplayText(el);
-  const footer = el.querySelector('.bento-footer, [class*="footer"]');
+
+  // Disabled shells stay mounted for layout/signalling but are not "display ok".
+  if (
+    el.getAttribute?.('data-panel-disabled') === '1' ||
+    el.classList?.contains?.('bento-card--disabled') ||
+    el.querySelector?.('[data-panel-disabled="1"], .bento-card--disabled, [data-panel-empty="1"]')
+  ) {
+    return { ok: false, detail: 'panel disabled / empty shell', kind: 'null' };
+  }
+
+  const footer = el.querySelector('.bento-footer, [class*="footer"], .data-footer');
   const footerText = footer?.textContent || '';
+
   if (/stale/i.test(footerText) && !fetchOk) {
     return { ok: false, detail: 'footer reports stale', kind: 'stale' };
   }
-  // Only hard-fail empty-state when the panel is *short* (true empty card).
-  // Long panels may mention "no data" in footnotes while still showing series.
-  if (/\bno data\b|\bunavailable\b|\bnot available\b/i.test(text) && text.length < 120 && !fetchOk) {
+
+  // Score the content body only — ignore title row / chrome.
+  const content = el.querySelector('.bento-panel-content') || el;
+  const body = (content.textContent || '').replace(/\s+/g, ' ').trim();
+  if (/\bno data\b|\bunavailable\b|\bnot available\b|\bno .* scheduled\b|\bwaiting for\b|\bload .* for\b|\bempty\b/i.test(body)
+    && body.length < 320) {
     return { ok: false, detail: 'empty-state message in panel', kind: 'null' };
   }
-  const cleaned = text.replace(/\s+/g, ' ').trim();
-  const chartSamples = getChartSeriesSamples(el);
-  const hasViz = !!el.querySelector('canvas, svg, table, .echarts, [class*="chart"], [class*="metric"], [data-series-samples]');
-  const hasNumbers = /\d/.test(cleaned);
-  const bound = el.getAttribute('data-panel-bound') === '1' || el.getAttribute('data-panel-live') === '1';
 
-  if (chartSamples.length > 0) {
-    return { ok: true, detail: `chart series bound (${chartSamples.length} points)`, kind: 'ok' };
+  const hollowMarks = (body.match(/—|–|\bN\/A\b|\bn\/a\b/g) || []).length;
+  const metricValues = [...content.querySelectorAll('[data-metric-value]')]
+    .map((n) => n.getAttribute('data-metric-value'))
+    .filter((v) => {
+      if (v == null || v === '' || v === '—' || v === 'null' || v === 'undefined') return false;
+      const n = Number(v);
+      return Number.isFinite(n);
+    });
+
+  const chartSamples = getChartSeriesSamples(content).filter((n) => Number.isFinite(n) && n !== 0);
+  // Require variance so a flat zero series does not count
+  const chartUnique = new Set(chartSamples.map((n) => Math.round(n * 1000) / 1000));
+
+  // Table cells with real multi-digit numbers (not years / em dashes)
+  const cells = [...content.querySelectorAll('td, th, [class*="kpi"], [class*="value"], [class*="metric"]')];
+  let cellHits = 0;
+  for (const cell of cells) {
+    const t = (cell.textContent || '').trim();
+    if (!t || t === '—' || t === '-' || t === 'N/A') continue;
+    const m = t.match(/-?\d+(?:\.\d+)?/);
+    if (!m) continue;
+    const n = Number(m[0]);
+    if (!Number.isFinite(n)) continue;
+    if (m[0].length === 4 && n >= 1990 && n <= 2100) continue;
+    if (m[0].length < 2 && Math.abs(n) < 10) continue;
+    cellHits++;
   }
-  if (hasViz && hasNumbers) {
-    return { ok: true, detail: 'chart/table with numeric content', kind: 'ok' };
+
+  if (hollowMarks >= 4 && metricValues.length === 0 && chartSamples.length < 2 && cellHits < 3) {
+    return { ok: false, detail: 'hollow body (mostly empty placeholders)', kind: 'null' };
   }
-  if (hasNumbers && cleaned.length > 10) {
-    return { ok: true, detail: 'numeric content rendered', kind: 'ok' };
+
+  // ── Authoritative display signals only ──
+  // Raw text digits / canvas without samples are NOT enough (main false-green source).
+  if (metricValues.length >= 1) {
+    return { ok: true, detail: `metric stamps (${metricValues.length})`, kind: 'ok' };
   }
-  const content = el.querySelector('.bento-panel-content');
-  if (content) {
-    const body = (content.textContent || '').replace(/\s+/g, ' ').trim();
-    if (body.length > 8 && /\d/.test(body)) {
-      return { ok: true, detail: 'panel content has numeric body', kind: 'ok' };
-    }
-    if (body.length > 20) {
-      return { ok: true, detail: 'panel content body present', kind: 'ok' };
-    }
+  if (chartSamples.length >= 3 && chartUnique.size >= 2) {
+    return { ok: true, detail: `chart series bound (${chartSamples.length} pts, ${chartUnique.size} unique)`, kind: 'ok' };
   }
-  // Card stamped bound + fetch has stream: UI is mounted for that stream
-  if (bound && fetchOk) {
-    return { ok: true, detail: 'panel bound to live/current stream', kind: 'ok' };
+  if (cellHits >= 4 && hollowMarks < cellHits) {
+    return { ok: true, detail: `table/kpi cells with values (${cellHits})`, kind: 'ok' };
   }
-  // Title-only bento still counts as displayed if fetch stream exists
-  if (fetchOk && el.getAttribute('data-panel-key') && cleaned.length > 3) {
-    return { ok: true, detail: 'panel mounted with title (stream available)', kind: 'ok' };
-  }
-  if (!hasNumbers && !hasViz && !bound) {
-    return { ok: false, detail: 'no numeric data on display', kind: 'null' };
-  }
-  return { ok: false, detail: 'insufficient display substance', kind: 'null' };
+
+  return { ok: false, detail: 'no stamped metrics / chart series / dense table values', kind: 'null' };
 }
 
 function findPanelEl(marketId, panelId) {
-  const scoped = document.querySelector(
-    `[data-splash-market="${marketId}"] [data-panel-key="${panelId}"], [data-market-id="${marketId}"] [data-panel-key="${panelId}"]`
+  // Prefer live hub root over splash backdrop (both may exist briefly)
+  const live = document.querySelector(
+    `[data-market-id="${marketId}"] [data-panel-key="${panelId}"]`
   );
-  if (scoped) return scoped;
+  if (live) return live;
+  const splash = document.querySelector(
+    `[data-splash-market="${marketId}"] [data-panel-key="${panelId}"]`
+  );
+  if (splash) return splash;
+  // Market root mounted but panel missing → do not steal another market's id
+  if (document.querySelector(`[data-market-id="${marketId}"], [data-splash-market="${marketId}"]`)) {
+    return null;
+  }
+  // Unit tests / early paint without a market root: allow unscoped lookup.
   return document.querySelector(`[data-panel-key="${panelId}"]`);
 }
 
@@ -404,64 +457,100 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
 
   if (placeholders?.length) {
     let filled = 0;
+    let requiredTotal = 0;
+    let requiredFilled = 0;
     const emptyIds = [];
     const filledIds = [];
+    const emptyRequiredIds = [];
+    let bestFieldScore = -1;
     for (const slot of placeholders) {
+      const isRequired = slot.required !== false;
+      if (isRequired) requiredTotal++;
       let v = null;
+      let usedPath = slot.path || '';
       if (slot.crossMarket) {
         const dep = allDataMap[slot.crossMarket];
         if (dep) {
           if (slot.path) {
             v = resolvePath(dep, slot.path);
+            usedPath = slot.path;
           } else if (Array.isArray(slot.anyOf) && slot.anyOf.length) {
             for (const pth of slot.anyOf) {
-              v = resolvePath(dep, pth);
-              if (hasSubstance(v)) break;
+              const cand = resolvePath(dep, pth);
+              if (placeholderValueOk(cand, pth)) {
+                v = cand;
+                usedPath = pth;
+                break;
+              }
             }
           } else {
+            // Bare cross-market root — only if the whole market is a metric series
             v = dep;
+            usedPath = slot.crossMarket;
           }
         }
       } else if (slot.anyOf) {
         for (const pth of slot.anyOf) {
-          v = resolvePath(primary, pth);
-          if (hasSubstance(v)) break;
-          const parts = pth.split('.');
-          if (parts.length >= 2 && allDataMap[parts[0]]) {
-            v = resolvePath(allDataMap[parts[0]], parts.slice(1).join('.'));
-            if (hasSubstance(v)) break;
+          let cand = resolvePath(primary, pth);
+          if (!placeholderValueOk(cand, pth)) {
+            const parts = pth.split('.');
+            if (parts.length >= 2 && allDataMap[parts[0]]) {
+              cand = resolvePath(allDataMap[parts[0]], parts.slice(1).join('.'));
+            }
+          }
+          if (placeholderValueOk(cand, pth)) {
+            v = cand;
+            usedPath = pth;
+            break;
           }
         }
       } else if (slot.path) {
         v = resolvePath(primary, slot.path);
-        if (!hasSubstance(v)) {
+        usedPath = slot.path;
+        if (!placeholderValueOk(v, slot.path)) {
           const parts = slot.path.split('.');
           if (parts.length >= 2 && allDataMap[parts[0]]) {
             v = resolvePath(allDataMap[parts[0]], parts.slice(1).join('.'));
           }
         }
       }
-      if (hasSubstance(v)) {
+      // Series arrays of all-nulls (e.g. HY: [null,null,…]) are empty
+      if (Array.isArray(v) && !v.some((x) => hasSubstance(x))) v = null;
+
+      if (placeholderValueOk(v, usedPath)) {
         filled++;
         filledIds.push(slot.id);
-        if (fieldValue == null) fieldValue = v;
+        if (isRequired) requiredFilled++;
+        const sc = scoreFieldCandidate(usedPath, v);
+        if (sc > bestFieldScore) {
+          bestFieldScore = sc;
+          fieldValue = v;
+        }
       } else {
         emptyIds.push(slot.id);
+        if (isRequired) emptyRequiredIds.push(slot.id);
       }
     }
-    const fillRate = filled / placeholders.length;
+    // Score only *required* slots so optional intl/secondary series don't keep
+    // panels red when the primary stream is live and on screen.
+    const denom = requiredTotal > 0 ? requiredTotal : placeholders.length;
+    const numer = requiredTotal > 0 ? requiredFilled : filled;
+    const fillRate = denom > 0 ? numer / denom : 0;
     placeholderStats = {
       total: placeholders.length,
+      requiredTotal,
       filled,
+      requiredFilled,
       empty: emptyIds.length,
       fillRate,
       emptyIds,
+      emptyRequiredIds,
       filledIds,
     };
     fetchOk = fillRate >= MIN_PLACEHOLDER_FILL_RATE;
     fetchDetail = fetchOk
-      ? `placeholders ${filled}/${placeholders.length} (${Math.round(fillRate * 100)}% ≥ ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%)`
-      : `placeholders ${filled}/${placeholders.length} (${Math.round(fillRate * 100)}% < ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%) empty=[${emptyIds.slice(0, 6).join(', ')}]`;
+      ? `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% ≥ ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%)`
+      : `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% < ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%) empty=[${emptyRequiredIds.slice(0, 6).join(', ')}]`;
   } else if (!marketCtx?.data && !spec?.crossMarket && !bus?.fetchOk) {
     fetchOk = false;
     fetchDetail = marketCtx?.error
@@ -480,98 +569,64 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
       }
     } else {
       fetchOk = hasSubstance(fieldValue);
+      // Field path that only yields thin taxonomy (tickers/sectors) fails.
+      if (fetchOk && countNumericLeaves(fieldValue).n === 0 && typeof fieldValue === 'object') {
+        // Allow pure-text field maps (rare); otherwise require a number leaf.
+        const samples = collectSamples(fieldValue);
+        const hasRich = samples.some(s => typeof s === 'string' && s.length >= 3);
+        if (!hasRich) {
+          fetchOk = false;
+        }
+      }
       const pathLabel = spec.crossMarket
         ? `${spec.crossMarket}.${spec.fieldPath || spec.field}`
         : (spec.fieldPath || spec.field || panelId);
       fetchDetail = fetchOk
         ? `field "${pathLabel}" has data`
-        : `field "${pathLabel}" is null/empty`;
+        : `field "${pathLabel}" is null/empty/hollow`;
     }
-    if (!fetchOk && bus?.fetchOk) {
-      fetchOk = true;
-      fetchDetail = `bus: stream ready (${bus.fieldPath || panelId})`;
-      fieldValue = fieldValue ?? bus.samples;
-    }
+    // Intentionally NO bus free-pass: bus uses the same weak "any key" heuristic
+    // and was a long-standing source of false greens when field maps failed.
   } else {
     const data = marketCtx?.data;
-    if (!data && !bus?.fetchOk) {
+    if (!data) {
       fetchOk = false;
       fetchDetail = 'no field map and no market payload';
-    } else if (bus?.fetchOk) {
-      fetchOk = true;
-      fetchDetail = 'bus: stream ready';
-      fieldValue = bus.samples;
     } else {
-      const keys = Object.keys(data).filter(
-        k => !k.startsWith('_') && !['lastUpdated', 'fetchedOn', 'isLive', 'isCurrent'].includes(k)
-      );
-      const nonEmpty = keys.filter(k => hasSubstance(data[k]));
-      fetchOk = nonEmpty.length > 0;
-      fieldValue = nonEmpty.length ? data[nonEmpty[0]] : null;
-      fetchDetail = fetchOk
-        ? `no field map; market has ${nonEmpty.length} non-empty key(s)`
-        : 'no field map and market payload empty';
+      // Without a field map / placeholders, do not green-light the panel just
+      // because *some* market key is non-empty (other panels' data).
+      fetchOk = false;
+      fetchDetail = 'no placeholders or field map for panel';
+      fieldValue = null;
     }
   }
 
-  // ── 2. DISPLAY ──
-  let display = classifyPanelDisplay(el, { fetchOk });
-  let displayOk = display.ok;
-  let displayDetail = display.detail;
-  // Fetch-ready panels that are not in DOM yet (grid not painted): still
-  // count as displayed once the market finished loading — the dashboard
-  // will show them from the same payload.
-  if (!displayOk && fetchOk && !el && marketCtx && !marketCtx.isLoading) {
-    displayOk = true;
-    displayDetail = 'stream ready; panel DOM deferred (market loaded)';
-    display = { ok: true, detail: displayDetail, kind: 'ok' };
-  }
-  if (!displayOk && fetchOk && el) {
-    displayOk = true;
-    displayDetail = 'panel element present with fetch stream';
-  }
+  // ── 2. DISPLAY (requires real DOM substance — no deferred/title free pass) ──
+  const display = classifyPanelDisplay(el, { fetchOk });
+  const displayOk = display.ok;
+  const displayDetail = display.detail;
 
-  // ── 3. CONFIRM ──
+  // ── 3. CONFIRM (requires DOM + fetch match — no "mounted with stream" free pass) ──
   let confirmOk = false;
   let confirmDetail = '';
   let confirmMeta = null;
-  if (!fetchOk) {
+  if (!el) {
+    confirmDetail = 'skipped — panel not in DOM';
+  } else if (!fetchOk) {
     confirmDetail = 'skipped — fetch stream empty/failed';
   } else if (!displayOk) {
     confirmDetail = 'skipped — UI not displaying data';
-  } else if (el) {
+  } else {
     confirmMeta = confirmDisplayMatchesFetch(el, fieldValue);
     confirmOk = confirmMeta.ok;
     confirmDetail = confirmMeta.detail;
-    if (!confirmOk && el.getAttribute?.('data-panel-bound') === '1' && hasSubstance(fieldValue)) {
-      confirmOk = true;
-      confirmDetail = 'panel bound to non-empty fetch stream (data-panel-bound)';
-      confirmMeta = { ok: true, detail: confirmDetail, via: 'panel-bound' };
-    }
-    if (!confirmOk && hasSubstance(fieldValue)) {
-      const text = getPanelDisplayText(el);
-      if (/\d/.test(text) && text.length > 8) {
-        confirmOk = true;
-        confirmDetail = 'panel presents numeric UI for non-empty fetch stream';
-        confirmMeta = { ok: true, detail: confirmDetail, via: 'numeric-ui' };
-      }
-    }
-    if (!confirmOk && hasSubstance(fieldValue)) {
-      // Title + bound stream is enough once fetch is proven
-      confirmOk = true;
-      confirmDetail = 'fetch stream verified; panel mounted for market';
-      confirmMeta = { ok: true, detail: confirmDetail, via: 'stream-ready' };
-    }
-  } else if (fetchOk && displayOk) {
-    // No DOM yet but market loaded with stream
-    confirmOk = true;
-    confirmDetail = 'fetch stream verified (payload bus); UI will bind same stream';
-    confirmMeta = { ok: true, detail: confirmDetail, via: 'payload-bus' };
   }
 
   let status = 'null';
   if (fetchOk && displayOk && confirmOk) status = 'ok';
   else if (display.kind === 'stale' && fetchOk) status = 'stale';
+  else if (display.kind === 'missing') status = 'missing';
+  else if (marketCtx?.isLoading) status = 'loading';
 
   return {
     status,

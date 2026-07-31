@@ -1,8 +1,9 @@
 # API Endpoint Inventory
 
-Last updated: 2026-07-29
+Last updated: 2026-07-30
 
-This is the agent-facing map of API routes, frontend usage, and optional RTDB history.
+Agent-facing map of API routes, frontend usage, and optional RTDB history.
+Architecture overview: [`README.md`](./README.md).
 
 ## Production (canonical)
 
@@ -13,7 +14,8 @@ This is the agent-facing map of API routes, frontend usage, and optional RTDB hi
 | API | Same-origin `/api/*` (no `VITE_API_BASE_URL` on App Hosting) |
 | Cache | Local `server/datacache` + GCS `MARKET_CACHE_BUCKET` |
 
-`src/lib/api.js` returns `/api/...` for same-origin deploys. Set `VITE_API_BASE_URL` only for **legacy** static hosts (GitHub Pages) that call a remote API.
+`src/lib/api.js` returns `/api/...` for same-origin deploys. Set `VITE_API_BASE_URL`
+only when the SPA is hosted separately from the API.
 
 ## Sources Of Truth
 
@@ -24,7 +26,7 @@ Keep these files aligned when adding or renaming routes:
 | `src/hub/DataProvider.jsx` | Frontend `MARKET_ENDPOINTS`; live fetch + optional historical RTDB. |
 | `shared/api-routing.json` | Canonical market → path map. |
 | `server/index.js` | Express mount table on App Hosting. |
-| `functions/src/lib/snapshotMarkets.ts` | **Legacy/optional** RTDB snapshot writers. |
+| `functions/src/lib/snapshotMarkets.ts` | Nightly RTDB snapshot market list (scheduler). |
 | `docs/API_ENDPOINTS.md` | Human/agent-facing route inventory. |
 
 ## Frontend Market Endpoints
@@ -121,11 +123,11 @@ These routes exist but are not always fetched by `DataProvider`.
 | `/api/stocks/stats` | GET | Equity tools | Stock stats. |
 | `/api/summary/:ticker` | GET | Equity detail panel, ML explorer | Single-ticker summary. Region query may be supplied. |
 | `/api/history/:ticker` | GET | Equity detail panel, index sticky tooltip | OHLC history; supports `period`. |
-| `/api/snapshot` | GET | Legacy/bulk ticker consumers | Bulk market snapshot. |
+| `/api/snapshot` | GET | Bulk ticker tools | Bulk market snapshot. |
 | `/api/fred/batch` | GET | Generic FRED consumers | Batch FRED proxy. |
 | `/api/fred/observations` | GET | `MetricValue`, `DataFooter`, chart source popovers | Source verification for FRED series. |
 | `/api/edgar/concepts/:ticker` | GET | Equity/insurance future drilldowns | SEC company concepts. |
-| `/api/commodities/v2` | GET | Back-compat alias | Same router as `/api/commoditiesEnhanced`. |
+| `/api/commodities/v2` | GET | Alias | Same router as `/api/commoditiesEnhanced`. |
 | `/api/commoditiesEnhanced/commodity/:key` | GET | Manual metadata lookup | Commodity source metadata. |
 | `/api/commoditiesEnhanced/coverage` | GET | Manual coverage lookup | Commodity catalog coverage. |
 
@@ -157,12 +159,12 @@ Several panels intentionally use data from another market context instead of ask
 | Alerts | `sentiment`, `bonds`, `credit`, `crypto`, `commodities`, `fx` | Federated alert rules; no separate backend route. |
 | Global Macro panels | `bea`, `eurostat`, `oecd`, `ecb`, `treasuryDTS`, `fedGDPNow` and others | Macro tab composes official-source satellite endpoints. |
 
-## Adding A New Endpoint
+## Adding a new endpoint
 
-1. Add or update the route module under `functions/src/routes`.
-2. Mount it in `functions/src/index.ts` if it is new.
-3. Add the market id/path to `MARKET_ENDPOINTS` in `src/hub/DataProvider.jsx` if the browser should fetch it automatically.
-4. Add the same id/path to `functions/src/lib/snapshotMarkets.ts` if RTDB latest/history should cover it.
-5. Add a normalizer or component binding. Prefer partial rendering over dropping an entire market because one optional branch is missing.
-6. Update this file and, if panels changed, `docs/PANELS.md`.
-7. Run `npm run build` and the focused Vitest suite.
+1. Add/update the route under `server/routes/` and mount in `server/index.js`.
+2. Mirror in Functions only if the snapshot job or admin paths need it.
+3. Register in `MARKET_ENDPOINTS` / `shared/api-routing.json` if the browser fetches it.
+4. Add to `functions/src/lib/snapshotMarkets.ts` if RTDB history should cover it.
+5. Wire UI + normalizers; prefer partial empty states over dropping a whole market.
+6. Update this file and `docs/PANELS.md` if panels changed.
+7. Run `npm run preflight`.

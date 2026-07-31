@@ -78,48 +78,83 @@ const ECO_KEYS = ['retailSales', 'durableGoods', 'tradeBalance'];
 //   TrendsHousingPanel  → "Trends — Housing & Construction"
 //   TrendsTradePanel    → "Trends — Trade & Consumption"
 
-export function HousingPanel({ kpiData, housingKeys }) {
+/** Shared dense KPI card grid — used by Housing & Trade panels. */
+export function CensusKpiCardGrid({ cards = [] }) {
+  if (!cards.length) {
+    return (
+      <div className="census-kpi-empty" style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>
+        No series available
+      </div>
+    );
+  }
   return (
-    <div className="census-kpi-grid">
-      {kpiData.filter(k => housingKeys.includes(k.key)).map(k => (
+    <div className="census-kpi-grid census-kpi-grid--dense">
+      {cards.map((k) => (
         <div key={k.key} className="census-kpi-card">
           <span className="census-kpi-label">{k.label}</span>
           <span className="census-kpi-value">
-            <MetricValue value={k.latest?.value} seriesKey={`census${k.key[0].toUpperCase()}${k.key.slice(1)}`} timestamp={k.latest?.date} format={FORMAT[k.key]} />
-            {k.unit && <span className="census-kpi-unit"> {k.unit}</span>}
+            <MetricValue
+              value={k.value}
+              seriesKey={k.seriesKey || k.key}
+              timestamp={k.date}
+              format={k.format || ((v) => (v != null ? String(v) : '—'))}
+            />
+            {k.unit ? <span className="census-kpi-unit"> {k.unit}</span> : null}
           </span>
-          {k.change && (
-            <span className={`census-kpi-change ${k.changeClass}`}>
-              {k.change.direction}{k.change.pct}% MoM
+          {k.change != null && Number.isFinite(Number(k.change.pct)) && (
+            <span className={`census-kpi-change ${k.changeClass || (Number(k.change.pct) >= 0 ? 'positive' : 'negative')}`}>
+              {Number(k.change.pct) >= 0 ? '+' : ''}{Number(k.change.pct).toFixed(1)}% {k.change.label || 'MoM'}
             </span>
           )}
-          <span className="census-kpi-unit">{formatDate(k.latest?.date)}</span>
+          {(k.sublabel || k.date) && (
+            <span className="census-kpi-unit">{k.sublabel || formatDate(k.date)}</span>
+          )}
         </div>
       ))}
     </div>
   );
 }
 
-export function TradePanel({ kpiData, ecoKeys }) {
-  return (
-    <div className="census-kpi-grid">
-      {kpiData.filter(k => ecoKeys.includes(k.key)).map(k => (
-        <div key={k.key} className="census-kpi-card">
-          <span className="census-kpi-label">{k.label}</span>
-          <span className="census-kpi-value">
-            <MetricValue value={k.latest?.value} seriesKey={`census${k.key[0].toUpperCase()}${k.key.slice(1)}`} timestamp={k.latest?.date} format={FORMAT[k.key]} />
-            {k.unit && <span className="census-kpi-unit"> {k.unit}</span>}
-          </span>
-          {k.change && (
-            <span className={`census-kpi-change ${k.changeClass}`}>
-              {k.change.direction}{k.change.pct}% MoM
-            </span>
-          )}
-          <span className="census-kpi-unit">{formatDate(k.latest?.date)}</span>
-        </div>
-      ))}
-    </div>
-  );
+function cardsFromCensusKpis(kpiData, keys) {
+  return (kpiData || [])
+    .filter((k) => keys.includes(k.key) && k.latest?.value != null)
+    .map((k) => ({
+      key: k.key,
+      label: k.label || k.key,
+      value: k.latest?.value,
+      date: k.latest?.date,
+      unit: k.unit,
+      format: FORMAT[k.key],
+      seriesKey: `census${k.key[0].toUpperCase()}${k.key.slice(1)}`,
+      change: k.change ? { pct: parseFloat(k.change.pct), label: 'MoM' } : null,
+      changeClass: k.changeClass,
+      sublabel: formatDate(k.latest?.date),
+    }));
+}
+
+export function HousingPanel({ kpiData, housingKeys, extraCards = [] }) {
+  const base = cardsFromCensusKpis(kpiData, housingKeys || HOUSING_KEYS);
+  // Prefer extraCards order (enriched RE + census), fall back to census-only
+  const seen = new Set();
+  const cards = [];
+  for (const c of [...extraCards, ...base]) {
+    if (!c || c.value == null || seen.has(c.key)) continue;
+    seen.add(c.key);
+    cards.push(c);
+  }
+  return <CensusKpiCardGrid cards={cards} />;
+}
+
+export function TradePanel({ kpiData, ecoKeys, extraCards = [] }) {
+  const base = cardsFromCensusKpis(kpiData, ecoKeys || ECO_KEYS);
+  const seen = new Set();
+  const cards = [];
+  for (const c of [...extraCards, ...base]) {
+    if (!c || c.value == null || seen.has(c.key)) continue;
+    seen.add(c.key);
+    cards.push(c);
+  }
+  return <CensusKpiCardGrid cards={cards} />;
 }
 
 export function TrendsHousingPanel({ housingSeries, fetchedOn, lastUpdated }) {

@@ -124,17 +124,103 @@ function InsuranceDashboard({
     };
   }, [fredHyOasHistory, colors]);
 
+  // Prefer server catLosses; else build a FEMA proxy series so the panel is not stuck on "loading"
+  const catLossesResolved = useMemo(() => {
+    if (catLosses?.values?.length) return catLosses;
+    const decls = femaCtx?.data?.declarations;
+    if (Array.isArray(decls) && decls.length) {
+      const byYear = {};
+      for (const d of decls) {
+        const y = String(d.declarationDate || d.firstDeclared || d.incidentBegin || d.date || '').slice(0, 4);
+        if (/^\d{4}$/.test(y)) byYear[y] = (byYear[y] || 0) + 1;
+      }
+      const years = Object.keys(byYear).sort();
+      if (years.length) {
+        return {
+          dates: years,
+          values: years.map((y) => byYear[y]),
+          seriesId: 'FEMA_DECL_COUNT',
+          unit: 'declarations',
+          _note: 'Proxy: FEMA declaration counts by year',
+        };
+      }
+    }
+    const byType = femaCtx?.data?.byType;
+    if (Array.isArray(byType) && byType.length) {
+      return {
+        dates: byType.map((r) => r.type),
+        values: byType.map((r) => Number(r.count) || 0),
+        seriesId: 'FEMA_BY_TYPE',
+        unit: 'declarations',
+        _note: 'Proxy: FEMA declaration counts by type',
+      };
+    }
+    return null;
+  }, [catLosses, femaCtx?.data]);
+
   const catLossesOption = useMemo(() => {
-    if (!catLosses?.values?.length) return null;
+    if (!catLossesResolved?.values?.length) return null;
+    const unit = catLossesResolved.unit === 'declarations' ? 'count' : '$B';
     return {
       animation: false, backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
       grid: { top: 20, right: 30, bottom: 30, left: 50 },
-      xAxis: { type: 'category', data: catLosses.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(catLosses.dates.length / 6) } },
-      yAxis: { type: 'value', name: '$B', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{ type: 'bar', data: catLosses.values, itemStyle: { color: '#ef4444' }, barMaxWidth: 20 }],
+      xAxis: {
+        type: 'category',
+        data: catLossesResolved.dates,
+        axisLabel: {
+          color: colors.textMuted,
+          fontSize: 9,
+          interval: Math.max(0, Math.floor((catLossesResolved.dates?.length || 1) / 6)),
+          rotate: catLossesResolved.seriesId === 'FEMA_BY_TYPE' ? 30 : 0,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        name: unit,
+        nameTextStyle: { color: colors.textMuted, fontSize: 10 },
+        axisLabel: { color: colors.textMuted },
+        splitLine: { lineStyle: { color: colors.cardBg } },
+      },
+      series: [{ type: 'bar', data: catLossesResolved.values, itemStyle: { color: '#ef4444' }, barMaxWidth: 20 }],
     };
-  }, [catLosses, colors]);
+  }, [catLossesResolved, colors]);
+
+  // combinedRatioData.lines is { Progressive: [89,88,…], … } — not byLine[]
+  const crLineRows = useMemo(() => {
+    if (Array.isArray(combinedRatioData?.byLine) && combinedRatioData.byLine.length) {
+      return combinedRatioData.byLine.filter((r) => r?.ratio != null);
+    }
+    const lines = combinedRatioData?.lines;
+    if (!lines || typeof lines !== 'object') return [];
+    const rows = [];
+    for (const [line, arr] of Object.entries(lines)) {
+      if (!Array.isArray(arr)) continue;
+      let ratio = null;
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (arr[i] != null && Number.isFinite(Number(arr[i]))) {
+          ratio = Number(arr[i]);
+          break;
+        }
+      }
+      if (ratio != null) rows.push({ line, ratio });
+    }
+    return rows.sort((a, b) => b.ratio - a.ratio);
+  }, [combinedRatioData]);
+
+  // reinsurancePricing is an array of equity proxies; legacy shape used byCategory
+  const reinsRateRows = useMemo(() => {
+    if (Array.isArray(reinsurancePricing?.byCategory) && reinsurancePricing.byCategory.length) {
+      return reinsurancePricing.byCategory;
+    }
+    if (Array.isArray(reinsurancePricing) && reinsurancePricing.length) {
+      return reinsurancePricing;
+    }
+    if (Array.isArray(reinsurers) && reinsurers.length) {
+      return reinsurers.filter((r) => r?.price != null);
+    }
+    return [];
+  }, [reinsurancePricing, reinsurers]);
 
   const combinedRatioOption = useMemo(() => {
     // Yahoo Finance's quoteSummary often returns empty quarterly statements
@@ -504,23 +590,26 @@ function InsuranceDashboard({
             : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>HY OAS series loading…</div>}
         </BentoCard>
 
-        {/* Cat Losses */}
+        {/* Cat Losses — FRED $ series or FEMA declaration proxy */}
         <BentoCard
           key="catloss"
           title="Natural Catastrophe Losses"
+          subtitle={catLossesResolved?._note || undefined}
           accent="insurance"
           className="ins-bento-card"
-          source="FRED / Server"
+          source={catLossesResolved?.seriesId?.startsWith('FEMA') ? 'OpenFEMA' : 'FRED / Server'}
           timestamp={lastUpdated}
           isLive={isLive}
           isCurrent={isCurrent}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
+          disabled={!catLossesOption}
+          emptyMessage="No catastrophe loss series available"
         >
           {catLossesOption
-            ? <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: 'FRED / Server', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Catastrophe loss history loading…</div>}
+            ? <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: catLossesResolved?.seriesId?.startsWith('FEMA') ? 'OpenFEMA' : 'FRED', endpoint: '/api/insurance', series: catLossesResolved?.seriesId ? [{ id: catLossesResolved.seriesId }] : [], updatedAt: lastUpdated }} />
+            : null}
         </BentoCard>
 
         {/* Combined Ratio History */}
@@ -542,24 +631,26 @@ function InsuranceDashboard({
             : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Combined ratio history loading…</div>}
         </BentoCard>
 
-        {/* Combined Ratio by Line */}
+        {/* Combined Ratio by Line — server may send byLine[] or lines{ name: [ratios] } */}
         <BentoCard
           key="crline"
           title="Combined Ratio by Line"
           accent="insurance"
           className="ins-bento-card"
           contentClassName="ins-panel-scroll"
-          source="FRED / NAIC"
+          source="FRED / NAIC / EDGAR"
           timestamp={lastUpdated}
           isLive={isLive}
           isCurrent={isCurrent}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
+          disabled={!crLineRows.length}
+          emptyMessage="No by-line combined ratios"
         >
-          {(combinedRatioData?.byLine?.length > 0) ? (
+          {crLineRows.length > 0 ? (
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {combinedRatioData.byLine.slice(0, 8).map((l) => (
+              {crLineRows.slice(0, 8).map((l) => (
                 <div key={l.line} className="ins-mini-row">
                   <span className="ins-mini-name">{l.line}</span>
                   <span className="ins-mini-value" style={{ color: l.ratio > 100 ? '#f87171' : '#4ade80' }}>
@@ -568,42 +659,51 @@ function InsuranceDashboard({
                 </div>
               ))}
             </div>
-          ) : (
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>By-line combined ratios loading…</div>
-          )}
+          ) : null}
         </BentoCard>
 
-        {/* Reinsurance Rates */}
+        {/* Reinsurance Rates — equity proxies (RNR/ACGL/…) when treaty ROL unavailable */}
         <BentoCard
           key="reinsrates"
           title="Reinsurance Rates"
+          subtitle="Reinsurer equity proxies (no free public treaty ROL feed)"
           accent="insurance"
           className="ins-bento-card"
           contentClassName="ins-panel-scroll"
-          source="FRED / Server"
+          source="Yahoo Finance"
           timestamp={lastUpdated}
           isLive={isLive}
           isCurrent={isCurrent}
           fetchedOn={fetchedOn}
           fetchLog={fetchLog}
           error={error}
+          disabled={!reinsRateRows.length}
+          emptyMessage="No reinsurance pricing proxies"
         >
-          {reinsurancePricing?.byCategory?.length > 0 ? (
+          {reinsRateRows.length > 0 ? (
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {reinsurancePricing.byCategory.slice(0, 8).map((c, i) => {
-                const name = c.category ?? c.peril ?? `row-${i}`;
-                const rate = c.rate ?? c.rol;
+              {reinsRateRows.slice(0, 8).map((c, i) => {
+                const name = c.ticker || c.category || c.peril || c.name || `row-${i}`;
+                const price = c.price;
+                const change = c.changePct ?? c.rate ?? c.rol;
                 return (
                   <div key={name} className="ins-mini-row">
                     <span className="ins-mini-name">{name}</span>
-                    <span className="ins-mini-value"><MetricValue value={rate} seriesKey="reinsuranceRate" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}%` : '—'} /></span>
+                    <span className="ins-mini-value">
+                      {price != null ? (
+                        <MetricValue value={price} seriesKey="reinsuranceProxy" timestamp={lastUpdated} format={v => `$${Number(v).toFixed(2)}`} />
+                      ) : '—'}
+                      {change != null && (
+                        <span style={{ marginLeft: 6, color: change >= 0 ? '#4ade80' : '#f87171', fontSize: 11 }}>
+                          {change >= 0 ? '+' : ''}{Number(change).toFixed(2)}%
+                        </span>
+                      )}
+                    </span>
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Reinsurance pricing loading…</div>
-          )}
+          ) : null}
         </BentoCard>
 
         {/* Reserve Adequacy — assets / liabilities coverage from Yahoo BS */}

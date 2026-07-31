@@ -16,16 +16,24 @@ const GROUP_OPTIONS = [
   { id: 'sectorGlobal',   label: 'By Sector',    desc: 'Merge all markets — compare sectors globally' },
 ];
 
+const DENSITY_OPTIONS = [
+  { id: 'dense',  label: 'Dense',  desc: 'Keep more small names; busier map' },
+  { id: 'auto',   label: 'Auto',   desc: 'Balance coverage and readability' },
+  { id: 'sparse', label: 'Sparse', desc: 'Only large names; cleaner map' },
+];
+
 const Header = ({
   viewMode, setViewMode,
   rankMetric, setRankMetric,
   groupBy, setGroupBy,
   colorByPerf, setColorByPerf,
+  sizeDensity = 'auto', setSizeDensity,
 }) => {
   const handleViewMode = useCallback((mode) => () => setViewMode(mode), [setViewMode]);
   const handleRankMetric = useCallback((id) => () => setRankMetric(id), [setRankMetric]);
   const handleGroupBy = useCallback((id) => () => setGroupBy(id), [setGroupBy]);
   const handleColorToggle = useCallback(() => setColorByPerf(v => !v), [setColorByPerf]);
+  const handleDensity = useCallback((id) => () => setSizeDensity?.(id), [setSizeDensity]);
 
   return (
     <header className="app-header">
@@ -81,6 +89,20 @@ const Header = ({
           onClick={handleColorToggle}
           title="Color cells by % price change when a historical date is selected"
         >Perf. Colors</button>
+        {setSizeDensity && (
+          <>
+            <span className="ranking-bar-sep" />
+            <span className="ranking-label">Size:</span>
+            {DENSITY_OPTIONS.map(d => (
+              <button
+                key={d.id}
+                className={`rank-btn density-btn ${sizeDensity === d.id ? 'active' : ''}`}
+                onClick={handleDensity(d.id)}
+                title={d.desc}
+              >{d.label}</button>
+            ))}
+          </>
+        )}
         <span className="ranking-hint">
           {rankMetric === 'marketCap'  && groupBy === 'market'         && '· Cells sized by market cap'}
           {rankMetric === 'revenue'    && '· Cells sized by revenue — Walmart & Aramco grow larger than AAPL'}
@@ -89,6 +111,9 @@ const Header = ({
           {rankMetric === 'divYield'   && '· Ranked #1 = highest dividend yield'}
           {groupBy === 'sectorInMarket' && '· Sector brackets inside each market'}
           {groupBy === 'sectorGlobal'   && '· All markets merged — compare sectors globally'}
+          {sizeDensity === 'auto'   && ' · Auto size: small names → Other'}
+          {sizeDensity === 'dense'  && ' · Dense: keep more small names'}
+          {sizeDensity === 'sparse' && ' · Sparse: large names only'}
         </span>
       </div>
     </header>
