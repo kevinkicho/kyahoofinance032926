@@ -96,6 +96,9 @@ tmp-*.json
 tmp-server-*.txt
 tmp-vitest.json
 screenshots/debug-*.png
+live-false-green*.json
+live-panel-signal-probe.json
+live-fdc*.json
 
 # Agent / housekeep outputs
 reports/
