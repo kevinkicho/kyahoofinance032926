@@ -16,14 +16,20 @@ async function getJson(path) {
 }
 
 let serverUp = false;
+// Short probe only — do not use getJson (90s timeout) here or pre-push hangs.
 beforeAll(async () => {
   try {
-    const h = await getJson('/api/health');
+    const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(2500) });
+    if (!res.ok) {
+      serverUp = false;
+      return;
+    }
+    const h = await res.json();
     serverUp = h?.status === 'ok';
   } catch {
     serverUp = false;
   }
-});
+}, 8_000);
 
 function requireServer() {
   if (!serverUp) {
