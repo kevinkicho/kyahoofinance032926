@@ -16,6 +16,12 @@ Prefer **running code** over any older note.
 | [`DATA_PIPELINE.md`](./DATA_PIPELINE.md) | Agents | How data reaches panels |
 | [`API_ENDPOINTS.md`](./API_ENDPOINTS.md) | Agents | Market id → `/api/*` |
 | [`PANELS.md`](./PANELS.md) | Agents + UX | Panel inventory |
+| [`PANEL_MODULES.md`](./PANEL_MODULES.md) | Agents | Per-panel modules + manifest |
+| [`RECOVERY_AGENT.md`](./RECOVERY_AGENT.md) | Agents | AI/local panel recovery (not fixed retry trees) |
+| [`HOUSEKEEP_AGENT.md`](./HOUSEKEEP_AGENT.md) | Agents | Offline Ollama housekeep advisor |
+| [`TEST_HEALTH_SUITE.md`](./TEST_HEALTH_SUITE.md) | Agents | Regression pack for panel health |
+| [`PANEL_HEALTH_CHRONIC_REVIEW.md`](./PANEL_HEALTH_CHRONIC_REVIEW.md) | Agents + humans | Root-cause review: ~100 incomplete for months |
+| [`API_ETIQUETTE.md`](./API_ETIQUETTE.md) | Agents | Upstream rate limits, circuits, probe:fdc |
 | [`SHARED_CACHE.md`](./SHARED_CACHE.md) | Ops | GCS shared market cache |
 | [`CI_PREFLIGHT_GUIDE.md`](./CI_PREFLIGHT_GUIDE.md) | Agents | Local gates vs Actions |
 | [`../KNOWN_LIMITATIONS.md`](../KNOWN_LIMITATIONS.md) | Agents | Intentional constraints |

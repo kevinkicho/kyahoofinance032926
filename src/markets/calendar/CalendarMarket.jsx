@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
-import BentoWrapper from '../../components/BentoWrapper';
-import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import MetricValue from '../../components/MetricValue/MetricValue';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
+import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import EconomicCalendar from './components/EconomicCalendar';
 import CentralBankSchedule from './components/CentralBankSchedule';
 import EarningsSeason from './components/EarningsSeason';
@@ -14,10 +13,6 @@ import './CalendarMarket.css';
 
 function PanelEmpty({ label }) {
   return <div className="cal-empty">{label ? `No upcoming ${label} scheduled` : 'No data available'}</div>;
-}
-
-function PartialState({ children = 'Partial snapshot' }) {
-  return <span style={{ color: 'var(--text-muted)', fontSize: 10, fontWeight: 500 }}>{children}</span>;
 }
 
 /** Local YYYY-MM-DD (avoid UTC day shift from toISOString). */
@@ -421,491 +416,376 @@ function CalendarMarket({ centralData } = {}) {
       .slice(0, 18);
   }, [props]);
 
+  const panelCtx = useMemo(() => {
+    if (!props) return { __render: () => null };
+
+    const sidebarBody = (
+      <div className="cal-summary">
+        <div className="cal-summary-grid">
+          {[
+            { label: 'Today', value: dataReady ? sidebarStats.todayCount : null, sub: `${sidebarStats.todayHighImpact} high impact`, hot: sidebarStats.todayCount > 0 },
+            { label: 'Next 7 days', value: dataReady ? sidebarStats.next7EventCount : null, sub: `${sidebarStats.next7HighImpact} high · ${sidebarStats.next7Earnings} earns`, hot: sidebarStats.next7HighImpact > 0 },
+            { label: 'Next 30 days', value: dataReady ? sidebarStats.next30EventCount : null, sub: `${sidebarStats.next30HighImpact} high impact`, hot: false },
+            { label: 'Key releases', value: dataReady ? sidebarStats.totalKeys : null, sub: `${sidebarStats.next7Keys} in 7d`, hot: false },
+          ].map(card => (
+            <div key={card.label} className={`cal-summary-chip ${card.hot ? 'is-hot' : ''}`}>
+              <span className="cal-summary-chip-label">{card.label}</span>
+              <strong className="cal-summary-chip-value">
+                {card.value == null ? '—' : card.value}
+              </strong>
+              <span className="cal-summary-chip-sub">{card.sub}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="cal-sidebar-section">
+          <div className="cal-sidebar-title">Next Central Bank</div>
+          {sidebarStats.nextCB ? (
+            <>
+              <div className="cal-sidebar-metric">
+                <span className="cal-sidebar-metric-label">{sidebarStats.nextCB.bank}</span>
+                <span className="cal-sidebar-metric-value accent">
+                  <MetricValue
+                    value={sidebarStats.nextCB.daysUntil}
+                    seriesKey="calNextCB"
+                    timestamp={props.lastUpdated}
+                    format={v => `${Math.round(v)}d`}
+                  />
+                </span>
+              </div>
+              <div className="cal-sidebar-metric">
+                <span className="cal-sidebar-metric-label">Meeting</span>
+                <span className="cal-sidebar-metric-num">{sidebarStats.nextCB.nextMeeting || '—'}</span>
+              </div>
+              <div className="cal-sidebar-metric">
+                <span className="cal-sidebar-metric-label">Policy rate</span>
+                <span className="cal-sidebar-metric-num">
+                  {sidebarStats.nextCB.rate != null ? `${sidebarStats.nextCB.rate}%` : '—'}
+                  {sidebarStats.nextCB.previousRate != null && sidebarStats.nextCB.previousRate !== sidebarStats.nextCB.rate
+                    ? ` · was ${sidebarStats.nextCB.previousRate}%`
+                    : ''}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="cal-summary-empty">No upcoming CB meeting in feed</div>
+          )}
+        </div>
+
+        {sidebarStats.policyRates.length > 0 && (
+          <div className="cal-sidebar-section">
+            <div className="cal-sidebar-title">Policy Rates</div>
+            <div className="cal-summary-rates">
+              {sidebarStats.policyRates.map((cb, i) => (
+                <div key={`${cb.bank || 'cb'}-${i}`} className="cal-summary-rate-pill">
+                  <span className="cal-summary-rate-bank">{cb.bank}</span>
+                  <strong className="cal-summary-rate-val">
+                    {cb.rate != null ? `${Number(cb.rate).toFixed(2)}%` : '—'}
+                  </strong>
+                  {cb.daysUntil != null && cb.daysUntil >= 0 && (
+                    <span className="cal-summary-rate-meet">{cb.daysUntil}d</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="cal-sidebar-section">
+          <div className="cal-sidebar-title">Next Macro Events</div>
+          {sidebarStats.nextEcon.length === 0 ? (
+            <div className="cal-summary-empty">No upcoming macro events</div>
+          ) : (
+            <div className="cal-summary-list">
+              {sidebarStats.nextEcon.map((e, i) => (
+                <div key={`${e._date}-${eventLabel(e)}-${i}`} className="cal-summary-row">
+                  <span className="cal-summary-row-date">{e._date?.slice(5)}</span>
+                  <span className="cal-summary-row-name" title={eventLabel(e)}>
+                    {isHighImpact(e) && <span className="cal-summary-dot" />}
+                    {eventLabel(e)}
+                  </span>
+                  <span className="cal-summary-row-meta">{e.country || e.category || ''}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="cal-sidebar-section">
+          <div className="cal-sidebar-title">Next Earnings</div>
+          {sidebarStats.nextEarn.length === 0 ? (
+            <div className="cal-summary-empty">No upcoming earnings</div>
+          ) : (
+            <div className="cal-summary-list">
+              {sidebarStats.nextEarn.map((e, i) => (
+                <div key={`${e.ticker || e.name}-${e._date}-${i}`} className="cal-summary-row">
+                  <span className="cal-summary-row-date">{e._date?.slice(5)}</span>
+                  <span className="cal-summary-row-name">
+                    <strong>{e.ticker || e.symbol || ''}</strong>
+                    {e.name ? ` · ${e.name}` : ''}
+                  </span>
+                  <span className="cal-summary-row-meta">
+                    {e.epsEst != null ? `est $${Number(e.epsEst).toFixed(2)}` : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {(sidebarStats.nextTreasury.length > 0 || sidebarStats.nextOptions.length > 0) && (
+          <div className="cal-sidebar-section" style={{ borderBottom: 'none' }}>
+            <div className="cal-sidebar-title">Other Catalysts</div>
+            <div className="cal-summary-list">
+              {sidebarStats.nextTreasury.map((t, i) => (
+                <div key={`t-${t._date}-${i}`} className="cal-summary-row">
+                  <span className="cal-summary-row-date">{t._date?.slice(5)}</span>
+                  <span className="cal-summary-row-name">{eventLabel(t)}</span>
+                  <span className="cal-summary-row-meta">Treasury</span>
+                </div>
+              ))}
+              {sidebarStats.nextOptions.map((o, i) => (
+                <div key={`o-${o._date}-${i}`} className="cal-summary-row">
+                  <span className="cal-summary-row-date">{o._date?.slice(5)}</span>
+                  <span className="cal-summary-row-name">{eventLabel(o)}</span>
+                  <span className="cal-summary-row-meta">Options</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+
+    const keyDataBody = (props.keyReleases?.length > 0 || props.economicEvents?.some((e) => e.country === 'US' && e.source === 'FRED'))
+      ? (
+        <KeyReleases
+          keyReleases={
+            props.keyReleases?.length
+              ? props.keyReleases
+              : (props.economicEvents || [])
+                .filter((e) => e.country === 'US' && (e.source === 'FRED' || e.importance >= 2))
+                .filter((e) => !/earnings|auction/i.test(e.event || ''))
+                .map((e) => ({
+                  name: e.event,
+                  date: e.date,
+                  category: e.category || 'macro',
+                  previousValue: e.previous ?? null,
+                }))
+          }
+          section="data"
+        />
+      )
+      : <PanelEmpty label="key releases" />;
+
+    const optionsBody = (props.optionsExpiry && props.optionsExpiry.length > 0) ? (
+      <table className="cal-table">
+        <thead>
+          <tr>
+            <th style={{ textAlign: 'left' }}>#</th>
+            <th style={{ textAlign: 'left' }}>Date</th>
+            <th style={{ textAlign: 'left' }}>Type</th>
+            <th style={{ textAlign: 'right' }}>Days</th>
+          </tr>
+        </thead>
+        <tbody>
+          {props.optionsExpiry.map((e, i) => {
+            const days = (() => {
+              if (!e.date) return null;
+              const t = new Date(`${e.date}T12:00:00Z`);
+              if (Number.isNaN(t.getTime())) return null;
+              return Math.round((t - Date.now()) / 86400000);
+            })();
+            return (
+              <tr key={`${e.date}-${i}`} className={days != null && days <= 7 ? 'cal-upcoming' : undefined}>
+                <td style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)' }}>{i + 1}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#f43f5e' }}>{e.date}</td>
+                <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{e.type || 'Monthly Options Expiry'}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 11, textAlign: 'right', color: days != null && days <= 7 ? '#fbbf24' : 'var(--text-muted)' }}>
+                  {days == null ? '—' : days < 0 ? 'passed' : days === 0 ? 'today' : `${days}d`}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    ) : (
+      <div className="cal-empty">No upcoming options expiry dates</div>
+    );
+
+    const releaseImpactBody = releaseImpactRows.length > 0 ? (
+      <table className="cal-table">
+        <thead>
+          <tr>
+            <th style={{ textAlign: 'left' }}>Date</th>
+            <th style={{ textAlign: 'left' }}>Release</th>
+            <th style={{ textAlign: 'left' }}>Category</th>
+            <th style={{ textAlign: 'right' }}>Last Print</th>
+            <th style={{ textAlign: 'right' }}>Prior</th>
+            <th style={{ textAlign: 'right' }}>Chg</th>
+            <th style={{ textAlign: 'right' }}>As of</th>
+            <th style={{ textAlign: 'right' }}>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          {releaseImpactRows.map((row, i) => (
+            <tr key={`${row.date}-${row.label}-${i}`}>
+              <td style={{ fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace', fontSize: 11 }}>{row.date}</td>
+              <td style={{ fontWeight: 500 }}>{row.label}</td>
+              <td style={{ textTransform: 'capitalize', color: 'var(--text-muted)', fontSize: 11 }}>{row.category}</td>
+              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace', fontWeight: 600 }}>
+                {row.previousDisplay ?? '—'}
+              </td>
+              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                {row.priorDisplay ?? '—'}
+              </td>
+              <td style={{
+                textAlign: 'right',
+                fontVariantNumeric: 'tabular-nums',
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                color: row.change == null ? 'var(--text-dim)'
+                  : row.change > 0 ? '#22c55e'
+                  : row.change < 0 ? '#f87171'
+                  : 'var(--text-muted)',
+              }}>
+                {row.changeDisplay ?? '—'}
+              </td>
+              <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 10, color: 'var(--text-muted)' }}>
+                {row.lastActualDate || '—'}
+              </td>
+              <td style={{ textAlign: 'right', color: row.importance >= 2 ? '#f87171' : 'var(--text-muted)', fontWeight: 600, fontSize: 11 }}>
+                {row.importance >= 2 ? 'High' : 'Normal'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <PanelEmpty label="release impact data" />
+    );
+
+    const catalystBody = catalystRows.length > 0 ? (
+      <table className="cal-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Catalyst</th>
+            <th>Market Channel</th>
+            <th>Detail</th>
+            <th style={{ textAlign: 'right' }}>Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          {catalystRows.map((row, i) => (
+            <tr key={`${row.date}-${row.type}-${row.label}-${i}`}>
+              <td style={{ fontVariantNumeric: 'tabular-nums' }}>{row.date}</td>
+              <td>{row.type}</td>
+              <td>{row.label}</td>
+              <td>{row.channel}</td>
+              <td>{row.detail}</td>
+              <td style={{ textAlign: 'right', color: row.importance >= 3 ? '#f87171' : row.importance >= 2 ? '#f59e0b' : 'var(--text-muted)' }}>
+                {row.importance >= 3 ? 'High' : row.importance >= 2 ? 'Medium' : 'Watch'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <PanelEmpty label="market catalysts" />
+    );
+
+    const bodies = {
+      kpi: <MarketKpiStrip kpis={kpis} bare />,
+      sidebar: sidebarBody,
+      economic: props.economicEvents.length > 0
+        ? <EconomicCalendar economicEvents={props.economicEvents} insideBento />
+        : <PanelEmpty label="economic events" />,
+      'cb-rates': props.centralBanks.length > 0
+        ? <CentralBankSchedule centralBanks={props.centralBanks} section="rates" />
+        : <PanelEmpty label="central bank rates" />,
+      'cb-timeline': props.centralBanks.length > 0
+        ? <CentralBankSchedule centralBanks={props.centralBanks} section="timeline" />
+        : <PanelEmpty label="meeting schedule" />,
+      earnings: props.earningsSeason.length > 0
+        ? <EarningsSeason earningsSeason={props.earningsSeason} dividendCalendar={props.dividendCalendar} insideBento />
+        : <PanelEmpty label="earnings data" />,
+      'key-data': keyDataBody,
+      treasury: props.treasuryAuctions && props.treasuryAuctions.length > 0
+        ? <KeyReleases keyReleases={[]} treasuryAuctions={props.treasuryAuctions} optionsExpiry={[]} section="treasury" />
+        : <PanelEmpty label="treasury auctions" />,
+      options: optionsBody,
+      'release-impact': releaseImpactBody,
+      'catalyst-wall': catalystBody,
+    };
+
+    return {
+      __render: (panelId) => bodies[panelId] ?? null,
+      __live: {
+        kpi: !!props.isLive,
+        sidebar: !!(props.isLive || dataReady),
+        economic: !!props.isLive,
+        'cb-rates': !!props.isLive,
+        'cb-timeline': !!props.isLive,
+        earnings: !!props.isLive,
+        'key-data': !!props.isLive,
+        treasury: !!props.isLive,
+        options: !!props.isLive,
+        'release-impact': !!props.isLive,
+        'catalyst-wall': !!props.isLive,
+      },
+      __subtitle: {
+        sidebar: dataReady
+          ? `${sidebarStats.totalEcon} macro · ${sidebarStats.totalEarn} earnings · ${sidebarStats.totalCB} CBs`
+          : 'Loading calendar…',
+        economic: props.coverage?.low
+          ? 'High-importance macro releases · next 30 days · low coverage'
+          : 'High-importance macro releases · next 30 days',
+        'cb-rates': 'Fed / ECB / BOE / BOJ',
+        earnings: 'Mega-cap earnings · next 60 days',
+        'key-data': 'Scheduled macro data',
+        treasury: 'US Treasury schedule',
+        options: 'Monthly expiry dates',
+        'release-impact': `${releaseImpactRows.length} US data releases · last print from FRED (no consensus feed)`,
+        'catalyst-wall': `${catalystRows.length} cross-market catalysts from current calendar snapshot`,
+      },
+      __source: {
+        kpi: 'FRED / Yahoo Finance',
+        sidebar: 'FRED / Econdb / Yahoo Finance',
+        economic: 'FRED / Econdb',
+        'cb-rates': 'FRED / BIS',
+        'cb-timeline': 'FRED / BIS',
+        earnings: 'Yahoo Finance',
+        'key-data': 'FRED / BLS',
+        treasury: 'US Treasury',
+        options: 'CBOE / Yahoo Finance',
+        'release-impact': 'FRED release calendars + series',
+        'catalyst-wall': 'FRED / Econdb / Treasury / Yahoo Finance',
+      },
+    };
+  }, [props, dataReady, sidebarStats, kpis, releaseImpactRows, catalystRows]);
+
   if (!centralData) return <MarketSkeleton />;
-  
+
   return (
     <div className="cal-market">
       <div className="cal-dashboard cal-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="calendar-layout-v6">
-          {/* KPI strip — first bento child, full-width row 0. */}
-          <BentoCard
-            key="kpi"
-            title="Calendar Key Metrics"
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED / Yahoo Finance"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            <MarketKpiStrip kpis={kpis} bare />
-          </BentoCard>
-          <BentoCard
-            key="sidebar"
-            title="Calendar Summary"
-            subtitle={dataReady
-              ? `${sidebarStats.totalEcon} macro · ${sidebarStats.totalEarn} earnings · ${sidebarStats.totalCB} CBs`
-              : 'Loading calendar…'}
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED / Econdb / Yahoo Finance"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive || dataReady}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            <div className="cal-summary">
-              {/* Snapshot counts */}
-              <div className="cal-summary-grid">
-                {[
-                  { label: 'Today', value: dataReady ? sidebarStats.todayCount : null, sub: `${sidebarStats.todayHighImpact} high impact`, hot: sidebarStats.todayCount > 0 },
-                  { label: 'Next 7 days', value: dataReady ? sidebarStats.next7EventCount : null, sub: `${sidebarStats.next7HighImpact} high · ${sidebarStats.next7Earnings} earns`, hot: sidebarStats.next7HighImpact > 0 },
-                  { label: 'Next 30 days', value: dataReady ? sidebarStats.next30EventCount : null, sub: `${sidebarStats.next30HighImpact} high impact`, hot: false },
-                  { label: 'Key releases', value: dataReady ? sidebarStats.totalKeys : null, sub: `${sidebarStats.next7Keys} in 7d`, hot: false },
-                ].map(card => (
-                  <div key={card.label} className={`cal-summary-chip ${card.hot ? 'is-hot' : ''}`}>
-                    <span className="cal-summary-chip-label">{card.label}</span>
-                    <strong className="cal-summary-chip-value">
-                      {card.value == null ? '—' : card.value}
-                    </strong>
-                    <span className="cal-summary-chip-sub">{card.sub}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Next central bank */}
-              <div className="cal-sidebar-section">
-                <div className="cal-sidebar-title">Next Central Bank</div>
-                {sidebarStats.nextCB ? (
-                  <>
-                    <div className="cal-sidebar-metric">
-                      <span className="cal-sidebar-metric-label">{sidebarStats.nextCB.bank}</span>
-                      <span className="cal-sidebar-metric-value accent">
-                        <MetricValue
-                          value={sidebarStats.nextCB.daysUntil}
-                          seriesKey="calNextCB"
-                          timestamp={props.lastUpdated}
-                          format={v => `${Math.round(v)}d`}
-                        />
-                      </span>
-                    </div>
-                    <div className="cal-sidebar-metric">
-                      <span className="cal-sidebar-metric-label">Meeting</span>
-                      <span className="cal-sidebar-metric-num">{sidebarStats.nextCB.nextMeeting || '—'}</span>
-                    </div>
-                    <div className="cal-sidebar-metric">
-                      <span className="cal-sidebar-metric-label">Policy rate</span>
-                      <span className="cal-sidebar-metric-num">
-                        {sidebarStats.nextCB.rate != null ? `${sidebarStats.nextCB.rate}%` : '—'}
-                        {sidebarStats.nextCB.previousRate != null && sidebarStats.nextCB.previousRate !== sidebarStats.nextCB.rate
-                          ? ` · was ${sidebarStats.nextCB.previousRate}%`
-                          : ''}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="cal-summary-empty">No upcoming CB meeting in feed</div>
-                )}
-              </div>
-
-              {/* Policy rates strip */}
-              {sidebarStats.policyRates.length > 0 && (
-                <div className="cal-sidebar-section">
-                  <div className="cal-sidebar-title">Policy Rates</div>
-                  <div className="cal-summary-rates">
-                    {sidebarStats.policyRates.map((cb, i) => (
-                      <div key={`${cb.bank || 'cb'}-${i}`} className="cal-summary-rate-pill">
-                        <span className="cal-summary-rate-bank">{cb.bank}</span>
-                        <strong className="cal-summary-rate-val">
-                          {cb.rate != null ? `${Number(cb.rate).toFixed(2)}%` : '—'}
-                        </strong>
-                        {cb.daysUntil != null && cb.daysUntil >= 0 && (
-                          <span className="cal-summary-rate-meet">{cb.daysUntil}d</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Next macro events */}
-              <div className="cal-sidebar-section">
-                <div className="cal-sidebar-title">Next Macro Events</div>
-                {sidebarStats.nextEcon.length === 0 ? (
-                  <div className="cal-summary-empty">No upcoming macro events</div>
-                ) : (
-                  <div className="cal-summary-list">
-                    {sidebarStats.nextEcon.map((e, i) => (
-                      <div key={`${e._date}-${eventLabel(e)}-${i}`} className="cal-summary-row">
-                        <span className="cal-summary-row-date">{e._date?.slice(5)}</span>
-                        <span className="cal-summary-row-name" title={eventLabel(e)}>
-                          {isHighImpact(e) && <span className="cal-summary-dot" />}
-                          {eventLabel(e)}
-                        </span>
-                        <span className="cal-summary-row-meta">{e.country || e.category || ''}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Next earnings */}
-              <div className="cal-sidebar-section">
-                <div className="cal-sidebar-title">Next Earnings</div>
-                {sidebarStats.nextEarn.length === 0 ? (
-                  <div className="cal-summary-empty">No upcoming earnings</div>
-                ) : (
-                  <div className="cal-summary-list">
-                    {sidebarStats.nextEarn.map((e, i) => (
-                      <div key={`${e.ticker || e.name}-${e._date}-${i}`} className="cal-summary-row">
-                        <span className="cal-summary-row-date">{e._date?.slice(5)}</span>
-                        <span className="cal-summary-row-name">
-                          <strong>{e.ticker || e.symbol || ''}</strong>
-                          {e.name ? ` · ${e.name}` : ''}
-                        </span>
-                        <span className="cal-summary-row-meta">
-                          {e.epsEst != null ? `est $${Number(e.epsEst).toFixed(2)}` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Treasury / options catalysts */}
-              {(sidebarStats.nextTreasury.length > 0 || sidebarStats.nextOptions.length > 0) && (
-                <div className="cal-sidebar-section" style={{ borderBottom: 'none' }}>
-                  <div className="cal-sidebar-title">Other Catalysts</div>
-                  <div className="cal-summary-list">
-                    {sidebarStats.nextTreasury.map((t, i) => (
-                      <div key={`t-${t._date}-${i}`} className="cal-summary-row">
-                        <span className="cal-summary-row-date">{t._date?.slice(5)}</span>
-                        <span className="cal-summary-row-name">{eventLabel(t)}</span>
-                        <span className="cal-summary-row-meta">Treasury</span>
-                      </div>
-                    ))}
-                    {sidebarStats.nextOptions.map((o, i) => (
-                      <div key={`o-${o._date}-${i}`} className="cal-summary-row">
-                        <span className="cal-summary-row-date">{o._date?.slice(5)}</span>
-                        <span className="cal-summary-row-name">{eventLabel(o)}</span>
-                        <span className="cal-summary-row-meta">Options</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </BentoCard>
-
-          <BentoCard
-            key="economic"
-            title="Economic Calendar"
-            subtitle={props.coverage?.low ? <>High-importance macro releases · next 30 days · <PartialState>low coverage</PartialState></> : 'High-importance macro releases · next 30 days'}
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED / Econdb"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {props.economicEvents.length > 0
-              ? <EconomicCalendar economicEvents={props.economicEvents} insideBento />
-              : <PanelEmpty label="economic events" />}
-          </BentoCard>
-
-          <BentoCard
-            key="cb-rates"
-            title="Central Bank Rates"
-            subtitle="Fed / ECB / BOE / BOJ"
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED / BIS"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {props.centralBanks.length > 0
-              ? <CentralBankSchedule centralBanks={props.centralBanks} section="rates" />
-              : <PanelEmpty label="central bank rates" />}
-          </BentoCard>
-
-          <BentoCard
-            key="cb-timeline"
-            title="Upcoming Meetings"
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED / BIS"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {props.centralBanks.length > 0
-              ? <CentralBankSchedule centralBanks={props.centralBanks} section="timeline" />
-              : <PanelEmpty label="meeting schedule" />}
-          </BentoCard>
-
-          <BentoCard
-            key="earnings"
-            title="Earnings Season"
-            subtitle="Mega-cap earnings · next 60 days"
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="Yahoo Finance"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {props.earningsSeason.length > 0
-              ? <EarningsSeason earningsSeason={props.earningsSeason} dividendCalendar={props.dividendCalendar} insideBento />
-              : <PanelEmpty label="earnings data" />}
-          </BentoCard>
-
-          <BentoCard
-            key="key-data"
-            title="Key US Releases"
-            subtitle="Scheduled macro data"
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED / BLS"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {(props.keyReleases?.length > 0 || props.economicEvents?.some((e) => e.country === 'US' && e.source === 'FRED'))
-              ? (
-                <KeyReleases
-                  keyReleases={
-                    props.keyReleases?.length
-                      ? props.keyReleases
-                      : (props.economicEvents || [])
-                        .filter((e) => e.country === 'US' && (e.source === 'FRED' || e.importance >= 2))
-                        .filter((e) => !/earnings|auction/i.test(e.event || ''))
-                        .map((e) => ({
-                          name: e.event,
-                          date: e.date,
-                          category: e.category || 'macro',
-                          previousValue: e.previous ?? null,
-                        }))
-                  }
-                  section="data"
-                />
-              )
-              : <PanelEmpty label="key releases" />}
-          </BentoCard>
-
-          <BentoCard
-            key="treasury"
-            title="Treasury Auctions"
-            subtitle="US Treasury schedule"
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="US Treasury"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {props.treasuryAuctions && props.treasuryAuctions.length > 0
-              ? <KeyReleases keyReleases={[]} treasuryAuctions={props.treasuryAuctions} optionsExpiry={[]} section="treasury" />
-              : <PanelEmpty label="treasury auctions" />}
-          </BentoCard>
-
-          <BentoCard
-            key="options"
-            title="Options Expiry"
-            subtitle="Monthly expiry dates"
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="CBOE / Yahoo Finance"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {(props.optionsExpiry && props.optionsExpiry.length > 0) ? (
-              <table className="cal-table">
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left' }}>#</th>
-                    <th style={{ textAlign: 'left' }}>Date</th>
-                    <th style={{ textAlign: 'left' }}>Type</th>
-                    <th style={{ textAlign: 'right' }}>Days</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {props.optionsExpiry.map((e, i) => {
-                    const days = (() => {
-                      if (!e.date) return null;
-                      const t = new Date(`${e.date}T12:00:00Z`);
-                      if (Number.isNaN(t.getTime())) return null;
-                      return Math.round((t - Date.now()) / 86400000);
-                    })();
-                    return (
-                      <tr key={`${e.date}-${i}`} className={days != null && days <= 7 ? 'cal-upcoming' : undefined}>
-                        <td style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)' }}>{i + 1}</td>
-                        <td style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 600, color: '#f43f5e' }}>{e.date}</td>
-                        <td style={{ fontSize: 11, color: 'var(--text-primary)', fontWeight: 500 }}>{e.type || 'Monthly Options Expiry'}</td>
-                        <td style={{ fontFamily: 'monospace', fontSize: 11, textAlign: 'right', color: days != null && days <= 7 ? '#fbbf24' : 'var(--text-muted)' }}>
-                          {days == null ? '—' : days < 0 ? 'passed' : days === 0 ? 'today' : `${days}d`}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="cal-empty">No upcoming options expiry dates</div>
-            )}
-          </BentoCard>
-
-          <BentoCard
-            key="release-impact"
-            title="Release Impact Tracker"
-            subtitle={`${releaseImpactRows.length} US data releases · last print from FRED (no consensus feed)`}
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED release calendars + series"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {releaseImpactRows.length > 0 ? (
-              <table className="cal-table">
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: 'left' }}>Date</th>
-                    <th style={{ textAlign: 'left' }}>Release</th>
-                    <th style={{ textAlign: 'left' }}>Category</th>
-                    <th style={{ textAlign: 'right' }}>Last Print</th>
-                    <th style={{ textAlign: 'right' }}>Prior</th>
-                    <th style={{ textAlign: 'right' }}>Chg</th>
-                    <th style={{ textAlign: 'right' }}>As of</th>
-                    <th style={{ textAlign: 'right' }}>Impact</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {releaseImpactRows.map((row, i) => (
-                    <tr key={`${row.date}-${row.label}-${i}`}>
-                      <td style={{ fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace', fontSize: 11 }}>{row.date}</td>
-                      <td style={{ fontWeight: 500 }}>{row.label}</td>
-                      <td style={{ textTransform: 'capitalize', color: 'var(--text-muted)', fontSize: 11 }}>{row.category}</td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace', fontWeight: 600 }}>
-                        {row.previousDisplay ?? '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
-                        {row.priorDisplay ?? '—'}
-                      </td>
-                      <td style={{
-                        textAlign: 'right',
-                        fontVariantNumeric: 'tabular-nums',
-                        fontFamily: 'monospace',
-                        fontWeight: 600,
-                        color: row.change == null ? 'var(--text-dim)'
-                          : row.change > 0 ? '#22c55e'
-                          : row.change < 0 ? '#f87171'
-                          : 'var(--text-muted)',
-                      }}>
-                        {row.changeDisplay ?? '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: 10, color: 'var(--text-muted)' }}>
-                        {row.lastActualDate || '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', color: row.importance >= 2 ? '#f87171' : 'var(--text-muted)', fontWeight: 600, fontSize: 11 }}>
-                        {row.importance >= 2 ? 'High' : 'Normal'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <PanelEmpty label="release impact data" />
-            )}
-          </BentoCard>
-
-          <BentoCard
-            key="catalyst-wall"
-            title="Market Catalyst Wall"
-            subtitle={`${catalystRows.length} cross-market catalysts from current calendar snapshot`}
-            accent="calendar"
-            className="cal-bento-card"
-            contentClassName="cal-panel-scroll"
-            source="FRED / Econdb / Treasury / Yahoo Finance"
-            timestamp={props.lastUpdated}
-            isLive={props.isLive}
-            isCurrent={props.isCurrent}
-            fetchedOn={props.fetchedOn}
-            fetchLog={props.fetchLog}
-            error={props.error}
-          >
-            {catalystRows.length > 0 ? (
-              <table className="cal-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Catalyst</th>
-                    <th>Market Channel</th>
-                    <th>Detail</th>
-                    <th style={{ textAlign: 'right' }}>Impact</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {catalystRows.map((row, i) => (
-                    <tr key={`${row.date}-${row.type}-${row.label}-${i}`}>
-                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>{row.date}</td>
-                      <td>{row.type}</td>
-                      <td>{row.label}</td>
-                      <td>{row.channel}</td>
-                      <td>{row.detail}</td>
-                      <td style={{ textAlign: 'right', color: row.importance >= 3 ? '#f87171' : row.importance >= 2 ? '#f59e0b' : 'var(--text-muted)' }}>
-                        {row.importance >= 3 ? 'High' : row.importance >= 2 ? 'Medium' : 'Watch'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <PanelEmpty label="market catalysts" />
-            )}
-          </BentoCard>
-        </BentoWrapper>
+        <MarketPanelGrid
+          marketId="calendar"
+          layout={LAYOUT}
+          storageKey="calendar-layout-v6"
+          accent="calendar"
+          ctx={panelCtx}
+          provenance={{
+            timestamp: props.lastUpdated,
+            isCurrent: props.isCurrent,
+            fetchedOn: props.fetchedOn,
+            fetchLog: props.fetchLog,
+            error: props.error,
+            isLoading: props.isLoading,
+          }}
+        />
       </div>
     </div>
   );

@@ -1,13 +1,10 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
-import { useCurrency } from '../../../hub/CurrencyContext';
 import { useMarketData } from '../../../hub/DataContext';
 import SafeECharts from '../../../components/SafeECharts';
-import BentoWrapper from '../../../components/BentoWrapper';
-import BentoCard from '../../../components/BentoCard/BentoCard';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MetricValue from '../../../components/MetricValue/MetricValue';
-import { fmtChangePct } from './insuranceHelpers';
 import './InsuranceDashboard.css';
 
 function InsuranceDashboard({
@@ -557,98 +554,32 @@ function InsuranceDashboard({
     };
   }, [femaCtx, usgsCtx, catLosses, fredHyOasHistory, industryAvgCombinedRatio]);
 
-  return (
-    <div className="ins-dashboard ins-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="insurance-layout-v6">
-        {/* KPI Strip — bento card with title row drag handle. */}
-        <BentoCard
-          key="kpi"
-          title="Insurance Key Metrics"
-          accent="insurance"
-          className="ins-bento-card ins-bento-kpi"
-          noFooter
-        >
+  // Compose independent panels via MarketPanelGrid bridge (__render).
+  const panelBodies = {
+        kpi: (
           <MarketKpiStrip kpis={kpis} bare />
-        </BentoCard>
+        ),
 
-        {/* HY OAS */}
-        <BentoCard
-          key="hyoas"
-          title="HY OAS Spread"
-          accent="insurance"
-          className="ins-bento-card"
-          source="FRED / Yahoo Finance"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {hyOasOption
+        hyoas: (
+          hyOasOption
             ? <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY OAS Spread', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }], updatedAt: lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>HY OAS series loading…</div>}
-        </BentoCard>
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>HY OAS series loading…</div>
+        ),
 
-        {/* Cat Losses — FRED $ series or FEMA declaration proxy */}
-        <BentoCard
-          key="catloss"
-          title="Natural Catastrophe Losses"
-          subtitle={catLossesResolved?._note || undefined}
-          accent="insurance"
-          className="ins-bento-card"
-          source={catLossesResolved?.seriesId?.startsWith('FEMA') ? 'OpenFEMA' : 'FRED / Server'}
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-          disabled={!catLossesOption}
-          emptyMessage="No catastrophe loss series available"
-        >
-          {catLossesOption
+        catloss: (
+          catLossesOption
             ? <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: catLossesResolved?.seriesId?.startsWith('FEMA') ? 'OpenFEMA' : 'FRED', endpoint: '/api/insurance', series: catLossesResolved?.seriesId ? [{ id: catLossesResolved.seriesId }] : [], updatedAt: lastUpdated }} />
-            : null}
-        </BentoCard>
+            : null
+        ),
 
-        {/* Combined Ratio History */}
-        <BentoCard
-          key="crhist"
-          title="Industry Combined Ratio"
-          accent="insurance"
-          className="ins-bento-card"
-          source="FRED / A.M. Best"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {combinedRatioOption
+        crhist: (
+          combinedRatioOption
             ? <SafeECharts option={combinedRatioOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Industry Combined Ratio', source: 'FRED / A.M. Best', endpoint: '/api/insurance', series: [], updatedAt: lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Combined ratio history loading…</div>}
-        </BentoCard>
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Combined ratio history loading…</div>
+        ),
 
-        {/* Combined Ratio by Line — server may send byLine[] or lines{ name: [ratios] } */}
-        <BentoCard
-          key="crline"
-          title="Combined Ratio by Line"
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-scroll"
-          source="FRED / NAIC / EDGAR"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-          disabled={!crLineRows.length}
-          emptyMessage="No by-line combined ratios"
-        >
-          {crLineRows.length > 0 ? (
+        crline: (
+          crLineRows.length > 0 ? (
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
               {crLineRows.slice(0, 8).map((l) => (
                 <div key={l.line} className="ins-mini-row">
@@ -659,28 +590,11 @@ function InsuranceDashboard({
                 </div>
               ))}
             </div>
-          ) : null}
-        </BentoCard>
+          ) : null
+        ),
 
-        {/* Reinsurance Rates — equity proxies (RNR/ACGL/…) when treaty ROL unavailable */}
-        <BentoCard
-          key="reinsrates"
-          title="Reinsurance Rates"
-          subtitle="Reinsurer equity proxies (no free public treaty ROL feed)"
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-scroll"
-          source="Yahoo Finance"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-          disabled={!reinsRateRows.length}
-          emptyMessage="No reinsurance pricing proxies"
-        >
-          {reinsRateRows.length > 0 ? (
+        reinsrates: (
+          reinsRateRows.length > 0 ? (
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
               {reinsRateRows.slice(0, 8).map((c, i) => {
                 const name = c.ticker || c.category || c.peril || c.name || `row-${i}`;
@@ -703,26 +617,11 @@ function InsuranceDashboard({
                 );
               })}
             </div>
-          ) : null}
-        </BentoCard>
+          ) : null
+        ),
 
-        {/* Reserve Adequacy — assets / liabilities coverage from Yahoo BS */}
-        <BentoCard
-          key="reserves"
-          title="Reserve Adequacy"
-          subtitle={`${normalizedReserves.length || 0} insurers · assets / liabilities coverage`}
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-content reserve-host"
-          source="Yahoo Finance (balance sheet)"
-          timestamp={lastUpdated}
-          isLive={isLive && hasReserves}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {hasReserves ? (
+        reserves: (
+          hasReserves ? (
             <div className="reserve-panel">
               <div className="reserve-thead">
                 <span>Insurer</span>
@@ -779,26 +678,11 @@ function InsuranceDashboard({
             <div style={{ padding: 12, color: 'var(--text-muted)', fontSize: 12 }}>
               Reserve adequacy data unavailable
             </div>
-          )}
-        </BentoCard>
+          )
+        ),
 
-        {/* Cat Bond / credit / ILS spreads */}
-        <BentoCard
-          key="catbonds"
-          title="Cat Bond Spreads"
-          subtitle={`${catBondSpreads?.length || 0} series · FRED credit / Treasury / Fed stress (no Yahoo)`}
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-content catbond-host"
-          source="FRED (ICE BofA / Treasury / Fed)"
-          timestamp={lastUpdated}
-          isLive={isLive && !!catBondSpreads?.length}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {catBondSpreads?.length > 0 ? (
+        catbonds: (
+          catBondSpreads?.length > 0 ? (
             <div className="catbond-panel">
               <div className="catbond-thead">
                 <span>Series</span>
@@ -855,26 +739,11 @@ function InsuranceDashboard({
             <div style={{ padding: 12, color: 'var(--text-muted)', fontSize: 12 }}>
               Cat bond / spread data unavailable
             </div>
-          )}
-        </BentoCard>
+          )
+        ),
 
-        {/* Sector / industry pulse — FRED Fed / BLS / BEA / Census */}
-        <BentoCard
-          key="etfs"
-          title="Sector / Industry Pulse"
-          subtitle={`${normalizedSectorETF.length || 0} official series · Fed · BLS · BEA · Census (FRED)`}
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-content sector-etf-host"
-          source="FRED (Fed / BLS / BEA / Census)"
-          timestamp={lastUpdated}
-          isLive={isLive && hasSectorETF}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {hasSectorETF ? (
+        etfs: (
+          hasSectorETF ? (
             <div className="sector-etf-panel">
               <div className="sector-etf-thead">
                 <span>Series</span>
@@ -947,28 +816,10 @@ function InsuranceDashboard({
             <div className="ins-empty" style={{ padding: 12, color: 'var(--text-muted)', fontSize: 12 }}>
               Sector / industry FRED data unavailable
             </div>
-          )}
-        </BentoCard>
+          )
+        ),
 
-        {/* Recent US Catastrophes — FEMA disaster declarations + USGS quakes */}
-        {(true) && (
-          <BentoCard
-            key="catastrophes"
-            title="Recent US Catastrophes"
-            subtitle={femaCtx?.data?.summary
-              ? `${femaCtx.data.summary.totalRecent} FEMA declarations · most-common: ${femaCtx.data.summary.mostCommonType} · ${usgsCtx?.data?.eventsCount || 0} M4.5+ quakes globally (30d)`
-              : 'OpenFEMA disaster declarations + USGS earthquakes'}
-            accent="insurance"
-            className="ins-bento-card"
-            contentClassName="ins-panel-scroll"
-            source="OpenFEMA · USGS"
-            timestamp={femaCtx?.lastUpdated || lastUpdated}
-            isLive={!!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive)}
-            isCurrent={femaCtx?.isCurrent ?? isCurrent}
-            fetchedOn={femaCtx?.fetchedOn || fetchedOn}
-            fetchLog={femaCtx?.fetchLog || fetchLog}
-            error={femaCtx?.error || error}
-          >
+        catastrophes: (
             <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 12, height: '100%' }}>
               <div style={{ overflow: 'auto', minHeight: 0 }}>
                 <div className="ins-panel-title" style={{ marginBottom: 4, fontSize: 11, color: colors.textMuted }}>FEMA Declarations</div>
@@ -1020,88 +871,28 @@ function InsuranceDashboard({
                 </table>
               </div>
             </div>
-          </BentoCard>
-        )}
+        ),
 
-        {/* Insurance Penetration — Life + Non-life premium %GDP by country */}
-        <BentoCard
-          key="ins-penetration"
-          title="Insurance Penetration"
-          subtitle="Life + Non-life premium / GDP · World Bank GFDD (latest available)"
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-content"
-          source="World Bank GFDD"
-          timestamp={wbCtx?.lastUpdated || lastUpdated}
-          isLive={!!wbCtx?.data?.countries?.length}
-          isCurrent={wbCtx?.isCurrent ?? isCurrent}
-          fetchedOn={wbCtx?.fetchedOn || fetchedOn}
-          fetchLog={wbCtx?.fetchLog || fetchLog}
-          error={wbCtx?.error || error}
-        >
-          {wbInsuranceOption
+        'ins-penetration': (
+          wbInsuranceOption
             ? <SafeECharts option={wbInsuranceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Insurance Penetration', source: 'World Bank GFDD', endpoint: '/api/worldbank', series: [{ id: 'GFDD.DI.09' }, { id: 'GFDD.DI.10' }], updatedAt: wbCtx?.lastUpdated || lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank insurance penetration loading…</div>}
-        </BentoCard>
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank insurance penetration loading…</div>
+        ),
 
-        {/* Alias slot matching MARKET_PANELS id */}
-        <BentoCard
-          key="wb-ins-penetration"
-          title="World Bank Insurance Penetration"
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-content"
-          source="World Bank GFDD"
-          timestamp={wbCtx?.lastUpdated || lastUpdated}
-          isLive={!!wbCtx?.data?.countries?.length}
-          isCurrent={wbCtx?.isCurrent ?? isCurrent}
-          fetchedOn={wbCtx?.fetchedOn || fetchedOn}
-          fetchLog={wbCtx?.fetchLog || fetchLog}
-          error={wbCtx?.error || error}
-        >
-          {wbInsuranceOption
+        'wb-ins-penetration': (
+          wbInsuranceOption
             ? <SafeECharts option={wbInsuranceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'WB Insurance Penetration', source: 'World Bank GFDD', endpoint: '/api/worldbank', series: [{ id: 'GFDD.DI.09' }, { id: 'GFDD.DI.10' }], updatedAt: wbCtx?.lastUpdated || lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank GFDD series loading…</div>}
-        </BentoCard>
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank GFDD series loading…</div>
+        ),
 
-        {/* US P&C insurer combined ratios — EDGAR XBRL derived */}
-        <BentoCard
-          key="combined-ratios"
-          title="US P&C Insurer Combined Ratios"
-          subtitle={insRatiosCtx?.data?.summary
-            ? `Avg ${insRatiosCtx.data.summary.avgCombinedPct}% across ${insRatiosCtx.data.summary.issuersWithData} issuers · latest FY ${insRatiosCtx.data.summary.latestEnd}`
-            : 'Loss ratio + expense ratio per issuer (latest fiscal year)'}
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-content"
-          source="SEC EDGAR XBRL"
-          timestamp={insRatiosCtx?.lastUpdated || lastUpdated}
-          isLive={!!insRatiosCtx?.data?.isLive}
-          isCurrent={insRatiosCtx?.isCurrent ?? isCurrent}
-          fetchedOn={insRatiosCtx?.fetchedOn || fetchedOn}
-          fetchLog={insRatiosCtx?.fetchLog || fetchLog}
-          error={insRatiosCtx?.error || error}
-        >
-          {insurerRatiosOption
+        'combined-ratios': (
+          insurerRatiosOption
             ? <SafeECharts option={insurerRatiosOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US P&C Combined Ratios', source: 'SEC EDGAR XBRL', endpoint: '/api/edgar/insurer-ratios', series: [], updatedAt: insRatiosCtx?.lastUpdated || lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>EDGAR insurer ratios loading…</div>}
-        </BentoCard>
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>EDGAR insurer ratios loading…</div>
+        ),
 
-        <BentoCard
-          key="fema-disasters"
-          title="FEMA Disaster Declarations"
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-scroll"
-          source="OpenFEMA"
-          timestamp={femaCtx?.lastUpdated || lastUpdated}
-          isLive={!!femaCtx?.data?.isLive}
-          isCurrent={femaCtx?.isCurrent ?? isCurrent}
-          fetchedOn={femaCtx?.fetchedOn || fetchedOn}
-          fetchLog={femaCtx?.fetchLog || fetchLog}
-          error={femaCtx?.error || error}
-        >
-          {(femaCtx?.data?.declarations?.length > 0) ? (
+        'fema-disasters': (
+          (femaCtx?.data?.declarations?.length > 0) ? (
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
               {femaCtx.data.declarations.slice(0, 10).map((d, i) => (
                 <div key={i} className="ins-mini-row">
@@ -1112,24 +903,11 @@ function InsuranceDashboard({
             </div>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>FEMA declarations loading…</div>
-          )}
-        </BentoCard>
+          )
+        ),
 
-        <BentoCard
-          key="usgs-earthquakes"
-          title="USGS Earthquake Activity"
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-scroll"
-          source="USGS"
-          timestamp={usgsCtx?.lastUpdated || lastUpdated}
-          isLive={!!usgsCtx?.data?.isLive}
-          isCurrent={usgsCtx?.isCurrent ?? isCurrent}
-          fetchedOn={usgsCtx?.fetchedOn || fetchedOn}
-          fetchLog={usgsCtx?.fetchLog || fetchLog}
-          error={usgsCtx?.error || error}
-        >
-          {(usgsCtx?.data?.events?.length > 0 || usgsCtx?.data?.magBuckets?.length > 0) ? (
+        'usgs-earthquakes': (
+          (usgsCtx?.data?.events?.length > 0 || usgsCtx?.data?.magBuckets?.length > 0) ? (
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
               {(usgsCtx?.data?.magBuckets || []).map((b, i) => (
                 <div key={i} className="ins-mini-row">
@@ -1140,24 +918,10 @@ function InsuranceDashboard({
             </div>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>USGS earthquake feed loading…</div>
-          )}
-        </BentoCard>
+          )
+        ),
 
-        <BentoCard
-          key="cat-exposure"
-          title="Catastrophe Exposure Monitor"
-          subtitle={`${catExposure.label} · FEMA declarations · USGS seismicity · credit & underwriting`}
-          accent="insurance"
-          className="ins-bento-card"
-          contentClassName="ins-panel-content cat-exp-host"
-          source="OpenFEMA / USGS / FRED"
-          timestamp={femaCtx?.lastUpdated || usgsCtx?.lastUpdated || lastUpdated}
-          isLive={!!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive || catLosses?.values?.length)}
-          isCurrent={femaCtx?.isCurrent ?? isCurrent}
-          fetchedOn={femaCtx?.fetchedOn || fetchedOn}
-          fetchLog={femaCtx?.fetchLog || fetchLog}
-          error={femaCtx?.error || error}
-        >
+        'cat-exposure': (
           <div className="cat-exp-panel">
             {/* KPI score cards */}
             <div className="cat-exp-kpis">
@@ -1358,24 +1122,9 @@ function InsuranceDashboard({
               </div>
             </div>
           </div>
-        </BentoCard>
+        ),
 
-        {(true) && (
-          <BentoCard
-            key="usgs-minerals"
-            title="USGS Earthquake Activity (30d)"
-            subtitle={`${usgsCtx?.data?.eventsCount ?? 0} M4.5+ events · feed + human-readable times`}
-            accent="insurance"
-            className="ins-bento-card"
-            contentClassName="ins-panel-content usgs-eq-host"
-            source="USGS Earthquake Hazards Program"
-            timestamp={usgsCtx?.lastUpdated || lastUpdated}
-            isLive={!!usgsCtx?.data?.isLive}
-            isCurrent={usgsCtx?.isCurrent ?? isCurrent}
-            fetchedOn={usgsCtx?.fetchedOn || fetchedOn}
-            fetchLog={usgsCtx?.fetchLog || fetchLog}
-            error={usgsCtx?.error || error}
-          >
+        'usgs-minerals': (
             <div className="usgs-eq-panel">
               <div className="usgs-eq-buckets">
                 {(usgsCtx?.data?.magBuckets || []).map((b) => (
@@ -1513,26 +1262,10 @@ function InsuranceDashboard({
                   : ''}
               </div>
             </div>
-          </BentoCard>
-        )}
+        ),
 
-        {(true) && (
-          <BentoCard
-            key="ecb-supervisory"
-            title="ECB Policy Rates"
-            subtitle="Policy corridor · €STR · EURIBOR · M3 · HICP · ECB SDW"
-            accent="insurance"
-            className="ins-bento-card"
-            contentClassName="ins-panel-content ins-ecb-host"
-            source="ECB Statistical Data Warehouse"
-            timestamp={ecbCtx?.lastUpdated || lastUpdated}
-            isLive={!!ecbCtx?.data?.isLive}
-            isCurrent={ecbCtx?.isCurrent ?? isCurrent}
-            fetchedOn={ecbCtx?.fetchedOn || fetchedOn}
-            fetchLog={ecbCtx?.fetchLog || fetchLog}
-            error={ecbCtx?.error || error}
-          >
-            {(() => {
+        'ecb-supervisory': (
+            (() => {
               const pr = ecbCtx?.data?.policyRates || {};
               const mm = ecbCtx?.data?.moneyMarket || {};
               const m3 = ecbCtx?.data?.m3Growth || [];
@@ -1728,10 +1461,94 @@ function InsuranceDashboard({
                   </div>
                 </div>
               );
-            })()}
-          </BentoCard>
-        )}
-      </BentoWrapper>
+            })()
+        ),
+  };
+
+  const panelCtx = {
+    __render: (panelId) => panelBodies[panelId] ?? null,
+    __live: {
+      kpi: !!isLive,
+      hyoas: !!isLive,
+      catloss: !!isLive,
+      crhist: !!isLive,
+      crline: !!isLive,
+      reinsrates: !!isLive,
+      reserves: !!(isLive && hasReserves),
+      catbonds: !!(isLive && catBondSpreads?.length),
+      etfs: !!(isLive && hasSectorETF),
+      catastrophes: !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive),
+      'ins-penetration': !!wbCtx?.data?.countries?.length,
+      'wb-ins-penetration': !!wbCtx?.data?.countries?.length,
+      'combined-ratios': !!insRatiosCtx?.data?.isLive,
+      'fema-disasters': !!femaCtx?.data?.isLive,
+      'usgs-earthquakes': !!usgsCtx?.data?.isLive,
+      'cat-exposure': !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive || catLosses?.values?.length),
+      'usgs-minerals': !!usgsCtx?.data?.isLive,
+      'ecb-supervisory': !!ecbCtx?.data?.isLive,
+    },
+    __subtitle: {
+      catloss: catLossesResolved?._note || undefined,
+      reinsrates: 'Reinsurer equity proxies (no free public treaty ROL feed)',
+      reserves: `${normalizedReserves.length || 0} insurers · assets / liabilities coverage`,
+      catbonds: `${catBondSpreads?.length || 0} series · FRED credit / Treasury / Fed stress (no Yahoo)`,
+      etfs: `${normalizedSectorETF.length || 0} official series · Fed · BLS · BEA · Census (FRED)`,
+      catastrophes: femaCtx?.data?.summary
+        ? `${femaCtx.data.summary.totalRecent} FEMA declarations · most-common: ${femaCtx.data.summary.mostCommonType} · ${usgsCtx?.data?.eventsCount || 0} M4.5+ quakes globally (30d)`
+        : 'OpenFEMA disaster declarations + USGS earthquakes',
+      'ins-penetration': 'Life + Non-life premium / GDP · World Bank GFDD (latest available)',
+      'combined-ratios': insRatiosCtx?.data?.summary
+        ? `Avg ${insRatiosCtx.data.summary.avgCombinedPct}% across ${insRatiosCtx.data.summary.issuersWithData} issuers · latest FY ${insRatiosCtx.data.summary.latestEnd}`
+        : 'Loss ratio + expense ratio per issuer (latest fiscal year)',
+      'cat-exposure': `${catExposure.label} · FEMA declarations · USGS seismicity · credit & underwriting`,
+      'usgs-minerals': `${usgsCtx?.data?.eventsCount ?? 0} M4.5+ events · feed + human-readable times`,
+      'ecb-supervisory': 'Policy corridor · €STR · EURIBOR · M3 · HICP · ECB SDW',
+    },
+    __disabled: {
+      catloss: !catLossesOption,
+      crline: !crLineRows.length,
+      reinsrates: !reinsRateRows.length,
+    },
+    __noFooter: {
+      kpi: true,
+    },
+    __source: {
+      hyoas: 'FRED / Yahoo Finance',
+      catloss: catLossesResolved?.seriesId?.startsWith('FEMA') ? 'OpenFEMA' : 'FRED / Server',
+      crhist: 'FRED / A.M. Best',
+      crline: 'FRED / NAIC / EDGAR',
+      reinsrates: 'Yahoo Finance',
+      reserves: 'Yahoo Finance (balance sheet)',
+      catbonds: 'FRED (ICE BofA / Treasury / Fed)',
+      etfs: 'FRED (Fed / BLS / BEA / Census)',
+      catastrophes: 'OpenFEMA · USGS',
+      'ins-penetration': 'World Bank GFDD',
+      'wb-ins-penetration': 'World Bank GFDD',
+      'combined-ratios': 'SEC EDGAR XBRL',
+      'fema-disasters': 'OpenFEMA',
+      'usgs-earthquakes': 'USGS',
+      'cat-exposure': 'OpenFEMA / USGS / FRED',
+      'usgs-minerals': 'USGS Earthquake Hazards Program',
+      'ecb-supervisory': 'ECB Statistical Data Warehouse',
+    },
+  };
+
+  return (
+    <div className="ins-dashboard ins-dashboard--bento">
+      <MarketPanelGrid
+        marketId="insurance"
+        layout={dynamicLayout}
+        storageKey="insurance-layout-v6"
+        accent="insurance"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: lastUpdated,
+          isCurrent,
+          fetchedOn,
+          fetchLog,
+          error,
+        }}
+      />
     </div>
   );
 }

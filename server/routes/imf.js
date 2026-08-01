@@ -5,6 +5,11 @@ import { trackApiCall } from '../lib/rateLimits.js';
 import { WEO_SNAPSHOT } from '../dataSources/weoSnapshot.js';
 import { IFS_SNAPSHOT, COFER_SNAPSHOT } from '../dataSources/ifsCofeSnapshot.js';
 import { sendCachedOrDegradedSync } from '../lib/marketResponse.js';
+import {
+  isCircuitOpen,
+  noteUpstreamFailure,
+  IMF_HOST,
+} from '../lib/upstreamCircuit.js';
 
 const router = Router();
 
@@ -38,6 +43,7 @@ const WEO_SUBJECTS = [
 const IMF_API_BASE = 'https://dataservices.imf.org/REST/SDMX_JSON.svc';
 
 async function fetchWEOIndicator(subject, weoCodes) {
+  if (isCircuitOpen(IMF_HOST)) return {};
   try {
     const key = weoCodes.join('+');
     const url = `${IMF_API_BASE}/GetData/WEO/${key}.${subject}.A?startPeriod=2022&endPeriod=2030`;
@@ -63,10 +69,15 @@ async function fetchWEOIndicator(subject, weoCodes) {
       }
     }
     return result;
-  } catch (e) { console.warn('[IMF] fetchWEOIndicator:', e?.message); return {}; }
+  } catch (e) {
+    noteUpstreamFailure(IMF_HOST, e);
+    console.warn('[IMF] fetchWEOIndicator:', e?.message);
+    return {};
+  }
 }
 
 async function fetchIFSData(indicator, countries) {
+  if (isCircuitOpen(IMF_HOST)) return {};
   try {
     const codes = countries.join('+');
     const url = `${IMF_API_BASE}/GetData/IFS/${codes}.A.${indicator}?startPeriod=2020`;
@@ -92,10 +103,15 @@ async function fetchIFSData(indicator, countries) {
       }
     }
     return result;
-  } catch (e) { console.warn('[IMF] fetchIFSData:', e?.message); return {}; }
+  } catch (e) {
+    noteUpstreamFailure(IMF_HOST, e);
+    console.warn('[IMF] fetchIFSData:', e?.message);
+    return {};
+  }
 }
 
 async function fetchCOFER() {
+  if (isCircuitOpen(IMF_HOST)) return null;
   try {
     const url = `${IMF_API_BASE}/GetData/COFER/Q.USD+XDR+EUR+JPY+GBP+CNY+CHF+Other.XDC_USD.XDR?startPeriod=2022-Q1`;
     const data = await fetchJSON(url);
@@ -128,7 +144,11 @@ async function fetchCOFER() {
     }
 
     return Object.keys(result).length >= 3 ? result : null;
-  } catch (e) { console.warn('[IMF] fetchCOFER:', e?.message); return null; }
+  } catch (e) {
+    noteUpstreamFailure(IMF_HOST, e);
+    console.warn('[IMF] fetchCOFER:', e?.message);
+    return null;
+  }
 }
 
 router.get('/', async (req, res) => {
@@ -136,11 +156,15 @@ router.get('/', async (req, res) => {
   const cacheKey = 'imf_data';
   const today = todayStr();
 
-  const daily = readDailyCache('imf');
-  if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true });
+  const forceRefresh = String(req.query.refresh || '') === 'true'
+    || req.get('x-cache-bypass') === '1';
+  if (!forceRefresh) {
+    const daily = readDailyCache('imf');
+    if (daily) return res.json({ ...daily, fetchedOn: today, isCurrent: true, _cacheSource: 'disk' });
 
-  const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true });
+    const cached = cache.get(cacheKey);
+    if (cached) return res.json({ ...cached, fetchedOn: today, isCurrent: true, _cacheSource: 'memory' });
+  }
 
   let routeTimer;
   try {
@@ -159,7 +183,13 @@ router.get('/', async (req, res) => {
 
     const weoCodes = WEO_COUNTRIES.map(c => c.weoCode);
     const weoForecasts = {};
-    const weoResults = await Promise.allSettled(
+    // Etiquette: if IMF DNS is down, skip the 9-way fan-out and use snapshots.
+    if (isCircuitOpen(IMF_HOST)) {
+      console.warn('[IMF] circuit open — skipping live WEO/IFS/COFER, using snapshots');
+    }
+    const weoResults = isCircuitOpen(IMF_HOST)
+      ? []
+      : await Promise.allSettled(
       WEO_SUBJECTS.map(async ({ key, subject }) => {
         trackApiCall('IMF WEO');
         const data = await fetchWEOIndicator(subject, weoCodes);
@@ -277,7 +307,10 @@ router.get('/', async (req, res) => {
 
     clearTimeout(routeTimer);
     if (res.headersSent) return;
-    if (!isStaticFallback && anySourceLive) writeDailyCache('imf', result);
+    // Always persist when we have countries/snapshot — DNS failures still paint panels.
+    if (anySourceLive || (countries && countries.length > 0)) {
+      try { writeDailyCache('imf', result); } catch { /* ignore */ }
+    }
     cache.set(cacheKey, result, 3600);
     res.json({ ...result, fetchedOn: today, isCurrent: !isStaticFallback && anySourceLive });
   } catch (error) {

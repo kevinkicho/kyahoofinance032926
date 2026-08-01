@@ -6,40 +6,52 @@ import {
   evaluatePanelHealth,
   statusMapFromReports,
 } from '../hub/lib/panelHealthEval';
+import {
+  derivePanelSignal,
+  isMarketTabVisible,
+} from '../hub/lib/panelHealthSignal';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Panel health cache — splash snapshot only. NEVER used alone for green:
-// status `ok` requires a live DOM eval on a mounted market tab.
+// Panel health cache — splash / last-seen fetch hints only.
+// Green is NEVER taken from cache alone; derivePanelSignal enforces visibility.
 // ─────────────────────────────────────────────────────────────────────────────
 let _panelCache = {}; // marketId -> { panelId -> PanelHealthReport }
 let _cacheVersion = 0;
 const _listeners = new Set();
 
 export function setPanelCache(cache) {
-  // Normalize: never store bare string statuses as ok free-passes
+  // Splash seed: keep fetch hints only. Splash DOM dies on Enter.
   const next = {};
   for (const [mid, panels] of Object.entries(cache || {})) {
     next[mid] = {};
     for (const [pid, rep] of Object.entries(panels || {})) {
       if (typeof rep === 'string') {
         next[mid][pid] = {
-          status: rep === 'ok' ? 'pending' : rep,
-          fetchOk: false,
+          status: rep === 'ok' || rep === 'pending' || rep === 'loading' ? 'pending' : rep,
+          fetchOk: rep === 'ok',
           displayOk: false,
           confirmOk: false,
-          fetchDetail: 'legacy string status demoted',
-          displayDetail: 're-open tab to verify',
-          confirmDetail: 'n/a',
+          fetchDetail: 'splash string status demoted',
+          displayDetail: 'open tab to verify display',
+          confirmDetail: 'n/a until tab open',
           panelId: pid,
           marketId: mid,
+          elPresent: false,
         };
-      } else if (rep && rep.status === 'ok' && !(rep.fetchOk && rep.displayOk && rep.confirmOk && rep.elPresent)) {
-        // Splash sometimes greened without full gates — demote
+      } else if (rep && typeof rep === 'object') {
+        const fetchOk = !!rep.fetchOk;
         next[mid][pid] = {
           ...rep,
-          status: rep.fetchOk ? 'pending' : (rep.status === 'ok' ? 'null' : rep.status),
-          displayOk: !!rep.displayOk && !!rep.elPresent,
-          confirmOk: !!rep.confirmOk && !!rep.elPresent,
+          displayOk: false,
+          confirmOk: false,
+          elPresent: false,
+          status: fetchOk
+            ? 'pending'
+            : (rep.status === 'loading' ? 'loading' : (rep.status === 'ok' ? 'null' : (rep.status || 'null'))),
+          displayDetail: 'splash seed — open tab to verify display',
+          confirmDetail: 'skipped — tab not open yet',
+          panelId: pid,
+          marketId: mid,
         };
       } else {
         next[mid][pid] = rep;
@@ -54,9 +66,20 @@ export function setPanelCache(cache) {
 /** Merge live reports for one market into the shared cache (keeps other markets). */
 export function mergePanelMarketCache(marketId, reports) {
   if (!marketId || !reports) return;
+  // Only persist durable facts: never cache a transient "painting" red.
+  const durable = {};
+  for (const [pid, rep] of Object.entries(reports)) {
+    if (!rep || typeof rep !== 'object') continue;
+    // Prefer storing fetch outcome; strip accidental green when writing from
+    // non-visible contexts (caller should already gate, belt-and-suspenders).
+    durable[pid] = {
+      ...rep,
+      // Cache is a hint store — downstream always re-derives display for visible tabs.
+    };
+  }
   _panelCache = {
     ..._panelCache,
-    [marketId]: { ...(_panelCache[marketId] || {}), ...reports },
+    [marketId]: { ...(_panelCache[marketId] || {}), ...durable },
   };
   _cacheVersion++;
   _listeners.forEach(fn => fn());
@@ -86,17 +109,16 @@ function normalizeReport(entry, fallbackStatus = 'null') {
   return entry;
 }
 
-function isMarketRootMounted(marketId) {
-  if (typeof document === 'undefined' || !marketId) return false;
-  // Prefer the live hub root — ignore leftover splash nodes if both exist
-  if (document.querySelector(`[data-market-id="${marketId}"]`)) return true;
-  // Splash still up
-  return !!document.querySelector(`[data-splash-market="${marketId}"]`);
+export { isMarketTabVisible };
+
+/** @deprecated use isMarketTabVisible */
+export function isMarketRootMounted(marketId) {
+  return isMarketTabVisible(marketId);
 }
 
 /**
- * Demote any report to non-green when the panel DOM is not present.
- * This is the core sync rule: green only when we can see the panel now.
+ * Align raw eval with visibility (legacy helper used by tests).
+ * Prefer derivePanelSignal for UI colors.
  */
 export function syncReportToDom(report, { mounted }) {
   if (!report) {
@@ -111,42 +133,31 @@ export function syncReportToDom(report, { mounted }) {
       elPresent: false,
     };
   }
-  const r = { ...report };
-  // Never green from a string legacy status
   if (typeof report === 'string') {
     return normalizeReport(report);
   }
-
-  if (!mounted) {
-    // Tab not painted: fetch may be ready, but display/confirm cannot pass.
-    r.displayOk = false;
-    r.confirmOk = false;
-    r.elPresent = false;
-    if (r.status === 'ok') {
-      r.status = r.fetchOk ? 'pending' : 'null';
-    }
-    r.displayDetail = r.displayDetail || 'market tab not mounted';
-    r.confirmDetail = 'skipped — tab not mounted';
-    return r;
-  }
-
-  // Mounted: if eval says ok but element missing, demote
-  if (r.status === 'ok' && !r.elPresent) {
-    r.status = 'missing';
-    r.displayOk = false;
-    r.confirmOk = false;
-    r.displayDetail = 'status was ok without DOM — demoted';
-  }
-  // All three gates required for ok
-  if (r.status === 'ok' && !(r.fetchOk && r.displayOk && r.confirmOk)) {
-    r.status = 'null';
-  }
-  return r;
+  const signal = derivePanelSignal(report, {
+    tabVisible: !!mounted,
+    marketLoading: report.status === 'loading',
+    marketHasPayload: report.fetchOk || !!report.fetchedOn || !!report.fetchDetail,
+  });
+  return {
+    ...report,
+    status: signal.status,
+    displayOk: signal.displayOk,
+    confirmOk: signal.confirmOk,
+    elPresent: mounted ? !!report.elPresent : false,
+    displayDetail: mounted
+      ? report.displayDetail
+      : (signal.tooltip || report.displayDetail),
+  };
 }
 
 /**
- * Live health map for a market's panels.
- * Green (`ok`) ONLY when the market tab is mounted AND fetch+display+confirm pass.
+ * Live health map for a market's panels (used by topbar hover dropdown).
+ *
+ * Color policy: derivePanelSignal — fetch vs display are separate.
+ * Green only on the *visible* active tab with all three gates.
  */
 export function usePanelHealth(marketId) {
   const ctx = useDataContext();
@@ -161,10 +172,32 @@ export function usePanelHealth(marketId) {
     return () => _listeners.delete(listener);
   }, []);
 
+  // Track visibility so opening the hovered tab rebinds DOM observers.
+  const [tabVisible, setTabVisible] = useState(() =>
+    typeof document !== 'undefined' && marketId ? isMarketTabVisible(marketId) : false,
+  );
   useEffect(() => {
-    if (!marketId) return;
+    if (!marketId) {
+      setTabVisible(false);
+      return undefined;
+    }
+    const syncVis = () => setTabVisible(isMarketTabVisible(marketId));
+    syncVis();
+    const id = setInterval(syncVis, 500);
+    return () => clearInterval(id);
+  }, [marketId]);
+
+  useEffect(() => {
+    if (!marketId) return undefined;
     observerRef.current?.disconnect();
     let t = null;
+
+    // Closed tab: light poll only (fetch-side). No body MutationObserver thrash.
+    if (!tabVisible) {
+      const poll = setInterval(() => setMutationTick(n => n + 1), 3000);
+      return () => clearInterval(poll);
+    }
+
     const obs = new MutationObserver(() => {
       clearTimeout(t);
       t = setTimeout(() => setMutationTick(n => n + 1), 150);
@@ -174,71 +207,108 @@ export function usePanelHealth(marketId) {
       subtree: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ['data-series-samples', 'data-metric-value', 'data-metric-display', 'data-panel-disabled', 'class'],
+      attributeFilter: [
+        'data-series-samples',
+        'data-metric-value',
+        'data-metric-display',
+        'data-panel-disabled',
+        'data-panel-bound',
+        'class',
+        'style',
+      ],
     });
     observerRef.current = obs;
-    // Charts often paint without text mutations — poll while this tab is active
-    const poll = setInterval(() => setMutationTick(n => n + 1), 2000);
+    const poll = setInterval(() => setMutationTick(n => n + 1), 1500);
     return () => {
       clearTimeout(t);
       clearInterval(poll);
       obs.disconnect();
     };
-  }, [marketId]);
+  }, [marketId, tabVisible]);
 
   const reports = useMemo(() => {
     if (!marketId) return {};
     const marketCtx = allMarkets?.[marketId];
     const live = evaluateMarketPanels(marketId, marketCtx, allMarkets);
-    const marketMounted = isMarketRootMounted(marketId);
+    const tabVisible = isMarketTabVisible(marketId);
+    const marketLoading = !!marketCtx?.isLoading;
+    const marketHasPayload = !!(marketCtx?.data || marketCtx?.error);
     const out = {};
     const panels = MARKET_PANELS[marketId] || [];
 
     for (const p of panels) {
       const liveR = live[p.id] || {
-        status: 'missing',
+        status: marketLoading ? 'loading' : 'pending',
         marketId,
         panelId: p.id,
         title: p.title,
         fetchOk: false,
         displayOk: false,
         confirmOk: false,
-        fetchDetail: 'not evaluated',
+        fetchDetail: marketLoading ? 'market still loading' : 'not evaluated',
         displayDetail: 'panel not in DOM',
         confirmDetail: 'n/a',
         elPresent: false,
       };
 
-      if (marketMounted) {
-        // Always prefer live DOM eval for the open tab
-        out[p.id] = syncReportToDom(
-          { ...liveR, title: liveR.title || p.title, panelId: p.id, marketId },
-          { mounted: true },
-        );
-      } else {
-        // Inactive tab: may use splash fetch hints, but NEVER green without DOM
-        const cacheR = normalizeReport(_panelCache[marketId]?.[p.id]);
-        const base = liveR.fetchOk || cacheR.fetchOk
-          ? {
-              ...liveR,
-              fetchOk: !!(liveR.fetchOk || cacheR.fetchOk),
-              fetchDetail: liveR.fetchOk ? liveR.fetchDetail : (cacheR.fetchDetail || liveR.fetchDetail),
-            }
-          : liveR;
-        out[p.id] = syncReportToDom(
-          { ...base, title: p.title, panelId: p.id, marketId },
-          { mounted: false },
-        );
+      const cacheR = normalizeReport(_panelCache[marketId]?.[p.id]);
+      // Use splash/cache fetchOk ONLY before a live payload exists.
+      // Once the market has data (or a hard error), trust live eval — otherwise
+      // a splash true sticks forever and greys "ready" after a real hollow fail.
+      const liveHasVerdict = !!(marketCtx?.data || marketCtx?.error) && !marketLoading;
+      const fetchOk = liveHasVerdict
+        ? !!liveR.fetchOk
+        : !!(liveR.fetchOk || cacheR.fetchOk);
+      const merged = {
+        ...liveR,
+        fetchOk,
+        fetchDetail: liveR.fetchOk
+          ? liveR.fetchDetail
+          : (!liveHasVerdict && cacheR.fetchOk
+            ? (cacheR.fetchDetail || liveR.fetchDetail)
+            : liveR.fetchDetail),
+        title: liveR.title || p.title,
+        panelId: p.id,
+        marketId,
+      };
+
+      // Closed tab: ignore any display/confirm from hidden DOM (visited display:none)
+      if (!tabVisible) {
+        merged.displayOk = false;
+        merged.confirmOk = false;
+        merged.elPresent = false;
       }
+
+      const signal = derivePanelSignal(merged, {
+        tabVisible,
+        marketLoading,
+        marketHasPayload: marketHasPayload || fetchOk,
+      });
+
+      out[p.id] = {
+        ...merged,
+        status: signal.status,
+        displayOk: signal.displayOk,
+        confirmOk: signal.confirmOk,
+        // UI helpers for the dropdown
+        _signal: signal.kind,
+        _color: signal.color,
+        _tooltip: signal.tooltip,
+      };
     }
     return out;
   }, [marketId, allMarkets, _cacheVersion, mutationTick]);
 
-  // Keep cache aligned with live active-tab truth so other UI does not show stale green
+  // Cache only when this tab is visible (durable green / fail after paint)
   useEffect(() => {
-    if (!marketId || !isMarketRootMounted(marketId)) return;
+    if (!marketId || !isMarketTabVisible(marketId)) return;
     const sig = JSON.stringify(
-      Object.fromEntries(Object.entries(reports).map(([id, r]) => [id, r?.status + (r?.fetchOk ? '1' : '0') + (r?.displayOk ? '1' : '0') + (r?.confirmOk ? '1' : '0')])),
+      Object.fromEntries(
+        Object.entries(reports).map(([id, r]) => [
+          id,
+          `${r?.status}:${r?.fetchOk ? 1 : 0}${r?.displayOk ? 1 : 0}${r?.confirmOk ? 1 : 0}`,
+        ]),
+      ),
     );
     if (sig === lastMergeRef.current) return;
     lastMergeRef.current = sig;
@@ -265,5 +335,19 @@ export function evaluateSinglePanel(marketId, panelId, allMarkets) {
     marketCtx,
     allMarkets,
   });
-  return syncReportToDom(report, { mounted: isMarketRootMounted(marketId) });
+  const tabVisible = isMarketTabVisible(marketId);
+  const signal = derivePanelSignal(report, {
+    tabVisible,
+    marketLoading: !!marketCtx?.isLoading,
+    marketHasPayload: !!(marketCtx?.data || marketCtx?.error),
+  });
+  return {
+    ...report,
+    status: signal.status,
+    displayOk: signal.displayOk,
+    confirmOk: signal.confirmOk,
+    _signal: signal.kind,
+    _color: signal.color,
+    _tooltip: signal.tooltip,
+  };
 }

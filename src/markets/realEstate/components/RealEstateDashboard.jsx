@@ -3,8 +3,7 @@ import { safeSlice } from '../../../utils/panelGuards';
 import { useTheme } from '../../../hub/ThemeContext';
 import { useMarketData } from '../../../hub/DataContext';
 import SafeECharts from '../../../components/SafeECharts';
-import BentoWrapper from '../../../components/BentoWrapper';
-import BentoCard from '../../../components/BentoCard/BentoCard';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import BisPropertyPricePanel from './BisPropertyPricePanel';
 import MetroCaseShillerPanel from './MetroCaseShillerPanel';
@@ -497,25 +496,9 @@ function RealEstateDashboard({
   // Always mount MARKET_PANELS slots so cold/slow FRED does not hide ~15 panels.
   const dynamicLayout = LAYOUT;
 
-  return (
-    <div className="re-dashboard re-dashboard--bento">
-      <BentoWrapper layout={dynamicLayout} storageKey="realestate-layout-v7">
-        {/* Key Metrics */}
-        <BentoCard
-          key="metrics"
-          title="Key Metrics"
-          subtitle="Prices · rates · activity · distress"
-          accent="realEstate"
-          className="re-bento-card"
-          contentClassName="re-panel-content re-metrics-host"
-          source="FRED / Yahoo Finance"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+  // Compose independent panels via MarketPanelGrid bridge (__render).
+  const panelBodies = {
+        metrics: (
           <div className="re-metrics-panel">
             {/* Home Prices */}
             {(typeof shillerLatest === 'number' || typeof medianHomePriceLatest === 'number') && (
@@ -791,24 +774,10 @@ function RealEstateDashboard({
               </div>
             )}
           </div>
-        </BentoCard>
+        ),
 
-        {(
-          <BentoCard
-            key="afford-stack"
-            title="Housing Affordability Stack"
-            subtitle={`${affordabilityStack?.stressLabel || 'Partial'} payment burden · 80% LTV / 30Y fixed estimate`}
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-scroll"
-            source="FRED / HUD / Census"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        'afford-stack': (
+            <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
               {[
                 ['Median Home', affordabilityStack?.price, '#60a5fa', v => `$${(v / 1000).toFixed(0)}K`],
@@ -828,63 +797,18 @@ function RealEstateDashboard({
             <div style={{ marginTop: 10, color: colors.textMuted, fontSize: 11 }}>
               Estimate uses national median home price, 20% down, latest 30Y mortgage rate, and median income from HUD city sample.
             </div>
-          </BentoCard>
-        )}
+            </>
+        ),
 
-        {/* Case-Shiller */}
-        {(
-          <BentoCard
-            key="shiller"
-            title="Case-Shiller Index"
-            accent="realEstate"
-            className="re-bento-card"
-            source="FRED CSUSHPISA"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        shiller: (
             <SafeECharts option={shillerOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Case-Shiller Index', source: 'FRED', endpoint: '/api/realEstate', series: [{ id: 'CSUSHPISA' }], updatedAt: lastUpdated }} />
-          </BentoCard>
-        )}
+        ),
 
-        {/* REIT ETF */}
-        {(
-          <BentoCard
-            key="reitetf"
-            title="REIT ETF (VNQ)"
-            accent="realEstate"
-            className="re-bento-card"
-            source="Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        reitetf: (
             <SafeECharts option={reitOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'REIT ETF (VNQ)', source: 'Yahoo Finance', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
-          </BentoCard>
-        )}
+        ),
 
-        {/* REIT Performance */}
-        {(
-          <BentoCard
-            key="reitperf"
-            title="REIT Performance"
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-scroll"
-            source="Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        reitperf: (
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
               {safeSlice(reitData, 0, 8).map((r, i) => (
                 <div key={i} className="re-mini-row">
@@ -900,82 +824,21 @@ function RealEstateDashboard({
                 </div>
               ) : null}
             </div>
-          </BentoCard>
-        )}
+        ),
 
-        {/* Foreclosure */}
-        {(
-          <BentoCard
-            key="foreclosure"
-            title="Distress Indicators"
-            accent="realEstate"
-            className="re-bento-card"
-            source="FRED"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        foreclosure: (
             <SafeECharts option={foreclosureOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Distress Indicators', source: 'FRED', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
-          </BentoCard>
-        )}
+        ),
 
-        {/* MBA Applications */}
-        {(
-          <BentoCard
-            key="mba"
-            title="MBA Applications"
-            accent="realEstate"
-            className="re-bento-card"
-            source="FRED MORTGAGE30US"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        mba: (
             <SafeECharts option={mbaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'MBA Applications', source: 'FRED', endpoint: '/api/realEstate', series: [{ id: 'MORTGAGE30US' }], updatedAt: lastUpdated }} />
-          </BentoCard>
-        )}
+        ),
 
-        {/* CRE Delinquencies */}
-        {(
-          <BentoCard
-            key="cre"
-            title="CRE Delinquencies"
-            accent="realEstate"
-            className="re-bento-card"
-            source="FRED"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        cre: (
             <SafeECharts option={creOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CRE Delinquencies', source: 'FRED', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
-          </BentoCard>
-        )}
+        ),
 
-        {/* Cap Rates */}
-        {(
-          <BentoCard
-            key="caprate"
-            title="Cap Rates by Sector"
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-scroll"
-            source="Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        caprate: (
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
               {safeSlice(capRateData, 0, 8).map((c, i) => (
                 <div key={i} className="re-mini-row">
@@ -989,25 +852,9 @@ function RealEstateDashboard({
                 </div>
               ) : null}
             </div>
-          </BentoCard>
-        )}
+        ),
 
-        {/* Affordability */}
-        {(
-          <BentoCard
-            key="afford"
-            title="Affordability Index"
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-scroll"
-            source="FRED / Census"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        afford: (
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
               {(() => {
                 const cur = affordabilityData?.current;
@@ -1048,25 +895,9 @@ function RealEstateDashboard({
                 ));
               })()}
             </div>
-          </BentoCard>
-        )}
+        ),
 
-        {/* Supply/Demand */}
-        {(
-          <BentoCard
-            key="supply"
-            title="Supply & Demand"
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-scroll"
-            source="FRED / Census"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        supply: (
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
               {(() => {
                 const rows = [];
@@ -1108,18 +939,11 @@ function RealEstateDashboard({
                 ));
               })()}
             </div>
-          </BentoCard>
-        )}
+        ),
 
-        {/* HUD Rental Affordability */}
-        {(
-          <BentoCard
-            key="hud-afford"
-            title="Rental Affordability"
-            accent="realEstate"
-            className="re-bento-card hud-afford-card"
-            titleActions={
-              <div className="hud-toggle-container" onMouseDown={e => e.stopPropagation()}>
+        'hud-afford': (
+            <>
+              <div className="hud-toggle-container" style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginBottom: 6 }} onMouseDown={e => e.stopPropagation()}>
                 <button
                   className={`hud-toggle-btn ${hudView === 'chart' ? 'active' : ''}`}
                   onClick={() => setHudView('chart')}
@@ -1133,84 +957,35 @@ function RealEstateDashboard({
                   Map
                 </button>
               </div>
-            }
-            source="HUD User / US Census"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            {hudView === 'chart' ? (
-              <SafeECharts option={hudOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Rental Affordability by City', source: 'HUD User / US Census', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
-            ) : (
-              <RentalAffordabilityMap data={hudData} />
-            )}
-          </BentoCard>
-        )}
+              {hudView === 'chart' ? (
+                <SafeECharts option={hudOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Rental Affordability by City', source: 'HUD User / US Census', endpoint: '/api/realEstate', series: [], updatedAt: lastUpdated }} />
+              ) : (
+                <RentalAffordabilityMap data={hudData} />
+              )}
+            </>
+        ),
 
-        {/* ── Census panels (merged from former Census tab) — dense KPI grids ── */}
-        {(
-          <BentoCard
-            key="census-housing"
-            title="Housing & Construction"
-            subtitle={`${housingExtraCards.length} indicators · Census + FRED + MBA + FHFA`}
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-scroll"
-            source="Census / FRED / Freddie Mac / FHFA / MBA"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-            disabled={housingExtraCards.length === 0 && !hasCensusHousingKpi}
-          >
+        'census-housing': (
             <CensusHousingPanel
               kpiData={censusKpiData}
               housingKeys={CENSUS_HOUSING_KEYS}
               extraCards={housingExtraCards}
             />
-          </BentoCard>
-        )}
-        {(
-          <BentoCard
-            key="census-trade"
-            title="Trade & Consumption"
-            subtitle={`${tradeExtraCards.length} indicators · Census + BEA + macro`}
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-scroll"
-            source="Census / BEA / FRED"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-            disabled={tradeExtraCards.length === 0 && !hasCensusEcoKpi}
-          >
+        ),
+        'census-trade': (
             <CensusTradePanel
               kpiData={censusKpiData}
               ecoKeys={CENSUS_ECO_KEYS}
               extraCards={tradeExtraCards}
             />
-          </BentoCard>
-        )}
-        {(
-          <BentoCard key="census-trends-housing" title="Trends — Housing & Construction" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        ),
+        'census-trends-housing': (
             <CensusTrendsHousingPanel housingSeries={censusHousingSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
-          </BentoCard>
-        )}
-        {(
-          <BentoCard key="census-trends-trade" title="Trends — Trade & Consumption" accent="realEstate" className="re-bento-card" source="US Census Bureau (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        ),
+        'census-trends-trade': (
             <CensusTrendsTradePanel ecoSeries={censusEcoSeries} fetchedOn={fetchedOn} lastUpdated={lastUpdated} />
-          </BentoCard>
-        )}
-        {(
-          <BentoCard key="fhfa-hpi" title="FHFA House Price Index" accent="realEstate" className="re-bento-card" contentClassName="re-panel-content" source="FHFA (via FRED)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        ),
+        'fhfa-hpi': (
             <div style={{ height: '100%', minHeight: 0, padding: 8 }}>
               {fhfaHpi?.dates?.length ? (
                 <>
@@ -1241,38 +1016,96 @@ function RealEstateDashboard({
                 </div>
               )}
             </div>
-          </BentoCard>
-        )}
-        {(
-          <BentoCard
-            key="bis-property-prices"
-            title="BIS Property Price Comparison"
-            subtitle="Residential PPI · 40+ economies · FRED/BIS"
-            accent="realEstate"
-            className="re-bento-card"
-            contentClassName="re-panel-content bis-pp-host"
-            source="BIS / FRED"
-            timestamp={lastUpdated}
-            isLive={true}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        ),
+        'bis-property-prices': (
             <BisPropertyPricePanel />
-          </BentoCard>
-        )}
-        {(
-          <BentoCard key="metro-case-shiller" title="Metro Case-Shiller" subtitle="Metro-level home price indices" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="S&P CoreLogic / FRED" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        ),
+        'metro-case-shiller': (
             <MetroCaseShillerPanel />
-          </BentoCard>
-        )}
-        {(
-          <BentoCard key="hud-affordability-by-metro" title="HUD Affordability by Metro" subtitle="Rent-to-income ratios and home values" accent="realEstate" className="re-bento-card" contentClassName="re-panel-scroll" source="HUD / Census" timestamp={lastUpdated} isLive={true} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        ),
+        'hud-affordability-by-metro': (
             <HudAffordabilityPanel />
-          </BentoCard>
-        )}
-      </BentoWrapper>
+        ),
+  };
+
+  const panelCtx = {
+    __render: (panelId) => panelBodies[panelId] ?? null,
+    __live: {
+      metrics: !!isLive,
+      shiller: !!isLive,
+      reitetf: !!isLive,
+      reitperf: !!isLive,
+      foreclosure: !!isLive,
+      mba: !!isLive,
+      cre: !!isLive,
+      caprate: !!isLive,
+      afford: !!isLive,
+      supply: !!isLive,
+      'hud-afford': !!isLive,
+      'afford-stack': !!isLive,
+      'census-housing': !!isLive,
+      'census-trade': !!isLive,
+      'census-trends-housing': !!isLive,
+      'census-trends-trade': !!isLive,
+      'fhfa-hpi': !!isLive,
+      'bis-property-prices': true,
+      'metro-case-shiller': true,
+      'hud-affordability-by-metro': true,
+    },
+    __subtitle: {
+      metrics: 'Prices · rates · activity · distress',
+      'afford-stack': `${affordabilityStack?.stressLabel || 'Partial'} payment burden · 80% LTV / 30Y fixed estimate`,
+      'census-housing': `${housingExtraCards.length} indicators · Census + FRED + MBA + FHFA`,
+      'census-trade': `${tradeExtraCards.length} indicators · Census + BEA + macro`,
+      'bis-property-prices': 'Residential PPI · 40+ economies · FRED/BIS',
+      'metro-case-shiller': 'Metro-level home price indices',
+      'hud-affordability-by-metro': 'Rent-to-income ratios and home values',
+    },
+    __disabled: {
+      'census-housing': housingExtraCards.length === 0 && !hasCensusHousingKpi,
+      'census-trade': tradeExtraCards.length === 0 && !hasCensusEcoKpi,
+    },
+    __noFooter: {},
+    __source: {
+      metrics: 'FRED / Yahoo Finance',
+      shiller: 'FRED CSUSHPISA',
+      reitetf: 'Yahoo Finance',
+      reitperf: 'Yahoo Finance',
+      foreclosure: 'FRED',
+      mba: 'FRED MORTGAGE30US',
+      cre: 'FRED',
+      caprate: 'Yahoo Finance',
+      afford: 'FRED / Census',
+      supply: 'FRED / Census',
+      'hud-afford': 'HUD User / US Census',
+      'afford-stack': 'FRED / HUD / Census',
+      'census-housing': 'Census / FRED / Freddie Mac / FHFA / MBA',
+      'census-trade': 'Census / BEA / FRED',
+      'census-trends-housing': 'US Census Bureau (via FRED)',
+      'census-trends-trade': 'US Census Bureau (via FRED)',
+      'fhfa-hpi': 'FHFA (via FRED)',
+      'bis-property-prices': 'BIS / FRED',
+      'metro-case-shiller': 'S&P CoreLogic / FRED',
+      'hud-affordability-by-metro': 'HUD / Census',
+    },
+  };
+
+  return (
+    <div className="re-dashboard re-dashboard--bento">
+      <MarketPanelGrid
+        marketId="realEstate"
+        layout={dynamicLayout}
+        storageKey="realestate-layout-v7"
+        accent="realEstate"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: lastUpdated,
+          isCurrent,
+          fetchedOn,
+          fetchLog,
+          error,
+        }}
+      />
     </div>
   );
 }

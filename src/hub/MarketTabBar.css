@@ -559,11 +559,20 @@
 .panel-dropdown-status-dot[data-status="null"] {
   background: #ef4444;
 }
-.panel-dropdown-status-dot[data-status="loading"] {
+/* pending = fetch-ready or not-yet-opened (not a failure) */
+.panel-dropdown-status-dot[data-status="loading"],
+.panel-dropdown-status-dot[data-status="stale"] {
   background: #f59e0b;
 }
 .panel-dropdown-status-dot[data-status="unknown"] {
   background: #6b7280;
+}
+.panel-dropdown-status-dot[data-status="pending"] {
+  background: #94a3b8;
+}
+.market-panel-dropdown-item.panel-status-loading .panel-dropdown-status-dot,
+.market-panel-dropdown-item.panel-status-unknown .panel-dropdown-status-dot {
+  background: #94a3b8;
 }
 .panel-dropdown-title {
   flex: 1;

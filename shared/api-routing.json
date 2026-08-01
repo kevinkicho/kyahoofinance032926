@@ -5,8 +5,8 @@
   "markets": {
     "analytics": {
       "label": "Analytics",
-      "primary": "/api/rate-limits",
-      "deps": ["/api/analytics", "/api/cache/status", "/api/health"]
+      "primary": "/api/analytics",
+      "deps": ["/api/rate-limits", "/api/cache/status", "/api/health"]
     },
     "equities": {
       "label": "Equities",

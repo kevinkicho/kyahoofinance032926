@@ -33,12 +33,13 @@ describe('DerivativesMarket', () => {
 
   it('shows Key Metrics sidebar', () => {
     render(<DerivativesMarket centralData={mockCentralData} />);
-    expect(screen.getByText('Key Metrics')).toBeInTheDocument();
+    // Title may appear in card chrome + body labels after panel extraction.
+    expect(screen.getAllByText('Key Metrics').length).toBeGreaterThan(0);
   });
 
   it('shows VIX Term Structure section', () => {
     render(<DerivativesMarket centralData={mockCentralData} />);
-    expect(screen.getByText('VIX Term Structure')).toBeInTheDocument();
+    expect(screen.getAllByText('VIX Term Structure').length).toBeGreaterThan(0);
   });
 
   it('shows pending/no-data status when panels have no data', () => {
@@ -58,7 +59,8 @@ describe('DerivativesMarket', () => {
       },
     };
     render(<DerivativesMarket centralData={withGamma} />);
-    expect(screen.getByText('Gamma Exposure (GEX)')).toBeInTheDocument();
+    // MARKET_PANELS title is "Gamma Exposure" (legacy chrome said "Gamma Exposure (GEX)").
+    expect(screen.getAllByText(/Gamma Exposure/i).length).toBeGreaterThan(0);
     expect(screen.getByText('Call GEX')).toBeInTheDocument();
     expect(screen.getByText('Put GEX')).toBeInTheDocument();
     expect(screen.getByText('Net GEX')).toBeInTheDocument();
@@ -73,7 +75,7 @@ describe('DerivativesMarket', () => {
       },
     };
     render(<DerivativesMarket centralData={withVolPrem} />);
-    expect(screen.getByText('Vol Premium')).toBeInTheDocument();
+    expect(screen.getAllByText('Vol Premium').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/ATM 1M IV/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/30d Realized/i).length).toBeGreaterThanOrEqual(1);
   });
@@ -81,7 +83,7 @@ describe('DerivativesMarket', () => {
   it('always mounts Vol Premium and Gamma shells even without GEX rows', () => {
     // Always-mount contract: empty panels stay visible for health / layout.
     render(<DerivativesMarket centralData={mockCentralData} />);
-    expect(screen.getByText('Vol Premium')).toBeInTheDocument();
-    expect(screen.getByText('Gamma Exposure (GEX)')).toBeInTheDocument();
+    expect(screen.getAllByText('Vol Premium').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Gamma Exposure/i).length).toBeGreaterThan(0);
   });
 });

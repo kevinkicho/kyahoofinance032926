@@ -1,10 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import { useCurrency } from '../../../hub/CurrencyContext';
-import BentoWrapper from '../../../components/BentoWrapper';
-import BentoCard from '../../../components/BentoCard/BentoCard';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import SafeECharts from '../../../components/SafeECharts';
-import GlobalKpiStrip from './GlobalKpiStrip';
 import CountryDetailPanel from './CountryDetailPanel';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 // Merged-in panels from former IMF + World Bank tabs.
@@ -581,42 +579,14 @@ function GlobalMacroDashboard({
   // Macro look "crashed" (blank mac-market) while other tabs still worked.
   const scorecard = Array.isArray(scorecardData) ? scorecardData : [];
 
-  return (
-    <div className="mac-dashboard mac-dashboard--bento" data-market="globalMacro">
-      {/* GlobalKpiStrip is rendered in GlobalMacroMarket above this component to avoid duplication */}
+  // Compose independent panels via MarketPanelGrid bridge (__render).
+  // Note: layout key `cxstrength` has no BentoCard body and no MARKET_PANELS entry.
+  const panelBodies = {
+        kpi: (
+          kpiSidebar || <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Macro KPI strip loading…</div>
+        ),
 
-      <BentoWrapper layout={LAYOUT} storageKey="macro-layout-v10">
-        {/* KPI strip — real bento child rendered at row 0. The strip body
-            is provided by the parent (GlobalMacroKpiStrip) so it can wire
-            up the right data and seriesKeys. */}
-        {kpiSidebar && (
-          <BentoCard
-            key="kpi"
-            title="Macro Key Metrics"
-            accent="globalMacro"
-            className="mac-bento-card"
-            contentClassName="mac-panel-scroll"
-            noFooter
-          >
-            {kpiSidebar}
-          </BentoCard>
-        )}
-
-        {/* Sidebar — Quick Indicators */}
-        <BentoCard
-          key="sidebar"
-          title="Quick Indicators"
-          accent="globalMacro"
-          className="mac-bento-card"
-          contentClassName="mac-panel-scroll"
-          source="World Bank / FRED / BIS"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        sidebar: (
           <>
             <div className="mac-sidebar-section">
               <div className="mac-sidebar-title">GDP Growth</div>
@@ -635,24 +605,9 @@ function GlobalMacroDashboard({
               <DebtBars data={debtData} lastUpdated={lastUpdated} convertAndFormat={convertAndFormat} currentSymbol={currentSymbol} />
             </div>
           </>
-        </BentoCard>
+        ),
 
-        {/* Scorecard */}
-          <BentoCard
-            key="scorecard"
-            title="Country Scorecard"
-            subtitle={scorecard.length ? 'Click row for details' : 'Waiting for country scorecard data…'}
-            accent="globalMacro"
-            className="mac-bento-card"
-            contentClassName="mac-panel-scroll"
-            source="World Bank / FRED / BIS"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        scorecard: (
               <div className="mac-scorecard-compact" style={{ background: colors.bgCard }}>
                 <div className="mac-scorecard-header-row">
                   <div className="mac-scorecell mac-scorecell-flag"></div>
@@ -684,25 +639,26 @@ function GlobalMacroDashboard({
                   </div>
                 ))}
               </div>
-          </BentoCard>
+        ),
 
-          <BentoCard key="gdp" title="GDP Growth" accent="globalMacro" className="mac-bento-card" source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        gdp: (
             <GdpBars data={sortedByGdp} lastUpdated={lastUpdated} />
-          </BentoCard>
+        ),
 
-          <BentoCard key="cpi" title="CPI Inflation" accent="globalMacro" className="mac-bento-card" source="FRED" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        cpi: (
             <CpiBars data={sortedByCpi} lastUpdated={lastUpdated} />
-          </BentoCard>
+        ),
 
-          <BentoCard key="rates" title="Policy Rates" accent="globalMacro" className="mac-bento-card" source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        rates: (
             <RateBars data={centralBankData} lastUpdated={lastUpdated} />
-          </BentoCard>
+        ),
 
-          <BentoCard key="debt" title="Debt / GDP" accent="globalMacro" className="mac-bento-card" source="World Bank / FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        debt: (
             <DebtBars data={debtData} lastUpdated={lastUpdated} convertAndFormat={convertAndFormat} currentSymbol={currentSymbol} />
-          </BentoCard>
+        ),
 
-          <BentoCard key="activity" title="Economic Activity" accent="globalMacro" className="mac-bento-card" source="FRED / BIS" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        activity: (
+          <>
             <div className="mac-activity-summary">
               <div className="mac-activity-metric">
                 <span className="mac-activity-label">CFNAI</span>
@@ -723,10 +679,10 @@ function GlobalMacroDashboard({
                 <SafeECharts option={cfnaiMiniOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'CFNAI — Economic Activity', source: 'FRED', endpoint: '/api/globalMacro', series: [{ id: 'CFNAI' }], updatedAt: lastUpdated }} />
               </div>
             )}
-          </BentoCard>
+          </>
+        ),
 
-          {/* OECD CLI */}
-          <BentoCard key="cli" title="OECD Leading Indicators" subtitle="Amplitude-adjusted CLI · 100 = trend" accent="globalMacro" className="mac-bento-card" source="FRED OECD CLI" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
+        cli: (
             <div className="mac-cli-mini-grid">
               {(oecdCliDetail?.countries?.length ? oecdCliDetail.countries : Object.entries(oecdCli || {}).map(([code, entry]) => ({ code, value: entry?.value, cli: entry?.value, date: entry?.date }))).map((entry) => {
                 const code = entry.code;
@@ -748,64 +704,32 @@ function GlobalMacroDashboard({
                 <div className="mac-empty">No CLI data available — FRED OECD series unavailable</div>
               )}
             </div>
-          </BentoCard>
+        ),
 
-          {/* IMF — International Reserves */}
-          {imfData?.countries?.length > 0 && (
-            <BentoCard key="imf-reserves" title="International Reserves" subtitle="Central-bank FX reserves · USD billions · IMF IFS" accent="globalMacro" className="mac-bento-card" source="IMF IFS (RAXFSFX)" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-              <ImfReserves countries={imfData.countries} ifsReserves={imfData.ifsReserves} lastUpdated={lastUpdated} />
-            </BentoCard>
-          )}
+        'imf-reserves': (
+          imfData?.countries?.length > 0
+            ? <ImfReserves countries={imfData.countries} ifsReserves={imfData.ifsReserves} lastUpdated={lastUpdated} />
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>IMF reserves loading…</div>
+        ),
 
-          {/* IMF — COFER currency-share donut (always mount so layout stays stable) */}
-          <BentoCard
-            key="imf-cofer"
-            title="COFER Currency Shares"
-            subtitle="Global FX reserves by currency · IMF COFER · quarterly"
-            accent="globalMacro"
-            className="mac-bento-card"
-            source="IMF COFER"
-            timestamp={lastUpdated}
-            isLive={!!(imfData?.cofer && Object.keys(imfData.cofer).length > 0)}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        'imf-cofer': (
             <ImfCofier cofer={imfData?.cofer} lastUpdated={lastUpdated} />
-          </BentoCard>
+        ),
 
-          {/* World Bank — Trade Openness */}
-          {wbData?.countries?.length > 0 && (
-            <BentoCard key="wb-trade" title="Trade Openness" subtitle="(Exports + Imports) / GDP · World Bank WDI" accent="globalMacro" className="mac-bento-card" source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-              <WbTradeOpenness countries={wbData.countries} lastUpdated={lastUpdated} />
-            </BentoCard>
-          )}
+        'wb-trade': (
+          wbData?.countries?.length > 0
+            ? <WbTradeOpenness countries={wbData.countries} lastUpdated={lastUpdated} />
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank trade data loading…</div>
+        ),
 
-          {/* World Bank — GDP per Capita vs Growth scatter */}
-          {wbData?.countries?.length > 0 && (
-            <BentoCard key="wb-dev" title="GDP per Capita vs Growth" subtitle="Bubble = population · World Bank WDI" accent="globalMacro" className="mac-bento-card" source="World Bank WDI" timestamp={lastUpdated} isLive={isLive} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-              <WbDevScatter countries={wbData.countries} lastUpdated={lastUpdated} />
-            </BentoCard>
-          )}
+        'wb-dev': (
+          wbData?.countries?.length > 0
+            ? <WbDevScatter countries={wbData.countries} lastUpdated={lastUpdated} />
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank development data loading…</div>
+        ),
 
-          {/* ECB — Euro Area policy rates ladder + HICP line + M3 bars */}
-          {ecbData?.policyRates && (
-            <BentoCard
-              key="ecb-eur"
-              title="Euro Area · ECB"
-              subtitle="Policy rates · HICP inflation · M3 monetary aggregate"
-              accent="globalMacro"
-              className="mac-bento-card"
-              contentClassName="mac-panel-scroll"
-              source="ECB SDW"
-              timestamp={ecbLastUpdated || lastUpdated}
-              isLive={!!ecbData?.isLive}
-              isCurrent={ecbData?.isCurrent !== false}
-              fetchedOn={ecbData?.fetchedOn || fetchedOn}
-              fetchLog={fetchLog}
-              error={error}
-            >
+        'ecb-eur': (
+          ecbData?.policyRates ? (
               <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 1fr', gap: 14, height: '100%' }}>
                 <div style={{ overflowY: 'auto', minHeight: 0 }}>
                   <div className="mac-sidebar-title">Policy Rates</div>
@@ -865,66 +789,29 @@ function GlobalMacroDashboard({
                   </div>
                 </div>
               </div>
-            </BentoCard>
-          )}
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>ECB policy rates loading…</div>
+          )
+        ),
 
-          {/* US Treasury DTS — TGA cash balance + daily net flow */}
-          {dtsData?.series?.length > 0 && (
-            <BentoCard
-              key="tga-balance"
-              title="US Treasury · TGA Cash Balance"
-              subtitle={dtsData?.latest ? `Closing $${dtsData.latest.closeB?.toFixed(0)}B · net ${dtsData.latest.netB > 0 ? '+' : ''}$${dtsData.latest.netB?.toFixed(0)}B (${dtsData.latest.date})` : 'Daily Treasury Statement · 90 days'}
-              accent="globalMacro"
-              className="mac-bento-card"
-              source="US Treasury Fiscal Data"
-              timestamp={dtsLastUpdated || lastUpdated}
-              isLive={!!(dtsData?.isLive)}
-              isCurrent={dtsData?.isCurrent !== false}
-              fetchedOn={dtsData?.fetchedOn || fetchedOn}
-              fetchLog={fetchLog}
-              error={error}
-            >
-              {tgaOption && <SafeECharts option={tgaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'TGA Cash Balance', source: 'US Treasury Fiscal Data', endpoint: '/api/treasury/dts', series: [], updatedAt: dtsLastUpdated || lastUpdated }} />}
-            </BentoCard>
-          )}
+        'tga-balance': (
+          dtsData?.series?.length > 0
+            ? (tgaOption
+              ? <SafeECharts option={tgaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'TGA Cash Balance', source: 'US Treasury Fiscal Data', endpoint: '/api/treasury/dts', series: [], updatedAt: dtsLastUpdated || lastUpdated }} />
+              : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>TGA chart loading…</div>)
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>TGA series loading…</div>
+        ),
 
-          {/* Atlanta Fed GDPNow — current-quarter nowcast evolution */}
-          {gdpNowData?.evolution?.length > 0 && (
-            <BentoCard
-              key="gdpnow"
-              title={`GDPNow · ${gdpNowData.currentQuarter || ''}`.trim()}
-              subtitle={gdpNowData.latest ? `Latest ${gdpNowData.latest.gdp?.toFixed(2)}% (${gdpNowData.latest.event})` : 'Atlanta Fed real-time GDP nowcast'}
-              accent="globalMacro"
-              className="mac-bento-card"
-              source="Atlanta Fed"
-              timestamp={gdpNowLastUpdated || lastUpdated}
-              isLive={!!gdpNowData?.isLive}
-              isCurrent={gdpNowData?.isCurrent !== false}
-              fetchedOn={gdpNowData?.fetchedOn || fetchedOn}
-              fetchLog={fetchLog}
-              error={error}
-            >
-              {gdpNowOption && <SafeECharts option={gdpNowOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'GDPNow', source: 'Atlanta Fed', endpoint: '/api/fed/gdpnow', series: [], updatedAt: gdpNowLastUpdated || lastUpdated }} />}
-            </BentoCard>
-          )}
+        gdpnow: (
+          gdpNowData?.evolution?.length > 0
+            ? (gdpNowOption
+              ? <SafeECharts option={gdpNowOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'GDPNow', source: 'Atlanta Fed', endpoint: '/api/fed/gdpnow', series: [], updatedAt: gdpNowLastUpdated || lastUpdated }} />
+              : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>GDPNow chart loading…</div>)
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>GDPNow loading…</div>
+        ),
 
-          {/* FOMC SEP — median projections table */}
-          {sepData?.projections?.length > 0 && (
-            <BentoCard
-              key="fomc-sep"
-              title="FOMC Summary of Economic Projections"
-              subtitle={sepData.summary?.releaseDate ? `Median forecasts · ${sepData.summary.releaseDate} release` : 'Median forecasts (current year + 2 forward + longer run)'}
-              accent="globalMacro"
-              className="mac-bento-card"
-              contentClassName="mac-panel-scroll"
-              source="Federal Reserve Board"
-              timestamp={sepLastUpdated || lastUpdated}
-              isLive={!!sepData?.isLive}
-              isCurrent={sepData?.isCurrent !== false}
-              fetchedOn={sepData?.fetchedOn || fetchedOn}
-              fetchLog={fetchLog}
-              error={error}
-            >
+        'fomc-sep': (
+          sepData?.projections?.length > 0 ? (
               <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
@@ -947,56 +834,17 @@ function GlobalMacroDashboard({
                   ))}
                 </tbody>
               </table>
-            </BentoCard>
-          )}
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>FOMC SEP loading…</div>
+          )
+        ),
 
-          {/* Cleveland Fed Inflation Nowcasting — KPI strip + MoM/YoY/QoQ tables */}
-          <BentoCard
-            key="cleveland"
-            title="Cleveland Fed · Inflation Nowcast"
-            subtitle={(() => {
-              const tables = Array.isArray(cleveData?.tables) ? cleveData.tables : [];
-              const yoy = tables.find((t) => t.kind === 'yoy')?.rows?.[0]
-                || cleveData?.byKind?.yoy
-                || (tables.filter((t) => t.kind === 'mom').length > 1 ? tables[1]?.rows?.[0] : null)
-                || cleveData?.latest;
-              if (yoy && yoy.cpi != null) {
-                const core = yoy.coreCpi != null ? ` · Core ${Number(yoy.coreCpi).toFixed(2)}%` : '';
-                const pce = yoy.pce != null ? ` · PCE ${Number(yoy.pce).toFixed(2)}%` : '';
-                return `${yoy.period || 'Latest'} YoY · CPI ${Number(yoy.cpi).toFixed(2)}%${core}${pce}`;
-              }
-              return cleveData ? 'Current-month inflation projection · Cleveland Fed' : 'Loading Cleveland Fed nowcast…';
-            })()}
-            accent="globalMacro"
-            className="mac-bento-card"
-            contentClassName="mac-panel-scroll"
-            source="Cleveland Fed"
-            timestamp={cleveLastUpdated || lastUpdated}
-            isLive={!!cleveData?.isLive}
-            isCurrent={cleveData?.isCurrent !== false}
-            fetchedOn={cleveData?.fetchedOn || fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        cleveland: (
             <ClevelandNowcastPanel data={cleveData} lastUpdated={cleveLastUpdated || lastUpdated} />
-          </BentoCard>
+        ),
 
-          {beaData && (beaData.gdpComponents?.length || beaData.savingRate?.length) && (
-            <BentoCard
-              key="bea-accounts"
-              title="BEA National Accounts"
-              subtitle={beaSummary.saving ? `Saving rate ${Number(beaSummary.saving.value).toFixed(1)}% · ${beaSummary.saving.period}` : 'NIPA GDP components · personal income · saving rate'}
-              accent="globalMacro"
-              className="mac-bento-card"
-              contentClassName="mac-panel-scroll"
-              source="BEA NIPA"
-              timestamp={beaLastUpdated || lastUpdated}
-              isLive={!!beaData?.isLive}
-              isCurrent={beaCtx?.isCurrent ?? isCurrent}
-              fetchedOn={beaCtx?.fetchedOn || fetchedOn}
-              fetchLog={beaCtx?.fetchLog || fetchLog}
-              error={beaCtx?.error || error}
-            >
+        'bea-accounts': (
+          beaData && (beaData.gdpComponents?.length || beaData.savingRate?.length) ? (
               <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 12, height: '100%' }}>
                 <div className="mac-mini-bars" style={{ gap: 8 }}>
                   {[
@@ -1017,63 +865,29 @@ function GlobalMacroDashboard({
                   {beaOption && <SafeECharts option={beaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Personal Saving Rate', source: 'BEA', endpoint: '/api/bea', series: [], updatedAt: beaLastUpdated || lastUpdated }} />}
                 </div>
               </div>
-            </BentoCard>
-          )}
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>BEA national accounts loading…</div>
+          )
+        ),
 
-          {eurostatData && (eurostatData.hicp?.length || eurostatData.unemployment?.length || eurostatData.govtDeficit?.length) && (
-            <BentoCard
-              key="eurostat"
-              title="Euro Area Macro"
-              subtitle="HICP · unemployment · government deficit"
-              accent="globalMacro"
-              className="mac-bento-card"
-              source="Eurostat"
-              timestamp={eurostatLastUpdated || lastUpdated}
-              isLive={!!eurostatData?.isLive}
-              isCurrent={eurostatCtx?.isCurrent ?? isCurrent}
-              fetchedOn={eurostatCtx?.fetchedOn || fetchedOn}
-              fetchLog={eurostatCtx?.fetchLog || fetchLog}
-              error={eurostatCtx?.error || error}
-            >
-              {eurostatOption && <SafeECharts option={eurostatOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Euro Area Macro', source: 'Eurostat', endpoint: '/api/eurostat', series: [], updatedAt: eurostatLastUpdated || lastUpdated }} />}
-            </BentoCard>
-          )}
+        eurostat: (
+          eurostatData && (eurostatData.hicp?.length || eurostatData.unemployment?.length || eurostatData.govtDeficit?.length)
+            ? (eurostatOption
+              ? <SafeECharts option={eurostatOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Euro Area Macro', source: 'Eurostat', endpoint: '/api/eurostat', series: [], updatedAt: eurostatLastUpdated || lastUpdated }} />
+              : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Eurostat chart loading…</div>)
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Eurostat data loading…</div>
+        ),
 
-          {oecdDirectRows.length > 0 && (
-            <BentoCard
-              key="oecd-direct"
-              title="OECD CLI Momentum"
-              subtitle={`Direct OECD route · latest ${oecdDirectRows[0]?.period || ''} · 3-month change`}
-              accent="globalMacro"
-              className="mac-bento-card"
-              source="OECD SDMX"
-              timestamp={oecdLastUpdated || lastUpdated}
-              isLive={!!oecdData?.isLive}
-              isCurrent={oecdCtx?.isCurrent ?? isCurrent}
-              fetchedOn={oecdCtx?.fetchedOn || fetchedOn}
-              fetchLog={oecdCtx?.fetchLog || fetchLog}
-              error={oecdCtx?.error || error}
-            >
-              {oecdDirectOption && <SafeECharts option={oecdDirectOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'OECD CLI Momentum', source: 'OECD', endpoint: '/api/oecd', series: [], updatedAt: oecdLastUpdated || lastUpdated }} />}
-            </BentoCard>
-          )}
+        'oecd-direct': (
+          oecdDirectRows.length > 0
+            ? (oecdDirectOption
+              ? <SafeECharts option={oecdDirectOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'OECD CLI Momentum', source: 'OECD', endpoint: '/api/oecd', series: [], updatedAt: oecdLastUpdated || lastUpdated }} />
+              : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>OECD chart loading…</div>)
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>OECD CLI momentum loading…</div>
+        ),
 
-          {(beaIncomeRows.length > 0 || beaIncomeCycleOption) && (
-            <BentoCard
-              key="bea-income"
-              title="BEA Income & Savings Cycle"
-              subtitle={beaSummary.saving ? `Latest saving rate ${Number(beaSummary.saving.value).toFixed(1)}% · ${beaSummary.saving.period}` : 'Personal income detail · saving-rate cycle'}
-              accent="globalMacro"
-              className="mac-bento-card"
-              contentClassName="mac-panel-scroll"
-              source="BEA NIPA"
-              timestamp={beaLastUpdated || lastUpdated}
-              isLive={!!beaData?.isLive}
-              isCurrent={beaCtx?.isCurrent ?? isCurrent}
-              fetchedOn={beaCtx?.fetchedOn || fetchedOn}
-              fetchLog={beaCtx?.fetchLog || fetchLog}
-              error={beaCtx?.error || error}
-            >
+        'bea-income': (
+          (beaIncomeRows.length > 0 || beaIncomeCycleOption) ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 12, height: '100%', minHeight: 0 }}>
                 <div style={{ minHeight: 0 }}>
                   {beaIncomeCycleOption && <SafeECharts option={beaIncomeCycleOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'BEA Income & Savings Cycle', source: 'BEA', endpoint: '/api/bea', series: [], updatedAt: beaLastUpdated || lastUpdated }} />}
@@ -1102,24 +916,12 @@ function GlobalMacroDashboard({
                   </table>
                 </div>
               </div>
-            </BentoCard>
-          )}
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>BEA income cycle loading…</div>
+          )
+        ),
 
-          <BentoCard
-            key="global-liquidity"
-            title="Global Liquidity Dashboard"
-            subtitle={`${globalLiquidity.label} backdrop · TGA, ECB M3, saving rate, GDPNow`}
-            accent="globalMacro"
-            className="mac-bento-card"
-            contentClassName="mac-panel-scroll mac-liq-panel"
-            source="US Treasury / ECB / BEA / Atlanta Fed"
-            timestamp={dtsLastUpdated || ecbLastUpdated || beaLastUpdated || gdpNowLastUpdated || lastUpdated}
-            isLive={!!(dtsData?.series?.length || ecbData?.m3Growth?.length || beaData?.savingRate?.length)}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        'global-liquidity': (
             <div className="mac-liq">
               <div className="mac-liq-top">
                 <div className={`mac-liq-hero mac-liq-tone-${globalLiquidity.label === 'Supportive' ? 'supportive' : globalLiquidity.label === 'Tightening' ? 'tight' : 'neutral'}`}>
@@ -1271,20 +1073,135 @@ function GlobalMacroDashboard({
                 </div>
               </div>
             </div>
-          </BentoCard>
-        </BentoWrapper>
+        ),
+  };
 
-        {selectedCountry && (
-          <CountryDetailPanel
-            country={selectedCountry}
-            onClose={() => setSelectedCountry(null)}
-            centralBankData={centralBankData}
-            oecdCli={oecdCli}
-            scorecardData={scorecardData}
-            convertAndFormat={convertAndFormat}
-            currentSymbol={currentSymbol}
-          />
-        )}
+  const panelCtx = {
+    __render: (panelId) => panelBodies[panelId] ?? null,
+    __live: {
+      kpi: !!kpiSidebar,
+      sidebar: !!isLive,
+      scorecard: !!isLive,
+      gdp: !!isLive,
+      cpi: !!isLive,
+      rates: !!isLive,
+      debt: !!isLive,
+      activity: !!isLive,
+      cli: !!isLive,
+      'imf-reserves': !!isLive,
+      'imf-cofer': !!(imfData?.cofer && Object.keys(imfData.cofer).length > 0),
+      'wb-trade': !!isLive,
+      'wb-dev': !!isLive,
+      'ecb-eur': !!ecbData?.isLive,
+      'tga-balance': !!dtsData?.isLive,
+      gdpnow: !!gdpNowData?.isLive,
+      'fomc-sep': !!sepData?.isLive,
+      cleveland: !!cleveData?.isLive,
+      'bea-accounts': !!beaData?.isLive,
+      eurostat: !!eurostatData?.isLive,
+      'oecd-direct': !!oecdData?.isLive,
+      'bea-income': !!beaData?.isLive,
+      'global-liquidity': !!(dtsData?.series?.length || ecbData?.m3Growth?.length || beaData?.savingRate?.length),
+    },
+    __subtitle: {
+      scorecard: scorecard.length ? 'Click row for details' : 'Waiting for country scorecard data…',
+      cli: 'Amplitude-adjusted CLI · 100 = trend',
+      'imf-reserves': 'Central-bank FX reserves · USD billions · IMF IFS',
+      'imf-cofer': 'Global FX reserves by currency · IMF COFER · quarterly',
+      'wb-trade': '(Exports + Imports) / GDP · World Bank WDI',
+      'wb-dev': 'Bubble = population · World Bank WDI',
+      'ecb-eur': 'Policy rates · HICP inflation · M3 monetary aggregate',
+      'tga-balance': dtsData?.latest ? `Closing $${dtsData.latest.closeB?.toFixed(0)}B · net ${dtsData.latest.netB > 0 ? '+' : ''}$${dtsData.latest.netB?.toFixed(0)}B (${dtsData.latest.date})` : 'Daily Treasury Statement · 90 days',
+      gdpnow: gdpNowData?.latest ? `Latest ${gdpNowData.latest.gdp?.toFixed(2)}% (${gdpNowData.latest.event})` : 'Atlanta Fed real-time GDP nowcast',
+      'fomc-sep': sepData?.summary?.releaseDate ? `Median forecasts · ${sepData.summary.releaseDate} release` : 'Median forecasts (current year + 2 forward + longer run)',
+      cleveland: (() => {
+        const tables = Array.isArray(cleveData?.tables) ? cleveData.tables : [];
+        const yoy = tables.find((t) => t.kind === 'yoy')?.rows?.[0]
+          || cleveData?.byKind?.yoy
+          || (tables.filter((t) => t.kind === 'mom').length > 1 ? tables[1]?.rows?.[0] : null)
+          || cleveData?.latest;
+        if (yoy && yoy.cpi != null) {
+          const core = yoy.coreCpi != null ? ` · Core ${Number(yoy.coreCpi).toFixed(2)}%` : '';
+          const pce = yoy.pce != null ? ` · PCE ${Number(yoy.pce).toFixed(2)}%` : '';
+          return `${yoy.period || 'Latest'} YoY · CPI ${Number(yoy.cpi).toFixed(2)}%${core}${pce}`;
+        }
+        return cleveData ? 'Current-month inflation projection · Cleveland Fed' : 'Loading Cleveland Fed nowcast…';
+      })(),
+      'bea-accounts': beaSummary.saving ? `Saving rate ${Number(beaSummary.saving.value).toFixed(1)}% · ${beaSummary.saving.period}` : 'NIPA GDP components · personal income · saving rate',
+      eurostat: 'HICP · unemployment · government deficit',
+      'oecd-direct': `Direct OECD route · latest ${oecdDirectRows[0]?.period || ''} · 3-month change`,
+      'bea-income': beaSummary.saving ? `Latest saving rate ${Number(beaSummary.saving.value).toFixed(1)}% · ${beaSummary.saving.period}` : 'Personal income detail · saving-rate cycle',
+      'global-liquidity': `${globalLiquidity.label} backdrop · TGA, ECB M3, saving rate, GDPNow`,
+    },
+    __disabled: {
+      'imf-reserves': !(imfData?.countries?.length > 0),
+      'wb-trade': !(wbData?.countries?.length > 0),
+      'wb-dev': !(wbData?.countries?.length > 0),
+      'ecb-eur': !ecbData?.policyRates,
+      'tga-balance': !(dtsData?.series?.length > 0),
+      gdpnow: !(gdpNowData?.evolution?.length > 0),
+      'fomc-sep': !(sepData?.projections?.length > 0),
+      'bea-accounts': !(beaData && (beaData.gdpComponents?.length || beaData.savingRate?.length)),
+      eurostat: !(eurostatData && (eurostatData.hicp?.length || eurostatData.unemployment?.length || eurostatData.govtDeficit?.length)),
+      'oecd-direct': !(oecdDirectRows.length > 0),
+      'bea-income': !(beaIncomeRows.length > 0 || beaIncomeCycleOption),
+    },
+    __noFooter: {
+      kpi: true,
+    },
+    __source: {
+      sidebar: 'World Bank / FRED / BIS',
+      scorecard: 'World Bank / FRED / BIS',
+      gdp: 'World Bank / FRED / BIS',
+      cpi: 'FRED',
+      rates: 'FRED / BIS',
+      debt: 'World Bank / FRED / BIS',
+      activity: 'FRED / BIS',
+      cli: 'FRED OECD CLI',
+      'imf-reserves': 'IMF IFS (RAXFSFX)',
+      'imf-cofer': 'IMF COFER',
+      'wb-trade': 'World Bank WDI',
+      'wb-dev': 'World Bank WDI',
+      'ecb-eur': 'ECB SDW',
+      'tga-balance': 'US Treasury Fiscal Data',
+      gdpnow: 'Atlanta Fed',
+      'fomc-sep': 'Federal Reserve Board',
+      cleveland: 'Cleveland Fed',
+      'bea-accounts': 'BEA NIPA',
+      eurostat: 'Eurostat',
+      'oecd-direct': 'OECD SDMX',
+      'bea-income': 'BEA NIPA',
+      'global-liquidity': 'US Treasury / ECB / BEA / Atlanta Fed',
+    },
+  };
+
+  return (
+    <div className="mac-dashboard mac-dashboard--bento" data-market="globalMacro">
+      <MarketPanelGrid
+        marketId="globalMacro"
+        layout={LAYOUT}
+        storageKey="macro-layout-v10"
+        accent="globalMacro"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: lastUpdated,
+          isCurrent,
+          fetchedOn,
+          fetchLog,
+          error,
+        }}
+      />
+      {selectedCountry && (
+        <CountryDetailPanel
+          country={selectedCountry}
+          onClose={() => setSelectedCountry(null)}
+          centralBankData={centralBankData}
+          oecdCli={oecdCli}
+          scorecardData={scorecardData}
+          convertAndFormat={convertAndFormat}
+          currentSymbol={currentSymbol}
+        />
+      )}
     </div>
   );
 }

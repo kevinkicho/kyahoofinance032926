@@ -5,6 +5,7 @@ import { trackApiCall } from '../lib/rateLimits.js';
 import { fetchJSON } from '../lib/fetch.js';
 import { stockUniverseData } from '../../src/data/stockUniverse.js';
 import { buildDegradedShell } from '../lib/marketResponse.js';
+import { readDailyCache, writeDailyCache, readLatestCache, todayStr } from '../lib/cache.js';
 
 const router = Router();
 
@@ -122,7 +123,9 @@ async function fetchQuoteMap(items, usdRates = { USD: 1 }) {
   for (const chunk of chunkArray(yahooTickers, 80)) {
     try {
       trackApiCall('Yahoo Finance');
-      const result = await yf.quote(chunk);
+      // validateResult:false — one incomplete quote (e.g. COLO-B.ST) must not
+      // void the whole 80-symbol chunk under yahoo-finance2 schema checks.
+      const result = await yf.quote(chunk, {}, { validateResult: false });
       const arr = Array.isArray(result) ? result : [result];
       for (const quote of arr) {
         if (!quote?.symbol) continue;
@@ -132,6 +135,20 @@ async function fetchQuoteMap(items, usdRates = { USD: 1 }) {
       }
     } catch (e) {
       console.warn('[equities] quote chunk failed:', e?.message || e);
+      // Fall back to per-symbol so a single bad ticker does not blank the heatmap.
+      for (const y of chunk) {
+        try {
+          trackApiCall('Yahoo Finance');
+          const one = await yf.quote(y, {}, { validateResult: false });
+          const quote = Array.isArray(one) ? one[0] : one;
+          if (!quote?.symbol) continue;
+          const original = yahooToOriginal[quote.symbol] || yahooToOriginal[y] || y;
+          out[original] = normalizeQuote(quote, original, originalToMeta[original], usdRates);
+          missing.delete(original);
+        } catch {
+          /* leave in missing */
+        }
+      }
     }
   }
 
@@ -148,6 +165,16 @@ router.get('/', async (req, res) => {
   const totalLimit = Number.isFinite(rawTotalLimit)
     ? Math.max(1, Math.min(MAX_TOTAL_LIMIT, Math.floor(rawTotalLimit)))
     : MAX_TOTAL_LIMIT;
+
+  // Cache-first unless ?refresh=true (splash + recovery agent both benefit).
+  const forceRefresh = String(req.query.refresh || '') === 'true'
+    || req.get('x-cache-bypass') === '1';
+  if (!forceRefresh) {
+    const daily = readDailyCache('equities');
+    if (daily && daily.quotes && Object.keys(daily.quotes).length > 0) {
+      return res.json({ ...daily, fetchedOn: daily.fetchedOn || todayStr(), isCurrent: true, _cacheSource: 'disk' });
+    }
+  }
 
   try {
     const universe = getCanonicalUniverse(perMarketLimit, totalLimit);
@@ -170,7 +197,7 @@ router.get('/', async (req, res) => {
         ? 'partial'
       : 'failed';
 
-    res.json({
+    const payload = {
       marketId: 'equities',
       status,
       fetchedAt: now,
@@ -207,10 +234,20 @@ router.get('/', async (req, res) => {
         yahooIndexQuotes: { _source: true, count: indexReceived },
         stockUniverse: { _source: true, version: 'src/data/stockUniverse.js' },
       },
-    });
+    };
+
+    // Persist usable snapshots so splash/recovery do not depend on Yahoo every boot.
+    if (received > 0 || indexReceived > 0) {
+      try { writeDailyCache('equities', payload); } catch { /* ignore */ }
+    }
+
+    res.json(payload);
   } catch (e) {
     console.error('[equities]', e?.message || e);
-    // Equities is a live snapshot (no disk market cache) — still 200 for SPA.
+    const cached = readDailyCache('equities') || readLatestCache('equities');
+    if (cached?.quotes && Object.keys(cached.quotes).length > 0) {
+      return res.json({ ...cached, _cacheSource: 'disk-fallback', _error: e?.message || String(e) });
+    }
     return res.json({
       ...buildDegradedShell('equities', e, {
         marketId: 'equities',

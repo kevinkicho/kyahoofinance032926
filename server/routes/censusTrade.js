@@ -42,15 +42,43 @@ function timesForLastNMonths(n) {
   return out;
 }
 
+const DEFAULT_UA = 'kyahoofinance-researcher (Educational Sandbox)';
+
+/** Log at most one Census failure per process minute (48 month-calls used to spam). */
+let _censusWarnAt = 0;
+let _censusWarnN = 0;
+function warnCensusOnce(msg) {
+  _censusWarnN += 1;
+  const now = Date.now();
+  if (now - _censusWarnAt < 60_000) return;
+  const n = _censusWarnN;
+  _censusWarnAt = now;
+  _censusWarnN = 0;
+  const extra = n > 1 ? ` (+${n - 1} similar)` : '';
+  console.warn(`[Census trade]${extra}`, msg);
+}
+
+function censusApiKey() {
+  return String(
+    process.env.CENSUS_API_KEY
+    || process.env['CENSUS-API-KEY']
+    || process.env.CENSUS_KEY
+    || '',
+  ).trim();
+}
+
 async function fetchTradeForMonth(url, valueField, month) {
   const params = new URLSearchParams({
     get:       `CTY_CODE,CTY_NAME,${valueField}`,
     time:      month,
     CTY_CODE:  '*',
   });
+  // Some Census endpoints return HTML "Missing Key" without a key in 2025+.
+  const key = censusApiKey();
+  if (key) params.set('key', key);
   trackApiCall('Census Bureau');
   try {
-    const data = await fetchJSON(`${url}?${params.toString()}`);
+    const data = await fetchJSON(`${url}?${params.toString()}`, DEFAULT_UA, {}, 12_000);
     if (!Array.isArray(data) || data.length < 2) return null;
     // First row is the header. Return rows keyed by CTY_CODE.
     const out = {};
@@ -60,7 +88,10 @@ async function fetchTradeForMonth(url, valueField, month) {
       if (Number.isFinite(v)) out[code] = { name, value: v };
     }
     return out;
-  } catch (e) { console.warn('[Census trade]', e.message); return { _error: e.message, _source: 'Census Bureau', _fetchedAt: new Date().toISOString() }; }
+  } catch (e) {
+    warnCensusOnce(e.message);
+    return { _error: e.message, _source: 'Census Bureau', _fetchedAt: new Date().toISOString() };
+  }
 }
 
 router.get('/', async (_req, res) => {
@@ -70,12 +101,31 @@ router.get('/', async (_req, res) => {
   const today = todayStr();
   const months = timesForLastNMonths(24);
 
-  // Fan out — one fetch per (direction, month) combo. 24 months × 2 dirs
-  // = 48 calls; Census tolerates this comfortably for a daily refresh.
-  const results = await Promise.allSettled(months.flatMap(m => [
-    fetchTradeForMonth(EXPORTS_URL, 'ALL_VAL_MO', m).then(d => ({ direction: 'exports', month: m, data: d })),
-    fetchTradeForMonth(IMPORTS_URL, 'GEN_VAL_MO', m).then(d => ({ direction: 'imports', month: m, data: d })),
-  ]));
+  // Fan out — one fetch per (direction, month). Prefer cache on total failure.
+  // Cap concurrency slightly by awaiting settled (allSettled already isolates).
+  let results;
+  try {
+    results = await Promise.allSettled(months.flatMap(m => [
+      fetchTradeForMonth(EXPORTS_URL, 'ALL_VAL_MO', m).then(d => ({ direction: 'exports', month: m, data: d })),
+      fetchTradeForMonth(IMPORTS_URL, 'GEN_VAL_MO', m).then(d => ({ direction: 'imports', month: m, data: d })),
+    ]));
+  } catch (e) {
+    // Should not throw (allSettled), but never take down the process.
+    console.warn('[Census trade] batch failed:', e?.message || e);
+    const fb = readLatestCache('censusTrade');
+    if (fb) return res.json({ ...fb.data, isCurrent: false, fetchedOn: fb.fetchedOn });
+    return res.json({
+      blocs: BLOCS.map(b => ({ ...b, series: [] })),
+      latest: null,
+      summary: null,
+      _sources: { censusTrade: false },
+      isLive: false,
+      isCurrent: false,
+      fetchedOn: today,
+      lastUpdated: today,
+      error: e?.message || 'Census trade batch failed',
+    });
+  }
 
   // Re-shape: per-bloc time series of exports / imports / balance.
   const blocs = BLOCS.map(b => ({ ...b, series: [] }));

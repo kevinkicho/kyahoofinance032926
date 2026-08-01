@@ -32,7 +32,7 @@ const mockCentralData = {
 describe('CommoditiesMarket', () => {
   it('renders dashboard with commodity prices panel', () => {
     render(<CommoditiesMarket centralData={mockCentralData} />);
-    expect(screen.getByText('Commodity Prices')).toBeInTheDocument();
+    expect(screen.getAllByText('Commodity Prices').length).toBeGreaterThan(0);
   });
 
   it('shows the WTI Crude commodity', () => {
@@ -43,7 +43,7 @@ describe('CommoditiesMarket', () => {
 
   it('shows all panels visible at once (no tabs)', () => {
     render(<CommoditiesMarket centralData={mockCentralData} />);
-    expect(screen.getByText('Sector Performance')).toBeInTheDocument();
+    expect(screen.getAllByText('Sector Performance').length).toBeGreaterThan(0);
     const tabButtons = screen.queryAllByRole('button');
     const tabNavButtons = tabButtons.filter(btn =>
       btn.className && btn.className.includes('tab') && btn.className.includes('com')

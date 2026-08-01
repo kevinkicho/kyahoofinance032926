@@ -25,12 +25,10 @@ const EIA_SERIES = {
   brent_price: { series: 'PET.RBRTE.D', name: 'Brent Europe', unit: '$/bbl' },
   henry_hub: { series: 'NG.RNGWHHD.D', name: 'Henry Hub Natural Gas', unit: '$/MMBtu' },
 
-  // Refined Products
+  // Refined Products — only series IDs that still resolve on EIA v2 (404s retired 2025+).
+  // Removed: EPD2DXL0_PFU_NUS, EPD2F_PF4_Y44NY, EPK2_VFP_NUS, EPLLPA_PF4_Y44RL, PADD Y35HO/Y35LA.
   gasoline_regular: { series: 'PET.EER_EPMRU_PF4_RGC_DPG.D', name: 'Regular Gasoline', unit: '$/gal' },
-  diesel_uls: { series: 'PET.EER_EPD2DXL0_PFU_NUS_DPG.D', name: 'Ultra-Low Sulfur Diesel', unit: '$/gal' },
-  heating_oil: { series: 'PET.EER_EPD2F_PF4_Y44NY_DPG.D', name: 'Heating Oil NY', unit: '$/gal' },
-  jet_fuel: { series: 'PET.EER_EPK2_VFP_NUS_DPG.D', name: 'Kerosene Jet Fuel', unit: '$/gal' },
-  propane: { series: 'PET.EER_EPLLPA_PF4_Y44RL_DPG.D', name: 'Propane Mont Belvieu', unit: '$/gal' },
+  gasoline_padd1: { series: 'PET.EER_EPMRU_PF4_Y35NY_DPG.D', name: 'Gasoline PADD 1 (NY)', unit: '$/gal' },
 
   // Weekly Stocks/Inventories (series IDs verified against EIA v2 seriesid endpoint).
   // EIA returns these as thousand barrels (MBBL); we convert to million for UI.
@@ -45,11 +43,6 @@ const EIA_SERIES = {
 
   // Refinery Utilization
   refinery_utilization: { series: 'PET.WPULEUS3.W', name: 'Refinery Utilization', unit: 'Percent' },
-
-  // Regional Prices
-  gasoline_padd1: { series: 'PET.EER_EPMRU_PF4_Y35NY_DPG.D', name: 'Gasoline PADD 1 (NY)', unit: '$/gal' },
-  gasoline_padd3: { series: 'PET.EER_EPMRU_PF4_Y35HO_DPG.D', name: 'Gasoline PADD 3 (Gulf)', unit: '$/gal' },
-  gasoline_padd5: { series: 'PET.EER_EPMRU_PF4_Y35LA_DPG.D', name: 'Gasoline PADD 5 (CA)', unit: '$/gal' },
 };
 
 // FRED Commodity Series (expanded).

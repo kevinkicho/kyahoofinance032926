@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import MetricValue from '../../components/MetricValue/MetricValue';
-import BentoWrapper from '../../components/BentoWrapper';
-import BentoCard from '../../components/BentoCard/BentoCard';
 import DataFooter from '../../components/DataFooter/DataFooter';
 import SafeECharts from '../../components/SafeECharts';
+import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import './EiaMarket.css';
 
 const EIA_LAYOUT = {
@@ -155,8 +154,22 @@ function getEiaProps(centralData) {
 }
 
 function EiaMarket({ centralData } = {}) {
-  if (!centralData) return <MarketSkeleton />;
-  const props = getEiaProps(centralData);
+  // Keep hooks unconditional — splash mounts markets before centralData exists.
+  const props = centralData ? getEiaProps(centralData) : {
+    electricity: {},
+    co2Emissions: {},
+    petroleum: {},
+    naturalGas: {},
+    isLive: false,
+    lastUpdated: null,
+    isLoading: true,
+    fetchedOn: null,
+    isCurrent: false,
+    isHistorical: false,
+    asOfDate: null,
+    error: null,
+    fetchLog: [],
+  };
 
   // Always mount bento shells so panel-health / smoke never see 0 panels.
   const co2Sectors = (Array.isArray(props.co2Emissions.bySector) ? props.co2Emissions.bySector : [])
@@ -240,109 +253,124 @@ function EiaMarket({ centralData } = {}) {
     ? buildSparklineOption(ng, { color: '#06b6d4', unit: '$/MMBTU', label: 'Henry Hub' })
     : null;
 
+  const panelCtx = useMemo(() => {
+    const bodies = {
+      prices: (
+        <div className="eia-kpi-grid">
+          {priceCards.length ? priceCards : (
+            <EmptyHint>
+              {props.isLoading ? 'Loading electricity prices…' : 'Electricity price data unavailable'}
+            </EmptyHint>
+          )}
+        </div>
+      ),
+      consumption: (
+        <div className="eia-kpi-grid">
+          {salesCards.length ? salesCards : (
+            <EmptyHint>
+              {props.isLoading ? 'Loading consumption…' : 'Electricity consumption data unavailable'}
+            </EmptyHint>
+          )}
+        </div>
+      ),
+      trends: (
+        <div className="eia-chart-row">
+          {trendCharts.length ? trendCharts : (
+            <EmptyHint>
+              {props.isLoading ? 'Loading trends…' : 'Price trend series unavailable'}
+            </EmptyHint>
+          )}
+        </div>
+      ),
+      co2: co2Sectors.length > 0 ? (
+        <div className="eia-co2-table">
+          {co2Sectors.map((s) => (
+            <div key={s.name} className="eia-co2-row">
+              <span className="eia-co2-sector">{s.name}</span>
+              <span>
+                <span className="eia-co2-value">
+                  <MetricValue
+                    value={s.latest}
+                    seriesKey="eiaCo2BySector"
+                    timestamp={s.period}
+                    format={(v) => v.toFixed(1)}
+                  />
+                </span>
+                <span className="eia-co2-unit">{s.unit} ({s.period})</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyHint>
+          {props.isLoading ? 'Loading emissions…' : 'CO₂ emissions data unavailable'}
+        </EmptyHint>
+      ),
+      petroleum: (
+        <div className="eia-chart-row">
+          {petroCharts.length ? petroCharts : (
+            <EmptyHint>
+              {props.isLoading ? 'Loading petroleum…' : 'Petroleum price data unavailable'}
+            </EmptyHint>
+          )}
+        </div>
+      ),
+      'natural-gas': ng?.values?.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '8px 12px 0' }}>
+            <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
+              <MetricValue
+                value={ng.latest?.value}
+                seriesKey="eiaNaturalGasHenryHub"
+                timestamp={ng.latest?.period}
+                format={(v) => v.toFixed(2)}
+              />
+            </span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)' }}>
+              $/MMBTU · {ng.latest?.period}
+            </span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, padding: '0 12px 8px' }}>
+            {ngOpt && (
+              <SafeECharts
+                option={ngOpt}
+                style={{ height: '100%', width: '100%' }}
+                sourceInfo={{ title: 'Henry Hub Natural Gas', source: 'EIA', endpoint: '/api/eia', series: [] }}
+              />
+            )}
+          </div>
+        </div>
+      ) : (
+        <EmptyHint>
+          {props.isLoading ? 'Loading natural gas…' : 'Natural gas price data unavailable'}
+        </EmptyHint>
+      ),
+    };
+    const ids = Object.keys(bodies);
+    return {
+      __render: (panelId) => bodies[panelId] ?? null,
+      __live: Object.fromEntries(ids.map((id) => [id, !!props.isLive])),
+      __noFooter: Object.fromEntries(ids.map((id) => [id, true])),
+    };
+  }, [priceCards, salesCards, trendCharts, co2Sectors, petroCharts, ng, ngOpt, props.isLive, props.isLoading]);
+
   return (
     <div className="eia-market" data-market="eia">
-      <BentoWrapper layout={EIA_LAYOUT} storageKey="eia-layout-v2">
-        <BentoCard key="prices" title="US Electricity Retail Prices" accent="eia" noFooter>
-          <div className="eia-kpi-grid">
-            {priceCards.length ? priceCards : (
-              <EmptyHint>
-                {props.isLoading ? 'Loading electricity prices…' : 'Electricity price data unavailable'}
-              </EmptyHint>
-            )}
-          </div>
-        </BentoCard>
-
-        <BentoCard key="consumption" title="Electricity Consumption" accent="eia" noFooter>
-          <div className="eia-kpi-grid">
-            {salesCards.length ? salesCards : (
-              <EmptyHint>
-                {props.isLoading ? 'Loading consumption…' : 'Electricity consumption data unavailable'}
-              </EmptyHint>
-            )}
-          </div>
-        </BentoCard>
-
-        <BentoCard key="trends" title="Price Trends (3-Year Monthly)" accent="eia" noFooter>
-          <div className="eia-chart-row">
-            {trendCharts.length ? trendCharts : (
-              <EmptyHint>
-                {props.isLoading ? 'Loading trends…' : 'Price trend series unavailable'}
-              </EmptyHint>
-            )}
-          </div>
-        </BentoCard>
-
-        <BentoCard key="co2" title="CO₂ Emissions by Sector (US)" accent="eia" noFooter>
-          {co2Sectors.length > 0 ? (
-            <div className="eia-co2-table">
-              {co2Sectors.map((s) => (
-                <div key={s.name} className="eia-co2-row">
-                  <span className="eia-co2-sector">{s.name}</span>
-                  <span>
-                    <span className="eia-co2-value">
-                      <MetricValue
-                        value={s.latest}
-                        seriesKey="eiaCo2BySector"
-                        timestamp={s.period}
-                        format={(v) => v.toFixed(1)}
-                      />
-                    </span>
-                    <span className="eia-co2-unit">{s.unit} ({s.period})</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyHint>
-              {props.isLoading ? 'Loading emissions…' : 'CO₂ emissions data unavailable'}
-            </EmptyHint>
-          )}
-        </BentoCard>
-
-        <BentoCard key="petroleum" title="Petroleum Prices" accent="eia" noFooter>
-          <div className="eia-chart-row">
-            {petroCharts.length ? petroCharts : (
-              <EmptyHint>
-                {props.isLoading ? 'Loading petroleum…' : 'Petroleum price data unavailable'}
-              </EmptyHint>
-            )}
-          </div>
-        </BentoCard>
-
-        <BentoCard key="natural-gas" title="Natural Gas — Henry Hub Spot" accent="eia" noFooter>
-          {ng?.values?.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '8px 12px 0' }}>
-                <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
-                  <MetricValue
-                    value={ng.latest?.value}
-                    seriesKey="eiaNaturalGasHenryHub"
-                    timestamp={ng.latest?.period}
-                    format={(v) => v.toFixed(2)}
-                  />
-                </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #666)' }}>
-                  $/MMBTU · {ng.latest?.period}
-                </span>
-              </div>
-              <div style={{ flex: 1, minHeight: 0, padding: '0 12px 8px' }}>
-                {ngOpt && (
-                  <SafeECharts
-                    option={ngOpt}
-                    style={{ height: '100%', width: '100%' }}
-                    sourceInfo={{ title: 'Henry Hub Natural Gas', source: 'EIA', endpoint: '/api/eia', series: [] }}
-                  />
-                )}
-              </div>
-            </div>
-          ) : (
-            <EmptyHint>
-              {props.isLoading ? 'Loading natural gas…' : 'Natural gas price data unavailable'}
-            </EmptyHint>
-          )}
-        </BentoCard>
-      </BentoWrapper>
+      <MarketPanelGrid
+        marketId="eia"
+        layout={EIA_LAYOUT}
+        storageKey="eia-layout-v2"
+        accent="eia"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: props.lastUpdated,
+          isCurrent: props.isCurrent,
+          fetchedOn: props.fetchedOn,
+          fetchLog: props.fetchLog,
+          error: props.error,
+          isLoading: props.isLoading,
+        }}
+      />
       <DataFooter
         source="EIA (US Energy Information Administration)"
         timestamp={props.lastUpdated}

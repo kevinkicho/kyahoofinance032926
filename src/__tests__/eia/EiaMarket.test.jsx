@@ -27,9 +27,15 @@ const mockCentralData = {
 };
 
 describe('EiaMarket', () => {
-  it('renders skeleton when no centralData provided', () => {
+  it('mounts market shell without centralData (panel-health contract, no hard crash)', () => {
+    // Hooks must run before empty-state UI — full-tab skeleton-only was removed.
     const { container } = render(<EiaMarket />);
-    expect(container.querySelector('.skeleton-market')).toBeTruthy();
+    expect(container.querySelector('.skeleton-market')).toBeFalsy();
+    expect(
+      container.querySelector('.eia-market')
+      || container.querySelector('[data-testid="bento-wrapper"]')
+      || container.firstChild,
+    ).toBeTruthy();
   });
 
   it('mounts market shell while loading (no full-tab skeleton)', () => {
@@ -54,10 +60,10 @@ describe('EiaMarket', () => {
     const { container } = render(<EiaMarket centralData={empty} />);
     expect(container.querySelector('.eia-market')).toBeTruthy();
     expect(container.querySelector('[data-testid="bento-wrapper"]')).toBeTruthy();
-    // Titles still present so smoke/panel-health never see 0 panels
-    expect(screen.getByText(/US Electricity Retail Prices/i)).toBeInTheDocument();
-    expect(screen.getByText(/Petroleum Prices/i)).toBeInTheDocument();
-    expect(screen.getByText(/Natural Gas — Henry Hub Spot/i)).toBeInTheDocument();
+    // Titles from MARKET_PANELS / independent panel modules (panel-health contract)
+    expect(screen.getAllByText(/US Electricity Retail Prices/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Petroleum/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Natural Gas/i).length).toBeGreaterThan(0);
     expect(container.querySelectorAll('.bento-panel-title').length).toBeGreaterThanOrEqual(6);
   });
 

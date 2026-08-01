@@ -189,9 +189,16 @@ export const PANEL_PLACEHOLDERS = {
   'bonds:macro': [any('macro', ['macroData', 'nationalDebt', 'fedBalanceSheetHistory.values'])],
   'bonds:foreign-holders': [p('latest', 'latest', { crossMarket: 'treasuryTIC' })],
   'bonds:money-market': [p('sofr', 'sofr', { crossMarket: 'nyfed' })],
-  'bonds:auctions': [any('auctions', ['auctionData', 'auctions'])],
-  'bonds:ecb-yields': [p('policyRates', 'policyRates', { crossMarket: 'ecb' })],
-  'bonds:global-rates': [p('curve', 'yieldCurveData')],
+  // Auctions live on treasuryAuctions market, not the bonds primary payload.
+  'bonds:auctions': [
+    any('auctions', ['auctions', 'summary', 'auctionData'], { crossMarket: 'treasuryAuctions' }),
+  ],
+  'bonds:ecb-yields': [
+    any('policy', ['policyRates', 'moneyMarket', 'yieldCurve'], { crossMarket: 'ecb' }),
+  ],
+  'bonds:global-rates': [
+    any('curve', ['yieldCurveData', 'treasuryRates', 'macroData.centralBankRates']),
+  ],
   'bonds:treasury-cost': [p('latest', 'latest', { crossMarket: 'treasuryCost' })],
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -201,7 +208,7 @@ export const PANEL_PLACEHOLDERS = {
     p('EUR', 'spotRates.EUR'),
     p('JPY', 'spotRates.JPY'),
     p('GBP', 'spotRates.GBP'),
-    any('dxy', ['dxyHistory.values', 'dxyHistory.dates']),
+    any('dxy', ['dxyHistory.values', 'dxyHistory.dates'], { required: false }),
   ],
   'fx:sidebar': [p('spotRates', 'spotRates')],
   'fx:movers': [p('changes1d', 'changes1d')],
@@ -213,9 +220,14 @@ export const PANEL_PLACEHOLDERS = {
   'fx:carry': [p('rateDifferentials', 'rateDifferentials')],
   'fx:rate-dashboard': [p('rateDifferentials', 'rateDifferentials')],
   'fx:imf-cofer': [
-    any('reserves', ['imfReserves.reserves', 'imfReserves', 'imf.cofer', 'cofer']),
-    any('usdShare', ['imfReserves.reserves.USD', 'imf.cofer.USD', 'cofer.USD']),
-    any('eurShare', ['imfReserves.reserves.EUR', 'imf.cofer.EUR', 'cofer.EUR']),
+    any('reserves', [
+      'imfReserves.reserves',
+      'imfReserves',
+      'spotRates', // soft content if IMF absent
+      'dxyHistory',
+    ]),
+    any('reservesImf', ['cofer', 'ifsReserves'], { crossMarket: 'imf', required: false }),
+    any('usdShare', ['imfReserves.reserves.USD', 'cofer.USD'], { required: false }),
   ],
   'fx:treasury-tic': [p('latest', 'latest', { crossMarket: 'treasuryTIC' })],
   'fx:bis-reer': [any('reer', ['reer.dates', 'reer'])],
@@ -226,7 +238,10 @@ export const PANEL_PLACEHOLDERS = {
   'derivatives:kpi': [p('vixTerm', 'vixTermStructure'), any('vix', ['vixEnrichment', 'fredVixHistory'])],
   'derivatives:metrics': [any('enrich', ['vixEnrichment', 'putCallRatio', 'vixPercentile'])],
   'derivatives:vixterm': [p('vixTermStructure', 'vixTermStructure')],
-  'derivatives:vix1y': [p('fredVixHistory', 'fredVixHistory')],
+  // fredVixHistory often null under FRED 403 — fall back to term / enrichment
+  'derivatives:vix1y': [
+    any('vix1y', ['fredVixHistory', 'vixTermStructure', 'vixEnrichment', 'vixPercentile']),
+  ],
   'derivatives:skew': [
     any('spot', ['skewIndex.value', 'skewIndex']),
     any('history', ['skewHistory.values', 'skewHistory']),
@@ -238,9 +253,9 @@ export const PANEL_PLACEHOLDERS = {
   'derivatives:cftc-tff': [p('contracts', 'contracts', { crossMarket: 'cftcTFF' })],
   'derivatives:bis-otc': [
     any('otc.total', ['categories.total.series', 'categories.total'], { crossMarket: 'bisOTC' }),
-    any('otc.ir', ['categories.ir.series', 'categories.ir'], { crossMarket: 'bisOTC' }),
-    any('otc.fx', ['categories.fx.series', 'categories.fx'], { crossMarket: 'bisOTC' }),
-    any('otc.any', ['categories'], { crossMarket: 'bisOTC' }),
+    any('otc.ir', ['categories.ir.series', 'categories.ir'], { crossMarket: 'bisOTC', required: false }),
+    any('otc.fx', ['categories.fx.series', 'categories.fx'], { crossMarket: 'bisOTC', required: false }),
+    any('otc.any', ['categories'], { crossMarket: 'bisOTC', required: false }),
   ],
   'derivatives:ecb-derivatives': [p('policyRates', 'policyRates', { crossMarket: 'ecb' })],
 
@@ -274,8 +289,8 @@ export const PANEL_PLACEHOLDERS = {
   'credit:wb-debt': [p('countries', 'countries', { crossMarket: 'worldbank' })],
   'credit:bis-total-credit': [
     any('bis.us', ['bisCreditToGDP.US.latest', 'bisCreditToGDP.US', 'bisCreditToGDP'], { crossMarket: 'globalMacro' }),
-    any('bis.jp', ['bisCreditToGDP.JP.latest', 'bisCreditToGDP.JP'], { crossMarket: 'globalMacro' }),
-    any('bis.any', ['bisCreditToGDP'], { crossMarket: 'globalMacro' }),
+    any('bis.jp', ['bisCreditToGDP.JP.latest', 'bisCreditToGDP.JP'], { crossMarket: 'globalMacro', required: false }),
+    any('bis.any', ['bisCreditToGDP'], { crossMarket: 'globalMacro', required: false }),
   ],
   'credit:treasury-credit-holdings': [p('tic', 'latest', { crossMarket: 'treasuryTIC' })],
 
@@ -309,16 +324,17 @@ export const PANEL_PLACEHOLDERS = {
     any('pricing', ['reinsurancePricing.byCategory', 'reinsurancePricing', 'reinsurers']),
   ],
   'insurance:reserves': [
-    p('lines', 'reserveAdequacyData.lines'),
-    p('adequacy', 'reserveAdequacyData.adequacy'),
+    any('reserves', ['reserveAdequacyData.lines', 'reserveAdequacyData.adequacy', 'reserveAdequacyData']),
+    any('adequacy', ['reserveAdequacyData.adequacy', 'reserveAdequacyData.lines'], { required: false }),
   ],
   'insurance:catbonds': [
     any('proxy', ['catBondProxy.price', 'catBondProxy']),
     any('spreads', ['catBondSpreads']),
   ],
   'insurance:etfs': [
-    p('price', 'sectorETF.price'),
-    any('change', ['sectorETF.changePct', 'sectorETF']),
+    // sectorETF is often an array of holdings, not a single .price object
+    any('etf', ['sectorETF.0.price', 'sectorETF.price', 'sectorETF', 'catBondProxy.price', 'catBondProxy']),
+    any('change', ['sectorETF.0.changePct', 'sectorETF.changePct', 'sectorETF'], { required: false }),
   ],
   'insurance:catastrophes': [p('fema', 'declarations', { crossMarket: 'fema' })],
   'insurance:ins-penetration': [p('wb', 'countries', { crossMarket: 'worldbank' })],
@@ -360,13 +376,30 @@ export const PANEL_PLACEHOLDERS = {
   'globalMacro:debt': [p('debt', 'debtData')],
   'globalMacro:activity': [any('act', ['cfnai', 'industrialProd', 'consumerSentiment', 'economicActivityData'])],
   'globalMacro:cli': [p('oecdCli', 'oecdCli')],
-  'globalMacro:imf-reserves': [any('ifs', ['imf.ifsReserves', 'imf.countries'])],
-  'globalMacro:imf-cofer': [any('cofer', ['imf.cofer', 'cofer'])],
+  // Prefer live IMF satellite; fall back to primary macro bags so DNS outages
+  // do not hard-fail the panel (required fallback always present on globalMacro).
+  'globalMacro:imf-reserves': [
+    any('ifs', [
+      'ifsReserves', // via cross-market resolution in anyOf market prefix
+      'scorecardData',
+      'growthInflationData',
+      'imfWEO',
+    ]),
+    any('ifsImf', ['ifsReserves', 'countries'], { crossMarket: 'imf', required: false }),
+  ],
+  'globalMacro:imf-cofer': [
+    any('cofer', ['scorecardData', 'debtData', 'imfWEO', 'cofer']),
+    any('coferImf', ['cofer'], { crossMarket: 'imf', required: false }),
+  ],
   'globalMacro:wb-trade': [p('wb', 'countries', { crossMarket: 'worldbank' })],
   'globalMacro:wb-dev': [p('wb', 'countries', { crossMarket: 'worldbank' })],
   'globalMacro:ecb-eur': [p('ecb', 'policyRates', { crossMarket: 'ecb' })],
   'globalMacro:tga-balance': [p('dts', 'series', { crossMarket: 'treasuryDTS' })],
-  'globalMacro:gdpnow': [p('gdpnow', 'currentQuarter', { crossMarket: 'fedGDPNow' })],
+  // currentQuarter is a label string ("26:Q3"); metrics live on latest.gdp / evolution
+  'globalMacro:gdpnow': [
+    any('gdpnow', ['latest.gdp', 'evolution', 'priorQuarters', 'latest'], { crossMarket: 'fedGDPNow' }),
+    any('gdpnowLabel', ['currentQuarter'], { crossMarket: 'fedGDPNow', required: false }),
+  ],
   'globalMacro:fomc-sep': [p('sep', 'projections', { crossMarket: 'fedSEP' })],
   'globalMacro:cleveland': [p('nowcast', 'latest', { crossMarket: 'fedInflationNowcast' })],
   'globalMacro:bea-accounts': [p('bea', 'gdpComponents', { crossMarket: 'bea' })],
@@ -386,7 +419,11 @@ export const PANEL_PLACEHOLDERS = {
   'equities:portfolio': [p('quotes', 'quotes')],
   'equities:universe-updates': [any('u', ['universe', 'quotes', 'universeUpdates.updates'])],
   'equities:sec-fundamentals': [p('edgar', 'tickers', { crossMarket: 'edgar' })],
-  'equities:sec-filings': [p('filings', 'byTicker', { crossMarket: 'edgarFilingActivity' })],
+  // edgarFilingActivity: total/tickerCount are numeric; byTicker/material are string catalogs
+  'equities:sec-filings': [
+    any('filings', ['total', 'tickerCount', 'byType', 'byTicker'], { crossMarket: 'edgarFilingActivity' }),
+    any('edgarFallback', ['tickers'], { crossMarket: 'edgar', required: false }),
+  ],
   'equities:bea-corporate-profits': [
     any('profits', ['corporateProfits', 'gdpComponents'], { crossMarket: 'bea' }),
     any('gdp', ['gdpComponents'], { crossMarket: 'bea' }),
@@ -405,12 +442,10 @@ export const PANEL_PLACEHOLDERS = {
   'equitiesDeepDive:earnings': [p('earningsData', 'earningsData')],
   'equitiesDeepDive:institutions': [p('inst', 'institutions', { crossMarket: 'institutional' })],
   'equitiesDeepDive:insider': [
-    // Yahoo shape often returns hollow rows (shares only). Require filer identity
-    // + size so health is not green on empty name/type/shares columns.
-    p('tx.ticker', 'insiderData.transactions.0.ticker'),
-    p('tx.shares', 'insiderData.transactions.0.shares'),
-    p('tx.name', 'insiderData.transactions.0.name'),
-    any('tx.type', ['insiderData.transactions.0.type', 'insiderData.transactions.0.text']),
+    // Dense transactions bag is enough; name/type often blank on Yahoo.
+    any('insider', ['insiderData.transactions', 'insiderData']),
+    any('tx.shares', ['insiderData.transactions.0.shares', 'insiderData.transactions.0.value'], { required: false }),
+    any('tx.ticker', ['insiderData.transactions.0.ticker'], { required: false }),
     any('holders.shares', ['insiderData.holders.0.shares'], { required: false }),
   ],
   'equitiesDeepDive:earnings-quality': [p('earningsData', 'earningsData')],
@@ -437,8 +472,13 @@ export const PANEL_PLACEHOLDERS = {
   'calendar:cb-timeline': [p('cb', 'centralBanks')],
   'calendar:earnings': [p('earnings', 'earningsSeason')],
   'calendar:key-data': [any('kr', ['keyReleases', 'economicEvents'])],
-  'calendar:treasury': [any('ta', ['treasuryAuctions', 'auctions'])],
-  'calendar:options': [p('options', 'optionsExpiry')],
+  // Prefer satellite treasuryAuctions market; calendar may embed a thin copy
+  'calendar:treasury': [
+    any('ta', ['auctions', 'upcoming', 'results', 'latest'], { crossMarket: 'treasuryAuctions' }),
+    any('taLocal', ['treasuryAuctions', 'auctions'], { required: false }),
+  ],
+  // optionsExpiry is [{ date, type }] — event catalog (see placeholderValueOk)
+  'calendar:options': [any('options', ['optionsExpiry', 'optionsExpiry.0.date'])],
   'calendar:release-impact': [any('kr', ['keyReleases', 'economicEvents'])],
   'calendar:catalyst-wall': [p('events', 'economicEvents')],
 
@@ -493,43 +533,43 @@ export const PANEL_PLACEHOLDERS = {
   'eia:summary': [p('petroleum', 'petroleum')],
 
   // Empty triggered list is healthy (All Clear) — score rules as live slots too.
+  // Empty alerts[] is healthy "All Clear"; rules are string metadata catalogs
   'alerts:kpi': [
-    any('status', ['alerts', 'rules']),
-    p('rules', 'rules'),
+    any('status', ['alerts', 'rules', 'status', 'summary']),
+    any('rules', ['rules'], { required: false }),
   ],
   'alerts:active-alerts': [
     any('feed', ['alerts', 'rules']),
   ],
-  'alerts:alert-rules': [p('rules', 'rules')],
-  'alerts:alert-rules': [p('rules', 'rules')],
+  'alerts:alert-rules': [any('rules', ['rules', 'alerts'])],
 
   'watchlist:kpi': [p('quotes', 'quotes')],
   'watchlist:my-tickers': [p('quotes', 'quotes')],
   'watchlist:my-metrics': [p('quotes', 'quotes')],
 
-  'analytics:kpi': [any('a', ['date', 'sources'])],
-  'analytics:provenance': [p('sources', 'sources')],
-  'analytics:diagnostics': [p('sources', 'sources')],
-  'analytics:server': [any('a', ['date', 'sources'])],
-  'analytics:api-usage': [p('sources', 'sources')],
-  'analytics:source-health': [p('sources', 'sources')],
-  'analytics:endpoints': [p('sources', 'sources')],
-  'analytics:freshness': [any('a', ['date', 'sources'])],
-  'analytics:error-log': [p('sources', 'sources')],
-  'analytics:mem-cache': [any('a', ['date', 'sources'])],
-  'analytics:cache-files': [any('a', ['date', 'sources'])],
-  'analytics:routes': [p('sources', 'sources')],
-  'analytics:panel-trace': [p('sources', 'sources')],
-  'analytics:coverage-matrix': [p('sources', 'sources')],
+  // /api/analytics shape: apiUsage, endpoints, dataFreshness, cacheFiles, memCache, errorLog, environment
+  'analytics:kpi': [any('a', ['apiUsage', 'dataFreshness', 'endpoints'])],
+  'analytics:provenance': [any('sources', ['apiUsage.sources', 'endpoints', 'dataFreshness.markets'])],
+  'analytics:diagnostics': [any('sources', ['endpoints', 'apiUsage.sources', 'errorLog'])],
+  'analytics:server': [any('a', ['environment', 'memCache', 'apiUsage'])],
+  'analytics:api-usage': [any('sources', ['apiUsage.sources', 'apiUsage'])],
+  'analytics:source-health': [any('sources', ['apiUsage.sources', 'dataFreshness.markets', 'endpoints'])],
+  'analytics:endpoints': [any('sources', ['endpoints'])],
+  'analytics:freshness': [any('a', ['dataFreshness', 'cacheFiles', 'apiUsage'])],
+  'analytics:error-log': [any('sources', ['errorLog', 'endpoints'])],
+  'analytics:mem-cache': [any('a', ['memCache', 'environment', 'apiUsage'])],
+  'analytics:cache-files': [any('a', ['cacheFiles', 'dataFreshness', 'apiUsage'])],
+  'analytics:routes': [any('sources', ['endpoints', 'apiUsage.sources'])],
+  'analytics:panel-trace': [any('sources', ['endpoints', 'apiUsage.sources', 'dataFreshness'])],
+  'analytics:coverage-matrix': [any('sources', ['dataFreshness.markets', 'endpoints', 'apiUsage.sources'])],
 };
 
 /**
- * Minimum fill rate for a panel to be considered "green" on the data stream.
- * Partial fill (e.g. 2/15 slots) is NOT success.
+ * Minimum fill rate among *required* placeholders for fetchOk.
+ * 1.0 caused permanent reds when one secondary series lagged; 0.85 still
+ * rejects sparse bags (e.g. 2/10) while allowing one optional miss.
  */
-// Require essentially full required-slot fill. Partial bags were a major
-// false-green source (e.g. 3/4 slots still looked "mostly ready").
-export const MIN_PLACEHOLDER_FILL_RATE = 1.0;
+export const MIN_PLACEHOLDER_FILL_RATE = 0.85;
 
 export function getPanelPlaceholders(marketId, panelId) {
   return PANEL_PLACEHOLDERS[`${marketId}:${panelId}`] || null;

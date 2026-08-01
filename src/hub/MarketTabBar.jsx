@@ -70,46 +70,38 @@ function PanelDropdownItems({ marketId, onJump, panelHealth }) {
   return panels.map(p => {
     const report = panelHealth?.[p.id];
     const status = reportStatus(report);
-    // Green ONLY when all three gates pass on a live object report — never
-    // from a legacy string status or splash-cache pending.
-    const isOk = !!(
-      report
-      && typeof report === 'object'
-      && status === 'ok'
-      && report.fetchOk
-      && report.displayOk
-      && report.confirmOk
-      && report.elPresent !== false
+    // Prefer precomputed signal from usePanelHealth (derivePanelSignal).
+    const color = report?._color
+      || (status === 'ok' ? 'ok'
+        : status === 'stale' ? 'stale'
+          : status === 'loading' ? 'loading'
+            : status === 'pending' || status === 'unknown' ? 'pending'
+              : 'null');
+    const isOk = color === 'ok';
+    const isStale = color === 'stale';
+    const isPending = color === 'pending' || color === 'loading';
+    const isBad = color === 'null';
+    const tooltip = report?._tooltip || (
+      isOk ? 'Fetch · display · confirm all passed'
+        : isStale ? 'Stale data'
+          : isPending
+            ? (report?.fetchOk
+              ? 'Data fetched — open this tab to verify display'
+              : (status === 'loading' ? 'Loading…' : 'Waiting for data…'))
+            : `F${report?.fetchOk ? '✓' : '✗'} D${report?.displayOk ? '✓' : '✗'} C${report?.confirmOk ? '✓' : '✗'}`
     );
-    const isStale = status === 'stale';
-    const isPending = status === 'pending' || status === 'loading';
-    const isBad = !isOk && !isStale && !isPending && (
-      status === 'null' || status === 'empty' || status === 'missing' ||
-      status === 'not-rendered' || status === 'error' ||
-      (report && typeof report === 'object' && (
-        report.fetchOk === false || report.displayOk === false || report.confirmOk === false
-      ))
-    );
-    const isUnknown = !isOk && !isBad && !isStale;
-    const tooltip = isOk
-      ? 'Fetch · display · confirm all passed'
-      : isStale
-        ? 'Stale data'
-        : isBad
-          ? `F${report?.fetchOk ? '✓' : '✗'} D${report?.displayOk ? '✓' : '✗'} C${report?.confirmOk ? '✓' : '✗'}`
-          : 'Loading / not evaluated';
     const showDetail = detailId === p.id;
     return (
       <div key={p.id} className="market-panel-dropdown-row">
         <button
           type="button"
-          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isPending ? ' panel-status-loading' : ''}${isUnknown && !isPending ? ' panel-status-unknown' : ''}${isOk ? ' panel-status-ok' : ''}`}
+          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isPending ? ' panel-status-loading' : ''}${isOk ? ' panel-status-ok' : ''}`}
           onClick={() => onJump(marketId, p.id)}
           title={`${p.title} — ${tooltip}`}
         >
           <span
             className="panel-dropdown-status-dot"
-            data-status={isOk ? 'ok' : isStale ? 'stale' : isPending ? 'loading' : isBad ? 'null' : 'unknown'}
+            data-status={color}
             role="button"
             tabIndex={0}
             title="Click for panel health detail"
@@ -344,18 +336,19 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       const panels = MARKET_PANELS[marketId] || [];
       const panelInfo = panels.find(p => p.id === panelId);
       const titleText = panelInfo?.title;
-      let el = document.querySelector(`[data-panel-key="${panelId}"]`);
+      // Scope to the target market first — panel ids collide (kpi, metrics, …).
+      let el = document.querySelector(
+        `[data-market-id="${marketId}"] [data-panel-key="${panelId}"]`,
+      );
       if (!el && titleText) {
-        const titles = document.querySelectorAll('.bento-panel-title');
+        const scope = document.querySelector(`[data-market-id="${marketId}"]`) || document;
+        const titles = scope.querySelectorAll('.bento-panel-title');
         for (const t of titles) {
           if (t.textContent === titleText || t.textContent.includes(titleText)) {
             el = t.closest('.bento-card, .react-grid-item');
             break;
           }
         }
-      }
-      if (!el) {
-        el = document.querySelector(`div[class*="${panelId}"]`);
       }
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -511,6 +504,31 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
         aria-busy={isRefreshing}
       >
         {isRefreshing ? '⟳' : '▶'}
+      </button>
+      <button
+        className="hub-refresh-btn"
+        type="button"
+        disabled={isRefreshing}
+        title="AI recovery agent — observe incomplete panels and refetch only what is needed (not a full-wave stampede)"
+        aria-label="Run smart recovery agent"
+        onClick={async () => {
+          if (!dataCtx?.recoverPanels) {
+            addToast?.('Recovery agent unavailable', 'error');
+            return;
+          }
+          try {
+            addToast?.('Recovery agent running…', 'info');
+            const result = await dataCtx.recoverPanels({ maxCycles: 3, preferAi: true });
+            addToast?.(
+              `Recovery: ${result?.totalFetches ?? 0} fetch(es), ${result?.cycles ?? 0} cycle(s)`,
+              'success',
+            );
+          } catch (e) {
+            addToast?.(e?.message || 'Recovery failed', 'error');
+          }
+        }}
+      >
+        ✧
       </button>
 
       {/* Global Time Travel / Historical snapshot picker — drives setHistoricalDate so DataProvider seeds from RTDB history for the whole app */}

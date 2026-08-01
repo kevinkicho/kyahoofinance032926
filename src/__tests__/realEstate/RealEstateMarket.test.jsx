@@ -50,7 +50,7 @@ describe('RealEstateMarket', () => {
 
   it('shows Case-Shiller Index chart panel', () => {
     render(<RealEstateMarket centralData={mockCentralData} />);
-    expect(screen.getByText('Case-Shiller Index')).toBeInTheDocument();
+    expect(screen.getAllByText('Case-Shiller Index').length).toBeGreaterThan(0);
   });
 
   it('shows no data received status when not live', () => {

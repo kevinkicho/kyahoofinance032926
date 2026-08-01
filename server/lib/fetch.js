@@ -5,16 +5,44 @@ const FRED_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHT
 
 const FRED_RATE_LIMIT = 120;
 const FRED_WINDOW_MS = 60_000;
+/** Above this fraction of the window budget, force-live waves should demote to cache-first. */
+const FRED_HOT_FRACTION = 0.85;
 const MAX_REDIRECTS = 5;
 const fredCallTimestamps = [];
 
-async function throttleFRED() {
-  const now = Date.now();
+function pruneFredTimestamps(now = Date.now()) {
   const windowStart = now - FRED_WINDOW_MS;
-  // Prune stale entries efficiently — find the first non-stale index and slice.
   const staleIdx = fredCallTimestamps.findIndex(ts => ts >= windowStart);
   if (staleIdx > 0) fredCallTimestamps.splice(0, staleIdx);
   else if (staleIdx === -1 && fredCallTimestamps.length > 0) fredCallTimestamps.length = 0;
+}
+
+/**
+ * Client/server etiquette: is FRED near or over the 120/min soft limit?
+ * Used by DataProvider to avoid full force-live stampedes.
+ */
+export function getFredThrottleStatus() {
+  const now = Date.now();
+  pruneFredTimestamps(now);
+  const used = fredCallTimestamps.length;
+  const limit = FRED_RATE_LIMIT;
+  let waitMs = 0;
+  if (used >= limit && fredCallTimestamps[0]) {
+    waitMs = Math.max(0, fredCallTimestamps[0] + FRED_WINDOW_MS - now + 100);
+  }
+  return {
+    used,
+    limit,
+    windowMs: FRED_WINDOW_MS,
+    hot: used >= Math.floor(limit * FRED_HOT_FRACTION),
+    atLimit: used >= limit,
+    waitMs,
+  };
+}
+
+async function throttleFRED() {
+  const now = Date.now();
+  pruneFredTimestamps(now);
 
   if (fredCallTimestamps.length >= FRED_RATE_LIMIT) {
     const waitMs = fredCallTimestamps[0] + FRED_WINDOW_MS - now + 100;
@@ -52,11 +80,21 @@ function doFetchJSON(url, userAgent, extraHeaders, timeoutMs) {
       }
       let data = '';
       res.on('data', d => data += d);
+      res.on('error', reject);
       res.on('end', () => {
-        try { resolve(JSON.parse(data)); }
-        catch (e) { reject(e); }
+        const text = String(data || '');
+        // Census / Cloudflare sometimes return HTML error pages with 200.
+        if (/^\s*</.test(text) || /<!DOCTYPE html/i.test(text)) {
+          reject(new Error(`Expected JSON from ${urlObj.hostname}, got HTML (${text.slice(0, 80).replace(/\s+/g, ' ')})`));
+          return;
+        }
+        try { resolve(JSON.parse(text)); }
+        catch (e) {
+          reject(new Error(`Invalid JSON from ${urlObj.hostname}: ${e.message}`));
+        }
       });
-    }).on('error', reject);
+    });
+    req.on('error', reject);
 
     req.setTimeout(timeoutMs, () => {
       req.destroy(new Error(`fetchJSON timeout (${timeoutMs}ms) for ${urlObj.hostname}${urlObj.pathname}`));

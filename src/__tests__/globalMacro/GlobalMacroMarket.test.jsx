@@ -60,18 +60,19 @@ describe('GlobalMacroMarket', () => {
 
   it('shows chart panels with GDP, CPI, Rates, Debt', () => {
     render(<GlobalMacroMarket centralData={mockCentralData} />);
-    // "GDP Growth" / "CPI Inflation" / "Debt / GDP" appear as both bento panel
-    // titles AND sidebar labels — assert at-least-one match instead of unique.
-    expect(screen.getAllByText('GDP Growth').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('CPI Inflation').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Policy Rates').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Debt / GDP').length).toBeGreaterThan(0);
+    // Panel titles also appear as sidebar labels / body copy after extraction.
+    expect(screen.getAllByText(/GDP Growth/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/CPI Inflation/i).length).toBeGreaterThan(0);
+    // MARKET_PANELS title is "Central Bank Rates" (legacy chrome said "Policy Rates").
+    expect(screen.getAllByText(/Central Bank Rates|Policy Rates/i).length).toBeGreaterThan(0);
+    // Panel title "Debt Monitor" and/or sidebar label "Debt/GDP".
+    expect(screen.getAllByText(/Debt\s*\/?\s*GDP|Debt Monitor/i).length).toBeGreaterThan(0);
   });
 
   it('shows economic activity panel with CFNAI and OECD CLI', () => {
     render(<GlobalMacroMarket centralData={mockCentralData} />);
-    expect(screen.getByText('Economic Activity')).toBeInTheDocument();
-    expect(screen.getByText('OECD Leading Indicators')).toBeInTheDocument();
+    expect(screen.getAllByText('Economic Activity').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('OECD Leading Indicators').length).toBeGreaterThan(0);
   });
 
   it('shows no data received status when not live', () => {

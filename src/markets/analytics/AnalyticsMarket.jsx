@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api, apiUrl } from '../../lib/api';
-import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
+import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import { useMarketData, useDataContext } from '../../hub/DataContext';
 import { auth } from '../../lib/firebase';
 import PanelTraceInspector from './PanelTraceInspector';
@@ -995,108 +995,76 @@ export default function AnalyticsMarket({ onNavigate }) {
       { label: 'Hot Limits', value: String(sortedSources.filter(s => s.used / s.limit > 0.8).length), sublabel: '> 80% used', color: '#fbbf24' },
     ];
 
-    return (
-      <div className="ana-market">
-        <div className="ana-status-bar">
-          <span className="ana-status-live">● Analytics</span>
-
-        <span>Uptime {formatUptime(up.seconds || 0)}</span>
-        <span>Heap {up.memoryMB || 0} / {up.heapTotalMB || 0} MB</span>
-        <span>RSS {up.rssMB || 0} MB</span>
-        <span>MemCache {mc.keyCount || 0} keys ({mc.hitRate || 0}% hit)</span>
-        <button
-          className="ana-refresh-btn"
-          onClick={handleForceLiveRefresh}
-          disabled={!isAdmin}
-          title={isAdmin ? 'Refresh analytics once (force live)' : 'Admin sign-in required'}
-        >
-          ▶ Refresh
-        </button>
-        {/* Audit controls (date-aware) live inside the "Provenance Audit" bento card below — supports global History picker + per-audit date select. */}
-      </div>
-      <div className="ana-dashboard ana-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="analytics-layout-v4">
-          {/* KPI strip — real bento child at row 0. */}
-          <BentoCard key="kpi" title="Analytics Key Metrics" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <MarketKpiStrip kpis={kpis} bare />
-          </BentoCard>
-
-          {/* Provenance Audit */}
-          <BentoCard key="provenance" title="Provenance Audit" subtitle="Cross-reference _sources with FRED" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <ProvenanceAudit />
-          </BentoCard>
-
-          {/* API Diagnostics */}
-          <BentoCard key="diagnostics" title="API Health Diagnostics" subtitle="Probe structural integrity and latency" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <ApiDiagnosticsCard />
-          </BentoCard>
-
-          {/* Server Info */}
-          <BentoCard key="server" title="Server" subtitle={`PID ${env.pid}`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <>
-              <DetailRow label="Node" value={env.nodeVersion} mono />
-              <DetailRow label="Platform" value={`${env.platform} ${env.arch}`} />
-              <DetailRow label="CPUs" value={env.cpus} />
-              <DetailRow label="Memory" value={`${env.freeMemGB} / ${env.totalMemGB} GB free`} />
-              <DetailRow label="Env" value={env.env} />
-              <DetailRow label="Host" value={env.hostname} mono />
-              <DetailRow label="PID" value={env.pid} mono />
-              <DetailRow label="Uptime" value={formatUptime(up.seconds || 0)} />
-              <div className="ana-section-divider" />
-              <DetailRow label="Heap Used" value={`${up.memoryMB} MB`} />
-              <DetailRow label="Heap Total" value={`${up.heapTotalMB} MB`} />
-              <DetailRow label="RSS" value={`${up.rssMB} MB`} />
-              <DetailRow label="External" value={`${up.externalMB} MB`} />
-            </>
-          </BentoCard>
-
-          {/* API Usage */}
-          <BentoCard key="api-usage" title="API Usage" subtitle={`${data.apiUsage?.totalExternalCalls || 0} calls today`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <>
-              <div className="ana-stat-grid-sm">
-                <div className="ana-detail-row"><span className="ana-detail-label">Total Calls</span><span className="ana-mono">{data.apiUsage?.totalExternalCalls || 0}</span></div>
-                <div className="ana-detail-row"><span className="ana-detail-label">Sources</span><span className="ana-mono">{sortedSources.length}</span></div>
-                <div className="ana-detail-row"><span className="ana-detail-label">Near Limit</span><span className="ana-mono">{sortedSources.filter(s => s.used / s.limit > 0.8).length}</span></div>
-                <div className="ana-detail-row"><span className="ana-detail-label">Exhausted</span><span className="ana-mono">{sortedSources.filter(s => s.used >= s.limit).length}</span></div>
-              </div>
-              <div className="ana-section-divider" />
-              {sortedSources.map(s => (
-                <div key={s.name} className="ana-rate-row">
-                  <div className="ana-rate-header">
-                    <span className="ana-rate-name">{s.name}</span>
-                    <span className="ana-rate-count">{s.used}/{s.limit}</span>
-                  </div>
-                  {pctBar(s.pct)}
+    const panelCtx = {
+      __render: (panelId) => {
+        switch (panelId) {
+          case 'kpi':
+            return <MarketKpiStrip kpis={kpis} bare />;
+          case 'provenance':
+            return <ProvenanceAudit />;
+          case 'diagnostics':
+            return <ApiDiagnosticsCard />;
+          case 'server':
+            return (
+              <>
+                <DetailRow label="Node" value={env.nodeVersion} mono />
+                <DetailRow label="Platform" value={`${env.platform} ${env.arch}`} />
+                <DetailRow label="CPUs" value={env.cpus} />
+                <DetailRow label="Memory" value={`${env.freeMemGB} / ${env.totalMemGB} GB free`} />
+                <DetailRow label="Env" value={env.env} />
+                <DetailRow label="Host" value={env.hostname} mono />
+                <DetailRow label="PID" value={env.pid} mono />
+                <DetailRow label="Uptime" value={formatUptime(up.seconds || 0)} />
+                <div className="ana-section-divider" />
+                <DetailRow label="Heap Used" value={`${up.memoryMB} MB`} />
+                <DetailRow label="Heap Total" value={`${up.heapTotalMB} MB`} />
+                <DetailRow label="RSS" value={`${up.rssMB} MB`} />
+                <DetailRow label="External" value={`${up.externalMB} MB`} />
+              </>
+            );
+          case 'api-usage':
+            return (
+              <>
+                <div className="ana-stat-grid-sm">
+                  <div className="ana-detail-row"><span className="ana-detail-label">Total Calls</span><span className="ana-mono">{data.apiUsage?.totalExternalCalls || 0}</span></div>
+                  <div className="ana-detail-row"><span className="ana-detail-label">Sources</span><span className="ana-mono">{sortedSources.length}</span></div>
+                  <div className="ana-detail-row"><span className="ana-detail-label">Near Limit</span><span className="ana-mono">{sortedSources.filter(s => s.used / s.limit > 0.8).length}</span></div>
+                  <div className="ana-detail-row"><span className="ana-detail-label">Exhausted</span><span className="ana-mono">{sortedSources.filter(s => s.used >= s.limit).length}</span></div>
                 </div>
-              ))}
-            </>
-          </BentoCard>
-
-          {/* Source Health / Rate Limits */}
-          <BentoCard key="source-health" title="Data Source Health" subtitle={`${data.apiUsage?.totalExternalCalls || 0} calls today`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-              {sortedSources.map(s => (
-                <div key={s.name} className="ana-rate-row">
-                  <div className="ana-rate-header" onClick={() => setExpandedSource(expandedSource === s.name ? null : s.name)} style={{ cursor: 'pointer' }}>
-                    <span className="ana-rate-name"><StatusIcon status={s.used / s.limit > 0.8 ? 'warning' : s.used > 0 ? 'ok' : 'idle'} /> {s.name}</span>
-                    <span className="ana-rate-count">{s.used} / {s.limit} ({s.pct}%)</span>
-                    <Chevron open={expandedSource === s.name} onClick={() => setExpandedSource(expandedSource === s.name ? null : s.name)} />
-                  </div>
-                  {pctBar(s.pct)}
-                  {expandedSource === s.name && (
-                    <div className="ana-expanded-detail">
-                      <DetailRow label="Used Today" value={`${s.used} calls`} />
-                      <DetailRow label="Daily Limit" value={`${s.limit} calls`} />
-                      <DetailRow label="Remaining" value={`${s.remaining} calls`} />
-                      <DetailRow label="Usage %" value={`${s.pct}%`} />
-                      <DetailRow label="Status" value={s.used / s.limit > 0.8 ? 'WARNING — approaching limit' : s.used > 0 ? 'OK' : 'IDLE — no calls yet'} />
+                <div className="ana-section-divider" />
+                {sortedSources.map(s => (
+                  <div key={s.name} className="ana-rate-row">
+                    <div className="ana-rate-header">
+                      <span className="ana-rate-name">{s.name}</span>
+                      <span className="ana-rate-count">{s.used}/{s.limit}</span>
                     </div>
-                  )}
+                    {pctBar(s.pct)}
+                  </div>
+                ))}
+              </>
+            );
+          case 'source-health':
+            return sortedSources.map(s => (
+              <div key={s.name} className="ana-rate-row">
+                <div className="ana-rate-header" onClick={() => setExpandedSource(expandedSource === s.name ? null : s.name)} style={{ cursor: 'pointer' }}>
+                  <span className="ana-rate-name"><StatusIcon status={s.used / s.limit > 0.8 ? 'warning' : s.used > 0 ? 'ok' : 'idle'} /> {s.name}</span>
+                  <span className="ana-rate-count">{s.used} / {s.limit} ({s.pct}%)</span>
+                  <Chevron open={expandedSource === s.name} onClick={() => setExpandedSource(expandedSource === s.name ? null : s.name)} />
                 </div>
-              ))}
-          </BentoCard>
-
-          {/* Endpoint Metrics */}
-          <BentoCard key="endpoints" title="Endpoint Metrics" subtitle={`${sortedEndpoints.length} routes`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+                {pctBar(s.pct)}
+                {expandedSource === s.name && (
+                  <div className="ana-expanded-detail">
+                    <DetailRow label="Used Today" value={`${s.used} calls`} />
+                    <DetailRow label="Daily Limit" value={`${s.limit} calls`} />
+                    <DetailRow label="Remaining" value={`${s.remaining} calls`} />
+                    <DetailRow label="Usage %" value={`${s.pct}%`} />
+                    <DetailRow label="Status" value={s.used / s.limit > 0.8 ? 'WARNING — approaching limit' : s.used > 0 ? 'OK' : 'IDLE — no calls yet'} />
+                  </div>
+                )}
+              </div>
+            ));
+          case 'endpoints':
+            return (
               <table className="ana-table">
                 <thead><tr><th></th><th>Route</th><th>Calls</th><th>Avg</th><th>P50</th><th>Max</th><th>Err</th></tr></thead>
                 <tbody>
@@ -1145,10 +1113,9 @@ export default function AnalyticsMarket({ onNavigate }) {
                   ))}
                 </tbody>
               </table>
-          </BentoCard>
-
-          {/* Data Freshness */}
-          <BentoCard key="freshness" title="Data Freshness" subtitle={`${data.dataFreshness?.currentCount || 0}/${data.dataFreshness?.markets?.length || 0} current`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+            );
+          case 'freshness':
+            return (
               <table className="ana-table">
                 <thead><tr><th></th><th></th><th>Market</th><th>Fetched</th><th>Age</th><th>Size</th><th>Keys</th></tr></thead>
                 <tbody>
@@ -1190,60 +1157,56 @@ export default function AnalyticsMarket({ onNavigate }) {
                   ))}
                 </tbody>
               </table>
-          </BentoCard>
-
-          {/* Error Log */}
-          <BentoCard key="error-log" title="Error Log" subtitle={`${(data.errorLog || []).length} entries`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <>
-              {(data.errorLog || []).length === 0 && <div className="ana-empty">No errors recorded</div>}
-              {(data.errorLog || []).map((e, i) => (
-                <div key={i} className="ana-err-entry">
-                  <div className="ana-err-header">
-                    <span className="ana-err-status">{e.status}</span>
-                    <span className="ana-err-method">{e.method}</span>
-                    <span className="ana-err-path ana-mono">{e.path}</span>
+            );
+          case 'error-log':
+            return (
+              <>
+                {(data.errorLog || []).length === 0 && <div className="ana-empty">No errors recorded</div>}
+                {(data.errorLog || []).map((e, i) => (
+                  <div key={i} className="ana-err-entry">
+                    <div className="ana-err-header">
+                      <span className="ana-err-status">{e.status}</span>
+                      <span className="ana-err-method">{e.method}</span>
+                      <span className="ana-err-path ana-mono">{e.path}</span>
+                    </div>
+                    <div className="ana-err-time">{e.timestamp}</div>
                   </div>
-                  <div className="ana-err-time">{e.timestamp}</div>
+                ))}
+              </>
+            );
+          case 'mem-cache':
+            return (
+              <>
+                <div className="ana-stat-grid-sm">
+                  <div className="ana-detail-row"><span className="ana-detail-label">Keys</span><span className="ana-mono">{mc.keyCount}</span></div>
+                  <div className="ana-detail-row"><span className="ana-detail-label">Hits</span><span className="ana-mono">{mc.hits}</span></div>
+                  <div className="ana-detail-row"><span className="ana-detail-label">Misses</span><span className="ana-mono">{mc.misses}</span></div>
+                  <div className="ana-detail-row"><span className="ana-detail-label">Hit Rate</span><span className="ana-mono">{mc.hitRate}%</span></div>
                 </div>
-              ))}
-            </>
-          </BentoCard>
-
-          {/* Memory Cache */}
-          <BentoCard key="mem-cache" title="Memory Cache" subtitle={`${mc.keyCount || 0} keys · ${mc.hitRate || 0}% hit`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <>
-              <div className="ana-stat-grid-sm">
-                <div className="ana-detail-row"><span className="ana-detail-label">Keys</span><span className="ana-mono">{mc.keyCount}</span></div>
-                <div className="ana-detail-row"><span className="ana-detail-label">Hits</span><span className="ana-mono">{mc.hits}</span></div>
-                <div className="ana-detail-row"><span className="ana-detail-label">Misses</span><span className="ana-mono">{mc.misses}</span></div>
-                <div className="ana-detail-row"><span className="ana-detail-label">Hit Rate</span><span className="ana-mono">{mc.hitRate}%</span></div>
-              </div>
-              <div className="ana-section-divider" />
-              <div className="ana-detail-label">Cache keys:</div>
-              <div className="ana-key-list">{(mc.keys || []).map(k => <span key={k} className="ana-key-chip">{k}</span>)}</div>
-            </>
-          </BentoCard>
-
-          {/* Cache Files */}
-          <BentoCard key="cache-files" title="File Cache" subtitle={`${data.cacheFiles?.count || 0} files · ${data.cacheFiles?.totalSizeKB || 0} KB`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <>
-              <table className="ana-table">
-                <thead><tr><th>File</th><th>Size</th><th>Modified</th></tr></thead>
-                <tbody>
-                  {(data.cacheFiles?.files || []).map((f, i) => {
-                    const name = typeof f === 'string' ? f : f.name;
-                    const size = typeof f === 'string' ? null : (f.sizeDisplay || `${f.sizeKB}KB`);
-                    const mod = typeof f === 'string' ? null : f.modified;
-                    return <tr key={name || i}><td className="ana-mono">{name}</td><td>{size || '—'}</td><td className="ana-mono">{mod ? mod.split('T')[0] : '—'}</td></tr>;
-                  })}
-                </tbody>
-              </table>
-              {(data.cacheFiles?.files || []).length === 0 && <div className="ana-empty">No cache files</div>}
-            </>
-          </BentoCard>
-
-          {/* Registered Routes */}
-          <BentoCard key="routes" title="Express Routes" subtitle={`${routes.length} routes`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
+                <div className="ana-section-divider" />
+                <div className="ana-detail-label">Cache keys:</div>
+                <div className="ana-key-list">{(mc.keys || []).map(k => <span key={k} className="ana-key-chip">{k}</span>)}</div>
+              </>
+            );
+          case 'cache-files':
+            return (
+              <>
+                <table className="ana-table">
+                  <thead><tr><th>File</th><th>Size</th><th>Modified</th></tr></thead>
+                  <tbody>
+                    {(data.cacheFiles?.files || []).map((f, i) => {
+                      const name = typeof f === 'string' ? f : f.name;
+                      const size = typeof f === 'string' ? null : (f.sizeDisplay || `${f.sizeKB}KB`);
+                      const mod = typeof f === 'string' ? null : f.modified;
+                      return <tr key={name || i}><td className="ana-mono">{name}</td><td>{size || '—'}</td><td className="ana-mono">{mod ? mod.split('T')[0] : '—'}</td></tr>;
+                    })}
+                  </tbody>
+                </table>
+                {(data.cacheFiles?.files || []).length === 0 && <div className="ana-empty">No cache files</div>}
+              </>
+            );
+          case 'routes':
+            return (
               <table className="ana-table">
                 <thead><tr><th>Method</th><th>Path</th></tr></thead>
                 <tbody>
@@ -1252,46 +1215,117 @@ export default function AnalyticsMarket({ onNavigate }) {
                   ))}
                 </tbody>
               </table>
-          </BentoCard>
+            );
+          case 'panel-trace':
+            return <PanelTraceInspector />;
+          case 'coverage-matrix':
+            return (
+              <table className="ana-table">
+                <thead><tr><th>Market</th><th>Route</th><th>Status</th><th>Sources</th><th>Keys</th><th>Fetched</th></tr></thead>
+                <tbody>
+                  {coverageRows.map(row => (
+                    <tr key={row.id}>
+                      <td>{row.label}</td>
+                      <td className="ana-mono">{row.route}</td>
+                      <td style={{ color: row.status === 'ok' ? '#22c55e' : row.status === 'missing' || row.status === 'error' ? '#ef4444' : '#f59e0b' }}>{row.status}</td>
+                      <td>{row.totalSources ? `${row.okSources}/${row.totalSources}` : '—'}</td>
+                      <td>{row.keys || '—'}</td>
+                      <td className="ana-mono">{String(row.fetchedOn || '—').replace('T', ' ').slice(0, 19)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
+          default:
+            return null;
+        }
+      },
+      __live: Object.fromEntries(
+        ['kpi', 'provenance', 'diagnostics', 'server', 'api-usage', 'source-health', 'endpoints', 'freshness', 'error-log', 'mem-cache', 'cache-files', 'routes', 'panel-trace', 'coverage-matrix']
+          .map((id) => [id, true]),
+      ),
+      __noFooter: Object.fromEntries(
+        ['kpi', 'provenance', 'diagnostics', 'server', 'api-usage', 'source-health', 'endpoints', 'freshness', 'error-log', 'mem-cache', 'cache-files', 'routes', 'panel-trace', 'coverage-matrix']
+          .map((id) => [id, true]),
+      ),
+      __subtitle: {
+        provenance: 'Cross-reference _sources with FRED',
+        diagnostics: 'Probe structural integrity and latency',
+        server: `PID ${env.pid}`,
+        'api-usage': `${data.apiUsage?.totalExternalCalls || 0} calls today`,
+        'source-health': `${data.apiUsage?.totalExternalCalls || 0} calls today`,
+        endpoints: `${sortedEndpoints.length} routes`,
+        freshness: `${data.dataFreshness?.currentCount || 0}/${data.dataFreshness?.markets?.length || 0} current`,
+        'error-log': `${(data.errorLog || []).length} entries`,
+        'mem-cache': `${mc.keyCount || 0} keys · ${mc.hitRate || 0}% hit`,
+        'cache-files': `${data.cacheFiles?.count || 0} files · ${data.cacheFiles?.totalSizeKB || 0} KB`,
+        routes: `${routes.length} routes`,
+        'panel-trace': 'Trace data flow: frontend panel → backend field → external API',
+        'coverage-matrix': `${coverageRows.filter(r => r.status === 'ok').length}/${coverageRows.length} markets with source coverage`,
+      },
+    };
 
-          <BentoCard key="panel-trace" title="Panel Trace Inspector" subtitle="Trace data flow: frontend panel → backend field → external API" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <PanelTraceInspector />
-          </BentoCard>
+    // Array (not Fragment) so BentoWrapper/RGL sees each key as a direct child.
+    const analyticsExtra = [
+      <BentoCard
+        key="data-quality"
+        panelKey="data-quality"
+        title="Data Quality Score"
+        subtitle={`Avg ${Math.round((data.dataFreshness?.markets || []).reduce((s, m) => s + (m.isCurrent ? 100 : m.fetchedOn ? 30 : 0), 0) / Math.max((data.dataFreshness?.markets || []).length, 1))} / 100`}
+        accent="analytics"
+        className="ana-bento-card"
+        contentClassName="ana-panel-scroll"
+        noFooter
+      >
+        <DataQualityScore markets={data.dataFreshness?.markets || []} />
+      </BentoCard>,
+      <BentoCard
+        key="visibility-audit"
+        panelKey="visibility-audit"
+        title="Panel Visibility Audit"
+        subtitle="Audit DOM visibility of grid panels"
+        accent="analytics"
+        className="ana-bento-card"
+        contentClassName="ana-panel-scroll"
+        noFooter
+      >
+        <PanelVisibilityAudit onNavigate={onNavigate} />
+      </BentoCard>,
+    ];
 
-          <BentoCard key="coverage-matrix" title="Endpoint Coverage Matrix" subtitle={`${coverageRows.filter(r => r.status === 'ok').length}/${coverageRows.length} markets with source coverage`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <table className="ana-table">
-              <thead><tr><th>Market</th><th>Route</th><th>Status</th><th>Sources</th><th>Keys</th><th>Fetched</th></tr></thead>
-              <tbody>
-                {coverageRows.map(row => (
-                  <tr key={row.id}>
-                    <td>{row.label}</td>
-                    <td className="ana-mono">{row.route}</td>
-                    <td style={{ color: row.status === 'ok' ? '#22c55e' : row.status === 'missing' || row.status === 'error' ? '#ef4444' : '#f59e0b' }}>{row.status}</td>
-                    <td>{row.totalSources ? `${row.okSources}/${row.totalSources}` : '—'}</td>
-                    <td>{row.keys || '—'}</td>
-                    <td className="ana-mono">{String(row.fetchedOn || '—').replace('T', ' ').slice(0, 19)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </BentoCard>
-
-          <BentoCard key="data-quality" title="Data Quality Score" subtitle={`Avg ${Math.round((data.dataFreshness?.markets || []).reduce((s, m) => s + (m.isCurrent ? 100 : m.fetchedOn ? 30 : 0), 0) / Math.max((data.dataFreshness?.markets || []).length, 1))} / 100`} accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <DataQualityScore markets={data.dataFreshness?.markets || []} />
-          </BentoCard>
-
-          <BentoCard key="visibility-audit" title="Panel Visibility Audit" subtitle="Audit DOM visibility of grid panels" accent="analytics" className="ana-bento-card" contentClassName="ana-panel-scroll" noFooter>
-            <PanelVisibilityAudit onNavigate={onNavigate} />
-          </BentoCard>
-
-        </BentoWrapper>
+    return (
+      <div className="ana-market">
+        <div className="ana-status-bar">
+          <span className="ana-status-live">● Analytics</span>
+          <span>Uptime {formatUptime(up.seconds || 0)}</span>
+          <span>Heap {up.memoryMB || 0} / {up.heapTotalMB || 0} MB</span>
+          <span>RSS {up.rssMB || 0} MB</span>
+          <span>MemCache {mc.keyCount || 0} keys ({mc.hitRate || 0}% hit)</span>
+          <button
+            className="ana-refresh-btn"
+            onClick={handleForceLiveRefresh}
+            disabled={!isAdmin}
+            title={isAdmin ? 'Refresh analytics once (force live)' : 'Admin sign-in required'}
+          >
+            ▶ Refresh
+          </button>
+        </div>
+        <div className="ana-dashboard ana-dashboard--bento">
+          <MarketPanelGrid
+            marketId="analytics"
+            layout={LAYOUT}
+            storageKey="analytics-layout-v4"
+            accent="analytics"
+            ctx={panelCtx}
+            extra={analyticsExtra}
+          />
+        </div>
+        <DataFooter
+          source="Internal Diagnostics / RTDB"
+          timestamp={data.dataFreshness?.lastFetch || new Date().toISOString()}
+          isLive={true}
+          fetchLog={[{ method: 'GET', url: '/api/analytics', status: 200, duration: 0 }]}
+        />
       </div>
-      <DataFooter
-        source="Internal Diagnostics / RTDB"
-        timestamp={data.dataFreshness?.lastFetch || new Date().toISOString()}
-        isLive={true}
-        fetchLog={[{ method: 'GET', url: '/api/analytics', status: 200, duration: 0 }]}
-      />
-    </div>
-  );
+    );
 }

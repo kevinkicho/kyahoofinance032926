@@ -47,6 +47,16 @@ describe('hasSubstance', () => {
     const dense = Array.from({ length: 6 }, (_, i) => ({ ticker: `T${i}`, price: 10 + i }));
     expect(placeholderValueOk(dense, 'quotes')).toBe(true);
   });
+
+  it('accepts chart date axes and letter-grade rating rows', () => {
+    const { placeholderValueOk } = require('../hub/lib/panelHealthUtils');
+    expect(placeholderValueOk(['2024-01', '2024-02', '2024-03'], 'fedBalanceSheetHistory.dates')).toBe(true);
+    expect(placeholderValueOk([6640, 6643, 6618], 'fedBalanceSheetHistory.values')).toBe(true);
+    expect(placeholderValueOk(
+      [{ country: 'US', sp: 'AA+', moodys: 'Aaa', fitch: 'AA+' }],
+      'creditRatings.countries',
+    )).toBe(true);
+  });
 });
 
 describe('required placeholders only score for fetchOk', () => {
@@ -126,6 +136,22 @@ describe('null+null is not ok', () => {
     expect(r.displayOk).toBe(false);
     expect(r.confirmOk).toBe(false);
     expect(r.status).not.toBe('ok');
+  });
+
+  it('cross-market panel waits pending until satellite market loads', () => {
+    const r = evaluatePanelHealth({
+      marketId: 'bonds',
+      panelId: 'foreign-holders',
+      panelTitle: 'Foreign Holders',
+      marketCtx: { data: { lastUpdated: 'x' }, isLoading: false },
+      allMarkets: {
+        bonds: { data: { lastUpdated: 'x' }, isLoading: false },
+        treasuryTIC: { data: null, isLoading: true },
+      },
+    });
+    expect(r.fetchOk).toBe(false);
+    expect(r.fetchDetail).toMatch(/waiting for cross-market/i);
+    expect(r.status).toBe('pending');
   });
 
   it('empty field is not ok even if market object exists', () => {
@@ -304,7 +330,7 @@ describe('confirmDisplayMatchesFetch', () => {
 });
 
 describe('insider hollow payload is not fetchOk', () => {
-  it('rejects empty name/type insider rows', () => {
+  it('rejects taxonomy-only insider rows without any metric density', () => {
     const r = evaluatePanelHealth({
       marketId: 'equitiesDeepDive',
       panelId: 'insider',
@@ -313,7 +339,7 @@ describe('insider hollow payload is not fetchOk', () => {
         data: {
           insiderData: {
             holders: [{ name: 'X', shares: null, ticker: 'AAPL' }],
-            transactions: [{ ticker: 'META', name: '', type: '', shares: 10, value: 0 }],
+            transactions: [{ ticker: 'META', name: '', type: '', shares: null, value: null }],
           },
         },
         isLoading: false,

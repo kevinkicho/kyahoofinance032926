@@ -17,8 +17,10 @@ import {
   getMarketFetchPlan,
 } from './lib/marketEndpoints';
 import { publishMarketPayload } from './lib/panelHealthBus';
+import { runRecoveryAgent, RECOVERY_DEFAULTS } from './lib/recoveryAgent.js';
 
 export { MARKET_ENDPOINTS, ALL_FETCH_IDS, TAB_MARKET_IDS, getMarketFetchPlan };
+export { runRecoveryAgent, RECOVERY_DEFAULTS };
 
 // Re-export extracted helpers for test suites / external callers
 export { computeFreshnessReport } from './lib/freshness';
@@ -350,6 +352,13 @@ export function DataProvider({ children, refreshKey = 0 }) {
   const fetchPromiseRef = useRef(null);
   /** coalesce concurrent topbar ▶ / wave callers onto force-live when any asked */
   const pendingForceLiveRef = useRef(false);
+  /**
+   * Any full-wave request (cache-first or force-live) that must run after the
+   * current runner exits. Without this, a second cache-first caller waits on
+   * the mutex, then returns when the first wave was discarded as stale —
+   * leaving every market stuck isLoading forever.
+   */
+  const pendingWaveRef = useRef(false);
   const fetchGenerationRef = useRef(0);
   const marketsRef = useRef(markets);
   const historicalDateRef = useRef(historicalDate);
@@ -390,19 +399,42 @@ export function DataProvider({ children, refreshKey = 0 }) {
     const ids = buildWaveMarketIds();
     const effectiveDate = historicalDateRef.current;
     const fetchGeneration = fetchGenerationRef.current;
+
+    // API etiquette: if FRED is near the 120/min soft limit, demote full
+    // force-live to cache-first so we do not stampede stlouisfed.org.
+    let forceLive = !!waveForceLive;
+    if (forceLive) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2500);
+        const thr = await fetch(apiUrl('/api/fred-throttle'), {
+          signal: ctrl.signal,
+          cache: 'no-store',
+        }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        clearTimeout(t);
+        if (thr?.fred?.hot || thr?.fred?.atLimit) {
+          dlog(
+            `[DataProvider] FRED throttle hot (${thr.fred.used}/${thr.fred.limit}) — demoting force-live → cache-first`,
+          );
+          forceLive = false;
+        }
+      } catch { /* ignore — proceed with requested mode */ }
+    }
+
     // Cache-first: more parallelism (cheap disk hits). Force-live: throttle for FRED.
-    const concurrency = waveForceLive
+    const concurrency = forceLive
       ? FETCH_SETTINGS.batchConcurrency
       : Math.max(FETCH_SETTINGS.batchConcurrency, 12);
-    const batchDelay = waveForceLive ? FETCH_SETTINGS.batchDelayMs : 50;
-    const forceLive = !!waveForceLive;
+    const batchDelay = forceLive ? FETCH_SETTINGS.batchDelayMs : 50;
 
     setGlobalLoading(true);
     if (forceLive) setIsRefreshing(true);
 
+    // Stale = historical date changed (or a deliberate gen bump for date mode).
+    // Do NOT treat React StrictMode remount (mountedRef flip) as stale — that
+    // discarded successful batches and left every market isLoading forever.
     const stale = () => (
-      !mountedRef.current
-      || fetchGeneration !== fetchGenerationRef.current
+      fetchGeneration !== fetchGenerationRef.current
       || effectiveDate !== historicalDateRef.current
     );
 
@@ -541,26 +573,34 @@ export function DataProvider({ children, refreshKey = 0 }) {
         }
       }
 
-      // One reliability pass: primary tabs that still have no usable client data.
-      // Cache-first then force-live once. Never re-hit markets that already painted.
+      // Dynamic recovery agent — observes incomplete markets/panels and decides
+      // refetch/wait actions (AI planner via /api/agent/recover-plan, local fallback).
+      // Replaces the old fixed empty-primary double-fetch tree.
       if (!effectiveDate && !stale()) {
-        const failedPrimary = PRIMARY_MARKET_IDS.filter(id => {
-          if (!MARKET_ENDPOINTS[id]) return false;
-          return !marketHasUsableData(marketsRef.current[id], id);
-        });
-        if (failedPrimary.length) {
-          dlog(`[DataProvider] Empty-primary retry: [${failedPrimary.join(', ')}]`);
-          for (const id of failedPrimary) {
-            if (stale()) break;
-            await new Promise(r => setTimeout(r, 400));
-            let res = await fetchMarket(id, false);
-            if (!res.ok || !hasNonNullData(res.data, id)) {
-              res = await fetchMarket(id, true);
-            }
-            if (stale()) break;
-            setMarkets(prev => maybeComputeFederated(prev, applyResult(prev, res)));
-            if (res.ok && hasNonNullData(res.data, id)) persistToIDB(res);
-          }
+        try {
+          await runRecoveryAgent({
+            getMarkets: () => marketsRef.current,
+            tabMarketIds: PRIMARY_MARKET_IDS,
+            isStale: stale,
+            onLog: dlog,
+            options: {
+              ...RECOVERY_DEFAULTS,
+              // After initial wave prefer AI; keep budgets tight to avoid FRED stampede
+              maxCycles: forceLive ? 2 : 3,
+              maxTotalFetches: forceLive ? 12 : 20,
+              preferAi: true,
+            },
+            refetchMarket: async (marketId, forceLiveMarket) => {
+              if (stale() || !MARKET_ENDPOINTS[marketId]) return null;
+              const res = await fetchMarket(marketId, !!forceLiveMarket);
+              if (stale() || !mountedRef.current) return res;
+              setMarkets(prev => maybeComputeFederated(prev, applyResult(prev, res)));
+              if (res.ok && hasNonNullData(res.data, marketId)) persistToIDB(res);
+              return res;
+            },
+          });
+        } catch (recErr) {
+          console.warn('[DataProvider] recovery agent error (non-fatal):', recErr?.message || recErr);
         }
       }
 
@@ -578,20 +618,20 @@ export function DataProvider({ children, refreshKey = 0 }) {
    * Full multi-market wave.
    * @param {boolean} forceLive — true for topbar ▶; false for app-load cache-first
    *
-   * Mutex: one runner at a time. Concurrent callers wait. Any forceLive request
-   * during a wave sets pendingForceLive; the runner drains it (may run a second
-   * force-live wave). Waiters that only needed the drained force-live return.
+   * Mutex: one runner at a time. Concurrent callers wait and set pendingWaveRef
+   * so a discarded/stale first wave always gets a replacement run (cache-first
+   * or force-live). Force-live coalesces via pendingForceLiveRef.
    */
   const fetchAllMarkets = useCallback(async (forceLive = false) => {
     if (forceLive) pendingForceLiveRef.current = true;
+    pendingWaveRef.current = true;
 
-    // Join any in-flight runner (it drains pendingForceLive).
+    // Join any in-flight runner (it drains pending flags).
     while (fetchPromiseRef.current) {
       dlog('[DataProvider] Wave in progress — waiting (forceLive=', !!forceLive, ')');
       await fetchPromiseRef.current;
-      // Runner finished. If force-live was fully handled, stop.
-      // If a new force-live arrived after the runner exited, loop or become runner.
-      if (!pendingForceLiveRef.current) return;
+      // Runner finished. If nothing else was requested, stop.
+      if (!pendingWaveRef.current && !pendingForceLiveRef.current) return;
     }
 
     // Become the sole runner.
@@ -600,13 +640,13 @@ export function DataProvider({ children, refreshKey = 0 }) {
     fetchPromiseRef.current = myPromise;
 
     try {
-      // First iteration: pending true if forceLive was requested (or coalesced).
-      // Cache-first load with no pending → runWave(false).
       do {
         const live = pendingForceLiveRef.current;
         pendingForceLiveRef.current = false;
+        pendingWaveRef.current = false;
         await runWave(live);
-      } while (pendingForceLiveRef.current && mountedRef.current);
+        // Another caller arrived while we ran — drain it (prefer force-live).
+      } while ((pendingWaveRef.current || pendingForceLiveRef.current) && mountedRef.current);
     } finally {
       fetchPromiseRef.current = null;
       setGlobalLoading(false);
@@ -696,6 +736,46 @@ export function DataProvider({ children, refreshKey = 0 }) {
 
   const refetchAll = useCallback(() => fetchAllMarkets(true), [fetchAllMarkets]);
   const refetchLatestSnapshots = useCallback(() => fetchAllMarkets(true), [fetchAllMarkets]);
+
+  /**
+   * Explicit panel recovery pass (splash "Repair" / manual). Observation-driven
+   * agent decides which markets/deps to refetch — not a fixed retry list.
+   */
+  const recoverPanels = useCallback(async (options = {}) => {
+    dlog('[DataProvider] recoverPanels start');
+    try {
+      const result = await runRecoveryAgent({
+        getMarkets: () => marketsRef.current,
+        tabMarketIds: PRIMARY_MARKET_IDS,
+        isStale: () => !mountedRef.current,
+        onLog: dlog,
+        options: { ...RECOVERY_DEFAULTS, preferAi: true, ...options },
+        refetchMarket: async (marketId, forceLiveMarket) => {
+          if (!mountedRef.current || !MARKET_ENDPOINTS[marketId]) return null;
+          // Use refetchSingle path semantics via fetchMarket so we don't nest mutex oddly
+          setMarkets(prev => ({
+            ...prev,
+            [marketId]: {
+              ...prev[marketId],
+              isLoading: !prev[marketId]?.data,
+              isRefreshing: true,
+              error: null,
+            },
+          }));
+          const res = await fetchMarket(marketId, !!forceLiveMarket);
+          if (!mountedRef.current) return res;
+          setMarkets(prev => maybeComputeFederated(prev, applyResult(prev, res)));
+          if (res.ok && hasNonNullData(res.data, marketId)) persistToIDB(res);
+          return res;
+        },
+      });
+      dlog('[DataProvider] recoverPanels done', result?.totalFetches);
+      return result;
+    } catch (e) {
+      console.warn('[DataProvider] recoverPanels failed:', e?.message || e);
+      return { totalFetches: 0, cycles: 0, history: [], error: e?.message || String(e) };
+    }
+  }, []);
 
   /**
    * Panel ▶ / single market refresh. Always force-live in live mode.
@@ -826,7 +906,8 @@ export function DataProvider({ children, refreshKey = 0 }) {
   }, []);
 
   const didInitialFetchRef = useRef(false);
-  const didObserveHistoricalDateRef = useRef(false);
+  /** undefined = never observed; then tracks last historicalDate value */
+  const lastHistoricalDateRef = useRef(undefined);
 
   useEffect(() => {
     if (didInitialFetchRef.current) return;
@@ -836,11 +917,17 @@ export function DataProvider({ children, refreshKey = 0 }) {
     fetchAllMarkets(ALWAYS_FORCE_LIVE);
   }, [fetchAllMarkets]);
 
+  // Only re-run when the *date value* actually changes.
+  // React StrictMode remounts must NOT bump generation (that discarded the
+  // first wave's successful batches and froze splash on "18 markets fetching").
   useEffect(() => {
-    if (!didObserveHistoricalDateRef.current) {
-      didObserveHistoricalDateRef.current = true;
+    if (lastHistoricalDateRef.current === undefined) {
+      lastHistoricalDateRef.current = historicalDate;
       return;
     }
+    if (lastHistoricalDateRef.current === historicalDate) return;
+    lastHistoricalDateRef.current = historicalDate;
+
     fetchGenerationRef.current += 1;
     pendingForceLiveRef.current = false;
     if (historicalDate) {
@@ -850,7 +937,8 @@ export function DataProvider({ children, refreshKey = 0 }) {
       // Leaving history mode: re-run the same one-shot load pipeline (cache-first).
       fetchAllMarkets(ALWAYS_FORCE_LIVE);
     }
-  }, [historicalDate, fetchAllMarkets, applySnapshotMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: historicalDate only
+  }, [historicalDate]);
 
   useEffect(() => {
     if (refreshKey > 0) fetchAllMarkets(true);
@@ -956,6 +1044,7 @@ export function DataProvider({ children, refreshKey = 0 }) {
     refetchAll,
     refetchLatestSnapshots,
     refetchSingle,
+    recoverPanels,
     auditFreshness,
     loadHistorical,
     listSnapshotDates,
@@ -971,6 +1060,7 @@ export function DataProvider({ children, refreshKey = 0 }) {
     refetchAll,
     refetchLatestSnapshots,
     refetchSingle,
+    recoverPanels,
     auditFreshness,
     loadHistorical,
     historicalDate,

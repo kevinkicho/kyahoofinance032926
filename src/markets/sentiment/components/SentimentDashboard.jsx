@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
-import BentoWrapper from '../../../components/BentoWrapper';
-import BentoCard from '../../../components/BentoCard/BentoCard';
+import EmptyPanelBody from '../../../components/BentoCard/EmptyPanelBody';
 import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import CftcPositioning from './CftcPositioning';
 import RiskDashboard from './RiskDashboard';
 import SentimentSidebar from './SentimentSidebar';
@@ -395,356 +395,254 @@ function SentimentDashboard({
     return { fsiLatest, newsLatest, composite, label, fsiRead };
   }, [fsiHistory, newsSentimentSummary, fgiValue, riskData]);
 
-    return (
-      <div className="sent-dashboard sent-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="sentiment-layout-v5">
-          {/* Sidebar */}
-          <BentoCard
-            key="sidebar"
-            title="Market Snapshot"
-            subtitle="Regime · F&G · vol · credit · leverage"
-            accent="sentiment"
-            className="sent-bento-card"
-            contentClassName="bento-panel-scroll"
-            source="Alternative.me / FRED / Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <SentimentSidebar
-              fearGreedData={fearGreedData}
-              riskData={riskData}
-              marginDebt={marginDebt}
-              consumerCredit={consumerCredit}
-              vvixHistory={vvixHistory}
-              fsiHistory={fsiHistory}
-              lastUpdated={lastUpdated}
-            />
-          </BentoCard>
+  const renderPanel = useCallback((panelId) => {
+    switch (panelId) {
+      case 'sidebar':
+        return (
+          <SentimentSidebar
+            fearGreedData={fearGreedData}
+            riskData={riskData}
+            marginDebt={marginDebt}
+            consumerCredit={consumerCredit}
+            vvixHistory={vvixHistory}
+            fsiHistory={fsiHistory}
+            lastUpdated={lastUpdated}
+          />
+        );
 
-        {/* Key Metrics */}
-        <BentoCard
-          key="key-metrics"
-          title="Key Metrics"
-          subtitle="Regime · vol complex · leverage"
-          accent="sentiment"
-          className="sent-bento-card"
-          contentClassName="bento-panel-scroll"
-          source="FRED / Yahoo Finance (^VIX ^VVIX ^MOVE ^SKEW)"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          <div className="sent-sidebar-section">
-            <div className="sent-sidebar-title">Risk Regime</div>
-            {typeof riskData?.overallScore === 'number' && (
-              <div className="sent-metric-card">
-                <div className="sent-metric-row">
-                  <span className="sent-metric-name">Risk Score</span>
-                  <span className="sent-metric-num" style={{ color: riskData.overallScore >= 60 ? '#22c55e' : riskData.overallScore >= 40 ? '#fbbf24' : '#f87171' }}>
-                    <MetricValue value={riskData.overallScore} seriesKey="riskScore" timestamp={lastUpdated} format={v => `${v}/100`} />
-                  </span>
-                </div>
-                {riskData.overallLabel && (
-                  <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
-                    <span className="sent-metric-name">Regime</span>
-                    <span className="sent-metric-num">{riskData.overallLabel}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            {typeof fgiValue === 'number' && (
-              <div className="sent-metric-card">
-                <div className="sent-metric-row">
-                  <span className="sent-metric-name">Fear &amp; Greed</span>
-                  <span className="sent-metric-num" style={{ color: fgiValue >= 60 ? '#22c55e' : fgiValue >= 40 ? '#fbbf24' : '#f87171' }}>
-                    <MetricValue value={fgiValue} seriesKey="fearGreed" timestamp={lastUpdated} format={v => `${v}/100`} />
-                  </span>
-                </div>
-                {fgiLabel && (
-                  <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
-                    <span className="sent-metric-name">Sentiment</span>
-                    <span className="sent-metric-num">{fgiLabel}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="sent-sidebar-section">
-            <div className="sent-sidebar-title">Volatility</div>
-            {volMetrics.length === 0 ? (
-              <div className="sent-snapshot-empty">No volatility metrics loaded</div>
-            ) : (
-              <div className="sent-vol-list">
-                {volMetrics.map(row => (
-                  <div key={row.key} className="sent-vol-row">
-                    <div className="sent-vol-row-main">
-                      <span className="sent-vol-label">{row.label}</span>
-                      {row.sub && <span className="sent-vol-sub">{row.sub}</span>}
-                    </div>
-                    <span className="sent-vol-value" style={row.color ? { color: row.color } : undefined}>
-                      <MetricValue
-                        value={row.value}
-                        seriesKey={row.seriesKey}
-                        timestamp={lastUpdated}
-                        format={row.format}
-                      />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          {marginDebt?.values?.length > 0 && (() => {
-            const last = marginDebt.values[marginDebt.values.length - 1];
-            const prev = marginDebt.values[marginDebt.values.length - 13]; // ~yoy from monthly
-            const yoyPct = (typeof last === 'number' && typeof prev === 'number' && prev !== 0) ? ((last - prev) / prev) * 100 : null;
-            return (
-              <div className="sent-sidebar-section">
-                <div className="sent-sidebar-title">Leverage</div>
+      case 'key-metrics':
+        return (
+          <>
+            <div className="sent-sidebar-section">
+              <div className="sent-sidebar-title">Risk Regime</div>
+              {typeof riskData?.overallScore === 'number' && (
                 <div className="sent-metric-card">
                   <div className="sent-metric-row">
-                    <span className="sent-metric-name">Margin Debt</span>
-                    <span className="sent-metric-num">${(last / 1000).toFixed(1)}B</span>
+                    <span className="sent-metric-name">Risk Score</span>
+                    <span className="sent-metric-num" style={{ color: riskData.overallScore >= 60 ? '#22c55e' : riskData.overallScore >= 40 ? '#fbbf24' : '#f87171' }}>
+                      <MetricValue value={riskData.overallScore} seriesKey="riskScore" timestamp={lastUpdated} format={v => `${v}/100`} />
+                    </span>
                   </div>
-                  {typeof yoyPct === 'number' && (
+                  {riskData.overallLabel && (
                     <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
-                      <span className="sent-metric-name">YoY</span>
-                      <span className="sent-metric-num" style={{ color: yoyPct > 0 ? '#22c55e' : '#f87171' }}>
-                        {yoyPct > 0 ? '+' : ''}{yoyPct.toFixed(1)}%
-                      </span>
+                      <span className="sent-metric-name">Regime</span>
+                      <span className="sent-metric-num">{riskData.overallLabel}</span>
                     </div>
                   )}
                 </div>
-              </div>
-            );
-          })()}
-        </BentoCard>
-
-        {/* Fear & Greed Index — always mount; show score + indicators + history */}
-        <BentoCard
-          key="fear-greed"
-          title="Fear & Greed Index"
-          subtitle={fgiValue != null ? `${fgiLabel || '—'} · ${fgiValue}/100` : 'Cross-asset composite'}
-          accent="sentiment"
-          className="sent-bento-card"
-          contentClassName="sent-panel-content"
-          source="Alternative.me / FRED"
-          timestamp={lastUpdated}
-          isLive={!!(isLive && fgiValue != null)}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {fgiValue == null && fgiIndicators.length === 0 && !fgiOption ? (
-            <div className="sent-fgi-fallback">
-              <div className="sent-fgi-label">Fear &amp; Greed data unavailable</div>
-            </div>
-          ) : (
-            <div className="sent-fgi-panel">
-              <div className="sent-fgi-hero">
-                <div
-                  className="sent-fgi-score"
-                  style={{
-                    color: fgiValue == null ? '#94a3b8'
-                      : fgiValue <= 25 ? '#f87171'
-                      : fgiValue <= 45 ? '#fbbf24'
-                      : fgiValue <= 55 ? '#e2e8f0'
-                      : fgiValue <= 75 ? '#a78bfa'
-                      : '#c084fc',
-                  }}
-                >
-                  <MetricValue
-                    value={fgiValue}
-                    seriesKey="fearGreed"
-                    timestamp={lastUpdated}
-                    format={(v) => (typeof v === 'number' ? Math.round(v) : '—')}
-                  />
-                </div>
-                <div className="sent-fgi-meta">
-                  <div className="sent-fgi-label">{fgiLabel || '—'}</div>
-                  <div className="sent-fgi-scale">0 Fear · 100 Greed</div>
-                  {fearGreedData?.altmeScore != null && (
-                    <div className="sent-fgi-altme">Alt.me raw: {fearGreedData.altmeScore}</div>
+              )}
+              {typeof fgiValue === 'number' && (
+                <div className="sent-metric-card">
+                  <div className="sent-metric-row">
+                    <span className="sent-metric-name">Fear &amp; Greed</span>
+                    <span className="sent-metric-num" style={{ color: fgiValue >= 60 ? '#22c55e' : fgiValue >= 40 ? '#fbbf24' : '#f87171' }}>
+                      <MetricValue value={fgiValue} seriesKey="fearGreed" timestamp={lastUpdated} format={v => `${v}/100`} />
+                    </span>
+                  </div>
+                  {fgiLabel && (
+                    <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
+                      <span className="sent-metric-name">Sentiment</span>
+                      <span className="sent-metric-num">{fgiLabel}</span>
+                    </div>
                   )}
-                  <div className="sent-fgi-altme">{fgiIndicators.length} components</div>
-                </div>
-              </div>
-
-              {fgiIndicators.length > 0 && (
-                <div className="sent-fgi-table-wrap">
-                  <table className="sent-fgi-table">
-                    <thead>
-                      <tr>
-                        <th className="sent-fgi-th sent-fgi-th-name">Component</th>
-                        <th className="sent-fgi-th">Value</th>
-                        <th className="sent-fgi-th">Signal</th>
-                        <th className="sent-fgi-th">%ile</th>
-                        <th className="sent-fgi-th">Wgt</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {fgiIndicators.map((ind, i) => {
-                        const sig = ind.signal || 'neutral';
-                        const sigColor = sig === 'greed' || sig === 'risk-on' ? '#a78bfa'
-                          : sig === 'fear' || sig === 'risk-off' ? '#f97316'
-                          : '#94a3b8';
-                        // Prefer server display string; fall back for legacy caches.
-                        let display = ind.display;
-                        if (display == null && ind.value != null && typeof ind.value === 'number') {
-                          if (ind.unit === 'bps' || /OAS|HY Spread|IG Spread/i.test(ind.name || '')) {
-                            const bps = ind.value < 30 && !/VIX|MOVE|SKEW|VVIX/i.test(ind.name || '')
-                              ? Math.round(ind.value * 100)
-                              : Math.round(ind.value);
-                            display = `${bps} bps`;
-                          } else if (ind.unit === 'pct' || /Momentum|vs /i.test(ind.name || '')) {
-                            display = `${ind.value >= 0 ? '+' : ''}${ind.value.toFixed(1)}%`;
-                          } else if (ind.unit === 'pp' || /Yield Curve/i.test(ind.name || '')) {
-                            display = `${ind.value.toFixed(2)}%`;
-                          } else if (ind.unit === 'score' || /Alt\.me|F&G/i.test(ind.name || '')) {
-                            display = `${Math.round(ind.value)}`;
-                          } else {
-                            display = ind.value.toFixed(ind.value >= 10 ? 1 : 2);
-                          }
-                        }
-                        return (
-                          <tr key={ind.name || i} className="sent-fgi-tr">
-                            <td className="sent-fgi-td sent-fgi-td-name">
-                              <span className="sent-fgi-comp-name">{ind.name}</span>
-                              {ind.description && (
-                                <span className="sent-fgi-comp-desc">{ind.description}</span>
-                              )}
-                            </td>
-                            <td className="sent-fgi-td sent-fgi-td-val" style={{ color: sigColor }}>
-                              {display ?? '—'}
-                            </td>
-                            <td className="sent-fgi-td sent-fgi-td-sig" style={{ color: sigColor }}>
-                              {sig}
-                            </td>
-                            <td className="sent-fgi-td sent-fgi-td-muted">
-                              {ind.percentile != null ? `${ind.percentile}` : '—'}
-                            </td>
-                            <td className="sent-fgi-td sent-fgi-td-muted">
-                              {ind.weight != null ? `${Math.round(ind.weight * 100)}%` : '—'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {fgiOption && (
-                <div className="sent-fgi-chart">
-                  <SafeECharts
-                    option={fgiOption}
-                    style={{ height: '100%', width: '100%' }}
-                    sourceInfo={{
-                      title: 'Fear & Greed Index',
-                      source: 'Alternative.me / FRED',
-                      endpoint: '/api/sentiment',
-                      series: [],
-                      updatedAt: lastUpdated,
-                    }}
-                  />
                 </div>
               )}
             </div>
-          )}
-        </BentoCard>
+            <div className="sent-sidebar-section">
+              <div className="sent-sidebar-title">Volatility</div>
+              {volMetrics.length === 0 ? (
+                <div className="sent-snapshot-empty">No volatility metrics loaded</div>
+              ) : (
+                <div className="sent-vol-list">
+                  {volMetrics.map(row => (
+                    <div key={row.key} className="sent-vol-row">
+                      <div className="sent-vol-row-main">
+                        <span className="sent-vol-label">{row.label}</span>
+                        {row.sub && <span className="sent-vol-sub">{row.sub}</span>}
+                      </div>
+                      <span className="sent-vol-value" style={row.color ? { color: row.color } : undefined}>
+                        <MetricValue
+                          value={row.value}
+                          seriesKey={row.seriesKey}
+                          timestamp={lastUpdated}
+                          format={row.format}
+                        />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {marginDebt?.values?.length > 0 && (() => {
+              const last = marginDebt.values[marginDebt.values.length - 1];
+              const prev = marginDebt.values[marginDebt.values.length - 13]; // ~yoy from monthly
+              const yoyPct = (typeof last === 'number' && typeof prev === 'number' && prev !== 0) ? ((last - prev) / prev) * 100 : null;
+              return (
+                <div className="sent-sidebar-section">
+                  <div className="sent-sidebar-title">Leverage</div>
+                  <div className="sent-metric-card">
+                    <div className="sent-metric-row">
+                      <span className="sent-metric-name">Margin Debt</span>
+                      <span className="sent-metric-num">${(last / 1000).toFixed(1)}B</span>
+                    </div>
+                    {typeof yoyPct === 'number' && (
+                      <div className="sent-metric-row" style={{ fontSize: 11, opacity: 0.75 }}>
+                        <span className="sent-metric-name">YoY</span>
+                        <span className="sent-metric-num" style={{ color: yoyPct > 0 ? '#22c55e' : '#f87171' }}>
+                          {yoyPct > 0 ? '+' : ''}{yoyPct.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        );
 
-        {/* Financial Stress Index */}
-        {fsiOption && (
-          <BentoCard
-            key="fsi"
-            title="Financial Stress Index"
-            accent="sentiment"
-            className="sent-bento-card"
-            contentClassName="sent-panel-content"
-            source="FRED"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Financial Stress Index', source: 'FRED', endpoint: '/api/sentiment', series: [{ id: 'STLFSI4' }], updatedAt: lastUpdated }} />
-          </BentoCard>
-        )}
+      case 'fear-greed':
+        return fgiValue == null && fgiIndicators.length === 0 && !fgiOption ? (
+          <div className="sent-fgi-fallback">
+            <div className="sent-fgi-label">Fear &amp; Greed data unavailable</div>
+          </div>
+        ) : (
+          <div className="sent-fgi-panel">
+            <div className="sent-fgi-hero">
+              <div
+                className="sent-fgi-score"
+                style={{
+                  color: fgiValue == null ? '#94a3b8'
+                    : fgiValue <= 25 ? '#f87171'
+                    : fgiValue <= 45 ? '#fbbf24'
+                    : fgiValue <= 55 ? '#e2e8f0'
+                    : fgiValue <= 75 ? '#a78bfa'
+                    : '#c084fc',
+                }}
+              >
+                <MetricValue
+                  value={fgiValue}
+                  seriesKey="fearGreed"
+                  timestamp={lastUpdated}
+                  format={(v) => (typeof v === 'number' ? Math.round(v) : '—')}
+                />
+              </div>
+              <div className="sent-fgi-meta">
+                <div className="sent-fgi-label">{fgiLabel || '—'}</div>
+                <div className="sent-fgi-scale">0 Fear · 100 Greed</div>
+                {fearGreedData?.altmeScore != null && (
+                  <div className="sent-fgi-altme">Alt.me raw: {fearGreedData.altmeScore}</div>
+                )}
+                <div className="sent-fgi-altme">{fgiIndicators.length} components</div>
+              </div>
+            </div>
 
-        {/* Cross-Asset Returns */}
-        {returnsList.length > 0 && (
-          <BentoCard
-            key="cross-asset"
-            title="Cross-Asset Returns"
-            accent="sentiment"
-            className="sent-bento-card"
-            contentClassName="bento-panel-scroll"
-            source="FRED / Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            {returnsList.slice(0, 8).map((r) => (
+            {fgiIndicators.length > 0 && (
+              <div className="sent-fgi-table-wrap">
+                <table className="sent-fgi-table">
+                  <thead>
+                    <tr>
+                      <th className="sent-fgi-th sent-fgi-th-name">Component</th>
+                      <th className="sent-fgi-th">Value</th>
+                      <th className="sent-fgi-th">Signal</th>
+                      <th className="sent-fgi-th">%ile</th>
+                      <th className="sent-fgi-th">Wgt</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fgiIndicators.map((ind, i) => {
+                      const sig = ind.signal || 'neutral';
+                      const sigColor = sig === 'greed' || sig === 'risk-on' ? '#a78bfa'
+                        : sig === 'fear' || sig === 'risk-off' ? '#f97316'
+                        : '#94a3b8';
+                      // Prefer server display string; fall back for legacy caches.
+                      let display = ind.display;
+                      if (display == null && ind.value != null && typeof ind.value === 'number') {
+                        if (ind.unit === 'bps' || /OAS|HY Spread|IG Spread/i.test(ind.name || '')) {
+                          const bps = ind.value < 30 && !/VIX|MOVE|SKEW|VVIX/i.test(ind.name || '')
+                            ? Math.round(ind.value * 100)
+                            : Math.round(ind.value);
+                          display = `${bps} bps`;
+                        } else if (ind.unit === 'pct' || /Momentum|vs /i.test(ind.name || '')) {
+                          display = `${ind.value >= 0 ? '+' : ''}${ind.value.toFixed(1)}%`;
+                        } else if (ind.unit === 'pp' || /Yield Curve/i.test(ind.name || '')) {
+                          display = `${ind.value.toFixed(2)}%`;
+                        } else if (ind.unit === 'score' || /Alt\.me|F&G/i.test(ind.name || '')) {
+                          display = `${Math.round(ind.value)}`;
+                        } else {
+                          display = ind.value.toFixed(ind.value >= 10 ? 1 : 2);
+                        }
+                      }
+                      return (
+                        <tr key={ind.name || i} className="sent-fgi-tr">
+                          <td className="sent-fgi-td sent-fgi-td-name">
+                            <span className="sent-fgi-comp-name">{ind.name}</span>
+                            {ind.description && (
+                              <span className="sent-fgi-comp-desc">{ind.description}</span>
+                            )}
+                          </td>
+                          <td className="sent-fgi-td sent-fgi-td-val" style={{ color: sigColor }}>
+                            {display ?? '—'}
+                          </td>
+                          <td className="sent-fgi-td sent-fgi-td-sig" style={{ color: sigColor }}>
+                            {sig}
+                          </td>
+                          <td className="sent-fgi-td sent-fgi-td-muted">
+                            {ind.percentile != null ? `${ind.percentile}` : '—'}
+                          </td>
+                          <td className="sent-fgi-td sent-fgi-td-muted">
+                            {ind.weight != null ? `${Math.round(ind.weight * 100)}%` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {fgiOption && (
+              <div className="sent-fgi-chart">
+                <SafeECharts
+                  option={fgiOption}
+                  style={{ height: '100%', width: '100%' }}
+                  sourceInfo={{
+                    title: 'Fear & Greed Index',
+                    source: 'Alternative.me / FRED',
+                    endpoint: '/api/sentiment',
+                    series: [],
+                    updatedAt: lastUpdated,
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        );
+
+      case 'fsi':
+        return fsiOption
+          ? <SafeECharts option={fsiOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Financial Stress Index', source: 'FRED', endpoint: '/api/sentiment', series: [{ id: 'STLFSI4' }], updatedAt: lastUpdated }} />
+          : <EmptyPanelBody message="No financial stress history" />;
+
+      case 'cross-asset':
+        return returnsList.length > 0
+          ? returnsList.slice(0, 8).map((r) => (
               <div key={r.asset || r.ticker || r.name} className="sent-mini-row">
                 <span className="sent-mini-name">{r.asset}</span>
                 <span className="sent-mini-value" style={{ color: (r.return || 0) >= 0 ? '#22c55e' : '#f87171' }}>
                   <MetricValue value={r.return || 0} seriesKey="crossAssetReturn" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} />
                 </span>
               </div>
-            ))}
-          </BentoCard>
-        )}
+            ))
+          : <EmptyPanelBody message="No cross-asset returns" />;
 
-        {/* CFTC Positioning */}
-        {cftcData?.currencies?.length > 0 && (
-          <BentoCard
-            key="cftc"
-            title="CFTC Positioning"
-            subtitle={`Net speculative position as % of open interest · green = net long · red = net short${cftcData?.asOf ? ` · as of ${cftcData.asOf}` : ''}`}
-            accent="sentiment"
-            className="sent-bento-card"
-            source="CFTC"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <CftcPositioning bare cftcData={cftcData} />
-          </BentoCard>
-        )}
+      case 'cftc':
+        return cftcData?.currencies?.length > 0
+          ? <CftcPositioning bare cftcData={cftcData} />
+          : <EmptyPanelBody message="No CFTC positioning data" />;
 
-        {/* Risk Dashboard */}
-        {(riskData || vvixHistory || fsiHistory) && (
-          <BentoCard
-            key="risk-dashboard"
-            title="Risk Dashboard"
-            subtitle="Cross-asset risk-on / risk-off · VIX · credit · curve · stress"
-            accent="sentiment"
-            className="sent-bento-card"
-            contentClassName="sent-panel-content bento-panel-scroll"
-            source="FRED / Yahoo Finance"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+      case 'risk-dashboard':
+        return (riskData || vvixHistory || fsiHistory)
+          ? (
             <RiskDashboard
               bare
               riskData={riskData}
@@ -753,26 +651,11 @@ function SentimentDashboard({
               fsiHistory={fsiHistory}
               lastUpdated={lastUpdated}
             />
-          </BentoCard>
-        )}
+          )
+          : <EmptyPanelBody message="No risk dashboard data" />;
 
-        {/* Leverage Metrics — always mount so panel health can confirm.
-            BOGZ1FL663067003Q (margin debt) is millions of USD; TOTALSL is $M. */}
-        <BentoCard
-          key="leverage"
-          title="Leverage Metrics"
-          subtitle="FINRA margin · consumer credit · mutual fund cash"
-          accent="sentiment"
-          className="sent-bento-card"
-          contentClassName="bento-panel-scroll"
-          source="FRED BOGZ1FL663067003Q / TOTALSL / WDDNS"
-          timestamp={lastUpdated}
-          isLive={!!(marginDebt?.values?.length || consumerCredit?.values?.length)}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+      case 'leverage':
+        return (
           <div data-panel-bound="1" data-panel-live={marginDebt?.values?.length ? '1' : '0'}>
             {marginDebt?.values?.length > 0 ? (() => {
               const latest = marginDebt.values[marginDebt.values.length - 1];
@@ -809,45 +692,17 @@ function SentimentDashboard({
               );
             })()}
           </div>
-        </BentoCard>
+        );
 
-        {/* SF Fed Daily News Sentiment Index — full-year history line */}
-        {newsSentimentData?.series?.length > 0 && (
-          <BentoCard
-            key="news-sentiment"
-            title="Daily News Sentiment Index"
-            subtitle={newsSentimentSummary
-              ? `Latest ${newsSentimentSummary.latest.sentiment > 0 ? '+' : ''}${newsSentimentSummary.latest.sentiment.toFixed(3)} (${newsSentimentSummary.latest.date}) · 30d avg ${newsSentimentSummary.avg30 > 0 ? '+' : ''}${newsSentimentSummary.avg30.toFixed(3)}`
-              : 'San Francisco Fed · text-based macro sentiment from major papers'}
-            accent="sentiment"
-            className="sent-bento-card"
-            source="SF Fed"
-            timestamp={newsSentimentCtx?.lastUpdated || lastUpdated}
-            isLive={newsSentimentCtx?.isLive}
-            isCurrent={newsSentimentCtx?.isCurrent !== false}
-            fetchedOn={newsSentimentCtx?.fetchedOn || fetchedOn}
-            fetchLog={newsSentimentCtx?.fetchLog || []}
-            error={newsSentimentCtx?.error}
-          >
-            {newsSentimentOption && <SafeECharts option={newsSentimentOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Daily News Sentiment Index', source: 'SF Fed', endpoint: '/api/fed/news-sentiment', series: [], updatedAt: newsSentimentCtx?.lastUpdated || lastUpdated }} />}
-          </BentoCard>
-        )}
+      case 'news-sentiment':
+        return newsSentimentData?.series?.length > 0
+          ? (newsSentimentOption
+            ? <SafeECharts option={newsSentimentOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Daily News Sentiment Index', source: 'SF Fed', endpoint: '/api/fed/news-sentiment', series: [], updatedAt: newsSentimentCtx?.lastUpdated || lastUpdated }} />
+            : <EmptyPanelBody message="No news sentiment chart" />)
+          : <EmptyPanelBody message="No news sentiment data" />;
 
-        <BentoCard
-          key="fed-risk-mood"
-          title="Fed Narrative & Risk Mood"
-          subtitle={`${fedRiskMood.label} · composite ${fedRiskMood.composite >= 0 ? '+' : ''}${fedRiskMood.composite.toFixed(0)}`}
-          accent="sentiment"
-          className="sent-bento-card"
-          contentClassName="bento-panel-scroll"
-          source="SF Fed / FRED / Yahoo Finance"
-          timestamp={newsSentimentCtx?.lastUpdated || lastUpdated}
-          isLive={!!(newsSentimentData?.series?.length || riskData)}
-          isCurrent={newsSentimentCtx?.isCurrent ?? isCurrent}
-          fetchedOn={newsSentimentCtx?.fetchedOn || fetchedOn}
-          fetchLog={newsSentimentCtx?.fetchLog || fetchLog}
-          error={newsSentimentCtx?.error || error}
-        >
+      case 'fed-risk-mood':
+        return (
           <div className="sent-fed-mood-grid">
             {[
               {
@@ -907,11 +762,100 @@ function SentimentDashboard({
               </div>
             ))}
           </div>
-        </BentoCard>
-        </BentoWrapper>
-      </div>
-    );
-  }
+        );
 
+      default:
+        return null;
+    }
+  }, [
+    fearGreedData, riskData, marginDebt, consumerCredit, vvixHistory, fsiHistory,
+    lastUpdated, fgiValue, fgiLabel, volMetrics, fgiIndicators, fgiOption, fsiOption,
+    returnsList, cftcData, newsSentimentData, newsSentimentOption, newsSentimentCtx,
+    fedRiskMood,
+  ]);
+
+  const panelCtx = useMemo(() => ({
+    sentiment: {
+      fearGreedData,
+      cftcData,
+      riskData,
+      returnsData,
+      marginDebt,
+      consumerCredit,
+      vvixHistory,
+      fsiHistory,
+      lastUpdated,
+    },
+    newsSentiment: newsSentimentCtx,
+    __render: renderPanel,
+    __live: {
+      sidebar: !!isLive,
+      'key-metrics': !!isLive,
+      'fear-greed': !!(isLive && fgiValue != null),
+      fsi: !!isLive,
+      cftc: !!isLive,
+      'cross-asset': !!isLive,
+      'risk-dashboard': !!isLive,
+      leverage: !!(marginDebt?.values?.length || consumerCredit?.values?.length),
+      'news-sentiment': !!newsSentimentCtx?.isLive,
+      'fed-risk-mood': !!(newsSentimentData?.series?.length || riskData),
+    },
+    __subtitle: {
+      sidebar: 'Regime · F&G · vol · credit · leverage',
+      'key-metrics': 'Regime · vol complex · leverage',
+      'fear-greed': fgiValue != null ? `${fgiLabel || '—'} · ${fgiValue}/100` : 'Cross-asset composite',
+      cftc: `Net speculative position as % of open interest · green = net long · red = net short${cftcData?.asOf ? ` · as of ${cftcData.asOf}` : ''}`,
+      'risk-dashboard': 'Cross-asset risk-on / risk-off · VIX · credit · curve · stress',
+      leverage: 'FINRA margin · consumer credit · mutual fund cash',
+      'news-sentiment': newsSentimentSummary
+        ? `Latest ${newsSentimentSummary.latest.sentiment > 0 ? '+' : ''}${newsSentimentSummary.latest.sentiment.toFixed(3)} (${newsSentimentSummary.latest.date}) · 30d avg ${newsSentimentSummary.avg30 > 0 ? '+' : ''}${newsSentimentSummary.avg30.toFixed(3)}`
+        : 'San Francisco Fed · text-based macro sentiment from major papers',
+      'fed-risk-mood': `${fedRiskMood.label} · composite ${fedRiskMood.composite >= 0 ? '+' : ''}${fedRiskMood.composite.toFixed(0)}`,
+    },
+    __source: {
+      sidebar: 'Alternative.me / FRED / Yahoo Finance',
+      'key-metrics': 'FRED / Yahoo Finance (^VIX ^VVIX ^MOVE ^SKEW)',
+      'fear-greed': 'Alternative.me / FRED',
+      fsi: 'FRED',
+      'cross-asset': 'FRED / Yahoo Finance',
+      cftc: 'CFTC',
+      'risk-dashboard': 'FRED / Yahoo Finance',
+      leverage: 'FRED BOGZ1FL663067003Q / TOTALSL / WDDNS',
+      'news-sentiment': 'SF Fed',
+      'fed-risk-mood': 'SF Fed / FRED / Yahoo Finance',
+    },
+    __disabled: {
+      fsi: !fsiOption,
+      'cross-asset': !returnsList.length,
+      cftc: !(cftcData?.currencies?.length > 0),
+      'risk-dashboard': !(riskData || vvixHistory || fsiHistory),
+      'news-sentiment': !(newsSentimentData?.series?.length > 0),
+    },
+  }), [
+    fearGreedData, cftcData, riskData, returnsData, marginDebt, consumerCredit,
+    vvixHistory, fsiHistory, lastUpdated, newsSentimentCtx, renderPanel, isLive,
+    fgiValue, fgiLabel, newsSentimentData, newsSentimentSummary, fedRiskMood,
+    fsiOption, returnsList,
+  ]);
+
+  return (
+    <div className="sent-dashboard sent-dashboard--bento">
+      <MarketPanelGrid
+        marketId="sentiment"
+        layout={LAYOUT}
+        storageKey="sentiment-layout-v5"
+        accent="sentiment"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: lastUpdated,
+          isCurrent,
+          fetchedOn,
+          fetchLog,
+          error,
+        }}
+      />
+    </div>
+  );
+}
 
 export default React.memo(SentimentDashboard);

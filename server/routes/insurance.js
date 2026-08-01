@@ -497,25 +497,9 @@ router.get('/', async (req, res) => {
     try { trackApiCall('FRED'); treasury10y = await fetchFredLatest('DGS10', FRED_API_KEY); } catch (e) { console.warn('[Insurance]', e.message || e); _errors.treasury10y = e.message; }
   }
 
-  // Natural Catastrophe Losses (FRED NPORCT when available)
+  // Natural Catastrophe Losses — FRED NPORCT was retired (HTTP 400). Skip FRED call.
   let catLosses = null;
-  if (FRED_API_KEY) {
-    try {
-      trackApiCall('FRED');
-      const catHist = await fetchFredHistory('NPORCT', FRED_API_KEY, 60);
-      if (catHist.length >= 4) {
-        catLosses = {
-          dates: catHist.map(p => p.date.slice(0, 7)),
-          values: catHist.map(p => Math.round(p.value * 10) / 10),
-          seriesId: 'NPORCT',
-        };
-      }
-    } catch (e) {
-      console.warn('[Insurance] cat series NPORCT', e.message || e);
-      _errors.catLosses = e.message;
-    }
-  }
-  // Soft proxy when FRED cat series unavailable: FEMA declaration counts from cache
+  // Soft proxy: FEMA declaration counts from cache
   if (!catLosses) {
     try {
       const femaFb = readLatestCache('fema');

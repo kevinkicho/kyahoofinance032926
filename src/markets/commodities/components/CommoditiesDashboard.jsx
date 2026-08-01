@@ -2,10 +2,9 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import { useMarketData } from '../../../hub/DataContext';
-import BentoWrapper from '../../../components/BentoWrapper';
 import BentoCard from '../../../components/BentoCard/BentoCard';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import SafeECharts from '../../../components/SafeECharts';
-import MetricValue from '../../../components/MetricValue/MetricValue';
 import PriceDashboard from './PriceDashboard';
 import FuturesCurve from './FuturesCurve';
 import SupplyDemand from './SupplyDemand';
@@ -633,22 +632,9 @@ function CommoditiesDashboard({
     ]
   };
 
-  return (
-    <div className="com-dashboard">
-      <BentoWrapper layout={layout} storageKey="commodities-layout-v7">
-        <BentoCard
-          key="sidebar"
-          title="Market Summary"
-          accent="commodities"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="CFTC / Yahoo"
-          timestamp={lastUpdated}
-          isLive={!!(cotData || allCommodities.length || dbcEtf)}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+  // Compose independent panels via MarketPanelGrid bridge (__render).
+  const panelBodies = {
+        sidebar: (
           <div className="com-summary">
             <div className="com-sidebar-section">
               <div className="com-sidebar-title">Key Prices</div>
@@ -751,111 +737,50 @@ function CommoditiesDashboard({
               </div>
             </div>
           </div>
-        </BentoCard>
+        ),
 
-        <BentoCard
-          key="prices"
-          title="Commodity Prices"
-          subtitle={
-            <>
-              Live futures + EIA + FRED
-              {freshness && (
-                <span className="com-freshness-dot" style={{ color: freshness.color }}> · {freshness.label}</span>
-              )}
-            </>
-          }
-          accent="commodities"
-          contentClassName="com-panel-content"
-          titleActions={
-            <>
+        prices: (
+          <>
+            <div
+              className="bento-inline-title-actions"
+              style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginBottom: 6 }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <button className={`com-toggle-btn ${priceView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('table')}>Table</button>
               <button className={`com-toggle-btn ${priceView === 'chart' ? 'com-toggle-active' : ''}`} onClick={() => setPriceView('chart')}>Charts</button>
-            </>
-          }
-          source="EIA / FRED / Yahoo Finance"
-          timestamp={lastUpdated}
-          isLive={!!priceDashboardData}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {priceView === 'table' ? (
-            <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} goldOilRatio={goldOilRatio} contangoIndicator={contangoIndicator} commodityCurrencies={commodityCurrencies} enhancedData={enhancedData} lastUpdated={lastUpdated} />
-          ) : (
-            <PriceCharts priceDashboardData={priceDashboardData} allCommodities={allCommodities} colors={colors} formatChange={formatChange} />
-          )}
-        </BentoCard>
+            </div>
+            {priceView === 'table' ? (
+              <PriceDashboard priceDashboardData={priceDashboardData} dbcEtf={dbcEtf} fredCommodities={fredCommodities} goldOilRatio={goldOilRatio} contangoIndicator={contangoIndicator} commodityCurrencies={commodityCurrencies} enhancedData={enhancedData} lastUpdated={lastUpdated} />
+            ) : (
+              <PriceCharts priceDashboardData={priceDashboardData} allCommodities={allCommodities} colors={colors} formatChange={formatChange} />
+            )}
+          </>
+        ),
 
-        <BentoCard
-          key="futures"
-          title="Futures Curve"
-          accent="commodities"
-          contentClassName="com-panel-content"
-          source="EIA / FRED"
-          timestamp={lastUpdated}
-          isLive={!!futuresCurveData}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        futures: (
           <FuturesCurve futuresCurveData={futuresCurveData} goldFuturesCurve={goldFuturesCurve} fredCommodities={fredCommodities} seasonalPatterns={seasonalPatterns} />
-        </BentoCard>
+        ),
 
-        <BentoCard
-          key="sector"
-          title="Sector Performance"
-          accent="commodities"
-          contentClassName="com-panel-content"
-          titleActions={
-            <>
+        sector: (
+          <>
+            <div
+              className="bento-inline-title-actions"
+              style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginBottom: 6 }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <button className={`com-toggle-btn ${sectorView === 'heatmap' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('heatmap')}>Heatmap</button>
               <button className={`com-toggle-btn ${sectorView === 'table' ? 'com-toggle-active' : ''}`} onClick={() => setSectorView('table')}>Table</button>
-            </>
-          }
-          source="FRED / Yahoo Finance"
-          timestamp={lastUpdated}
-          isLive={!!sectorHeatmapData}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          <SectorHeatmap sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} view={sectorView} />
-        </BentoCard>
+            </div>
+            <SectorHeatmap sectorHeatmapData={sectorHeatmapData} fredCommodities={fredCommodities} view={sectorView} />
+          </>
+        ),
 
-        <BentoCard
-          key="supply"
-          title="Supply & Demand"
-          accent="commodities"
-          contentClassName="com-panel-content"
-          source="EIA"
-          timestamp={lastUpdated}
-          isLive={!!supplyDemandData}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        supply: (
           <SupplyDemand supplyDemandData={supplyDemandData} fredCommodities={fredCommodities} lastUpdated={lastUpdated} />
-        </BentoCard>
+        ),
 
-        {wtiBrentOption && (
-          <BentoCard
-            key="wti-brent"
-            title="WTI vs Brent Crude"
-            subtitle="1 Year (FRED daily)"
-            accent="commodities"
-            contentClassName="com-panel-content"
-            source="FRED"
-            timestamp={lastUpdated}
-            isLive={!!fredCommodities?.wtiHistory && !!fredCommodities?.brentHistory}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
+        'wti-brent': (
+          wtiBrentOption ? (
             <div style={{ height: '100%', width: '100%', padding: '0 8px 8px 8px', boxSizing: 'border-box' }}>
               <SafeECharts
                 option={wtiBrentOption}
@@ -869,38 +794,16 @@ function CommoditiesDashboard({
                 }}
               />
             </div>
-          </BentoCard>
-        )}
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>WTI / Brent history loading…</div>
+          )
+        ),
 
-        <BentoCard
-          key="cot"
-          title="COT Positioning"
-          accent="commodities"
-          contentClassName="com-panel-content"
-          source="CFTC / Server"
-          timestamp={lastUpdated}
-          isLive={!!cotData}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        cot: (
           <CotPositioning cotData={cotData} lastUpdated={lastUpdated} />
-        </BentoCard>
+        ),
 
-        <BentoCard
-          key="comfx"
-          title="Commodity FX (vs USD)"
-          accent="commodities"
-          contentClassName="com-panel-content"
-          source="FX Market / Spot"
-          timestamp={lastUpdated}
-          isLive={!!commodityCurrencies}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        comfx: (
           <div className="com-fx-panel">
             <div className="com-fx-table">
               <div className="com-fx-row header">
@@ -941,46 +844,16 @@ function CommoditiesDashboard({
             </div>
             <div className="com-fx-footer">Units per USD · positive = USD stronger vs commodity currency</div>
           </div>
-        </BentoCard>
+        ),
 
-        {/* USDA NASS — US Ag Commodity Prices */}
-        {usdaOption && (
-          <BentoCard
-            key="usda-ag"
-            title="US Ag Commodity Prices"
-            subtitle={(usdaCtx?.data?.summary || []).filter(s => s.latest).slice(0, 4).map(s => `${s.desc.slice(0, 4)} ${s.latest.value.toFixed(2)}${s.unit.replace('$/','/')}${s.yoyPct != null ? ` (${s.yoyPct >= 0 ? '+' : ''}${s.yoyPct.toFixed(0)}% YoY)` : ''}`).join(' · ') || 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS'}
-            accent="commodities"
-            className="com-bento-card"
-            source="USDA NASS"
-            timestamp={usdaCtx?.lastUpdated || lastUpdated}
-            isLive={!!usdaCtx?.data?.isLive}
-            isCurrent={usdaCtx?.isCurrent ?? isCurrent}
-            fetchedOn={usdaCtx?.fetchedOn || fetchedOn}
-            fetchLog={usdaCtx?.fetchLog || fetchLog}
-            error={usdaCtx?.error || error}
-          >
-            <SafeECharts option={usdaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'USDA Ag Commodity Prices', source: 'USDA NASS Quick Stats', endpoint: '/api/usda', series: [], updatedAt: usdaCtx?.lastUpdated || lastUpdated }} />
-          </BentoCard>
-        )}
+        'usda-ag': (
+          usdaOption
+            ? <SafeECharts option={usdaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'USDA Ag Commodity Prices', source: 'USDA NASS Quick Stats', endpoint: '/api/usda', series: [], updatedAt: usdaCtx?.lastUpdated || lastUpdated }} />
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>USDA ag prices loading…</div>
+        ),
 
-        {/* EIA petroleum + natural gas */}
-        {eiaPetrolOption && (
-          <BentoCard
-            key="eia-petrol"
-            title="Petroleum & Natural Gas"
-            subtitle={eiaPetCtx?.data?.gasoline?.latest && eiaPetCtx?.data?.naturalGas?.latest
-              ? `Gasoline $${eiaPetCtx.data.gasoline.latest.value.toFixed(2)}/gal (${eiaPetCtx.data.gasoline.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.gasoline.yoyPct?.toFixed(0)}% YoY) · NG $${eiaPetCtx.data.naturalGas.latest.value.toFixed(2)}/MMBtu (${eiaPetCtx.data.naturalGas.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.naturalGas.yoyPct?.toFixed(0)}% YoY)${eiaPetCtx?.data?.crudeStocks?.latest ? ` · Crude stocks ${(eiaPetCtx.data.crudeStocks.latest.value / 1000).toFixed(0)}M bbl` : ''}`
-              : 'Retail gasoline · Henry Hub spot · weekly'}
-            accent="commodities"
-            className="com-bento-card"
-            source="EIA"
-            timestamp={eiaPetCtx?.lastUpdated || lastUpdated}
-            isLive={!!eiaPetCtx?.data?.isLive}
-            isCurrent={eiaPetCtx?.isCurrent ?? isCurrent}
-            fetchedOn={eiaPetCtx?.fetchedOn || fetchedOn}
-            fetchLog={eiaPetCtx?.fetchLog || fetchLog}
-            error={eiaPetCtx?.error || error}
-          >
+        'eia-petrol': (
+          eiaPetrolOption ? (
             <div style={{ display: 'grid', gridTemplateRows: petroleumKpis.length ? 'auto 1fr' : '1fr', gap: 8, height: '100%', minHeight: 0 }}>
               {petroleumKpis.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${petroleumKpis.length}, minmax(0, 1fr))`, gap: 8 }}>
@@ -999,47 +872,15 @@ function CommoditiesDashboard({
                 <SafeECharts option={eiaPetrolOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EIA Petroleum & Natural Gas', source: 'EIA', endpoint: '/api/eia-petroleum', series: [{ id: 'EMM_EPMR_PTE_NUS_DPG' }, { id: 'RNGWHHD' }, { id: 'WCRSTUS1' }], updatedAt: eiaPetCtx?.lastUpdated || lastUpdated }} />
               </div>
             </div>
-          </BentoCard>
-        )}
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>EIA petroleum series loading…</div>
+          )
+        ),
 
-        {/* US trade balance by bloc */}
-        {tradeOption && (
-          <BentoCard
-            key="us-trade"
-            title="US Trade Balance"
-            subtitle={tradeCtx?.data?.summary
-              ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
-              : 'Monthly net trade by bloc · 24-month series · Census Bureau'}
-            accent="commodities"
-            className="com-bento-card"
-            source="US Census Bureau"
-            timestamp={tradeCtx?.lastUpdated || lastUpdated}
-            isLive={!!tradeCtx?.data?.isLive}
-            isCurrent={tradeCtx?.isCurrent ?? isCurrent}
-            fetchedOn={tradeCtx?.fetchedOn || fetchedOn}
-            fetchLog={tradeCtx?.fetchLog || fetchLog}
-            error={tradeCtx?.error || error}
-          >
-            <SafeECharts option={tradeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Trade Balance', source: 'US Census Bureau', endpoint: '/api/census-trade', series: [], updatedAt: tradeCtx?.lastUpdated || lastUpdated }} />
-          </BentoCard>
-        )}
+        // us-trade: not in MARKET_PANELS / panel registry — mounted via MarketPanelGrid extra
 
-        <BentoCard
-          key="physical-pressure"
-          title="Physical Supply Pressure"
-          subtitle={`${physicalPressureRows.length} physical and trade indicators from current snapshots`}
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="EIA / USDA NASS / US Census Bureau"
-          timestamp={eiaPetCtx?.lastUpdated || usdaCtx?.lastUpdated || tradeCtx?.lastUpdated || lastUpdated}
-          isLive={!!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive)}
-          isCurrent={(eiaPetCtx?.isCurrent ?? usdaCtx?.isCurrent ?? tradeCtx?.isCurrent) ?? isCurrent}
-          fetchedOn={eiaPetCtx?.fetchedOn || usdaCtx?.fetchedOn || tradeCtx?.fetchedOn || fetchedOn}
-          fetchLog={eiaPetCtx?.fetchLog || usdaCtx?.fetchLog || tradeCtx?.fetchLog || fetchLog}
-          error={eiaPetCtx?.error || usdaCtx?.error || tradeCtx?.error || error}
-        >
-          {physicalPressureRows.length > 0 ? (
+        'physical-pressure': (
+          physicalPressureRows.length > 0 ? (
             <table className="com-table com-pressure-table">
               <thead>
                 <tr>
@@ -1074,24 +915,11 @@ function CommoditiesDashboard({
             </table>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 16, textAlign: 'center' }}>No physical supply indicators available</div>
-          )}
-        </BentoCard>
+          )
+        ),
 
-        <BentoCard
-          key="materials-grid"
-          title="Strategic Materials Periodic Grid"
-          subtitle={`${strategicMaterials.length} materials · live prices shown where futures/proxies exist`}
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="USGS critical-minerals taxonomy / Yahoo Finance proxies"
-          timestamp={lastUpdated}
-          isLive={materialPriceMap.size > 0}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        'materials-grid': (
+          <>
           <div className="com-material-legend">
             {Object.entries(MATERIAL_CATEGORIES).map(([key, meta]) => (
               <span key={key} className="com-material-legend-item">
@@ -1118,23 +946,10 @@ function CommoditiesDashboard({
               );
             })}
           </div>
-        </BentoCard>
+          </>
+        ),
 
-        <BentoCard
-          key="criticality"
-          title="Criticality Leaderboard"
-          subtitle="Supply-risk score + import reliance"
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="USGS / curated supply-chain metadata"
-          timestamp={lastUpdated}
-          isLive={true}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        criticality: (
           <table className="com-material-table com-critical-table">
             <thead>
               <tr>
@@ -1172,23 +987,9 @@ function CommoditiesDashboard({
               ))}
             </tbody>
           </table>
-        </BentoCard>
+        ),
 
-        <BentoCard
-          key="battery-chain"
-          title="Battery Supply Chain"
-          subtitle="EV, grid, and cathode/anode minerals"
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="USGS / Yahoo Finance proxies"
-          timestamp={lastUpdated}
-          isLive={materialPriceMap.size > 0}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        'battery-chain': (
           <table className="com-material-table">
             <thead>
               <tr>
@@ -1216,27 +1017,10 @@ function CommoditiesDashboard({
               })}
             </tbody>
           </table>
-        </BentoCard>
+        ),
 
-        <BentoCard
-          key="precious-complex"
-          title="Precious Metals Complex"
-          subtitle={
-            pricedPrecious.liveCount > 0
-              ? `${pricedPrecious.liveCount} live futures · PGMs without exchange quotes show metadata only`
-              : 'Monetary metals, PGMs · waiting for Yahoo futures'
-          }
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="Yahoo Finance futures (GC/SI/PL/PA) · USGS supply metadata"
-          timestamp={lastUpdated}
-          isLive={pricedPrecious.liveCount > 0}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        'precious-complex': (
+          <>
           <div className="com-ratio-grid">
             {pricedPrecious.ratios.map(row => (
               <div key={row.label} className="com-ratio-card">
@@ -1289,23 +1073,11 @@ function CommoditiesDashboard({
               ))}
             </tbody>
           </table>
-        </BentoCard>
+          </>
+        ),
 
-        <BentoCard
-          key="regime"
-          title="Commodity Regime Dashboard"
-          subtitle="Energy, metals, agriculture, and breadth"
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="Yahoo Finance / EIA / FRED"
-          timestamp={lastUpdated}
-          isLive={!!priceDashboardData}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        regime: (
+          <>
           <div className="com-regime-hero">
             <span>Current Regime</span>
             <strong>{regimeSnapshot.label}</strong>
@@ -1326,23 +1098,10 @@ function CommoditiesDashboard({
               </div>
             ))}
           </div>
-        </BentoCard>
+          </>
+        ),
 
-        <BentoCard
-          key="energy-stack"
-          title="Energy Stack"
-          subtitle="Crude, products, natural gas, and inventories"
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="Yahoo Finance / EIA"
-          timestamp={eiaPetCtx?.lastUpdated || lastUpdated}
-          isLive={!!(priceDashboardData || eiaPetCtx?.data)}
-          isCurrent={eiaPetCtx?.isCurrent ?? isCurrent}
-          fetchedOn={eiaPetCtx?.fetchedOn || fetchedOn}
-          fetchLog={eiaPetCtx?.fetchLog || fetchLog}
-          error={eiaPetCtx?.error || error}
-        >
+        'energy-stack': (
           <table className="com-material-table">
             <thead><tr><th>Signal</th><th>Latest</th><th>Move</th><th>Read</th></tr></thead>
             <tbody>
@@ -1358,23 +1117,9 @@ function CommoditiesDashboard({
               ))}
             </tbody>
           </table>
-        </BentoCard>
+        ),
 
-        <BentoCard
-          key="curve-board"
-          title="Curve Structure Board"
-          subtitle="Contango/backwardation as inventory tightness proxy"
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="Yahoo Finance / CME proxies"
-          timestamp={lastUpdated}
-          isLive={!!(futuresCurveData || goldFuturesCurve)}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        'curve-board': (
           <div className="com-curve-board">
             {curveBoardRows.map(row => (
               <div key={row.market} className="com-curve-board-row">
@@ -1389,24 +1134,10 @@ function CommoditiesDashboard({
               </div>
             ))}
           </div>
-        </BentoCard>
+        ),
 
-        <BentoCard
-          key="material-detail"
-          title="Strategic Material Detail"
-          subtitle="Click a material in the periodic grid"
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="USGS / curated supply-chain metadata"
-          timestamp={lastUpdated}
-          isLive={!!selectedMaterial}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {selectedMaterial && (
+        'material-detail': (
+          selectedMaterial ? (
             <div className="com-material-detail">
               <div className="com-material-detail-head">
                 <strong>{selectedMaterial.symbol}</strong>
@@ -1427,24 +1158,12 @@ function CommoditiesDashboard({
                 {selectedMaterial.uses.map(use => <span key={use}>{use}</span>)}
               </div>
             </div>
-          )}
-        </BentoCard>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Click a material in the periodic grid</div>
+          )
+        ),
 
-        <BentoCard
-          key="exposure-matrix"
-          title="Material-to-Sector Exposure Matrix"
-          subtitle="Which materials matter to EVs, grid, defense, chips, solar, and nuclear"
-          accent="commodities"
-          className="com-bento-card"
-          contentClassName="com-panel-content com-panel-scroll"
-          source="USGS / curated end-use metadata"
-          timestamp={lastUpdated}
-          isLive={true}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+        'exposure-matrix': (
           <table className="com-material-table">
             <thead>
               <tr>
@@ -1468,10 +1187,10 @@ function CommoditiesDashboard({
               })}
             </tbody>
           </table>
-        </BentoCard>
+        ),
 
-        {faoCtx?.data?.series?.length > 0 && (
-          <BentoCard key="fao-prices" title="FAO Food Price Index" accent="commodities" className="com-bento-card" contentClassName="com-panel-content" source="FAO" timestamp={faoCtx?.lastUpdated || lastUpdated} isLive={!!faoCtx?.data?.isLive} isCurrent={faoCtx?.isCurrent ?? isCurrent} fetchedOn={faoCtx?.fetchedOn || fetchedOn} fetchLog={faoCtx?.fetchLog || fetchLog} error={faoCtx?.error || error}>
+        'fao-prices': (
+          faoCtx?.data?.series?.length > 0 ? (
             <div style={{ height: '100%', minHeight: 0, padding: 4 }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 6 }}>
                 <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
@@ -1494,9 +1213,132 @@ function CommoditiesDashboard({
                 />
               </div>
             </div>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>FAO food price index loading…</div>
+          )
+        ),
+  };
+
+  const panelCtx = {
+    __render: (panelId) => panelBodies[panelId] ?? null,
+    __live: {
+      sidebar: !!(cotData || allCommodities.length || dbcEtf),
+      prices: !!priceDashboardData,
+      futures: !!futuresCurveData,
+      sector: !!sectorHeatmapData,
+      supply: !!supplyDemandData,
+      'wti-brent': !!(fredCommodities?.wtiHistory && fredCommodities?.brentHistory),
+      cot: !!cotData,
+      comfx: !!commodityCurrencies,
+      'usda-ag': !!usdaCtx?.data?.isLive,
+      'eia-petrol': !!eiaPetCtx?.data?.isLive,
+      'physical-pressure': !!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive),
+      'materials-grid': materialPriceMap.size > 0,
+      criticality: true,
+      'battery-chain': materialPriceMap.size > 0,
+      'precious-complex': pricedPrecious.liveCount > 0,
+      regime: !!priceDashboardData,
+      'energy-stack': !!(priceDashboardData || eiaPetCtx?.data),
+      'curve-board': !!(futuresCurveData || goldFuturesCurve),
+      'material-detail': !!selectedMaterial,
+      'exposure-matrix': true,
+      'fao-prices': !!faoCtx?.data?.isLive,
+    },
+    __subtitle: {
+      prices: (
+        <>
+          Live futures + EIA + FRED
+          {freshness && (
+            <span className="com-freshness-dot" style={{ color: freshness.color }}> · {freshness.label}</span>
+          )}
+        </>
+      ),
+      'wti-brent': '1 Year (FRED daily)',
+      'usda-ag': (usdaCtx?.data?.summary || []).filter(s => s.latest).slice(0, 4).map(s => `${s.desc.slice(0, 4)} ${s.latest.value.toFixed(2)}${s.unit.replace('$/','/')}${s.yoyPct != null ? ` (${s.yoyPct >= 0 ? '+' : ''}${s.yoyPct.toFixed(0)}% YoY)` : ''}`).join(' · ') || 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS',
+      'eia-petrol': eiaPetCtx?.data?.gasoline?.latest && eiaPetCtx?.data?.naturalGas?.latest
+        ? `Gasoline $${eiaPetCtx.data.gasoline.latest.value.toFixed(2)}/gal (${eiaPetCtx.data.gasoline.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.gasoline.yoyPct?.toFixed(0)}% YoY) · NG $${eiaPetCtx.data.naturalGas.latest.value.toFixed(2)}/MMBtu (${eiaPetCtx.data.naturalGas.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.naturalGas.yoyPct?.toFixed(0)}% YoY)${eiaPetCtx?.data?.crudeStocks?.latest ? ` · Crude stocks ${(eiaPetCtx.data.crudeStocks.latest.value / 1000).toFixed(0)}M bbl` : ''}`
+        : 'Retail gasoline · Henry Hub spot · weekly',
+      'physical-pressure': `${physicalPressureRows.length} physical and trade indicators from current snapshots`,
+      'materials-grid': `${strategicMaterials.length} materials · live prices shown where futures/proxies exist`,
+      criticality: 'Supply-risk score + import reliance',
+      'battery-chain': 'EV, grid, and cathode/anode minerals',
+      'precious-complex': pricedPrecious.liveCount > 0
+        ? `${pricedPrecious.liveCount} live futures · PGMs without exchange quotes show metadata only`
+        : 'Monetary metals, PGMs · waiting for Yahoo futures',
+      regime: 'Energy, metals, agriculture, and breadth',
+      'energy-stack': 'Crude, products, natural gas, and inventories',
+      'curve-board': 'Contango/backwardation as inventory tightness proxy',
+      'material-detail': 'Click a material in the periodic grid',
+      'exposure-matrix': 'Which materials matter to EVs, grid, defense, chips, solar, and nuclear',
+    },
+    __disabled: {
+      'wti-brent': !wtiBrentOption,
+      'usda-ag': !usdaOption,
+      'eia-petrol': !eiaPetrolOption,
+      'fao-prices': !(faoCtx?.data?.series?.length > 0),
+    },
+    __noFooter: {},
+    __source: {
+      sidebar: 'CFTC / Yahoo',
+      prices: 'EIA / FRED / Yahoo Finance',
+      futures: 'EIA / FRED',
+      sector: 'FRED / Yahoo Finance',
+      supply: 'EIA',
+      'wti-brent': 'FRED',
+      cot: 'CFTC / Server',
+      comfx: 'FX Market / Spot',
+      'usda-ag': 'USDA NASS',
+      'eia-petrol': 'EIA',
+      'physical-pressure': 'EIA / USDA NASS / US Census Bureau',
+      'materials-grid': 'USGS critical-minerals taxonomy / Yahoo Finance proxies',
+      criticality: 'USGS / curated supply-chain metadata',
+      'battery-chain': 'USGS / Yahoo Finance proxies',
+      'precious-complex': 'Yahoo Finance futures (GC/SI/PL/PA) · USGS supply metadata',
+      regime: 'Yahoo Finance / EIA / FRED',
+      'energy-stack': 'Yahoo Finance / EIA',
+      'curve-board': 'Yahoo Finance / CME proxies',
+      'material-detail': 'USGS / curated supply-chain metadata',
+      'exposure-matrix': 'USGS / curated end-use metadata',
+      'fao-prices': 'FAO',
+    },
+  };
+
+  return (
+    <div className="com-dashboard">
+      <MarketPanelGrid
+        marketId="commodities"
+        layout={layout}
+        storageKey="commodities-layout-v7"
+        accent="commodities"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: lastUpdated,
+          isCurrent,
+          fetchedOn,
+          fetchLog,
+          error,
+        }}
+        extra={tradeOption ? (
+          <BentoCard
+            key="us-trade"
+            title="US Trade Balance"
+            subtitle={tradeCtx?.data?.summary
+              ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
+              : 'Monthly net trade by bloc · 24-month series · Census Bureau'}
+            accent="commodities"
+            className="com-bento-card"
+            source="US Census Bureau"
+            timestamp={tradeCtx?.lastUpdated || lastUpdated}
+            isLive={!!tradeCtx?.data?.isLive}
+            isCurrent={tradeCtx?.isCurrent ?? isCurrent}
+            fetchedOn={tradeCtx?.fetchedOn || fetchedOn}
+            fetchLog={tradeCtx?.fetchLog || fetchLog}
+            error={tradeCtx?.error || error}
+          >
+            <SafeECharts option={tradeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Trade Balance', source: 'US Census Bureau', endpoint: '/api/census-trade', series: [], updatedAt: tradeCtx?.lastUpdated || lastUpdated }} />
           </BentoCard>
-        )}
-      </BentoWrapper>
+        ) : null}
+      />
     </div>
   );
 }

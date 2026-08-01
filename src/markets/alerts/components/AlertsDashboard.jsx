@@ -1,12 +1,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import BentoWrapper from '../../../components/BentoWrapper';
-import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import AlertsSidebar from './AlertsSidebar';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import './AlertsDashboard.css';
-
-const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 };
 
 const STORAGE_KEY = 'alert-rules-enabled';
 
@@ -36,6 +33,17 @@ function saveEnabled(map) {
 
 const FOOTER_SOURCE = 'Multi-market rules · federated';
 
+const ALERT_SERIES = {
+  'vix-spike': 'alertVix',
+  'curve-inversion': 'alertCurve',
+  'hy-spread-wide': 'alertHY',
+  'fear-extreme': 'alertFear',
+  'greed-extreme': 'alertGreed',
+  'btc-crash': 'alertBTC',
+  'gold-rally': 'alertGold',
+  'dxy-move': 'alertDXY',
+};
+
 function AlertsDashboard({
   alerts,
   rules,
@@ -47,20 +55,7 @@ function AlertsDashboard({
   error,
   fetchLog,
   isCurrent,
-  isHistorical,
-  asOfDate,
 }) {
-  const ALERT_SERIES = {
-    'vix-spike': 'alertVix',
-    'curve-inversion': 'alertCurve',
-    'hy-spread-wide': 'alertHY',
-    'fear-extreme': 'alertFear',
-    'greed-extreme': 'alertGreed',
-    'btc-crash': 'alertBTC',
-    'gold-rally': 'alertGold',
-    'dxy-move': 'alertDXY',
-  };
-
   const initialMap = {};
   const stored = loadEnabled();
   for (const r of rules) {
@@ -78,17 +73,6 @@ function AlertsDashboard({
   }, [onToggleRule]);
 
   const enabledCount = rules.filter(r => enabledMap[r.id] !== false).length;
-
-  const rulesByMarket = rules.reduce((acc, r) => {
-    if (!acc[r.market]) acc[r.market] = [];
-    acc[r.market].push(r);
-    return acc;
-  }, {});
-
-  const alertCounts = alerts.reduce((acc, a) => {
-    acc[a.market] = (acc[a.market] || 0) + 1;
-    return acc;
-  }, {});
 
   const severityCounts = useMemo(() => {
     const counts = { high: 0, medium: 0, low: 0 };
@@ -141,26 +125,12 @@ function AlertsDashboard({
     return { data, labels };
   }, [correlationData]);
 
-    return (
-      <div className="alerts-dashboard alerts-dashboard--bento">
-        <BentoWrapper layout={LAYOUT} storageKey="alerts-layout-v3">
+  const panelLive = !!(isLive || rules.length > 0);
 
-        {/* Alert Status (MARKET_PANELS id: kpi) — single BentoCard footer only */}
-        <BentoCard
-          key="kpi"
-          title="Alert Status"
-          accent="alerts"
-          className="alerts-bento-card"
-          source={FOOTER_SOURCE}
-          timestamp={lastUpdated}
-          isLive={isLive || rules.length > 0}
-          isCurrent={isCurrent}
-          isHistorical={isHistorical}
-          asOfDate={asOfDate}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+  const renderPanel = useCallback((panelId) => {
+    switch (panelId) {
+      case 'kpi':
+        return (
           <div data-panel-bound="1" data-panel-live="1">
             <div className="alerts-status-kpis" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
               <div className="bonds-kpi-pill" style={{ minWidth: 88 }}>
@@ -190,24 +160,10 @@ function AlertsDashboard({
               fetchedOn={fetchedOn}
             />
           </div>
-        </BentoCard>
+        );
 
-        {/* Active Alerts feed */}
-        <BentoCard
-          key="active-alerts"
-          title="Active Alerts"
-          accent="alerts"
-          className="alerts-bento-card"
-          source={FOOTER_SOURCE}
-          timestamp={lastUpdated}
-          isLive={isLive || rules.length > 0}
-          isCurrent={isCurrent}
-          isHistorical={isHistorical}
-          asOfDate={asOfDate}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+      case 'active-alerts':
+        return (
           <div data-panel-bound="1" data-panel-live="1">
             {alerts.length === 0 ? (
               <div className="alerts-all-clear">
@@ -258,24 +214,10 @@ function AlertsDashboard({
               </div>
             </div>
           </div>
-        </BentoCard>
+        );
 
-        {/* Alert Rules (MARKET_PANELS id: alert-rules) */}
-        <BentoCard
-          key="alert-rules"
-          title="Alert Rules"
-          accent="alerts"
-          className="alerts-bento-card"
-          source={FOOTER_SOURCE}
-          timestamp={lastUpdated}
-          isLive={isLive || rules.length > 0}
-          isCurrent={isCurrent}
-          isHistorical={isHistorical}
-          asOfDate={asOfDate}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+      case 'alert-rules':
+        return (
           <div data-panel-bound="1" data-panel-live="1" style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%', minHeight: 0 }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               <MetricValue value={enabledCount} seriesKey="alertRules" format={(v) => String(Math.round(v))} />
@@ -350,12 +292,49 @@ function AlertsDashboard({
               )}
             </div>
           </div>
-        </BentoCard>
+        );
 
-        </BentoWrapper>
-      </div>
-    );
-  }
+      default:
+        return null;
+    }
+  }, [
+    alerts, enabledCount, rules, severityCounts, enabledMap, fetchedOn,
+    correlationMatrix, toggleRule,
+  ]);
+
+  const panelCtx = useMemo(() => ({
+    __render: renderPanel,
+    __live: {
+      kpi: panelLive,
+      'active-alerts': panelLive,
+      'alert-rules': panelLive,
+    },
+    __source: {
+      kpi: FOOTER_SOURCE,
+      'active-alerts': FOOTER_SOURCE,
+      'alert-rules': FOOTER_SOURCE,
+    },
+  }), [renderPanel, panelLive]);
+
+  return (
+    <div className="alerts-dashboard alerts-dashboard--bento">
+      <MarketPanelGrid
+        marketId="alerts"
+        layout={LAYOUT}
+        storageKey="alerts-layout-v3"
+        accent="alerts"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: lastUpdated,
+          isCurrent,
+          fetchedOn,
+          fetchLog,
+          error,
+        }}
+      />
+    </div>
+  );
+}
 
 
 export default React.memo(AlertsDashboard);

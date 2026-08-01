@@ -96,3 +96,8 @@ tmp-*.json
 tmp-server-*.txt
 tmp-vitest.json
 screenshots/debug-*.png
+
+# Agent / housekeep outputs
+reports/
+src/__tests__/regression/drafts/
+

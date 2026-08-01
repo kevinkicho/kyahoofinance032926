@@ -72,7 +72,7 @@ describe('EquitiesDeepDiveMarket', () => {
 
   it('shows ETF Performance panel', () => {
     render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
-    expect(screen.getByText('ETF Performance')).toBeInTheDocument();
+    expect(screen.getAllByText('ETF Performance').length).toBeGreaterThan(0);
   });
 
   it('shows no data received status when not live', () => {

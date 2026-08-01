@@ -1,8 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
-import BentoWrapper from '../../../components/BentoWrapper';
-import BentoCard from '../../../components/BentoCard/BentoCard';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 
 const BLS_LAYOUT = {
   // Every thematic panel uses the same master-detail pattern as
@@ -384,6 +383,31 @@ export default function BlsDashboard({ series, isLive }) {
   const eciItems = usePanelItems(series, ECI_DEFS);
   const durationItems = usePanelItems(series, DURATION_DEFS);
 
+  // Hooks must run unconditionally (splash mounts this before data arrives).
+  const panelCtx = useMemo(() => {
+    const bodies = {
+      kpi: <MasterDetailBody items={kpiItems} wideRail />,
+      'trends-top': <MasterDetailBody items={trendsLaborItems} emptyHint="No labor trend series" />,
+      'trends-bottom': <MasterDetailBody items={trendsPricesItems} emptyHint="No price/jobs series" />,
+      jolts: <MasterDetailBody items={joltsItems} emptyHint="No JOLTS series" />,
+      productivity: <MasterDetailBody items={productivityItems} emptyHint="No productivity series" />,
+      'cpi-components': <MasterDetailBody items={cpiItems} emptyHint="No CPI component series" />,
+      'ppi-by-industry': <MasterDetailBody items={ppiItems} emptyHint="No PPI series" />,
+      eci: <MasterDetailBody items={eciItems} emptyHint="No ECI series" />,
+      'unemployment-duration': <MasterDetailBody items={durationItems} emptyHint="No duration series" />,
+    };
+    const live = Object.fromEntries(Object.keys(bodies).map((id) => [id, !!isLive]));
+    const noFooter = Object.fromEntries(Object.keys(bodies).map((id) => [id, true]));
+    return {
+      __render: (panelId) => bodies[panelId] ?? null,
+      __live: live,
+      __noFooter: noFooter,
+    };
+  }, [
+    kpiItems, trendsLaborItems, trendsPricesItems, joltsItems, productivityItems,
+    cpiItems, ppiItems, eciItems, durationItems, isLive,
+  ]);
+
   if (!isLive && kpiItems.length === 0) {
     return (
       <div className="bls-empty bls-empty--page">
@@ -393,96 +417,12 @@ export default function BlsDashboard({ series, isLive }) {
   }
 
   return (
-    <BentoWrapper layout={BLS_LAYOUT} storageKey="bls-layout-v5">
-      <BentoCard
-        key="kpi"
-        title="Key Labor Market Indicators"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={kpiItems} wideRail />
-      </BentoCard>
-
-      <BentoCard
-        key="trends-top"
-        title="Trends (3-Year) — Labor"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={trendsLaborItems} emptyHint="No labor trend series" />
-      </BentoCard>
-
-      <BentoCard
-        key="trends-bottom"
-        title="Trends (3-Year) — Prices & Jobs"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={trendsPricesItems} emptyHint="No price/jobs series" />
-      </BentoCard>
-
-      <BentoCard
-        key="jolts"
-        title="JOLTS — Job Openings, Hires, Quits & Layoffs"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={joltsItems} emptyHint="No JOLTS series" />
-      </BentoCard>
-
-      <BentoCard
-        key="productivity"
-        title="Productivity & Unit Labor Costs"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={productivityItems} emptyHint="No productivity series" />
-      </BentoCard>
-
-      <BentoCard
-        key="cpi-components"
-        title="CPI Components — Food, Energy, Shelter"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={cpiItems} emptyHint="No CPI component series" />
-      </BentoCard>
-
-      <BentoCard
-        key="ppi-by-industry"
-        title="PPI by Industry — Final, Intermediate, Services"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={ppiItems} emptyHint="No PPI series" />
-      </BentoCard>
-
-      <BentoCard
-        key="eci"
-        title="Employment Cost Index"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={eciItems} emptyHint="No ECI series" />
-      </BentoCard>
-
-      <BentoCard
-        key="unemployment-duration"
-        title="Unemployment by Duration"
-        accent="bls"
-        className="bls-bento-panel"
-        noFooter
-      >
-        <MasterDetailBody items={durationItems} emptyHint="No duration series" />
-      </BentoCard>
-    </BentoWrapper>
+    <MarketPanelGrid
+      marketId="bls"
+      layout={BLS_LAYOUT}
+      storageKey="bls-layout-v5"
+      accent="bls"
+      ctx={panelCtx}
+    />
   );
 }

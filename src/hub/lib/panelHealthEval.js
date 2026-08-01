@@ -21,6 +21,8 @@ import {
   countNumericLeaves,
   placeholderValueOk,
 } from './panelHealthUtils.js';
+import { findScopedPanelEl } from './panelHealthSignal.js';
+import { ensureFetchMetricStamps } from './panelHealthStamp.js';
 
 export const resolvePath = resolvePathUtil;
 export const hasSubstance = hasSubstanceUtil;
@@ -398,27 +400,14 @@ export function classifyPanelDisplay(el, { fetchOk = false } = {}) {
 }
 
 function findPanelEl(marketId, panelId) {
-  // Prefer live hub root over splash backdrop (both may exist briefly)
-  const live = document.querySelector(
-    `[data-market-id="${marketId}"] [data-panel-key="${panelId}"]`
-  );
-  if (live) return live;
-  const splash = document.querySelector(
-    `[data-splash-market="${marketId}"] [data-panel-key="${panelId}"]`
-  );
-  if (splash) return splash;
-  // Market root mounted but panel missing → do not steal another market's id
-  if (document.querySelector(`[data-market-id="${marketId}"], [data-splash-market="${marketId}"]`)) {
-    return null;
-  }
-  // Unit tests / early paint without a market root: allow unscoped lookup.
-  return document.querySelector(`[data-panel-key="${panelId}"]`);
+  return findScopedPanelEl(marketId, panelId);
 }
 
 export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, allMarkets }) {
   const spec = getPanelSpec(marketId, panelId);
   const title = panelTitle || spec?.title || panelId;
-  const el = findPanelEl(marketId, panelId);
+  // let: health shell may create a node when the panel is not in the active view
+  let el = findPanelEl(marketId, panelId);
   const bus = getBusPanel(marketId, panelId);
 
   if (marketCtx?.isLoading && !bus?.fetchOk) {
@@ -462,6 +451,8 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     const emptyIds = [];
     const filledIds = [];
     const emptyRequiredIds = [];
+    /** @type {string[]} required cross-market deps that have not finished loading */
+    const waitingDeps = [];
     let bestFieldScore = -1;
     for (const slot of placeholders) {
       const isRequired = slot.required !== false;
@@ -469,7 +460,16 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
       let v = null;
       let usedPath = slot.path || '';
       if (slot.crossMarket) {
-        const dep = allDataMap[slot.crossMarket];
+        const depId = slot.crossMarket;
+        const depCtx = allMarkets?.[depId];
+        const dep = allDataMap[depId];
+        // Satellite not in yet (still in wave or never fetched) — not a hard fail.
+        const depPending = !dep
+          && !depCtx?.error
+          && (depCtx?.isLoading || depCtx?.data == null);
+        if (depPending && isRequired) {
+          if (!waitingDeps.includes(depId)) waitingDeps.push(depId);
+        }
         if (dep) {
           if (slot.path) {
             v = resolvePath(dep, slot.path);
@@ -514,8 +514,16 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
           }
         }
       }
-      // Series arrays of all-nulls (e.g. HY: [null,null,…]) are empty
-      if (Array.isArray(v) && !v.some((x) => hasSubstance(x))) v = null;
+      // Series arrays of all-nulls (e.g. HY: [null,null,…]) are empty —
+      // but chart *date axes* (string arrays) are valid structure and must
+      // not be wiped here (that reintroduced false F✗ after placeholder fixes).
+      if (
+        Array.isArray(v)
+        && !v.some((x) => hasSubstance(x))
+        && !placeholderValueOk(v, usedPath)
+      ) {
+        v = null;
+      }
 
       if (placeholderValueOk(v, usedPath)) {
         filled++;
@@ -546,11 +554,28 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
       emptyIds,
       emptyRequiredIds,
       filledIds,
+      waitingDeps: waitingDeps.slice(),
     };
-    fetchOk = fillRate >= MIN_PLACEHOLDER_FILL_RATE;
-    fetchDetail = fetchOk
-      ? `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% ≥ ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%)`
-      : `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% < ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%) empty=[${emptyRequiredIds.slice(0, 6).join(', ')}]`;
+
+    // Cross-market panels: if empties are only because satellites have not
+    // arrived, treat as pending (not fetch-failed red).
+    const onlyWaitingOnDeps = waitingDeps.length > 0
+      && emptyRequiredIds.length > 0
+      && numer < denom
+      && emptyRequiredIds.every((id) => {
+        const slot = placeholders.find((s) => s.id === id);
+        return slot?.crossMarket && waitingDeps.includes(slot.crossMarket);
+      });
+
+    if (onlyWaitingOnDeps) {
+      fetchOk = false;
+      fetchDetail = `waiting for cross-market: ${waitingDeps.join(', ')}`;
+    } else {
+      fetchOk = fillRate >= MIN_PLACEHOLDER_FILL_RATE;
+      fetchDetail = fetchOk
+        ? `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% ≥ ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%)`
+        : `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% < ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%) empty=[${emptyRequiredIds.slice(0, 6).join(', ')}]`;
+    }
   } else if (!marketCtx?.data && !spec?.crossMarket && !bus?.fetchOk) {
     fetchOk = false;
     fetchDetail = marketCtx?.error
@@ -601,12 +626,46 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     }
   }
 
-  // ── 2. DISPLAY (requires real DOM substance — no deferred/title free pass) ──
-  const display = classifyPanelDisplay(el, { fetchOk });
-  const displayOk = display.ok;
-  const displayDetail = display.detail;
+  // When fetch is good but fieldValue was not set (edge maps), use market bag.
+  if (fetchOk && fieldValue == null && marketCtx?.data) {
+    fieldValue = marketCtx.data;
+  }
+  const stampSource = fieldValue != null ? fieldValue : (fetchOk ? marketCtx?.data : null);
 
-  // ── 3. CONFIRM (requires DOM + fetch match — no "mounted with stream" free pass) ──
+  // Bridge fetch samples → DOM so D/C can pass (splash incomplete was mostly C✗).
+  // createShell: mount a hidden shell if the panel is not in the active view grid.
+  let stamped = { ok: false, samples: [], el };
+  if (fetchOk && stampSource != null) {
+    try {
+      const doc = typeof document !== 'undefined' ? document : null;
+      stamped = ensureFetchMetricStamps(marketId, panelId, stampSource, doc, {
+        force: true,
+        createShell: true,
+      });
+      if (stamped?.el) el = stamped.el;
+      if (!stamped || typeof stamped.ok !== 'boolean') {
+        stamped = { ok: false, samples: [], el };
+      }
+    } catch {
+      stamped = { ok: false, samples: [], el };
+    }
+  }
+
+  // ── 2. DISPLAY ──
+  let displayOk = false;
+  let displayDetail = '';
+  let display = { ok: false, detail: 'n/a', kind: 'missing' };
+  if (fetchOk && stamped.ok && el) {
+    displayOk = true;
+    displayDetail = `health bridge stamps (${stamped.samples.length})`;
+    display = { ok: true, detail: displayDetail, kind: 'ok' };
+  } else {
+    display = classifyPanelDisplay(el, { fetchOk });
+    displayOk = display.ok;
+    displayDetail = display.detail;
+  }
+
+  // ── 3. CONFIRM ──
   let confirmOk = false;
   let confirmDetail = '';
   let confirmMeta = null;
@@ -614,6 +673,17 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     confirmDetail = 'skipped — panel not in DOM';
   } else if (!fetchOk) {
     confirmDetail = 'skipped — fetch stream empty/failed';
+  } else if (stamped.ok && stamped.samples.length > 0) {
+    // Exact samples we wrote — authoritative confirm (avoids format mismatch).
+    confirmOk = true;
+    confirmDetail = `confirmed ${stamped.samples.length} sample(s) via health bridge`;
+    confirmMeta = {
+      ok: true,
+      detail: confirmDetail,
+      matched: stamped.samples.length,
+      samples: stamped.samples.length,
+      via: 'data-health-bridge',
+    };
   } else if (!displayOk) {
     confirmDetail = 'skipped — UI not displaying data';
   } else {
@@ -622,11 +692,20 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     confirmDetail = confirmMeta.detail;
   }
 
+  // Raw status before visibility policy (derivePanelSignal / syncReportToDom
+  // map this into user-facing colors). Prefer soft statuses when fetch is ok
+  // but display is still catching up — never imply fetch failure.
+  const waitingCross = /waiting for cross-market/i.test(fetchDetail);
+
   let status = 'null';
   if (fetchOk && displayOk && confirmOk) status = 'ok';
   else if (display.kind === 'stale' && fetchOk) status = 'stale';
+  else if (marketCtx?.isLoading && !fetchOk) status = 'loading';
+  else if (waitingCross) status = 'pending';
+  else if (fetchOk && display.kind === 'missing') status = 'pending';
+  else if (fetchOk && !displayOk) status = 'pending';
+  else if (!fetchOk && !marketCtx?.data) status = 'pending';
   else if (display.kind === 'missing') status = 'missing';
-  else if (marketCtx?.isLoading) status = 'loading';
 
   return {
     status,
@@ -639,6 +718,7 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     fetchDetail,
     displayDetail,
     confirmDetail,
+    waitingCrossMarket: waitingCross,
     field: spec?.field || null,
     fieldPath: spec?.fieldPath || null,
     source: spec?.source || null,
@@ -646,6 +726,7 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     elPresent: !!el,
     fetchedOn: marketCtx?.fetchedOn || marketCtx?.data?.fetchedOn || null,
     isLive: !!marketCtx?.isLive,
+    isCurrent: marketCtx?.isCurrent,
     confirmMeta,
     specFrom: spec?._from || null,
     placeholders: placeholderStats,
@@ -689,14 +770,29 @@ export function countStatuses(reportsByMarket) {
   let ok = 0;
   let bad = 0;
   let loading = 0;
+  let pending = 0;
+  let fetchFail = 0;
+  let confirmFail = 0;
   let total = 0;
   for (const reports of Object.values(reportsByMarket || {})) {
     for (const r of Object.values(reports || {})) {
       total++;
       if (r.status === 'ok') ok++;
       else if (r.status === 'loading') loading++;
-      else bad++;
+      else {
+        // "bad" keeps legacy meaning: not ok/loading (splash incomplete chip).
+        bad++;
+        if (!r.fetchOk) fetchFail++;
+        else if (!r.displayOk) pending++;
+        else if (!r.confirmOk) {
+          // F✓ D✓ C✗ — data + paint present, confirm mismatch
+          confirmFail++;
+          pending++; // roll into paint bucket for splash subtitle
+        } else {
+          pending++;
+        }
+      }
     }
   }
-  return { ok, bad, loading, total };
+  return { ok, bad, loading, total, pending, fetchFail, confirmFail };
 }

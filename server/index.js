@@ -3,6 +3,13 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenvConfig({ path: path.join(__dirname, '..', '.env') });
+dotenvConfig({ path: path.join(__dirname, '..', '.env.local') });
+// Accept CENSUS-API-KEY etc. as aliases for CENSUS_API_KEY (never log values)
+import { applyEnvAliases } from './lib/envAliases.js';
+const _envAlias = applyEnvAliases();
+if (_envAlias.applied.length) {
+  console.log(`[env] Normalized key aliases: ${_envAlias.applied.join(', ')}`);
+}
 
 import express from 'express';
 import cors from 'cors';
@@ -14,6 +21,8 @@ import { cleanOldCaches, CACHE_DIR, todayStr, readLatestCache, requestContext } 
 import { buildSnapshotIndex } from './lib/stocks.js';
 import { DATA_DIR } from './lib/stocks.js';
 import { getApiCounts, KNOWN_LIMITS } from './lib/rateLimits.js';
+import { getFredThrottleStatus } from './lib/fetch.js';
+import { listOpenCircuits } from './lib/upstreamCircuit.js';
 
 // Route modules
 import stocksRouter from './routes/stocks.js';
@@ -69,16 +78,28 @@ import bisOTCRouter from './routes/bisOTC.js';
 import faoRouter from './routes/fao.js';
 import treasuryCostRouter from './routes/treasuryCost.js';
 import panelRoutingRouter from './routes/panelRouting.js';
+import agentRecoverRouter from './routes/agentRecover.js';
 import { startFxWebSocket } from './lib/ws.js';
+import { isTransientNetworkError } from './lib/networkErrors.js';
 
 // ── Process-level stability handlers ──────────────────────────────────────────
+// Network blips (Census/Yahoo/upstream resets) must not kill Express mid-dev.
+// Only exit on genuine programmer errors; keep serving cached market data.
 process.on('uncaughtException', (err) => {
+  if (isTransientNetworkError(err)) {
+    console.warn(`[WARN] Transient network error (server stays up): ${err?.message || err?.code}`);
+    return;
+  }
   console.error('[FATAL] Uncaught exception:', err.message);
   console.error(err.stack);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
+  if (isTransientNetworkError(reason)) {
+    console.warn(`[WARN] Unhandled rejection (transient): ${reason?.message || reason}`);
+    return;
+  }
   console.error('[WARN] Unhandled promise rejection:', reason);
 });
 
@@ -349,6 +370,14 @@ app.get('/api/rate-limits', (_req, res) => {
   res.json({ date, sources });
 });
 
+// FRED 120/min etiquette signal for client waves (no secrets).
+app.get('/api/fred-throttle', (_req, res) => {
+  res.json({
+    fred: getFredThrottleStatus(),
+    circuits: listOpenCircuits(),
+  });
+});
+
 // ── Mount route modules ───────────────────────────────────────────────────────
 app.use('/api/stocks', stocksRouter);
 app.use('/api/equities', equitiesRouter);
@@ -407,6 +436,8 @@ app.use('/api/fao', faoRouter);
 app.use('/api/treasuryCost', treasuryCostRouter);
 // Panel API routing registry (discovery + health probe for every tab endpoint)
 app.use('/api/panel-routing', panelRoutingRouter);
+// AI / local recovery planner for panel health (no secrets in responses)
+app.use('/api/agent', agentRecoverRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
 app.use('/api', tickerRouter);
 

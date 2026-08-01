@@ -30,7 +30,14 @@ updates only when you press **topbar ▶** (all markets) or a **panel footer ▶
 (that market). No auto-polling — this is not a real-time streaming app.
 Panel shells stay mounted; empty sources show waiting/empty states, not fake numbers.
 
-**Docs:** [`docs/README.md`](docs/README.md) · [`AGENTS.md`](AGENTS.md) · [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md)
+**Panel health (F/D/C):** each panel is **ok** only when **fetch** (placeholder
+streams), **display** (DOM substance / health bridge stamps), and **confirm**
+(stamps match fetch samples) all pass. Independent modules live under
+`src/panels/`. Splash can score every catalog panel (~233).
+
+**Docs:** [`docs/README.md`](docs/README.md) · [`AGENTS.md`](AGENTS.md) ·
+[`PROJECT_MEMORY.md`](PROJECT_MEMORY.md) · [`docs/API_ETIQUETTE.md`](docs/API_ETIQUETTE.md) ·
+[`docs/PANEL_HEALTH_CHRONIC_REVIEW.md`](docs/PANEL_HEALTH_CHRONIC_REVIEW.md)
 
 ### API keys
 
@@ -46,9 +53,13 @@ Free tiers in `.env` (gitignored). Skip any and matching panels degrade.
 
 | Command | What it does |
 |---|---|
-| `npm start` | Express + Vite on 5173 |
+| `npm start` / `npm run dev` | Express + Vite on 5173 (API on 3001) |
 | `npm run setup` | Interactive `.env` walkthrough |
 | `npm test` | Vitest unit suite |
+| `npm run test:health` | Focused health/regression pack (gates + recovery + etiquette) |
+| `npm run probe:panels` | Offline fetch-gate score vs `server/datacache` (~233 panels) |
+| `npm run probe:fdc` | **Live F/D/C** for all panels (Playwright + splash; needs `npm run dev`) |
+| `npm run housekeep:dry` | Collectors + `test:health` (no Ollama) |
 | `npm run preflight` | **Required before push** — secrets + workflow lint + vitest |
 | `npm run preflight:full` | Preflight + production build + functions build |
 | `npm run lint:workflows` | Blocks invalid GHA patterns (`secrets.X != ''`) |
@@ -57,7 +68,19 @@ Free tiers in `.env` (gitignored). Skip any and matching panels degrade.
 | `npm run test:validate` | Playwright crawl + screenshots |
 | `npm run test:coverage` | Strict per-panel coverage (`tests/panel-registry.js`) |
 
-Agents: [`AGENTS.md`](AGENTS.md). CI detail: [`docs/CI_PREFLIGHT_GUIDE.md`](docs/CI_PREFLIGHT_GUIDE.md).
+**Live F/D/C check** (after `npm run dev`):
+
+```bash
+npm run probe:fdc
+# report → reports/live-fdc.json
+# Browser console on splash: window.__kyahooPanelHealth.evaluateNow()
+```
+
+Use `http://localhost:5173` (not `127.0.0.1` on some Windows setups).  
+Env: `FDC_PASS_RATE` (default 0.85), `FDC_SETTLE_MS`, `SHOT_BASE_URL`.
+
+Agents: [`AGENTS.md`](AGENTS.md). CI detail: [`docs/CI_PREFLIGHT_GUIDE.md`](docs/CI_PREFLIGHT_GUIDE.md).  
+API etiquette (FRED 120/min, IMF circuit): [`docs/API_ETIQUETTE.md`](docs/API_ETIQUETTE.md).
 
 **Stale local cache after code changes:**
 
@@ -99,9 +122,10 @@ Panel-level inventory: [`docs/PANELS.md`](docs/PANELS.md). Intentional gaps: [`K
 ```
 External APIs → server/ Express (/api/*) on App Hosting Cloud Run
              → disk datacache + optional GCS (MARKET_CACHE_BUCKET)
-             → browser DataProvider (wave fetch)
-             → useMarketData(id) → BentoCard dashboards
-             → panel health: fetch + display + confirm
+             → FRED throttle / IMF circuit (etiquette)
+             → browser DataProvider (wave fetch; force-live demotes when FRED hot)
+             → useMarketData(id) → MarketPanelGrid / src/panels/*
+             → panel health: fetch + display + confirm (+ health bridge stamps)
 ```
 
 | Concern | Where |
@@ -110,13 +134,18 @@ External APIs → server/ Express (/api/*) on App Hosting Cloud Run
 | Market routes | `server/routes/*`, `shared/api-routing.json` |
 | Client fetch | `src/hub/DataProvider.jsx` |
 | Panel catalog | `src/data/marketPanels.js` |
-| Health | `src/hub/lib/panelHealthEval.js`, `src/hooks/usePanelHealth.js` |
+| Independent panels | `src/panels/` (`definePanel`, registry, per-market modules) |
+| Health | `src/hub/lib/panelHealthEval.js`, `panelHealthStamp.js`, `usePanelHealth.js` |
+| Placeholders | `src/data/panelPlaceholders.js` |
+| Recovery agent | `src/hub/lib/recoveryAgent.js`, `POST /api/agent/recover-plan` |
 | Equity universe | `src/data/stockUniverse.js` |
 | Heatmap size | `src/components/HeatmapView/heatmapSizeControl.js` |
 | Nightly history | Functions `refreshMarketSnapshots` → RTDB (optional; not primary live UI) |
 
-Green panel health means the **open tab** shows real metrics in the DOM — not a
-splash cache free-pass. Details: [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md),
+Green panel health means **fetch + display + confirm** all pass for that panel
+(splash can score the full catalog). Open-tab dots still require a visible tab
+for green UI chrome. Details: [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md),
+[`docs/TEST_HEALTH_SUITE.md`](docs/TEST_HEALTH_SUITE.md),
 [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md).
 
 ### App features (high level)
@@ -135,6 +164,8 @@ splash cache free-pass. Details: [`docs/DATA_PIPELINE.md`](docs/DATA_PIPELINE.md
 | Cache | Daily disk + optional GCS |
 | Tests | Vitest + Playwright validate/coverage |
 | Deploy | Push `master` → App Hosting; then `npm run postdeploy:warm` |
+
+**Production URL:** https://kyahoofinance032926--kfinance032926.us-central1.hosted.app  
 
 Deploy ops: [`docs/DEPLOY.md`](docs/DEPLOY.md). Shared cache: [`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md).
 

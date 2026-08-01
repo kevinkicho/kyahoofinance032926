@@ -278,7 +278,8 @@ router.get('/', async (req, res) => {
         // ID set; if any are 404'd we still surface whatever returned
         // (lowered the floor from 3 to 2 countries so the panel binds
         // even when 1–3 of the 5 series are missing).
-        const REER_SERIES = { US: 'RBUSBIS', EU: 'RBEUBIS', JP: 'RBJPBIS', GB: 'RBGBBIS', CN: 'RBCNBIS' };
+        // RBEUBIS retired on FRED (HTTP 400) — omit EU rather than burn quota/retries.
+        const REER_SERIES = { US: 'RBUSBIS', JP: 'RBJPBIS', GB: 'RBGBBIS', CN: 'RBCNBIS' };
         const reerEntries = Object.entries(REER_SERIES);
         trackApiCall('FRED');
         const reerResults = await Promise.allSettled(

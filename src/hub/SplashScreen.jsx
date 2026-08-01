@@ -102,7 +102,7 @@ function MarketDetailCard({ marketId, label, reports, onSelectPanel, onClose }) 
 
 function SplashScreenInner({ onReady }) {
   const dataCtx = useDataContext();
-  const { getMarket, markets: allMarkets } = dataCtx || {};
+  const { getMarket, markets: allMarkets, recoverPanels } = dataCtx || {};
   const { currency, setCurrency } = useCurrency();
   const [elapsed, setElapsed] = useState(0);
   const [marketStatus, setMarketStatus] = useState(() =>
@@ -113,10 +113,29 @@ function SplashScreenInner({ onReady }) {
   const [readyToEnter, setReadyToEnter] = useState(false);
   const [fading, setFading] = useState(false);
   const [selected, setSelected] = useState(null); // { type:'panel'|'market', ... }
+  const [repairing, setRepairing] = useState(false);
+  const [repairNote, setRepairNote] = useState('');
   const startTimeRef = useRef(Date.now());
   const dismissedRef = useRef(false);
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
+
+  const handleRepair = useCallback(async () => {
+    if (!recoverPanels || repairing) return;
+    setRepairing(true);
+    setRepairNote('AI recovery agent observing incomplete panels…');
+    try {
+      const result = await recoverPanels({ maxCycles: 3, preferAi: true });
+      const n = result?.totalFetches ?? 0;
+      const planner = result?.history?.map((h) => h.planner).filter(Boolean).join(',') || 'local';
+      setRepairNote(`Recovery finished — ${n} fetch(es), planner=${planner}. Re-scanning…`);
+      setScanTick((t) => t + 1);
+    } catch (e) {
+      setRepairNote(e?.message || 'Recovery failed');
+    } finally {
+      setRepairing(false);
+    }
+  }, [recoverPanels, repairing]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -124,6 +143,26 @@ function SplashScreenInner({ onReady }) {
     }, 100);
     return () => clearInterval(id);
   }, []);
+
+  // Browser probe hook for scripts/probe-live-fdc.mjs (all 233 F/D/C).
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    window.__kyahooPanelHealth = {
+      version: 1,
+      totalPanels: TOTAL_PANELS,
+      getReports: () => reportsByMarket,
+      getCounts: () => countStatuses(reportsByMarket),
+      evaluateNow: () => {
+        if (!getMarket) return { error: 'no getMarket' };
+        const reports = evaluateAllMarkets(getMarket, allMarkets || dataCtx?.markets);
+        const counts = countStatuses(reports);
+        return { reports, counts, totalPanels: TOTAL_PANELS, at: new Date().toISOString() };
+      },
+    };
+    return () => {
+      try { delete window.__kyahooPanelHealth; } catch { /* ignore */ }
+    };
+  }, [reportsByMarket, getMarket, allMarkets, dataCtx?.markets, scanTick]);
 
   const dismiss = useCallback((cache) => {
     if (dismissedRef.current) return;
@@ -185,10 +224,10 @@ function SplashScreenInner({ onReady }) {
     if (panels) setReadyToEnter(true);
   }, [allLoaded, reportsByMarket, scanTick]);
 
-  // Soft timeout: allow Enter even if some panels never mount.
-  // Hosted cold waves (FRED/Yahoo) often need 60–90s before primary tabs fill.
+  // Soft timeout: allow Enter even if some panels never mount / wave is slow.
+  // Keep short enough that local dev is never stuck on a 2‑minute wall.
   useEffect(() => {
-    const id = setTimeout(() => setReadyToEnter(true), 120000);
+    const id = setTimeout(() => setReadyToEnter(true), 20000);
     return () => clearTimeout(id);
   }, []);
 
@@ -196,6 +235,13 @@ function SplashScreenInner({ onReady }) {
   const okCount = Object.values(marketStatus).filter(s => s === 'ok').length;
   const errorCount = Object.values(marketStatus).filter(s => s === 'error').length;
   const loadingCount = Object.values(marketStatus).filter(s => s === 'loading').length;
+
+  // As soon as any tab market has data, offer Enter — don't block the app on
+  // full-wave completion (deps/aux markets can finish in the background).
+  useEffect(() => {
+    if (dismissedRef.current || readyToEnter) return;
+    if (okCount + errorCount >= 1) setReadyToEnter(true);
+  }, [marketStatus, readyToEnter, okCount, errorCount]);
 
   const handleEnter = () => {
     dismiss(reportsByMarket);
@@ -225,6 +271,7 @@ function SplashScreenInner({ onReady }) {
             <h1 className="splash-title">Global Market Hub</h1>
             <p className="splash-subtitle">
               Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {counts.ok} ok / {counts.bad} incomplete
+              {counts.fetchFail != null ? ` (${counts.fetchFail} data · ${counts.pending || 0} paint)` : ''}
             </p>
           </div>
 
@@ -237,7 +284,10 @@ function SplashScreenInner({ onReady }) {
 
           <div className="splash-stats">
             <span className="splash-stat splash-stat-ok">{counts.ok} ok</span>
-            <span className="splash-stat splash-stat-error">{counts.bad} incomplete</span>
+            <span className="splash-stat splash-stat-error" title={`${counts.fetchFail || 0} missing/hollow data · ${counts.pending || 0} data ok but UI not confirmed`}>
+              {counts.bad} incomplete
+              {counts.fetchFail != null ? ` · ${counts.fetchFail} data / ${counts.pending || 0} paint` : ''}
+            </span>
             {loadingCount > 0 && <span className="splash-stat splash-stat-loading">{loadingCount} markets fetching</span>}
             <span className="splash-stat splash-stat-time">{elapsed}s</span>
           </div>
@@ -303,14 +353,29 @@ function SplashScreenInner({ onReady }) {
                 <div className="splash-done">
                   Verification ready — {counts.ok}/{TOTAL_PANELS} panels ok.
                   Review red chips, then enter the app.
+                  {repairNote ? ` ${repairNote}` : ''}
                 </div>
-                <button
-                  type="button"
-                  className="splash-enter-btn"
-                  onClick={handleEnter}
-                >
-                  Enter app — remove overlay &amp; lock in
-                </button>
+                <div className="splash-footer-btn-row" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {counts.bad > 0 && typeof recoverPanels === 'function' && (
+                    <button
+                      type="button"
+                      className="splash-enter-btn"
+                      onClick={handleRepair}
+                      disabled={repairing}
+                      title="Observation-driven recovery agent (AI plan when available) — not a fixed retry list"
+                      style={{ opacity: repairing ? 0.7 : 1, background: 'transparent', border: '1px solid currentColor' }}
+                    >
+                      {repairing ? 'Repairing…' : `Repair incomplete (${counts.bad})`}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="splash-enter-btn"
+                    onClick={handleEnter}
+                  >
+                    Enter app — remove overlay &amp; lock in
+                  </button>
+                </div>
               </>
             )}
           </div>

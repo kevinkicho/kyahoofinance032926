@@ -11,7 +11,8 @@ import { MARKET_COMPONENTS } from './lazyMarketComponents';
 import './Skeleton.css';
 import './responsive.css';
 import SplashScreen from './SplashScreen';
-import { setPanelCache } from '../hooks/usePanelHealth';
+import { setPanelCache, getPanelCache } from '../hooks/usePanelHealth';
+import { evaluateAllMarkets } from './lib/panelHealthEval';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 function flattenForCSV(obj, prefix = '') {
@@ -264,6 +265,7 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
     // Force live re-fetch of every market (?refresh=true). Must await the full
     // wave — a previous bug resolved immediately while another fetch held the
     // lock, so the toast said "refreshing" without scheduling new upstream work.
+    // After the wave, DataProvider runs the recovery agent for incomplete panels.
     if (dataCtx?.isRefreshing) {
       addToast('Refresh already in progress…', 'info');
       return;
@@ -272,7 +274,7 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
       addToast('Mass refresh: all markets (force live)…', 'info');
       if (dataCtx?.refetchAll) {
         await dataCtx.refetchAll();
-        addToast('All markets updated.', 'success');
+        addToast('All markets updated (recovery agent applied if needed).', 'success');
       } else {
         setRefreshKey(k => k + 1);
         addToast('Mass refresh queued.', 'success');
@@ -330,6 +332,23 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
     setSplashDone(true);
     try { sessionStorage.setItem('hub-splash-seen', '1'); } catch {}
   }, []);
+
+  // When splash is skipped (return visit), seed a demoted fetch-only health
+  // cache once markets start resolving so dropdowns are not blank/red.
+  useEffect(() => {
+    if (!splashDone || !dataCtx?.getMarket || !dataCtx?.markets) return;
+    const existing = getPanelCache();
+    if (existing && Object.keys(existing).length > 0) return;
+    const markets = dataCtx.markets;
+    const hasAny = Object.values(markets).some((m) => m?.data || m?.error);
+    if (!hasAny) return;
+    try {
+      const seed = evaluateAllMarkets(dataCtx.getMarket, markets);
+      setPanelCache(seed);
+    } catch (e) {
+      console.warn('[HubLayout] health seed failed:', e);
+    }
+  }, [splashDone, dataCtx?.markets, dataCtx?.getMarket]);
 
   return (
       <div className="hub-layout">

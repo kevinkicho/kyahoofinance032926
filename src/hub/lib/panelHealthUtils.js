@@ -140,7 +140,15 @@ function filledRowCount(v) {
   return 0;
 }
 
-function bagDensityOk(v) {
+/**
+ * True when a bag has enough real metric rows (not 1 lucky number in a hollow table).
+ *
+ * Catalog wrappers like `{ rates: […dense…], openInterestHistory: null }` or
+ * `{ asOf: "…", assets: […dense…] }` must pass when **any primary child** is dense —
+ * requiring 50% of top-level *keys* to be filled was a chronic false-negative
+ * (fundingData, returnsData, earningsData) for months.
+ */
+export function bagDensityOk(v) {
   const nums = countNumericLeaves(v).n;
   if (nums === 0) return false;
 
@@ -162,11 +170,32 @@ function bagDensityOk(v) {
     const numericDirect = keys.filter((k) => typeof v[k] === 'number' && Number.isFinite(v[k]));
     if (numericDirect.length >= 2 && numericDirect.length >= keys.length * 0.5) return true;
 
-    // Map of quote objects / nested series
+    // Nested primary series under a wrapper (rates[], assets[], upcoming[], …)
+    // — accept if any child alone would pass density / metric-series checks.
+    for (const k of keys) {
+      const child = v[k];
+      if (child == null) continue;
+      if (isMetricSeries(child)) return true;
+      if (Array.isArray(child) && bagDensityOk(child)) return true;
+      // Nested map of series (foreclosures: { dates, values })
+      if (child && typeof child === 'object' && !Array.isArray(child)) {
+        if (isMetricSeries(child)) return true;
+        if (Array.isArray(child.values) && bagDensityOk(child.values)) return true;
+        if (filledRowCount(child) >= 2 && countNumericLeaves(child).n >= 2) return true;
+      }
+    }
+
+    // Map of quote objects / nested series (all top-level keys as rows)
     const filled = filledRowCount(v);
     if (filled === 0) return false;
     const need = Math.min(3, keys.length);
-    return filled >= need || (filled / keys.length >= 0.5 && filled >= 2);
+    if (filled >= need || (filled / keys.length >= 0.5 && filled >= 2)) return true;
+
+    // Last resort: plenty of numeric leaves and at least one filled key
+    // (wrapper with one dense child + metadata/null siblings).
+    if (filled >= 1 && nums >= 3) return true;
+
+    return false;
   }
 
   return nums > 0;
@@ -178,11 +207,78 @@ function bagDensityOk(v) {
 export function placeholderValueOk(v, path = '') {
   if (v == null) return false;
   const segs = String(path || '').split('.').filter(Boolean);
+  const lastSeg = segs[segs.length - 1] || '';
   const nums = countNumericLeaves(v).n;
 
   // Scalars
   if (typeof v === 'number') return Number.isFinite(v);
   if (typeof v === 'string' || typeof v === 'boolean') return false;
+
+  // Chart / series axis arrays (dates, labels) — structural, not numeric.
+  // Without this, panels with `{ dates, values }` only scored 50% fill and
+  // failed MIN_PLACEHOLDER_FILL_RATE even when values were fully populated.
+  if (
+    Array.isArray(v)
+    && v.length >= 2
+    && /^(dates?|periods?|labels?|categories|tenors|x)$/i.test(lastSeg)
+  ) {
+    return true;
+  }
+
+  // Letter-grade / categorical rating tables (no numeric leaves by design).
+  if (
+    Array.isArray(v)
+    && v.length > 0
+    && (lastSeg === 'countries' || /rating/i.test(path))
+  ) {
+    const row = v[0];
+    if (
+      row
+      && typeof row === 'object'
+      && (row.sp || row.moodys || row.fitch || row.rating || row.country)
+    ) {
+      return true;
+    }
+  }
+
+  // Calendar / event catalogs: date+label rows (options expiry, economic events).
+  // No numeric leaves by design — presence of scheduled items is the stream.
+  if (
+    Array.isArray(v)
+    && v.length > 0
+    && (
+      /expir|events?|calendar|releases?|auctions?/i.test(path)
+      || lastSeg === 'optionsExpiry'
+      || lastSeg === 'economicEvents'
+      || lastSeg === 'keyReleases'
+      || lastSeg === 'dividendCalendar'
+    )
+  ) {
+    const row = v[0];
+    if (
+      row
+      && typeof row === 'object'
+      && (row.date || row.time || row.datetime || row.type || row.name || row.title || row.event)
+    ) {
+      return true;
+    }
+  }
+
+  // Alert rule catalogs — string metadata is the product (All Clear / rules list).
+  if (
+    Array.isArray(v)
+    && v.length > 0
+    && (lastSeg === 'rules' || /alertRules?|rules$/i.test(path))
+  ) {
+    const row = v[0];
+    if (row && typeof row === 'object' && (row.id || row.name || row.title || row.severity || row.enabled != null)) {
+      return true;
+    }
+  }
+  // Empty active-alert feed is a healthy "All Clear" when explicitly the alerts list.
+  if (Array.isArray(v) && v.length === 0 && (lastSeg === 'alerts' || path === 'alerts')) {
+    return true;
+  }
 
   // Path is exactly a multi-series catalog root
   if (segs.length === 1 && CATALOG_ROOTS.has(segs[0])) {

@@ -67,7 +67,13 @@ Optional: Functions refreshMarketSnapshots → RTDB latest/history
 |---------|--------|
 | Market endpoints | `src/hub/DataProvider.jsx`, `shared/api-routing.json` |
 | Panel catalog | `src/data/marketPanels.js` |
-| Health placeholders | `src/data/panelPlaceholders.js` |
+| Independent panels | `src/panels/` (`definePanel`, `PanelSlot`, `MarketPanelGrid`, `registry`) — every market tab is composition-only; bodies via module or `ctx.__render` |
+| Health regressions | `npm run test:health` — layout keys, catalog parity, wave mutex, placeholders, server stability (see `docs/TEST_HEALTH_SUITE.md`) |
+| AI housekeep | `npm run housekeep` — Ollama `/api/chat` (cloud: `OLLAMA_API_KEY` + `https://ollama.com`); API https://github.com/ollama/ollama/blob/main/docs/api.md — `docs/HOUSEKEEP_AGENT.md` |
+
+| Panel modules / paths | `src/panels/manifest.js`, `src/panels/README.md`, `docs/PANEL_MODULES.md` |
+| Health placeholders | `src/data/panelPlaceholders.js` (fill ≥ 0.85; cross-market waits pending) |
+| Health signal colors | `src/hub/lib/panelHealthSignal.js` |
 | Health eval | `src/hub/lib/panelHealthEval.js`, `src/hooks/usePanelHealth.js` |
 | Equity universe | `src/data/stockUniverse.js` |
 | IPO queue | `/api/universeUpdates` — exclude tickers already in universe |
@@ -77,11 +83,19 @@ Optional: Functions refreshMarketSnapshots → RTDB latest/history
 
 ## Panel health (do not regress)
 
-- Green = **open tab mounted** + **fetchOk** + **displayOk** + **confirmOk**.
-- No free-pass from splash cache, bus alone, or bare catalog bags (`fred`, `yahoo`, …).
-- Prefer leaf paths in placeholders (`fred.copper.value`, not `fred`).
-- Display prefers metric stamps / chart series, not chrome digits.
-- Inactive tabs: at best **pending**, never green without DOM.
+Source of truth for **dot colors**: `src/hub/lib/panelHealthSignal.js` (`derivePanelSignal`).
+
+| Dot | Meaning |
+|-----|---------|
+| Green | Active **visible** tab + fetch + display + confirm |
+| Grey pending | Fetch ready, tab closed **or** open tab still painting |
+| Amber loading | Market still loading |
+| Red | Fetch failed after load, **or** open tab settled empty/disabled |
+
+- Closed / `display:none` visited tabs are **not** visible — never green, never red for “no DOM”.
+- Splash seed demoted on Enter; health re-eval is **not** a data re-fetch.
+- Panel ids collide (`kpi`, …) — lookup is always scoped to `[data-market-id]`.
+- No free-pass from splash cache, bus alone, or bare catalog bags.
 
 ---
 

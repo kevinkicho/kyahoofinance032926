@@ -1,10 +1,9 @@
 // src/markets/watchlist/WatchlistMarket.jsx
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { fetchWithRetry } from '../../utils/fetchWithRetry';
-import BentoWrapper from '../../components/BentoWrapper';
 import BentoCard from '../../components/BentoCard/BentoCard';
 import { useMarketData } from '../../hub/DataContext';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
+import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import MetricValue from '../../components/MetricValue/MetricValue';
 import './WatchlistMarket.css';
 
@@ -28,20 +27,21 @@ const SUB_TABS = [
   { id: 'metrics', label: 'My Metrics' },
 ];
 
-// KPI strip is now a real bento child at row 0 (h:2). Storage keys
-// bumped because the layout schema changed.
+// KPI strip is a real bento child at row 0 (h:2). Layout keys match
+// MARKET_PANELS.watchlist (my-tickers / my-metrics). cross-alerts is
+// legacy extra (not in MARKET_PANELS). Storage key bumped for key rename.
 const LAYOUTS = {
   tickers: {
     lg: [
-      { i: 'kpi',         x: 0, y: 0, w: 12, h: 2 },
-      { i: 'ticker-list', x: 0, y: 2, w: 12, h: 5 },
+      { i: 'kpi', x: 0, y: 0, w: 12, h: 2 },
+      { i: 'my-tickers', x: 0, y: 2, w: 12, h: 5 },
       { i: 'cross-alerts', x: 0, y: 7, w: 12, h: 4 },
     ]
   },
   metrics: {
     lg: [
-      { i: 'kpi',          x: 0, y: 0, w: 12, h: 2 },
-      { i: 'metric-cards', x: 0, y: 2, w: 12, h: 3 },
+      { i: 'kpi', x: 0, y: 0, w: 12, h: 2 },
+      { i: 'my-metrics', x: 0, y: 2, w: 12, h: 3 },
       { i: 'cross-alerts', x: 0, y: 5, w: 12, h: 4 },
     ]
   },
@@ -298,11 +298,244 @@ function WatchlistMarket({ onNavigate }) {
     return rows;
   }, [derivData, fxData, creditData, sentimentData, cryptoData, commData]);
 
-    return (
-      <div className="watch-market">
-        <div className="watch-sub-tabs" role="tablist" aria-label="Sub-tabs">
-          {SUB_TABS.map(t => (
+  const tickersBody = (
+    <>
+      <div className="watch-add-bar">
+        <input
+          className="watch-add-input"
+          type="text"
+          placeholder="Add ticker (e.g. AAPL)"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          maxLength={10}
+        />
+        <button
+          className="watch-add-btn"
+          onClick={addTicker}
+          disabled={!input.trim() || tickers.length >= MAX_TICKERS || tickers.includes(input.trim().toUpperCase())}
+        >
+          Add
+        </button>
+      </div>
 
+      {tickers.length === 0 ? (
+        <div className="watch-empty">No tickers added yet. Type a symbol above to start tracking.</div>
+      ) : (
+        <table className="watch-ticker-table">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Change</th>
+              <th>Change %</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {tickers.map(sym => {
+              const q = quotes[sym];
+              const err = errors[sym] || errors.global;
+              const price = q?.price?.regularMarketPrice?.raw ?? q?.price?.regularMarketPrice;
+              const change = q?.price?.regularMarketChange?.raw ?? q?.price?.regularMarketChange;
+              const changePct = q?.price?.regularMarketChangePercent?.raw ?? q?.price?.regularMarketChangePercent;
+              const name = q?.price?.shortName || q?.price?.longName || '';
+
+              return (
+                <tr key={sym}>
+                  <td style={{ fontWeight: 600 }}>{sym}</td>
+                  <td style={{ color: 'var(--text-muted)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isLoading ? <span className="watch-ticker-loading" /> : err ? '' : name}
+                  </td>
+                  <td>
+                    {isLoading ? (
+                      <span className="watch-ticker-loading" />
+                    ) : err ? (
+                      <span className="watch-ticker-error">{err}</span>
+                    ) : price != null ? (
+                      <MetricValue
+                        value={price}
+                        seriesKey="watchlistPrice"
+                        timestamp={watchlistData?.lastUpdated}
+                        format={() => Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      />
+                    ) : (
+                      '--'
+                    )}
+                  </td>
+                  <td className={changeClass(change)}>
+                    {isLoading ? '' : err ? '' : change != null ? (
+                      <MetricValue
+                        value={change}
+                        seriesKey="watchlistPrice"
+                        timestamp={watchlistData?.lastUpdated}
+                        format={() => formatChange(change) ?? '--'}
+                      />
+                    ) : (
+                      '--'
+                    )}
+                  </td>
+                  <td className={changeClass(changePct)}>
+                    {isLoading ? '' : err ? '' : changePct != null ? (
+                      <MetricValue
+                        value={changePct}
+                        seriesKey="watchlistPrice"
+                        timestamp={watchlistData?.lastUpdated}
+                        format={() => formatPct(changePct) ?? '--'}
+                      />
+                    ) : (
+                      '--'
+                    )}
+                  </td>
+                  <td>
+                    <button className="watch-remove-btn" title="Remove" onClick={() => removeTicker(sym)}>
+                      &#x2715;
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </>
+  );
+
+  const metricsBody = (
+    <>
+      <div className="watch-metrics-hint">Click ★ to favorite. Click card to navigate.</div>
+      <div className="watch-metrics-grid">
+        {sortedMetrics.map(m => {
+          const isFav = favMetrics.includes(m.id);
+          const status = getSourceStatus(m);
+          const statusClass = `watch-metric-status-${status}`;
+          const statusLabel = { live: 'LIVE', stale: 'STALE', loading: '…', error: 'ERR', nodata: '—' }[status];
+          return (
+            <div
+              key={m.id}
+              className={`watch-metric-card${isFav ? ' favorited' : ''}`}
+              onClick={() => handleMetricClick(m)}
+            >
+              <div className="watch-metric-main">
+                <span className="watch-metric-label">{m.label}</span>
+                <span className={`watch-metric-value ${statusClass}`} title={status === 'error' ? (MARKET_CONTEXTS[m.id]?.error || 'Fetch error') : ''}>
+                  {status === 'loading' ? (
+                    <span className="watch-ticker-loading" />
+                  ) : (
+                    <MetricValue
+                      value={getLiveValue(m)}
+                      seriesKey={m.seriesKey}
+                      timestamp={MARKET_CONTEXTS[m.id]?.lastUpdated}
+                      format={v => v ?? '—'}
+                    />
+                  )}
+                </span>
+              </div>
+              <div className="watch-metric-right">
+                <span className={`watch-metric-status ${statusClass}`} title={`Source: ${m.label} — ${status}`}>{statusLabel}</span>
+                <button
+                  className={`watch-metric-star${isFav ? ' active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); toggleMetric(m.id); }}
+                  title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  {isFav ? '\u2605' : '\u2606'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+
+  const panelOnly = activeTab === 'tickers' ? ['kpi', 'my-tickers'] : ['kpi', 'my-metrics'];
+
+  const panelCtx = useMemo(() => {
+    const bodies = {
+      kpi: <MarketKpiStrip kpis={kpis} bare />,
+      'my-tickers': tickersBody,
+      'my-metrics': metricsBody,
+    };
+    return {
+      __render: (panelId) => bodies[panelId] ?? null,
+      __live: {
+        kpi: effectiveIsLive,
+        'my-tickers': effectiveIsLive,
+        'my-metrics': !!watchlistData?.isLive,
+      },
+      __subtitle: {
+        'my-tickers': `${tickers.length}/${MAX_TICKERS}`,
+        'my-metrics': 'Quick shortcuts',
+      },
+      __source: {
+        kpi: effectiveSource,
+        'my-tickers': tickersSource,
+        'my-metrics': 'Internal / FRED',
+      },
+    };
+  }, [
+    kpis, tickersBody, metricsBody, effectiveIsLive, effectiveSource, tickersSource,
+    tickers.length, watchlistData?.isLive,
+  ]);
+
+  const crossAlertsExtra = (
+    <BentoCard
+      key="cross-alerts"
+      panelKey="cross-alerts"
+      title="Cross-Market Alert Board"
+      subtitle={`${crossMarketAlerts.filter(row => row.severity !== 'low' && row.severity !== 'muted').length} active watch signals`}
+      accent="watchlist"
+      className="watch-bento-card"
+      contentClassName="watch-panel-scroll"
+      source="Internal cross-market snapshots"
+      timestamp={watchlistData?.lastUpdated}
+      isLive={effectiveIsLive}
+      isCurrent={watchlistData?.isCurrent}
+      fetchedOn={watchlistData?.fetchedOn}
+      fetchLog={watchlistData?.fetchLog || []}
+      error={watchlistData?.error}
+    >
+      <table className="watch-ticker-table">
+        <thead>
+          <tr>
+            <th>Signal</th>
+            <th>Value</th>
+            <th>Read</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {crossMarketAlerts.map(row => (
+            <tr key={row.signal} onClick={() => row.target && handleMetricClick(row.target)} style={{ cursor: row.target ? 'pointer' : 'default' }}>
+              <td style={{ fontWeight: 600 }}>{row.signal}</td>
+              <td>
+                <MetricValue
+                  value={row.value}
+                  seriesKey={row.target?.seriesKey}
+                  timestamp={MARKET_CONTEXTS[row.target?.id]?.lastUpdated || watchlistData?.lastUpdated}
+                  format={v => v ?? '—'}
+                />
+              </td>
+              <td style={{ color: 'var(--text-muted)' }}>{row.read}</td>
+              <td>
+                <span
+                  className={`watch-metric-status watch-metric-status-${row.severity === 'high' ? 'error' : row.severity === 'medium' ? 'stale' : row.severity === 'muted' ? 'nodata' : 'live'}`}
+                >
+                  {row.severity}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </BentoCard>
+  );
+
+  return (
+    <div className="watch-market">
+      <div className="watch-sub-tabs" role="tablist" aria-label="Sub-tabs">
+        {SUB_TABS.map(t => (
           <button
             key={t.id}
             role="tab"
@@ -316,251 +549,23 @@ function WatchlistMarket({ onNavigate }) {
       </div>
 
       <div className="watch-dashboard watch-dashboard--bento">
-        <BentoWrapper layout={LAYOUTS[activeTab]} storageKey={`watchlist-${activeTab}-layout-v4`}>
-          {/* KPI strip — full-width bento child at row 0 in both sub-tabs. */}
-          <BentoCard
-            key="kpi"
-            title="Watchlist Key Metrics"
-            accent="watchlist"
-            className="watch-bento-card"
-            contentClassName="watch-panel-scroll"
-            source={effectiveSource}
-            timestamp={watchlistData?.lastUpdated}
-            isLive={effectiveIsLive}
-            isCurrent={watchlistData?.isCurrent}
-            fetchedOn={watchlistData?.fetchedOn}
-            fetchLog={watchlistData?.fetchLog}
-            error={watchlistData?.error}
-          >
-            <MarketKpiStrip kpis={kpis} bare />
-          </BentoCard>
-          {activeTab === 'tickers' && (
-            <BentoCard
-              key="ticker-list"
-              title="My Tickers"
-              subtitle={`${tickers.length}/${MAX_TICKERS}`}
-              accent="watchlist"
-              className="watch-bento-card"
-              contentClassName="watch-panel-scroll"
-              source={tickersSource}
-              timestamp={watchlistData?.lastUpdated}
-              isLive={effectiveIsLive}
-              isCurrent={watchlistData?.isCurrent}
-              fetchedOn={watchlistData?.fetchedOn}
-              fetchLog={watchlistData?.fetchLog || []}
-              error={watchlistData?.error}
-            >
-                <div className="watch-add-bar">
-                  <input
-                    className="watch-add-input"
-                    type="text"
-                    placeholder="Add ticker (e.g. AAPL)"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    maxLength={10}
-                  />
-                  <button
-                    className="watch-add-btn"
-                    onClick={addTicker}
-                    disabled={!input.trim() || tickers.length >= MAX_TICKERS || tickers.includes(input.trim().toUpperCase())}
-                  >
-                    Add
-                  </button>
-                </div>
-
-                {tickers.length === 0 ? (
-                  <div className="watch-empty">No tickers added yet. Type a symbol above to start tracking.</div>
-                ) : (
-                  <table className="watch-ticker-table">
-                    <thead>
-                      <tr>
-                        <th>Ticker</th>
-                        <th>Name</th>
-                        <th>Price</th>
-                        <th>Change</th>
-                        <th>Change %</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tickers.map(sym => {
-                        const q = quotes[sym];
-                        const err = errors[sym] || errors.global;
-                        const price = q?.price?.regularMarketPrice?.raw ?? q?.price?.regularMarketPrice;
-                        const change = q?.price?.regularMarketChange?.raw ?? q?.price?.regularMarketChange;
-                        const changePct = q?.price?.regularMarketChangePercent?.raw ?? q?.price?.regularMarketChangePercent;
-                        const name = q?.price?.shortName || q?.price?.longName || '';
-
-                        return (
-                          <tr key={sym}>
-                            <td style={{ fontWeight: 600 }}>{sym}</td>
-                            <td style={{ color: 'var(--text-muted)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {isLoading ? <span className="watch-ticker-loading" /> : err ? '' : name}
-                            </td>
-                            <td>
-                              {isLoading ? (
-                                <span className="watch-ticker-loading" />
-                              ) : err ? (
-                                <span className="watch-ticker-error">{err}</span>
-                              ) : price != null ? (
-                                <MetricValue
-                                  value={price}
-                                  seriesKey="watchlistPrice"
-                                  timestamp={watchlistData?.lastUpdated}
-                                  format={() => Number(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                />
-                              ) : (
-                                '--'
-                              )}
-                            </td>
-                            <td className={changeClass(change)}>
-                              {isLoading ? '' : err ? '' : change != null ? (
-                                <MetricValue
-                                  value={change}
-                                  seriesKey="watchlistPrice"
-                                  timestamp={watchlistData?.lastUpdated}
-                                  format={() => formatChange(change) ?? '--'}
-                                />
-                              ) : (
-                                '--'
-                              )}
-                            </td>
-                            <td className={changeClass(changePct)}>
-                              {isLoading ? '' : err ? '' : changePct != null ? (
-                                <MetricValue
-                                  value={changePct}
-                                  seriesKey="watchlistPrice"
-                                  timestamp={watchlistData?.lastUpdated}
-                                  format={() => formatPct(changePct) ?? '--'}
-                                />
-                              ) : (
-                                '--'
-                              )}
-                            </td>
-                            <td>
-                              <button className="watch-remove-btn" title="Remove" onClick={() => removeTicker(sym)}>
-                                &#x2715;
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-            </BentoCard>
-          )}
-          {activeTab === 'metrics' && (
-            <BentoCard
-              key="metric-cards"
-              title="My Metrics"
-              subtitle="Quick shortcuts"
-              accent="watchlist"
-              className="watch-bento-card"
-              contentClassName="watch-panel-scroll"
-              source="Internal / FRED"
-              timestamp={watchlistData?.lastUpdated}
-              isLive={watchlistData?.isLive}
-              isCurrent={watchlistData?.isCurrent}
-              fetchedOn={watchlistData?.fetchedOn}
-              fetchLog={watchlistData?.fetchLog || []}
-              error={watchlistData?.error}
-            >
-                <div className="watch-metrics-hint">Click ★ to favorite. Click card to navigate.</div>
-                <div className="watch-metrics-grid">
-                  {sortedMetrics.map(m => {
-                    const isFav = favMetrics.includes(m.id);
-                    const status = getSourceStatus(m);
-                    const statusClass = `watch-metric-status-${status}`;
-                    const statusLabel = { live: 'LIVE', stale: 'STALE', loading: '…', error: 'ERR', nodata: '—' }[status];
-                    return (
-                      <div
-                        key={m.id}
-                        className={`watch-metric-card${isFav ? ' favorited' : ''}`}
-                        onClick={() => handleMetricClick(m)}
-                      >
-                        <div className="watch-metric-main">
-                          <span className="watch-metric-label">{m.label}</span>
-                          <span className={`watch-metric-value ${statusClass}`} title={status === 'error' ? (MARKET_CONTEXTS[m.id]?.error || 'Fetch error') : ''}>
-                            {status === 'loading' ? (
-                              <span className="watch-ticker-loading" />
-                            ) : (
-                              <MetricValue
-                                value={getLiveValue(m)}
-                                seriesKey={m.seriesKey}
-                                timestamp={MARKET_CONTEXTS[m.id]?.lastUpdated}
-                                format={v => v ?? '—'}
-                              />
-                            )}
-                          </span>
-                        </div>
-                        <div className="watch-metric-right">
-                          <span className={`watch-metric-status ${statusClass}`} title={`Source: ${m.label} — ${status}`}>{statusLabel}</span>
-                          <button
-                            className={`watch-metric-star${isFav ? ' active' : ''}`}
-                            onClick={(e) => { e.stopPropagation(); toggleMetric(m.id); }}
-                            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
-                          >
-                            {isFav ? '\u2605' : '\u2606'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-            </BentoCard>
-          )}
-          <BentoCard
-            key="cross-alerts"
-            title="Cross-Market Alert Board"
-            subtitle={`${crossMarketAlerts.filter(row => row.severity !== 'low' && row.severity !== 'muted').length} active watch signals`}
-            accent="watchlist"
-            className="watch-bento-card"
-            contentClassName="watch-panel-scroll"
-            source="Internal cross-market snapshots"
-            timestamp={watchlistData?.lastUpdated}
-            isLive={effectiveIsLive}
-            isCurrent={watchlistData?.isCurrent}
-            fetchedOn={watchlistData?.fetchedOn}
-            fetchLog={watchlistData?.fetchLog || []}
-            error={watchlistData?.error}
-          >
-            <table className="watch-ticker-table">
-              <thead>
-                <tr>
-                  <th>Signal</th>
-                  <th>Value</th>
-                  <th>Read</th>
-                  <th>Severity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {crossMarketAlerts.map(row => (
-                  <tr key={row.signal} onClick={() => row.target && handleMetricClick(row.target)} style={{ cursor: row.target ? 'pointer' : 'default' }}>
-                    <td style={{ fontWeight: 600 }}>{row.signal}</td>
-                    <td>
-                      <MetricValue
-                        value={row.value}
-                        seriesKey={row.target?.seriesKey}
-                        timestamp={MARKET_CONTEXTS[row.target?.id]?.lastUpdated || watchlistData?.lastUpdated}
-                        format={v => v ?? '—'}
-                      />
-                    </td>
-                    <td style={{ color: 'var(--text-muted)' }}>{row.read}</td>
-                    <td>
-                      <span
-                        className={`watch-metric-status watch-metric-status-${row.severity === 'high' ? 'error' : row.severity === 'medium' ? 'stale' : row.severity === 'muted' ? 'nodata' : 'live'}`}
-                      >
-                        {row.severity}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </BentoCard>
-        </BentoWrapper>
+        <MarketPanelGrid
+          marketId="watchlist"
+          layout={LAYOUTS[activeTab]}
+          storageKey={`watchlist-${activeTab}-layout-v5`}
+          accent="watchlist"
+          ctx={panelCtx}
+          only={panelOnly}
+          provenance={{
+            timestamp: watchlistData?.lastUpdated,
+            isCurrent: watchlistData?.isCurrent,
+            fetchedOn: watchlistData?.fetchedOn,
+            fetchLog: watchlistData?.fetchLog,
+            error: watchlistData?.error,
+            isLoading,
+          }}
+          extra={crossAlertsExtra}
+        />
       </div>
     </div>
   );

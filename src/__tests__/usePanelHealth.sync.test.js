@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { syncReportToDom, setPanelCache, getPanelCache } from '../hooks/usePanelHealth';
 
-describe('syncReportToDom', () => {
-  it('never keeps status ok when tab is not mounted', () => {
+describe('syncReportToDom / splash cache', () => {
+  it('never keeps status ok when tab is not visible', () => {
     const r = syncReportToDom({
       status: 'ok',
       fetchOk: true,
@@ -11,31 +11,54 @@ describe('syncReportToDom', () => {
       elPresent: true,
     }, { mounted: false });
     expect(r.status).not.toBe('ok');
-    expect(r.displayOk).toBe(false);
-    expect(r.confirmOk).toBe(false);
     expect(r.status).toBe('pending');
   });
 
-  it('demotes ok without elPresent when mounted', () => {
+  it('keeps pending when inactive and fetchOk with former missing status', () => {
     const r = syncReportToDom({
-      status: 'ok',
-      fetchOk: true,
-      displayOk: true,
-      confirmOk: true,
-      elPresent: false,
-    }, { mounted: true });
-    expect(r.status).not.toBe('ok');
-  });
-
-  it('demotes ok when any gate is false', () => {
-    const r = syncReportToDom({
-      status: 'ok',
+      status: 'missing',
       fetchOk: true,
       displayOk: false,
-      confirmOk: true,
-      elPresent: true,
-    }, { mounted: true });
-    expect(r.status).not.toBe('ok');
+      confirmOk: false,
+      elPresent: false,
+      fetchDetail: 'field has data',
+    }, { mounted: false });
+    expect(r.status).toBe('pending');
+    expect(r.fetchOk).toBe(true);
+  });
+
+  it('is red when inactive and fetch failed with payload', () => {
+    const r = syncReportToDom({
+      status: 'null',
+      fetchOk: false,
+      displayOk: false,
+      confirmOk: false,
+      elPresent: false,
+      fetchDetail: 'placeholders 0/3 required',
+      fetchedOn: '2026-07-30',
+    }, { mounted: false });
+    // derivePanelSignal: marketHasPayload inferred from fetchDetail/fetchedOn
+    expect(r.status).toBe('null');
+    expect(r.fetchOk).toBe(false);
+  });
+
+  it('setPanelCache never keeps splash green', () => {
+    setPanelCache({
+      bonds: {
+        yield: {
+          status: 'ok',
+          fetchOk: true,
+          displayOk: true,
+          confirmOk: true,
+          elPresent: true,
+        },
+      },
+    });
+    const c = getPanelCache();
+    expect(c.bonds.yield.status).toBe('pending');
+    expect(c.bonds.yield.displayOk).toBe(false);
+    expect(c.bonds.yield.confirmOk).toBe(false);
+    expect(c.bonds.yield.fetchOk).toBe(true);
   });
 
   it('setPanelCache demotes bare string ok', () => {

@@ -1,13 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
-import BentoWrapper from '../../../components/BentoWrapper';
-import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import CryptoSidebar from './CryptoSidebar';
 import StablecoinCompositionPanel from './StablecoinCompositionPanel';
 import DefiTvlTrendPanel from './DefiTvlTrendPanel';
 import BtcOnChainPanel from './BtcOnChainPanel';
+import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import './CryptoDashboard.css';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
@@ -149,19 +148,10 @@ function CryptoDashboard({
     };
   }, [onChainData, colors]);
 
-  return (
-    <div className="crypto-dashboard-layout">
-      <BentoWrapper layout={LAYOUT} storageKey="crypto-layout-v4">
-        {/* Crypto sidebar — first bento panel (left column). Sidebar manages
-            its own footer; pass noFooter. */}
-        <BentoCard
-          key="sidebar"
-          title="Crypto"
-          accent="crypto"
-          className="crypto-bento-card"
-          contentClassName="crypto-panel-content bento-panel-scroll"
-          noFooter
-        >
+  const renderPanel = useCallback((panelId) => {
+    switch (panelId) {
+      case 'sidebar':
+        return (
           <CryptoSidebar
             coinMarketData={coinMarketData}
             convertedCoins={coinMarketData}
@@ -176,23 +166,10 @@ function CryptoDashboard({
             fetchedOn={fetchedOn}
             isCurrent={isCurrent}
           />
-        </BentoCard>
+        );
 
-        {/* Top Cryptos */}
-        <BentoCard
-          key="top-cryptos"
-          title="Top Cryptos"
-          accent="crypto"
-          className="crypto-bento-card"
-          contentClassName="crypto-panel-scroll"
-          source="CoinGecko"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+      case 'top-cryptos':
+        return (
           <div className="crypto-mini-table">
             {coins.slice(0, 10).map((c, i) => (
               <div key={c.id || c.symbol} className="crypto-mini-row">
@@ -205,23 +182,10 @@ function CryptoDashboard({
               </div>
             ))}
           </div>
-        </BentoCard>
+        );
 
-        {/* Fear & Greed — score + history (Alternative.me via crypto route) */}
-        <BentoCard
-          key="fear-greed"
-          title="Fear & Greed Index"
-          subtitle={fgiValue != null ? `${fgiLabel || '—'} · ${fgiValue}/100` : 'Crypto market sentiment'}
-          accent="crypto"
-          className="crypto-bento-card"
-          source="Alternative.me"
-          timestamp={lastUpdated}
-          isLive={!!(isLive && fgiValue != null)}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
+      case 'fear-greed':
+        return (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, padding: '8px 10px', boxSizing: 'border-box', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexShrink: 0 }}>
               <span style={{
@@ -257,204 +221,211 @@ function CryptoDashboard({
               </div>
             )}
           </div>
-        </BentoCard>
+        );
 
-        {/* Funding Rates */}
-        {fundingRates.length > 0 && (
-          <BentoCard
-            key="funding"
-            title="Funding Rates"
-            accent="crypto"
-            className="crypto-bento-card"
-            contentClassName="crypto-panel-scroll"
-            source="Bybit"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <div className="crypto-mini-table">
-              {fundingRates.slice(0, 6).map((f) => {
-                // Bybit reports rate8h as a fraction (e.g. 0.0001 = 0.01% per 8h).
-                // Showing only that 4-decimal number reads as visual noise; pair
-                // it with the annualized rate (rate8h × 3 × 365) and open interest
-                // so the panel actually communicates the funding regime.
-                const rate8h = f.rate8h ?? f.rate ?? 0;
-                const annualized = f.rateAnnualized ?? rate8h * 3 * 365 * 100;
-                const oi = f.openInterestB;
-                const positive = rate8h >= 0;
-                return (
-                  <div key={f.symbol || f.exchange} className="crypto-mini-row" style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', gap: 6, alignItems: 'baseline' }}>
-                    <span className="crypto-mini-name">{f.symbol || f.exchange}</span>
-                    <span className="crypto-mini-value" style={{ color: positive ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }} title="Per-8h funding rate">
-                      <MetricValue value={rate8h * 100} seriesKey="fundingRate" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} />
-                    </span>
-                    <span className="crypto-mini-value" style={{ color: positive ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }} title="Annualized funding rate">
-                      <MetricValue value={annualized} seriesKey="fundingRateAnnualized" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}% APR`} />
-                    </span>
-                    <span className="crypto-mini-value" style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }} title="Open interest">
-                      {typeof oi === 'number' ? `$${oi.toFixed(1)}B OI` : ''}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </BentoCard>
-        )}
-
-        {/* DeFi TVL */}
-        {defiChains.length > 0 && (
-          <BentoCard
-            key="defi-tvl"
-            title="DeFi TVL by Chain"
-            accent="crypto"
-            className="crypto-bento-card"
-            contentClassName="crypto-panel-scroll"
-            source="DeFi Llama"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <div className="crypto-mini-table">
-              {defiChains.slice(0, 8).map((d) => (
-                <div key={d.chain || d.name} className="crypto-mini-row">
-                  <span className="crypto-mini-name">{d.chain || d.name}</span>
-                  <span className="crypto-mini-value"><MetricValue value={d.tvl ?? d.tvlB} seriesKey="defiTvl" timestamp={lastUpdated} format={v => `$${(v >= 1 ? v.toFixed(2) : (v * 1e9 / 1e9).toFixed(2))}B`} /></span>
+      case 'funding':
+        return fundingRates.length > 0 ? (
+          <div className="crypto-mini-table">
+            {fundingRates.slice(0, 6).map((f) => {
+              // Bybit reports rate8h as a fraction (e.g. 0.0001 = 0.01% per 8h).
+              // Showing only that 4-decimal number reads as visual noise; pair
+              // it with the annualized rate (rate8h × 3 × 365) and open interest
+              // so the panel actually communicates the funding regime.
+              const rate8h = f.rate8h ?? f.rate ?? 0;
+              const annualized = f.rateAnnualized ?? rate8h * 3 * 365 * 100;
+              const oi = f.openInterestB;
+              const positive = rate8h >= 0;
+              return (
+                <div key={f.symbol || f.exchange} className="crypto-mini-row" style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', gap: 6, alignItems: 'baseline' }}>
+                  <span className="crypto-mini-name">{f.symbol || f.exchange}</span>
+                  <span className="crypto-mini-value" style={{ color: positive ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }} title="Per-8h funding rate">
+                    <MetricValue value={rate8h * 100} seriesKey="fundingRate" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(3)}%`} />
+                  </span>
+                  <span className="crypto-mini-value" style={{ color: positive ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }} title="Annualized funding rate">
+                    <MetricValue value={annualized} seriesKey="fundingRateAnnualized" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}% APR`} />
+                  </span>
+                  <span className="crypto-mini-value" style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }} title="Open interest">
+                    {typeof oi === 'number' ? `$${oi.toFixed(1)}B OI` : ''}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </BentoCard>
-        )}
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>No funding rate data</div>
+        );
 
-        {/* Top Exchanges — always mounted for panel health / layout contract */}
-        <BentoCard
-          key="exchanges"
-          title="Top Exchanges"
-          accent="crypto"
-          className="crypto-bento-card"
-          contentClassName="crypto-panel-scroll"
-          source="CoinGecko"
-          timestamp={lastUpdated}
-          isLive={isLive}
-          isCurrent={isCurrent}
-          fetchedOn={fetchedOn}
-          fetchLog={fetchLog}
-          error={error}
-        >
-          {topExchanges?.length > 0 ? (
-            <div className="crypto-mini-table">
-              {topExchanges.slice(0, 6).map((e) => (
-                <div key={e.name || e.id} className="crypto-mini-row">
-                  <span className="crypto-mini-name">{e.name}</span>
-                  <span className="crypto-mini-value"><MetricValue value={e.volume24h} seriesKey="topExchanges" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(1)}B`} /></span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Exchange volume loading…</div>
-          )}
-        </BentoCard>
-
-        {/* On-Chain Metrics */}
-        {onChainData && (
-          <BentoCard
-            key="onchain"
-            title="On-Chain Metrics"
-            accent="crypto"
-            className="crypto-bento-card"
-            contentClassName="crypto-panel-scroll"
-            source="mempool.space"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-              <div className="onchain-cards">
-                {onChainData.hashrate?.current != null && (
-                  <div className="onchain-card">
-                    <div className="onchain-card-label">Hashrate</div>
-                    <div className="onchain-card-value amber">
-                      <MetricValue value={onChainData.hashrate.current} seriesKey="onChainData" timestamp={lastUpdated} format={v => `${v} EH/s`} />
-                    </div>
-                  </div>
-                )}
-                {onChainData.difficulty && (
-                  <div className="onchain-card">
-                    <div className="onchain-card-label">Difficulty Progress</div>
-                    <div className="onchain-card-value" style={{ color: onChainData.difficulty.difficultyChange > 0 ? '#4ade80' : '#f87171' }}>
-                      <MetricValue value={onChainData.difficulty.progressPercent} seriesKey="onChainData" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} />
-                    </div>
-                    <div className="onchain-card-sub">
-                      {onChainData.difficulty.difficultyChange != null && (
-                        <span style={{ color: onChainData.difficulty.difficultyChange > 0 ? '#4ade80' : '#f87171' }}>
-                          {onChainData.difficulty.difficultyChange > 0 ? '+' : ''}{onChainData.difficulty.difficultyChange.toFixed(1)}%
-                        </span>
-                      )}
-                      {onChainData.difficulty.remainingBlocks != null && <> · {onChainData.difficulty.remainingBlocks} blocks</>}
-                    </div>
-                  </div>
-                )}
-                {onChainData.mempool && (
-                  <div className="onchain-card">
-                    <div className="onchain-card-label">Mempool</div>
-                    <div className="onchain-card-value">
-                      <MetricValue value={onChainData.mempool.count} seriesKey="onChainData" timestamp={lastUpdated} format={v => v != null ? `${(v / 1000).toFixed(0)}K txs` : '—'} />
-                    </div>
-                    {onChainData.mempool.vsize != null && <div className="onchain-card-sub">{onChainData.mempool.vsize}M vB</div>}
-                  </div>
-                )}
-                {onChainData.fees && (
-                  <div className="onchain-card">
-                    <div className="onchain-card-label">BTC Fees</div>
-                    <div className="onchain-card-value amber">
-                      <MetricValue value={onChainData.fees.fastest} seriesKey="onChainData" timestamp={lastUpdated} format={v => `${v} sat/vB`} />
-                    </div>
-                    <div className="onchain-card-sub">
-                      {onChainData.fees.halfHour} sat · {onChainData.fees.hour} sat · {onChainData.fees.economy} sat
-                    </div>
-                  </div>
-                )}
+      case 'defi-tvl':
+        return defiChains.length > 0 ? (
+          <div className="crypto-mini-table">
+            {defiChains.slice(0, 8).map((d) => (
+              <div key={d.chain || d.name} className="crypto-mini-row">
+                <span className="crypto-mini-name">{d.chain || d.name}</span>
+                <span className="crypto-mini-value"><MetricValue value={d.tvl ?? d.tvlB} seriesKey="defiTvl" timestamp={lastUpdated} format={v => `$${(v >= 1 ? v.toFixed(2) : (v * 1e9 / 1e9).toFixed(2))}B`} /></span>
               </div>
-          </BentoCard>
-        )}
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>No DeFi TVL data</div>
+        );
 
-        {/* On-Chain Hashrate Chart */}
-        {onChainData?.hashrate?.history?.length > 0 && (
-          <BentoCard
-            key="onchain-chart"
-            title="BTC Hashrate (30d)"
-            accent="crypto"
-            className="crypto-bento-card"
-            source="mempool.space"
-            timestamp={lastUpdated}
-            isLive={isLive}
-            isCurrent={isCurrent}
-            fetchedOn={fetchedOn}
-            fetchLog={fetchLog}
-            error={error}
-          >
-            <div className="crypto-chart-wrap" style={{ minHeight: 120, flex: 1 }}>
-              <SafeECharts option={onchainChartOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'BTC Hashrate', source: 'mempool.space', endpoint: '/api/crypto', series: [], updatedAt: lastUpdated }} />
-            </div>
-          </BentoCard>
-        )}
-        <BentoCard key="stablecoin-composition" title="Stablecoin Composition" subtitle="Total market cap and dominance" accent="crypto" className="crypto-bento-card" contentClassName="crypto-panel-scroll" source="DeFi Llama" timestamp={lastUpdated} isLive={stablecoinMcap != null} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          <StablecoinCompositionPanel />
-        </BentoCard>
-        <BentoCard key="defi-tvl-trend" title="DeFi TVL Trend" subtitle="TVL by chain with 7d change" accent="crypto" className="crypto-bento-card" contentClassName="crypto-panel-scroll" source="DeFi Llama" timestamp={lastUpdated} isLive={!!defiData?.chains?.length} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          <DefiTvlTrendPanel />
-        </BentoCard>
-        <BentoCard key="btc-onchain" title="BTC On-Chain Activity" subtitle="Hashrate, mempool, difficulty, fees" accent="crypto" className="crypto-bento-card" contentClassName="crypto-panel-scroll" source="mempool.space" timestamp={lastUpdated} isLive={!!onChainData} isCurrent={isCurrent} fetchedOn={fetchedOn} fetchLog={fetchLog} error={error}>
-          <BtcOnChainPanel />
-        </BentoCard>
-      </BentoWrapper>
+      case 'exchanges':
+        return topExchanges?.length > 0 ? (
+          <div className="crypto-mini-table">
+            {topExchanges.slice(0, 6).map((e) => (
+              <div key={e.name || e.id} className="crypto-mini-row">
+                <span className="crypto-mini-name">{e.name}</span>
+                <span className="crypto-mini-value"><MetricValue value={e.volume24h} seriesKey="topExchanges" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(1)}B`} /></span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Exchange volume loading…</div>
+        );
+
+      case 'onchain':
+        return onChainData ? (
+          <div className="onchain-cards">
+            {onChainData.hashrate?.current != null && (
+              <div className="onchain-card">
+                <div className="onchain-card-label">Hashrate</div>
+                <div className="onchain-card-value amber">
+                  <MetricValue value={onChainData.hashrate.current} seriesKey="onChainData" timestamp={lastUpdated} format={v => `${v} EH/s`} />
+                </div>
+              </div>
+            )}
+            {onChainData.difficulty && (
+              <div className="onchain-card">
+                <div className="onchain-card-label">Difficulty Progress</div>
+                <div className="onchain-card-value" style={{ color: onChainData.difficulty.difficultyChange > 0 ? '#4ade80' : '#f87171' }}>
+                  <MetricValue value={onChainData.difficulty.progressPercent} seriesKey="onChainData" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} />
+                </div>
+                <div className="onchain-card-sub">
+                  {onChainData.difficulty.difficultyChange != null && (
+                    <span style={{ color: onChainData.difficulty.difficultyChange > 0 ? '#4ade80' : '#f87171' }}>
+                      {onChainData.difficulty.difficultyChange > 0 ? '+' : ''}{onChainData.difficulty.difficultyChange.toFixed(1)}%
+                    </span>
+                  )}
+                  {onChainData.difficulty.remainingBlocks != null && <> · {onChainData.difficulty.remainingBlocks} blocks</>}
+                </div>
+              </div>
+            )}
+            {onChainData.mempool && (
+              <div className="onchain-card">
+                <div className="onchain-card-label">Mempool</div>
+                <div className="onchain-card-value">
+                  <MetricValue value={onChainData.mempool.count} seriesKey="onChainData" timestamp={lastUpdated} format={v => v != null ? `${(v / 1000).toFixed(0)}K txs` : '—'} />
+                </div>
+                {onChainData.mempool.vsize != null && <div className="onchain-card-sub">{onChainData.mempool.vsize}M vB</div>}
+              </div>
+            )}
+            {onChainData.fees && (
+              <div className="onchain-card">
+                <div className="onchain-card-label">BTC Fees</div>
+                <div className="onchain-card-value amber">
+                  <MetricValue value={onChainData.fees.fastest} seriesKey="onChainData" timestamp={lastUpdated} format={v => `${v} sat/vB`} />
+                </div>
+                <div className="onchain-card-sub">
+                  {onChainData.fees.halfHour} sat · {onChainData.fees.hour} sat · {onChainData.fees.economy} sat
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>No on-chain data</div>
+        );
+
+      case 'onchain-chart':
+        return onchainChartOption ? (
+          <div className="crypto-chart-wrap" style={{ minHeight: 120, flex: 1 }}>
+            <SafeECharts option={onchainChartOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'BTC Hashrate', source: 'mempool.space', endpoint: '/api/crypto', series: [], updatedAt: lastUpdated }} />
+          </div>
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>No hashrate history</div>
+        );
+
+      case 'stablecoin-composition':
+        return <StablecoinCompositionPanel />;
+
+      case 'defi-tvl-trend':
+        return <DefiTvlTrendPanel />;
+
+      case 'btc-onchain':
+        return <BtcOnChainPanel />;
+
+      default:
+        return null;
+    }
+  }, [
+    coinMarketData, fearGreedData, stablecoinMcap, btcDominance, ethGas,
+    isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent, coins,
+    fgiValue, fgiLabel, fgiOption, fundingRates, defiChains, topExchanges,
+    onChainData, onchainChartOption,
+  ]);
+
+  const panelCtx = useMemo(() => ({
+    __render: renderPanel,
+    __live: {
+      sidebar: !!isLive,
+      'top-cryptos': !!isLive,
+      'fear-greed': !!(isLive && fgiValue != null),
+      funding: !!(isLive && fundingRates.length > 0),
+      'defi-tvl': !!(isLive && defiChains.length > 0),
+      exchanges: !!isLive,
+      onchain: !!(isLive && onChainData),
+      'onchain-chart': !!(isLive && onChainData?.hashrate?.history?.length > 0),
+      'stablecoin-composition': stablecoinMcap != null,
+      'defi-tvl-trend': !!defiData?.chains?.length,
+      'btc-onchain': !!onChainData,
+    },
+    __subtitle: {
+      'fear-greed': fgiValue != null ? `${fgiLabel || '—'} · ${fgiValue}/100` : 'Crypto market sentiment',
+      'stablecoin-composition': 'Total market cap and dominance',
+      'defi-tvl-trend': 'TVL by chain with 7d change',
+      'btc-onchain': 'Hashrate, mempool, difficulty, fees',
+    },
+    __disabled: {
+      funding: fundingRates.length === 0,
+      'defi-tvl': defiChains.length === 0,
+      onchain: !onChainData,
+      'onchain-chart': !onchainChartOption,
+    },
+    __noFooter: {
+      sidebar: true,
+    },
+    __source: {
+      'top-cryptos': 'CoinGecko',
+      'fear-greed': 'Alternative.me',
+      funding: 'Bybit',
+      'defi-tvl': 'DeFi Llama',
+      exchanges: 'CoinGecko',
+      onchain: 'mempool.space',
+      'onchain-chart': 'mempool.space',
+      'stablecoin-composition': 'DeFi Llama',
+      'defi-tvl-trend': 'DeFi Llama',
+      'btc-onchain': 'mempool.space',
+    },
+  }), [
+    renderPanel, isLive, fgiValue, fgiLabel, fundingRates, defiChains,
+    onChainData, onchainChartOption, stablecoinMcap, defiData,
+  ]);
+
+  return (
+    <div className="crypto-dashboard-layout">
+      <MarketPanelGrid
+        marketId="crypto"
+        layout={LAYOUT}
+        storageKey="crypto-layout-v4"
+        accent="crypto"
+        ctx={panelCtx}
+        provenance={{
+          timestamp: lastUpdated,
+          isCurrent,
+          fetchedOn,
+          fetchLog,
+          error,
+        }}
+      />
     </div>
   );
 }

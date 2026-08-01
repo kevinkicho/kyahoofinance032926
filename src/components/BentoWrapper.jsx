@@ -9,6 +9,7 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import BentoCard from './BentoCard/BentoCard';
 import EmptyPanelBody from './BentoCard/EmptyPanelBody';
+import { normalizeLayoutKey } from '../lib/bentoLayoutKeys';
 import './BentoWrapper.css';
 
 /** "foreign-holders" → "Foreign Holders" when no explicit title map. */
@@ -19,14 +20,6 @@ function humanizePanelKey(key) {
     || 'Panel';
 }
 
-/**
- * React Grid Layout / React 19 can surface child keys as ".$kpi" (internal
- * React key prefix) in onLayoutChange payloads. If we persist those, merge
- * never matches defaults (`kpi`) and every panel collapses to synthetic 1×1.
- */
-function normalizeLayoutKey(i) {
-  return String(i ?? '').replace(/^\.\$/, '');
-}
 
 /**
  * Keep only geometry that is safe to persist/feed back into RGL.
