@@ -151,16 +151,33 @@ router.get('/', async (_req, res) => {
     }
 
     let stablecoinMcap = null;
+    let stablecoinComposition = null;
     try {
       if (defiStablecoins.status === 'fulfilled') {
         const stables = defiStablecoins.value?.peggedAssets;
         if (Array.isArray(stables)) {
           let total = 0;
+          const parts = [];
           for (const s of stables) {
             const usd = s.circulating?.peggedUSD ?? s.circulatingPrevDay?.peggedUSD ?? 0;
-            total += usd || 0;
+            if (usd > 0) {
+              total += usd;
+              parts.push({
+                name: s.symbol || s.name || s.id,
+                symbol: s.symbol || s.name,
+                mcap: usd,
+              });
+            }
           }
-          if (total > 0) stablecoinMcap = total;
+          if (total > 0) {
+            stablecoinMcap = total;
+            parts.sort((a, b) => b.mcap - a.mcap);
+            stablecoinComposition = parts.slice(0, 8).map((p) => ({
+              ...p,
+              pct: Math.round((p.mcap / total) * 1000) / 10,
+              mcapB: Math.round((p.mcap / 1e9) * 10) / 10,
+            }));
+          }
         }
       }
     } catch (e) { console.warn('[Crypto]', e.message || e); }
@@ -309,6 +326,7 @@ router.get('/', async (_req, res) => {
       fundingData: !!(fundingData && fundingData.rates?.length),
       onChainData: !!onChainData,
       stablecoinMcap: stablecoinMcap != null,
+      stablecoinComposition: !!(stablecoinComposition && stablecoinComposition.length),
       btcDominance: btcDominance != null,
       topExchanges: !!(topExchanges && topExchanges.length),
       ethGas: !!ethGas,
@@ -321,6 +339,7 @@ router.get('/', async (_req, res) => {
       fundingData,
       onChainData,
       stablecoinMcap,
+      stablecoinComposition,
       btcDominance,
       topExchanges,
       ethGas,

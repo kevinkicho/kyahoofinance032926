@@ -533,6 +533,13 @@ function SentimentDashboard({
                   <div className="sent-fgi-altme">Alt.me raw: {fearGreedData.altmeScore}</div>
                 )}
                 <div className="sent-fgi-altme">{fgiIndicators.length} components</div>
+                <div className="sent-fgi-altme" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                  {riskData?.vix != null && <span>VIX {Number(riskData.vix).toFixed(1)}</span>}
+                  {riskData?.hyOas != null && <span>HY {Number(riskData.hyOas).toFixed(0)}</span>}
+                  {(riskData?.yieldCurve ?? riskData?.curve) != null && (
+                    <span>2s10s {Number(riskData.yieldCurve ?? riskData.curve).toFixed(2)}</span>
+                  )}
+                </div>
               </div>
             </div>
 

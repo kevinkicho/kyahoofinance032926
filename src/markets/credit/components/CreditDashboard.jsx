@@ -69,25 +69,42 @@ function CreditDashboard({
   const emSpread = spreadData?.current?.emSpread;
   const defaultRate = defaultData?.rates?.[0]?.value ?? defaultData?.defaultRate;
 
+  const seriesDelta = (arr) => {
+    if (!Array.isArray(arr) || arr.length < 2) return null;
+    const last = arr[arr.length - 1];
+    const prev = arr[arr.length - 2];
+    if (last == null || prev == null || !Number.isFinite(Number(last)) || !Number.isFinite(Number(prev))) return null;
+    return Number(last) - Number(prev);
+  };
+
   const spreadOption = useMemo(() => {
     const history = spreadData?.history;
     const dates = history?.dates;
-    const igValues = history?.IG;
-    const hyValues = history?.HY;
-
     if (!dates?.length) return null;
+    const series = [
+      { name: 'IG OAS', data: history?.IG, color: '#3b82f6' },
+      { name: 'HY OAS', data: history?.HY, color: '#f59e0b' },
+      { name: 'BBB OAS', data: history?.BBB, color: '#22d3ee' },
+      { name: 'CCC OAS', data: history?.CCC, color: '#f87171' },
+      { name: 'EM OAS', data: history?.EM, color: '#a78bfa' },
+    ].filter((s) => Array.isArray(s.data) && s.data.some((v) => v != null));
+    if (!series.length) return null;
     return {
       animation: false,
       backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      legend: { data: ['IG OAS', 'HY OAS'], top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
-      grid: { top: 28, right: 30, bottom: 30, left: 50 },
+      legend: { data: series.map((s) => s.name), top: 0, type: 'scroll', textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 32, right: 16, bottom: 28, left: 48 },
       xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 6) } },
       yAxis: { type: 'value', name: 'bps', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [
-        { name: 'IG OAS', type: 'line', data: igValues || [], smooth: true, symbol: 'none', lineStyle: { color: '#3b82f6', width: 2 } },
-        { name: 'HY OAS', type: 'line', data: hyValues || [], smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 2 } },
-      ],
+      series: series.map((s) => ({
+        name: s.name,
+        type: 'line',
+        data: s.data || [],
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { color: s.color, width: s.name === 'IG OAS' || s.name === 'HY OAS' ? 2 : 1.4 },
+      })),
     };
   }, [spreadData, colors]);
 
@@ -106,15 +123,16 @@ function CreditDashboard({
   }, [spreadData, colors]);
 
   const spreadSummary = useMemo(() => {
-    if (spreadData?.current) {
-      return [
-        { name: 'IG OAS', spread: spreadData.current.igSpread },
-        { name: 'HY OAS', spread: spreadData.current.hySpread },
-        { name: 'EM OAS', spread: spreadData.current.emSpread },
-        { name: 'BBB OAS', spread: spreadData.current.bbbSpread },
-      ].filter(s => s.spread != null);
-    }
-    return [];
+    if (!spreadData?.current) return [];
+    const h = spreadData.history || {};
+    const rows = [
+      { name: 'IG OAS', spread: spreadData.current.igSpread, d1: seriesDelta(h.IG), key: 'igOAS' },
+      { name: 'HY OAS', spread: spreadData.current.hySpread, d1: seriesDelta(h.HY), key: 'hyOAS' },
+      { name: 'EM OAS', spread: spreadData.current.emSpread, d1: seriesDelta(h.EM), key: 'emOAS' },
+      { name: 'BBB OAS', spread: spreadData.current.bbbSpread, d1: seriesDelta(h.BBB), key: 'bbbOAS' },
+      { name: 'CCC OAS', spread: spreadData.current.cccSpread, d1: seriesDelta(h.CCC), key: 'cccOAS' },
+    ];
+    return rows.filter((s) => s.spread != null);
   }, [spreadData]);
 
   const bankStress = useMemo(() => {
@@ -260,6 +278,26 @@ function CreditDashboard({
                   </div>
                 </div>
               )}
+              {(defaultData?.rates || []).slice(0, 3).map((d) => (
+                <div key={d.category || d.series} className="credit-metric-card">
+                  <div className="credit-metric-row">
+                    <span className="credit-metric-name" style={{ fontSize: 10 }}>{d.category}</span>
+                    <span className="credit-metric-num" style={{ fontSize: 12 }}>
+                      <MetricValue
+                        value={d.value}
+                        seriesKey="defaultRateByCategory"
+                        timestamp={lastUpdated}
+                        format={(v) => {
+                          if (v == null) return '—';
+                          if (d.unit === 'bps') return `${Math.round(v)} bps`;
+                          if (d.unit === 'idx') return Number(v).toFixed(1);
+                          return `${Number(v).toFixed(2)}%`;
+                        }}
+                      />
+                    </span>
+                  </div>
+                </div>
+              ))}
               {delinquencyRates?.[0] && typeof delinquencyRates[0].rate === 'number' && (
                 <div className="credit-metric-card">
                   <div className="credit-metric-row">
@@ -314,14 +352,35 @@ function CreditDashboard({
 
       case 'spread-summary':
         return spreadSummary.length
-          ? spreadSummary.map((s) => (
-              <div key={s.name} className="credit-mini-row">
-                <span className="credit-mini-name">{s.name}</span>
-                <span className="credit-mini-value" style={{ color: s.spread > 150 ? '#f87171' : s.spread > 80 ? '#fbbf24' : '#22c55e' }}>
-                  <MetricValue value={s.spread} seriesKey={s.label === 'High Yield' ? 'hyOAS' : s.label === 'Investment Grade' ? 'igOAS' : s.label === 'EM Sovereign' ? 'emOAS' : 'spreadSummary'} timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(0)} bps` : '—'} />
-                </span>
+          ? (
+            <>
+              <div className="credit-mini-row credit-mini-row-header" style={{ opacity: 0.75, fontSize: 10 }}>
+                <span className="credit-mini-name">Spread</span>
+                <span className="credit-mini-value" style={{ minWidth: 56, textAlign: 'right' }}>Level</span>
+                <span className="credit-mini-value" style={{ minWidth: 48, textAlign: 'right' }}>Δ1</span>
               </div>
-            ))
+              {spreadSummary.map((s) => (
+                <div key={s.name} className="credit-mini-row">
+                  <span className="credit-mini-name">{s.name}</span>
+                  <span className="credit-mini-value" style={{ color: s.spread > 400 ? '#f87171' : s.spread > 150 ? '#fbbf24' : '#22c55e', minWidth: 56, textAlign: 'right' }}>
+                    <MetricValue value={s.spread} seriesKey={s.key || 'spreadSummary'} timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(0)}` : '—'} />
+                    <span style={{ opacity: 0.6, fontSize: 10 }}> bps</span>
+                  </span>
+                  <span
+                    className="credit-mini-value"
+                    style={{
+                      minWidth: 48,
+                      textAlign: 'right',
+                      fontSize: 11,
+                      color: s.d1 == null ? colors.textMuted : s.d1 > 0 ? '#f87171' : '#4ade80',
+                    }}
+                  >
+                    {s.d1 == null ? '—' : `${s.d1 >= 0 ? '+' : ''}${s.d1.toFixed(0)}`}
+                  </span>
+                </div>
+              ))}
+            </>
+          )
           : <EmptyPanelBody message="No spread summary" />;
 
       case 'em-spread':
@@ -342,17 +401,48 @@ function CreditDashboard({
       case 'cp-rates':
         return (
           <>
-            <div className="credit-mini-row">
-              <span className="credit-mini-name">AA 30-Day</span>
-              <span className="credit-mini-value"><MetricValue value={commercialPaper?.rate} seriesKey="commercialPaper" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(2)}%` : '—'} /></span>
-            </div>
+            {(commercialPaper?.nonfinancial3m != null || commercialPaper?.rate != null) && (
+              <div className="credit-mini-row">
+                <span className="credit-mini-name">Nonfin CP 3m</span>
+                <span className="credit-mini-value">
+                  <MetricValue
+                    value={commercialPaper?.nonfinancial3m ?? commercialPaper?.rate}
+                    seriesKey="commercialPaperNf3m"
+                    timestamp={lastUpdated}
+                    format={v => v != null ? `${v.toFixed(2)}%` : '—'}
+                  />
+                </span>
+              </div>
+            )}
+            {commercialPaper?.financial3m != null && (
+              <div className="credit-mini-row">
+                <span className="credit-mini-name">Fin CP 3m</span>
+                <span className="credit-mini-value">
+                  <MetricValue value={commercialPaper.financial3m} seriesKey="commercialPaperFin3m" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} />
+                </span>
+              </div>
+            )}
+            {commercialPaper?.rate != null && commercialPaper?.nonfinancial3m == null && (
+              <div className="credit-mini-row">
+                <span className="credit-mini-name">AA / headline</span>
+                <span className="credit-mini-value"><MetricValue value={commercialPaper.rate} seriesKey="commercialPaper" timestamp={lastUpdated} format={v => `${v.toFixed(2)}%`} /></span>
+              </div>
+            )}
             {commercialPaper?.volume != null && (
               <div className="credit-mini-row">
                 <span className="credit-mini-name">Volume</span>
                 <span className="credit-mini-value"><MetricValue value={commercialPaper.volume} seriesKey="commercialPaperVolume" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(0)}B`} /></span>
               </div>
             )}
-            {commercialPaper?.rate == null && commercialPaper?.financial3m == null && (
+            {commercialPaper?.financial3m != null && commercialPaper?.nonfinancial3m != null && (
+              <div className="credit-mini-row">
+                <span className="credit-mini-name">Fin − Nonfin</span>
+                <span className="credit-mini-value" style={{ color: colors.textSecondary }}>
+                  {`${(commercialPaper.financial3m - commercialPaper.nonfinancial3m >= 0 ? '+' : '')}${(commercialPaper.financial3m - commercialPaper.nonfinancial3m).toFixed(2)} pp`}
+                </span>
+              </div>
+            )}
+            {commercialPaper?.rate == null && commercialPaper?.financial3m == null && commercialPaper?.nonfinancial3m == null && (
               <div className="credit-mini-row" style={{ opacity: 0.7 }}>
                 <span className="credit-mini-name">No commercial paper rate yet</span>
               </div>
@@ -369,7 +459,7 @@ function CreditDashboard({
               <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 60 }}>Yield</span>
               <span className="credit-mini-value" style={{ fontWeight: 700, textAlign: 'right', minWidth: 40 }}>LTV</span>
             </div>
-            {cloTranches.slice(0, 8).map((l) => (
+            {cloTranches.slice(0, 10).map((l) => (
               <div key={l.tranche || l.sector} className="credit-mini-row">
                 <span className="credit-mini-name">{l.tranche || l.sector}</span>
                 <span className="credit-mini-value" style={{ textAlign: 'right', minWidth: 60 }}>
@@ -383,6 +473,11 @@ function CreditDashboard({
                 </span>
               </div>
             ))}
+            {!!cloTranches.length && (
+              <div style={{ fontSize: 9, color: colors.textMuted, marginTop: 4 }}>
+                Modelled / ETF-proxy spreads where free CLO marks are unavailable
+              </div>
+            )}
             {!cloTranches.length && (
               <div className="credit-mini-row" style={{ opacity: 0.7 }}>
                 <span className="credit-mini-name">No CLO tranche data yet</span>
@@ -549,14 +644,23 @@ function CreditDashboard({
       case 'ted-spread':
         return tedSpread?.values?.length > 0
           ? (
-            <div style={{ height: '100%', minHeight: 0, padding: 4 }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 6 }}>
-                <span style={{ fontSize: '1.3rem', fontWeight: 700, color: (tedSpread.latest ?? 0) > 0.5 ? '#f87171' : '#22c55e' }}>
+            <div style={{ height: '100%', minHeight: 0, padding: 4, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', marginBottom: 4, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: (tedSpread.latest ?? 0) > 0.5 ? '#f87171' : '#22c55e' }}>
                   {tedSpread.latest != null ? `${tedSpread.latest.toFixed(2)}%` : '—'}
                 </span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>bps · {tedSpread.dates?.[tedSpread.dates.length - 1]}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>{tedSpread.dates?.[tedSpread.dates.length - 1]}</span>
+                {typeof hySpread === 'number' && (
+                  <span style={{ fontSize: 10, color: colors.textSecondary }}>HY {hySpread.toFixed(0)} bps</span>
+                )}
+                {typeof igSpread === 'number' && (
+                  <span style={{ fontSize: 10, color: colors.textSecondary }}>IG {igSpread.toFixed(0)} bps</span>
+                )}
+                {typeof commercialPaper?.rate === 'number' && (
+                  <span style={{ fontSize: 10, color: colors.textSecondary }}>CP {commercialPaper.rate.toFixed(2)}%</span>
+                )}
               </div>
-              <div style={{ height: 'calc(100% - 30px)', minHeight: 0 }}>
+              <div style={{ flex: 1, minHeight: 0 }}>
                 <SafeECharts
                   option={{
                     animation: false, backgroundColor: 'transparent',

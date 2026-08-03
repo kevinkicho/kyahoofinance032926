@@ -33,8 +33,24 @@ function EmptyHint({ children }) {
 function SectorCard({ label, data, seriesKey }) {
   if (!data?.latest) return null;
   const chg = computePctChange(data.latest.price, data.previous?.price);
+  // Prefer explicit YoY when history spans ~12 periods
+  const hist = data.history || data.values;
+  let yoy = null;
+  if (Array.isArray(hist) && hist.length > 12) {
+    const last = hist[hist.length - 1]?.price ?? hist[hist.length - 1];
+    const prior = hist[hist.length - 13]?.price ?? hist[hist.length - 13];
+    yoy = computePctChange(last, prior);
+  }
+  const spark = buildSparklineOption(
+    data.values
+      ? { values: data.values, dates: data.dates }
+      : Array.isArray(data.history)
+        ? { values: data.history.map((h) => h?.price ?? h), dates: data.history.map((h) => h?.period || h?.date) }
+        : null,
+    { color: '#ffa726', unit: '¢/kWh', label },
+  );
   return (
-    <div className="eia-kpi-card">
+    <div className="eia-kpi-card" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span className="eia-kpi-label">{label}</span>
       <span className="eia-kpi-value">
         <MetricValue
@@ -47,10 +63,20 @@ function SectorCard({ label, data, seriesKey }) {
       </span>
       {chg != null && (
         <span className={`eia-kpi-change ${parseFloat(chg) > 0 ? 'negative' : 'positive'}`}>
-          {parseFloat(chg) > 0 ? '+' : ''}{chg}%
+          {parseFloat(chg) > 0 ? '+' : ''}{chg}% prior
+        </span>
+      )}
+      {yoy != null && (
+        <span className={`eia-kpi-change ${parseFloat(yoy) > 0 ? 'negative' : 'positive'}`} style={{ fontSize: 10 }}>
+          YoY {parseFloat(yoy) > 0 ? '+' : ''}{yoy}%
         </span>
       )}
       <span className="eia-kpi-unit">{data.latest.period}</span>
+      {spark && (
+        <div style={{ height: 36, marginTop: 2 }}>
+          <SafeECharts option={spark} style={{ height: '100%', width: '100%' }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -58,8 +84,16 @@ function SectorCard({ label, data, seriesKey }) {
 function SalesCard({ label, data, seriesKey }) {
   if (!data?.latest) return null;
   const revB = data.latest.revenue / 1e3;
+  const spark = buildSparklineOption(
+    data.values
+      ? { values: data.values, dates: data.dates }
+      : Array.isArray(data.history)
+        ? { values: data.history.map((h) => h?.sales ?? h), dates: data.history.map((h) => h?.period || h?.date) }
+        : null,
+    { color: '#22d3ee', unit: 'B kWh', label },
+  );
   return (
-    <div className="eia-kpi-card">
+    <div className="eia-kpi-card" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span className="eia-kpi-label">{label}</span>
       <span className="eia-kpi-value">
         <MetricValue
@@ -71,6 +105,11 @@ function SalesCard({ label, data, seriesKey }) {
         <span className="eia-kpi-unit"> B kWh</span>
       </span>
       <span className="eia-kpi-unit">Revenue: ${revB.toFixed(1)}B · {data.latest.period}</span>
+      {spark && (
+        <div style={{ height: 36, marginTop: 2 }}>
+          <SafeECharts option={spark} style={{ height: '100%', width: '100%' }} />
+        </div>
+      )}
     </div>
   );
 }

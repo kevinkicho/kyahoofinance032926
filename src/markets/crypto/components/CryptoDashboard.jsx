@@ -130,21 +130,52 @@ function CryptoDashboard({
       return `${d.getMonth() + 1}/${d.getDate()}`;
     });
     const vals = hist.map(h => h.avgHashrate);
+    // Optional second series if fee history exists (often single latest only)
+    const feeHist = onChainData?.fees?.history;
+    const feeVals = Array.isArray(feeHist)
+      ? feeHist.map((h) => Number(h?.avgFee ?? h?.fee ?? h))
+      : null;
+    const hasFees = Array.isArray(feeVals) && feeVals.length === vals.length && feeVals.some((v) => Number.isFinite(v));
     return {
       animation: false,
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', formatter: params => `${params[0].axisValue}<br/>${params[0].data} EH/s` },
-      grid: { top: 20, right: 16, bottom: 24, left: 48 },
+      tooltip: { trigger: 'axis' },
+      legend: {
+        data: hasFees ? ['Hashrate EH/s', 'Fees'] : ['Hashrate EH/s'],
+        top: 0,
+        textStyle: { color: colors.textSecondary, fontSize: 9 },
+      },
+      grid: { top: 24, right: hasFees ? 40 : 16, bottom: 24, left: 48 },
       xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 5) } },
-      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{
-        type: 'line',
-        data: vals,
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { color: '#f59e0b', width: 2 },
-        areaStyle: { color: 'rgba(245,158,11,0.12)' },
-      }],
+      yAxis: hasFees
+        ? [
+            { type: 'value', name: 'EH/s', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+            { type: 'value', name: 'fee', position: 'right', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { show: false } },
+          ]
+        : { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series: [
+        {
+          name: 'Hashrate EH/s',
+          type: 'line',
+          yAxisIndex: 0,
+          data: vals,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { color: '#f59e0b', width: 2 },
+          areaStyle: { color: 'rgba(245,158,11,0.12)' },
+        },
+        ...(hasFees
+          ? [{
+              name: 'Fees',
+              type: 'line',
+              yAxisIndex: 1,
+              data: feeVals,
+              smooth: true,
+              symbol: 'none',
+              lineStyle: { color: '#22d3ee', width: 1.4 },
+            }]
+          : []),
+      ],
     };
   }, [onChainData, colors]);
 
@@ -184,7 +215,9 @@ function CryptoDashboard({
           </div>
         );
 
-      case 'fear-greed':
+      case 'fear-greed': {
+        const btc = coins.find((c) => /btc|bitcoin/i.test(c.symbol || c.id || ''));
+        const btcChg = btc?.change24h ?? btc?.price_change_percentage_24h;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, padding: '8px 10px', boxSizing: 'border-box', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexShrink: 0 }}>
@@ -205,6 +238,14 @@ function CryptoDashboard({
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fgiLabel || '—'}</div>
                 <div style={{ fontSize: 9, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>0 Fear · 100 Greed</div>
+                {btcChg != null && (
+                  <div style={{ fontSize: 10, marginTop: 2, color: btcChg >= 0 ? '#4ade80' : '#f87171' }}>
+                    BTC 24h {btcChg >= 0 ? '+' : ''}{Number(btcChg).toFixed(1)}%
+                  </div>
+                )}
+                {btcDominance != null && (
+                  <div style={{ fontSize: 10, opacity: 0.7 }}>BTC dom {Number(btcDominance).toFixed(1)}%</div>
+                )}
               </div>
             </div>
             {fgiOption ? (
@@ -222,11 +263,15 @@ function CryptoDashboard({
             )}
           </div>
         );
+      }
 
       case 'funding':
         return fundingRates.length > 0 ? (
           <div className="crypto-mini-table">
-            {fundingRates.slice(0, 6).map((f) => {
+            <div className="crypto-mini-row" style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', gap: 6, fontSize: 9, opacity: 0.65, marginBottom: 2 }}>
+              <span>Pair</span><span>8h</span><span>Ann.</span><span>OI</span>
+            </div>
+            {fundingRates.slice(0, 10).map((f) => {
               // Bybit reports rate8h as a fraction (e.g. 0.0001 = 0.01% per 8h).
               // Showing only that 4-decimal number reads as visual noise; pair
               // it with the annualized rate (rate8h × 3 × 365) and open interest
@@ -256,32 +301,66 @@ function CryptoDashboard({
         );
 
       case 'defi-tvl':
-        return defiChains.length > 0 ? (
-          <div className="crypto-mini-table">
-            {defiChains.slice(0, 8).map((d) => (
-              <div key={d.chain || d.name} className="crypto-mini-row">
-                <span className="crypto-mini-name">{d.chain || d.name}</span>
-                <span className="crypto-mini-value"><MetricValue value={d.tvl ?? d.tvlB} seriesKey="defiTvl" timestamp={lastUpdated} format={v => `$${(v >= 1 ? v.toFixed(2) : (v * 1e9 / 1e9).toFixed(2))}B`} /></span>
+        return defiChains.length > 0 || (defiData?.protocols?.length > 0) ? (
+          <div style={{ display: 'grid', gridTemplateColumns: defiData?.protocols?.length ? '1fr 1fr' : '1fr', gap: 8, height: '100%' }}>
+            <div className="crypto-mini-table">
+              <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4, textTransform: 'uppercase' }}>Chains</div>
+              {defiChains.slice(0, 8).map((d) => (
+                <div key={d.chain || d.name} className="crypto-mini-row">
+                  <span className="crypto-mini-name">{d.chain || d.name}</span>
+                  <span className="crypto-mini-value"><MetricValue value={d.tvl ?? d.tvlB} seriesKey="defiTvl" timestamp={lastUpdated} format={v => `$${(v >= 1 ? v.toFixed(2) : (v * 1e9 / 1e9).toFixed(2))}B`} /></span>
+                </div>
+              ))}
+            </div>
+            {Array.isArray(defiData?.protocols) && defiData.protocols.length > 0 && (
+              <div className="crypto-mini-table">
+                <div style={{ fontSize: 9, opacity: 0.65, marginBottom: 4, textTransform: 'uppercase' }}>Top protocols</div>
+                {defiData.protocols.slice(0, 8).map((p) => (
+                  <div key={p.name || p.slug} className="crypto-mini-row">
+                    <span className="crypto-mini-name">{p.name || p.slug}</span>
+                    <span className="crypto-mini-value">
+                      <MetricValue
+                        value={p.tvlB ?? (p.tvl != null ? p.tvl / 1e9 : null)}
+                        seriesKey="defiProtocolTvl"
+                        timestamp={lastUpdated}
+                        format={(v) => (v != null ? `$${Number(v).toFixed(1)}B` : '—')}
+                      />
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         ) : (
           <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>No DeFi TVL data</div>
         );
 
-      case 'exchanges':
+      case 'exchanges': {
+        const totalVol = (topExchanges || []).reduce((s, e) => s + (Number(e.volume24h) || 0), 0);
         return topExchanges?.length > 0 ? (
           <div className="crypto-mini-table">
-            {topExchanges.slice(0, 6).map((e) => (
-              <div key={e.name || e.id} className="crypto-mini-row">
-                <span className="crypto-mini-name">{e.name}</span>
-                <span className="crypto-mini-value"><MetricValue value={e.volume24h} seriesKey="topExchanges" timestamp={lastUpdated} format={v => `$${(v / 1e9).toFixed(1)}B`} /></span>
-              </div>
-            ))}
+            <div className="crypto-mini-row" style={{ fontSize: 9, opacity: 0.65 }}>
+              <span className="crypto-mini-name">Exchange</span>
+              <span className="crypto-mini-value">BTC vol 24h · share</span>
+            </div>
+            {topExchanges.slice(0, 10).map((e) => {
+              const vol = Number(e.volume24h);
+              const share = totalVol > 0 && Number.isFinite(vol) ? (vol / totalVol) * 100 : null;
+              return (
+                <div key={e.name || e.id} className="crypto-mini-row">
+                  <span className="crypto-mini-name">{e.name}</span>
+                  <span className="crypto-mini-value">
+                    <MetricValue value={vol} seriesKey="topExchanges" timestamp={lastUpdated} format={v => (v != null ? `${v.toFixed(0)} BTC` : '—')} />
+                    {share != null && <span style={{ opacity: 0.65, marginLeft: 6, fontSize: 10 }}>{share.toFixed(0)}%</span>}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Exchange volume loading…</div>
         );
+      }
 
       case 'onchain':
         return onChainData ? (

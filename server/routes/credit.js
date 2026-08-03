@@ -115,6 +115,7 @@ router.get('/', makeCachedRouteHandler({
         const hyMap = byDate(hyArr);
         const emMap = byDate(emArr);
         const bbbMap = byDate(bbbArr);
+        const cccMap = byDate(cccArr);
         const latestOf = (arr) => (arr?.length ? toBps(arr.at(-1).value) : null);
 
         spreadData = {
@@ -132,6 +133,7 @@ router.get('/', makeCachedRouteHandler({
             HY:    anchorArr.map(p => (hyMap.has(p.date)  ? toBps(hyMap.get(p.date))  : null)),
             EM:    anchorArr.map(p => (emMap.has(p.date)  ? toBps(emMap.get(p.date))  : null)),
             BBB:   anchorArr.map(p => (bbbMap.has(p.date) ? toBps(bbbMap.get(p.date)) : null)),
+            CCC:   anchorArr.map(p => (cccMap.has(p.date) ? toBps(cccMap.get(p.date)) : null)),
           },
           etfs: [],
         };

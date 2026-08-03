@@ -8,7 +8,13 @@ import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import CreditMatrix from './CreditMatrix';
 import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
-import { buildSpreadHistoryOption, buildFedBalanceOption, buildM2Option, buildDebtToGdpOption } from './bondsChartOptions';
+import {
+  buildSpreadHistoryOption,
+  buildFedBalanceOption,
+  buildM2Option,
+  buildDebtToGdpOption,
+  seriesLevelMeta,
+} from './bondsChartOptions';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -296,6 +302,12 @@ function BondsDashboard({
                   </span>
                 </div>
                 <div className="bonds-metric-row">
+                  <span className="bonds-metric-name">5s30s</span>
+                  <span className={`bonds-metric-num ${spreadIndicators?.t5y30y >= 0 ? 'positive' : 'negative'}`}>
+                    <MetricValue value={spreadIndicators?.t5y30y} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t5y30y" timestamp={lastUpdated} />
+                  </span>
+                </div>
+                <div className="bonds-metric-row">
                   <span className="bonds-metric-name">10s3m</span>
                   <span className={`bonds-metric-num ${spreadIndicators?.t10y3m >= 0 ? 'positive' : 'negative'}`}>
                     <MetricValue value={spreadIndicators?.t10y3m} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y3m" timestamp={lastUpdated} />
@@ -376,30 +388,123 @@ function BondsDashboard({
           ? <SafeECharts option={spreadHistoryOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Credit Spread History', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'T10Y2Y' }], updatedAt: lastUpdated }} />
           : <EmptyPanelBody message="No curve spread history" />;
 
-      case 'fed':
-        return fedBalanceOption
-          ? <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fed Balance Sheet', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'WALCL' }], updatedAt: lastUpdated }} />
-          : <EmptyPanelBody message="No Fed balance sheet data" />;
+      case 'fed': {
+        const meta = seriesLevelMeta(fedBalanceSheetHistory);
+        return fedBalanceOption ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {meta && (
+              <div style={{ display: 'flex', gap: 10, padding: '2px 6px 4px', fontSize: 11, flexWrap: 'wrap' }}>
+                <span><strong>{currentSymbol}{meta.latest?.toFixed?.(2) ?? meta.latest}T</strong> WALCL</span>
+                {meta.yoy != null && (
+                  <span style={{ color: meta.yoy >= 0 ? '#4ade80' : '#f87171' }}>
+                    ~12m {meta.yoy >= 0 ? '+' : ''}{meta.yoy.toFixed(1)}%
+                  </span>
+                )}
+                {meta.asOf && <span style={{ opacity: 0.55 }}>{meta.asOf}</span>}
+                {macroData?.rrp != null && <span style={{ opacity: 0.8 }}>RRP context on macro</span>}
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <SafeECharts option={fedBalanceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Fed Balance Sheet', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'WALCL' }], updatedAt: lastUpdated }} />
+            </div>
+          </div>
+        ) : <EmptyPanelBody message="No Fed balance sheet data" />;
+      }
 
-      case 'm2':
-        return m2Option
-          ? <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'M2 Money Supply', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'M2SL' }], updatedAt: lastUpdated }} />
-          : <EmptyPanelBody message="No M2 data" />;
+      case 'm2': {
+        const meta = seriesLevelMeta(m2HistoryData);
+        return m2Option ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {meta && (
+              <div style={{ display: 'flex', gap: 10, padding: '2px 6px 4px', fontSize: 11, flexWrap: 'wrap' }}>
+                <span><strong>{currentSymbol}{meta.latest?.toFixed?.(2) ?? meta.latest}T</strong> M2</span>
+                {meta.yoy != null && (
+                  <span style={{ color: meta.yoy >= 0 ? '#4ade80' : '#f87171' }}>
+                    YoY {meta.yoy >= 0 ? '+' : ''}{meta.yoy.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <SafeECharts option={m2Option} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'M2 Money Supply', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'M2SL' }], updatedAt: lastUpdated }} />
+            </div>
+          </div>
+        ) : <EmptyPanelBody message="No M2 data" />;
+      }
 
-      case 'debtgdp':
-        return debtToGdpOption
-          ? <SafeECharts option={debtToGdpOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Debt-to-GDP', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'GFDEBTN' }], updatedAt: lastUpdated }} />
-          : <EmptyPanelBody message="No debt-to-GDP data" />;
+      case 'debtgdp': {
+        const meta = seriesLevelMeta(debtToGdpHistory);
+        return debtToGdpOption ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {meta && (
+              <div style={{ display: 'flex', gap: 10, padding: '2px 6px 4px', fontSize: 11, flexWrap: 'wrap' }}>
+                <span><strong>{meta.latest?.toFixed?.(1) ?? meta.latest}%</strong> Debt/GDP</span>
+                {meta.yoy != null && (
+                  <span style={{ color: meta.yoy >= 0 ? '#f87171' : '#4ade80' }}>
+                    Δ {meta.yoy >= 0 ? '+' : ''}{meta.yoy.toFixed(1)}%
+                  </span>
+                )}
+                {nationalDebt != null && (
+                  <span style={{ opacity: 0.75 }}>
+                    Debt <MetricValue value={nationalDebt} seriesKey="nationalDebt" timestamp={lastUpdated} format={(v) => `${currentSymbol}${(Number(v) / 1e12).toFixed(2)}T`} />
+                  </span>
+                )}
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <SafeECharts option={debtToGdpOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Debt-to-GDP', source: 'FRED', endpoint: '/api/bonds', series: [{ id: 'GFDEBTN' }], updatedAt: lastUpdated }} />
+            </div>
+          </div>
+        ) : <EmptyPanelBody message="No debt-to-GDP data" />;
+      }
 
       case 'foreign-holders':
-        return foreignHoldersOption
-          ? <SafeECharts option={foreignHoldersOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Foreign Holders', source: 'US Treasury TIC', endpoint: '/api/treasury/tic', series: [], updatedAt: ticCtx?.lastUpdated || lastUpdated }} />
-          : <div className="bonds-empty">No TIC data available</div>;
+        return foreignHoldersOption ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            {(ticCtx?.data?.latest || []).filter((r) => r.country !== 'All Other').slice(0, 5).length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 4, padding: '2px 6px 4px', fontSize: 10 }}>
+                {(ticCtx?.data?.latest || []).filter((r) => r.country !== 'All Other').slice(0, 5).map((r) => (
+                  <React.Fragment key={r.country}>
+                    <span style={{ opacity: 0.85 }}>{r.country}</span>
+                    <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      ${Number(r.holdingsB).toFixed(0)}B
+                    </span>
+                    <span style={{
+                      textAlign: 'right',
+                      color: r.change1m == null ? undefined : r.change1m >= 0 ? '#4ade80' : '#f87171',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {r.change1m == null ? '—' : `${r.change1m >= 0 ? '+' : ''}${Number(r.change1m).toFixed(1)}`}
+                    </span>
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <SafeECharts option={foreignHoldersOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Foreign Holders', source: 'US Treasury TIC', endpoint: '/api/treasury/tic', series: [], updatedAt: ticCtx?.lastUpdated || lastUpdated }} />
+            </div>
+          </div>
+        ) : <div className="bonds-empty">No TIC data available</div>;
 
       case 'money-market':
-        return moneyMarketOption
-          ? <SafeECharts option={moneyMarketOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Money Market', source: 'NY Fed Markets', endpoint: '/api/nyfed', series: [], updatedAt: nyfedCtx?.lastUpdated || lastUpdated }} />
-          : <div className="bonds-empty">No NY Fed data available</div>;
+        return moneyMarketOption ? (
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div style={{ display: 'flex', gap: 12, padding: '2px 6px 4px', fontSize: 11, flexWrap: 'wrap' }}>
+              {nyfedCtx?.data?.sofr?.latest != null && (
+                <span>SOFR <strong>{Number(nyfedCtx.data.sofr.latest.rate ?? nyfedCtx.data.sofr.latest).toFixed?.(2) ?? nyfedCtx.data.sofr.latest}%</strong></span>
+              )}
+              {Array.isArray(nyfedCtx?.data?.rrp) && nyfedCtx.data.rrp[0]?.acceptedB != null && (
+                <span>ON RRP <strong>${Number(nyfedCtx.data.rrp[0].acceptedB).toFixed(0)}B</strong></span>
+              )}
+              {nyfedCtx?.data?.effr != null && (
+                <span>EFFR <strong>{Number(nyfedCtx.data.effr.latest ?? nyfedCtx.data.effr).toFixed?.(2)}%</strong></span>
+              )}
+            </div>
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <SafeECharts option={moneyMarketOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Money Market', source: 'NY Fed Markets', endpoint: '/api/nyfed', series: [], updatedAt: nyfedCtx?.lastUpdated || lastUpdated }} />
+            </div>
+          </div>
+        ) : <div className="bonds-empty">No NY Fed data available</div>;
 
       case 'auctions':
         return auctionTrendOption ? (

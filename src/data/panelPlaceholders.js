@@ -184,7 +184,12 @@ export const PANEL_PLACEHOLDERS = {
   'bonds:m2': [p('dates', 'm2HistoryData.dates'), p('values', 'm2HistoryData.values')],
   'bonds:cpi': [p('dates', 'cpiComponents.dates'), any('all', ['cpiComponents.all', 'cpiComponents.latest'])],
   'bonds:debtgdp': [p('dates', 'debtToGdpHistory.dates'), p('values', 'debtToGdpHistory.values')],
-  'bonds:breakevens': [any('be5y', ['breakevensData.current.be5y', 'breakevensData.be5y'])],
+  'bonds:breakevens': [
+    any('be5y', ['breakevensData.current.be5y', 'breakevensData.be5y']),
+    any('be10y', ['breakevensData.current.be10y', 'breakevensData.be10y'], { required: false }),
+    any('fwd5y5y', ['breakevensData.current.forward5y5y', 'breakevensData.forward5y5y'], { required: false }),
+    any('real5y', ['breakevensData.current.real5y', 'tipsYields.5y'], { required: false }),
+  ],
   'bonds:duration': [p('buckets', 'durationLadder.buckets')],
   'bonds:macro': [any('macro', ['macroData', 'nationalDebt', 'fedBalanceSheetHistory.values'])],
   'bonds:foreign-holders': [p('latest', 'latest', { crossMarket: 'treasuryTIC' })],

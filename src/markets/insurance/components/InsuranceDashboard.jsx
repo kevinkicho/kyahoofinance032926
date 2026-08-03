@@ -11,7 +11,7 @@ function InsuranceDashboard({
   catBondSpreads, combinedRatioData, reserveAdequacyData,
   reinsurancePricing, reinsurers, fredHyOasHistory,
   sectorETF, catBondProxy, industryAvgCombinedRatio, treasury10y,
-  catLosses, combinedRatioHistory,
+  catLosses, combinedRatioHistory, hyOAS, igOAS,
   isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
   currency, currentSymbol, convert,
 }) {
@@ -120,6 +120,21 @@ function InsuranceDashboard({
       series: [{ type: 'line', data: fredHyOasHistory.values, smooth: true, symbol: 'none', lineStyle: { color: '#f59e0b', width: 2 }, areaStyle: { color: 'rgba(245,158,11,0.1)' } }],
     };
   }, [fredHyOasHistory, colors]);
+
+  const hyContextStrip = useMemo(() => {
+    const hy = hyOAS != null ? Number(hyOAS) : (fredHyOasHistory?.values?.at?.(-1) ?? null);
+    const ig = igOAS != null ? Number(igOAS) : null;
+    const t10 = treasury10y != null ? Number(treasury10y) : null;
+    // History values may already be in bps; live hyOAS often bps too
+    const hyBps = hy != null && hy < 50 ? hy * 100 : hy;
+    const igBps = ig != null && ig < 50 ? ig * 100 : ig;
+    return {
+      hy: hyBps,
+      ig: igBps,
+      gap: hyBps != null && igBps != null ? hyBps - igBps : null,
+      t10,
+    };
+  }, [hyOAS, igOAS, treasury10y, fredHyOasHistory]);
 
   // Prefer server catLosses; else build a FEMA proxy series so the panel is not stuck on "loading"
   const catLossesResolved = useMemo(() => {
@@ -562,13 +577,50 @@ function InsuranceDashboard({
 
         hyoas: (
           hyOasOption
-            ? <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY OAS Spread', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }], updatedAt: lastUpdated }} />
+            ? (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '2px 6px 4px', fontSize: 11 }}>
+                  {hyContextStrip.hy != null && (
+                    <span>HY <strong style={{ color: '#f59e0b' }}>{Math.round(hyContextStrip.hy)}</strong> bps</span>
+                  )}
+                  {hyContextStrip.ig != null && (
+                    <span>IG <strong style={{ color: '#3b82f6' }}>{Math.round(hyContextStrip.ig)}</strong> bps</span>
+                  )}
+                  {hyContextStrip.gap != null && (
+                    <span>HY−IG <strong style={{ color: '#a78bfa' }}>{Math.round(hyContextStrip.gap)}</strong></span>
+                  )}
+                  {hyContextStrip.t10 != null && (
+                    <span>10Y <strong>{Number(hyContextStrip.t10).toFixed(2)}%</strong></span>
+                  )}
+                </div>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <SafeECharts option={hyOasOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'HY OAS Spread', source: 'FRED', endpoint: '/api/insurance', series: [{ id: 'BAMLH0A0HYM2' }], updatedAt: lastUpdated }} />
+                </div>
+              </div>
+            )
             : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>HY OAS series loading…</div>
         ),
 
         catloss: (
           catLossesOption
-            ? <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: catLossesResolved?.seriesId?.startsWith('FEMA') ? 'OpenFEMA' : 'FRED', endpoint: '/api/insurance', series: catLossesResolved?.seriesId ? [{ id: catLossesResolved.seriesId }] : [], updatedAt: lastUpdated }} />
+            ? (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '2px 6px 4px', fontSize: 10, opacity: 0.9 }}>
+                  {femaCtx?.data?.summary?.totalRecent != null && (
+                    <span>FEMA recent <strong>{femaCtx.data.summary.totalRecent}</strong></span>
+                  )}
+                  {usgsCtx?.data?.eventsCount != null && (
+                    <span>USGS events <strong>{usgsCtx.data.eventsCount}</strong></span>
+                  )}
+                  {usgsCtx?.data?.biggest?.mag != null && (
+                    <span>Max M <strong>{usgsCtx.data.biggest.mag}</strong></span>
+                  )}
+                </div>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <SafeECharts option={catLossesOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Natural Catastrophe Losses', source: catLossesResolved?.seriesId?.startsWith('FEMA') ? 'OpenFEMA' : 'FRED', endpoint: '/api/insurance', series: catLossesResolved?.seriesId ? [{ id: catLossesResolved.seriesId }] : [], updatedAt: lastUpdated }} />
+                </div>
+              </div>
+            )
             : null
         ),
 

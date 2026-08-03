@@ -60,6 +60,7 @@ describe('CryptoMarket', () => {
 
   it('renders BTC dominance', () => {
     render(<CryptoMarket centralData={mockCentralData} />);
-    expect(screen.getByText(/52/)).toBeInTheDocument();
+    // Dominance may appear in sidebar and fear/greed strip — match any
+    expect(screen.getAllByText(/52/).length).toBeGreaterThan(0);
   });
 });
