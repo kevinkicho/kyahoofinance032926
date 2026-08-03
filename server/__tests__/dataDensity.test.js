@@ -80,7 +80,8 @@ describe('API data density (live)', () => {
   it('calendar: events with prints, CB rates, earnings caps', async ({ skip }) => {
     if (!requireServer()) return skip();
     const d = await getJson('/api/calendar');
-    expect(d.isLive).toBe(true);
+    // Cache hits are isCurrent + isLive:false; only this-request upstream is isLive.
+    expect(d.isCurrent === true || d.isLive === true).toBe(true);
     expect((d.economicEvents || []).length).toBeGreaterThanOrEqual(5);
     const withPrint = (d.economicEvents || []).filter(
       (e) => e.lastPrint != null || e.previous != null,
@@ -120,7 +121,7 @@ describe('API data density (live)', () => {
   it('insurance: cat spreads + no hollow reinsurance rows', async ({ skip }) => {
     if (!requireServer()) return skip();
     const d = await getJson('/api/insurance');
-    expect(d.isLive).toBe(true);
+    expect(d.isCurrent === true || d.isLive === true).toBe(true);
     expect((d.catBondSpreads || []).length).toBeGreaterThanOrEqual(3);
     for (const r of d.catBondSpreads || []) {
       expect(r.spread, r.name).not.toBeNull();
@@ -133,7 +134,7 @@ describe('API data density (live)', () => {
   it('derivatives: skew + vix term without empty shells', async ({ skip }) => {
     if (!requireServer()) return skip();
     const d = await getJson('/api/derivatives');
-    expect(d.isLive).toBe(true);
+    expect(d.isCurrent === true || d.isLive === true).toBe(true);
     expect(d.skewIndex?.value ?? d.skewHistory?.values?.at?.(-1)).not.toBeNull();
     if (d.optionsFlow) {
       expect(Array.isArray(d.optionsFlow)).toBe(true);

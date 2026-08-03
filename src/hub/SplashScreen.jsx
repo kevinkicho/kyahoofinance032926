@@ -37,11 +37,22 @@ function PanelDetailCard({ report, onClose }) {
         <button type="button" className="splash-detail-close" onClick={onClose} aria-label="Close">×</button>
       </div>
       <div className={`splash-detail-verdict ${ok ? 'is-ok' : 'is-bad'}`}>
-        {ok ? 'OK — fetch · display · confirm' : 'Incomplete'}
+        {ok
+          ? (report.bridgeOnly || report.healthQuality === 'bridge'
+            ? 'OK (bridge) — fetch complete; visible UI not proven'
+            : 'OK — fetch · display · confirm')
+          : 'Incomplete'}
       </div>
       <GateRow ok={!!report.fetchOk} label="1. Data fetch" detail={report.fetchDetail} />
       <GateRow ok={!!report.displayOk} label="2. UI display" detail={report.displayDetail} />
       <GateRow ok={!!report.confirmOk} label="3. Display confirms data" detail={report.confirmDetail} />
+      {report.uiOk != null && (
+        <GateRow
+          ok={!!report.uiOk}
+          label="4. True UI (non-bridge)"
+          detail={report.uiOk ? 'real metrics/chart/table paint' : 'bridge-only or hollow visible UI'}
+        />
+      )}
       <dl className="splash-detail-meta">
         {report.field && <><dt>Field</dt><dd><code>{report.field}</code></dd></>}
         {report.fieldPath && <><dt>Path</dt><dd><code>{report.fieldPath}</code></dd></>}
@@ -270,7 +281,9 @@ function SplashScreenInner({ onReady }) {
             <div className="splash-logo" aria-hidden>📊</div>
             <h1 className="splash-title">Global Market Hub</h1>
             <p className="splash-subtitle">
-              Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {counts.ok} ok / {counts.bad} incomplete
+              Loading {MARKETS.length} markets · {TOTAL_PANELS} panels · {counts.ok} ok
+              {counts.okBridge ? ` (${counts.okUi || 0} UI · ${counts.okBridge} bridge)` : ''}
+              {' / '}{counts.bad} incomplete
               {counts.fetchFail != null ? ` (${counts.fetchFail} data · ${counts.pending || 0} paint)` : ''}
             </p>
           </div>
@@ -283,7 +296,14 @@ function SplashScreenInner({ onReady }) {
           </div>
 
           <div className="splash-stats">
-            <span className="splash-stat splash-stat-ok">{counts.ok} ok</span>
+            <span className="splash-stat splash-stat-ok" title="Operational F/D/C ok (includes health-bridge completes)">
+              {counts.ok} ok
+            </span>
+            {(counts.okBridge > 0 || counts.okUi > 0) && (
+              <span className="splash-stat" title="UI = real paint · bridge = fetch-stamped hidden metrics only">
+                {counts.okUi || 0} UI / {counts.okBridge || 0} bridge
+              </span>
+            )}
             <span className="splash-stat splash-stat-error" title={`${counts.fetchFail || 0} missing/hollow data · ${counts.pending || 0} data ok but UI not confirmed`}>
               {counts.bad} incomplete
               {counts.fetchFail != null ? ` · ${counts.fetchFail} data / ${counts.pending || 0} paint` : ''}
@@ -293,7 +313,7 @@ function SplashScreenInner({ onReady }) {
           </div>
 
           <p className="splash-criteria">
-            Dot status = fetch + display + confirm. Missing panels stay red. Click a market or panel for detail.
+            Dot status = fetch + display + confirm. Bridge-ok means data is present but UI may still look empty. Click a market or panel for detail.
           </p>
 
           <div className="splash-grid">

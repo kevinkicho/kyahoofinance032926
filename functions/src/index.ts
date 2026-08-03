@@ -27,116 +27,89 @@ app.locals.cache = {
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: "256kb" }));
 
-let routesLoaded = false;
+// Canonical live market API is Firebase App Hosting (server/). Functions no longer
+// load a duplicate copy of server/routes — those drifted and caused stale behavior.
+// Public `api` is a thin reverse-proxy for legacy clients only.
+const APP_HOSTING_BASE_DEFAULT =
+  "https://kyahoofinance032926--kfinance032926.us-central1.hosted.app";
 
-async function loadRoutes() {
-  if (routesLoaded) return;
-  
-  // Canonical route list lives in shared/route-list.json (single source of
-  // truth for server, Vite proxy, and Functions). The copy-assets build
-  // script copies it into lib/shared/ at build time. We try the external
-  // file first, then fall back to an inline list so the deployer's source
-  // analysis doesn't fail if the file isn't present yet.
-  let essentialRoutes: string[];
-  try {
-    essentialRoutes = require(
-      path.join(__dirname, "shared", "route-list.json")
-    ) as string[];
-  } catch {
-    essentialRoutes = [
-      'stocks', 'equities', 'macro', 'bonds', 'derivatives', 'realEstate', 'insurance',
-      'commodities', 'globalMacro', 'equityDeepDive', 'crypto', 'credit',
-      'sentiment', 'calendar', 'fx', 'analytics', 'watchlist', 'fred',
-      'bls', 'eia', 'census', 'ticker', 'bea', 'censusTrade', 'commoditiesEnhanced',
-      'ecb', 'edgar', 'eiaPetroleum', 'eurostat', 'fdic', 'fed', 'fema',
-      'imf', 'institutional', 'msrb', 'nyfed', 'oecd', 'treasuryAuctions',
-      'treasuryDTS', 'treasuryTIC', 'usda', 'usgs', 'worldbank', 'universeUpdates', 'admin',
-      'cftcTFF', 'bisOTC', 'treasuryCost', 'fao'
-    ];
-  }
-
-  // Mark as loaded first so a mid-loop throw doesn't cause every subsequent
-  // request to re-require all modules (which would waste memory and time).
-  // Failed routes are simply skipped — the catch below logs the full stack.
-  routesLoaded = true;
-
-  for (const route of essentialRoutes) {
-    try {
-      const module = require(path.join(__dirname, "routes", `${route}.js`));
-      const router = module.default || module;
-      if (route === 'ticker') {
-        app.use("/api", router);
-      } else if (route === 'commoditiesEnhanced') {
-        app.use(`/api/${route}`, router);
-        // Back-compat alias: many docs, comments, and older links expect /api/commodities/v2
-        // for the enhanced (EIA + enriched) commodities data that the main dashboard uses.
-        app.use('/api/commodities/v2', router);
-      } else if (route === 'treasuryTIC') {
-        app.use(`/api/${route}`, router);
-        app.use('/api/treasury/tic', router);
-      } else if (route === 'treasuryAuctions') {
-        app.use(`/api/${route}`, router);
-        app.use('/api/treasury/auctions', router);
-      } else if (route === 'treasuryDTS') {
-        app.use(`/api/${route}`, router);
-        app.use('/api/treasury/dts', router);
-      } else if (route === 'censusTrade') {
-        app.use(`/api/${route}`, router);
-        app.use('/api/census-trade', router);
-      } else if (route === 'eiaPetroleum') {
-        app.use(`/api/${route}`, router);
-        app.use('/api/eia-petroleum', router);
-      } else {
-        app.use(`/api/${route}`, router);
-      }
-    } catch (e: any) {
-      console.warn(`Route ${route} not loaded:`, e?.stack || e?.message || e);
-    }
-  }
+function appHostingBase(): string {
+  return (
+    process.env.LIVE_FUNCTIONS_BASE ||
+    process.env.SNAPSHOT_API_BASE ||
+    process.env.APP_HOSTING_BASE ||
+    APP_HOSTING_BASE_DEFAULT
+  ).replace(/\/$/, "");
 }
 
-app.use(async (req, res, next) => {
-  await loadRoutes();
-  next();
-});
-
 app.get("/api/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok", timestamp: new Date() });
-});
-
-app.get("/api/cache/status", (_req: Request, res: Response) => {
-  const today = new Date().toISOString().split("T")[0];
-  res.json({ today, status: {} });
-});
-
-app.get("/api/rate-limits", (_req: Request, res: Response) => {
-  const today = new Date().toISOString().split("T")[0];
-  // Return a minimal but non-empty structure so the frontend's hasNonNullData
-  // and structural guards treat it as received (avoids noisy "empty data" warnings).
-  // Real rate-limit provenance can be expanded later.
   res.json({
-    date: today,
-    sources: [],
-    _note: 'stub - real implementation tracks per-endpoint calls and quotas',
+    status: "ok",
+    timestamp: new Date(),
+    role: "functions-proxy",
+    upstream: appHostingBase(),
+    note: "Market data is served by App Hosting; this endpoint is Functions liveness only.",
   });
+});
+
+/** Proxy any remaining /api/* traffic to App Hosting so legacy clients stay correct. */
+app.use("/api", async (req: Request, res: Response) => {
+  const base = appHostingBase();
+  const pathAndQuery = req.originalUrl || req.url || "/api";
+  const target = `${base}${pathAndQuery.startsWith("/") ? pathAndQuery : `/${pathAndQuery}`}`;
+  try {
+    const headers: Record<string, string> = {
+      accept: req.get("accept") || "application/json",
+      "user-agent": req.get("user-agent") || "kyahoo-functions-proxy",
+    };
+    const auth = req.get("authorization");
+    if (auth) headers.authorization = auth;
+    const warm = req.get("x-warm-token");
+    if (warm) headers["x-warm-token"] = warm;
+    const method = (req.method || "GET").toUpperCase();
+    const init: RequestInit = {
+      method,
+      headers,
+      signal: AbortSignal.timeout(120000),
+    };
+    if (method !== "GET" && method !== "HEAD" && req.body != null) {
+      headers["content-type"] = req.get("content-type") || "application/json";
+      init.body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    }
+    const upstream = await fetch(target, init);
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.status(upstream.status);
+    const ct = upstream.headers.get("content-type");
+    if (ct) res.setHeader("content-type", ct);
+    res.setHeader("x-proxied-from", "app-hosting");
+    res.send(buf);
+  } catch (e: any) {
+    console.warn("[functions-proxy] failed:", target, e?.message || e);
+    res.status(502).json({
+      ok: false,
+      error: "app_hosting_proxy_failed",
+      message: e?.message || String(e),
+      upstream: base,
+    });
+  }
 });
 
 export const api = onRequest(
   {
     cors: true,
     invoker: "public",
-    memory: "512MiB",
-    timeoutSeconds: 540,
-    minInstances: 1,
-    maxInstances: 10,
-    secrets: ["FINNHUB_API_KEY", "HUD_API_KEY", "CENSUS_API_KEY", "API_DATA_GOV_KEY", "FRED_API_KEY", "BLS_API_KEY", "EIA_API_KEY", "BEA_API_KEY", "USDA_NASS_API_KEY", "EDGAR_USER_AGENT"],
+    memory: "256MiB",
+    timeoutSeconds: 120,
+    minInstances: 0,
+    maxInstances: 5,
+    // No market-data secrets required — proxy only. Snapshots use App Hosting HTTP.
   },
   app
 );
 
 // --- Cost control + RTDB time-series snapshot system ---
 // Scheduled function that runs daily at midnight UTC (independent of any user/browser).
-// It fetches fresh data using the live function URL, then writes to RTDB so the DB *grows*
+// It fetches fresh data from App Hosting, then writes to RTDB so the DB *grows*
 // over time instead of overwriting:
 //
 //   marketSnapshots/{id}/

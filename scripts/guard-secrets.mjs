@@ -27,11 +27,74 @@ const checks = [
   },
 ];
 
+/**
+ * Env-style assignments that must never appear filled in tracked files.
+ * Placeholders / empty values are allowed. Only non-empty real-looking values fail.
+ * Does not print matched values.
+ */
+const ENV_KEY_CHECKS = [
+  'FRED_API_KEY',
+  'EIA_API_KEY',
+  'BLS_API_KEY',
+  'BEA_API_KEY',
+  'FINNHUB_API_KEY',
+  'HUD_API_KEY',
+  'CENSUS_API_KEY',
+  'CENSUS-API-KEY',
+  'DATA-GOV-API-KEY',
+  'API_DATA_GOV_KEY',
+  'QUICK-STATS-API-KEY',
+  'USDA_NASS_API_KEY',
+  'WARM_TOKEN',
+  'GCP_SA_KEY',
+  'FIREBASE_SERVICE_ACCOUNT_JSON',
+];
+
+const PLACEHOLDER_RE = /^(your[_-]?|xxx|change.?me|example|paste|todo|replace|<.*>|\s*)$/i;
+
+function filledEnvAssignments(text) {
+  const hits = [];
+  for (const key of ENV_KEY_CHECKS) {
+    const re = new RegExp(
+      `^\\s*${key.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\s*=\\s*(.+)$`,
+      'gim',
+    );
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      let v = m[1].trim();
+      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+        v = v.slice(1, -1);
+      }
+      if (!v || PLACEHOLDER_RE.test(v)) continue;
+      if (v.length >= 16) {
+        hits.push(key);
+      }
+    }
+  }
+  return hits;
+}
+
+/** Bare filename that is a secrets dump (not .env.example). */
+const FORBIDDEN_TRACKED_NAMES = new Set([
+  'env',
+  '.env',
+  '.env.local',
+  '.env.production',
+  '.env.production.local',
+]);
+
 const findings = [];
 
 for (const file of trackedFiles) {
-  // Never scan the guard script itself for its own pattern sources.
-  if (file.replace(/\\/g, '/').endsWith('scripts/guard-secrets.mjs')) continue;
+  const norm = file.replace(/\\/g, '/');
+  if (norm.endsWith('scripts/guard-secrets.mjs')) continue;
+
+  const base = norm.split('/').pop();
+  if (FORBIDDEN_TRACKED_NAMES.has(base) || FORBIDDEN_TRACKED_NAMES.has(norm)) {
+    findings.push({ file, name: `tracked secrets file "${base}" (use .env.example only)`, count: 1 });
+    continue;
+  }
+  if (/\.env\.example$/i.test(base) || base === 'env.example') continue;
 
   let text;
   try {
@@ -46,6 +109,15 @@ for (const file of trackedFiles) {
       findings.push({ file, name: check.name, count: matches.length });
     }
   }
+
+  const envHits = filledEnvAssignments(text);
+  if (envHits.length) {
+    findings.push({
+      file,
+      name: `filled API key assignment(s): ${[...new Set(envHits)].join(', ')}`,
+      count: envHits.length,
+    });
+  }
 }
 
 if (findings.length > 0) {
@@ -53,9 +125,8 @@ if (findings.length > 0) {
   for (const finding of findings) {
     console.error(`- ${finding.file}: ${finding.name} (${finding.count})`);
   }
-  console.error('Move public runtime config to GitHub Actions variables or local .env instead.');
+  console.error('Move secrets to local .env (gitignored) or App Hosting / Actions secrets. Never commit filled keys.');
   process.exit(1);
 }
 
 console.log('Secret guard passed.');
-

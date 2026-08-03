@@ -2,7 +2,12 @@ import { Router } from 'express';
 
 const router = Router();
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kevinkicho@gmail.com';
+// Comma-separated allow-list. No personal default in production.
+const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || '')
+  .split(',')
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+const ADMIN_EMAIL = ADMIN_EMAILS[0] || (process.env.NODE_ENV === 'production' ? '' : 'dev-admin@localhost');
 
 // Firebase project ID — used to verify ID tokens via Google's public API.
 // No firebase-admin SDK required; we call the tokenVerification endpoint
@@ -62,9 +67,61 @@ async function verifyRecaptchaEnterprise(req, expectedAction) {
     return { ok: false, status: 401, error: 'Missing reCAPTCHA token' };
   }
 
-  // Production verification runs in Firebase Functions. This local server
-  // keeps the same request contract without becoming the security boundary.
-  return { ok: true, skipped: true, reason: `local-server-${expectedAction}` };
+  const projectId = process.env.VITE_FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || FIREBASE_PROJECT_ID;
+  const siteKey = process.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY || process.env.RECAPTCHA_ENTERPRISE_SITE_KEY || '';
+  const apiKey = process.env.VITE_FIREBASE_API_KEY || process.env.RECAPTCHA_API_KEY || '';
+
+  // When site key + API key are present, call createAssessment. If not configured,
+  // soft-skip with a warning so Firebase-auth admin still works; set
+  // RECAPTCHA_REQUIRE=1 to fail closed until keys exist.
+  if (!siteKey || !apiKey || !projectId) {
+    if (process.env.RECAPTCHA_REQUIRE === '1') {
+      return {
+        ok: false,
+        status: 503,
+        error: 'reCAPTCHA Enterprise not configured (RECAPTCHA_REQUIRE=1)',
+      };
+    }
+    console.warn(`[admin] reCAPTCHA soft-skip (${expectedAction}) — set VITE_RECAPTCHA_ENTERPRISE_SITE_KEY + API key for real verify`);
+    return { ok: true, skipped: true, reason: `soft-skip-${expectedAction}` };
+  }
+
+  try {
+    const url = `https://recaptchaenterprise.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/assessments?key=${encodeURIComponent(apiKey)}`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: {
+          token: recaptchaToken,
+          siteKey,
+          expectedAction: expectedAction || 'admin',
+        },
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) {
+      const body = await r.text().catch(() => '');
+      return { ok: false, status: 401, error: `reCAPTCHA assess failed (${r.status}): ${body.slice(0, 160)}` };
+    }
+    const data = await r.json();
+    const valid = data?.tokenProperties?.valid === true;
+    const actionOk = !expectedAction
+      || !data?.tokenProperties?.action
+      || data.tokenProperties.action === expectedAction;
+    const score = Number(data?.riskAnalysis?.score);
+    const scoreOk = !Number.isFinite(score) || score >= 0.5;
+    if (!valid || !actionOk || !scoreOk) {
+      return {
+        ok: false,
+        status: 401,
+        error: `reCAPTCHA rejected (valid=${valid} actionOk=${actionOk} score=${score})`,
+      };
+    }
+    return { ok: true, score, reason: 'enterprise-assess' };
+  } catch (e) {
+    return { ok: false, status: 401, error: `reCAPTCHA verify error: ${e?.message || e}` };
+  }
 }
 
 const SNAPSHOT_MARKETS = [
@@ -90,10 +147,24 @@ function deny(res, status = 403, userMessage = 'Admin account required to refres
   return res.status(status).json({ error: userMessage, userMessage });
 }
 
+function isAdminEmail(email) {
+  if (!email) return false;
+  const e = String(email).trim().toLowerCase();
+  if (ADMIN_EMAILS.length) return ADMIN_EMAILS.includes(e);
+  // No allow-list configured: deny in production; allow sole dev default only outside prod.
+  if (process.env.NODE_ENV === 'production') return false;
+  return e === String(ADMIN_EMAIL).toLowerCase();
+}
+
 async function verifyAdminRequest(req, res, userMessage = 'Admin account required.') {
   const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
   if (!checkAdminRateLimit(clientIp)) {
     deny(res, 429, 'Too many admin requests. Please try again later.');
+    return { ok: false };
+  }
+
+  if (process.env.NODE_ENV === 'production' && ADMIN_EMAILS.length === 0) {
+    deny(res, 503, 'ADMIN_EMAIL / ADMIN_EMAILS not configured on server.');
     return { ok: false };
   }
 
@@ -113,7 +184,7 @@ async function verifyAdminRequest(req, res, userMessage = 'Admin account require
 
   try {
     const decoded = await verifyFirebaseIdToken(token);
-    if (decoded.email !== ADMIN_EMAIL) {
+    if (!isAdminEmail(decoded.email)) {
       deny(res, 403, userMessage);
       return { ok: false };
     }

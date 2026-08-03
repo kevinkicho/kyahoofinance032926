@@ -530,11 +530,21 @@ server = app.listen(port, host, () => {
     }
   }
 
-  // Public ops endpoint: POST /api/warm (optional header x-warm-token)
+  // Ops endpoint: POST /api/warm (header x-warm-token)
+  // Production requires WARM_TOKEN. Dev allows open warm for local ops.
   // Used by scripts/post-deploy-warm.mjs after Cloud Run traffic switch.
   app.post('/api/warm', async (req, res) => {
     const token = process.env.WARM_TOKEN || '';
-    if (token && req.get('x-warm-token') !== token) {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      if (!token) {
+        console.warn('[warmup] WARM_TOKEN unset — rejecting /api/warm in production');
+        return res.status(503).json({ ok: false, error: 'warm_token_not_configured' });
+      }
+      if (req.get('x-warm-token') !== token) {
+        return res.status(401).json({ ok: false, error: 'unauthorized' });
+      }
+    } else if (token && req.get('x-warm-token') !== token) {
       return res.status(401).json({ ok: false, error: 'unauthorized' });
     }
     const paths = Array.isArray(req.body?.paths) && req.body.paths.length

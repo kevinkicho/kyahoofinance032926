@@ -1,0 +1,39 @@
+# Unit + workflow quality gate on every PR and push to master.
+# Does not compare secrets in if: (GitHub rejects that). Use vars.* for flags.
+#
+# Local equivalent: npm run preflight
+
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install
+        run: npm ci --legacy-peer-deps
+
+      - name: Preflight (secrets + workflow lint + vitest)
+        run: npm run preflight

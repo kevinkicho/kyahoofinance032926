@@ -40,6 +40,8 @@ describe('F/D/C bridge completeness', () => {
     expect(r.displayOk).toBe(true);
     expect(r.confirmOk).toBe(true);
     expect(r.status).toBe('ok');
+    // Without MetricValue UI, operational ok may be bridge-only — product KPI separates this.
+    expect(r.bridgeOnly === true || r.healthQuality === 'bridge' || r.uiOk === true).toBe(true);
   });
 
   it('creates shell and passes D/C for panel not in DOM when fetch is ok', () => {
@@ -65,6 +67,9 @@ describe('F/D/C bridge completeness', () => {
     expect(r.confirmOk).toBe(true);
     expect(r.status).toBe('ok');
     expect(document.querySelector('[data-panel-key="yield"][data-health-shell="1"]')).toBeTruthy();
+    expect(r.bridgeOnly).toBe(true);
+    expect(r.uiOk).toBe(false);
+    expect(r.healthQuality).toBe('bridge');
   });
 });
 

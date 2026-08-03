@@ -30,10 +30,11 @@ updates only when you press **topbar ▶** (all markets) or a **panel footer ▶
 (that market). No auto-polling — this is not a real-time streaming app.
 Panel shells stay mounted; empty sources show waiting/empty states, not fake numbers.
 
-**Panel health (F/D/C):** each panel is **ok** only when **fetch** (placeholder
-streams), **display** (DOM substance / health bridge stamps), and **confirm**
-(stamps match fetch samples) all pass. Independent modules live under
-`src/panels/`. Splash can score every catalog panel (~233).
+**Panel health (F/D/C):** each panel is operationally **ok** when **fetch**
+(placeholder streams), **display**, and **confirm** all pass. The health bridge
+can complete D/C from fetch samples when UI stamps lag — splash splits
+**UI ok** vs **bridge-only**. Prefer `uiOk` / false-green probes for product quality.
+Independent modules live under `src/panels/`. Splash can score every catalog panel (~233).
 
 **Docs:** [`docs/README.md`](docs/README.md) · [`AGENTS.md`](AGENTS.md) ·
 [`PROJECT_MEMORY.md`](PROJECT_MEMORY.md) · [`docs/API_ETIQUETTE.md`](docs/API_ETIQUETTE.md) ·
@@ -91,7 +92,7 @@ rm  server/datacache/*.json     # mac/linux
 
 ---
 
-## Markets (21 tabs)
+## Markets (18 tabs)
 
 | # | Market | Sources (summary) |
 |---|--------|-------------------|
@@ -108,10 +109,14 @@ rm  server/datacache/*.json     # mac/linux
 | 11 | Credit | FRED spreads, Yahoo credit ETFs |
 | 12 | Sentiment | Fear & Greed, CFTC, FRED, Yahoo |
 | 13 | Calendar | FRED releases, Yahoo earnings |
-| 14 | Alerts | Client-side rules over other markets (no dedicated fetch) |
-| 15 | Watchlist | Yahoo quotes + metric shortcuts |
-| 16 | Analytics | Server metrics, cache, panel diagnostics |
-| 17–21 | IMF, World Bank, BLS, EIA, Census | Government APIs (some via FRED) |
+| 14 | Labor (BLS) | BLS (FRED fallback) |
+| 15 | Energy (EIA) | EIA |
+| 16 | Alerts | Client-side rules over other markets (no dedicated fetch) |
+| 17 | Watchlist | Yahoo quotes + metric shortcuts |
+| 18 | Analytics | Server metrics, cache, panel diagnostics |
+
+Backend-only dependency markets (not tabs, fetched by other tabs):
+IMF, World Bank, Census, BEA, Treasury Fiscal Data.
 
 Panel-level inventory: [`docs/PANELS.md`](docs/PANELS.md). Intentional gaps: [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md).
 

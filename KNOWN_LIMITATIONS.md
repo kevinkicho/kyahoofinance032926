@@ -1,46 +1,34 @@
 # Known Limitations
 
-Intentional constraints (not bugs). **Last reviewed: 2026-07-30.**  
+Intentional constraints (not bugs). **Last reviewed: 2026-08-02.**  
 Update this file when you change any of these behaviors.
 
 Doc map: [`docs/README.md`](docs/README.md).
 
 ---
 
-## Panel status badges (DataFooter)
-
-| Badge | Meaning |
-|---|---|
-| **FETCHED** | Live or same-day successful payload |
-| **LOADING** | Request in flight |
-| **STALE** | Serving prior cache (`isCurrent: false`) |
-| **NO DATA** | Fetch finished empty/error |
-| **UNAVAIL** | Missing key / not configured |
-| **WAITING** | Shell mounted; first fetch not finished |
-
-**Tab health dots** (separate): green only when fetch + display + confirm pass on
-the **mounted** tab. Inactive tabs must not stay green from splash cache alone.
-
-After App Hosting deploys: `npm run postdeploy:warm`.
-
-`npm run preflight` does **not** prove live secrets, env protection, or hosted
-cache warm state — those need Actions and/or post-deploy warm.
-
----
-
 ## Shared GCS cache
 
-Production: `MARKET_CACHE_BUCKET=kfinance032926-market-cache`. See
-[`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md). Locally, cache is disk-only unless
-the env var is set.
+Locally, cache is disk-only. The GCS shared cache is enabled only when
+`MARKET_CACHE_BUCKET` is set (production). See
+[`docs/SHARED_CACHE.md`](docs/SHARED_CACHE.md).
 
 ---
 
 ## Rate-limit counters
 
 `server/lib/rateLimits.js` tracks upstream call counts (disk + optional GCS
-max-merge). Counters are **diagnostic only** — they do not hard-block traffic.
-Free-tier daily caps (approximate) are listed in that file under `KNOWN_LIMITS`.
+max-merge). Counters are **diagnostic by default** — they do not hard-block
+traffic unless an operator opts in via env. Free-tier daily caps
+(approximate) are listed in that file under `KNOWN_LIMITS`.
+
+Opt-in hard-block: `checkApiBudget(source)` returns `{ hardBlock, used,
+limit, pct, remaining, threshold, enforce }`; routes that opt in skip the
+upstream fetch and serve a cached/degraded shell when `hardBlock === true`.
+Gated by `ENFORCE_RATE_LIMITS=1` (global) or per-source
+`ENFORCE_RATE_LIMIT_<SOURCE>=1` / `RATE_LIMIT_HEADROOM_<SOURCE>=0.9`. The
+FX CFTC COT fetch is the reference implementation. See JSDoc on
+`checkApiBudget` for full details.
 
 ---
 
@@ -58,11 +46,14 @@ Free-tier daily caps (approximate) are listed in that file under `KNOWN_LIMITS`.
 
 ## Required env keys
 
-| Env var | Missing behavior |
+Keys are configured in `.env` for this workspace. Routes degrade gracefully
+when a key is absent (fresh clone, CI without injected secrets). Fallback:
+
+| Env var | Behavior when absent |
 |---|---|
 | `FRED_API_KEY` | FRED-backed series skipped; `census` may 503 |
 | `EIA_API_KEY` | EIA series skipped |
-| `BLS_API_KEY` | `bls` may 503; macro employment series skipped |
+| `BLS_API_KEY` | `bls` may 503; macro employment series fall back to FRED mirrors |
 
 Startup logs which keys are missing (`warnOnMissingKeys` in `server/index.js`).
 
@@ -80,23 +71,22 @@ Startup logs which keys are missing (`warnOnMissingKeys` in `server/index.js`).
 
 ## FX conversion
 
-`CurrencyProvider` uses Frankfurter (with retry). On failure, static rates from
-`src/utils/constants.js` (hand-maintained; can drift). Conversion is **explicit
-at render** in panels that need it — not a recursive rewrite of every number.
-
-FX dashboard may show a static-rate banner when live rates are unavailable;
-changes display as 0% in that mode.
+`CurrencyProvider` uses Frankfurter (with retry). On failure, static rates
+from `src/utils/constants.js` (hand-maintained; can drift). FX dashboard may
+show a static-rate banner when live rates are unavailable; changes display
+as 0% in that mode.
 
 ---
 
 ## Upstream / response shape
 
-- Many routes catch upstream errors and return `field: null` with HTTP 200 and
-  `console.warn`. Panel Trace (Analytics) shows null fields; it does not always
-  surface the raw upstream error string.
-- Real Estate / Insurance may **omit** panels from the layout when data fails a
-  truthiness check (hidden, not empty shell).
-- CFTC COT history in FX uses a fixed `$limit`; large expansions can truncate.
+- Many routes catch upstream errors and return `field: null` with HTTP 200.
+  Routes that populate `_errors[field]` now have those raw error strings
+  forwarded by the `/api/analytics/panel-trace/:market` route (as
+  `panels[].error` and top-level `errors` / `errorKind` / `rateLimited`).
+  **Still limited:** routes that only `console.warn` (no `_errors` entry)
+  surface nothing in Panel Trace — adding `_errors[field]` in those catch
+  blocks is the path to full coverage.
 - Public `/api/*` is open by design. Admin routes (`/api/admin/*`) require a
   Firebase ID token and per-IP rate limits.
 
@@ -104,7 +94,39 @@ changes display as 0% in that mode.
 
 ## Tests vs production
 
-- Unit: Vitest (`npm test` / preflight).
-- UI smoke: Playwright scripts (`test:validate`, `test:coverage`, etc.) — not in
-  default preflight.
-- Hosted cold start and third-party outages are not fully covered by local gates.
+- Unit: Vitest (`npm test` / preflight). GitHub Actions workflow **CI** runs the
+  same preflight on PR/push to `master`.
+- UI smoke: Playwright scripts (`test:validate`, `test:coverage`, etc.) —
+  not in default preflight.
+- Hosted cold start and third-party outages are not fully covered by local
+  gates. Warm with `npm run postdeploy:warm` after deploy (requires
+  `WARM_TOKEN` in production for `POST /api/warm`).
+
+## Health: operational ok vs true UI
+
+Panel health still reports `status: ok` when fetch + display + confirm pass,
+including **health-bridge** stamps (hidden metrics for splash completeness).
+Reports also expose:
+
+| Field | Meaning |
+|-------|---------|
+| `uiOk` | Real visible metrics/chart/table (not bridge-only) |
+| `bridgeOnly` / `healthQuality: 'bridge'` | F/D/C ok only via bridge |
+| `countStatuses().okUi` / `.okBridge` | Splash KPI split |
+
+Use `uiOk` / false-green probes for product quality; bridge ok is operational.
+
+## Freshness flags
+
+| Flag | Meaning |
+|------|---------|
+| `isLive: true` | Payload assembled from upstream this request (`_cacheSource: live` / merge) |
+| `isLive: false` + `isCurrent: true` | Same-day daily_file or memory cache hit |
+| `isCurrent: false` | Prior-day merge / degraded |
+
+## Cloud Functions vs App Hosting
+
+Live market `/api/*` is **App Hosting** (`server/`). The Functions `api` export is a
+**thin proxy** to App Hosting for legacy clients; do not re-add local market route
+trees under `functions/src/routes` for serving. Snapshots pull App Hosting HTTP.
+Preflight runs `scripts/check-functions-proxy.mjs`.

@@ -104,3 +104,8 @@ live-fdc*.json
 reports/
 src/__tests__/regression/drafts/
 
+
+# Filled local env template copy (use .env; never commit secrets)
+/env
+env
+

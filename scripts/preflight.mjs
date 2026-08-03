@@ -48,6 +48,7 @@ console.log(`preflight starting${full ? ' (full)' : ''}…`);
 
 run('Secret guard', npm, ['run', 'guard:secrets']);
 run('Workflow lint', 'node', ['scripts/lint-workflows.mjs']);
+run('Functions proxy drift check', 'node', ['scripts/check-functions-proxy.mjs']);
 run('Unit tests (vitest)', npm, ['test']);
 
 if (full) {

@@ -45,11 +45,12 @@ export function makeCachedRouteHandler({
         if (daily) {
           const clean = sanitizeMarketPayload(daily);
           const sources = buildSourcesFn ? buildSourcesFn(clean) : undefined;
+          // Same-day disk cache is current but not a live upstream fetch this request.
           return res.json({
             ...clean,
             fetchedOn: today,
             isCurrent: true,
-            isLive: true,
+            isLive: false,
             _cacheSource: 'daily_file',
             ...(sources ? { _sources: sources } : {}),
           });
@@ -64,11 +65,12 @@ export function makeCachedRouteHandler({
         if (cached && !isStructurallyHollow(marketName, cached)) {
           const clean = sanitizeMarketPayload(cached);
           const sources = buildSourcesFn ? buildSourcesFn(clean) : undefined;
+          // In-process TTL hit — not an upstream round-trip this request.
           return res.json({
             ...clean,
             fetchedOn: today,
             isCurrent: true,
-            isLive: true,
+            isLive: false,
             _cacheSource: 'memory',
             ...(sources ? { _sources: sources } : {}),
           });

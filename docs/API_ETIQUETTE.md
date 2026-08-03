@@ -48,8 +48,10 @@ Splash exposes `window.__kyahooPanelHealth.evaluateNow()` for the probe.
 
 When **fetch** passes, the health bridge (`panelHealthStamp.js`) stamps samples from
 the fetched field onto the panel DOM (creating a splash shell if needed) so
-**display** and **confirm** match the same numbers. Target: `npm run probe:fdc`
-with `FDC_PASS_RATE=1` → **233/233 ok**.
+**display** and **confirm** can pass operationally. Splash splits **UI ok**
+(`uiOk` / real paint) vs **bridge-only** (`bridgeOnly`). Target for operational
+F/D/C: `npm run probe:fdc` with high `FDC_PASS_RATE`. Product quality should
+also track `uiOk` / strict false-green probes.
 
 ## FRED throttle
 

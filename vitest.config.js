@@ -15,15 +15,16 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: [path.resolve(__dirname, './src/__tests__/setup.js')],
-    exclude: ['**/node_modules/**', '**/.worktrees/**', '**/.swarm/**', 'tests/**'],
+    exclude: ['**/node_modules/**', '**/.worktrees/**', '**/.swarm/**', 'tests/**', '**/drafts/**', '**/__tests__/drafts/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      // Global floor; raise critical modules via targeted coverage reports over time.
       thresholds: {
-        statements: 40,
+        statements: 42,
         branches: 40,
-        functions: 40,
-        lines: 40,
+        functions: 42,
+        lines: 42,
       },
       exclude: ['**/node_modules/**', '**/.worktrees/**', 'tests/**', 'server/__tests__/**', 'src/__tests__/**'],
     },

@@ -51,8 +51,9 @@ npm run postdeploy:warm
 # or GitHub Actions → "Post-deploy warm (App Hosting)"
 ```
 
-Warms priority `/api/*` (disk + GCS). Optional traffic routing needs
-`ENABLE_GCLOUD_TRAFFIC=true` and secret `GCP_SA_KEY`.
+Warms priority `/api/*` (disk + GCS). To skip the warm and only flip
+traffic to the new revision, run with `TRAFFIC_ONLY=1` (or `--traffic-only`):
+the script uses local `gcloud` ADC, so no service-account secret is required.
 
 ### Scheduled warm
 
@@ -64,7 +65,10 @@ gcloud scheduler jobs describe market-cache-warm --location=us-central1 --projec
 gcloud scheduler jobs run market-cache-warm --location=us-central1 --project=kfinance032926
 ```
 
-If `WARM_TOKEN` is set, include header `x-warm-token` on the job.
+**Production requires `WARM_TOKEN`.** Set it as an App Hosting secret and the same
+value in GitHub Actions secrets for `postdeploy-warm`. The job sends header
+`x-warm-token`. Without the secret, `POST /api/warm` returns 503 and the warm
+script falls back to sequential GET (still useful, but less controlled).
 
 ### Functions scope
 

@@ -632,8 +632,9 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
   }
   const stampSource = fieldValue != null ? fieldValue : (fetchOk ? marketCtx?.data : null);
 
-  // Bridge fetch samples → DOM so D/C can pass (splash incomplete was mostly C✗).
+  // Bridge fetch samples → DOM so operational D/C can pass when UI stamps lag.
   // createShell: mount a hidden shell if the panel is not in the active view grid.
+  // Product KPI: uiOk = real paint without relying solely on bridge short-circuit.
   let stamped = { ok: false, samples: [], el };
   if (fetchOk && stampSource != null) {
     try {
@@ -651,16 +652,44 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     }
   }
 
-  // ── 2. DISPLAY ──
+  const isHealthShell = el?.getAttribute?.('data-health-shell') === '1';
+  const hasBridgeNode = !!el?.querySelector?.('[data-health-bridge="1"]');
+
+  // True UI display (ignore bridge short-circuit) — used for uiOk / honesty.
+  const displayNatural = classifyPanelDisplay(el, { fetchOk });
+  // If the only metric stamps live under the bridge, do not count as natural UI.
+  let naturalDisplayOk = displayNatural.ok;
+  if (naturalDisplayOk && hasBridgeNode && el) {
+    const content = el.querySelector?.('.bento-panel-content') || el;
+    const allStamps = content.querySelectorAll?.('[data-metric-value]') || [];
+    const bridgeStamps = content.querySelectorAll?.('[data-health-bridge="1"] [data-metric-value]') || [];
+    const nonBridgeStamps = [...allStamps].filter((n) => !n.closest?.('[data-health-bridge="1"]'));
+    const chartOk = /chart series bound/i.test(displayNatural.detail || '');
+    const cellOk = /table\/kpi cells/i.test(displayNatural.detail || '');
+    if (!chartOk && !cellOk && nonBridgeStamps.length === 0) {
+      naturalDisplayOk = false;
+    }
+  }
+  if (isHealthShell) naturalDisplayOk = false;
+
+  // ── 2. DISPLAY (operational: bridge may complete) ──
   let displayOk = false;
   let displayDetail = '';
   let display = { ok: false, detail: 'n/a', kind: 'missing' };
+  let bridgeOnly = false;
   if (fetchOk && stamped.ok && el) {
-    displayOk = true;
-    displayDetail = `health bridge stamps (${stamped.samples.length})`;
-    display = { ok: true, detail: displayDetail, kind: 'ok' };
+    if (naturalDisplayOk) {
+      displayOk = true;
+      displayDetail = displayNatural.detail;
+      display = { ok: true, detail: displayDetail, kind: 'ok' };
+    } else {
+      displayOk = true;
+      bridgeOnly = true;
+      displayDetail = `health bridge only (${stamped.samples.length} stamp(s); no real UI metrics)`;
+      display = { ok: true, detail: displayDetail, kind: 'bridge' };
+    }
   } else {
-    display = classifyPanelDisplay(el, { fetchOk });
+    display = displayNatural;
     displayOk = display.ok;
     displayDetail = display.detail;
   }
@@ -673,10 +702,21 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     confirmDetail = 'skipped — panel not in DOM';
   } else if (!fetchOk) {
     confirmDetail = 'skipped — fetch stream empty/failed';
-  } else if (stamped.ok && stamped.samples.length > 0) {
-    // Exact samples we wrote — authoritative confirm (avoids format mismatch).
+  } else if (stamped.ok && stamped.samples.length > 0 && bridgeOnly) {
+    // Exact samples we wrote — operational confirm when UI is bridge-only.
     confirmOk = true;
-    confirmDetail = `confirmed ${stamped.samples.length} sample(s) via health bridge`;
+    confirmDetail = `confirmed ${stamped.samples.length} sample(s) via health bridge (not visible UI)`;
+    confirmMeta = {
+      ok: true,
+      detail: confirmDetail,
+      matched: stamped.samples.length,
+      samples: stamped.samples.length,
+      via: 'data-health-bridge',
+    };
+  } else if (stamped.ok && stamped.samples.length > 0 && !naturalDisplayOk) {
+    confirmOk = true;
+    bridgeOnly = true;
+    confirmDetail = `confirmed ${stamped.samples.length} sample(s) via health bridge (not visible UI)`;
     confirmMeta = {
       ok: true,
       detail: confirmDetail,
@@ -690,7 +730,21 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     confirmMeta = confirmDisplayMatchesFetch(el, fieldValue);
     confirmOk = confirmMeta.ok;
     confirmDetail = confirmMeta.detail;
+    // If confirm only matched bridge stamps, still flag bridgeOnly for KPIs.
+    if (confirmOk && confirmMeta?.via === 'data-metric-value' && hasBridgeNode && !naturalDisplayOk) {
+      bridgeOnly = true;
+    }
   }
+
+  // True when fetch + natural UI paint + non-bridge confirm all hold.
+  const uiOkStrict = !!(
+    fetchOk
+    && naturalDisplayOk
+    && !isHealthShell
+    && confirmOk
+    && !bridgeOnly
+    && confirmMeta?.via !== 'data-health-bridge'
+  );
 
   // Raw status before visibility policy (derivePanelSignal / syncReportToDom
   // map this into user-facing colors). Prefer soft statuses when fetch is ok
@@ -707,6 +761,10 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
   else if (!fetchOk && !marketCtx?.data) status = 'pending';
   else if (display.kind === 'missing') status = 'missing';
 
+  const healthQuality = status === 'ok'
+    ? (uiOkStrict ? 'ui' : (bridgeOnly || !naturalDisplayOk ? 'bridge' : 'ui'))
+    : null;
+
   return {
     status,
     marketId,
@@ -715,6 +773,11 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
     fetchOk,
     displayOk,
     confirmOk,
+    /** Real panel paint (not health-shell / bridge-only stamps). */
+    uiOk: uiOkStrict,
+    /** D/C satisfied only because of health bridge stamps. */
+    bridgeOnly: !!(status === 'ok' && (bridgeOnly || healthQuality === 'bridge')),
+    healthQuality,
     fetchDetail,
     displayDetail,
     confirmDetail,
@@ -768,6 +831,8 @@ export function evaluateAllMarkets(getMarket, allMarkets) {
 
 export function countStatuses(reportsByMarket) {
   let ok = 0;
+  let okUi = 0;
+  let okBridge = 0;
   let bad = 0;
   let loading = 0;
   let pending = 0;
@@ -777,8 +842,12 @@ export function countStatuses(reportsByMarket) {
   for (const reports of Object.values(reportsByMarket || {})) {
     for (const r of Object.values(reports || {})) {
       total++;
-      if (r.status === 'ok') ok++;
-      else if (r.status === 'loading') loading++;
+      if (r.status === 'ok') {
+        ok++;
+        if (r.uiOk || r.healthQuality === 'ui') okUi++;
+        else if (r.bridgeOnly || r.healthQuality === 'bridge') okBridge++;
+        else okUi++; // default operational ok without flags → treat as UI
+      } else if (r.status === 'loading') loading++;
       else {
         // "bad" keeps legacy meaning: not ok/loading (splash incomplete chip).
         bad++;
@@ -794,5 +863,5 @@ export function countStatuses(reportsByMarket) {
       }
     }
   }
-  return { ok, bad, loading, total, pending, fetchFail, confirmFail };
+  return { ok, okUi, okBridge, bad, loading, total, pending, fetchFail, confirmFail };
 }
