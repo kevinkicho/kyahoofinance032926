@@ -32,8 +32,15 @@ jobs:
           node-version: "24"
           cache: npm
 
+      # Prefer full peer install so @testing-library/dom (peer of RTL) is present.
+      # Fall back to --legacy-peer-deps only if peer resolution fails (rare).
       - name: Install
-        run: npm ci --legacy-peer-deps
+        run: |
+          set -euo pipefail
+          if ! npm ci; then
+            echo "npm ci failed peer resolution; retrying with --legacy-peer-deps"
+            npm ci --legacy-peer-deps
+          fi
 
       - name: Preflight (secrets + workflow lint + vitest)
         run: npm run preflight
