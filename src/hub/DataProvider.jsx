@@ -15,11 +15,20 @@ import {
   ALL_FETCH_IDS,
   TAB_MARKET_IDS,
   getMarketFetchPlan,
+  getPriorityDepMarketIds,
+  buildWaveMarketIdsFromRouting,
 } from './lib/marketEndpoints';
 import { publishMarketPayload } from './lib/panelHealthBus';
 import { runRecoveryAgent, RECOVERY_DEFAULTS } from './lib/recoveryAgent.js';
 
-export { MARKET_ENDPOINTS, ALL_FETCH_IDS, TAB_MARKET_IDS, getMarketFetchPlan };
+export {
+  MARKET_ENDPOINTS,
+  ALL_FETCH_IDS,
+  TAB_MARKET_IDS,
+  getMarketFetchPlan,
+  getPriorityDepMarketIds,
+  buildWaveMarketIdsFromRouting,
+};
 export { runRecoveryAgent, RECOVERY_DEFAULTS };
 
 // Re-export extracted helpers for test suites / external callers
@@ -48,22 +57,8 @@ const FETCH_SETTINGS = {
 const ALWAYS_FORCE_LIVE =
   typeof import.meta !== 'undefined' && import.meta.env?.VITE_FORCE_LIVE === 'true';
 
-// Tab markets the splash screen tracks — retry these first if the initial
-// wave failed (slow FRED / Yahoo bursts often time out the first pass).
-// Source: shared/api-routing.json → tabMarkets (alerts is federated, no HTTP).
+// Tab markets the splash / recovery tracks (alerts is federated, no HTTP).
 const PRIMARY_MARKET_IDS = TAB_MARKET_IDS.filter(id => id !== 'alerts' && MARKET_ENDPOINTS[id]);
-
-// Cross-market deps that power many "unavailable" panels when starved behind
-// the primary wave. Fetch immediately after tab markets so TIC/ECB/CFTC/etc.
-// land before the user opens those panels.
-const PRIORITY_DEP_IDS = [
-  'ecb', 'treasuryTIC', 'treasuryCost', 'treasuryAuctions', 'nyfed',
-  'cftcTFF', 'bisOTC', 'fema', 'usgs', 'worldbank', 'imf', 'bea',
-  'edgar', 'edgarInsurerRatios', 'edgarFilingActivity', 'institutional',
-  'fdic', 'msrb', 'census', 'censusTrade', 'eiaPetroleum', 'usda', 'fao',
-  'fedNewsSentiment', 'fedGDPNow', 'fedSEP', 'fedInflationNowcast',
-  'eurostat', 'oecd', 'universeUpdates', 'treasuryDTS',
-].filter((id) => MARKET_ENDPOINTS[id]);
 
 // Live path is App Hosting Express + disk/GCS cache — do not seed RTDB on
 // load (stale snapshots used to blank panels). Historical date picker can
@@ -84,15 +79,13 @@ function summarizeData(data) {
   return `${keys.length} keys`;
 }
 
-/** Ordered market ids for a full wave: tab markets → priority deps → remainder. */
+/**
+ * Ordered market ids for a full wave:
+ * **deps first** → tab markets → remainder.
+ * Satellites (edgar, TIC, …) must land before panels that wait on them.
+ */
 export function buildWaveMarketIds() {
-  const primarySet = new Set(PRIMARY_MARKET_IDS);
-  const depSet = new Set(PRIORITY_DEP_IDS);
-  return [
-    ...PRIMARY_MARKET_IDS,
-    ...PRIORITY_DEP_IDS.filter((id) => !primarySet.has(id)),
-    ...ALL_FETCH_IDS.filter((id) => !primarySet.has(id) && !depSet.has(id)),
-  ];
+  return buildWaveMarketIdsFromRouting();
 }
 
 /**
@@ -190,7 +183,12 @@ export function applyResult(prev, result) {
     const keep = hasRealData;
     const preservePrior = !keep && prior.data != null;
     const ts = d?.lastUpdated || tsNow();
-    const isCurrent = keep ? (d?.isCurrent != null ? !!d.isCurrent : !!d?.isLive) : !!prior.isCurrent;
+    const isCurrent = keep
+      ? (d?.isCurrent != null ? !!d.isCurrent : (d?.isStale === true ? false : !!d?.isLive))
+      : !!prior.isCurrent;
+    const isStale = keep
+      ? (d?.isStale === true || (d?.isCurrent === false && !!d?.fetchedOn) || /prior_day|gcs_prior/i.test(String(d?._cacheSource || '')))
+      : !!prior.isStale;
     if (!hasRealData) {
       console.warn(
         preservePrior
@@ -240,6 +238,8 @@ export function applyResult(prev, result) {
         fetchedOn: keep ? (d?.fetchedOn || null) : null,
         receivedAt: keep ? tsNow() : prior.receivedAt || null,
         isCurrent,
+        isStale: keep ? isStale : !!prior.isStale,
+        cacheSource: keep ? (d?._cacheSource || null) : prior.cacheSource || null,
         // Only hard-error when there is nothing usable for the UI.
         error: keep ? null : 'API returned empty data',
         fetchLog: [{
@@ -249,6 +249,7 @@ export function applyResult(prev, result) {
           duration: result.duration,
           requestId: result.requestId || null,
           sources: (keep && d?._sources) ? d._sources : null,
+          ...(keep && isStale ? { warning: `prior cache ${d?.fetchedOn || ''}`.trim() } : {}),
           ...(keep && !structuralOk ? { warning: 'partial structural coverage' } : {}),
           ...(!keep ? { warning: 'empty response' } : {}),
         }, ...(prior.fetchLog || [])].slice(0, 20),

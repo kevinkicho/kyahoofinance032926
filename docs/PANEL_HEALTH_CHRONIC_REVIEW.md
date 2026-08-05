@@ -37,6 +37,24 @@ Recovery agent + mass ▶ **cannot** fix wrong paths, bag-density false negative
 
 ## Architecture (what “ok” means)
 
+### Layered model (2026-08 rework)
+
+Product health is **three fact layers + one presentation policy** — not a single overloaded `status === 'ok'`.
+
+```text
+L0  Market plane     HubFooter / DataProvider  — bag wave + disk freshness
+L1  Panel data       placeholders/contracts    — fill rate (no DOM)
+L2  Panel paint      DOM classify + confirm    — true_ui | bridge shell | painting
+──  Presentation     hub/lib/health/present.js — chips/dots from L1+L2 + visibility
+```
+
+| Product green | Rule |
+|---------------|------|
+| Splash chip `ui` / topbar `ok` | L1 data ready **and** L2 `paint === true_ui` (natural, not bridge) |
+| Topbar only | + **tab visible** (closed tab never green) |
+| Bridge | Always amber — diagnostic only, never product green |
+| Footer chips | L0 only (not panel F/D/C) |
+
 ```text
 External APIs
   → Express /api/*  (often HTTP 200 + null fields or degraded shell)
@@ -44,24 +62,53 @@ External APIs
   → DataProvider wave (cache-first; ▶ force-live)
   → markets[id].data
   → evaluatePanelHealth
-        F: panelPlaceholders fill ≥ 0.85
-        D: classifyPanelDisplay(DOM)
+        F: panelPlaceholders fill ≥ 0.85          → L1 dataState
+        D: classifyPanelDisplay(DOM) + bridge tag → L2 paintState / paintVia
         C: confirmDisplayMatchesFetch
-  → SplashScreen countStatuses → ok / incomplete
-  → usePanelHealth dots (closed tab: never green from splash alone)
+        attachHealthLayers() → report.health
+  → present.toSplashChip / toTopbarDot
+  → SplashScreen countStatuses (okUi / okBridge / dataReady)
+  → usePanelHealth dots (closed tab: paint n/a; never green from splash alone)
 ```
 
 | File | Role |
 |------|------|
-| `src/hub/DataProvider.jsx` | Wave, applyResult, recovery hook |
-| `src/data/panelPlaceholders.js` | Required slots per `marketId:panelId` |
+| `src/hub/lib/health/types.js` | Fact model (`factsFromReport`, `attachHealthLayers`) |
+| `src/hub/lib/health/panelData.js` | **L1 pure** — placeholders / field map / contract (no DOM) |
+| `src/hub/lib/health/panelPaint.js` | **L2** — display + confirm; bridge tagged |
+| `src/hub/lib/health/present.js` | **Single** presentation policy (`toTopbarDot`, `toSplashChip`, counts) |
+| `src/hub/lib/health/index.js` | Public re-exports |
+| `src/hub/DataProvider.jsx` | Wave, applyResult, recovery hook (L0) |
+| `src/data/panelPlaceholders.js` | Required slots per `marketId:panelId` (L1 primary) |
+| `shared/contracts/` | Market/panel contracts — L1 annotation + soft fallback |
 | `src/hub/lib/panelHealthUtils.js` | `placeholderValueOk`, `bagDensityOk`, substance |
-| `src/hub/lib/panelHealthEval.js` | F/D/C + `countStatuses` |
-| `src/hub/lib/panelHealthStamp.js` | Hidden metric bridge when F ok but no stamps |
-| `src/hub/SplashScreen.jsx` | Mounts all markets; 1s health scan |
+| `src/hub/lib/panelHealthEval.js` | Orchestrates L1+L2 + thin re-exports of present |
+| `src/hub/lib/panelHealthSignal.js` | DOM helpers + `derivePanelSignal` → `toTopbarDot` |
+| `src/hub/lib/panelHealthStamp.js` | Hidden metric bridge (operator / D/C lag only) |
+| `src/hub/SplashScreen.jsx` | Progressive enter; verify mode full scan |
 | `shared/api-routing.json` | Market → `/api/*` |
 
-### Splash counting quirk
+### Offline L1 scoring
+
+```js
+import { evaluatePanelData, evaluateAllMarketsDataOnly } from './hub/lib/health/index.js';
+// No document required — cache warm / CI / progressive digests
+const l1 = evaluatePanelData({ marketId, panelId, marketCtx, allMarkets });
+// l1.fetchOk, l1.dataState, l1.placeholders, l1.contract, l1.source
+```
+
+### Shells and progressive splash (2026-08)
+
+| Mode | L1 | L2 / shells |
+|------|----|-------------|
+| Consumer progressive splash | `evaluateAllMarkets({ dataOnly: true })` | **none** |
+| Operator / `?verify=1` | full eval | `createShell: true` |
+| Open tab (consumer) | full L1 | natural DOM only (`createShell: false`) |
+| Open tab (operator) | full L1 | shells allowed for unmounted panels |
+
+Explicit market contracts (`equities.v1`, `bonds.v1`, …): panel `requiredFields` are a **hard AND** with placeholders — missing contract roots fail L1 even if some slots filled.
+
+### Splash counting quirk (historical)
 
 ```js
 // countStatuses: anything not ok/loading → incomplete (bad)
@@ -75,7 +122,16 @@ else {
 // confirm-only fail (F✓ D✓ C✗) lands in bad but neither pending nor fetchFail
 ```
 
-Market chips also treat **any** `ctx.data` as “market ok”, including **degraded/hollow** 200 bodies — so the UI can say “markets loaded” while panels stay incomplete.
+**Fixed (flash-page presentation):** market borders and panel dots no longer
+treat `status === 'ok'` or `ctx.data` as full green. Use:
+
+- `panelChipKind` → `ui` (green) | `bridge` (amber) | `pending` | `null` | …
+- `marketSplashKind` → `ok` only if **every** panel is true UI; else `bridge` /
+  `partial` / `error` / loading
+- Progress bar: green segment = `okUi`, amber = `okBridge`
+
+Payload-only market load status is still used only for “fetching markets…” /
+ready-to-enter gating, not for the green market border.
 
 ---
 

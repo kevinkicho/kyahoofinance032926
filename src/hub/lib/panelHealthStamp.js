@@ -93,6 +93,88 @@ export function ensurePanelHealthShell(marketId, panelId, doc = typeof document 
 }
 
 /**
+ * Promote *already painted* panel body numbers into data-metric-value stamps.
+ *
+ * This does NOT invent UI or use fetch samples — it only stamps digits that
+ * the user can already see (tables, KPI cells, plain spans). That turns
+ * “renders fine but no MetricValue wrapper” into true-UI health (uiOk)
+ * without the hidden health-bridge shortcut.
+ *
+ * Skips health-bridge nodes and health shells.
+ *
+ * @returns {{ stamped: number, existing: boolean }}
+ */
+export function stampVisiblePaintedMetrics(el) {
+  if (!el || el.getAttribute?.('data-health-shell') === '1') {
+    return { stamped: 0, existing: false };
+  }
+  const content = el.querySelector?.('.bento-panel-content') || el;
+
+  const nonBridgeStamps = [...(content.querySelectorAll?.('[data-metric-value]') || [])]
+    .filter((n) => !n.closest?.('[data-health-bridge="1"]'));
+  if (nonBridgeStamps.length >= 1) {
+    return { stamped: nonBridgeStamps.length, existing: true };
+  }
+
+  // Charts already expose series samples — count as painted, no extra stamps.
+  const chartHost = content.querySelector?.(
+    '[data-series-samples]:not([data-health-bridge] [data-series-samples])',
+  );
+  if (chartHost?.getAttribute?.('data-series-samples')) {
+    const pts = String(chartHost.getAttribute('data-series-samples') || '')
+      .split(',')
+      .map((s) => Number(s.trim()))
+      .filter((n) => Number.isFinite(n));
+    if (pts.length >= 2) {
+      return { stamped: pts.length, existing: true };
+    }
+  }
+
+  const selectors = [
+    'td', 'th', 'li',
+    '[class*="kpi"]', '[class*="metric"]', '[class*="value"]',
+    '[class*="price"]', '[class*="stat"]', '[class*="cell"]',
+    'strong', 'b', 'span', 'em', 'p', 'div',
+  ].join(',');
+
+  let stamped = 0;
+  const seen = new Set();
+  const nodes = content.querySelectorAll?.(selectors) || [];
+  for (const node of nodes) {
+    if (stamped >= 14) break;
+    if (node.closest?.('[data-health-bridge="1"]')) continue;
+    if (node.closest?.('[data-health-shell="1"]')) continue;
+    // Prefer leaf-ish nodes (avoid stamping a huge container once).
+    if (node.children?.length > 4) continue;
+    if (node.getAttribute?.('data-metric-value') != null) continue;
+
+    const t = (node.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 48 || t === '—' || t === '–' || t === '-' || /^n\/?a$/i.test(t)) continue;
+
+    // Currency / percent / compact suffixes: $1,234.5 · 3.2% · 12.4B
+    const m = t.match(/-?\d{1,3}(?:,\d{3})*(?:\.\d+)?|-?\d+(?:\.\d+)?/);
+    if (!m) continue;
+    const raw = m[0].replace(/,/g, '');
+    const n = Number(raw);
+    if (!Number.isFinite(n)) continue;
+    // Skip lone year-like labels without other metric context when short
+    if (m[0].length === 4 && n >= 1990 && n <= 2100 && t.length <= 6) continue;
+    // Skip pure indices that are only "0"
+    if (n === 0 && !/[1-9]/.test(t)) continue;
+
+    const key = `${n}|${t.slice(0, 24)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    node.setAttribute('data-metric-value', String(n));
+    node.setAttribute('data-metric-display', '1'); // painted, not bridge
+    stamped++;
+  }
+
+  return { stamped, existing: false };
+}
+
+/**
  * @param {object} opts
  * @param {boolean} [opts.force=true] rewrite bridge even if other stamps exist
  * @returns {{ ok: boolean, samples: number[], el: Element|null }}

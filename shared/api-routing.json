@@ -194,7 +194,9 @@
     "/api/cache",
     "/api/rate-limits",
     "/api/health",
-    "/api/panel-routing"
+    "/api/panel-routing",
+    "/api/panel",
+    "/api/cache"
   ],
   "tabMarkets": [
     "equities",

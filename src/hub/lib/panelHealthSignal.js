@@ -1,17 +1,24 @@
 /**
  * Panel health signal state machine (topbar dropdown dots).
  *
- * This is intentionally separate from DataProvider fetch policy:
- *   - Health re-eval does NOT re-fetch APIs.
- *   - Dot color must not imply "data went bad" when the tab simply is not open.
+ * Presentation policy lives in hub/lib/health/present.js (toTopbarDot).
+ * This module re-exports that policy and keeps DOM helpers
+ * (isMarketTabVisible, findScopedPanelEl).
  *
- * Color contract:
- *   green  (verified)       — active visible tab + fetch + display + confirm
- *   amber  (loading)        — market/panel still loading
+ * Color contract (honest — no bridge greens):
+ *   green  (verified / ok)  — active visible tab + true UI (uiOk), not bridge-only
+ *   amber  (bridge)         — open tab, F/D/C only via health-bridge stamps
+ *   amber  (loading/stale)  — market loading, or stale payload with usable display
  *   grey   (pending)        — fetch ready but tab closed OR still painting
- *   red    (failed)         — fetch failed after load, OR open tab settled empty
- *   blue   (stale)          — serving stale payload with usable display
+ *   red    (failed / null)  — fetch failed after load, OR open tab settled empty
+ *
+ * Legacy operational `displayOk`/`confirmOk` can be true from hidden bridge
+ * stamps. Product green requires `uiOk === true` (or equivalent non-bridge
+ * natural paint). Never treat `status === 'ok'` alone as verified.
  */
+
+import { factsFromReport, PAINT, VIA } from './health/types.js';
+import { toTopbarDot } from './health/present.js';
 
 /**
  * @typedef {object} HealthReport
@@ -19,6 +26,9 @@
  * @property {boolean} [fetchOk]
  * @property {boolean} [displayOk]
  * @property {boolean} [confirmOk]
+ * @property {boolean} [uiOk]
+ * @property {boolean} [bridgeOnly]
+ * @property {string} [healthQuality]
  * @property {boolean} [elPresent]
  * @property {string} [fetchDetail]
  * @property {string} [displayDetail]
@@ -29,196 +39,64 @@
 
 /**
  * @typedef {object} PanelSignal
- * @property {'verified'|'loading'|'pending'|'failed'|'stale'} kind
+ * @property {'verified'|'bridge'|'loading'|'pending'|'failed'|'stale'} kind
  * @property {string} status   — legacy status string for callers
- * @property {string} color    — ok|loading|pending|null|stale
+ * @property {string} color    — ok|bridge|loading|pending|null|stale
  * @property {string} tooltip
  * @property {boolean} fetchOk
  * @property {boolean} displayOk
  * @property {boolean} confirmOk
+ * @property {boolean} [uiOk]
+ * @property {boolean} [bridgeOnly]
  * @property {HealthReport} report
  */
 
+/** True when report is operational ok only via health-bridge / shell. */
+export function isBridgeOnlyReport(report) {
+  if (!report || typeof report !== 'object') return false;
+  if (report.uiOk === true || report.healthQuality === 'ui') return false;
+  if (report.bridgeOnly === true || report.healthQuality === 'bridge') return true;
+  const health = report.health || factsFromReport(report);
+  if (health.via === VIA.BRIDGE) return true;
+  // Operational ok with explicit uiOk false
+  if (report.status === 'ok' && report.uiOk === false) return true;
+  // Hidden shell mounts are never true UI
+  if (report.elPresent && /health bridge only|health-shell|data-health-shell/i.test(String(report.displayDetail || ''))) {
+    return true;
+  }
+  return false;
+}
+
+/** True UI paint proven (not bridge). */
+export function isTrueUiReport(report) {
+  if (!report || typeof report !== 'object') return false;
+  if (report.uiOk === true || report.healthQuality === 'ui') return true;
+  const health = report.health || factsFromReport(report);
+  if (health.paint === PAINT.TRUE_UI && health.via === VIA.NATURAL) return true;
+  if (report.uiOk === false || isBridgeOnlyReport(report)) return false;
+  // Legacy reports (pre-uiOk field): operational ok without bridge markers.
+  if (
+    report.status === 'ok'
+    && report.fetchOk
+    && report.displayOk
+    && report.confirmOk
+    && !/health bridge only|health-shell/i.test(String(report.displayDetail || ''))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Pure signal derivation — unit-test this, not the React hook.
+ * Delegates to hub/lib/health/present.toTopbarDot (single presentation policy).
  *
  * @param {HealthReport|null|undefined} report
  * @param {{ tabVisible: boolean, marketLoading?: boolean, marketHasPayload?: boolean }} ctx
  * @returns {PanelSignal}
  */
 export function derivePanelSignal(report, ctx = {}) {
-  const tabVisible = !!ctx.tabVisible;
-  const marketLoading = !!ctx.marketLoading;
-  const marketHasPayload = ctx.marketHasPayload !== false; // default true if unknown
-
-  const r = report && typeof report === 'object' ? report : null;
-  const fetchOk = !!r?.fetchOk;
-  const displayOk = !!r?.displayOk;
-  const confirmOk = !!r?.confirmOk;
-  const elPresent = !!r?.elPresent;
-  const fetchDetail = String(r?.fetchDetail || '');
-  const displayDetail = String(r?.displayDetail || '');
-
-  const stillFetching =
-    marketLoading
-    || r?.status === 'loading'
-    || /still loading|in flight|waiting for fetch/i.test(fetchDetail);
-
-  // ── Loading ──
-  if (stillFetching && !fetchOk) {
-    return signal('loading', {
-      status: 'loading',
-      color: 'loading',
-      tooltip: 'Loading market data…',
-      fetchOk,
-      displayOk: false,
-      confirmOk: false,
-      report: r,
-    });
-  }
-
-  // ── Fetch failed (after load attempt) ──
-  // Only red when we know fetch failed — not "not evaluated yet" or satellite lag.
-  if (!fetchOk) {
-    const waitingDeps = /waiting for cross-market/i.test(fetchDetail);
-    const notYet =
-      waitingDeps
-      || !marketHasPayload
-      || !r
-      || r.status === 'pending'
-      || r.status === 'unknown'
-      || r.status === 'missing'
-      || /not evaluated|not fetched|no market payload|waiting for market/i.test(fetchDetail);
-
-    if (waitingDeps) {
-      return signal('pending', {
-        status: 'pending',
-        color: 'pending',
-        tooltip: fetchDetail || 'Waiting for related market data…',
-        fetchOk: false,
-        displayOk: false,
-        confirmOk: false,
-        report: r,
-      });
-    }
-
-    if (notYet && !tabVisible) {
-      return signal('pending', {
-        status: 'pending',
-        color: 'pending',
-        tooltip: 'Waiting for market data…',
-        fetchOk: false,
-        displayOk: false,
-        confirmOk: false,
-        report: r,
-      });
-    }
-
-    // Open tab, primary loaded, but placeholders incomplete → failed
-    // Closed tab with known hollow primary → failed
-    if (notYet && tabVisible && !waitingDeps && marketHasPayload) {
-      // still painting primary payload into placeholders
-      if (/not evaluated/i.test(fetchDetail)) {
-        return signal('pending', {
-          status: 'pending',
-          color: 'pending',
-          tooltip: 'Evaluating panel data…',
-          fetchOk: false,
-          displayOk: false,
-          confirmOk: false,
-          report: r,
-        });
-      }
-    }
-
-    return signal('failed', {
-      status: 'null',
-      color: 'null',
-      tooltip: fetchDetail
-        ? `Fetch failed: ${fetchDetail}`
-        : 'Fetch failed — panel data missing or hollow',
-      fetchOk: false,
-      displayOk: false,
-      confirmOk: false,
-      report: r,
-    });
-  }
-
-  // ── Fetch OK, tab not open: never red ──
-  if (!tabVisible) {
-    return signal('pending', {
-      status: 'pending',
-      color: 'pending',
-      tooltip: 'Data fetched — open this tab to verify display',
-      fetchOk: true,
-      displayOk: false,
-      confirmOk: false,
-      report: r,
-    });
-  }
-
-  // ── Fetch OK, tab open: full gates ──
-  if (displayOk && confirmOk && elPresent) {
-    if (r?.status === 'stale' || (r?.isCurrent === false && r?.isLive === false)) {
-      return signal('stale', {
-        status: 'stale',
-        color: 'stale',
-        tooltip: 'Displayed, but payload marked stale',
-        fetchOk: true,
-        displayOk: true,
-        confirmOk: true,
-        report: r,
-      });
-    }
-    return signal('verified', {
-      status: 'ok',
-      color: 'ok',
-      tooltip: 'Fetch · display · confirm all passed',
-      fetchOk: true,
-      displayOk: true,
-      confirmOk: true,
-      report: r,
-    });
-  }
-
-  // Explicit empty / disabled shell on the open tab → real failure
-  const hardEmpty =
-    elPresent
-    && (
-      /disabled|empty shell|empty-state|hollow body/i.test(displayDetail)
-      || r?.status === 'null' && /empty|unavailable|disabled/i.test(displayDetail)
-    );
-
-  if (hardEmpty && !displayOk) {
-    return signal('failed', {
-      status: 'null',
-      color: 'null',
-      tooltip: `Open tab but panel empty: ${displayDetail || 'no display'}`,
-      fetchOk: true,
-      displayOk: false,
-      confirmOk: false,
-      report: r,
-    });
-  }
-
-  // Still painting / confirm catching up → pending (NOT red)
-  return signal('pending', {
-    status: 'pending',
-    color: 'pending',
-    tooltip: !elPresent
-      ? 'Tab open — panel still mounting…'
-      : !displayOk
-        ? `Tab open — waiting for display (${displayDetail || 'painting'})`
-        : `Tab open — confirming values (${r?.confirmDetail || '…'})`,
-    fetchOk: true,
-    displayOk: !!displayOk,
-    confirmOk: !!confirmOk,
-    report: r,
-  });
-}
-
-function signal(kind, rest) {
-  return { kind, ...rest };
+  return toTopbarDot(report, ctx);
 }
 
 /**

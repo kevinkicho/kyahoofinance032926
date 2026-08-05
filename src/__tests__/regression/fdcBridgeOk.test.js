@@ -35,6 +35,7 @@ describe('F/D/C bridge completeness', () => {
       panelTitle: 'Yield',
       marketCtx,
       allMarkets: { bonds: marketCtx },
+      createShell: true, // operator/verify path
     });
     expect(r.fetchOk).toBe(true);
     expect(r.displayOk).toBe(true);
@@ -44,7 +45,7 @@ describe('F/D/C bridge completeness', () => {
     expect(r.bridgeOnly === true || r.healthQuality === 'bridge' || r.uiOk === true).toBe(true);
   });
 
-  it('creates shell and passes D/C for panel not in DOM when fetch is ok', () => {
+  it('creates shell and passes D/C for panel not in DOM when fetch is ok (operator)', () => {
     // Remove the only panel node so evaluate must create a health shell.
     root.querySelector('[data-panel-key="yield"]')?.remove();
     const marketCtx = {
@@ -61,6 +62,7 @@ describe('F/D/C bridge completeness', () => {
       panelId: 'yield',
       marketCtx,
       allMarkets: { bonds: marketCtx },
+      createShell: true,
     });
     expect(r.fetchOk).toBe(true);
     expect(r.displayOk).toBe(true);
@@ -70,6 +72,33 @@ describe('F/D/C bridge completeness', () => {
     expect(r.bridgeOnly).toBe(true);
     expect(r.uiOk).toBe(false);
     expect(r.healthQuality).toBe('bridge');
+  });
+
+  it('consumer mode does not create health shells for missing panels', () => {
+    root.querySelector('[data-panel-key="yield"]')?.remove();
+    // purge any leftover shells
+    document.querySelectorAll('[data-health-shell="1"]').forEach((n) => n.remove());
+    const marketCtx = {
+      data: {
+        yieldCurveData: { US: { '10y': 4.25, '2y': 3.9 } },
+        tipsYields: { '10y': 1.8 },
+        treasuryRates: { '10y': 4.25 },
+        fredYieldHistory: { dates: ['a', 'b'], values: [4, 4.1] },
+      },
+      isLoading: false,
+    };
+    const r = evaluatePanelHealth({
+      marketId: 'bonds',
+      panelId: 'yield',
+      marketCtx,
+      allMarkets: { bonds: marketCtx },
+      createShell: false,
+    });
+    expect(r.fetchOk).toBe(true);
+    expect(r.displayOk).toBe(false);
+    expect(r.status).toBe('pending');
+    expect(r.uiOk).toBe(false);
+    expect(document.querySelector('[data-panel-key="yield"][data-health-shell="1"]')).toBeFalsy();
   });
 });
 

@@ -101,3 +101,20 @@ env:
     value: kfinance032926-market-cache
     availability:
       - RUNTIME
+  # Tiny Firestore marketMeta index (freshness only — not bulk market JSON).
+  # Requires Firestore API + SA roles/datastore.user. Set to "0" to disable.
+  - variable: GOOGLE_CLOUD_PROJECT
+    value: kfinance032926
+    availability:
+      - RUNTIME
+  - variable: FIRESTORE_MARKET_META
+    value: "true"
+    availability:
+      - RUNTIME
+  # User GETs: serve disk/GCS bags; upstream only on cache miss or ?refresh.
+  # After postdeploy warm is reliable, can set MARKET_SERVE_MODE=cache to
+  # refuse upstream on miss (degraded until warm rebuilds).
+  - variable: MARKET_SERVE_MODE
+    value: cache_bootstrap
+    availability:
+      - RUNTIME

@@ -23,6 +23,9 @@ Prefer **running code** over any older note.
 | [`PANEL_HEALTH_CHRONIC_REVIEW.md`](./PANEL_HEALTH_CHRONIC_REVIEW.md) | Agents + humans | Root-cause review: ~100 incomplete for months |
 | [`API_ETIQUETTE.md`](./API_ETIQUETTE.md) | Agents | Upstream rate limits, circuits, probe:fdc |
 | [`SHARED_CACHE.md`](./SHARED_CACHE.md) | Ops | GCS shared market cache |
+| [`PROGRESSIVE_LOAD_AND_FIRESTORE.md`](./PROGRESSIVE_LOAD_AND_FIRESTORE.md) | Agents + humans | Progressive enter, status honesty, Firestore design |
+| [`CONTRACTS.md`](./CONTRACTS.md) | Agents | Market contracts + panel slices |
+| [`../shared/contracts/`](../shared/contracts/) | Agents | Contract JSON + auto-builder |
 | [`CI_PREFLIGHT_GUIDE.md`](./CI_PREFLIGHT_GUIDE.md) | Agents | Local gates vs Actions |
 | [`../KNOWN_LIMITATIONS.md`](../KNOWN_LIMITATIONS.md) | Agents | Intentional constraints |
 | [`../PROJECT_MEMORY.md`](../PROJECT_MEMORY.md) | Agents | Short conventions |

@@ -422,6 +422,13 @@ export function writeDailyCache(market, data) {
     }
     fs.writeFileSync(fp, str, 'utf8');
     scheduleGcsWrite(market, toWrite);
+    // Tiny Firestore freshness index (not bulk JSON) — see server/lib/firestoreMeta.js
+    try {
+      // Dynamic import keeps local disk path working if module fails to load.
+      import('./firestoreMeta.js').then((m) => {
+        m.scheduleMarketMetaWrite?.(market, toWrite, { bytes: str.length });
+      }).catch(() => {});
+    } catch { /* ignore */ }
   } catch (e) { console.warn(`[datacache] write failed for ${market}:`, e.message); }
 }
 
@@ -497,6 +504,88 @@ export async function readDailyCacheAsync(market) {
   if (local) return local;
   if (shouldSkipCache()) return null;
   return hydrateFromGcs(market);
+}
+
+/**
+ * Best available non-hollow cache for a market (cache-first / last-good).
+ * Prefer today's disk → prior local day → GCS today → GCS prior.
+ * Never invents payload fields — only real written bags.
+ *
+ * @returns {Promise<{
+ *   data: object,
+ *   fetchedOn: string,
+ *   isCurrent: boolean,
+ *   isStale: boolean,
+ *   source: 'daily_file'|'prior_day'|'gcs_today'|'gcs_prior'|'memory_shape',
+ * }|null>}
+ */
+export async function readBestAvailableCache(market) {
+  if (shouldSkipCache()) return null;
+  const today = todayStr();
+
+  // 1. Today's local (may be partially hydrated from older days)
+  try {
+    const daily = readDailyCache(market);
+    if (daily && typeof daily === 'object' && !isStructurallyHollow(market, daily)) {
+      const priorHint = daily._hydratedFromGcs || daily._hydratedFrom || daily._mergedFromCacheDate || null;
+      // Pure prior-day seed written under today's filename still not "current"
+      const onlyPriorSeed = !!(daily._hydratedFromGcs && daily._hydratedFromGcs !== today
+        && !daily.lastUpdated?.toString?.().startsWith?.(today));
+      // If bag is only a GCS seed of an older day, mark stale
+      const fo = onlyPriorSeed
+        ? String(daily._hydratedFromGcs).slice(0, 10)
+        : today;
+      const isCurrent = fo === today && !onlyPriorSeed;
+      return {
+        data: daily,
+        fetchedOn: fo,
+        isCurrent,
+        isStale: !isCurrent,
+        source: onlyPriorSeed ? 'gcs_prior' : (priorHint && priorHint !== today ? 'daily_file' : 'daily_file'),
+        hydratedFrom: priorHint && String(priorHint).slice(0, 10) !== today
+          ? String(priorHint).slice(0, 10)
+          : null,
+      };
+    }
+  } catch { /* fall through */ }
+
+  // 2. Latest non-hollow local day (or GCS via async helper)
+  try {
+    const latest = await readLatestCacheAsync(market);
+    if (latest?.data && !isStructurallyHollow(market, latest.data)) {
+      const fo = String(latest.fetchedOn || '').slice(0, 10) || today;
+      const isCurrent = fo === today;
+      return {
+        data: latest.data,
+        fetchedOn: fo,
+        isCurrent,
+        isStale: !isCurrent,
+        source: isCurrent ? 'daily_file' : 'prior_day',
+        hydratedFrom: null,
+      };
+    }
+  } catch { /* fall through */ }
+
+  return null;
+}
+
+/**
+ * Attach standard cache provenance flags for API responses (no mock fields).
+ */
+export function withCacheProvenance(data, meta = {}) {
+  const today = todayStr();
+  const fetchedOn = String(meta.fetchedOn || data?.fetchedOn || today).slice(0, 10);
+  const isCurrent = meta.isCurrent != null ? !!meta.isCurrent : fetchedOn === today;
+  const isStale = meta.isStale != null ? !!meta.isStale : !isCurrent;
+  return {
+    ...data,
+    fetchedOn,
+    isCurrent,
+    isStale,
+    isLive: meta.isLive === true,
+    _cacheSource: meta.source || data?._cacheSource || 'cache',
+    ...(meta.hydratedFrom ? { _hydratedFrom: meta.hydratedFrom } : {}),
+  };
 }
 
 export async function writeDailyCacheAsync(market, data) {

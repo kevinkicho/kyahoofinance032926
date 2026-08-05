@@ -54,17 +54,20 @@ function stopPropagation(e) { e.stopPropagation(); }
 function contentLooksEmpty(el) {
   if (!el) return true;
   if (el.querySelector('[data-panel-empty="1"]')) return true;
+  // Chart hosts often paint one frame late — never auto-disable while a chart
+  // shell / pending heatmap is mounted (classic blank equity heatmap → greyed card).
   const hasViz = !!el.querySelector(
-    'canvas, svg, table, img, video, [data-series-samples], [data-metric-value], [data-metric-display], .echarts-for-react'
+    'canvas, svg, table, img, video, [data-series-samples], [data-metric-value], [data-metric-display], .echarts-for-react, [data-chart-pending], [data-heatmap-ready], .eq-heatmap-root, .eq-heatmap-body'
   );
+  if (hasViz) return false;
   const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
-  if (!text && !hasViz) return true;
+  if (!text) return true;
   if (/\bno data\b|\bunavailable\b|\bnot available\b|\bno .* scheduled\b/i.test(text) && text.length < 200) {
     return true;
   }
   const hasNumbers = /\d/.test(text);
   // Title-only / dash-only shells without viz
-  if (!hasViz && !hasNumbers) return true;
+  if (!hasNumbers) return true;
   return false;
 }
 
@@ -87,6 +90,10 @@ const BentoCard = React.forwardRef(function BentoCard({
   error,
   isLoading,
   market,
+  /** Optional override — e.g. equities heatmap uses local /api/stocks refresh. */
+  onRefresh: onRefreshProp,
+  /** Optional override for ▶ busy state (do not conflate with market isLoading). */
+  isRefreshing: isRefreshingProp,
   disabled = false,
   emptyMessage = 'No data available',
   bare = false,
@@ -112,6 +119,14 @@ const BentoCard = React.forwardRef(function BentoCard({
     if (!marketId) return;
     refetchSingle(marketId);
   }, [marketId, refetchSingle]);
+  // Prefer explicit onRefresh (market-specific paths). Default: DataProvider single-market.
+  const onRefresh = typeof onRefreshProp === 'function'
+    ? onRefreshProp
+    : (marketId ? handlePanelRefresh : undefined);
+  // Busy = soft refresh only. Never lock ▶ forever because wave isLoading is true.
+  const footerRefreshing = isRefreshingProp != null
+    ? !!isRefreshingProp
+    : !!(marketId && marketState?.isRefreshing);
 
   // `bare` mode: no chrome, just children. Used by sub-cards embedded
   // inside another card that already provides its own outer wrapper.
@@ -161,7 +176,9 @@ const BentoCard = React.forwardRef(function BentoCard({
 
   const childArr = React.Children.toArray(children).filter(c => c != null && c !== false);
   const hasChildren = childArr.length > 0;
-  const isDisabled = !!disabled || (!isLoading && (autoDisabled || !hasChildren));
+  const marketLoading = !!(isLoading || (marketId && marketState?.isLoading));
+  // Progressive load: never grey-out a panel while its market wave is in flight.
+  const isDisabled = !!disabled || (!marketLoading && (autoDisabled || !hasChildren));
 
   const accentClass = accent && ACCENTS.has(accent) ? `bento-card--${accent}` : '';
   const inlineStyle = accentColor
@@ -183,14 +200,18 @@ const BentoCard = React.forwardRef(function BentoCard({
       data-panel-live={isLive && !isDisabled ? '1' : '0'}
       data-panel-current={isCurrent && !isDisabled ? '1' : '0'}
       data-panel-disabled={isDisabled ? '1' : '0'}
+      data-panel-loading={marketLoading ? '1' : '0'}
       aria-disabled={isDisabled || undefined}
       style={inlineStyle}
-      className={`bento-card ${accentClass} ${isDisabled ? 'bento-card--disabled' : ''} ${className} ${rest.className || ''}`.trim().replace(/\s+/g, ' ')}
+      className={`bento-card ${accentClass} ${isDisabled ? 'bento-card--disabled' : ''} ${marketLoading ? 'bento-card--loading' : ''} ${className} ${rest.className || ''}`.trim().replace(/\s+/g, ' ')}
     >
       <div className="bento-panel-title-row">
         <span className="bento-panel-title">{title}</span>
         {subtitle && <span className="bento-panel-subtitle">{subtitle}</span>}
-        {isDisabled && !isLoading && (
+        {marketLoading && (
+          <span className="bento-panel-loading-badge" title="Market data loading — panel will fill when ready">…</span>
+        )}
+        {isDisabled && !marketLoading && (
           <span className="bento-panel-disabled-badge" title="Panel has no usable data">—</span>
         )}
         {titleActions && <span className="bento-panel-title-actions">{titleActions}</span>}
@@ -200,7 +221,19 @@ const BentoCard = React.forwardRef(function BentoCard({
         className={`bento-panel-content ${contentClassName}`.trim()}
         onMouseDown={stopPropagation}
       >
-        {hasChildren ? children : <EmptyPanelBody message={error ? 'Data unavailable' : emptyMessage} reason={typeof error === 'string' ? error : undefined} />}
+        {hasChildren
+          ? children
+          : (
+            <EmptyPanelBody
+              message={marketLoading
+                ? 'Loading market data…'
+                : (error ? 'Data unavailable' : emptyMessage)}
+              reason={marketLoading
+                ? 'progressive-load'
+                : (typeof error === 'string' ? error : undefined)}
+              loading={marketLoading}
+            />
+          )}
       </div>
       {/* Footer slot. Three modes (in order of precedence):
           1) `footer` prop — arbitrary JSX (e.g. custom toolbar with buttons)
@@ -219,8 +252,8 @@ const BentoCard = React.forwardRef(function BentoCard({
           fetchLog={fetchLog}
           error={error}
           isLoading={isLoading || (!!marketId && marketState?.isLoading)}
-          onRefresh={marketId ? handlePanelRefresh : undefined}
-          isRefreshing={!!(marketId && (marketState?.isRefreshing || marketState?.isLoading))}
+          onRefresh={onRefresh}
+          isRefreshing={footerRefreshing}
         />
       )}
     </div>

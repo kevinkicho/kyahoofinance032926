@@ -1,0 +1,25 @@
+{
+  "schemaId": "bonds.v1",
+  "marketId": "bonds",
+  "primary": "/api/bonds",
+  "description": "US + intl yields, spreads, TIPS, macro histories. Digest exposes latest curve points only.",
+  "fields": [
+    { "id": "yieldCurveData", "path": "yieldCurveData", "role": "object", "required": true },
+    { "id": "treasuryRates", "path": "treasuryRates", "role": "object", "required": false },
+    { "id": "tipsYields", "path": "tipsYields", "role": "object", "required": false },
+    { "id": "fredYieldHistory", "path": "fredYieldHistory", "role": "series", "required": false },
+    { "id": "fetchedOn", "path": "fetchedOn", "role": "date", "required": true }
+  ],
+  "deps": [
+    "treasuryTIC",
+    "nyfed",
+    "treasuryAuctions",
+    "ecb",
+    "treasuryCost"
+  ],
+  "digestKeys": ["treasuryRates", "usCurve", "hyOas", "igOas", "tips10y"],
+  "panels": [
+    { "panelId": "yield", "requiredFields": ["yieldCurveData"] },
+    { "panelId": "kpi", "requiredFields": ["treasuryRates", "yieldCurveData"] }
+  ]
+}

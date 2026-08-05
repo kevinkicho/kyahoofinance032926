@@ -22,10 +22,38 @@ const WARM_TOKEN = process.env.WARM_TOKEN || '';
 const WARM_ONLY = process.env.WARM_ONLY === '1' || process.argv.includes('--warm-only');
 const TRAFFIC_ONLY = process.env.TRAFFIC_ONLY === '1' || process.argv.includes('--traffic-only');
 
-const PRIORITY = [
-  'bonds', 'realEstate', 'insurance', 'credit', 'fx', 'globalMacro',
-  'derivatives', 'crypto', 'sentiment', 'calendar', 'bls', 'eia',
+/**
+ * Staged warm — fill the most user-visible + cross-market deps first so
+ * progressive slices and open tabs paint without a full FRED stampede.
+ *
+ * STAGE1: deps that unblock many panels + core tabs (equities/bonds/fx/credit)
+ * STAGE2: remaining tab markets
+ * STAGE3: heavier satellites (optional; skipped if WARM_STAGE=1|2)
+ */
+const STAGE1 = [
+  // Cross-market deps first (matches client wave order)
+  'edgar', 'edgar/filing-activity', 'bea', 'worldbank', 'treasuryTIC', 'nyfed',
+  'treasuryAuctions', 'ecb', 'treasuryCost', 'cftcTFF',
+  // Core product tabs
+  'equities', 'bonds', 'fx', 'credit',
 ];
+const STAGE2 = [
+  'derivatives', 'crypto', 'sentiment', 'calendar', 'bls', 'eia',
+  'realEstate', 'insurance', 'globalMacro', 'equityDeepDive', 'commoditiesEnhanced',
+];
+const STAGE3 = [
+  'institutional', 'census', 'censusTrade', 'fema', 'usgs', 'fdic', 'msrb',
+  'eurostat', 'oecd', 'imf', 'eiaPetroleum', 'usda', 'fao', 'bisOTC',
+  'fed/gdpnow', 'fed/sep', 'fed/inflation-nowcast', 'fed/news-sentiment',
+  'treasuryDTS', 'universeUpdates',
+];
+
+const WARM_STAGE = Number(process.env.WARM_STAGE || 0); // 0 = all stages
+const PRIORITY = WARM_STAGE === 1
+  ? STAGE1
+  : WARM_STAGE === 2
+    ? [...STAGE1, ...STAGE2]
+    : [...STAGE1, ...STAGE2, ...STAGE3];
 
 function run(cmd, args, opts = {}) {
   console.log(`$ ${cmd} ${args.join(' ')}`);
@@ -35,18 +63,26 @@ function run(cmd, args, opts = {}) {
   return r.status ?? 1;
 }
 
+/**
+ * Post-deploy warm is the *write* path: force upstream rebuild so user GETs
+ * can stay cache-only. Set WARM_CACHE_ONLY=1 to probe without ?refresh.
+ */
 async function warmGet(path) {
-  const url = `${BASE.replace(/\/$/, '')}/api/${path}`;
+  const force = process.env.WARM_CACHE_ONLY !== '1';
+  const sep = path.includes('?') ? '&' : '?';
+  const qs = force ? `${sep}refresh=true` : '';
+  const url = `${BASE.replace(/\/$/, '')}/api/${path}${qs}`;
   const t0 = Date.now();
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 200000);
-    const r = await fetch(url, { signal: ctrl.signal });
+    const headers = force ? { 'X-Cache-Bypass': '1' } : undefined;
+    const r = await fetch(url, { signal: ctrl.signal, headers });
     clearTimeout(timer);
     const ms = Date.now() - t0;
     const text = await r.text();
-    console.log(`[warm] ${path} ${r.status} ${ms}ms bytes=${text.length}`);
-    return { path, status: r.status, ms, bytes: text.length };
+    console.log(`[warm] ${path}${force ? ' (rebuild)' : ''} ${r.status} ${ms}ms bytes=${text.length}`);
+    return { path, status: r.status, ms, bytes: text.length, forced: force };
   } catch (e) {
     console.warn(`[warm] ${path} FAIL ${Date.now() - t0}ms ${e?.message || e}`);
     return { path, status: 0, error: String(e?.message || e) };
@@ -121,15 +157,17 @@ async function main() {
     console.warn('[warm] POST /api/warm failed:', e?.message || e);
   }
 
-  // Always also GET priority paths from outside (fills whatever instance serves).
+  // Staged GET wave from outside (fills whatever instance serves).
+  console.log(`[warm] staged paths: ${PRIORITY.length} (WARM_STAGE=${WARM_STAGE || 'all'})`);
   const results = [];
   for (const p of PRIORITY) {
     results.push(await warmGet(p));
+    // Gentle pause between stages boundaries is automatic via list order
   }
 
   const ok = results.filter((r) => r.status >= 200 && r.status < 400).length;
-  console.log(`[done] warm ${ok}/${results.length} priority routes`);
-  if (ok < results.length) process.exitCode = 2;
+  console.log(`[done] warm ${ok}/${results.length} staged routes`);
+  if (ok < Math.max(1, Math.floor(PRIORITY.length * 0.7))) process.exitCode = 2;
 }
 
 main().catch((e) => {

@@ -9,6 +9,8 @@ import { useDataContext } from './DataContext';
 import { useToast } from './ToastContext';
 import { usePanelHealth } from '../hooks/usePanelHealth';
 import { logUserAction } from '../lib/logger';
+import { readOperatorMode, writeOperatorMode, subscribeOperatorMode } from './lib/operatorMode';
+import FredBudgetBadge from '../components/FredBudgetBadge/FredBudgetBadge';
 import './MarketTabBar.css';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'HKD', 'INR', 'CAD', 'AUD', 'BRL'];
@@ -34,25 +36,38 @@ function reportStatus(entry) {
 
 function PanelHealthPopover({ report, onClose, onJump }) {
   if (!report) return null;
-  const ok = report.status === 'ok';
+  const color = report._color || reportStatus(report);
+  const trueUi = report.uiOk === true || report.healthQuality === 'ui';
+  const bridge = report.bridgeOnly === true || report.healthQuality === 'bridge' || color === 'bridge';
+  const verdictClass = trueUi ? 'is-ok' : bridge ? 'is-bridge' : (report.fetchOk ? 'is-pending' : 'is-bad');
+  const verdictText = trueUi
+    ? 'True UI — fetch · display · confirm'
+    : bridge
+      ? 'Bridge only — data present; visible UI not proven'
+      : report.fetchOk
+        ? 'Incomplete — waiting for true UI paint'
+        : 'Incomplete — fetch failed or hollow';
   return (
     <div className="panel-health-popover" role="dialog" onClick={e => e.stopPropagation()}>
       <div className="panel-health-popover-head">
         <strong>{report.title || report.panelId}</strong>
         <button type="button" className="panel-health-popover-close" onClick={onClose} aria-label="Close">×</button>
       </div>
-      <div className={`panel-health-popover-verdict ${ok ? 'is-ok' : 'is-bad'}`}>
-        {ok ? 'OK — fetch · display · confirm' : 'Incomplete'}
+      <div className={`panel-health-popover-verdict ${verdictClass}`}>
+        {verdictText}
       </div>
       <ul className="panel-health-popover-gates">
         <li className={report.fetchOk ? 'ok' : 'bad'}>
           <span>{report.fetchOk ? '✓' : '✗'}</span> Fetch: {report.fetchDetail || (report.fetchOk ? 'ok' : 'fail')}
         </li>
-        <li className={report.displayOk ? 'ok' : 'bad'}>
-          <span>{report.displayOk ? '✓' : '✗'}</span> Display: {report.displayDetail || (report.displayOk ? 'ok' : 'fail')}
+        <li className={report.displayOk ? (bridge ? 'bridge' : 'ok') : 'bad'}>
+          <span>{report.displayOk ? (bridge ? '≈' : '✓') : '✗'}</span> Display: {report.displayDetail || (report.displayOk ? 'ok' : 'fail')}
         </li>
-        <li className={report.confirmOk ? 'ok' : 'bad'}>
-          <span>{report.confirmOk ? '✓' : '✗'}</span> Confirm: {report.confirmDetail || (report.confirmOk ? 'ok' : 'fail')}
+        <li className={report.confirmOk ? (bridge ? 'bridge' : 'ok') : 'bad'}>
+          <span>{report.confirmOk ? (bridge ? '≈' : '✓') : '✗'}</span> Confirm: {report.confirmDetail || (report.confirmOk ? 'ok' : 'fail')}
+        </li>
+        <li className={trueUi ? 'ok' : 'bad'}>
+          <span>{trueUi ? '✓' : '✗'}</span> True UI: {trueUi ? 'real metrics/chart/table paint' : 'not proven (bridge or empty)'}
         </li>
       </ul>
       {onJump && (
@@ -70,32 +85,36 @@ function PanelDropdownItems({ marketId, onJump, panelHealth }) {
   return panels.map(p => {
     const report = panelHealth?.[p.id];
     const status = reportStatus(report);
-    // Prefer precomputed signal from usePanelHealth (derivePanelSignal).
+    // Prefer precomputed signal from usePanelHealth (toTopbarDot / derivePanelSignal).
+    // Fallback: never map legacy status===ok to green without true UI — bridge is amber.
     const color = report?._color
-      || (status === 'ok' ? 'ok'
-        : status === 'stale' ? 'stale'
-          : status === 'loading' ? 'loading'
-            : status === 'pending' || status === 'unknown' ? 'pending'
-              : 'null');
+      || (report?.uiOk === true || report?.healthQuality === 'ui' || report?.paintState === 'true_ui' ? 'ok'
+        : report?.bridgeOnly || report?.healthQuality === 'bridge' || report?.paintVia === 'bridge' ? 'bridge'
+          : status === 'stale' ? 'stale'
+            : status === 'loading' ? 'loading'
+              : status === 'pending' || status === 'unknown' || status === 'ok' ? 'pending'
+                : 'null');
     const isOk = color === 'ok';
+    const isBridge = color === 'bridge';
     const isStale = color === 'stale';
     const isPending = color === 'pending' || color === 'loading';
     const isBad = color === 'null';
     const tooltip = report?._tooltip || (
-      isOk ? 'Fetch · display · confirm all passed'
-        : isStale ? 'Stale data'
-          : isPending
-            ? (report?.fetchOk
-              ? 'Data fetched — open this tab to verify display'
-              : (status === 'loading' ? 'Loading…' : 'Waiting for data…'))
-            : `F${report?.fetchOk ? '✓' : '✗'} D${report?.displayOk ? '✓' : '✗'} C${report?.confirmOk ? '✓' : '✗'}`
+      isOk ? 'True UI — fetch · display · confirm'
+        : isBridge ? 'Bridge only — visible UI not proven'
+          : isStale ? 'Stale data'
+            : isPending
+              ? (report?.fetchOk
+                ? 'Data fetched — open this tab to verify display'
+                : (status === 'loading' ? 'Loading…' : 'Waiting for data…'))
+              : `F${report?.fetchOk ? '✓' : '✗'} D${report?.displayOk ? '✓' : '✗'} C${report?.confirmOk ? '✓' : '✗'}`
     );
     const showDetail = detailId === p.id;
     return (
       <div key={p.id} className="market-panel-dropdown-row">
         <button
           type="button"
-          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isPending ? ' panel-status-loading' : ''}${isOk ? ' panel-status-ok' : ''}`}
+          className={`market-panel-dropdown-item${isBad ? ' panel-status-null' : ''}${isStale ? ' panel-status-stale' : ''}${isPending ? ' panel-status-loading' : ''}${isBridge ? ' panel-status-bridge' : ''}${isOk ? ' panel-status-ok' : ''}`}
           onClick={() => onJump(marketId, p.id)}
           title={`${p.title} — ${tooltip}`}
         >
@@ -158,6 +177,8 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
     window.open(url.toString(), `popout-${activeMarket}`, 'width=1200,height=800,menubar=no,toolbar=no');
   }
   const { theme, toggle } = useTheme();
+  const [operatorMode, setOperatorMode] = useState(() => readOperatorMode());
+  useEffect(() => subscribeOperatorMode(setOperatorMode), []);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
@@ -483,6 +504,24 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
             <button className="hub-settings-item" onClick={handleThemeToggle}>
               {theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </button>
+            <button
+              className="hub-settings-item"
+              onClick={() => {
+                const next = !operatorMode;
+                writeOperatorMode(next);
+                setOperatorMode(next);
+                setSettingsOpen(false);
+                addToast?.(
+                  next
+                    ? 'Operator mode on — diagnostics & recovery tools (reload splash for full F/D/C verify)'
+                    : 'Consumer mode — progressive load, product greens only',
+                  'info',
+                );
+              }}
+              title="Operator: diagnostic chips, recovery agent, verify splash. Consumer: progressive product UX."
+            >
+              {operatorMode ? '✓ Operator mode' : 'Operator mode'}
+            </button>
             <button className="hub-settings-item" onClick={handlePngExport}>
               Export PNG
             </button>
@@ -495,6 +534,10 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
           </div>
         )}
       </div>
+      {operatorMode && (
+        <span className="hub-operator-badge" title="Operator mode — diagnostics enabled">OPS</span>
+      )}
+      <FredBudgetBadge enabled={operatorMode} />
       <button
         className={`hub-refresh-btn${isRefreshing ? ' is-refreshing' : ''}`}
         onClick={onRefresh}
@@ -505,6 +548,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       >
         {isRefreshing ? '⟳' : '▶'}
       </button>
+      {operatorMode && (
       <button
         className="hub-refresh-btn"
         type="button"
@@ -530,6 +574,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       >
         ✧
       </button>
+      )}
 
       {/* Global Time Travel / Historical snapshot picker — drives setHistoricalDate so DataProvider seeds from RTDB history for the whole app */}
       <div className="hub-history-control" title={histDates.length ? `${histDates.length} historical dates available via RTDB` : 'Historical snapshots from daily RTDB (may be empty until scheduled runs populate history)'}>

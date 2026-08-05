@@ -88,8 +88,9 @@ export async function sendCachedOrDegraded(res, marketName, opts = {}) {
         // Today's disk cache still counts as "current for the day" even when
         // a live refresh was rate-limited — panels show 7/23, not blank.
         isCurrent: fromToday,
+        isStale: !fromToday,
         isLive: false,
-        _cacheSource: fromToday ? 'today_cache_fallback' : 'error_fallback',
+        _cacheSource: fromToday ? 'today_cache_fallback' : 'prior_day_error_fallback',
         _errorKind: info.kind,
         _rateLimited: info.kind === 'rate_limit' || info.kind === 'forbidden',
         _errors: {

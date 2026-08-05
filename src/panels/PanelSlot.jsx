@@ -1,23 +1,17 @@
 /**
  * Mount a panel module inside a bento grid.
- * Tab dashboards pass provenance + accent; the panel Body is independent.
+ * Progressive: when market bag is empty, fetch /api/panel slice into ctx.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import BentoCard from '../components/BentoCard/BentoCard';
+import { useMarketData } from '../hub/DataContext';
+import { usePanelSlice } from '../hooks/usePanelSlice';
 
 /**
  * @param {object} props
  * @param {import('./definePanel').PanelDefinition} props.panel
- * @param {string} props.accent            Tab accent for BentoCard
- * @param {object} [props.ctx]             Optional context passed to Body / isLive / subtitle
- * @param {string|null} [props.timestamp]
- * @param {boolean} [props.isCurrent]
- * @param {string|null} [props.fetchedOn]
- * @param {array} [props.fetchLog]
- * @param {string|null} [props.error]
- * @param {boolean} [props.isLoading]
- * @param {string} [props.className]
- * @param {string} [props.contentClassName]
+ * @param {string} props.accent
+ * @param {object} [props.ctx]
  */
 export default function PanelSlot({
   panel,
@@ -29,12 +23,36 @@ export default function PanelSlot({
   fetchLog,
   error,
   isLoading,
+  market,
+  onRefresh,
+  isRefreshing,
   className = '',
   contentClassName = '',
-  // BentoWrapper cloneElement may inject these:
   panelKey: injectedPanelKey,
   style,
 }) {
+  const marketId = market || panel?.markets?.[0] || accent;
+  const panelId = injectedPanelKey || panel?.panelId;
+  const marketState = useMarketData(marketId || '');
+  const marketLoading = !!(isLoading || marketState?.isLoading || marketState?.isRefreshing);
+  const hasBag = !!(marketState?.data && typeof marketState.data === 'object');
+  // Progressive slice when bag missing or still loading first paint
+  const needSlice = !!marketId && !!panelId && (!hasBag || marketLoading);
+  const { slice, status: sliceStatus } = usePanelSlice(marketId, panelId, {
+    enabled: needSlice,
+  });
+
+  const enrichedCtx = useMemo(() => ({
+    ...ctx,
+    __marketId: marketId,
+    __panelId: panelId,
+    __slice: slice,
+    __sliceStatus: sliceStatus,
+    __progressive: needSlice,
+    __marketLoading: marketLoading,
+    __hasMarketBag: hasBag,
+  }), [ctx, marketId, panelId, slice, sliceStatus, needSlice, marketLoading, hasBag]);
+
   if (!panel?.Body) {
     return (
       <BentoCard
@@ -53,17 +71,22 @@ export default function PanelSlot({
   let disabled = false;
   let subtitle;
   try {
-    live = typeof panel.isLive === 'function' ? !!panel.isLive(ctx) : !!panel.isLive;
-    disabled = typeof panel.isDisabled === 'function' ? !!panel.isDisabled(ctx) : !!panel.isDisabled;
-    subtitle = typeof panel.getSubtitle === 'function' ? panel.getSubtitle(ctx) : panel.subtitle;
+    live = typeof panel.isLive === 'function' ? !!panel.isLive(enrichedCtx) : !!panel.isLive;
+    disabled = typeof panel.isDisabled === 'function' ? !!panel.isDisabled(enrichedCtx) : !!panel.isDisabled;
+    subtitle = typeof panel.getSubtitle === 'function' ? panel.getSubtitle(enrichedCtx) : panel.subtitle;
   } catch (e) {
     console.warn(`[PanelSlot] ${panel.key} isLive/subtitle threw:`, e);
   }
 
-  // React `key` must be on <PanelSlot key={panelId} /> so BentoWrapper matches layout.
+  // Don't force-disable while progressive slice is loading
+  if (marketLoading || sliceStatus === 'loading') {
+    disabled = false;
+  }
+
   const panelKey = injectedPanelKey || panel.panelId;
   const noFooter = !!(panel.noFooter || ctx?.__noFooter?.[panel.panelId]);
   const source = ctx?.__source?.[panel.panelId] ?? panel.source;
+  const loading = marketLoading || sliceStatus === 'loading';
 
   return (
     <BentoCard
@@ -71,21 +94,24 @@ export default function PanelSlot({
       title={panel.title}
       subtitle={subtitle || undefined}
       accent={accent}
+      market={marketId}
       className={`${panel.className || ''} ${className}`.trim()}
       contentClassName={`${panel.contentClassName || ''} ${contentClassName}`.trim()}
       source={source}
-      timestamp={timestamp}
+      timestamp={timestamp || slice?.fetchedOn || marketState?.fetchedOn}
       isLive={live}
-      isCurrent={isCurrent}
-      fetchedOn={fetchedOn}
-      fetchLog={fetchLog}
-      error={error}
-      isLoading={isLoading}
+      isCurrent={isCurrent ?? marketState?.isCurrent}
+      fetchedOn={fetchedOn || slice?.fetchedOn || marketState?.fetchedOn}
+      fetchLog={fetchLog || marketState?.fetchLog}
+      error={error || marketState?.error}
+      isLoading={loading}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing || marketState?.isRefreshing}
       disabled={disabled}
       noFooter={noFooter}
       style={style}
     >
-      <Body ctx={ctx} />
+      <Body ctx={enrichedCtx} />
     </BentoCard>
   );
 }

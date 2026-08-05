@@ -61,3 +61,23 @@ npm run postdeploy:warm
 - Hollow / shrink guards still apply before any write (local or GCS).
 - Disable by clearing `MARKET_CACHE_BUCKET`.
 - Inspect: `gcloud storage ls gs://BUCKET/market-cache/`
+
+## Firestore marketMeta (index only)
+
+On successful daily cache write, the server also schedules a **tiny** Firestore
+document (`marketMeta/{marketId}`) with `fetchedOn`, `bytes`, `gcsPath`, etc.
+This is **not** a second copy of market JSON — see
+[`PROGRESSIVE_LOAD_AND_FIRESTORE.md`](./PROGRESSIVE_LOAD_AND_FIRESTORE.md).
+
+```bash
+# Enable Firestore API once
+gcloud services enable firestore.googleapis.com --project=kfinance032926
+
+# Grant App Hosting compute SA write access
+SA="firebase-app-hosting-compute@kfinance032926.iam.gserviceaccount.com"
+gcloud projects add-iam-policy-binding kfinance032926 \
+  --member="serviceAccount:${SA}" \
+  --role="roles/datastore.user"
+```
+
+`/api/cache/status` merges disk + Firestore meta for footer tooltips.

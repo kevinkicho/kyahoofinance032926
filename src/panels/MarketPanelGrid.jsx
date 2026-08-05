@@ -15,7 +15,7 @@ import { MARKET_PANELS } from '../data/marketPanels';
  * @param {string} props.storageKey
  * @param {string} props.accent
  * @param {object} props.ctx             Data bag for panel Bodies
- * @param {object} [props.provenance]    { timestamp, isCurrent, fetchedOn, fetchLog, error, isLoading }
+ * @param {object} [props.provenance]    { timestamp, isCurrent, fetchedOn, fetchLog, error, isLoading, onRefresh, isRefreshing }
  * @param {React.ReactNode} [props.extra] Extra children (rare legacy slots)
  * @param {string[]} [props.only]        If set, only these panelIds
  * @param {string[]} [props.except]      Skip these panelIds
@@ -58,6 +58,7 @@ export default function MarketPanelGrid({
           panelKey={panel.panelId}
           panel={panel}
           accent={accent}
+          market={marketId}
           ctx={ctx}
           timestamp={provenance.timestamp}
           isCurrent={provenance.isCurrent}
@@ -65,6 +66,8 @@ export default function MarketPanelGrid({
           fetchLog={provenance.fetchLog}
           error={provenance.error}
           isLoading={provenance.isLoading}
+          onRefresh={provenance.onRefresh}
+          isRefreshing={provenance.isRefreshing}
         />
       ))}
       {React.Children.map(extra, (child) => {

@@ -80,6 +80,15 @@
   filter: grayscale(0.25);
 }
 
+/* Give chart/list bodies a real measure box so SafeECharts / tables paint */
+.bento-card > .bento-panel-content {
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .bento-card--disabled .bento-panel-content {
   pointer-events: none;
 }
@@ -90,6 +99,27 @@
   color: var(--text-muted, #888);
   opacity: 0.9;
   letter-spacing: 0.04em;
+}
+
+.bento-panel-loading-badge {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: #fbbf24;
+  letter-spacing: 0.08em;
+  animation: bento-pulse 1.1s ease-in-out infinite;
+}
+
+.bento-card--loading {
+  opacity: 0.92;
+}
+
+.bento-panel-empty--loading .bento-panel-empty-message {
+  color: #94a3b8;
+}
+
+@keyframes bento-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
 }
 
 .bento-panel-empty {

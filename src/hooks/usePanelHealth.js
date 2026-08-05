@@ -10,6 +10,8 @@ import {
   derivePanelSignal,
   isMarketTabVisible,
 } from '../hub/lib/panelHealthSignal';
+import { attachHealthLayers, factsFromReport } from '../hub/lib/health/types.js';
+import { readOperatorMode } from '../hub/lib/operatorMode.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Panel health cache — splash / last-seen fetch hints only.
@@ -229,7 +231,11 @@ export function usePanelHealth(marketId) {
   const reports = useMemo(() => {
     if (!marketId) return {};
     const marketCtx = allMarkets?.[marketId];
-    const live = evaluateMarketPanels(marketId, marketCtx, allMarkets);
+    // Consumer: no health-shell invents for unmounted panels.
+    // Operator/verify: allow bridge shells for F/D/C diagnostics.
+    const live = evaluateMarketPanels(marketId, marketCtx, allMarkets, {
+      createShell: readOperatorMode(),
+    });
     const tabVisible = isMarketTabVisible(marketId);
     const marketLoading = !!marketCtx?.isLoading;
     const marketHasPayload = !!(marketCtx?.data || marketCtx?.error);
@@ -273,23 +279,39 @@ export function usePanelHealth(marketId) {
       };
 
       // Closed tab: ignore any display/confirm from hidden DOM (visited display:none)
+      // Also drop true-UI / bridge claims so splash/open-tab greens never stick.
       if (!tabVisible) {
         merged.displayOk = false;
         merged.confirmOk = false;
         merged.elPresent = false;
+        merged.uiOk = false;
+        merged.bridgeOnly = false;
+        if (merged.healthQuality === 'ui' || merged.healthQuality === 'bridge') {
+          merged.healthQuality = null;
+        }
       }
 
-      const signal = derivePanelSignal(merged, {
+      // Refresh L1/L2 fact layers after visibility strip (single health model).
+      const layered = attachHealthLayers(merged);
+
+      const signal = derivePanelSignal(layered, {
         tabVisible,
         marketLoading,
         marketHasPayload: marketHasPayload || fetchOk,
       });
 
       out[p.id] = {
-        ...merged,
+        ...layered,
         status: signal.status,
         displayOk: signal.displayOk,
         confirmOk: signal.confirmOk,
+        uiOk: signal.uiOk === true,
+        bridgeOnly: signal.bridgeOnly === true,
+        // Re-sync health facts with signal outcome for open-tab presentation
+        health: signal.health || layered.health || factsFromReport(layered),
+        dataState: layered.dataState,
+        paintState: tabVisible ? layered.paintState : 'n/a',
+        paintVia: tabVisible ? layered.paintVia : 'none',
         // UI helpers for the dropdown
         _signal: signal.kind,
         _color: signal.color,

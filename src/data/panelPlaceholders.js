@@ -8,7 +8,16 @@
  * path: dotted path from the market's primary API payload (or crossMarket.data)
  * anyOf: first non-empty path wins
  * required: if true, missing slot always fails the panel (default true)
+ *
+ * Slot resolution (paths only — never mock values):
+ *   1. Rich hand inventory (multi-slot / cross-market / multi anyOf)
+ *   2. PANEL_FIELD_MAP auto paths
+ *   3. Market contract panel requiredFields
+ *   4. Simple hand single-slot entry
  */
+
+import { PANEL_FIELD_MAP } from './panelFieldMap.js';
+import { getMarketContract } from '../../shared/contracts/index.js';
 
 /** @typedef {{ id: string, path?: string, anyOf?: string[], crossMarket?: string, required?: boolean }} Placeholder */
 
@@ -576,6 +585,88 @@ export const PANEL_PLACEHOLDERS = {
  */
 export const MIN_PLACEHOLDER_FILL_RATE = 0.85;
 
+/**
+ * Fallback placeholders derived from PANEL_FIELD_MAP when no hand-authored entry.
+ * Paths only — never invents sample values.
+ */
+export function placeholdersFromFieldMap(marketId, panelId) {
+  const key = `${marketId}:${panelId}`;
+  const spec = PANEL_FIELD_MAP?.[key];
+  if (!spec) return null;
+  const specs = Array.isArray(spec.anyOf) ? spec.anyOf : [spec];
+  const slots = [];
+  specs.forEach((s, i) => {
+    const path = s.fieldPath || s.field;
+    if (!path) return;
+    if (s.crossMarket) {
+      slots.push({
+        id: `auto.${i}.${s.crossMarket}.${path}`,
+        path,
+        crossMarket: s.crossMarket,
+        required: i === 0,
+      });
+    } else {
+      slots.push({
+        id: `auto.${i}.${path}`,
+        path,
+        required: i === 0,
+      });
+    }
+  });
+  return slots.length ? slots : null;
+}
+
+/**
+ * Multi-slot / cross-market hand inventories still win (complex UIs).
+ * Single-slot hand entries defer to field map / contract when available.
+ */
+export function isRichPlaceholderInventory(slots) {
+  if (!Array.isArray(slots) || slots.length === 0) return false;
+  const required = slots.filter((s) => s.required !== false);
+  if (required.length >= 2) return true;
+  if (slots.some((s) => s.crossMarket || (Array.isArray(s.anyOf) && s.anyOf.length > 1))) return true;
+  return false;
+}
+
+/**
+ * Contract panel requiredFields → path slots (schema only, no mock values).
+ * @returns {Placeholder[]|null}
+ */
+export function placeholdersFromContract(marketId, panelId) {
+  const c = getMarketContract(marketId);
+  if (!c?.panels?.length) return null;
+  const entry = c.panels.find((p) => p.panelId === panelId);
+  if (!entry?.requiredFields?.length) return null;
+  return entry.requiredFields.map((f) => ({
+    id: `contract.${f}`,
+    path: f,
+    required: true,
+  }));
+}
+
+/** @deprecated alias */
+export const placeholdersFromContractPaths = placeholdersFromContract;
+
+/**
+ * Resolve L1 slots for a panel (no mock values — paths only).
+ *
+ * Priority:
+ *   1. Rich hand inventory (multi-slot / cross-market)
+ *   2. PANEL_FIELD_MAP auto paths
+ *   3. Market contract panel requiredFields
+ *   4. Simple hand single-slot entry
+ */
 export function getPanelPlaceholders(marketId, panelId) {
-  return PANEL_PLACEHOLDERS[`${marketId}:${panelId}`] || null;
+  const key = `${marketId}:${panelId}`;
+  const hand = PANEL_PLACEHOLDERS[key] || null;
+  if (hand && isRichPlaceholderInventory(hand)) return hand;
+
+  const fromMap = placeholdersFromFieldMap(marketId, panelId);
+  if (fromMap?.length) return fromMap;
+
+  const fromContract = placeholdersFromContract(marketId, panelId);
+  if (fromContract?.length) return fromContract;
+
+  if (hand?.length) return hand;
+  return null;
 }

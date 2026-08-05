@@ -1,137 +1,50 @@
 /**
- * Panel health evaluation — three independent gates, no free passes.
+ * Panel health evaluation — layered L1 (data) + L2 (paint).
  *
- * status `ok` only when ALL pass:
- *   1. fetchOk   — field/placeholder stream present and non-empty in payload
- *   2. displayOk — panel node exists in DOM with real UI substance
- *   3. confirmOk — displayed values (or chart series) match fetch samples
+ * L1 (health/panelData.js): placeholders / field map / contract — no DOM
+ * L2 (health/panelPaint.js): display + confirm; bridge tagged, never product green
  *
- * Missing panel DOM never passes display or confirm, even if fetch is ready.
- * Title-only shells and "will bind later" shortcuts are not success.
+ * Operational status `ok` when F/D/C pass (bridge may complete D/C for operators).
+ * Product green requires uiOk / paint true_ui via health/present.js.
  */
 
-import { PANEL_REGISTRY } from '../../data/panelRegistry';
 import { MARKET_PANELS } from '../../data/marketPanels';
-import { getPanelFieldSpec } from '../../data/panelFieldMap';
-import { getPanelPlaceholders, MIN_PLACEHOLDER_FILL_RATE } from '../../data/panelPlaceholders';
 import { getBusPanel } from './panelHealthBus.js';
 import {
   resolvePath as resolvePathUtil,
   hasSubstance as hasSubstanceUtil,
-  countNumericLeaves,
   placeholderValueOk,
 } from './panelHealthUtils.js';
 import { findScopedPanelEl } from './panelHealthSignal.js';
-import { ensureFetchMetricStamps } from './panelHealthStamp.js';
+import { attachHealthLayers } from './health/types.js';
+import {
+  evaluatePanelData,
+  evaluateAllMarketsDataOnly,
+  reportFromPanelData,
+  getPanelSpec,
+  getRegistryEntry,
+  resolvePanelFieldValue,
+  collectSamples,
+} from './health/panelData.js';
+import { evaluatePanelPaint } from './health/panelPaint.js';
+import {
+  toSplashChip,
+  toMarketSplashKind,
+  toMarketTallies,
+  countHealthStatuses,
+} from './health/present.js';
+import { readOperatorMode } from './operatorMode.js';
 
 export const resolvePath = resolvePathUtil;
 export const hasSubstance = hasSubstanceUtil;
 export { placeholderValueOk };
-
-export function getRegistryEntry(marketId, panelId) {
-  const regKey = marketId === 'equitiesDeepDive' ? 'equityDeepDive' : marketId;
-  const list = PANEL_REGISTRY[regKey] || PANEL_REGISTRY[marketId];
-  if (!list) return null;
-  return list.find(p => p.id === panelId) || null;
-}
-
-/** Spec for field resolution: map first, then registry. */
-export function getPanelSpec(marketId, panelId) {
-  const mapped = getPanelFieldSpec(marketId, panelId);
-  if (mapped) return { id: panelId, ...mapped, _from: 'fieldMap' };
-  const reg = getRegistryEntry(marketId, panelId);
-  if (reg) return { ...reg, _from: 'registry' };
-  return null;
-}
-
-function resolveOneSpec(spec, marketData, allMarkets) {
-  if (!spec) return undefined;
-  if (spec.crossMarket) {
-    const depData = allMarkets?.[spec.crossMarket]?.data;
-    if (!depData) return null;
-    return spec.fieldPath ? resolvePath(depData, spec.fieldPath) : depData;
-  }
-  const field = spec.field || '';
-  if (typeof field === 'string' && field.includes('cross-market:')) {
-    const depId = field.match(/cross-market:\s*([^)]+)/i)?.[1]?.trim();
-    const depData = depId ? allMarkets?.[depId]?.data : null;
-    if (!depData) return null;
-    let path = spec.fieldPath || '';
-    path = path.replace(/^\w+Ctx\.data\.?/, '');
-    if (!path || path === spec.fieldPath) {
-      const parts = String(spec.fieldPath || '').split('.');
-      const idx = parts.findIndex(p => p === 'data');
-      path = idx >= 0 ? parts.slice(idx + 1).join('.') : parts.slice(-1).join('.');
-    }
-    return path ? resolvePath(depData, path) : depData;
-  }
-  if (spec.fieldPath) {
-    const v = resolvePath(marketData, spec.fieldPath);
-    if (v !== undefined && v !== null) return v;
-  }
-  if (spec.field && !String(spec.field).startsWith('(')) {
-    return resolvePath(marketData, spec.field);
-  }
-  return undefined;
-}
-
-export function resolvePanelFieldValue(spec, marketData, allMarkets) {
-  if (!spec) return undefined;
-  if (Array.isArray(spec.anyOf)) {
-    for (const alt of spec.anyOf) {
-      const v = resolveOneSpec(alt, marketData, allMarkets);
-      if (hasSubstance(v)) return v;
-    }
-    return resolveOneSpec(spec.anyOf[0], marketData, allMarkets);
-  }
-  return resolveOneSpec(spec, marketData, allMarkets);
-}
-
-function collectSamples(val, out = [], depth = 0) {
-  if (out.length >= 20 || depth > 5) return out;
-  if (val == null) return out;
-  if (typeof val === 'number' && Number.isFinite(val)) {
-    out.push(val);
-    return out;
-  }
-  if (typeof val === 'string') {
-    const t = val.trim();
-    // Skip pure taxonomy tokens and years for confirm (too easy to false-match)
-    if (t.length >= 2 && t.length <= 40 && t !== '—' && !t.startsWith('_') && !/^\d{4}$/.test(t)) {
-      out.push(t);
-    }
-    return out;
-  }
-  if (Array.isArray(val)) {
-    const slice = val.length > 16 ? val.slice(-16) : val;
-    for (const item of slice) collectSamples(item, out, depth + 1);
-    return out;
-  }
-  if (typeof val === 'object') {
-    // Prefer metric fields first so confirm samples match what UI shows
-    for (const prefer of ['value', 'price', 'latest', 'close', 'closeB', 'change', 'change1d', 'gdp', 'rate', 'spread']) {
-      if (prefer in val) collectSamples(val[prefer], out, depth + 1);
-      if (out.length >= 20) return out;
-    }
-    if (Array.isArray(val.values)) collectSamples(val.values, out, depth + 1);
-    if (Array.isArray(val.history)) collectSamples(val.history, out, depth + 1);
-    if (Array.isArray(val.coins)) collectSamples(val.coins, out, depth + 1);
-    for (const [k, v] of Object.entries(val)) {
-      if (k.startsWith('_') || k === 'dates' || k === 'labels' || k === 'columns') continue;
-      collectSamples(v, out, depth + 1);
-      if (out.length >= 20) break;
-    }
-  }
-  return out;
-}
-
-/** Prefer the deepest / most metric-specific filled slot for confirm samples. */
-function scoreFieldCandidate(path, v) {
-  if (!placeholderValueOk(v, path)) return -1;
-  const depth = String(path || '').split('.').filter(Boolean).length;
-  const nums = countNumericLeaves(v).n;
-  return depth * 10 + Math.min(nums, 9);
-}
+export { getPanelSpec, getRegistryEntry, resolvePanelFieldValue, collectSamples };
+export {
+  evaluatePanelData,
+  evaluateAllMarketsDataOnly,
+  reportFromPanelData,
+} from './health/panelData.js';
+export { evaluatePanelPaint } from './health/panelPaint.js';
 
 function textHasSample(text, sample) {
   if (sample == null || !text) return false;
@@ -389,10 +302,13 @@ export function classifyPanelDisplay(el, { fetchOk = false } = {}) {
   if (metricValues.length >= 1) {
     return { ok: true, detail: `metric stamps (${metricValues.length})`, kind: 'ok' };
   }
-  if (chartSamples.length >= 3 && chartUnique.size >= 2) {
+  // Charts: accept 2+ finite non-zero samples with variance (was 3 — left many
+  // real single-series / short-history charts on the bridge-only path).
+  if (chartSamples.length >= 2 && chartUnique.size >= 2) {
     return { ok: true, detail: `chart series bound (${chartSamples.length} pts, ${chartUnique.size} unique)`, kind: 'ok' };
   }
-  if (cellHits >= 4 && hollowMarks < cellHits) {
+  // Dense tables / KPI grids
+  if (cellHits >= 3 && hollowMarks < cellHits) {
     return { ok: true, detail: `table/kpi cells with values (${cellHits})`, kind: 'ok' };
   }
 
@@ -403,15 +319,37 @@ function findPanelEl(marketId, panelId) {
   return findScopedPanelEl(marketId, panelId);
 }
 
-export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, allMarkets }) {
-  const spec = getPanelSpec(marketId, panelId);
-  const title = panelTitle || spec?.title || panelId;
-  // let: health shell may create a node when the panel is not in the active view
-  let el = findPanelEl(marketId, panelId);
+/**
+ * @param {object} args
+ * @param {boolean} [args.createShell] health-bridge shells for unmounted panels.
+ *   Default: operator/verify mode only (`readOperatorMode()`). Consumer never
+ *   invents hidden shells (progressive + open-tab paint must be natural).
+ * @param {boolean} [args.dataOnly] L1 only — skip DOM/paint entirely.
+ */
+export function evaluatePanelHealth({
+  marketId,
+  panelId,
+  panelTitle,
+  marketCtx,
+  allMarkets,
+  createShell,
+  dataOnly = false,
+}) {
   const bus = getBusPanel(marketId, panelId);
+  let el = findPanelEl(marketId, panelId);
+  const allowShell = createShell !== undefined ? !!createShell : readOperatorMode();
 
-  if (marketCtx?.isLoading && !bus?.fetchOk) {
-    return {
+  // ── L1: pure data (no DOM) ──
+  const l1 = evaluatePanelData({ marketId, panelId, marketCtx, allMarkets });
+  const spec = l1.spec || getPanelSpec(marketId, panelId);
+  const title = panelTitle || spec?.title || panelId;
+
+  if (dataOnly) {
+    return reportFromPanelData(l1, { marketId, panelId, title, marketCtx });
+  }
+
+  if (marketCtx?.isLoading && !bus?.fetchOk && !l1.fetchOk) {
+    return attachHealthLayers({
       status: 'loading',
       marketId,
       panelId,
@@ -425,378 +363,90 @@ export function evaluatePanelHealth({ marketId, panelId, panelTitle, marketCtx, 
       field: spec?.field || null,
       fieldPath: spec?.fieldPath || null,
       elPresent: !!el,
-    };
+      dataSource: l1.source,
+      contract: l1.contract,
+    });
   }
 
-  // ── 1. FETCH (placeholder fill rate) ──
-  // One non-null field among N UI slots is NOT success. We score every
-  // catalogued placeholder and require MIN_PLACEHOLDER_FILL_RATE.
-  let fetchOk = false;
-  let fetchDetail = '';
-  let fieldValue = null;
-  let placeholderStats = null;
-
-  const placeholders = getPanelPlaceholders(marketId, panelId);
-  const primary = marketCtx?.data || null;
-  const allDataMap = {};
-  for (const [id, m] of Object.entries(allMarkets || {})) {
-    allDataMap[id] = m?.data !== undefined ? m.data : m;
-  }
-  if (primary) allDataMap[marketId] = primary;
-
-  if (placeholders?.length) {
-    let filled = 0;
-    let requiredTotal = 0;
-    let requiredFilled = 0;
-    const emptyIds = [];
-    const filledIds = [];
-    const emptyRequiredIds = [];
-    /** @type {string[]} required cross-market deps that have not finished loading */
-    const waitingDeps = [];
-    let bestFieldScore = -1;
-    for (const slot of placeholders) {
-      const isRequired = slot.required !== false;
-      if (isRequired) requiredTotal++;
-      let v = null;
-      let usedPath = slot.path || '';
-      if (slot.crossMarket) {
-        const depId = slot.crossMarket;
-        const depCtx = allMarkets?.[depId];
-        const dep = allDataMap[depId];
-        // Satellite not in yet (still in wave or never fetched) — not a hard fail.
-        const depPending = !dep
-          && !depCtx?.error
-          && (depCtx?.isLoading || depCtx?.data == null);
-        if (depPending && isRequired) {
-          if (!waitingDeps.includes(depId)) waitingDeps.push(depId);
-        }
-        if (dep) {
-          if (slot.path) {
-            v = resolvePath(dep, slot.path);
-            usedPath = slot.path;
-          } else if (Array.isArray(slot.anyOf) && slot.anyOf.length) {
-            for (const pth of slot.anyOf) {
-              const cand = resolvePath(dep, pth);
-              if (placeholderValueOk(cand, pth)) {
-                v = cand;
-                usedPath = pth;
-                break;
-              }
-            }
-          } else {
-            // Bare cross-market root — only if the whole market is a metric series
-            v = dep;
-            usedPath = slot.crossMarket;
-          }
-        }
-      } else if (slot.anyOf) {
-        for (const pth of slot.anyOf) {
-          let cand = resolvePath(primary, pth);
-          if (!placeholderValueOk(cand, pth)) {
-            const parts = pth.split('.');
-            if (parts.length >= 2 && allDataMap[parts[0]]) {
-              cand = resolvePath(allDataMap[parts[0]], parts.slice(1).join('.'));
-            }
-          }
-          if (placeholderValueOk(cand, pth)) {
-            v = cand;
-            usedPath = pth;
-            break;
-          }
-        }
-      } else if (slot.path) {
-        v = resolvePath(primary, slot.path);
-        usedPath = slot.path;
-        if (!placeholderValueOk(v, slot.path)) {
-          const parts = slot.path.split('.');
-          if (parts.length >= 2 && allDataMap[parts[0]]) {
-            v = resolvePath(allDataMap[parts[0]], parts.slice(1).join('.'));
-          }
-        }
-      }
-      // Series arrays of all-nulls (e.g. HY: [null,null,…]) are empty —
-      // but chart *date axes* (string arrays) are valid structure and must
-      // not be wiped here (that reintroduced false F✗ after placeholder fixes).
-      if (
-        Array.isArray(v)
-        && !v.some((x) => hasSubstance(x))
-        && !placeholderValueOk(v, usedPath)
-      ) {
-        v = null;
-      }
-
-      if (placeholderValueOk(v, usedPath)) {
-        filled++;
-        filledIds.push(slot.id);
-        if (isRequired) requiredFilled++;
-        const sc = scoreFieldCandidate(usedPath, v);
-        if (sc > bestFieldScore) {
-          bestFieldScore = sc;
-          fieldValue = v;
-        }
-      } else {
-        emptyIds.push(slot.id);
-        if (isRequired) emptyRequiredIds.push(slot.id);
-      }
-    }
-    // Score only *required* slots so optional intl/secondary series don't keep
-    // panels red when the primary stream is live and on screen.
-    const denom = requiredTotal > 0 ? requiredTotal : placeholders.length;
-    const numer = requiredTotal > 0 ? requiredFilled : filled;
-    const fillRate = denom > 0 ? numer / denom : 0;
-    placeholderStats = {
-      total: placeholders.length,
-      requiredTotal,
-      filled,
-      requiredFilled,
-      empty: emptyIds.length,
-      fillRate,
-      emptyIds,
-      emptyRequiredIds,
-      filledIds,
-      waitingDeps: waitingDeps.slice(),
-    };
-
-    // Cross-market panels: if empties are only because satellites have not
-    // arrived, treat as pending (not fetch-failed red).
-    const onlyWaitingOnDeps = waitingDeps.length > 0
-      && emptyRequiredIds.length > 0
-      && numer < denom
-      && emptyRequiredIds.every((id) => {
-        const slot = placeholders.find((s) => s.id === id);
-        return slot?.crossMarket && waitingDeps.includes(slot.crossMarket);
-      });
-
-    if (onlyWaitingOnDeps) {
-      fetchOk = false;
-      fetchDetail = `waiting for cross-market: ${waitingDeps.join(', ')}`;
-    } else {
-      fetchOk = fillRate >= MIN_PLACEHOLDER_FILL_RATE;
-      fetchDetail = fetchOk
-        ? `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% ≥ ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%)`
-        : `placeholders ${numer}/${denom} required (${Math.round(fillRate * 100)}% < ${Math.round(MIN_PLACEHOLDER_FILL_RATE * 100)}%) empty=[${emptyRequiredIds.slice(0, 6).join(', ')}]`;
-    }
-  } else if (!marketCtx?.data && !spec?.crossMarket && !bus?.fetchOk) {
-    fetchOk = false;
-    fetchDetail = marketCtx?.error
-      ? `fetch error: ${marketCtx.error}`
-      : 'market payload not fetched';
-  } else if (spec) {
-    fieldValue = resolvePanelFieldValue(spec, primary, allMarkets);
-    if (typeof spec.shapeCheck === 'function') {
-      try {
-        const sc = spec.shapeCheck(fieldValue);
-        fetchOk = !!sc?.ok;
-        fetchDetail = sc?.detail || (fetchOk ? 'shape ok' : 'shape check failed');
-      } catch (e) {
-        fetchOk = false;
-        fetchDetail = `shapeCheck error: ${e.message}`;
-      }
-    } else {
-      fetchOk = hasSubstance(fieldValue);
-      // Field path that only yields thin taxonomy (tickers/sectors) fails.
-      if (fetchOk && countNumericLeaves(fieldValue).n === 0 && typeof fieldValue === 'object') {
-        // Allow pure-text field maps (rare); otherwise require a number leaf.
-        const samples = collectSamples(fieldValue);
-        const hasRich = samples.some(s => typeof s === 'string' && s.length >= 3);
-        if (!hasRich) {
-          fetchOk = false;
-        }
-      }
-      const pathLabel = spec.crossMarket
-        ? `${spec.crossMarket}.${spec.fieldPath || spec.field}`
-        : (spec.fieldPath || spec.field || panelId);
-      fetchDetail = fetchOk
-        ? `field "${pathLabel}" has data`
-        : `field "${pathLabel}" is null/empty/hollow`;
-    }
-    // Intentionally NO bus free-pass: bus uses the same weak "any key" heuristic
-    // and was a long-standing source of false greens when field maps failed.
-  } else {
-    const data = marketCtx?.data;
-    if (!data) {
-      fetchOk = false;
-      fetchDetail = 'no field map and no market payload';
-    } else {
-      // Without a field map / placeholders, do not green-light the panel just
-      // because *some* market key is non-empty (other panels' data).
-      fetchOk = false;
-      fetchDetail = 'no placeholders or field map for panel';
-      fieldValue = null;
-    }
-  }
-
-  // When fetch is good but fieldValue was not set (edge maps), use market bag.
-  if (fetchOk && fieldValue == null && marketCtx?.data) {
-    fieldValue = marketCtx.data;
-  }
+  const fetchOk = l1.fetchOk;
+  const fetchDetail = l1.fetchDetail;
+  const fieldValue = l1.fieldValue;
+  const placeholderStats = l1.placeholders;
   const stampSource = fieldValue != null ? fieldValue : (fetchOk ? marketCtx?.data : null);
 
-  // Bridge fetch samples → DOM so operational D/C can pass when UI stamps lag.
-  // createShell: mount a hidden shell if the panel is not in the active view grid.
-  // Product KPI: uiOk = real paint without relying solely on bridge short-circuit.
-  let stamped = { ok: false, samples: [], el };
-  if (fetchOk && stampSource != null) {
-    try {
-      const doc = typeof document !== 'undefined' ? document : null;
-      stamped = ensureFetchMetricStamps(marketId, panelId, stampSource, doc, {
-        force: true,
-        createShell: true,
-      });
-      if (stamped?.el) el = stamped.el;
-      if (!stamped || typeof stamped.ok !== 'boolean') {
-        stamped = { ok: false, samples: [], el };
-      }
-    } catch {
-      stamped = { ok: false, samples: [], el };
-    }
-  }
+  // ── L2: paint (DOM; bridge shells only in operator/verify) ──
+  const l2 = evaluatePanelPaint({
+    marketId,
+    panelId,
+    el,
+    fetchOk,
+    fieldValue,
+    stampSource,
+    createShell: allowShell,
+    classifyPanelDisplay,
+    confirmDisplayMatchesFetch,
+  });
+  el = l2.el;
 
-  const isHealthShell = el?.getAttribute?.('data-health-shell') === '1';
-  const hasBridgeNode = !!el?.querySelector?.('[data-health-bridge="1"]');
-
-  // True UI display (ignore bridge short-circuit) — used for uiOk / honesty.
-  const displayNatural = classifyPanelDisplay(el, { fetchOk });
-  // If the only metric stamps live under the bridge, do not count as natural UI.
-  let naturalDisplayOk = displayNatural.ok;
-  if (naturalDisplayOk && hasBridgeNode && el) {
-    const content = el.querySelector?.('.bento-panel-content') || el;
-    const allStamps = content.querySelectorAll?.('[data-metric-value]') || [];
-    const bridgeStamps = content.querySelectorAll?.('[data-health-bridge="1"] [data-metric-value]') || [];
-    const nonBridgeStamps = [...allStamps].filter((n) => !n.closest?.('[data-health-bridge="1"]'));
-    const chartOk = /chart series bound/i.test(displayNatural.detail || '');
-    const cellOk = /table\/kpi cells/i.test(displayNatural.detail || '');
-    if (!chartOk && !cellOk && nonBridgeStamps.length === 0) {
-      naturalDisplayOk = false;
-    }
-  }
-  if (isHealthShell) naturalDisplayOk = false;
-
-  // ── 2. DISPLAY (operational: bridge may complete) ──
-  let displayOk = false;
-  let displayDetail = '';
-  let display = { ok: false, detail: 'n/a', kind: 'missing' };
-  let bridgeOnly = false;
-  if (fetchOk && stamped.ok && el) {
-    if (naturalDisplayOk) {
-      displayOk = true;
-      displayDetail = displayNatural.detail;
-      display = { ok: true, detail: displayDetail, kind: 'ok' };
-    } else {
-      displayOk = true;
-      bridgeOnly = true;
-      displayDetail = `health bridge only (${stamped.samples.length} stamp(s); no real UI metrics)`;
-      display = { ok: true, detail: displayDetail, kind: 'bridge' };
-    }
-  } else {
-    display = displayNatural;
-    displayOk = display.ok;
-    displayDetail = display.detail;
-  }
-
-  // ── 3. CONFIRM ──
-  let confirmOk = false;
-  let confirmDetail = '';
-  let confirmMeta = null;
-  if (!el) {
-    confirmDetail = 'skipped — panel not in DOM';
-  } else if (!fetchOk) {
-    confirmDetail = 'skipped — fetch stream empty/failed';
-  } else if (stamped.ok && stamped.samples.length > 0 && bridgeOnly) {
-    // Exact samples we wrote — operational confirm when UI is bridge-only.
-    confirmOk = true;
-    confirmDetail = `confirmed ${stamped.samples.length} sample(s) via health bridge (not visible UI)`;
-    confirmMeta = {
-      ok: true,
-      detail: confirmDetail,
-      matched: stamped.samples.length,
-      samples: stamped.samples.length,
-      via: 'data-health-bridge',
-    };
-  } else if (stamped.ok && stamped.samples.length > 0 && !naturalDisplayOk) {
-    confirmOk = true;
-    bridgeOnly = true;
-    confirmDetail = `confirmed ${stamped.samples.length} sample(s) via health bridge (not visible UI)`;
-    confirmMeta = {
-      ok: true,
-      detail: confirmDetail,
-      matched: stamped.samples.length,
-      samples: stamped.samples.length,
-      via: 'data-health-bridge',
-    };
-  } else if (!displayOk) {
-    confirmDetail = 'skipped — UI not displaying data';
-  } else {
-    confirmMeta = confirmDisplayMatchesFetch(el, fieldValue);
-    confirmOk = confirmMeta.ok;
-    confirmDetail = confirmMeta.detail;
-    // If confirm only matched bridge stamps, still flag bridgeOnly for KPIs.
-    if (confirmOk && confirmMeta?.via === 'data-metric-value' && hasBridgeNode && !naturalDisplayOk) {
-      bridgeOnly = true;
-    }
-  }
-
-  // True when fetch + natural UI paint + non-bridge confirm all hold.
-  const uiOkStrict = !!(
-    fetchOk
-    && naturalDisplayOk
-    && !isHealthShell
-    && confirmOk
-    && !bridgeOnly
-    && confirmMeta?.via !== 'data-health-bridge'
-  );
-
-  // Raw status before visibility policy (derivePanelSignal / syncReportToDom
-  // map this into user-facing colors). Prefer soft statuses when fetch is ok
-  // but display is still catching up — never imply fetch failure.
   const waitingCross = /waiting for cross-market/i.test(fetchDetail);
-
   let status = 'null';
-  if (fetchOk && displayOk && confirmOk) status = 'ok';
-  else if (display.kind === 'stale' && fetchOk) status = 'stale';
+  if (fetchOk && l2.displayOk && l2.confirmOk) status = 'ok';
+  else if (l2.display?.kind === 'stale' && fetchOk) status = 'stale';
   else if (marketCtx?.isLoading && !fetchOk) status = 'loading';
   else if (waitingCross) status = 'pending';
-  else if (fetchOk && display.kind === 'missing') status = 'pending';
-  else if (fetchOk && !displayOk) status = 'pending';
+  else if (fetchOk && l2.display?.kind === 'missing') status = 'pending';
+  else if (fetchOk && !l2.displayOk) status = 'pending';
   else if (!fetchOk && !marketCtx?.data) status = 'pending';
-  else if (display.kind === 'missing') status = 'missing';
+  else if (l2.display?.kind === 'missing') status = 'missing';
 
-  const healthQuality = status === 'ok'
-    ? (uiOkStrict ? 'ui' : (bridgeOnly || !naturalDisplayOk ? 'bridge' : 'ui'))
-    : null;
+  const healthQuality = status === 'ok' ? l2.healthQuality : null;
 
-  return {
+  const report = {
     status,
     marketId,
     panelId,
     title,
     fetchOk,
-    displayOk,
-    confirmOk,
+    displayOk: l2.displayOk,
+    confirmOk: l2.confirmOk,
     /** Real panel paint (not health-shell / bridge-only stamps). */
-    uiOk: uiOkStrict,
+    uiOk: l2.uiOk,
     /** D/C satisfied only because of health bridge stamps. */
-    bridgeOnly: !!(status === 'ok' && (bridgeOnly || healthQuality === 'bridge')),
+    bridgeOnly: !!(status === 'ok' && l2.bridgeOnly),
     healthQuality,
     fetchDetail,
-    displayDetail,
-    confirmDetail,
+    displayDetail: l2.displayDetail,
+    confirmDetail: l2.confirmDetail,
     waitingCrossMarket: waitingCross,
     field: spec?.field || null,
     fieldPath: spec?.fieldPath || null,
     source: spec?.source || null,
     external: spec?.external || null,
-    elPresent: !!el,
+    elPresent: l2.elPresent,
     fetchedOn: marketCtx?.fetchedOn || marketCtx?.data?.fetchedOn || null,
     isLive: !!marketCtx?.isLive,
     isCurrent: marketCtx?.isCurrent,
-    confirmMeta,
+    confirmMeta: l2.confirmMeta,
     specFrom: spec?._from || null,
     placeholders: placeholderStats,
+    /** L1 source: placeholders | spec | contract | none */
+    dataSource: l1.source,
+    /** Contract panel requiredFields check (annotation) */
+    contract: l1.contract,
+    /** L1 samples for offline confirm tooling */
+    dataSamples: l1.samples,
   };
+
+  return attachHealthLayers(report);
 }
 
-export function evaluateMarketPanels(marketId, marketCtx, allMarkets) {
+/**
+ * @param {string} marketId
+ * @param {object} marketCtx
+ * @param {object} allMarkets
+ * @param {{ createShell?: boolean, dataOnly?: boolean }} [opts]
+ */
+export function evaluateMarketPanels(marketId, marketCtx, allMarkets, opts = {}) {
   const panels = MARKET_PANELS[marketId] || [];
   const out = {};
   for (const p of panels) {
@@ -806,6 +456,8 @@ export function evaluateMarketPanels(marketId, marketCtx, allMarkets) {
       panelTitle: p.title,
       marketCtx,
       allMarkets,
+      createShell: opts.createShell,
+      dataOnly: opts.dataOnly,
     });
   }
   return out;
@@ -819,49 +471,64 @@ export function statusMapFromReports(reports) {
   return out;
 }
 
-export function evaluateAllMarkets(getMarket, allMarkets) {
+/**
+ * @param {function|object} getMarket
+ * @param {object} allMarkets
+ * @param {{ createShell?: boolean, dataOnly?: boolean }} [opts]
+ *   dataOnly: L1 progressive path (no DOM / no shells)
+ *   createShell: default operator mode when omitted
+ */
+export function evaluateAllMarkets(getMarket, allMarkets, opts = {}) {
+  if (opts.dataOnly) {
+    return evaluateAllMarketsDataOnly(getMarket, allMarkets, MARKET_PANELS);
+  }
   const cache = {};
   const markets = allMarkets || {};
   for (const marketId of Object.keys(MARKET_PANELS)) {
     const marketCtx = typeof getMarket === 'function' ? getMarket(marketId) : markets?.[marketId];
-    cache[marketId] = evaluateMarketPanels(marketId, marketCtx, markets);
+    cache[marketId] = evaluateMarketPanels(marketId, marketCtx, markets, opts);
   }
   return cache;
 }
 
+/**
+ * Splash counters — delegated to health/present (single policy).
+ * Adds dataReady (L1) alongside okUi / okBridge (L2 honesty).
+ */
 export function countStatuses(reportsByMarket) {
-  let ok = 0;
-  let okUi = 0;
-  let okBridge = 0;
-  let bad = 0;
-  let loading = 0;
-  let pending = 0;
-  let fetchFail = 0;
-  let confirmFail = 0;
-  let total = 0;
-  for (const reports of Object.values(reportsByMarket || {})) {
-    for (const r of Object.values(reports || {})) {
-      total++;
-      if (r.status === 'ok') {
-        ok++;
-        if (r.uiOk || r.healthQuality === 'ui') okUi++;
-        else if (r.bridgeOnly || r.healthQuality === 'bridge') okBridge++;
-        else okUi++; // default operational ok without flags → treat as UI
-      } else if (r.status === 'loading') loading++;
-      else {
-        // "bad" keeps legacy meaning: not ok/loading (splash incomplete chip).
-        bad++;
-        if (!r.fetchOk) fetchFail++;
-        else if (!r.displayOk) pending++;
-        else if (!r.confirmOk) {
-          // F✓ D✓ C✗ — data + paint present, confirm mismatch
-          confirmFail++;
-          pending++; // roll into paint bucket for splash subtitle
-        } else {
-          pending++;
-        }
-      }
-    }
-  }
-  return { ok, okUi, okBridge, bad, loading, total, pending, fetchFail, confirmFail };
+  return countHealthStatuses(reportsByMarket);
+}
+
+/**
+ * Splash / flash-page presentation helpers.
+ *
+ * Product green = true UI only. Bridge is amber. See hub/lib/health/present.js.
+ *
+ * Chip kinds (CSS suffix):
+ *   ui      — real paint (uiOk / healthQuality ui / paint true_ui)
+ *   bridge  — F/D/C only via health bridge
+ *   pending — fetch ready or not yet evaluated; UI not confirmed
+ *   loading — in flight
+ *   stale   — stale payload with usable display
+ *   null    — fetch failed / hollow after load
+ */
+
+/** @returns {'ui'|'bridge'|'pending'|'loading'|'stale'|'null'} */
+export function panelChipKind(report, marketLoadStatus = null) {
+  return toSplashChip(report, marketLoadStatus);
+}
+
+/**
+ * Aggregate market flash-page border/icon from *panel* reports, not from
+ * "ctx.data is non-null" (hollow 200 payloads used to force full green).
+ *
+ * @returns {'pending'|'loading'|'ok'|'bridge'|'partial'|'error'}
+ */
+export function marketSplashKind(args) {
+  return toMarketSplashKind(args);
+}
+
+/** Per-market panel tallies for splash headers. */
+export function marketPanelTallies(reports, panelIds) {
+  return toMarketTallies(reports, panelIds);
 }

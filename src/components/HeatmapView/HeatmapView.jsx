@@ -339,19 +339,65 @@ const HeatmapView = ({
     ? `${sizeStats.shown} shown · ${sizeStats.rolled} in Other (${preset.label})`
     : `${sizeStats?.shown ?? '—'} shown · ${preset.label} size`;
 
+  const hasLeaves = useMemo(() => {
+    const walk = (nodes) => {
+      if (!Array.isArray(nodes)) return false;
+      for (const n of nodes) {
+        if (n?.children?.length) {
+          if (walk(n.children)) return true;
+        } else if (n && (n.value != null || n.marketCap != null || n.metricValue != null)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    return walk(chartData);
+  }, [chartData]);
+
   return (
-    <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+    <div
+      className="eq-heatmap-root"
+      data-heatmap-ready={hasLeaves ? '1' : '0'}
+      style={{
+        flex: '1 1 auto',
+        width: '100%',
+        height: '100%',
+        minHeight: 240,
+        minWidth: 0,
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {!hasLeaves ? (
+        <div
+          style={{
+            flex: 1,
+            minHeight: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#94a3b8',
+            fontSize: 12,
+            padding: 16,
+            textAlign: 'center',
+          }}
+        >
+          Heatmap has no equity tiles yet — wait for quotes or click ▶ to refresh.
+        </div>
+      ) : (
       <SafeECharts
         ref={chartRef}
         key={`${colorByPerf ? 'perf' : 'rank'}-${rankMetric}-${preset.id}`}
         option={chartOption}
-        notMerge={false}
+        notMerge
         lazyUpdate={false}
-        style={{ height: '100%', width: '100%' }}
+        style={{ flex: '1 1 auto', height: '100%', width: '100%', minHeight: 240 }}
         opts={{ renderer: 'canvas' }}
         onChartReady={handleChartReady}
         sourceInfo={{ title: 'Equity Heatmap', source: 'Yahoo Finance', endpoint: '/api/stocks', series: [] }}
       />
+      )}
       <div
         style={{
           position: 'absolute',

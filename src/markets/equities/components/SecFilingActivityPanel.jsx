@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', color: '#94a3b8' },
@@ -20,6 +20,9 @@ const SORTS = [
   { id: 'form', label: 'Form' },
   { id: 'category', label: 'Category' },
 ];
+
+/** Group order for company sections (within a company, rows keep `filtered` order). */
+const GROUP_SORTS = new Set(['date', 'ticker']);
 
 function shortDate(d) {
   if (!d) return '—';
@@ -84,6 +87,64 @@ function countBy(arr, keyFn) {
   return m;
 }
 
+/**
+ * Collapse flat filings into company groups (ticker → rows + summary).
+ * Groups start collapsed in the UI; order follows sortBy/sortDir.
+ */
+export function groupFilingsByCompany(rows = [], { sortBy = 'date', sortDir = 'desc' } = {}) {
+  const map = new Map();
+  for (const f of rows) {
+    const t = f.ticker || '—';
+    if (!map.has(t)) map.set(t, []);
+    map.get(t).push(f);
+  }
+
+  const groups = [];
+  for (const [ticker, filings] of map.entries()) {
+    let latestDate = '';
+    const catCounts = {};
+    const formCounts = {};
+    for (const f of filings) {
+      if ((f.date || '') > latestDate) latestDate = f.date || '';
+      const c = f.category || 'other';
+      catCounts[c] = (catCounts[c] || 0) + 1;
+      const form = f.form || '—';
+      formCounts[form] = (formCounts[form] || 0) + 1;
+    }
+    // Prefer top categories for compact header chips (max 3).
+    const topCats = Object.entries(catCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    groups.push({
+      ticker,
+      filings,
+      count: filings.length,
+      latestDate,
+      catCounts,
+      topCats,
+      formCounts,
+    });
+  }
+
+  const dir = sortDir === 'asc' ? 1 : -1;
+  groups.sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === 'ticker' || !GROUP_SORTS.has(sortBy)) {
+      cmp = a.ticker.localeCompare(b.ticker);
+      if (sortBy !== 'ticker') {
+        // form/category sort: groups by ticker A–Z; rows already sorted inside
+        return cmp;
+      }
+    } else if (sortBy === 'date') {
+      cmp = (a.latestDate || '').localeCompare(b.latestDate || '');
+    }
+    if (cmp === 0) cmp = a.ticker.localeCompare(b.ticker);
+    return cmp * (sortBy === 'ticker' || sortBy === 'date' ? dir : 1);
+  });
+
+  return groups;
+}
+
 export default function SecFilingActivityPanel({
   byTicker = {},
   byType = {},
@@ -99,6 +160,8 @@ export default function SecFilingActivityPanel({
   const [sortBy, setSortBy] = useState('date');
   const [sortDir, setSortDir] = useState('desc'); // desc = newest first for date
   const [formFilter, setFormFilter] = useState(null); // exact form type chip
+  /** Expanded company tickers; default empty = all collapsed by company. */
+  const [expanded, setExpanded] = useState(() => new Set());
 
   const allFilings = useMemo(() => flattenFilings(byTicker), [byTicker]);
 
@@ -157,6 +220,45 @@ export default function SecFilingActivityPanel({
       setSortDir(id === 'date' ? 'desc' : 'asc');
     }
   }, [sortBy]);
+
+  const companyGroups = useMemo(
+    () => groupFilingsByCompany(filtered, { sortBy, sortDir }),
+    [filtered, sortBy, sortDir],
+  );
+
+  // Drop expanded keys that no longer appear (filters / data refresh).
+  useEffect(() => {
+    const alive = new Set(companyGroups.map((g) => g.ticker));
+    setExpanded((prev) => {
+      let changed = false;
+      const next = new Set();
+      for (const t of prev) {
+        if (alive.has(t)) next.add(t);
+        else changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [companyGroups]);
+
+  const toggleCompany = useCallback((ticker) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(ticker)) next.delete(ticker);
+      else next.add(ticker);
+      return next;
+    });
+  }, []);
+
+  const expandAll = useCallback(() => {
+    setExpanded(new Set(companyGroups.map((g) => g.ticker)));
+  }, [companyGroups]);
+
+  const collapseAll = useCallback(() => {
+    setExpanded(new Set());
+  }, []);
+
+  const allExpanded = companyGroups.length > 0
+    && companyGroups.every((g) => expanded.has(g.ticker));
 
   const kpis = [
     { label: 'Total', value: total || allFilings.length, tone: 'blue', tip: 'Recent filings across watchlist' },
@@ -293,25 +395,39 @@ export default function SecFilingActivityPanel({
       <div className="sec-file-meta">
         Showing <strong>{filtered.length}</strong>
         {filtered.length !== allFilings.length ? ` of ${allFilings.length}` : ''}
+        {' · '}
+        <strong>{companyGroups.length}</strong> {companyGroups.length === 1 ? 'company' : 'companies'}
         {formFilter ? ` · form ${formFilter}` : ''}
         {category !== 'all' ? ` · ${catLabel(category)}` : ''}
         {query.trim() ? ` · “${query.trim()}”` : ''}
-        {(formFilter || category !== 'all' || query.trim()) && (
-          <button
-            type="button"
-            className="sec-file-clear"
-            onClick={() => { setQuery(''); setCategory('all'); setFormFilter(null); }}
-          >
-            Clear
-          </button>
-        )}
+        <span className="sec-file-meta-actions">
+          {companyGroups.length > 0 && (
+            <button
+              type="button"
+              className="sec-file-clear"
+              onClick={allExpanded ? collapseAll : expandAll}
+              title={allExpanded ? 'Collapse all companies' : 'Expand all companies'}
+            >
+              {allExpanded ? 'Collapse all' : 'Expand all'}
+            </button>
+          )}
+          {(formFilter || category !== 'all' || query.trim()) && (
+            <button
+              type="button"
+              className="sec-file-clear"
+              onClick={() => { setQuery(''); setCategory('all'); setFormFilter(null); }}
+            >
+              Clear
+            </button>
+          )}
+        </span>
       </div>
 
-      {/* Table */}
-      <div className="sec-file-grid" role="table" aria-label="SEC filings">
+      {/* Company-grouped collapsible list */}
+      <div className="sec-file-grid" role="tree" aria-label="SEC filings by company">
         <div className="sec-file-head" role="row">
           <button type="button" className="sec-file-cell c-tkr" role="columnheader" onClick={() => toggleSort('ticker')}>
-            Tkr{sortBy === 'ticker' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+            Company{sortBy === 'ticker' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
           </button>
           <button type="button" className="sec-file-cell c-form" role="columnheader" onClick={() => toggleSort('form')}>
             Form{sortBy === 'form' ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
@@ -326,43 +442,100 @@ export default function SecFilingActivityPanel({
           <div className="sec-file-cell c-link" role="columnheader"> </div>
         </div>
         <div className="sec-file-body">
-          {filtered.length === 0 ? (
+          {companyGroups.length === 0 ? (
             <div className="sec-file-empty-rows">No filings match filters.</div>
           ) : (
-            filtered.map((f, i) => (
-              <div
-                key={`${f.ticker}-${f.form}-${f.date}-${f.accession || i}`}
-                className="sec-file-row"
-                role="row"
-              >
-                <div className="sec-file-cell c-tkr" role="cell">
-                  <strong>{f.ticker}</strong>
-                </div>
-                <div className="sec-file-cell c-form" role="cell" style={{ color: catColor(f.category) }}>
-                  {f.form}
-                </div>
-                <div className="sec-file-cell c-date" role="cell" title={f.date}>
-                  {shortDate(f.date)}
-                </div>
-                <div className="sec-file-cell c-cat" role="cell">
-                  <span className="sec-file-cat-pill" style={{ '--chip': catColor(f.category) }}>
-                    {catLabel(f.category)}
-                  </span>
-                </div>
-                <div className="sec-file-cell c-desc" role="cell" title={f.description || f.form}>
-                  {f.description && f.description !== f.form ? f.description : '—'}
-                </div>
-                <div className="sec-file-cell c-link" role="cell">
-                  {f.url ? (
-                    <a href={f.url} target="_blank" rel="noopener noreferrer" title="Open on SEC EDGAR" onClick={(e) => e.stopPropagation()}>
-                      ↗
-                    </a>
-                  ) : (
-                    <span className="sec-muted">—</span>
+            companyGroups.map((g) => {
+              const isOpen = expanded.has(g.ticker);
+              const summaryForms = Object.entries(g.formCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([form, n]) => (n > 1 ? `${form}×${n}` : form))
+                .join(' · ');
+              return (
+                <div key={g.ticker} className={`sec-file-company${isOpen ? ' is-open' : ''}`}>
+                  <button
+                    type="button"
+                    className="sec-file-company-head"
+                    onClick={() => toggleCompany(g.ticker)}
+                    aria-expanded={isOpen}
+                    aria-controls={`sec-file-co-${g.ticker}`}
+                    title={isOpen ? `Collapse ${g.ticker}` : `Expand ${g.ticker} (${g.count} filings)`}
+                  >
+                    <span className="sec-file-chevron" aria-hidden>{isOpen ? '▾' : '▸'}</span>
+                    <span className="sec-file-company-tkr">{g.ticker}</span>
+                    <span className="sec-file-company-count">{g.count}</span>
+                    <span className="sec-file-company-date" title={g.latestDate || undefined}>
+                      {shortDate(g.latestDate)}
+                    </span>
+                    <span className="sec-file-company-cats">
+                      {g.topCats.map(([catId, n]) => (
+                        <span
+                          key={catId}
+                          className="sec-file-cat-pill"
+                          style={{ '--chip': catColor(catId) }}
+                          title={`${catLabel(catId)}: ${n}`}
+                        >
+                          {catLabel(catId)}{n > 1 ? ` ${n}` : ''}
+                        </span>
+                      ))}
+                    </span>
+                    <span className="sec-file-company-forms" title={summaryForms}>
+                      {summaryForms || '—'}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div
+                      id={`sec-file-co-${g.ticker}`}
+                      className="sec-file-company-rows"
+                      role="group"
+                      aria-label={`${g.ticker} filings`}
+                    >
+                      {g.filings.map((f, i) => (
+                        <div
+                          key={`${f.ticker}-${f.form}-${f.date}-${f.accession || i}`}
+                          className="sec-file-row"
+                          role="row"
+                        >
+                          <div className="sec-file-cell c-tkr" role="cell">
+                            <span className="sec-file-row-indent" aria-hidden />
+                          </div>
+                          <div className="sec-file-cell c-form" role="cell" style={{ color: catColor(f.category) }}>
+                            {f.form}
+                          </div>
+                          <div className="sec-file-cell c-date" role="cell" title={f.date}>
+                            {shortDate(f.date)}
+                          </div>
+                          <div className="sec-file-cell c-cat" role="cell">
+                            <span className="sec-file-cat-pill" style={{ '--chip': catColor(f.category) }}>
+                              {catLabel(f.category)}
+                            </span>
+                          </div>
+                          <div className="sec-file-cell c-desc" role="cell" title={f.description || f.form}>
+                            {f.description && f.description !== f.form ? f.description : '—'}
+                          </div>
+                          <div className="sec-file-cell c-link" role="cell">
+                            {f.url ? (
+                              <a
+                                href={f.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open on SEC EDGAR"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                ↗
+                              </a>
+                            ) : (
+                              <span className="sec-muted">—</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

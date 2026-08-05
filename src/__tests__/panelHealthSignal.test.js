@@ -73,6 +73,43 @@ describe('derivePanelSignal', () => {
     expect(s.color).toBe('ok');
   });
 
+  it('open tab + bridge-only never green', () => {
+    const s = derivePanelSignal(
+      {
+        status: 'ok',
+        fetchOk: true,
+        displayOk: true,
+        confirmOk: true,
+        elPresent: true,
+        uiOk: false,
+        bridgeOnly: true,
+        healthQuality: 'bridge',
+        displayDetail: 'health bridge only (6 stamp(s); no real UI metrics)',
+      },
+      { tabVisible: true, marketLoading: false, marketHasPayload: true },
+    );
+    expect(s.kind).toBe('bridge');
+    expect(s.color).toBe('bridge');
+    expect(s.color).not.toBe('ok');
+  });
+
+  it('open tab + uiOk true → verified green', () => {
+    const s = derivePanelSignal(
+      {
+        status: 'ok',
+        fetchOk: true,
+        displayOk: true,
+        confirmOk: true,
+        elPresent: true,
+        uiOk: true,
+        healthQuality: 'ui',
+      },
+      { tabVisible: true, marketLoading: false, marketHasPayload: true },
+    );
+    expect(s.kind).toBe('verified');
+    expect(s.color).toBe('ok');
+  });
+
   it('open tab + fetchOk + still painting → pending not red', () => {
     const s = derivePanelSignal(
       {

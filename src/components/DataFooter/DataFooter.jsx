@@ -346,7 +346,9 @@ export default function DataFooter({
   const rootRef = useRef(null);
   const popoverRef = useRef(null);
   const [measured, setMeasured] = useState(false);
-  const busy = !!(isLoading || isRefreshing);
+  // ▶ busy only during an actual refresh. Market isLoading alone used to lock
+  // the button (and look like a dead click) for entire wave / stuck-loading states.
+  const busy = !!isRefreshing;
 
   const open = useCallback(() => {
     if (!fetchLog || fetchLog.length === 0) return;

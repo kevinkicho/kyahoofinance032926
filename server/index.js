@@ -78,6 +78,7 @@ import bisOTCRouter from './routes/bisOTC.js';
 import faoRouter from './routes/fao.js';
 import treasuryCostRouter from './routes/treasuryCost.js';
 import panelRoutingRouter from './routes/panelRouting.js';
+import panelSliceRouter from './routes/panelSlice.js';
 import agentRecoverRouter from './routes/agentRecover.js';
 import { startFxWebSocket } from './lib/ws.js';
 import { isTransientNetworkError } from './lib/networkErrors.js';
@@ -346,17 +347,101 @@ app.get('/api/health/series', async (req, res) => {
 // even though the URL is /api/equityDeepDive). `commodities_enhanced` is the
 // v2 commodities cache; `commodities` (legacy) is kept until the legacy
 // route is retired.
-const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','commodities_enhanced','globalMacro','equityDeepDive','crypto','credit','sentiment','calendar','fx','imf','worldbank','bls','eia','census','institutional','nyfed','fdic','bea','edgar','ecb','eurostat','oecd','treasuryTIC','treasuryAuctions','treasuryDTS'];
-app.get('/api/cache/status', (_req, res) => {
+const CACHEABLE_MARKETS = ['bonds','derivatives','realEstate','insurance','commodities','commodities_enhanced','globalMacro','equityDeepDive','crypto','credit','sentiment','calendar','fx','imf','worldbank','bls','eia','census','institutional','nyfed','fdic','bea','edgar','ecb','eurostat','oecd','treasuryTIC','treasuryAuctions','treasuryDTS','edgarFilingActivity','edgarInsurerRatios','treasuryCost','cftcTFF','bisOTC','fema','usgs','msrb','censusTrade','eiaPetroleum','usda','fao','universeUpdates','fedGDPNow','fedSEP','fedInflationNowcast','fedNewsSentiment'];
+app.get('/api/cache/status', async (_req, res) => {
   const today = todayStr();
   const status = {};
   for (const market of CACHEABLE_MARKETS) {
     const latest = readLatestCache(market);
     status[market] = latest
-      ? { fetchedOn: latest.fetchedOn, isCurrent: latest.fetchedOn === today }
-      : { fetchedOn: null, isCurrent: false };
+      ? { fetchedOn: latest.fetchedOn, isCurrent: latest.fetchedOn === today, source: 'disk' }
+      : { fetchedOn: null, isCurrent: false, source: null };
   }
-  res.json({ today, status });
+  // Merge tiny Firestore marketMeta index when enabled (does not replace bulk cache).
+  let firestoreMeta = null;
+  try {
+    const fm = await import('./lib/firestoreMeta.js');
+    if (fm.isFirestoreMetaEnabled?.()) {
+      firestoreMeta = await fm.listMarketMeta?.(80);
+      for (const [id, meta] of Object.entries(firestoreMeta || {})) {
+        const row = status[id] || { fetchedOn: null, isCurrent: false };
+        // Prefer newer of disk vs meta for display; never invent isCurrent from stale meta alone if disk says otherwise.
+        const metaDay = meta.fetchedOn ? String(meta.fetchedOn).slice(0, 10) : null;
+        if (metaDay && (!row.fetchedOn || metaDay >= String(row.fetchedOn).slice(0, 10))) {
+          status[id] = {
+            fetchedOn: metaDay,
+            isCurrent: meta.isCurrent === true || metaDay === today,
+            source: row.fetchedOn ? (row.source || 'disk') : 'firestore',
+            bytes: meta.bytes,
+            keyCount: meta.keyCount,
+            gcsPath: meta.gcsPath || undefined,
+            updatedAt: meta.updatedAt,
+          };
+        } else if (status[id] && meta) {
+          status[id] = {
+            ...status[id],
+            bytes: meta.bytes ?? status[id].bytes,
+            keyCount: meta.keyCount ?? status[id].keyCount,
+            gcsPath: meta.gcsPath || status[id].gcsPath,
+            metaUpdatedAt: meta.updatedAt,
+          };
+        } else if (!status[id] && metaDay) {
+          status[id] = {
+            fetchedOn: metaDay,
+            isCurrent: meta.isCurrent === true || metaDay === today,
+            source: 'firestore',
+            bytes: meta.bytes,
+            keyCount: meta.keyCount,
+            gcsPath: meta.gcsPath,
+            updatedAt: meta.updatedAt,
+          };
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[cache/status] firestore meta merge skipped:', e?.message || e);
+  }
+  res.json({
+    today,
+    status,
+    firestoreMeta: firestoreMeta ? Object.keys(firestoreMeta).length : 0,
+    schema: {
+      marketMeta: 'marketMeta/{marketId}',
+      marketDigest: 'marketDigest/{marketId}',
+      fieldInventory: 'fieldInventory/{marketId}',
+      dailyRollup: 'dailyRollup/{YYYY-MM-DD}',
+    },
+  });
+});
+
+// Small KPI digest from Firestore (not full market bag). Progressive paint helper.
+app.get('/api/cache/digest/:marketId', async (req, res) => {
+  try {
+    const fm = await import('./lib/firestoreMeta.js');
+    if (!fm.isFirestoreMetaEnabled?.()) {
+      return res.status(503).json({ ok: false, error: 'firestore_meta_disabled' });
+    }
+    const doc = await fm.readMarketDigest?.(req.params.marketId);
+    if (!doc) return res.status(404).json({ ok: false, error: 'not_found' });
+    res.json({ ok: true, marketId: req.params.marketId, ...doc });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'digest_failed' });
+  }
+});
+
+app.get('/api/cache/rollup/:date?', async (req, res) => {
+  try {
+    const fm = await import('./lib/firestoreMeta.js');
+    if (!fm.isFirestoreMetaEnabled?.()) {
+      return res.status(503).json({ ok: false, error: 'firestore_meta_disabled' });
+    }
+    const day = req.params.date || todayStr();
+    const doc = await fm.readDailyRollup?.(day);
+    if (!doc) return res.status(404).json({ ok: false, error: 'not_found', date: day });
+    res.json({ ok: true, ...doc });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || 'rollup_failed' });
+  }
 });
 
 app.get('/api/rate-limits', (_req, res) => {
@@ -436,6 +521,8 @@ app.use('/api/fao', faoRouter);
 app.use('/api/treasuryCost', treasuryCostRouter);
 // Panel API routing registry (discovery + health probe for every tab endpoint)
 app.use('/api/panel-routing', panelRoutingRouter);
+// Slim per-panel cache slices (field-map driven; progressive / low-bandwidth)
+app.use('/api/panel', panelSliceRouter);
 // AI / local recovery planner for panel health (no secrets in responses)
 app.use('/api/agent', agentRecoverRouter);
 // Ticker routes: /api/summary/:ticker, /api/history/:ticker, /api/snapshot
@@ -495,25 +582,25 @@ server = app.listen(port, host, () => {
     console.warn('[WS/FX] start failed (non-fatal):', e?.message || e);
   }
 
-  // Warm primary tab markets in the background so the first browser wave hits
-  // daily disk/memory cache instead of racing cold FRED/Yahoo timeouts.
-  // Priority order: slow FRED-heavy tabs first (bonds/RE/insurance), then
-  // remaining tabs, then cross-market deps. Non-blocking for listen health.
-  const WARM_PRIORITY = [
-    'bonds', 'realEstate', 'insurance', 'credit', 'fx', 'globalMacro',
+  // Staged warm: cross-market deps first (unblocks panels), then core tabs,
+  // then remaining tabs/satellites. Matches client wave order philosophy.
+  const WARM_DEPS = [
+    'edgar', 'edgar/filing-activity', 'edgar/insurer-ratios', 'bea', 'worldbank',
+    'treasuryTIC', 'nyfed', 'treasuryAuctions', 'ecb', 'treasuryCost', 'cftcTFF',
+    'imf', 'institutional', 'fema', 'usgs', 'fdic', 'msrb', 'bisOTC',
+    'eiaPetroleum', 'census', 'censusTrade', 'oecd', 'eurostat',
+    'fao', 'fed/news-sentiment', 'fed/gdpnow', 'fed/sep', 'fed/inflation-nowcast',
+    'universeUpdates', 'treasuryDTS',
+  ];
+  const WARM_CORE = [
+    'equities', 'bonds', 'fx', 'credit',
   ];
   const WARM_TABS = [
-    'derivatives', 'commodities/v2', 'equityDeepDive', 'crypto', 'sentiment',
-    'calendar', 'macro', 'equities', 'bls', 'eia',
+    'derivatives', 'crypto', 'sentiment', 'calendar', 'bls', 'eia',
+    'realEstate', 'insurance', 'globalMacro', 'equityDeepDive', 'commodities/v2', 'macro',
   ];
-  const WARM_DEPS = [
-    'treasuryTIC', 'nyfed', 'treasuryAuctions', 'ecb', 'treasuryCost',
-    'imf', 'worldbank', 'bea', 'edgar', 'edgar/insurer-ratios', 'edgar/filing-activity',
-    'institutional', 'fema', 'usgs', 'fdic', 'msrb', 'cftcTFF', 'bisOTC',
-    'eiaPetroleum', 'census', 'censusTrade', 'oecd', 'eurostat',
-    'fao', 'fed/news-sentiment', 'fed/gdpnow', 'fed/sep', 'universeUpdates',
-  ];
-  const WARM_PATHS = [...WARM_PRIORITY, ...WARM_TABS, ...WARM_DEPS];
+  const WARM_PATHS = [...WARM_DEPS, ...WARM_CORE, ...WARM_TABS];
+  const WARM_PRIORITY = [...WARM_DEPS.slice(0, 12), ...WARM_CORE]; // first sequential burst
 
   async function warmPath(base, m, timeoutMs = 180000) {
     const ctrl = new AbortController();
@@ -565,17 +652,19 @@ server = app.listen(port, host, () => {
     const base = `http://127.0.0.1:${actualPort}`;
     console.log(`[warmup] Starting background cache warm for ${WARM_PATHS.length} routes…`);
     (async () => {
-      // Sequential priority (bonds alone can take 60–120s)
+      // Stage 1: key deps + core tabs (longer timeout for FRED-heavy)
       for (const m of WARM_PRIORITY) {
         await warmPath(base, m, 200000);
+        await new Promise((r) => setTimeout(r, 400));
+      }
+      // Stage 2: remaining deps + tabs
+      const stage1 = new Set(WARM_PRIORITY);
+      for (const m of WARM_PATHS) {
+        if (stage1.has(m)) continue;
+        await warmPath(base, m, 120000);
         await new Promise((r) => setTimeout(r, 500));
       }
-      // Remaining tabs + deps staggered
-      for (const m of [...WARM_TABS, ...WARM_DEPS]) {
-        await warmPath(base, m, 120000);
-        await new Promise((r) => setTimeout(r, 600));
-      }
-      console.log('[warmup] Complete');
+      console.log('[warmup] Complete (staged deps→core→tabs)');
     })().catch((e) => console.warn('[warmup] aborted:', e?.message || e));
   }, 1500);
 });

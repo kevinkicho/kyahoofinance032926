@@ -1,0 +1,20 @@
+{
+  "schemaId": "equities.v1",
+  "marketId": "equities",
+  "primary": "/api/equities",
+  "description": "Single data plane for equities heatmap/list/indices. Full bag on disk/GCS; digest for progressive KPIs.",
+  "fields": [
+    { "id": "quotes", "path": "quotes", "role": "map", "required": true, "notes": "ticker → quote objects" },
+    { "id": "indices", "path": "indices", "role": "map", "required": false },
+    { "id": "universe", "path": "universe", "role": "object", "required": false },
+    { "id": "coverage", "path": "coverage", "role": "object", "required": false },
+    { "id": "fetchedOn", "path": "fetchedOn", "role": "date", "required": true }
+  ],
+  "digestKeys": ["quoteCount", "indexCount", "sampleQuotes"],
+  "panels": [
+    { "panelId": "kpi", "requiredFields": ["indices", "quotes"] },
+    { "panelId": "heatmap", "requiredFields": ["quotes"] },
+    { "panelId": "sidebar", "requiredFields": ["quotes"] },
+    { "panelId": "portfolio", "requiredFields": ["quotes"] }
+  ]
+}

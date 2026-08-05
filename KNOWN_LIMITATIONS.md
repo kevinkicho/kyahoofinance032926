@@ -59,13 +59,21 @@ Startup logs which keys are missing (`warnOnMissingKeys` in `server/index.js`).
 
 ---
 
-## Caching
+## Caching & serve policy
 
 | Layer | Notes |
 |-------|--------|
-| Daily files `server/datacache/` | Hollow/sparse payloads rejected; pruned after 7 days; prior-day fallback sets `isCurrent: false` |
+| Daily files `server/datacache/` | Hollow/sparse payloads rejected; pruned after 7 days; prior-day fallback sets `isStale` |
 | In-process NodeCache | Per-route TTL; lost on restart |
+| GCS `MARKET_CACHE_BUCKET` | Shared last-good bags across Cloud Run instances |
 | Client IndexedDB / localStorage | Optional paint/persist; unavailable in some private WebViews |
+
+| Env | Default | Behavior |
+|-----|---------|----------|
+| `MARKET_SERVE_MODE` | `cache_bootstrap` | User GET with bag → **no upstream**. Miss → bootstrap live. `cache` = miss returns degraded until warm. |
+| `MARKET_CACHE_ONLY=1` | off | All requests refuse upstream (except still allow force refresh policy override only if not set with cacheOnly query) |
+
+Operator ▶ and postdeploy warm use `?refresh=true` — that is the intentional rebuild path.
 
 ---
 
@@ -113,6 +121,22 @@ Reports also expose:
 | `uiOk` | Real visible metrics/chart/table (not bridge-only) |
 | `bridgeOnly` / `healthQuality: 'bridge'` | F/D/C ok only via bridge |
 | `countStatuses().okUi` / `.okBridge` | Splash KPI split |
+| `panelChipKind` / `marketSplashKind` | Flash-page colors (green = true UI only) |
+
+**Flash page (SplashScreen):** chips and market borders use `panelChipKind` /
+`marketSplashKind` — full green is **true UI only**; bridge is amber; market
+borders follow panel tallies, not “`ctx.data` arrived”. Operational `status: ok`
+alone no longer paints full green.
+
+**Topbar dropdown dots:** `derivePanelSignal` requires **true UI** (`uiOk`) for
+green. Bridge-only operational ok is **amber** (`color: bridge`), never green.
+Closed tabs stay grey when fetch is ok (open tab to verify). Popover shows a
+fourth gate: True UI.
+
+**True UI promotion:** `stampVisiblePaintedMetrics` turns already-visible body
+numbers (tables/KPIs without `MetricValue`) into metric stamps so paint counts
+as real UI across the catalog — not only large chart panels. SafeECharts forces
+a measure box after a short timeout so charts are not stuck blank at 0×0.
 
 Use `uiOk` / false-green probes for product quality; bridge ok is operational.
 

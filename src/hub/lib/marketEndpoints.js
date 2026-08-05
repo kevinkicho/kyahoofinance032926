@@ -78,3 +78,38 @@ export function marketIdForPath(path) {
   }
   return null;
 }
+
+/**
+ * Cross-market dependency market ids (edgar, treasuryTIC, …) derived from
+ * tab markets' deps in api-routing.json. Used to order the DataProvider wave
+ * so satellites land before panels that wait on them.
+ * @returns {string[]}
+ */
+export function getPriorityDepMarketIds() {
+  const ids = new Set();
+  for (const tabId of TAB_MARKET_IDS) {
+    for (const p of getMarketDependencyPaths(tabId)) {
+      const mid = marketIdForPath(p);
+      if (mid && MARKET_ENDPOINTS[mid]) ids.add(mid);
+    }
+  }
+  // Stable-ish order: shorter ids first (not critical)
+  return [...ids].sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Full wave order: **deps first**, then tab markets, then remainder.
+ * Cross-market panels stop waiting forever when satellites are last.
+ * @returns {string[]}
+ */
+export function buildWaveMarketIdsFromRouting() {
+  const primary = TAB_MARKET_IDS.filter((id) => id !== 'alerts' && MARKET_ENDPOINTS[id]);
+  const deps = getPriorityDepMarketIds();
+  const primarySet = new Set(primary);
+  const depSet = new Set(deps);
+  return [
+    ...deps,
+    ...primary.filter((id) => !depSet.has(id)),
+    ...ALL_FETCH_IDS.filter((id) => !primarySet.has(id) && !depSet.has(id)),
+  ];
+}

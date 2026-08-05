@@ -6,6 +6,15 @@ vi.mock('../lib/fetch.js', () => ({
 
 vi.mock('../lib/cache.js', () => ({
   readDailyCacheAsync: vi.fn(() => Promise.resolve(null)),
+  readBestAvailableCache: vi.fn(() => Promise.resolve(null)),
+  withCacheProvenance: vi.fn((data, meta = {}) => ({
+    ...data,
+    fetchedOn: meta.fetchedOn || '2026-04-22',
+    isCurrent: meta.isCurrent !== false,
+    isStale: !!meta.isStale,
+    isLive: !!meta.isLive,
+    _cacheSource: meta.source || 'cache',
+  })),
   writeDailyCacheAsync: vi.fn(() => Promise.resolve()),
   mergeWithPreviousCache: vi.fn((_m, data) => data),
   readLatestCacheAsync: vi.fn(() => Promise.resolve(null)),
@@ -43,7 +52,13 @@ describe('Bonds Route', () => {
       yieldCurveData: { US: { dates: ['2026-04-21'], values: [4.2] } },
       lastUpdated: '2026-04-22',
     };
-    cache.readDailyCacheAsync.mockResolvedValueOnce(mockDaily);
+    cache.readBestAvailableCache.mockResolvedValueOnce({
+      data: mockDaily,
+      fetchedOn: '2026-04-22',
+      isCurrent: true,
+      isStale: false,
+      source: 'daily_file',
+    });
 
     const routeHandler = bondsRouter.stack.find(s => s.route?.path === '/').route.stack[0].handle;
 
@@ -53,7 +68,7 @@ describe('Bonds Route', () => {
 
     await routeHandler(mockReq, mockRes);
 
-    expect(cache.readDailyCacheAsync).toHaveBeenCalledWith('bonds');
+    expect(cache.readBestAvailableCache).toHaveBeenCalledWith('bonds');
     expect(mockRes.json).toHaveBeenCalled();
     const resBody = mockRes.json.mock.calls[0][0];
     expect(resBody.yieldCurveData).toBeDefined();
@@ -61,7 +76,7 @@ describe('Bonds Route', () => {
   });
 
   it('uses latest cache fallback when API calls fail', async () => {
-    cache.readDailyCacheAsync.mockResolvedValueOnce(null);
+    cache.readBestAvailableCache.mockResolvedValueOnce(null);
     rateLimits.trackApiCall.mockImplementationOnce(() => {
       throw new Error('Trigger fallback path');
     });

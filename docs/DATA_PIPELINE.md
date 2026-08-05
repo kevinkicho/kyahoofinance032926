@@ -86,25 +86,32 @@ Typical response shape:
 
 ---
 
-## 4. Caching
+## 4. Caching & serve policy (hardened)
 
 ```mermaid
 flowchart TB
-    REQ["GET /api/<market>"] --> NC{"NodeCache"}
-    NC -- hit --> OUT["JSON"]
-    NC -- miss --> DISK{"disk / GCS daily"}
-    DISK -- hit --> OUT
-    DISK -- miss --> FETCH["Upstream fan-out"]
-    FETCH --> OUT
-    SCHED["refreshMarketSnapshots"] --> RTDB["RTDB latest + history"]
-    UI["DataProvider"] --> REQ
-    UI -. "past date" .-> RTDB
+    REQ["GET /api/market"] --> POL{"MARKET_SERVE_MODE"}
+    POL --> BEST["readBestAvailableCache\ntoday → prior → GCS"]
+    BEST -- hit --> OUT["200 + isStale flags"]
+    BEST -- miss --> UP{"allow upstream?"}
+    UP -- bootstrap --> FETCH["Upstream fan-out"]
+    UP -- cache mode --> DEG["degraded / empty"]
+    FETCH --> WRITE["write disk+GCS if non-hollow"]
+    WRITE --> OUT
+    WARM["postdeploy warm ?refresh=1"] --> FETCH
+    UI["DataProvider cache-first"] --> REQ
+    OP["Operator ▶ refresh=true"] --> FETCH
 ```
 
-- **Primary live path:** DataProvider force-fetches App Hosting `/api/*` on load/refresh.
-- **RTDB:** nightly/admin snapshots for history and optional seed demos (`VITE_USE_RTDB_SEED`).
-- **FRED throttle:** `server/lib/fetch.js` — process-wide sliding window + limited retry on 5xx.
-- **GCS:** [`SHARED_CACHE.md`](./SHARED_CACHE.md).
+| Mode (`MARKET_SERVE_MODE`) | User GET with bag | User GET miss | Operator ▶ |
+|----------------------------|-------------------|---------------|------------|
+| `cache_bootstrap` (default) | Serve bag, **no upstream** | Upstream once (bootstrap) | Upstream |
+| `cache` | Serve bag | Degraded (no upstream) | Upstream |
+
+- **Write path:** post-deploy warm (`?refresh=true`) + operator ▶. Hollow live never overwrites a good prior bag.
+- **No mock values** — only real written bags or honest empty/degraded.
+- **GCS:** [`SHARED_CACHE.md`](./SHARED_CACHE.md). Firestore = meta/digest only.
+- Policy code: `server/lib/marketServePolicy.js` + `routeFactory.js`.
 
 ---
 
@@ -117,9 +124,10 @@ Optional localStorage slim snapshot can paint first; `/api/*` overwrites.
 
 | Trigger | Behavior |
 | --- | --- |
-| App load | **One** wave, cache-first (serve today's disk/GCS; no `?refresh`) |
-| Topbar ▶ | Same full wave with force-live (`?refresh=true` + cache bypass) |
-| BentoCard footer ▶ | Force-live for **that market only** (`refetchSingle`) |
+| App load | **One** wave, cache-first (no `?refresh`) — server does not fan out if bag exists |
+| Topbar ▶ | Force-live rebuild (`?refresh=true` + `X-Cache-Bypass`) — only rebuild path for full catalog |
+| BentoCard footer ▶ | Force-live for **that market only** |
+| Post-deploy warm | Staged `?refresh=true` rebuild into disk/GCS (primary write path) |
 
 No interval auto-refresh. No background revalidate after the first wave.
 

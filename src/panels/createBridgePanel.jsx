@@ -1,10 +1,11 @@
 import React from 'react';
 import { definePanel } from './definePanel';
 import EmptyPanelBody from '../components/BentoCard/EmptyPanelBody';
+import ProgressiveSlicePreview from '../components/ProgressiveSlicePreview/ProgressiveSlicePreview';
 
 /**
  * Create an independent panel module whose Body is supplied by the market tab
- * via ctx.__render(panelId). Used while migrating markets off inlined BentoCards.
+ * via ctx.__render(panelId). Falls back to progressive /api/panel slice preview.
  */
 export function createBridgePanel({
   marketId,
@@ -29,10 +30,21 @@ export function createBridgePanel({
         return <EmptyPanelBody message="Panel render error" reason={String(e?.message || e)} />;
       }
     }
+    // Progressive: show cached field slice while market body / render is empty
+    if (ctx?.__progressive || ctx?.__slice || ctx?.__sliceStatus === 'loading') {
+      return (
+        <ProgressiveSlicePreview
+          title={title}
+          slice={ctx.__slice}
+          status={ctx.__sliceStatus || 'idle'}
+        />
+      );
+    }
     return (
       <EmptyPanelBody
         message={`${title} — open tab / wait for data`}
         reason={key}
+        loading={!!ctx?.__marketLoading}
       />
     );
   }

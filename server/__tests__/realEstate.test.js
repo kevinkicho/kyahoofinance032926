@@ -6,6 +6,15 @@ vi.mock('../lib/fetch.js', () => ({
 
 vi.mock('../lib/cache.js', () => ({
   readDailyCacheAsync: vi.fn(() => Promise.resolve(null)),
+  readBestAvailableCache: vi.fn(() => Promise.resolve(null)),
+  withCacheProvenance: vi.fn((data, meta = {}) => ({
+    ...data,
+    fetchedOn: meta.fetchedOn || '2026-04-22',
+    isCurrent: meta.isCurrent !== false,
+    isStale: !!meta.isStale,
+    isLive: !!meta.isLive,
+    _cacheSource: meta.source || 'cache',
+  })),
   writeDailyCacheAsync: vi.fn(() => Promise.resolve()),
   mergeWithPreviousCache: vi.fn((_m, data) => data),
   readLatestCacheAsync: vi.fn(() => Promise.resolve(null)),
@@ -51,7 +60,13 @@ describe('Real Estate Route', () => {
       reitData: { VNQ: { price: 82.5 } },
       lastUpdated: '2026-04-22',
     };
-    cache.readDailyCacheAsync.mockResolvedValueOnce(mockDaily);
+    cache.readBestAvailableCache.mockResolvedValueOnce({
+      data: mockDaily,
+      fetchedOn: '2026-04-22',
+      isCurrent: true,
+      isStale: false,
+      source: 'daily_file',
+    });
 
     const routeHandler = realEstateRouter.stack.find(s => s.route?.path === '/').route.stack[0].handle;
 
@@ -61,7 +76,7 @@ describe('Real Estate Route', () => {
 
     await routeHandler(mockReq, mockRes);
 
-    expect(cache.readDailyCacheAsync).toHaveBeenCalledWith('realEstate');
+    expect(cache.readBestAvailableCache).toHaveBeenCalledWith('realEstate');
     expect(mockRes.json).toHaveBeenCalled();
     const resBody = mockRes.json.mock.calls[0][0];
     expect(resBody.reitData).toBeDefined();
@@ -69,7 +84,7 @@ describe('Real Estate Route', () => {
   });
 
   it('uses latest cache fallback when API calls fail', async () => {
-    cache.readDailyCacheAsync.mockResolvedValueOnce(null);
+    cache.readBestAvailableCache.mockResolvedValueOnce(null);
     cache.writeDailyCacheAsync.mockRejectedValueOnce(new Error('Trigger fallback path'));
     const mockFallback = {
       data: { reitData: { VNQ: { price: 80.1 } } },

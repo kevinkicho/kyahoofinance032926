@@ -49,14 +49,17 @@ describe('buildWaveMarketIds', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('puts primary tab markets first', () => {
+  it('puts cross-market deps before tab markets that need them', () => {
     const ids = buildWaveMarketIds();
-    // equities / bonds are core tab markets when registered
-    if (MARKET_ENDPOINTS.equities) {
-      expect(ids.indexOf('equities')).toBeLessThan(ids.indexOf('ecb') >= 0 ? ids.indexOf('ecb') : ids.length);
-    }
+    // Satellites must land before panels waiting on them
     if (MARKET_ENDPOINTS.bonds && MARKET_ENDPOINTS.treasuryTIC) {
-      expect(ids.indexOf('bonds')).toBeLessThan(ids.indexOf('treasuryTIC'));
+      expect(ids.indexOf('treasuryTIC')).toBeLessThan(ids.indexOf('bonds'));
+    }
+    if (MARKET_ENDPOINTS.equities && MARKET_ENDPOINTS.edgar) {
+      expect(ids.indexOf('edgar')).toBeLessThan(ids.indexOf('equities'));
+    }
+    if (MARKET_ENDPOINTS.equities && MARKET_ENDPOINTS.edgarFilingActivity) {
+      expect(ids.indexOf('edgarFilingActivity')).toBeLessThan(ids.indexOf('equities'));
     }
   });
 });

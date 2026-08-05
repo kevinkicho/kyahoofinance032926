@@ -81,6 +81,24 @@
   color: var(--text-secondary);
 }
 
+/* Equity heatmap — fill bento content so SafeECharts gets a real box */
+.eq-heatmap-body,
+.eq-heatmap-root {
+  flex: 1 1 auto;
+  min-height: 240px;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+}
+.bento-card[data-panel-key="heatmap"] > .bento-panel-content {
+  overflow: hidden;
+  min-height: 240px;
+}
+.bento-card[data-panel-key="heatmap"] .eq-heatmap-body,
+.bento-card[data-panel-key="heatmap"] .eq-heatmap-root {
+  min-height: 280px;
+}
+
 .eq-indices-panel {
   height: 100%;
   min-height: 0;
@@ -1467,6 +1485,13 @@
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
+.sec-file-meta-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .sec-file-clear {
   appearance: none;
   background: transparent;
@@ -1477,6 +1502,8 @@
   font-weight: 700;
   padding: 1px 5px;
   cursor: pointer;
+}
+.sec-file-meta > .sec-file-clear {
   margin-left: auto;
 }
 .sec-file-clear:hover {
@@ -1534,6 +1561,99 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
+
+/* Company accordion (collapsed-by-default list groups) */
+.sec-file-company {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sec-file-company:last-child {
+  border-bottom: none;
+}
+.sec-file-company-head {
+  appearance: none;
+  display: grid;
+  grid-template-columns: 14px 42px 28px 40px minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 28px;
+  margin: 0;
+  padding: 4px 6px 4px 4px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.02);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.sec-file-company-head:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+.sec-file-company.is-open > .sec-file-company-head {
+  background: rgba(96, 165, 250, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sec-file-chevron {
+  width: 14px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.sec-file-company-tkr {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+.sec-file-company-count {
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 999px;
+  padding: 1px 5px;
+  text-align: center;
+  justify-self: start;
+}
+.sec-file-company-date {
+  font-size: 9px;
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  text-align: right;
+}
+.sec-file-company-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+.sec-file-company-forms {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8.5px;
+  color: var(--text-dim);
+  font-family: 'SF Mono', 'Cascadia Code', monospace;
+}
+.sec-file-company-rows {
+  background: rgba(0, 0, 0, 0.12);
+}
+.sec-file-company-rows .sec-file-row {
+  padding-left: 10px;
+}
+.sec-file-row-indent {
+  display: inline-block;
+  width: 10px;
+}
+
 .sec-file-row {
   min-height: 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -1619,6 +1739,10 @@
 }
 
 @container bento-card (max-width: 520px) {
+  .sec-file-company-head {
+    grid-template-columns: 14px 40px 26px 36px minmax(0, 1fr);
+  }
+  .sec-file-company-forms { display: none; }
   .sec-file-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .sec-file-controls {
     grid-template-columns: 1fr 1fr;

@@ -8,12 +8,35 @@
   z-index: 99999;
 }
 
-/* Markets render at full size behind the backdrop — fully painted for DOM scanning */
+/* Markets render at full size behind the backdrop — fully painted for DOM scanning.
+   Each market gets a real viewport-sized host so SafeECharts / RGL measure non-zero
+   width/height (otherwise charts stay blank and health falls back to bridge-only). */
 .splash-backdrop {
   position: absolute;
   inset: 0;
   overflow: auto;
   z-index: 0;
+}
+.splash-backdrop [data-splash-market] {
+  position: relative;
+  width: 100%;
+  min-width: 960px;
+  min-height: 100vh;
+  height: auto;
+  box-sizing: border-box;
+}
+.splash-backdrop [data-splash-market] .react-grid-layout,
+.splash-backdrop [data-splash-market] .bento-wrapper,
+.splash-backdrop [data-splash-market] .layout {
+  min-height: 80vh;
+}
+.splash-backdrop [data-splash-market] .bento-panel-content {
+  min-height: 48px;
+}
+.splash-backdrop [data-splash-market] .echarts-for-react,
+.splash-backdrop [data-splash-market] [data-series-samples],
+.splash-backdrop [data-splash-market] canvas {
+  min-height: 160px;
 }
 
 /* Frosted glass overlay — blocks interaction, blurs content behind */
@@ -66,8 +89,9 @@
   margin: 0;
 }
 
-/* ── Progress bar ── */
+/* ── Progress bar (true UI green + bridge amber segments) ── */
 .splash-progress-bar {
+  position: relative;
   height: 4px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 2px;
@@ -76,10 +100,21 @@
 }
 
 .splash-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #22c55e);
   border-radius: 2px;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, left 0.3s ease;
+}
+.splash-progress-fill--ui {
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  z-index: 2;
+}
+.splash-progress-fill--bridge {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+  z-index: 1;
+  opacity: 0.9;
 }
 
 /* ── Stats row ── */
@@ -89,6 +124,7 @@
   justify-content: center;
   margin-bottom: 20px;
   font-size: 12px;
+  flex-wrap: wrap;
 }
 
 .splash-stat {
@@ -98,6 +134,7 @@
 }
 
 .splash-stat-ok { color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+.splash-stat-bridge { color: #fbbf24; background: rgba(245, 158, 11, 0.12); }
 .splash-stat-loading { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
 .splash-stat-error { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
 .splash-stat-time { color: #94a3b8; background: rgba(148, 163, 184, 0.08); }
@@ -122,12 +159,25 @@
   background: rgba(34, 197, 94, 0.04);
 }
 
+/* All panels operational but some only via health bridge */
+.splash-market--bridge {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+/* Mix of true UI / bridge / incomplete — never full green from payload alone */
+.splash-market--partial {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.05);
+}
+
 .splash-market--error {
   border-color: rgba(239, 68, 68, 0.3);
   background: rgba(239, 68, 68, 0.04);
 }
 
-.splash-market--loading {
+.splash-market--loading,
+.splash-market--pending {
   border-color: rgba(245, 158, 11, 0.3);
   background: rgba(245, 158, 11, 0.04);
 }
@@ -232,8 +282,17 @@
 .splash-panel-chip--pending .splash-chip-dot { background: rgba(100, 116, 139, 0.45); }
 .splash-chip-dot--loading,
 .splash-panel-chip--loading .splash-chip-dot { background: #f59e0b; animation: splash-pulse 1s ease-in-out infinite; }
+/* True UI only — full green */
+.splash-chip-dot--ui,
 .splash-chip-dot--ok,
+.splash-panel-chip--ui .splash-chip-dot,
 .splash-panel-chip--ok .splash-chip-dot { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.55); }
+/* Health-bridge operational ok — amber, never full green */
+.splash-chip-dot--bridge,
+.splash-panel-chip--bridge .splash-chip-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.45);
+}
 .splash-chip-dot--error,
 .splash-chip-dot--null,
 .splash-panel-chip--error .splash-chip-dot,
@@ -241,14 +300,23 @@
 .splash-chip-dot--stale,
 .splash-panel-chip--stale .splash-chip-dot { background: #f59e0b; }
 
+.splash-panel-chip--ui,
 .splash-panel-chip--ok {
   border-color: rgba(34, 197, 94, 0.35);
   background: rgba(34, 197, 94, 0.08);
+}
+.splash-panel-chip--bridge {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.1);
 }
 .splash-panel-chip--null,
 .splash-panel-chip--error {
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
+}
+.splash-panel-chip--pending {
+  border-color: rgba(100, 116, 139, 0.3);
+  background: rgba(100, 116, 139, 0.08);
 }
 
 @keyframes splash-pulse {
@@ -273,6 +341,7 @@
   animation: splash-fade-in 0.3s ease;
 }
 .splash-done--wait { color: #94a3b8; }
+.splash-done--mixed { color: #e2e8f0; }
 
 .splash-enter-btn {
   appearance: none;
@@ -292,6 +361,20 @@
   box-shadow: 0 10px 28px rgba(34, 197, 94, 0.45);
 }
 .splash-enter-btn:active { transform: translateY(0); }
+.splash-enter-btn--ghost {
+  color: #e2e8f0;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: none;
+}
+.splash-enter-btn--ghost:hover {
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.06);
+}
+.splash-enter-btn--ghost:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 
 @keyframes splash-fade-in {
   from { opacity: 0; transform: translateY(4px); }
@@ -364,6 +447,16 @@
   background: rgba(34, 197, 94, 0.12);
   border: 1px solid rgba(34, 197, 94, 0.3);
 }
+.splash-detail-verdict.is-bridge {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.splash-detail-verdict.is-pending {
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.12);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+}
 .splash-detail-verdict.is-bad,
 .splash-detail-verdict.is-red {
   color: #fca5a5;
@@ -388,6 +481,10 @@
   background: rgba(34, 197, 94, 0.07);
   border-color: rgba(34, 197, 94, 0.2);
 }
+.splash-gate-row--bridge {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+}
 .splash-gate-row--bad {
   background: rgba(239, 68, 68, 0.07);
   border-color: rgba(239, 68, 68, 0.2);
@@ -397,6 +494,7 @@
   width: 16px;
 }
 .splash-gate-row--ok .splash-gate-icon { color: #22c55e; }
+.splash-gate-row--bridge .splash-gate-icon { color: #f59e0b; }
 .splash-gate-row--bad .splash-gate-icon { color: #ef4444; }
 .splash-gate-label { font-size: 12px; font-weight: 600; }
 .splash-gate-detail { font-size: 11px; color: #94a3b8; margin-top: 2px; word-break: break-word; }
@@ -447,6 +545,8 @@
 }
 .splash-detail-panel-item:hover { background: rgba(255, 255, 255, 0.06); }
 .splash-detail-panel-item.is-ok { border-color: rgba(34, 197, 94, 0.25); }
+.splash-detail-panel-item.is-bridge { border-color: rgba(245, 158, 11, 0.35); }
+.splash-detail-panel-item.is-pending { border-color: rgba(100, 116, 139, 0.3); }
 .splash-detail-panel-item.is-bad { border-color: rgba(239, 68, 68, 0.25); }
 .splash-detail-panel-title { flex: 1; }
 .splash-detail-panel-flags {

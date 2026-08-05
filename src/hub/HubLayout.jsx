@@ -14,6 +14,9 @@ import SplashScreen from './SplashScreen';
 import { setPanelCache, getPanelCache } from '../hooks/usePanelHealth';
 import { evaluateAllMarkets } from './lib/panelHealthEval';
 import ErrorBoundary from '../components/ErrorBoundary';
+import DigestKpiBar from '../components/DigestKpiBar/DigestKpiBar';
+import { MARKET_PANELS } from '../data/marketPanels';
+import { prefetchMarketPanelSlices } from '../hooks/usePanelSlice';
 
 function flattenForCSV(obj, prefix = '') {
   const rows = [];
@@ -106,6 +109,10 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
     const params = new URLSearchParams(window.location.search);
     const fromUrl = params.get('market');
     if (fromUrl && MARKETS.some(m => m.id === fromUrl)) return fromUrl;
+    try {
+      const prefs = JSON.parse(localStorage.getItem('hub-user-prefs-v1') || '{}');
+      if (prefs.activeMarket && MARKETS.some(m => m.id === prefs.activeMarket)) return prefs.activeMarket;
+    } catch { /* ignore */ }
     const saved = localStorage.getItem('hub-active-market');
     return saved && MARKETS.some(m => m.id === saved) ? saved : DEFAULT_MARKET;
   });
@@ -131,6 +138,15 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
 
   useEffect(() => {
     localStorage.setItem('hub-active-market', activeMarket);
+    try {
+      const raw = localStorage.getItem('hub-user-prefs-v1');
+      const prefs = raw ? JSON.parse(raw) : {};
+      localStorage.setItem('hub-user-prefs-v1', JSON.stringify({
+        ...prefs,
+        activeMarket,
+        updatedAt: Date.now(),
+      }));
+    } catch { /* ignore */ }
     // Don't modify URL in popout windows
     if (window.location.search.includes('popout=')) return;
     const url = new URL(window.location);
@@ -239,6 +255,19 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
 
   const dataCtx = useDataContext();
 
+  // Prefetch progressive panel slices for the active tab while bag is loading
+  useEffect(() => {
+    const panels = MARKET_PANELS[activeMarket] || [];
+    const ids = panels.map((p) => p.id);
+    if (!ids.length) return undefined;
+    const m = dataCtx?.getMarket?.(activeMarket);
+    // Warm slices always (cheap disk) so first paint isn't empty
+    const t = setTimeout(() => {
+      prefetchMarketPanelSlices(activeMarket, ids).catch(() => {});
+    }, m?.data ? 800 : 120);
+    return () => clearTimeout(t);
+  }, [activeMarket, dataCtx, dataCtx?.markets?.[activeMarket]?.isLoading, dataCtx?.markets?.[activeMarket]?.data]);
+
   useEffect(() => {
     if (import.meta.env.DEV) return;
     let cancelled = false;
@@ -343,7 +372,8 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
     const hasAny = Object.values(markets).some((m) => m?.data || m?.error);
     if (!hasAny) return;
     try {
-      const seed = evaluateAllMarkets(dataCtx.getMarket, markets);
+      // L1-only seed — never invent bridge shells on return-visit splash skip.
+      const seed = evaluateAllMarkets(dataCtx.getMarket, markets, { dataOnly: true });
       setPanelCache(seed);
     } catch (e) {
       console.warn('[HubLayout] health seed failed:', e);
@@ -373,6 +403,7 @@ function HubLayoutInner({ refreshKey, setRefreshKey }) {
          />
         <HistoricalModeBanner />
         <main id="main-content" ref={contentRef} role="tabpanel" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+          <DigestKpiBar marketId={activeMarket} />
           {MARKETS.map(m => {
             const isVisited = visitedMarkets.includes(m.id);
             if (!isVisited) return null;

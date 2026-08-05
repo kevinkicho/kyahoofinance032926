@@ -90,9 +90,10 @@ const INDEX_CURRENCY = {
 // empty band. The main panels start at y:4.
 const HEATMAP_LAYOUT = {
   lg: [
-    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4 },
-    { i: 'heatmap', x: 0, y: 4, w: 8,  h: 6 },
-    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6 },
+    { i: 'kpi',     x: 0, y: 0, w: 12, h: 4, minH: 3 },
+    // minH 5 (~600px) so SafeECharts never collapses into a zero-height RGL cell
+    { i: 'heatmap', x: 0, y: 4, w: 8,  h: 6, minH: 5, minW: 4 },
+    { i: 'sidebar', x: 8, y: 4, w: 4,  h: 6, minH: 4 },
     { i: 'sec-fundamentals', x: 0, y: 10, w: 7, h: 6 },
     { i: 'sec-filings', x: 7, y: 10, w: 5, h: 6 },
     { i: 'universe-updates', x: 0, y: 16, w: 12, h: 4 },
@@ -179,32 +180,71 @@ function quotesFromUniverse(universe) {
   return out;
 }
 
+/**
+ * Normalize /api/equities quotes (full or compact) into one compact shape.
+ * Single data plane: hub bag is the source of truth — no parallel /api/stocks merge.
+ */
 function compactQuotesFromSnapshot(quotes) {
   if (!quotes || typeof quotes !== 'object') return null;
   const out = {};
   for (const [ticker, q] of Object.entries(quotes)) {
     if (!q || typeof q !== 'object') continue;
     const compact = {};
-    if (q.price != null) compact.p = q.price;
-    if (q.change != null) compact.c = q.change;
-    if (q.changePct != null) compact.cp = q.changePct;
-    if (q.marketCapUsdB != null) compact.mc = q.marketCapUsdB;
-    if (q.pe != null) compact.pe = q.pe;
-    if (q.divYield != null) compact.dy = q.divYield;
-    if (q.weekHigh52 != null) compact.wh = q.weekHigh52;
-    if (q.weekLow52 != null) compact.wl = q.weekLow52;
+    const price = q.price ?? q.p;
+    const change = q.change ?? q.c;
+    const changePct = q.changePct ?? q.cp;
+    const mc = q.marketCapUsdB ?? q.mc ?? (typeof q.marketCap === 'number' && q.marketCap > 1e6
+      ? q.marketCap / 1e9
+      : q.marketCap);
+    const pe = q.pe ?? q.trailingPE;
+    const dy = q.divYield ?? q.dividendYield ?? q.dy;
+    const wh = q.weekHigh52 ?? q.wh;
+    const wl = q.weekLow52 ?? q.wl;
+    if (price != null) compact.p = price;
+    if (change != null) compact.c = change;
+    if (changePct != null) compact.cp = changePct;
+    if (mc != null && Number.isFinite(Number(mc))) compact.mc = Number(mc);
+    if (pe != null) compact.pe = pe;
+    if (dy != null) compact.dy = dy;
+    if (wh != null) compact.wh = wh;
+    if (wl != null) compact.wl = wl;
     if (Object.keys(compact).length) out[ticker] = compact;
   }
   return Object.keys(out).length ? out : null;
 }
 
-function applyQuotesToUniverse(universe, quotes) {
+function applyQuotesToUniverse(universe, quotes, { preferLocal = false } = {}) {
   if (!quotes || !Object.keys(quotes).length) return universe;
   return universe.map(region => ({
     ...region,
     children: region.children.map(stock => {
-      const q = quotes[stock.name];
-      if (!q) return stock;
+      const raw = quotes[stock.name];
+      if (!raw) return stock;
+      // Accept compact (p/cp/mc) or full equities API fields.
+      const q = {
+        p: raw.p ?? raw.price,
+        c: raw.c ?? raw.change,
+        cp: raw.cp ?? raw.changePct,
+        mc: raw.mc ?? raw.marketCapUsdB ?? raw.marketCap,
+        pe: raw.pe,
+        dy: raw.dy ?? raw.divYield ?? raw.dividendYield,
+        wh: raw.wh ?? raw.weekHigh52,
+        wl: raw.wl ?? raw.weekLow52,
+      };
+      if (preferLocal) {
+        return {
+          ...stock,
+          marketCap: stock.marketCap ?? q.mc ?? stock.value,
+          value: stock.value ?? q.mc ?? stock.marketCap,
+          pe: stock.pe ?? q.pe,
+          divYield: stock.divYield ?? q.dy,
+          price: stock.price ?? q.p,
+          change: stock.change ?? q.c,
+          changePct: stock.changePct ?? q.cp,
+          weekHigh52: stock.weekHigh52 ?? q.wh,
+          weekLow52: stock.weekLow52 ?? q.wl,
+        };
+      }
       return {
         ...stock,
         ...(q.mc != null && { marketCap: q.mc, value: q.mc }),
@@ -348,6 +388,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const [marketUniverse, setMarketUniverse] = useState(hydrated.universe);
   const [dataTimestamp, setDataTimestamp] = useState(hydrated.stamp);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  /** After user ▶ refresh, prefer local universe over hub centralQuotes overlay. */
+  const [preferLocalQuotes, setPreferLocalQuotes] = useState(false);
   const [indexQuotes, setIndexQuotes] = useState(null);
   const [snapshotQuotes, setSnapshotQuotes] = useState(null);
   const [snapshotDate, setSnapshotDate] = useState(null);
@@ -484,59 +526,60 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
 
   const { rates: fxRates, currentRate, currentSymbol, ratesLive } = useCurrency();
 
-  const handleRefresh = useCallback(() => {
+  /**
+   * Single data plane: footer ▶ only force-lives /api/equities via DataProvider.
+   * centralQuotes (from hub bag) re-merge into heatmap/list — no parallel /api/stocks.
+   */
+  const handleRefresh = useCallback(async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    fetchIndexQuotes();
-    const topTickers = getTopTickersByMarket(stockUniverseData);
-    api.post('/api/stocks', { tickers: topTickers })
-      .then(quotes => {
-        const now = formatTimestamp(new Date());
-        const stamp = `Fetched · Yahoo Finance · ${now}`;
-        setMarketUniverse(prev => {
-          const next = prev.map(region => ({
-            ...region,
-            children: region.children.map(stock => {
-              const q = quotes[stock.name];
-              if (!q) return stock;
-              const fxRate = q.currency === 'USD' ? 1 : fxRates?.[q.currency];
-              const liveCap = q.marketCap && fxRate ? q.marketCap / fxRate / 1e9 : stock.marketCap;
-              return {
-                ...stock,
-                marketCap: liveCap || stock.marketCap,
-                value: liveCap || stock.value,
-                ...(q.changePct != null && { changePct: q.changePct }),
-                ...(q.price != null && { price: q.price }),
-                ...(q.change != null && { change: q.change }),
-                ...(q.weekHigh52 != null && { weekHigh52: q.weekHigh52 }),
-                ...(q.weekLow52 != null && { weekLow52: q.weekLow52 }),
-                ...(q.pe != null && { pe: q.pe }),
-                ...(q.divYield != null && { divYield: q.divYield }),
-              };
-            }),
-          }));
-          const map = loadDailyMap();
-          const today = todayStr();
-          const existing = map[today]?.quotes || {};
-          const mergedQuotes = { ...existing, ...quotesFromUniverse(next) };
-          map[today] = { stamp, quotes: mergedQuotes };
-          saveDailyMap(map);
-          putIDBSnapshot({
-            marketId: 'equities',
-            date: today,
-            stamp,
-            data: { quotes: mergedQuotes },
-            lastUpdated: stamp,
-            isLive: true,
-            isCurrent: true,
-          });
-          return next;
-        });
-        setDataTimestamp(stamp);
-      })
-      .catch(() => {})
-      .finally(() => setIsRefreshing(false));
-  }, [fetchIndexQuotes, fxRates, isRefreshing]);
+    setPreferLocalQuotes(false);
+    setSnapshotQuotes(null);
+    setSnapshotDate(null);
+    setTimeTravelActive(false);
+    try {
+      if (typeof dataCtx?.refetchSingle === 'function') {
+        await dataCtx.refetchSingle('equities');
+      } else {
+        // Fallback if context missing (tests / isolated mount)
+        fetchIndexQuotes();
+        await api.get('/api/equities?refresh=true').catch(() => null);
+      }
+      const stamp = `Fetched · /api/equities · ${formatTimestamp(new Date())}`;
+      setDataTimestamp(stamp);
+    } catch (err) {
+      console.warn('[EquitiesMarket] refresh failed:', err?.message || err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, dataCtx, fetchIndexQuotes]);
+
+  // When hub bag updates (wave or ▶), persist compact quotes for offline paint.
+  useEffect(() => {
+    if (!centralQuotes || snapshotQuotes) return;
+    const stamp = dataTimestamp || centralData?.fetchedOn || formatTimestamp(new Date());
+    const map = loadDailyMap();
+    const today = todayStr();
+    map[today] = { stamp, quotes: { ...(map[today]?.quotes || {}), ...centralQuotes } };
+    saveDailyMap(map);
+    putIDBSnapshot({
+      marketId: 'equities',
+      date: today,
+      stamp,
+      data: { quotes: map[today].quotes },
+      lastUpdated: stamp,
+      isLive: !!centralData?.isLive,
+      isCurrent: centralData?.isCurrent !== false,
+    });
+  }, [centralQuotes, snapshotQuotes, dataTimestamp, centralData?.fetchedOn, centralData?.isLive, centralData?.isCurrent]);
+
+  // Indices: prefer hub bag indices over ad-hoc /api/stocks when present.
+  useEffect(() => {
+    const idx = centralSnapshot?.indices;
+    if (idx && typeof idx === 'object' && Object.keys(idx).length) {
+      setIndexQuotes((prev) => ({ ...idx, ...(prev || {}) }));
+    }
+  }, [centralSnapshot?.indices]);
 
   const getMetricValue = (stock, metric) => {
     if (metric === 'revenue')    return Math.max(stock.revenue   || 0.1, 0.1);
@@ -558,8 +601,11 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
 
   const displayUniverse = useMemo(() => {
     const quoteLayer = snapshotQuotes || centralQuotes;
-    return quoteLayer ? applyQuotesToUniverse(marketUniverse, quoteLayer) : marketUniverse;
-  }, [marketUniverse, snapshotQuotes, centralQuotes]);
+    if (!quoteLayer) return marketUniverse;
+    return applyQuotesToUniverse(marketUniverse, quoteLayer, {
+      preferLocal: !snapshotQuotes && preferLocalQuotes,
+    });
+  }, [marketUniverse, snapshotQuotes, centralQuotes, preferLocalQuotes]);
 
   const adjustedTreemapData = useMemo(() => {
     return displayUniverse.map(region => {
@@ -903,21 +949,23 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
     // Synthetic fetchLog so DataFooter's click-to-open popover has something
     // to render. Without this, open() bails on `fetchLog.length === 0` and
     // clicking the FETCHED bar appears to do nothing.
-    const quotesFetchLog = [{
-      time: dataTimestamp,
-      url: '/api/stocks',
-      status: dataTimestamp && dataTimestamp !== STATIC_DATA_TIMESTAMP ? 200 : 0,
-      sources: {
-        'Yahoo Finance · /api/stocks': {
-          _source: 'Yahoo Finance',
-          _description: `Live equity quotes for up to top ${REFRESH_PER_MARKET_LIMIT} tickers per market (price, change %, market cap, 52w high/low). Refresh updates marketUniverse and persists to IndexedDB.`,
+    const quotesFetchLog = centralData?.fetchLog?.length
+      ? centralData.fetchLog
+      : [{
+        time: dataTimestamp,
+        url: '/api/equities',
+        status: dataTimestamp && dataTimestamp !== STATIC_DATA_TIMESTAMP ? 200 : 0,
+        sources: {
+          'Yahoo Finance · /api/equities': {
+            _source: 'Yahoo Finance',
+            _description: 'Single data plane: equity + index quotes from App Hosting /api/equities (disk/GCS cache-first; ▶ force-live).',
+          },
+          'Stock universe (local)': {
+            _source: 'src/data/stockUniverse.js',
+            _description: 'Static base universe — sectors, regions, fundamentals — overlaid with hub quotes.',
+          },
         },
-        'Stock universe (local)': {
-          _source: 'src/data/stockUniverse.js',
-          _description: 'Static base universe — sectors, regions, fundamentals — overlaid with live quotes when available.',
-        },
-      },
-    }];
+      }];
     const commonFooter = (
       <DataFooter
         source={snapshotDate ? 'Yahoo Finance snapshot' : 'Yahoo Finance'}
@@ -926,6 +974,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
         isCurrent={!snapshotDate}
         fetchedOn={dataTimestamp}
         fetchLog={quotesFetchLog}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing || !!centralData?.isRefreshing}
       />
     );
 
@@ -1153,7 +1203,19 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   ) : null;
 
   const heatmapBody = (
-    <div onMouseDown={stopDrag} style={{ height: '100%', minHeight: 0 }}>
+    <div
+      className="eq-heatmap-body"
+      onMouseDown={stopDrag}
+      style={{
+        flex: '1 1 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 240,
+        minWidth: 0,
+        overflow: 'hidden',
+      }}
+    >
       <HeatmapView
         data={heatmapData}
         currentRate={currentRate}
@@ -1174,6 +1236,16 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       onTickerSelect={handleSelectTicker}
     />
   );
+
+  // Shared footer wiring for every equities MarketPanelGrid (heatmap ▶ included).
+  const equitiesProvenance = useMemo(() => ({
+    timestamp: dataTimestamp,
+    isCurrent: !snapshotDate,
+    fetchedOn: dataTimestamp,
+    fetchLog: quotesFetchLog,
+    onRefresh: handleRefresh,
+    isRefreshing: isRefreshing || !!centralData?.isRefreshing,
+  }), [dataTimestamp, snapshotDate, quotesFetchLog, handleRefresh, isRefreshing, centralData?.isRefreshing]);
 
   const makeEquitiesCtx = (bodies, extraLive = {}, extraSubtitle = {}, extraSource = {}) => ({
     __render: (panelId) => bodies[panelId] ?? null,
@@ -1261,9 +1333,9 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
               only={['kpi']}
               ctx={makeEquitiesCtx({ kpi: kpiBody })}
               provenance={{
+                ...equitiesProvenance,
                 timestamp: indexLastUpdated || dataTimestamp,
-                isCurrent: !snapshotDate,
-                fetchLog: indexFetchLog,
+                fetchLog: indexFetchLog || equitiesProvenance.fetchLog,
               }}
               extra={[
                 <div key="list-main" className="eq-bento-card bento-card">
@@ -1366,12 +1438,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
                 'bea-corporate-profits': <BeaCorporateProfitsPanel />,
                 'wb-market-cap': <WorldBankMarketCapPanel />,
               })}
-              provenance={{
-                timestamp: dataTimestamp,
-                isCurrent: !snapshotDate,
-                fetchedOn: dataTimestamp,
-                fetchLog: quotesFetchLog,
-              }}
+              provenance={equitiesProvenance}
             />
           </div>
           )}
@@ -1391,12 +1458,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
                 kpi: kpiBody,
                 portfolio: portfolioBody,
               })}
-              provenance={{
-                timestamp: dataTimestamp,
-                isCurrent: !snapshotDate,
-                fetchedOn: dataTimestamp,
-                fetchLog: quotesFetchLog,
-              }}
+              provenance={equitiesProvenance}
             />
           </div>
           )}
@@ -1416,12 +1478,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
                 kpi: kpiBody,
                 sidebar: sidebarBody,
               })}
-              provenance={{
-                timestamp: dataTimestamp,
-                isCurrent: !snapshotDate,
-                fetchedOn: dataTimestamp,
-                fetchLog: quotesFetchLog,
-              }}
+              provenance={equitiesProvenance}
               extra={(
                 <div key="race" className="eq-bento-card bento-card" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div className="eq-panel-title-row bento-panel-title-row">

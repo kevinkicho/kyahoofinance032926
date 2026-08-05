@@ -1,0 +1,158 @@
+.psp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  min-height: 72px;
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+  overflow: auto;
+  max-height: 100%;
+}
+
+.psp-root--rich {
+  gap: 8px;
+}
+
+.psp-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.psp-block-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #64748b;
+  font-family: ui-monospace, monospace;
+}
+
+.psp-table-wrap {
+  overflow: auto;
+  max-height: 180px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 6px;
+}
+
+.psp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.psp-table th {
+  text-align: left;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #94a3b8;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+}
+
+.psp-table td {
+  padding: 2px 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+}
+
+.psp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 4px;
+}
+
+.psp-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.psp-kpi--wide {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.psp-kpi-l {
+  font-size: 9px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.psp-kpi-v {
+  font-size: 12px;
+  font-weight: 700;
+  color: #93c5fd;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, monospace;
+}
+
+.psp-list-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+}
+
+.psp-kicker {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.psp-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #e2e8f0);
+}
+
+.psp-hint {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.psp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.psp-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 10px;
+}
+
+.psp-path {
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 55%;
+}
+
+.psp-val {
+  color: #93c5fd;
+  font-weight: 600;
+  text-align: right;
+}
+
+.psp-meta {
+  font-size: 9px;
+  color: #475569;
+  margin-top: 4px;
+}

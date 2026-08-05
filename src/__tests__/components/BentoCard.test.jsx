@@ -73,6 +73,14 @@ describe('BentoCard', () => {
     expect(root.style.getPropertyValue('--bento-accent-color')).toBe('#ff0000');
   });
 
+  it('wires explicit onRefresh to DataFooter', () => {
+    const onRefresh = vi.fn();
+    render(
+      <BentoCard title="Heatmap" accent="equities" onRefresh={onRefresh}>{liveBody}</BentoCard>,
+    );
+    expect(screen.getByTestId('data-footer').getAttribute('data-has-refresh')).toBe('1');
+  });
+
   it('applies extra className alongside the base', () => {
     const { container } = render(<BentoCard title="X" className="custom-mod">{liveBody}</BentoCard>);
     const root = container.querySelector('.bento-card');
