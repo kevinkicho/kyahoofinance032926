@@ -191,6 +191,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
               <thead>
                 <tr>
                   <th className="eq-th">Ticker</th>
+                  <th className="eq-th">Company</th>
                   <th className="eq-th">Sector</th>
                   <th className="eq-th" style={{ textAlign: 'center' }}>Value</th>
                   <th className="eq-th" style={{ textAlign: 'center' }}>Momentum</th>
@@ -203,6 +204,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
                 {stocks.map(s => (
                   <tr key={s.ticker} className="eq-row">
                     <td className="eq-cell"><strong>{s.ticker}</strong></td>
+                    <td className="eq-cell eq-name">{s.name || '—'}</td>
                     <td className="eq-cell eq-sector">{s.sector}</td>
                     <td className={`eq-cell eq-score ${factorHeat(s.value)}`}><MetricValue value={s.value} seriesKey="factorValue" format={v => v != null ? v.toFixed(1) : '—'} /></td>
                     <td className={`eq-cell eq-score ${factorHeat(s.momentum)}`}><MetricValue value={s.momentum} seriesKey="factorMomentum" format={v => v != null ? v.toFixed(1) : '—'} /></td>
