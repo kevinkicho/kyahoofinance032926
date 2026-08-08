@@ -45,6 +45,54 @@ const EIA_SERIES = {
   refinery_utilization: { series: 'PET.WPULEUS3.W', name: 'Refinery Utilization', unit: 'Percent' },
 };
 
+// CFTC COT for WTI + Gold (12-week history + real netChange). Mirrors the
+// legacy /api/commodities builder so the primary enhanced route serves it.
+const COT_MAP = [
+  { name: 'WTI Crude Oil', re: /CRUDE OIL/i },
+  { name: 'Gold',          re: /GOLD/i },
+];
+export async function buildCotData() {  try {
+    const cotUrl = 'https://publicreporting.cftc.gov/resource/jun7-fc8e.json?' +
+      `$where=market_and_exchange_names like 'CRUDE OIL%25' OR market_and_exchange_names like 'GOLD%25'` +
+      '&$order=report_date_as_yyyy_mm_dd DESC&$limit=24';
+    trackApiCall('CFTC Socrata');
+    const cotRaw = await fetchJSON(cotUrl);
+    if (!Array.isArray(cotRaw) || cotRaw.length === 0) return null;
+    const grouped = {};
+    for (const row of cotRaw) {
+      const key = COT_MAP.find((m) => m.re.test(row.market_and_exchange_names || ''))?.name;
+      if (!key) continue;
+      (grouped[key] = grouped[key] || []).push({
+        date:       row.report_date_as_yyyy_mm_dd,
+        noncommNet: parseInt(row.noncomm_positions_long_all || '0') - parseInt(row.noncomm_positions_short_all || '0'),
+        commNet:    parseInt(row.comm_positions_long_all || '0') - parseInt(row.comm_positions_short_all || '0'),
+        totalOI:    parseInt(row.open_interest_all || '0'),
+      });
+    }
+    const commodities = [];
+    for (const { name } of COT_MAP) {
+      const rows = (grouped[name] || []).slice(0, 12);
+      if (!rows.length) continue;
+      const latest = rows[0];
+      const prev = rows.length >= 2 ? rows[1] : null;
+      commodities.push({
+        name,
+        latest: {
+          noncommNet: latest.noncommNet,
+          commNet:    latest.commNet,
+          totalOI:    latest.totalOI,
+          netChange:  prev ? latest.noncommNet - prev.noncommNet : null,
+        },
+        history: rows.map((r) => ({ date: r.date, noncommNet: r.noncommNet })),
+      });
+    }
+    return commodities.length >= 2 ? { commodities } : null;
+  } catch (e) {
+    console.warn('[CFTC COT]', e.message || e);
+    return null;
+  }
+}
+
 // FRED Commodity Series (expanded).
 // Note: GOLDAMGBD228NLBM / GOLDPMGBD228NLBM were retired by FRED — gold is
 // sourced from Yahoo GC=F futures on the dashboard instead.
@@ -708,7 +756,10 @@ router.get('/', async (req, res) => {
       if (goldCurve) result.goldFuturesCurve = goldCurve;
     } catch (e) { console.warn('[Commodities] futures curve fetch failed:', e.message); }
 
-    // 5. Data Source Registry
+    // 5. CFTC COT (WTI + Gold) — real 12-week history + netChange.
+    result.cotData = await buildCotData();
+
+    // 6. Data Source Registry
     result.dataSourceRegistry = {
       totalCommodities: Object.keys(commodityDataSources).length,
       byCategory: {},
