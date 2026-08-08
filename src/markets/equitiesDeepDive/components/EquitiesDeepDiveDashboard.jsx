@@ -69,6 +69,7 @@ function buildRankedOption(sectors, colors) {
     { key: 'perf1w', label: '1W', color: '#94a3b8' },
     { key: 'perf1m', label: '1M', color: '#6366f1' },
     { key: 'perf3m', label: '3M', color: '#22c55e' },
+    { key: 'perf1y', label: '1Y', color: '#f59e0b' },
   ];
 
   return {
@@ -705,7 +706,7 @@ function EquitiesDeepDiveDashboard({
       __subtitle: {
         kpi: 'Sector ETFs · factor rotation · vs SPY',
         sidebar: 'Sectors · factors · earnings · short interest',
-        etf: '1W · 1M · 3M returns vs SPY',
+        etf: '1W · 1M · 3M · 1Y returns vs SPY',
         'factor-favor': 'Average composite by factor',
         'sector-beat': '% of names beating EPS estimates',
         shorted: '% of float short · days to cover',
