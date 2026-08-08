@@ -125,6 +125,37 @@ function CommoditiesDashboard({
     };
   }, [usdaCtx, colors]);
 
+  // FRED fallback for USDA ag prices when NASS is unavailable (no API key).
+  const USDA_FRED_KEYS = [
+    { key: 'corn',     name: 'Corn',     color: '#f59e0b' },
+    { key: 'wheat',    name: 'Wheat',    color: '#fbbf24' },
+    { key: 'soybeans', name: 'Soybeans', color: '#10b981' },
+  ];
+  const usdaFredOption = useMemo(() => {
+    const fred = enhancedData?.fred || {};
+    const rows = USDA_FRED_KEYS.filter((m) => Array.isArray(fred[m.key]?.history) && fred[m.key].history.length > 0);
+    if (!rows.length) return null;
+    const dates = fred[rows[0].key].history.map((p) => String(p.date).slice(0, 7));
+    const series = rows.map((m) => ({
+      name: `${m.name} ($/mt)`,
+      type: 'line',
+      smooth: true,
+      symbol: 'none',
+      data: fred[m.key].history.map((p) => p.value),
+      lineStyle: { color: m.color, width: 1.8 },
+    }));
+    return {
+      animation: false,
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      legend: { data: series.map((s) => s.name), top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      grid: { top: 28, right: 12, bottom: 24, left: 44 },
+      xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(dates.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
+      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
+      series,
+    };
+  }, [enhancedData, colors]);
+
   // ── EIA petroleum: gasoline + Henry Hub gas dual line, crude stocks ──
   const eiaPetrolOption = useMemo(() => {
     const gas = eiaPetCtx?.data?.gasoline?.series || [];
@@ -847,9 +878,9 @@ function CommoditiesDashboard({
         ),
 
         'usda-ag': (
-          usdaOption
-            ? <SafeECharts option={usdaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'USDA Ag Commodity Prices', source: 'USDA NASS Quick Stats', endpoint: '/api/usda', series: [], updatedAt: usdaCtx?.lastUpdated || lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>USDA ag prices loading…</div>
+          (usdaOption || usdaFredOption)
+            ? <SafeECharts option={usdaOption || usdaFredOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'USDA Ag Commodity Prices', source: usdaOption ? 'USDA NASS Quick Stats' : 'FRED', endpoint: usdaOption ? '/api/usda' : '/api/commodities', series: [], updatedAt: usdaOption ? (usdaCtx?.lastUpdated || lastUpdated) : lastUpdated }} />
+            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>USDA ag prices unavailable — no USDA key and no FRED fallback</div>
         ),
 
         'eia-petrol': (
@@ -1230,7 +1261,7 @@ function CommoditiesDashboard({
       'wti-brent': !!(fredCommodities?.wtiHistory && fredCommodities?.brentHistory),
       cot: !!cotData,
       comfx: !!commodityCurrencies,
-      'usda-ag': !!usdaCtx?.data?.isLive,
+      'usda-ag': !!(usdaCtx?.data?.isLive || usdaFredOption),
       'eia-petrol': !!eiaPetCtx?.data?.isLive,
       'physical-pressure': !!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive),
       'materials-grid': materialPriceMap.size > 0,
@@ -1254,7 +1285,11 @@ function CommoditiesDashboard({
         </>
       ),
       'wti-brent': '1 Year (FRED daily)',
-      'usda-ag': (usdaCtx?.data?.summary || []).filter(s => s.latest).slice(0, 4).map(s => `${s.desc.slice(0, 4)} ${s.latest.value.toFixed(2)}${s.unit.replace('$/','/')}${s.yoyPct != null ? ` (${s.yoyPct >= 0 ? '+' : ''}${s.yoyPct.toFixed(0)}% YoY)` : ''}`).join(' · ') || 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS',
+      'usda-ag': usdaOption
+        ? (usdaCtx?.data?.summary || []).filter(s => s.latest).slice(0, 4).map(s => `${s.desc.slice(0, 4)} ${s.latest.value.toFixed(2)}${s.unit.replace('$/','/')}${s.yoyPct != null ? ` (${s.yoyPct >= 0 ? '+' : ''}${s.yoyPct.toFixed(0)}% YoY)` : ''}`).join(' · ') || 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS'
+        : usdaFredOption
+          ? 'FRED fallback · Corn/Wheat/Soybeans ($/mt)'
+          : 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS',
       'eia-petrol': eiaPetCtx?.data?.gasoline?.latest && eiaPetCtx?.data?.naturalGas?.latest
         ? `Gasoline $${eiaPetCtx.data.gasoline.latest.value.toFixed(2)}/gal (${eiaPetCtx.data.gasoline.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.gasoline.yoyPct?.toFixed(0)}% YoY) · NG $${eiaPetCtx.data.naturalGas.latest.value.toFixed(2)}/MMBtu (${eiaPetCtx.data.naturalGas.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.naturalGas.yoyPct?.toFixed(0)}% YoY)${eiaPetCtx?.data?.crudeStocks?.latest ? ` · Crude stocks ${(eiaPetCtx.data.crudeStocks.latest.value / 1000).toFixed(0)}M bbl` : ''}`
         : 'Retail gasoline · Henry Hub spot · weekly',
@@ -1273,7 +1308,7 @@ function CommoditiesDashboard({
     },
     __disabled: {
       'wti-brent': !wtiBrentOption,
-      'usda-ag': !usdaOption,
+      'usda-ag': !(usdaOption || usdaFredOption),
       'eia-petrol': !eiaPetrolOption,
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
@@ -1287,7 +1322,7 @@ function CommoditiesDashboard({
       'wti-brent': 'FRED',
       cot: 'CFTC / Server',
       comfx: 'FX Market / Spot',
-      'usda-ag': 'USDA NASS',
+      'usda-ag': usdaOption ? 'USDA NASS' : 'FRED',
       'eia-petrol': 'EIA',
       'physical-pressure': 'EIA / USDA NASS / US Census Bureau',
       'materials-grid': 'USGS critical-minerals taxonomy / Yahoo Finance proxies',

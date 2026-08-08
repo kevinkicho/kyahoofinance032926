@@ -1,8 +1,21 @@
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import CommoditiesMarket from '../../markets/commodities/CommoditiesMarket';
+import DataContext from '../../hub/DataContext';
 
 vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
+
+function renderWithContext(ui, { usda = {}, getMarketExtra = {} } = {}) {
+  const ctxValue = {
+    getMarket: (id) => {
+      if (id === 'usda') return { data: usda, isLoading: false, isLive: false, error: null };
+      return getMarketExtra[id] || { isLoading: false, isLive: false, data: {} };
+    },
+    refetchSingle: vi.fn(),
+  };
+  return render(<DataContext.Provider value={ctxValue}>{ui}</DataContext.Provider>);
+}
 
 const mockCentralData = {
   isLoading: false,
@@ -55,5 +68,30 @@ describe('CommoditiesMarket', () => {
     render(<CommoditiesMarket centralData={mockCentralData} />);
     const pendingBadges = screen.getAllByText(/WAITING|PENDING|STALE|NO DATA|FETCHED/i);
     expect(pendingBadges.length).toBeGreaterThan(0);
+  });
+
+  it('renders FRED fallback ag chart (not loading text) when USDA is empty', () => {
+    const fredFallback = {
+      data: {
+        ...mockCentralData.data,
+        enhancedData: {
+          fred: {
+            corn: { value: 200, date: '2026-07', history: [{ date: '2026-01', value: 190 }, { date: '2026-02', value: 200 }] },
+            wheat: { value: 240, date: '2026-07', history: [{ date: '2026-01', value: 230 }, { date: '2026-02', value: 240 }] },
+            soybeans: { value: 400, date: '2026-07', history: [{ date: '2026-01', value: 390 }, { date: '2026-02', value: 400 }] },
+          },
+        },
+      },
+    };
+    renderWithContext(<CommoditiesMarket centralData={fredFallback} />, { usda: { isLive: false, summary: null } });
+    expect(screen.queryByText(/ag prices loading/i)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('echarts-mock').length).toBeGreaterThan(0);
+    expect(screen.getByText(/FRED fallback · Corn\/Wheat\/Soybeans/i)).toBeInTheDocument();
+  });
+
+  it('renders honest empty state (no FRED fallback) instead of perpetual loading', () => {
+    const noFred = { data: { ...mockCentralData.data, enhancedData: {} } };
+    renderWithContext(<CommoditiesMarket centralData={noFred} />, { usda: { isLive: false, summary: null } });
+    expect(screen.getByText(/no USDA key and no FRED fallback/i)).toBeInTheDocument();
   });
 });
