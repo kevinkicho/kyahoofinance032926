@@ -65,6 +65,12 @@ function buildRankedOption(sectors, colors) {
     .filter(s => s.code !== 'SPY')
     .sort((a, b) => (b.perf1m ?? -99) - (a.perf1m ?? -99));
 
+  const horizons = [
+    { key: 'perf1w', label: '1W', color: '#94a3b8' },
+    { key: 'perf1m', label: '1M', color: '#6366f1' },
+    { key: 'perf3m', label: '3M', color: '#22c55e' },
+  ];
+
   return {
     animation: false,
     backgroundColor: 'transparent',
@@ -73,9 +79,19 @@ function buildRankedOption(sectors, colors) {
       backgroundColor: colors.tooltipBg,
       borderColor: colors.tooltipBorder,
       textStyle: { color: colors.text, fontSize: 11 },
-      formatter: (params) => `${params[0].name}: ${params[0].value?.toFixed(1)}%`,
+      formatter: (params) => {
+        const name = params[0]?.name ?? '';
+        const lines = params.map(p => `${p.marker}${p.seriesName}: ${(p.value ?? 0).toFixed(1)}%`);
+        return `${name}<br/>${lines.join('<br/>')}`;
+      },
     },
-    grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
+    legend: {
+      top: 0,
+      textStyle: { color: colors.textSecondary, fontSize: 9 },
+      itemWidth: 10,
+      itemHeight: 8,
+    },
+    grid: { top: 24, right: 40, bottom: 8, left: 8, containLabel: true },
     xAxis: {
       type: 'value',
       axisLine: { lineStyle: { color: colors.cardBg } },
@@ -89,19 +105,20 @@ function buildRankedOption(sectors, colors) {
       axisTick: { show: false },
       axisLabel: { color: colors.textSecondary, fontSize: 9 },
     },
-    series: [{
+    series: horizons.map((h, i) => ({
+      name: h.label,
       type: 'bar',
       data: etfs.map(s => ({
-        value: s.perf1m,
-        itemStyle: { color: (s.perf1m ?? 0) >= spyRef ? '#6366f1' : '#ef4444' },
+        value: s[h.key] ?? 0,
+        itemStyle: i === 1 ? { color: (s.perf1m ?? 0) >= spyRef ? h.color : '#ef4444' } : { color: h.color },
       })),
-      markLine: {
+      markLine: i === 1 ? {
         data: [{ xAxis: spyRef }],
         symbol: 'none',
         lineStyle: { color: colors.text, type: 'dashed', width: 1 },
-        label: { show: true, formatter: 'SPY', color: colors.textSecondary, fontSize: 9 },
-      },
-    }],
+        label: { show: true, formatter: 'SPY 1M', color: colors.textSecondary, fontSize: 9 },
+      } : undefined,
+    })),
   };
 }
 
@@ -688,7 +705,7 @@ function EquitiesDeepDiveDashboard({
       __subtitle: {
         kpi: 'Sector ETFs · factor rotation · vs SPY',
         sidebar: 'Sectors · factors · earnings · short interest',
-        etf: '1-month % vs SPY',
+        etf: '1W · 1M · 3M returns vs SPY',
         'factor-favor': 'Average composite by factor',
         'sector-beat': '% of names beating EPS estimates',
         shorted: '% of float short · days to cover',
