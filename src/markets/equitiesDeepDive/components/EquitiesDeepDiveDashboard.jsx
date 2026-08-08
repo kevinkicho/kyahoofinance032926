@@ -230,7 +230,10 @@ function buildShortedOption(mostShorted, colors) {
       formatter: (params) => {
         const item = sorted[params[0].dataIndex];
         const base = `${params[0].name}: ${params[0].value?.toFixed(1)}% short`;
-        return item ? `${base} · ${item.daysToCover?.toFixed(1)}d to cover` : base;
+        if (!item) return base;
+        const dtc = item.daysToCover != null ? ` · ${item.daysToCover.toFixed(1)}d to cover` : '';
+        const pw = item.perf1w != null ? ` · 1W ${item.perf1w >= 0 ? '+' : ''}${item.perf1w.toFixed(1)}%` : '';
+        return `${base}${dtc}${pw}`;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
