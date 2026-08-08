@@ -370,7 +370,7 @@ export default function InsiderTrading({ insiderData }) {
                       <td className="eqd-cell"><strong>{t.ticker || '\u2014'}</strong></td>
                       <td className="eqd-cell eqd-name">{t.name || '\u2014'}</td>
                       {showTitleCol && <td className="eqd-cell eqd-name">{role || '\u2014'}</td>}
-                      <td className="eqd-cell eqd-dir" style={{ color: txColor(cls.kind) }}>
+                      <td className="eqd-cell eqd-dir" style={{ color: txColor(cls.kind) }} title={t.text || ''}>
                         {cls.label}
                       </td>
                       <td className="eqd-cell eqd-num">{fmtShares(t.shares)}</td>
