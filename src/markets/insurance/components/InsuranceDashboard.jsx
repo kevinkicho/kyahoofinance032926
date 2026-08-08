@@ -469,8 +469,7 @@ function InsuranceDashboard({
     { i: 'catbonds', x: 0, y: 8, w: 4, h: 5 },
     { i: 'etfs', x: 4, y: 8, w: 4, h: 5 },
     { i: 'catastrophes', x: 8, y: 8, w: 4, h: 4 },
-    { i: 'ins-penetration', x: 0, y: 13, w: 4, h: 4 },
-    { i: 'wb-ins-penetration', x: 4, y: 13, w: 4, h: 4 },
+    { i: 'ins-penetration', x: 0, y: 13, w: 8, h: 4 },
     { i: 'combined-ratios', x: 8, y: 13, w: 4, h: 4 },
     { i: 'fema-disasters', x: 0, y: 17, w: 6, h: 4 },
     { i: 'usgs-earthquakes', x: 6, y: 17, w: 6, h: 4 },
@@ -929,12 +928,6 @@ function InsuranceDashboard({
           wbInsuranceOption
             ? <SafeECharts option={wbInsuranceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Insurance Penetration', source: 'World Bank GFDD', endpoint: '/api/worldbank', series: [{ id: 'GFDD.DI.09' }, { id: 'GFDD.DI.10' }], updatedAt: wbCtx?.lastUpdated || lastUpdated }} />
             : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank insurance penetration loading…</div>
-        ),
-
-        'wb-ins-penetration': (
-          wbInsuranceOption
-            ? <SafeECharts option={wbInsuranceOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'WB Insurance Penetration', source: 'World Bank GFDD', endpoint: '/api/worldbank', series: [{ id: 'GFDD.DI.09' }, { id: 'GFDD.DI.10' }], updatedAt: wbCtx?.lastUpdated || lastUpdated }} />
-            : <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>World Bank GFDD series loading…</div>
         ),
 
         'combined-ratios': (
@@ -1531,7 +1524,6 @@ function InsuranceDashboard({
       etfs: !!(isLive && hasSectorETF),
       catastrophes: !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive),
       'ins-penetration': !!wbCtx?.data?.countries?.length,
-      'wb-ins-penetration': !!wbCtx?.data?.countries?.length,
       'combined-ratios': !!insRatiosCtx?.data?.isLive,
       'fema-disasters': !!femaCtx?.data?.isLive,
       'usgs-earthquakes': !!usgsCtx?.data?.isLive,
@@ -1575,7 +1567,6 @@ function InsuranceDashboard({
       etfs: 'FRED (Fed / BLS / BEA / Census)',
       catastrophes: 'OpenFEMA · USGS',
       'ins-penetration': 'World Bank GFDD',
-      'wb-ins-penetration': 'World Bank GFDD',
       'combined-ratios': 'SEC EDGAR XBRL',
       'fema-disasters': 'OpenFEMA',
       'usgs-earthquakes': 'USGS',
@@ -1590,7 +1581,7 @@ function InsuranceDashboard({
       <MarketPanelGrid
         marketId="insurance"
         layout={dynamicLayout}
-        storageKey="insurance-layout-v6"
+        storageKey="insurance-layout-v7"
         accent="insurance"
         ctx={panelCtx}
         provenance={{

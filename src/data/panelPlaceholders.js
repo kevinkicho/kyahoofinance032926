@@ -356,7 +356,6 @@ export const PANEL_PLACEHOLDERS = {
   'insurance:cat-exposure': [any('cat', ['catLosses.values', 'catLosses', 'fema.declarations', 'fema.summary', 'usgs.events'])],
   'insurance:usgs-minerals': [p('usgs', 'events', { crossMarket: 'usgs' })],
   'insurance:ecb-supervisory': [p('ecb', 'policyRates', { crossMarket: 'ecb' })],
-  'insurance:wb-ins-penetration': [p('wb', 'countries', { crossMarket: 'worldbank' })],
   'insurance:fema-disasters': [p('fema', 'declarations', { crossMarket: 'fema' })],
   'insurance:usgs-earthquakes': [p('usgs', 'events', { crossMarket: 'usgs' })],
 

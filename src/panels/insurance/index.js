@@ -9,7 +9,6 @@ import p_catbonds from './catbonds.jsx';
 import p_etfs from './etfs.jsx';
 import p_catastrophes from './catastrophes.jsx';
 import p_ins_penetration from './ins-penetration.jsx';
-import p_wb_ins_penetration from './wb-ins-penetration.jsx';
 import p_combined_ratios from './combined-ratios.jsx';
 import p_fema_disasters from './fema-disasters.jsx';
 import p_usgs_earthquakes from './usgs-earthquakes.jsx';
@@ -30,7 +29,6 @@ export const INSURANCE_PANELS = [
   p_etfs,
   p_catastrophes,
   p_ins_penetration,
-  p_wb_ins_penetration,
   p_combined_ratios,
   p_fema_disasters,
   p_usgs_earthquakes,

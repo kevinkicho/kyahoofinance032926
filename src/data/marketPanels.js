@@ -108,7 +108,6 @@ export const MARKET_PANELS = {
     { id: 'etfs', title: 'Sector / Industry Pulse' },
     { id: 'catastrophes', title: 'Catastrophes (FEMA+USGS)' },
     { id: 'ins-penetration', title: 'Insurance Penetration' },
-    { id: 'wb-ins-penetration', title: 'World Bank Insurance Penetration' },
     { id: 'combined-ratios', title: 'Insurer Combined Ratios (EDGAR)' },
     { id: 'fema-disasters', title: 'FEMA Disaster Declarations' },
     { id: 'usgs-earthquakes', title: 'USGS Earthquake Activity' },

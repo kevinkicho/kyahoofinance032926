@@ -774,15 +774,6 @@ export const PANEL_MANIFEST = [
     placeholders: "insurance:ins-penetration",
   },
   {
-    key: "insurance:wb-ins-penetration",
-    marketId: "insurance",
-    panelId: "wb-ins-penetration",
-    title: "World Bank Insurance Penetration",
-    dashboard: "src/markets/insurance/components/InsuranceDashboard.jsx",
-    module: "src/panels/insurance/wb-ins-penetration.jsx",
-    placeholders: "insurance:wb-ins-penetration",
-  },
-  {
     key: "insurance:combined-ratios",
     marketId: "insurance",
     panelId: "combined-ratios",
