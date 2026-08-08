@@ -40,7 +40,7 @@ vi.mock('../lib/fred.js', () => ({
 const { fetchJSON } = await import('../lib/fetch.js');
 const cache = await import('../lib/cache.js');
 const { default: creditRouter } = await import('../routes/credit.js');
-const { emYieldFromEtfQuote } = await import('../routes/credit.js');
+const { emYieldFromEtfQuote, buildTedSpread } = await import('../routes/credit.js');
 
 describe('Credit Route', () => {
   beforeEach(() => {
@@ -115,6 +115,34 @@ describe('Credit Route', () => {
     it('returns percent when dividend yield is positive', () => {
       expect(emYieldFromEtfQuote({ trailingAnnualDividendYield: 0.045 })).toBe(4.5);
       expect(emYieldFromEtfQuote({ trailingAnnualDividendYield: 0.03 })).toBe(3);
+    });
+  });
+
+  describe('buildTedSpread', () => {
+    const NOW = new Date('2026-08-04').getTime();
+
+    it('returns null when the last observation is stale (> 30 days)', () => {
+      const stale = [
+        { date: '2021-02-04', value: 0.10 },
+        { date: '2022-01-21', value: 0.09 },
+      ];
+      expect(buildTedSpread(stale, NOW)).toBeNull();
+    });
+
+    it('returns populated payload when the last observation is recent', () => {
+      const fresh = [
+        { date: '2026-07-01', value: 0.10 },
+        { date: '2026-08-03', value: 0.09 },
+      ];
+      const result = buildTedSpread(fresh, NOW);
+      expect(result).not.toBeNull();
+      expect(result.dates).toEqual(['2026-07-01', '2026-08-03']);
+      expect(result.latest).toBe(0.09);
+    });
+
+    it('returns null for empty input', () => {
+      expect(buildTedSpread([], NOW)).toBeNull();
+      expect(buildTedSpread(null, NOW)).toBeNull();
     });
   });
 });

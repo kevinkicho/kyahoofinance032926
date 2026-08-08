@@ -18,6 +18,24 @@ export function emYieldFromEtfQuote(etfQuote) {
   return y * 100;
 }
 
+// Build the TED spread payload only if the last observation is recent (<= 30
+// days). TEDRATE (LIBOR-based) was discontinued when LIBOR ended; FRED still
+// returns its final historical points, so without a recency gate a stale
+// number would be presented as a live credit signal. Returns null otherwise.
+export function buildTedSpread(tedRaw, now = Date.now()) {
+  if (!Array.isArray(tedRaw) || tedRaw.length === 0) return null;
+  const last = tedRaw[tedRaw.length - 1];
+  const daysOld = last?.date
+    ? Math.round((now - new Date(last.date).getTime()) / 86400000)
+    : Infinity;
+  if (daysOld > 30) return null;
+  return {
+    dates:  tedRaw.map(p => p.date),
+    values: tedRaw.map(p => Math.round(p.value * 100) / 100),
+    latest: last?.value != null ? Math.round(last.value * 100) / 100 : null,
+  };
+}
+
 function dateToMonthLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
   return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }).replace(' ', '-');
@@ -257,11 +275,13 @@ router.get('/', makeCachedRouteHandler({
         trackApiCall('FRED');
         const tedRaw = await fetchFredHistory('TEDRATE', FRED_API_KEY, 252);
         if (tedRaw?.length > 0) {
-          tedSpread = {
-            dates:  tedRaw.map(p => p.date),
-            values: tedRaw.map(p => Math.round(p.value * 100) / 100),
-            latest: tedRaw[tedRaw.length - 1]?.value != null ? Math.round(tedRaw[tedRaw.length - 1].value * 100) / 100 : null,
-          };
+          // TEDRATE (LIBOR-based) was discontinued when LIBOR ended; FRED
+          // still returns its final historical points. Only ship it as a
+          // live read if the last observation is recent — otherwise the
+          // panel would show a stale number as a current credit signal.
+          const next = buildTedSpread(tedRaw);
+          if (next) tedSpread = next;
+          else console.warn('[Credit] TEDRATE stale — omitting tedSpread');
         }
       } catch (e) { console.warn('[Credit] TEDRATE:', e.message || e); _errors.tedSpread = e.message; }
     }
