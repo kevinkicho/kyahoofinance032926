@@ -55,7 +55,6 @@ function getBondsProps(centralData) {
     fedBalanceSheetHistory: d.fedBalanceSheetHistory || { dates: [], values: [] },
     m2HistoryData: d.m2HistoryData || { dates: [], values: [] },
     creditIndices: d.creditIndices || {},
-    auctionData: d.auctionData || [],
     nationalDebt: d.nationalDebt,
     spreadIndicators: normalized.values.spreadIndicators,
     spreadHistory: normalized.series.spreadHistory,
@@ -110,7 +109,6 @@ function BondsMarket({ centralData } = {}) {
             macroData={props.macroData}
             fedBalanceSheetHistory={props.fedBalanceSheetHistory}
             m2HistoryData={props.m2HistoryData}
-            auctionData={props.auctionData}
             nationalDebt={props.nationalDebt}
             spreadHistory={props.spreadHistory}
             cpiComponents={props.cpiComponents}

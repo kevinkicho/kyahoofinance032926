@@ -49,7 +49,7 @@ function BondsDashboard({
   yieldCurveData, creditRatingsData, creditRatingsAsOf, spreadIndicators, spreadData, durationLadderData, durationLadderMeta,
   breakevensData, fredYieldHistory, treasuryRates, fedFundsFutures, yieldHistory,
   mortgageSpread, tipsYields, realYieldHistory, macroData, fedBalanceSheetHistory,
-  m2HistoryData, auctionData, nationalDebt, spreadHistory, cpiComponents, debtToGdpHistory,
+  m2HistoryData, nationalDebt, spreadHistory, cpiComponents, debtToGdpHistory,
   isLive, lastUpdated, fetchLog, provenance, error, fetchedOn, isCurrent,
 }) {
   const { colors } = useTheme();
