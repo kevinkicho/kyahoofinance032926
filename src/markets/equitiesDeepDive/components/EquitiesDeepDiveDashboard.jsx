@@ -572,6 +572,12 @@ function EquitiesDeepDiveDashboard({
                 <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{aggregateTopHoldings[0].ticker}</span>
               </div>
             )}
+            {aggregateTopHoldings?.[0]?.name ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{aggregateTopHoldings[0].name}</span>
+              </div>
+            ) : null}
           </div>
         )}
         {insiderTransactions.length > 0 && (
