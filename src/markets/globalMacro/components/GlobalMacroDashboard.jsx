@@ -259,24 +259,6 @@ function GlobalMacroDashboard({
     };
   }, [beaData]);
 
-  const beaOption = useMemo(() => {
-    const rows = (Array.isArray(beaData?.savingRate) ? beaData.savingRate : [])
-      .filter(r => (r.desc || '').toLowerCase().includes('personal saving as a percentage'))
-      .slice()
-      .reverse()
-      .slice(-48);
-    if (!rows.length) return null;
-    return {
-      animation: false,
-      backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', valueFormatter: v => v != null ? `${Number(v).toFixed(1)}%` : '—' },
-      grid: { top: 10, right: 12, bottom: 24, left: 42 },
-      xAxis: { type: 'category', data: rows.map(r => r.period), axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(rows.length / 6)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
-      yAxis: { type: 'value', axisLabel: { color: colors.textMuted, fontSize: 9, formatter: '{value}%' }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{ type: 'line', data: rows.map(r => r.value), smooth: true, symbol: 'none', lineStyle: { color: '#22d3ee', width: 2 }, areaStyle: { color: 'rgba(34, 211, 238, 0.1)' } }],
-    };
-  }, [beaData, colors]);
-
   const beaIncomeRows = useMemo(() => {
     const rows = Array.isArray(beaData?.savingRate) ? beaData.savingRate : [];
     const latestPeriod = rows[0]?.period;
@@ -845,25 +827,20 @@ function GlobalMacroDashboard({
 
         'bea-accounts': (
           beaData && (beaData.gdpComponents?.length || beaData.savingRate?.length) ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 12, height: '100%' }}>
-                <div className="mac-mini-bars" style={{ gap: 8 }}>
-                  {[
-                    ['GDP', beaSummary.gdp],
-                    ['Consumption', beaSummary.consumption],
-                    ['Investment', beaSummary.investment],
-                    ['Personal Income', beaSummary.income],
-                  ].map(([label, row]) => (
-                    <div key={label} className="mac-metric-row">
-                      <span className="mac-metric-label">{label}</span>
-                      <span className="mac-metric-value">
-                        {row?.value != null ? Number(row.value).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ minHeight: 0 }}>
-                  {beaOption && <SafeECharts option={beaOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Personal Saving Rate', source: 'BEA', endpoint: '/api/bea', series: [], updatedAt: beaLastUpdated || lastUpdated }} />}
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, height: '100%' }}>
+                {[
+                  ['GDP', beaSummary.gdp],
+                  ['Consumption', beaSummary.consumption],
+                  ['Investment', beaSummary.investment],
+                  ['Personal Income', beaSummary.income],
+                ].map(([label, row]) => (
+                  <div key={label} className="mac-metric-row">
+                    <span className="mac-metric-label">{label}</span>
+                    <span className="mac-metric-value">
+                      {row?.value != null ? Number(row.value).toLocaleString(undefined, { maximumFractionDigits: 1 }) : '—'}
+                    </span>
+                  </div>
+                ))}
               </div>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>BEA national accounts loading…</div>

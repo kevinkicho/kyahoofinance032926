@@ -1,8 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import GlobalMacroMarket from '../../markets/globalMacro/GlobalMacroMarket';
+import DataContext from '../../hub/DataContext';
 
 vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
+
+function renderWithContext(ui, { getMarketExtra = {} } = {}) {
+  const ctxValue = {
+    getMarket: (id) => getMarketExtra[id] || { isLoading: false, isLive: false, data: {} },
+    refetchSingle: vi.fn(),
+  };
+  return render(<DataContext.Provider value={ctxValue}>{ui}</DataContext.Provider>);
+}
 
 const mockCentralData = {
   isLoading: false,
@@ -84,5 +93,27 @@ describe('GlobalMacroMarket', () => {
     render(<GlobalMacroMarket centralData={mockCentralData} />);
     const scorecardRows = document.querySelectorAll('.mac-scorecard-row');
     expect(scorecardRows.length).toBeGreaterThan(0);
+  });
+
+  it('renders bea-accounts as KPI bars (no duplicate saving-rate chart)', () => {
+    const bea = {
+      data: {
+        gdpComponents: [
+          { desc: 'Gross domestic product', period: '2026-01', value: 28000 },
+          { desc: 'Personal consumption expenditures', period: '2026-01', value: 19000 },
+          { desc: 'Gross private domestic investment', period: '2026-01', value: 4500 },
+        ],
+        personalIncome: [{ desc: 'Personal income', period: '2026-01', value: 24000 }],
+        savingRate: [{ desc: 'Personal saving as a percentage of disposable personal income', period: '2026-01', value: 4.5 }],
+      },
+      isLoading: false,
+      isLive: true,
+    };
+    renderWithContext(<GlobalMacroMarket centralData={mockCentralData} />, { getMarketExtra: { bea } });
+    // KPI labels render.
+    expect(screen.getAllByText('GDP').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Consumption').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Investment').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Personal Income').length).toBeGreaterThan(0);
   });
 });
