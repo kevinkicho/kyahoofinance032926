@@ -685,6 +685,7 @@ function EquitiesDeepDiveDashboard({
           <div key={i} className="eqd-mini-row">
             <span className="eqd-mini-name"><strong>{h.ticker}</strong> {h.name}</span>
             <span className="eqd-mini-value"><MetricValue value={h.totalValue} seriesKey="institutionTotalValue" timestamp={lastUpdated} format={v => `$${v.toFixed(0)}B`} /></span>
+            {h.holders != null ? <span className="eqd-mini-sub">{h.holders} holders</span> : null}
           </div>
         ))}
       </div>
