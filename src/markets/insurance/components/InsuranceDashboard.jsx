@@ -136,8 +136,23 @@ function InsuranceDashboard({
     };
   }, [hyOAS, igOAS, treasury10y, fredHyOasHistory]);
 
-  // Prefer server catLosses; else build a FEMA proxy series so the panel is not stuck on "loading"
+  // Prefer server catLosses when it is a real multi-point history; otherwise
+  // build a richer FEMA proxy series so the panel is not stuck on a single bar.
   const catLossesResolved = useMemo(() => {
+    if (catLosses?.values?.length >= 2) return catLosses;
+    const byType = femaCtx?.data?.byType;
+    if (Array.isArray(byType) && byType.length) {
+      const rows = byType.filter((r) => r?.type && Number(r.count) != null);
+      if (rows.length) {
+        return {
+          dates: rows.map((r) => r.type),
+          values: rows.map((r) => Number(r.count) || 0),
+          seriesId: 'FEMA_BY_TYPE',
+          unit: 'declarations',
+          _note: 'Proxy: FEMA declaration counts by disaster type (not $ losses)',
+        };
+      }
+    }
     if (catLosses?.values?.length) return catLosses;
     const decls = femaCtx?.data?.declarations;
     if (Array.isArray(decls) && decls.length) {
@@ -156,16 +171,6 @@ function InsuranceDashboard({
           _note: 'Proxy: FEMA declaration counts by year',
         };
       }
-    }
-    const byType = femaCtx?.data?.byType;
-    if (Array.isArray(byType) && byType.length) {
-      return {
-        dates: byType.map((r) => r.type),
-        values: byType.map((r) => Number(r.count) || 0),
-        seriesId: 'FEMA_BY_TYPE',
-        unit: 'declarations',
-        _note: 'Proxy: FEMA declaration counts by type',
-      };
     }
     return null;
   }, [catLosses, femaCtx?.data]);
