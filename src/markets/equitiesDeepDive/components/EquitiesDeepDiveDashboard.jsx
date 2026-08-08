@@ -679,6 +679,17 @@ function EquitiesDeepDiveDashboard({
       </div>
     ) : null;
 
+    const topHoldingsBody = aggregateTopHoldings.length > 0 ? (
+      <div className="eqd-mini-table">
+        {aggregateTopHoldings.slice(0, 6).map((h, i) => (
+          <div key={i} className="eqd-mini-row">
+            <span className="eqd-mini-name"><strong>{h.ticker}</strong> {h.name}</span>
+            <span className="eqd-mini-value"><MetricValue value={h.totalValue} seriesKey="institutionTotalValue" timestamp={lastUpdated} format={v => `$${v.toFixed(0)}B`} /></span>
+          </div>
+        ))}
+      </div>
+    ) : null;
+
     const recentChangesBody = (recentChanges?.bigBuys?.length > 0 || recentChanges?.bigSells?.length > 0 || recentChanges?.newPositions?.length > 0) ? (
       <div className="eqd-mini-table">
         {recentChanges.bigBuys?.slice(0, 2).map((b, i) => (
@@ -777,9 +788,10 @@ function EquitiesDeepDiveDashboard({
       ) : null,
       scores: scoresBody,
       earnings: earningsBody,
-      institutions: (institutionsBody || recentChangesBody) ? (
+      institutions: (institutionsBody || topHoldingsBody || recentChangesBody) ? (
         <>
           {institutionsBody}
+          {topHoldingsBody}
           {recentChangesBody}
         </>
       ) : null,
