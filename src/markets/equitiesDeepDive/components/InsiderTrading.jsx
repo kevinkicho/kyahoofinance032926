@@ -128,7 +128,10 @@ function buildInsiderHoldersOption(holders, colors) {
       textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => {
         const h = top[params[0].dataIndex];
-        return `${h?.name || params[0].name}${h?.ticker ? ` (${h.ticker})` : ''}<br/>${fmtShares(params[0].value)} shares`;
+        const role = (h?.title || h?.relation || '').trim();
+        const roleLine = role ? `<br/>${role}` : '';
+        const lastTx = h?.lastTx ? `<br/>Last: ${h.lastTx}` : '';
+        return `${h?.name || params[0].name}${h?.ticker ? ` (${h.ticker})` : ''}${roleLine}<br/>${fmtShares(params[0].value)} shares${lastTx}`;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
