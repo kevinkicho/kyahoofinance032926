@@ -76,6 +76,31 @@ const EQ_SHORT_META = {
   WOLF: { name: 'Wolfspeed',       sector: 'Technology'       },
 };
 
+// Build per-sector beat rate from the latest earningsHistory quarters.
+// Returns null (honest empty) when no qualifying quarters are available.
+export function computeBeatRates(summaries, factorMeta = EQ_FACTOR_META) {
+  const perSector = {};
+  (summaries || []).forEach(s => {
+    const sector = factorMeta?.[s?.ticker]?.sector;
+    if (!sector) return;
+    const history = s?.earningsHistory?.history || [];
+    const quarters = history.filter(q => q?.epsActual != null && q?.epsEstimate != null);
+    if (!quarters.length) return;
+    const bucket = perSector[sector] || (perSector[sector] = { sector, beatCount: 0, totalCount: 0 });
+    quarters.forEach(q => {
+      bucket.totalCount++;
+      if (q.surprisePercent != null ? q.surprisePercent >= 0 : q.epsActual >= q.epsEstimate) bucket.beatCount++;
+    });
+  });
+  const rows = Object.values(perSector).map(r => ({
+    sector: r.sector,
+    beatCount: r.beatCount,
+    totalCount: r.totalCount,
+    beatRate: r.totalCount ? Math.round(r.beatCount / r.totalCount * 1000) / 10 : 0,
+  }));
+  return rows.length ? rows : null;
+}
+
 router.get('/', async (req, res) => {
   const FRED_API_KEY = process.env.FRED_API_KEY || '';
   const cache = req.app.locals.cache;
@@ -143,7 +168,7 @@ router.get('/', async (req, res) => {
     trackApiCall('Yahoo Finance');
     const [factorSummaries, ...factorCharts] = await Promise.allSettled([
       Promise.allSettled(EQ_FACTOR_TICKERS.map(t =>
-        yf.quoteSummary(t, { modules: ['defaultKeyStatistics', 'financialData', 'calendarEvents', 'earningsTrend'] })
+        yf.quoteSummary(t, { modules: ['defaultKeyStatistics', 'financialData', 'calendarEvents', 'earningsTrend', 'earningsHistory'] })
           .then(d => ({ ticker: t, ...d }))
       )).then(results => results.map((r, i) => r.status === 'fulfilled' ? r.value : { ticker: EQ_FACTOR_TICKERS[i] })),
       ...EQ_FACTOR_TICKERS.map(t =>
@@ -245,7 +270,14 @@ router.get('/', async (req, res) => {
     });
     upcoming.sort((a, b) => a.date.localeCompare(b.date));
 
-    const earningsData = { upcoming, beatRates: null };
+    let beatRates = null;
+    try {
+      beatRates = computeBeatRates(summaries);
+    } catch (e) {
+      console.warn('[EquityDeepDive] beatRates compute failed:', e.message);
+    }
+
+    const earningsData = { upcoming, beatRates };
 
     trackApiCall('Yahoo Finance');
     const shortSummaryResults = await Promise.allSettled(
