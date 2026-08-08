@@ -619,6 +619,29 @@ function EquitiesDeepDiveDashboard({
       </div>
     ) : null;
 
+    const recentChangesBody = (recentChanges?.bigBuys?.length > 0 || recentChanges?.bigSells?.length > 0 || recentChanges?.newPositions?.length > 0) ? (
+      <div className="eqd-mini-table">
+        {recentChanges.bigBuys?.slice(0, 2).map((b, i) => (
+          <div key={`buy-${i}`} className="eqd-mini-row">
+            <span className="eqd-mini-name"><strong>{b.ticker}</strong> {b.name}</span>
+            <span className="eqd-mini-value" style={{ color: '#22c55e' }}>Buy · {b.buyer}</span>
+          </div>
+        ))}
+        {recentChanges.bigSells?.slice(0, 2).map((s, i) => (
+          <div key={`sell-${i}`} className="eqd-mini-row">
+            <span className="eqd-mini-name"><strong>{s.ticker}</strong> {s.name}</span>
+            <span className="eqd-mini-value" style={{ color: '#ef4444' }}>Sell · {s.seller}</span>
+          </div>
+        ))}
+        {recentChanges.newPositions?.slice(0, 2).map((n, i) => (
+          <div key={`new-${i}`} className="eqd-mini-row">
+            <span className="eqd-mini-name"><strong>{n.ticker}</strong> {n.name}</span>
+            <span className="eqd-mini-value" style={{ color: '#6366f1' }}>New · {n.buyer}</span>
+          </div>
+        ))}
+      </div>
+    ) : null;
+
     const earningsQualityBody = (
       <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
@@ -684,7 +707,12 @@ function EquitiesDeepDiveDashboard({
         : null,
       scores: scoresBody,
       earnings: earningsBody,
-      institutions: institutionsBody,
+      institutions: (institutionsBody || recentChangesBody) ? (
+        <>
+          {institutionsBody}
+          {recentChangesBody}
+        </>
+      ) : null,
       insider: (
         <InsiderTrading
           insiderData={insiderData}
