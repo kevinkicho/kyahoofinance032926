@@ -173,42 +173,36 @@ const COT_NAME_MAP = {
 
 // Fetch COT history (last 52 weeks)
 export async function fetchCOTHistory() {
-  const CFTC_URL = 'https://publicreporting.cftc.gov/resource/jun7-fc8e.json' +
-    '?$select=report_date_as_yyyy_mm_dd,market_and_exchange_names,' +
-    'noncomm_positions_long_all,noncomm_positions_short_all,open_interest_all' +
-    '&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=400';
+  const base = 'https://publicreporting.cftc.gov/resource/jun7-fc8e.json';
+  const select = '$select=report_date_as_yyyy_mm_dd,market_and_exchange_names,' +
+    'noncomm_positions_long_all,noncomm_positions_short_all,open_interest_all';
 
   try {
-    const rows = (await fetchJSON(CFTC_URL)) || [];
     const history = {};
-
-    // Group by currency and date
-    rows.forEach(row => {
-      const date = row.report_date_as_yyyy_mm_dd;
-      if (!date) return;
-
-      Object.entries(COT_NAME_MAP).forEach(([code, needle]) => {
-        if (row.market_and_exchange_names?.includes(needle)) {
-          if (!history[code]) history[code] = [];
-          const long = parseFloat(row.noncomm_positions_long_all) || 0;
-          const short = parseFloat(row.noncomm_positions_short_all) || 0;
-          const oi = parseFloat(row.open_interest_all) || 1;
-          history[code].push({
-            date,
-            net: Math.round((long - short) / oi * 100 * 10) / 10,
-            long: Math.round(long / 1000),
-            short: Math.round(short / 1000),
-          });
-        }
-      });
-    });
-
-    // Sort and limit to last 52 weeks
-    Object.keys(history).forEach(code => {
-      history[code] = history[code]
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .slice(-52);
-    });
+    // Query per currency so each gets its full 52-week window (a single
+    // $limit=400 spans all markets and leaves each currency with ~1-3 pts).
+    for (const [code, needle] of Object.entries(COT_NAME_MAP)) {
+      // SoQL string literals use double quotes; encode so they survive the URL.
+      const where = `$where=market_and_exchange_names like "${encodeURIComponent(`%${needle}%`)}"`;
+      const url = `${base}?${select}&${where}` +
+        `&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=52`;
+      const rows = (await fetchJSON(url)) || [];
+      for (const row of rows) {
+        const date = row.report_date_as_yyyy_mm_dd;
+        if (!date) continue;
+        const long = parseFloat(row.noncomm_positions_long_all) || 0;
+        const short = parseFloat(row.noncomm_positions_short_all) || 0;
+        const oi = parseFloat(row.open_interest_all) || 1;
+        (history[code] = history[code] || []).push({
+          date,
+          net: Math.round((long - short) / oi * 100 * 10) / 10,
+          long: Math.round(long / 1000),
+          short: Math.round(short / 1000),
+        });
+      }
+      // ascending for charting
+      if (history[code]) history[code].sort((a, b) => a.date.localeCompare(b.date)).slice(-52);
+    }
 
     return Object.keys(history).length >= 3 ? history : null;
   } catch (e) { console.warn('[FX]', e.message || e); return null; }
