@@ -267,6 +267,57 @@ function buildShortedOption(mostShorted, colors) {
   };
 }
 
+function buildSqueezeOption(mostShorted, colors) {
+  const candidates = mostShorted.filter(s => (s.shortFloat ?? 0) > 10);
+  return {
+    animation: false,
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: colors.tooltipBg,
+      borderColor: colors.tooltipBorder,
+      textStyle: { color: colors.text, fontSize: 11 },
+      formatter: p => `${p.data[3]}<br/>Short Float: ${p.data[0]?.toFixed(1)}%<br/>1W Return: ${p.data[1]?.toFixed(1)}%`,
+    },
+    grid: { top: 28, right: 8, bottom: 28, left: 8, containLabel: true },
+    xAxis: {
+      type: 'value',
+      name: 'Short Float %',
+      nameTextStyle: { color: colors.textMuted, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    yAxis: {
+      type: 'value',
+      name: '1W Return %',
+      nameTextStyle: { color: colors.textMuted, fontSize: 9 },
+      axisLine: { lineStyle: { color: colors.border } },
+      splitLine: { lineStyle: { color: colors.cardBg } },
+      axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `${v}%` },
+    },
+    series: [{
+      type: 'scatter',
+      data: candidates.map(s => [s.shortFloat ?? 0, s.perf1w ?? 0, s.marketCapB ?? 1, s.ticker]),
+      symbolSize: d => Math.max(8, Math.min(40, Math.sqrt(d[2] ?? 1) * 3)),
+      itemStyle: { color: '#ef4444', opacity: 0.8 },
+      label: {
+        show: true,
+        formatter: p => p.data[3],
+        position: 'right',
+        color: colors.textSecondary,
+        fontSize: 9,
+      },
+      markLine: {
+        data: [{ xAxis: 15 }, { yAxis: 0 }],
+        symbol: 'none',
+        lineStyle: { color: colors.textDim, type: 'dashed', width: 1 },
+        label: { show: false },
+      },
+    }],
+  };
+}
+
 // KPI strip and sidebar are now real bento children at top + right column.
 // Other panels shifted to make room.
 const LAYOUT = {
@@ -321,6 +372,7 @@ function EquitiesDeepDiveDashboard({
   const inFavorOption = useMemo(() => inFavor ? buildInFavorOption(inFavor, colors) : null, [inFavor, colors]);
   const beatRateOption = useMemo(() => beatRates?.length > 0 ? buildBeatRateOption(beatRates, colors) : null, [beatRates, colors]);
   const shortedOption = useMemo(() => mostShorted?.length > 0 ? buildShortedOption(mostShorted, colors) : null, [mostShorted, colors]);
+  const squeezeOption = useMemo(() => mostShorted?.length > 0 ? buildSqueezeOption(mostShorted, colors) : null, [mostShorted, colors]);
 
   const sectorKpis = useMemo(() => {
     if (!sectors.length) return null;
@@ -707,9 +759,16 @@ function EquitiesDeepDiveDashboard({
       'sector-beat': beatRateOption
         ? <SafeECharts option={beatRateOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Sector Beat Rate', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
         : null,
-      shorted: shortedOption
-        ? <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
-        : null,
+      shorted: (shortedOption || squeezeOption) ? (
+        <div className="eqd-shorted-body">
+          {shortedOption && (
+            <SafeECharts option={shortedOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Most Shorted', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+          )}
+          {squeezeOption && (
+            <SafeECharts option={squeezeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'Squeeze Watch', source: 'Yahoo Finance', endpoint: '/api/equityDeepDive', series: [], updatedAt: lastUpdated }} />
+          )}
+        </div>
+      ) : null,
       scores: scoresBody,
       earnings: earningsBody,
       institutions: (institutionsBody || recentChangesBody) ? (
