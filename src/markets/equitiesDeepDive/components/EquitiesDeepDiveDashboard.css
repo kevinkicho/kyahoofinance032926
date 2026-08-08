@@ -484,6 +484,12 @@
   white-space: nowrap;
 }
 
+.eqd-cell.eqd-name,
+.eqd-name {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
 .eqd-cell.eqd-date,
 .eqd-date {
   color: var(--text-secondary);

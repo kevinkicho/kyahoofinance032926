@@ -526,6 +526,7 @@ function EquitiesDeepDiveDashboard({
         <thead>
           <tr>
             <th className="eqd-th">Ticker</th>
+            <th className="eqd-th">Company</th>
             <th className="eqd-th">Value</th>
             <th className="eqd-th">Momentum</th>
             <th className="eqd-th">Quality</th>
@@ -537,6 +538,7 @@ function EquitiesDeepDiveDashboard({
           {stocks.slice(0, 10).map(s => (
             <tr key={s.ticker} className="eqd-row">
               <td className="eqd-cell"><strong>{s.ticker}</strong></td>
+              <td className="eqd-cell eqd-name">{s.name || '—'}</td>
               <td className={`eqd-cell eqd-score ${factorHeat(s.value)}`}><MetricValue value={s.value} seriesKey="factorValue" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
               <td className={`eqd-cell eqd-score ${factorHeat(s.momentum)}`}><MetricValue value={s.momentum} seriesKey="factorMomentum" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
               <td className={`eqd-cell eqd-score ${factorHeat(s.quality)}`}><MetricValue value={s.quality} seriesKey="factorQuality" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
