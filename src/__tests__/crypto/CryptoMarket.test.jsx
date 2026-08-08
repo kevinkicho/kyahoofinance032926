@@ -63,4 +63,37 @@ describe('CryptoMarket', () => {
     // Dominance may appear in sidebar and fear/greed strip — match any
     expect(screen.getAllByText(/52/).length).toBeGreaterThan(0);
   });
+
+  it('marks exchanges disabled + honest empty when all volumes are null (CoinGecko fallback)', () => {
+    const fallback = {
+      ...mockCentralData,
+      data: {
+        ...mockCentralData.data,
+        topExchanges: [
+          { name: 'Binance', volume24h: null },
+          { name: 'Coinbase Exchange', volume24h: null },
+          { name: 'OKX', volume24h: null },
+        ],
+      },
+    };
+    render(<CryptoMarket centralData={fallback} />);
+    expect(screen.getByText(/Exchange volumes unavailable — CoinGecko rate-limited/i)).toBeInTheDocument();
+  });
+
+  it('renders exchange table + keeps live when at least one volume is positive', () => {
+    const real = {
+      ...mockCentralData,
+      data: {
+        ...mockCentralData.data,
+        topExchanges: [
+          { name: 'Binance', volume24h: 1234 },
+          { name: 'Coinbase Exchange', volume24h: 567 },
+        ],
+      },
+    };
+    render(<CryptoMarket centralData={real} />);
+    expect(screen.queryByText(/Exchange volumes unavailable/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Binance')).toBeInTheDocument();
+    expect(screen.getByText(/1234 BTC/i)).toBeInTheDocument();
+  });
 });

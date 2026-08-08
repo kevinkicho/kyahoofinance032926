@@ -50,6 +50,8 @@ function CryptoDashboard({
 }) {
   const { colors } = useTheme();
 
+  const hasRealExchVolume = (topExchanges || []).some((e) => Number(e.volume24h) > 0);
+
   const fundingRates = useMemo(() => {
     if (Array.isArray(fundingData)) return fundingData;
     if (fundingData?.rates) return fundingData.rates;
@@ -337,7 +339,7 @@ function CryptoDashboard({
 
       case 'exchanges': {
         const totalVol = (topExchanges || []).reduce((s, e) => s + (Number(e.volume24h) || 0), 0);
-        return topExchanges?.length > 0 ? (
+        return topExchanges?.length > 0 && hasRealExchVolume ? (
           <div className="crypto-mini-table">
             <div className="crypto-mini-row" style={{ fontSize: 9, opacity: 0.65 }}>
               <span className="crypto-mini-name">Exchange</span>
@@ -358,7 +360,7 @@ function CryptoDashboard({
             })}
           </div>
         ) : (
-          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Exchange volume loading…</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>Exchange volumes unavailable — CoinGecko rate-limited</div>
         );
       }
 
@@ -450,7 +452,7 @@ function CryptoDashboard({
       'fear-greed': !!(isLive && fgiValue != null),
       funding: !!(isLive && fundingRates.length > 0),
       'defi-tvl': !!(isLive && defiChains.length > 0),
-      exchanges: !!isLive,
+      exchanges: !!isLive && hasRealExchVolume,
       onchain: !!(isLive && onChainData),
       'onchain-chart': !!(isLive && onChainData?.hashrate?.history?.length > 0),
       'stablecoin-composition': stablecoinMcap != null,
@@ -468,6 +470,7 @@ function CryptoDashboard({
       'defi-tvl': defiChains.length === 0,
       onchain: !onChainData,
       'onchain-chart': !onchainChartOption,
+      exchanges: (topExchanges || []).length === 0 || !hasRealExchVolume,
     },
     __noFooter: {
       sidebar: true,
