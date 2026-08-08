@@ -21,6 +21,7 @@ const LAYOUT = {
     // SF Fed Daily News Sentiment Index — full-width below.
     { i: 'news-sentiment', x: 0, y: 13, w: 12, h: 3 },
     { i: 'fed-risk-mood', x: 0, y: 16, w: 12, h: 3 },
+    { i: 'cross-asset', x: 0, y: 19, w: 12, h: 2 },
   ]
 };
 
