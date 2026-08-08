@@ -498,15 +498,19 @@
 }
 
 /* Upcoming Earnings — keep header alignment locked to cell alignment */
-.eqd-earnings-table col.eqd-col-date { width: 28%; }
-.eqd-earnings-table col.eqd-col-ticker { width: 22%; }
-.eqd-earnings-table col.eqd-col-eps { width: 30%; }
-.eqd-earnings-table col.eqd-col-dir { width: 20%; }
+.eqd-earnings-table col.eqd-col-date { width: 22%; }
+.eqd-earnings-table col.eqd-col-ticker { width: 18%; }
+.eqd-earnings-table col.eqd-col-sector { width: 20%; }
+.eqd-earnings-table col.eqd-col-eps { width: 22%; }
+.eqd-earnings-table col.eqd-col-dir { width: 18%; }
 
 .eqd-earnings-table .eqd-col-date {
   text-align: left;
 }
 .eqd-earnings-table .eqd-col-ticker {
+  text-align: left;
+}
+.eqd-earnings-table .eqd-col-sector {
   text-align: left;
 }
 .eqd-earnings-table .eqd-col-eps {

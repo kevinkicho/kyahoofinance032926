@@ -549,6 +549,7 @@ function EquitiesDeepDiveDashboard({
         <colgroup>
           <col className="eqd-col-date" />
           <col className="eqd-col-ticker" />
+          <col className="eqd-col-sector" />
           <col className="eqd-col-eps" />
           <col className="eqd-col-dir" />
         </colgroup>
@@ -556,6 +557,7 @@ function EquitiesDeepDiveDashboard({
           <tr>
             <th className="eqd-th eqd-col-date">Date</th>
             <th className="eqd-th eqd-col-ticker">Ticker</th>
+            <th className="eqd-th eqd-col-sector">Sector</th>
             <th className="eqd-th eqd-col-eps">EPS Est</th>
             <th className="eqd-th eqd-col-dir" title="Estimate vs prior-quarter EPS">Dir</th>
           </tr>
@@ -570,6 +572,7 @@ function EquitiesDeepDiveDashboard({
                 <td className="eqd-cell eqd-col-ticker">
                   <strong className="eqd-ticker">{e.ticker}</strong>
                 </td>
+                <td className="eqd-cell eqd-col-sector">{e.sector || '—'}</td>
                 <td className="eqd-cell eqd-col-eps eqd-num">
                   <MetricValue
                     value={e.epsEst}
