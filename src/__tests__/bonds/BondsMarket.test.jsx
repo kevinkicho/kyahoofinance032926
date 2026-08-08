@@ -1,8 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import BondsMarket from '../../markets/bonds/BondsMarket';
+import DataContext from '../../hub/DataContext';
 
 vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
+
+function renderWithContext(ui, { getMarketExtra = {} } = {}) {
+  const ctxValue = {
+    getMarket: (id) => getMarketExtra[id] || { isLoading: false, isLive: false, data: {} },
+    refetchSingle: vi.fn(),
+  };
+  return render(<DataContext.Provider value={ctxValue}>{ui}</DataContext.Provider>);
+}
 
 const mockCentralData = {
   isLoading: false,
@@ -71,5 +80,33 @@ describe('BondsMarket', () => {
     const rows = screen.getAllByText('5s30s');
     expect(rows.length).toBe(1);
     expect(screen.getByText('+0.82%')).toBeInTheDocument();
+  });
+
+  it('renders ON RRP hint in the fed panel when nyfed data is present', () => {
+    const withFed = {
+      ...mockCentralData,
+      data: {
+        ...mockCentralData.data,
+        fedBalanceSheetHistory: { dates: ['2026-08-01'], values: [7.1] },
+      },
+    };
+    renderWithContext(<BondsMarket centralData={withFed} />, {
+      getMarketExtra: { nyfed: { isLoading: false, isLive: true, data: { rrp: [{ date: '2026-08-04', acceptedB: 2127 }] } } },
+    });
+    expect(screen.getByText(/ON RRP \$2127B/i)).toBeInTheDocument();
+  });
+
+  it('renders no RRP hint when nyfed rrp is empty', () => {
+    const withFed = {
+      ...mockCentralData,
+      data: {
+        ...mockCentralData.data,
+        fedBalanceSheetHistory: { dates: ['2026-08-01'], values: [7.1] },
+      },
+    };
+    renderWithContext(<BondsMarket centralData={withFed} />, {
+      getMarketExtra: { nyfed: { isLoading: false, isLive: true, data: { rrp: [] } } },
+    });
+    expect(screen.queryByText(/ON RRP \$\d+B/i)).not.toBeInTheDocument();
   });
 });

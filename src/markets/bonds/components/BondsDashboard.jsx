@@ -395,7 +395,11 @@ function BondsDashboard({
                   </span>
                 )}
                 {meta.asOf && <span style={{ opacity: 0.55 }}>{meta.asOf}</span>}
-                {macroData?.rrp != null && <span style={{ opacity: 0.8 }}>RRP context on macro</span>}
+                {Array.isArray(nyfedCtx?.data?.rrp) && nyfedCtx.data.rrp[0]?.acceptedB != null && (
+                  <span style={{ opacity: 0.8 }}>
+                    ON RRP ${Number(nyfedCtx.data.rrp[0].acceptedB).toFixed(0)}B
+                  </span>
+                )}
               </div>
             )}
             <div style={{ flex: 1, minHeight: 0 }}>
