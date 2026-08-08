@@ -378,15 +378,6 @@ export const PANEL_MANIFEST = [
     placeholders: "fx:treasury-tic",
   },
   {
-    key: "fx:bis-reer",
-    marketId: "fx",
-    panelId: "bis-reer",
-    title: "BIS REER Comparison",
-    dashboard: "src/markets/fx/components/FXDashboard.jsx",
-    module: "src/panels/fx/bis-reer.jsx",
-    placeholders: "fx:bis-reer",
-  },
-  {
     key: "derivatives:kpi",
     marketId: "derivatives",
     panelId: "kpi",

@@ -100,6 +100,14 @@ export default function ReerChart({ reer, isLive, lastUpdated, fetchLog, error, 
                 <span className="fx-kpi-value" style={{ color: REER_COLORS[k] }}>
                   <MetricValue value={latestValues[k]} seriesKey={`reer_${k}`} timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} />
                 </span>
+                {reer[k]?.length >= 2 && (() => {
+                  const delta = reer[k][reer[k].length - 1] - reer[k][reer[k].length - 2];
+                  return (
+                    <span className="fx-kpi-sub" style={{ color: delta >= 0 ? '#4ade80' : '#f87171', display: 'block' }}>
+                      {delta >= 0 ? '+' : ''}{delta.toFixed(1)} chg
+                    </span>
+                  );
+                })()}
               </div>
             )
           ))}

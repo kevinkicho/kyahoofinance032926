@@ -58,7 +58,6 @@ export const MARKET_PANELS = {
     { id: 'rate-dashboard', title: 'Rate Dashboard' },
     { id: 'imf-cofer', title: 'IMF COFER Reserves' },
     { id: 'treasury-tic', title: 'Treasury TIC Holdings' },
-    { id: 'bis-reer', title: 'BIS REER Comparison' },
   ],
   derivatives: [
     { id: 'kpi', title: 'Derivatives Key Metrics' },

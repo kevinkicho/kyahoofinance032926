@@ -192,7 +192,6 @@ export const PANEL_REGISTRY = {
     { id: 'reer', title: 'REER Chart', field: 'reer', fieldPath: 'reer', source: 'fx.js', external: [{ name: 'BIS / FRED', seriesIds: [] }], renderCheck: 'reer?.dates?.length > 0', renderType: 'SafeECharts' },
     { id: 'imf-cofer', title: 'IMF COFER Reserves', field: 'imfReserves', fieldPath: 'imfReserves', source: 'fx.js (IMF COFER)', external: [{ name: 'IMF', seriesIds: [] }], renderCheck: 'imfReserves?.reserves && Object.keys(imfReserves.reserves).length > 0', renderType: 'ImfCoferPanel' },
     { id: 'treasury-tic', title: 'Treasury TIC Holdings', field: '(cross-market: treasuryTIC)', fieldPath: 'ticCtx.data.latest', source: 'treasuryTIC.js', external: [{ name: 'US Treasury TIC', seriesIds: [] }], renderCheck: 'ticCtx?.data?.latest?.length > 0', renderType: 'TreasuryTicPanel' },
-    { id: 'bis-reer', title: 'BIS REER Comparison', field: 'reer', fieldPath: 'reer', source: 'fx.js (BIS/FRED)', external: [{ name: 'BIS', seriesIds: ['RNBUSBIS','RNBEBIS','RNJPBIS','RNGBBIS','RNCBBIS'] }], renderCheck: 'reer?.dates?.length > 0', renderType: 'BisReerPanel' },
   ],
 
   crypto: [

@@ -8,7 +8,6 @@ import CurrencyCorrelationMatrix from './CurrencyCorrelationMatrix';
 import FXSidebar from './FXSidebar';
 import ImfCoferPanel from './ImfCoferPanel';
 import TreasuryTicPanel from './TreasuryTicPanel';
-import BisReerPanel from './BisReerPanel';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import './FXDashboard.css';
@@ -48,7 +47,6 @@ const LAYOUT = {
     { i: 'rate-dashboard', x: 0, y: 14, w: 12, h: 2 },
     { i: 'imf-cofer', x: 0, y: 16, w: 4, h: 4 },
     { i: 'treasury-tic', x: 4, y: 16, w: 4, h: 4 },
-    { i: 'bis-reer', x: 8, y: 16, w: 4, h: 4 },
   ]
 };
 
@@ -299,9 +297,6 @@ function FXDashboard({
       case 'treasury-tic':
         return <TreasuryTicPanel />;
 
-      case 'bis-reer':
-        return <BisReerPanel />;
-
       default:
         return null;
     }
@@ -326,7 +321,6 @@ function FXDashboard({
       'rate-dashboard': !!rateDiffRows.length,
       'imf-cofer': !!isLive,
       'treasury-tic': true,
-      'bis-reer': true,
     },
     __subtitle: {
       kpi: 'Spot rates · DXY · G10 average',
@@ -334,7 +328,6 @@ function FXDashboard({
       'rate-dashboard': 'Fed policy vs ECB / BoE / BoJ · spot 1D / 1M',
       'imf-cofer': 'Currency composition of official FX reserves',
       'treasury-tic': 'Top foreign holders of US Treasury securities',
-      'bis-reer': 'Real effective exchange rates for major economies',
     },
     __disabled: {
       dxy: !dxyOption,
@@ -357,7 +350,6 @@ function FXDashboard({
       'rate-dashboard': 'FRED / Central Banks / Frankfurter',
       'imf-cofer': 'IMF COFER',
       'treasury-tic': 'US Treasury TIC',
-      'bis-reer': 'BIS / FRED',
     },
   }), [
     renderPanel, isLive, dxyHistory, cotHistory, history, reer, rateDiff,

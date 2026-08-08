@@ -244,7 +244,6 @@ export const PANEL_PLACEHOLDERS = {
     any('usdShare', ['imfReserves.reserves.USD', 'cofer.USD'], { required: false }),
   ],
   'fx:treasury-tic': [p('latest', 'latest', { crossMarket: 'treasuryTIC' })],
-  'fx:bis-reer': [any('reer', ['reer.dates', 'reer'])],
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DERIVATIVES / CRYPTO / CREDIT / others — multi-slot where known

@@ -10,7 +10,6 @@ import p_carry from './carry.jsx';
 import p_rate_dashboard from './rate-dashboard.jsx';
 import p_imf_cofer from './imf-cofer.jsx';
 import p_treasury_tic from './treasury-tic.jsx';
-import p_bis_reer from './bis-reer.jsx';
 
 /** @type {import('../definePanel').PanelDefinition[]} */
 export const FX_PANELS = [
@@ -25,8 +24,7 @@ export const FX_PANELS = [
   p_carry,
   p_rate_dashboard,
   p_imf_cofer,
-  p_treasury_tic,
-  p_bis_reer
+  p_treasury_tic
 ];
 
 export const FX_PANEL_BY_ID = Object.fromEntries(

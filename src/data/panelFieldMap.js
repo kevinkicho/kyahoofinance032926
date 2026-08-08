@@ -75,7 +75,6 @@ export const PANEL_FIELD_MAP = {
     { field: 'cofer', fieldPath: 'cofer', crossMarket: 'imf' },
   ] },
   'fx:treasury-tic': { field: 'latest', fieldPath: 'latest', crossMarket: 'treasuryTIC' },
-  'fx:bis-reer': { field: 'reer', fieldPath: 'reer' },
 
   // ── Derivatives ──
   'derivatives:kpi': { field: 'vixTermStructure', fieldPath: 'vixTermStructure' },
