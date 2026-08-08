@@ -82,8 +82,11 @@ function buildRankedOption(sectors, colors) {
       textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => {
         const name = params[0]?.name ?? '';
+        const s = etfs.find(e => e.name === name);
+        const d = Number(s?.perf1d ?? 0);
+        const dLine = s ? `1D: <b>${d >= 0 ? '+' : ''}${d.toFixed(2)}%</b>` : '';
         const lines = params.map(p => `${p.marker}${p.seriesName}: ${(p.value ?? 0).toFixed(1)}%`);
-        return `${name}<br/>${lines.join('<br/>')}`;
+        return `${name}<br/>${dLine ? `${dLine}<br/>` : ''}${lines.join('<br/>')}`;
       },
     },
     legend: {
