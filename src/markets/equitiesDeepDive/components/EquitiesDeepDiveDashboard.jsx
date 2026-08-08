@@ -707,7 +707,7 @@ function EquitiesDeepDiveDashboard({
       <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
           {[
-            { label: 'Next Report', value: earningsQuality.next?.ticker || '—', sub: earningsQuality.next?.date || 'schedule' },
+            { label: 'Next Report', value: earningsQuality.next?.ticker || '—', sub: [earningsQuality.next?.name, earningsQuality.next?.date].filter(Boolean).join(' · ') || 'schedule' },
             { label: 'Beat Breadth', value: earningsQuality.avgBeatRate != null ? `${earningsQuality.avgBeatRate.toFixed(1)}%` : '—', sub: earningsQuality.bestBeat?.sector || earningsQuality.bestBeat?.name || 'by sector' },
             { label: 'Positive Revisions', value: earningsQuality.revisionRate != null ? `${earningsQuality.revisionRate.toFixed(0)}%` : '—', sub: `${earningsQuality.totalUpcoming} upcoming` },
             { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : 'rotation' },
