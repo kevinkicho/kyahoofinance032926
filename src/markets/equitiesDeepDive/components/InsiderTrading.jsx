@@ -309,6 +309,41 @@ export default function InsiderTrading({ insiderData }) {
         </div>
       )}
 
+      {displayHolders.length > 0 && (
+        <div className="inst-section">
+          <div className="inst-section-title">Top Insider Holders</div>
+          <div className="eq-scroll">
+            <table className="eqd-table">
+              <thead>
+                <tr>
+                  <th className="eqd-th">Ticker</th>
+                  <th className="eqd-th">Insider</th>
+                  <th className="eqd-th">Role</th>
+                  <th className="eqd-th">Shares</th>
+                  <th className="eqd-th">Last Tx</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayHolders.slice(0, 10).map((h, i) => {
+                  const cls = classifyTx('', h.lastTx);
+                  return (
+                    <tr key={`${h.ticker}-${h.name}-${i}`} className="eqd-row">
+                      <td className="eqd-cell"><strong>{h.ticker || '\u2014'}</strong></td>
+                      <td className="eqd-cell eqd-name">{h.name || '\u2014'}</td>
+                      <td className="eqd-cell eqd-name">{(h.title || h.relation || '').trim() || '\u2014'}</td>
+                      <td className="eqd-cell eqd-num">{fmtShares(h.shares)}</td>
+                      <td className="eqd-cell eqd-dir" style={{ color: txColor(cls.kind) }}>
+                        {h.lastTx || '\u2014'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {displayTx.length > 0 && (
         <div className="inst-section">
           <div className="inst-section-title">Recent Transactions</div>
