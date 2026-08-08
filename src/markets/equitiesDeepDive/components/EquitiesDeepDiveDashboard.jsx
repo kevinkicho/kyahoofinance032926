@@ -675,6 +675,7 @@ function EquitiesDeepDiveDashboard({
                     timestamp={lastUpdated}
                     format={v => (v != null ? `$${Number(v).toFixed(2)}` : '—')}
                   />
+                  {e.epsPrev != null ? <span className="eqd-name">prior ${Number(e.epsPrev).toFixed(2)}</span> : null}
                 </td>
                 <td className="eqd-cell eqd-col-dir">
                   {hasDir ? (
