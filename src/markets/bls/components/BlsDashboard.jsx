@@ -210,7 +210,7 @@ function usePanelItems(series, defs) {
  * left = compact selectable metric tiles, right = full history chart.
  * @param {boolean} wideRail — multi-column tile grid (full-width KPI panel)
  */
-function MasterDetailBody({ items, formatKey, emptyHint = 'No series available', wideRail = false }) {
+function MasterDetailBody({ items, formatKey, emptyHint = 'No series available', wideRail = false, totalDefs }) {
   const [selectedKey, setSelectedKey] = useState(null);
 
   useEffect(() => {
@@ -245,8 +245,15 @@ function MasterDetailBody({ items, formatKey, emptyHint = 'No series available',
     );
   }
 
+  const missingCount = typeof totalDefs === 'number' ? totalDefs - items.length : 0;
+
   return (
     <div className={`bls-master-detail${wideRail ? ' bls-master-detail--wide' : ''}`}>
+      {missingCount > 0 && (
+        <div style={{ color: 'var(--text-muted)', fontSize: 11, padding: '6px 8px' }}>
+          {missingCount} of {totalDefs} series currently unavailable
+        </div>
+      )}
       <div className={`bls-tile-rail${wideRail ? ' bls-tile-rail--wide' : ''}`} role="listbox" aria-label="Series">
         {items.map(k => (
           <button
@@ -394,7 +401,7 @@ export default function BlsDashboard({ series, isLive }) {
       'cpi-components': <MasterDetailBody items={cpiItems} emptyHint="No CPI component series" />,
       'ppi-by-industry': <MasterDetailBody items={ppiItems} emptyHint="No PPI series" />,
       eci: <MasterDetailBody items={eciItems} emptyHint="No ECI series" />,
-      'unemployment-duration': <MasterDetailBody items={durationItems} emptyHint="No duration series" />,
+      'unemployment-duration': <MasterDetailBody items={durationItems} emptyHint="No duration series" totalDefs={DURATION_DEFS.length} />,
     };
     const live = Object.fromEntries(Object.keys(bodies).map((id) => [id, !!isLive]));
     const noFooter = Object.fromEntries(Object.keys(bodies).map((id) => [id, true]));

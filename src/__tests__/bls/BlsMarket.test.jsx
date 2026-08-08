@@ -56,4 +56,22 @@ describe('BlsMarket', () => {
     expect(screen.getAllByText('Unemployment Rate').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('4.3').length).toBeGreaterThanOrEqual(1);
   });
+
+  it('shows unavailable note when duration series are missing (no silent tile drop)', () => {
+    const partial = {
+      ...mockCentralData,
+      data: {
+        ...mockCentralData.data,
+        series: {
+          ...mockCentralData.data.series,
+          unempLess5Weeks: { label: '< 5 Weeks', unit: 'K', seriesId: 'LNS13008396', latest: { period: 'March', year: '2026', value: 2182 }, previous: { period: 'February', year: '2026', value: 2200 }, history: { dates: ['2026-03'], values: [2182] }, _source: true },
+          unemp5To14Weeks: { label: '5–14 Weeks', unit: 'K', seriesId: 'LNS13008756', latest: { period: 'March', year: '2026', value: 30.7 }, previous: { period: 'February', year: '2026', value: 31 }, history: { dates: ['2026-03'], values: [30.7] }, _source: true },
+          unemp15To26Weeks: { label: '15–26 Weeks', unit: 'K', seriesId: 'UEMP15T26', latest: null, history: { dates: [], values: [] }, _source: false },
+          unemp27PlusWeeks: { label: '27+ Weeks', unit: 'K', seriesId: 'UEMP27OV', latest: null, history: { dates: [], values: [] }, _source: false },
+        },
+      },
+    };
+    render(<BlsMarket centralData={partial} />);
+    expect(screen.getByText(/2 of 4 series currently unavailable/i)).toBeInTheDocument();
+  });
 });
