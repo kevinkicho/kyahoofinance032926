@@ -82,7 +82,6 @@ export const MARKET_PANELS = {
     { id: 'mba', title: 'Mortgage Rates' },
     { id: 'cre', title: 'CRE Delinquencies' },
     { id: 'caprate', title: 'Cap Rates by Sector' },
-    { id: 'afford', title: 'Affordability Index' },
     { id: 'supply', title: 'Supply & Demand' },
     { id: 'hud-afford', title: 'HUD Rental Affordability' },
     { id: 'afford-stack', title: 'Housing Affordability Stack' },

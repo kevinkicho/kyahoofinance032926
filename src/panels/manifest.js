@@ -558,15 +558,6 @@ export const PANEL_MANIFEST = [
     placeholders: "realEstate:caprate",
   },
   {
-    key: "realEstate:afford",
-    marketId: "realEstate",
-    panelId: "afford",
-    title: "Affordability Index",
-    dashboard: "src/markets/realEstate/components/RealEstateDashboard.jsx",
-    module: "src/panels/realEstate/afford.jsx",
-    placeholders: "realEstate:afford",
-  },
-  {
     key: "realEstate:supply",
     marketId: "realEstate",
     panelId: "supply",

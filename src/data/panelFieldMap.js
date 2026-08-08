@@ -102,7 +102,6 @@ export const PANEL_FIELD_MAP = {
   'realEstate:mba': { field: 'mortgageRates', fieldPath: 'mortgageRates' },
   'realEstate:cre': { field: 'creDelinquencies', fieldPath: 'creDelinquencies' },
   'realEstate:caprate': { field: 'capRateData', fieldPath: 'capRateData' },
-  'realEstate:afford': { field: 'affordabilityData', fieldPath: 'affordabilityData' },
   'realEstate:supply': { field: 'supplyData', fieldPath: 'supplyData' },
   'realEstate:hud-afford': { anyOf: [
     { field: 'hudData', fieldPath: 'hudData' },

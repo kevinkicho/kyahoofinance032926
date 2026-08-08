@@ -365,7 +365,6 @@ export const PANEL_PLACEHOLDERS = {
   'realEstate:mba': [any('mtg', ['mortgageRates', 'mbaApplications'])],
   'realEstate:cre': [p('creDelinquencies', 'creDelinquencies')],
   'realEstate:caprate': [p('capRateData', 'capRateData')],
-  'realEstate:afford': [p('affordabilityData', 'affordabilityData')],
   'realEstate:supply': [p('supplyData', 'supplyData')],
   'realEstate:hud-afford': [any('hud', ['hudData', 'affordabilityData'])],
   'realEstate:afford-stack': [p('affordabilityData', 'affordabilityData')],

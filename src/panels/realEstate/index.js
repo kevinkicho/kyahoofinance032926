@@ -6,7 +6,6 @@ import p_foreclosure from './foreclosure.jsx';
 import p_mba from './mba.jsx';
 import p_cre from './cre.jsx';
 import p_caprate from './caprate.jsx';
-import p_afford from './afford.jsx';
 import p_supply from './supply.jsx';
 import p_hud_afford from './hud-afford.jsx';
 import p_afford_stack from './afford-stack.jsx';
@@ -29,7 +28,6 @@ export const REALESTATE_PANELS = [
   p_mba,
   p_cre,
   p_caprate,
-  p_afford,
   p_supply,
   p_hud_afford,
   p_afford_stack,

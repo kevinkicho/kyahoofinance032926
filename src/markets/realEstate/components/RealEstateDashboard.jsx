@@ -31,7 +31,6 @@ const LAYOUT = {
     { i: 'mba', x: 6, y: 3, w: 3, h: 3 },
     { i: 'cre', x: 9, y: 3, w: 3, h: 3 },
     { i: 'caprate', x: 0, y: 6, w: 3, h: 3 },
-    { i: 'afford', x: 3, y: 6, w: 3, h: 3 },
     { i: 'supply', x: 6, y: 6, w: 3, h: 3 },
     { i: 'hud-afford', x: 9, y: 6, w: 3, h: 3 },
     { i: 'afford-stack', x: 0, y: 9, w: 12, h: 3 },
@@ -854,49 +853,6 @@ function RealEstateDashboard({
             </div>
         ),
 
-        afford: (
-            <div className="re-mini-table" style={{ paddingTop: 0 }}>
-              {(() => {
-                const cur = affordabilityData?.current;
-                if (!cur) {
-                  // Fallback: show history-derived rows
-                  const hist = (affordabilityData?.history || []).slice(-8);
-                  if (!hist.length) {
-                    return (
-                      <div className="re-mini-row" style={{ opacity: 0.7 }}>
-                        <span className="re-mini-name">No affordability data yet</span>
-                      </div>
-                    );
-                  }
-                  return hist.map((h, i) => (
-                    <div key={i} className="re-mini-row">
-                      <span className="re-mini-name">{h.date?.slice(0, 7) || `Period ${i+1}`}</span>
-                      <span className="re-mini-value" style={{ color: h.priceToIncome > 5 ? '#f87171' : h.priceToIncome > 3.5 ? '#fbbf24' : '#4ade80' }}>
-                        <MetricValue value={h.priceToIncome} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={v => v != null ? `${v.toFixed(1)}x` : '—'} />
-                      </span>
-                    </div>
-                  ));
-                }
-                const rows = [
-                  { label: 'Median Price', value: cur.medianPrice, fmt: v => `$${(v / 1000).toFixed(0)}K`, color: '#60a5fa' },
-                  { label: 'Median Income', value: cur.medianIncome, fmt: v => `$${(v / 1000).toFixed(0)}K`, color: '#22c55e' },
-                  { label: 'Price/Income', value: cur.priceToIncome, fmt: v => `${v.toFixed(1)}x`, color: cur.priceToIncome > 5 ? '#f87171' : cur.priceToIncome > 3.5 ? '#fbbf24' : '#4ade80' },
-                  { label: 'Mortgage/Income', value: cur.mortgageToIncome, fmt: v => `${v.toFixed(1)}%`, color: cur.mortgageToIncome > 30 ? '#f87171' : cur.mortgageToIncome > 20 ? '#fbbf24' : '#4ade80' },
-                  { label: '30Y Rate', value: cur.rate30y, fmt: v => `${v.toFixed(2)}%`, color: '#fbbf24' },
-                  { label: 'YoY Change', value: cur.yoyChange, fmt: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, color: cur.yoyChange >= 0 ? '#f87171' : '#4ade80' },
-                ];
-                return rows.map((r, i) => (
-                  <div key={i} className="re-mini-row">
-                    <span className="re-mini-name">{r.label}</span>
-                    <span className="re-mini-value" style={{ color: r.color }}>
-                      <MetricValue value={r.value} seriesKey="affordabilityIndex" timestamp={lastUpdated} format={r.fmt} />
-                    </span>
-                  </div>
-                ));
-              })()}
-            </div>
-        ),
-
         supply: (
             <div className="re-mini-table" style={{ paddingTop: 0 }}>
               {(() => {
@@ -1039,7 +995,6 @@ function RealEstateDashboard({
       mba: !!isLive,
       cre: !!isLive,
       caprate: !!isLive,
-      afford: !!isLive,
       supply: !!isLive,
       'hud-afford': !!isLive,
       'afford-stack': !!isLive,
@@ -1075,7 +1030,6 @@ function RealEstateDashboard({
       mba: 'FRED MORTGAGE30US',
       cre: 'FRED',
       caprate: 'Yahoo Finance',
-      afford: 'FRED / Census',
       supply: 'FRED / Census',
       'hud-afford': 'HUD User / US Census',
       'afford-stack': 'FRED / HUD / Census',
