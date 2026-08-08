@@ -289,7 +289,6 @@ export const PANEL_PLACEHOLDERS = {
   'credit:key-metrics': [any('spread', ['spreadData.current', 'spreadData'])],
   'credit:credit-spreads': [any('spread', ['spreadData.current', 'spreadData.history', 'spreadData'])],
   'credit:spread-summary': [any('spread', ['spreadData.current', 'spreadData'])],
-  'credit:em-spread': [p('em', 'emBondData')],
   'credit:em-yields': [p('em', 'emBondData')],
   'credit:cp-rates': [any('cp', ['commercialPaper.rate', 'commercialPaper'])],
   'credit:clo-tranches': [p('loan', 'loanData')],

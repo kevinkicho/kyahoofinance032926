@@ -195,7 +195,6 @@ export const MARKET_PANELS = {
     { id: 'key-metrics', title: 'Key Metrics' },
     { id: 'credit-spreads', title: 'Credit Spreads' },
     { id: 'spread-summary', title: 'Spread Summary' },
-    { id: 'em-spread', title: 'EM Spread History' },
     { id: 'em-yields', title: 'EM ETF Yields' },
     { id: 'cp-rates', title: 'Commercial Paper' },
     { id: 'clo-tranches', title: 'CLO Tranches' },

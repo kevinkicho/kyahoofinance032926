@@ -318,7 +318,6 @@ export const PANEL_FIELD_MAP = {
   'credit:key-metrics': { field: 'spreadData', fieldPath: 'spreadData' },
   'credit:credit-spreads': { field: 'spreadData', fieldPath: 'spreadData' },
   'credit:spread-summary': { field: 'spreadData', fieldPath: 'spreadData' },
-  'credit:em-spread': { field: 'emBondData', fieldPath: 'emBondData' },
   'credit:em-yields': { field: 'emBondData', fieldPath: 'emBondData' },
   'credit:cp-rates': { field: 'commercialPaper', fieldPath: 'commercialPaper' },
   'credit:clo-tranches': { field: 'loanData', fieldPath: 'loanData' },

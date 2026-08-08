@@ -1467,15 +1467,6 @@ export const PANEL_MANIFEST = [
     placeholders: "credit:spread-summary",
   },
   {
-    key: "credit:em-spread",
-    marketId: "credit",
-    panelId: "em-spread",
-    title: "EM Spread History",
-    dashboard: "src/markets/credit/components/CreditDashboard.jsx",
-    module: "src/panels/credit/em-spread.jsx",
-    placeholders: "credit:em-spread",
-  },
-  {
     key: "credit:em-yields",
     marketId: "credit",
     panelId: "em-yields",

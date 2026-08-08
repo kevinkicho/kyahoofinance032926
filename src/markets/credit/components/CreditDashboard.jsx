@@ -18,7 +18,6 @@ const LAYOUT = {
     { i: 'key-metrics', x: 0, y: 2, w: 3, h: 3 },
     { i: 'credit-spreads', x: 3, y: 2, w: 3, h: 3 },
     { i: 'spread-summary', x: 6, y: 2, w: 3, h: 3 },
-    { i: 'em-spread', x: 9, y: 2, w: 3, h: 3 },
     { i: 'em-yields', x: 0, y: 5, w: 4, h: 2 },
     { i: 'cp-rates', x: 4, y: 5, w: 4, h: 2 },
     { i: 'clo-tranches', x: 8, y: 5, w: 4, h: 2 },
@@ -105,20 +104,6 @@ function CreditDashboard({
         symbol: 'none',
         lineStyle: { color: s.color, width: s.name === 'IG OAS' || s.name === 'HY OAS' ? 2 : 1.4 },
       })),
-    };
-  }, [spreadData, colors]);
-
-  const emOption = useMemo(() => {
-    const hist = spreadData?.history;
-    if (!hist?.EM?.length) return null;
-    return {
-      animation: false,
-      backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis' },
-      grid: { top: 20, right: 30, bottom: 30, left: 50 },
-      xAxis: { type: 'category', data: hist.dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(hist.dates.length / 6) } },
-      yAxis: { type: 'value', name: 'bps', nameTextStyle: { color: colors.textMuted, fontSize: 10 }, axisLabel: { color: colors.textMuted }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: [{ type: 'line', data: hist.EM, smooth: true, symbol: 'none', lineStyle: { color: '#a78bfa', width: 2 } }],
     };
   }, [spreadData, colors]);
 
@@ -382,11 +367,6 @@ function CreditDashboard({
             </>
           )
           : <EmptyPanelBody message="No spread summary" />;
-
-      case 'em-spread':
-        return emOption
-          ? <SafeECharts option={emOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'EM Spread History', source: 'FRED', endpoint: '/api/credit', series: [{ id: 'BAMLEMRACRPIOAS' }], updatedAt: lastUpdated }} />
-          : <EmptyPanelBody message="No EM spread history" />;
 
       case 'em-yields':
         return emYieldsList.length > 0
@@ -692,7 +672,7 @@ function CreditDashboard({
     }
   }, [
     kpiPanel, igSpread, hySpread, emSpread, defaultRate, delinquencyRates, commercialPaper,
-    lastUpdated, bankStress, spreadOption, spreadSummary, emOption, emYieldsList, cloTranches,
+    lastUpdated, bankStress, spreadOption, spreadSummary, emYieldsList, cloTranches,
     colors, defaultData, fdicCtx, creditQualityOption, msrbCtx, msrbPrimaryOption, tedSpread,
   ]);
 
@@ -718,7 +698,6 @@ function CreditDashboard({
       'key-metrics': !!isLive,
       'credit-spreads': !!isLive,
       'spread-summary': !!isLive,
-      'em-spread': !!isLive,
       'em-yields': !!isLive,
       'cp-rates': !!isLive,
       'clo-tranches': !!isLive,
@@ -753,7 +732,6 @@ function CreditDashboard({
       'key-metrics': 'FRED / Yahoo Finance',
       'credit-spreads': 'FRED',
       'spread-summary': 'FRED',
-      'em-spread': 'FRED',
       'em-yields': 'Yahoo Finance',
       'cp-rates': 'FRED',
       'clo-tranches': 'FRED (IG OAS + conventions) / Yahoo',
@@ -770,7 +748,6 @@ function CreditDashboard({
     },
     __disabled: {
       'credit-spreads': !spreadOption,
-      'em-spread': !emOption,
       'em-yields': !emYieldsList.length,
       delinquency: !delinquencyRates?.length,
       'credit-quality': !creditQuality?.dates?.length,
@@ -780,7 +757,7 @@ function CreditDashboard({
   }), [
     spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards,
     commercialPaper, excessReserves, creditQuality, tedSpread, lastUpdated, fdicCtx,
-    msrbCtx, renderPanel, isLive, bankStress, spreadOption, emOption, emYieldsList,
+    msrbCtx, renderPanel, isLive, bankStress, spreadOption, emYieldsList,
   ]);
 
   return (

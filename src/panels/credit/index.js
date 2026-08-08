@@ -2,7 +2,6 @@ import p_kpi from './kpi.jsx';
 import p_key_metrics from './key-metrics.jsx';
 import p_credit_spreads from './credit-spreads.jsx';
 import p_spread_summary from './spread-summary.jsx';
-import p_em_spread from './em-spread.jsx';
 import p_em_yields from './em-yields.jsx';
 import p_cp_rates from './cp-rates.jsx';
 import p_clo_tranches from './clo-tranches.jsx';
@@ -23,7 +22,6 @@ export const CREDIT_PANELS = [
   p_key_metrics,
   p_credit_spreads,
   p_spread_summary,
-  p_em_spread,
   p_em_yields,
   p_cp_rates,
   p_clo_tranches,
