@@ -610,7 +610,7 @@ function CommoditiesMarket({ centralData } = {}) {
           latest: {
             noncommNet: long - short,
             commNet:    short - long,    // commercials are the mirror
-            netChange:  0,                // no history → can't compute wk delta
+            netChange:  null,            // no history → no weekly delta
             totalOI:    oi,
           },
         };

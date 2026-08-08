@@ -94,4 +94,29 @@ describe('CommoditiesMarket', () => {
     renderWithContext(<CommoditiesMarket centralData={noFred} />, { usda: { isLive: false, summary: null } });
     expect(screen.getByText(/no USDA key and no FRED fallback/i)).toBeInTheDocument();
   });
+
+  it('shows honest "— wk" (not +0K) for COT Wk Change when sentiment fallback has no history', () => {
+    const centralData = {
+      ...mockCentralData,
+      isLive: true,
+      data: { ...mockCentralData.data, cotData: null },
+    };
+    const sentiment = {
+      data: {
+        cftcData: {
+          asOf: '2026-08-04',
+          commodities: [
+            { code: 'CL', name: 'WTI Crude Oil', netPct: 20, longK: 300, shortK: 200, oiK: 500 },
+            { code: 'GC', name: 'Gold', netPct: 10, longK: 150, shortK: 100, oiK: 250 },
+          ],
+        },
+      },
+      isLoading: false,
+      isLive: true,
+    };
+    renderWithContext(<CommoditiesMarket centralData={centralData} />, { getMarketExtra: { sentiment } });
+    // WTI + Gold KPI pills and the commodity table all show "— wk" (no fake +0K).
+    expect(screen.getAllByText('— wk').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText('+0K wk')).not.toBeInTheDocument();
+  });
 });

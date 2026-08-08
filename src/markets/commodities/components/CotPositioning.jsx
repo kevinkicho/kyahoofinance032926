@@ -118,9 +118,13 @@ export default function CotPositioning({ cotData, lastUpdated }) {
               <span className={`com-kpi-value ${wti.latest.noncommNet >= 0 ? 'positive' : 'negative'}`}>
                 <MetricValue value={wti.latest.noncommNet} seriesKey="cotCommodities" timestamp={lastUpdated} format={v => fmtK(v)} />
               </span>
-              <span className={`com-kpi-sub ${wti.latest.netChange >= 0 ? 'com-up' : 'com-down'}`}>
-                {<MetricValue value={wti.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} />} wk
-              </span>
+              {wti.latest.netChange != null ? (
+                <span className={`com-kpi-sub ${wti.latest.netChange >= 0 ? 'com-up' : 'com-down'}`}>
+                  <MetricValue value={wti.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} /> wk
+                </span>
+              ) : (
+                <span className="com-kpi-sub">— wk</span>
+              )}
             </div>
           </>
         )}
@@ -131,9 +135,13 @@ export default function CotPositioning({ cotData, lastUpdated }) {
               <span className={`com-kpi-value ${gold.latest.noncommNet >= 0 ? 'positive' : 'negative'}`}>
                 <MetricValue value={gold.latest.noncommNet} seriesKey="cotCommodities" timestamp={lastUpdated} format={v => fmtK(v)} />
               </span>
-              <span className={`com-kpi-sub ${gold.latest.netChange >= 0 ? 'com-up' : 'com-down'}`}>
-                {<MetricValue value={gold.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} />} wk
-              </span>
+              {gold.latest.netChange != null ? (
+                <span className={`com-kpi-sub ${gold.latest.netChange >= 0 ? 'com-up' : 'com-down'}`}>
+                  <MetricValue value={gold.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} /> wk
+                </span>
+              ) : (
+                <span className="com-kpi-sub">— wk</span>
+              )}
             </div>
           </>
         )}
@@ -177,8 +185,10 @@ export default function CotPositioning({ cotData, lastUpdated }) {
               </div>
               <div className="cot-metric">
                 <span className="cot-metric-label">Wk Change</span>
-                <span className={`cot-metric-value ${c.latest.netChange >= 0 ? 'green' : 'red'}`}>
-                  <MetricValue value={c.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} />
+                <span className={`cot-metric-value ${c.latest.netChange == null ? '' : c.latest.netChange >= 0 ? 'green' : 'red'}`} style={c.latest.netChange == null ? { color: 'var(--text-muted)' } : undefined}>
+                  {c.latest.netChange != null
+                    ? <MetricValue value={c.latest.netChange} seriesKey="cotNetChange" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${fmtK(v)}`} />
+                    : '—'}
                 </span>
               </div>
             </div>
