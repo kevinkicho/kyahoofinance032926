@@ -7,6 +7,17 @@ import { fetchFredHistory, fetchFredLatest } from '../lib/fred.js';
 
 const router = Router();
 
+// Convert a Yahoo ETF quote to a 10Y EM yield proxy. A true 10Y government
+// yield requires paid data (Bloomberg/Refinitiv), so we use the ETF trailing
+// dividend yield. A 0/absent yield is not a real read (some EM sovereign ETFs
+// report no dividend yield) — treat it as unknown so the panel shows "—"
+// rather than a misleading 0.00%.
+export function emYieldFromEtfQuote(etfQuote) {
+  const y = etfQuote?.trailingAnnualDividendYield;
+  if (y == null || y <= 0) return null;
+  return y * 100;
+}
+
 function dateToMonthLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00Z');
   return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' }).replace(' ', '-');
@@ -369,13 +380,7 @@ let emBondCountries = [];
         const etfQuote = info.yahooETF ? etfQuotes[info.yahooETF] : null;
         const price = etfQuote?.regularMarketPrice ?? null;
         const change1d = etfQuote?.regularMarketChangePercent ?? null;
-        const etfYield = etfQuote?.trailingAnnualDividendYield != null
-          ? etfQuote.trailingAnnualDividendYield * 100
-          : null;
-
-        // Use ETF trailing yield as the best freely-available EM yield proxy.
-        // A true 10Y government yield requires paid data (Bloomberg/Refinitiv).
-        const yld10y = etfYield ?? null;
+        const yld10y = emYieldFromEtfQuote(etfQuote);
 
         const country = {
           country:   info.country,

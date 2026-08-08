@@ -40,6 +40,7 @@ vi.mock('../lib/fred.js', () => ({
 const { fetchJSON } = await import('../lib/fetch.js');
 const cache = await import('../lib/cache.js');
 const { default: creditRouter } = await import('../routes/credit.js');
+const { emYieldFromEtfQuote } = await import('../routes/credit.js');
 
 describe('Credit Route', () => {
   beforeEach(() => {
@@ -101,5 +102,19 @@ describe('Credit Route', () => {
     const resBody = mockRes.json.mock.calls[0][0];
     expect(resBody.creditQuality).toBeDefined();
     expect(resBody.isCurrent).toBe(false);
+  });
+
+  describe('emYieldFromEtfQuote', () => {
+    it('returns null when trailing dividend yield is zero (no real yield)', () => {
+      expect(emYieldFromEtfQuote({ trailingAnnualDividendYield: 0 })).toBeNull();
+      expect(emYieldFromEtfQuote({ trailingAnnualDividendYield: null })).toBeNull();
+      expect(emYieldFromEtfQuote({})).toBeNull();
+      expect(emYieldFromEtfQuote(null)).toBeNull();
+    });
+
+    it('returns percent when dividend yield is positive', () => {
+      expect(emYieldFromEtfQuote({ trailingAnnualDividendYield: 0.045 })).toBe(4.5);
+      expect(emYieldFromEtfQuote({ trailingAnnualDividendYield: 0.03 })).toBe(3);
+    });
   });
 });
