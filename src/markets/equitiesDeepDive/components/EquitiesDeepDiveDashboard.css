@@ -631,6 +631,16 @@
   color: #6366f1;
 }
 
+.eqd-mini-sub {
+  flex-basis: 100%;
+  margin-top: 2px;
+  font-size: 9px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    EquityComponents.css — consolidated from separate file
    

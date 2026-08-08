@@ -625,18 +625,21 @@ function EquitiesDeepDiveDashboard({
           <div key={`buy-${i}`} className="eqd-mini-row">
             <span className="eqd-mini-name"><strong>{b.ticker}</strong> {b.name}</span>
             <span className="eqd-mini-value" style={{ color: '#22c55e' }}>Buy · {b.buyer}</span>
+            {b.thesis ? <span className="eqd-mini-sub">{b.thesis}</span> : null}
           </div>
         ))}
         {recentChanges.bigSells?.slice(0, 2).map((s, i) => (
           <div key={`sell-${i}`} className="eqd-mini-row">
             <span className="eqd-mini-name"><strong>{s.ticker}</strong> {s.name}</span>
             <span className="eqd-mini-value" style={{ color: '#ef4444' }}>Sell · {s.seller}</span>
+            {s.thesis ? <span className="eqd-mini-sub">{s.thesis}</span> : null}
           </div>
         ))}
         {recentChanges.newPositions?.slice(0, 2).map((n, i) => (
           <div key={`new-${i}`} className="eqd-mini-row">
             <span className="eqd-mini-name"><strong>{n.ticker}</strong> {n.name}</span>
             <span className="eqd-mini-value" style={{ color: '#6366f1' }}>New · {n.buyer}</span>
+            {n.thesis ? <span className="eqd-mini-sub">{n.thesis}</span> : null}
           </div>
         ))}
       </div>
