@@ -631,6 +631,7 @@ function EquitiesDeepDiveDashboard({
                 <td className="eqd-cell eqd-col-date eqd-date">{e.date || '—'}</td>
                 <td className="eqd-cell eqd-col-ticker">
                   <strong className="eqd-ticker">{e.ticker}</strong>
+                  {e.name ? <span className="eqd-name">{e.name}</span> : null}
                 </td>
                 <td className="eqd-cell eqd-col-sector">{e.sector || '—'}</td>
                 <td className="eqd-cell eqd-col-mcap eqd-num">{e.marketCapB != null ? `$${e.marketCapB}B` : '—'}</td>
