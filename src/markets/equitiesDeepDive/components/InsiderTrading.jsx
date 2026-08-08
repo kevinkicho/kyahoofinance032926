@@ -332,8 +332,8 @@ export default function InsiderTrading({ insiderData }) {
                       <td className="eqd-cell eqd-name">{h.name || '\u2014'}</td>
                       <td className="eqd-cell eqd-name">{(h.title || h.relation || '').trim() || '\u2014'}</td>
                       <td className="eqd-cell eqd-num">{fmtShares(h.shares)}</td>
-                      <td className="eqd-cell eqd-dir" style={{ color: txColor(cls.kind) }}>
-                        {h.lastTx || '\u2014'}
+                      <td className="eqd-cell eqd-dir" style={{ color: txColor(cls.kind) }} title={h.date ? `Last transaction ${h.date}` : ''}>
+                        {h.lastTx || '\u2014'}{h.date ? ` · ${h.date}` : ''}
                       </td>
                     </tr>
                   );
