@@ -525,6 +525,7 @@ function EquitiesDeepDiveDashboard({
             <th className="eqd-th">Value</th>
             <th className="eqd-th">Momentum</th>
             <th className="eqd-th">Quality</th>
+            <th className="eqd-th">Low-Vol</th>
             <th className="eqd-th">Composite</th>
           </tr>
         </thead>
@@ -535,6 +536,7 @@ function EquitiesDeepDiveDashboard({
               <td className={`eqd-cell eqd-score ${factorHeat(s.value)}`}><MetricValue value={s.value} seriesKey="factorValue" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
               <td className={`eqd-cell eqd-score ${factorHeat(s.momentum)}`}><MetricValue value={s.momentum} seriesKey="factorMomentum" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
               <td className={`eqd-cell eqd-score ${factorHeat(s.quality)}`}><MetricValue value={s.quality} seriesKey="factorQuality" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
+              <td className={`eqd-cell eqd-score ${factorHeat(s.lowVol)}`}><MetricValue value={s.lowVol} seriesKey="factorLowVol" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></td>
               <td className={`eqd-cell eqd-score ${factorHeat(s.composite)}`}><strong><MetricValue value={s.composite} seriesKey="factorComposite" timestamp={lastUpdated} format={v => v != null ? v.toFixed(1) : '—'} /></strong></td>
             </tr>
           ))}
