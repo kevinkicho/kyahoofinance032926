@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import DerivativesMarket from '../../markets/derivatives/DerivativesMarket';
+import DerivativesSidebar from '../../markets/derivatives/components/DerivativesSidebar';
 
 vi.mock('../../components/SafeECharts/SafeECharts', () => ({ default: (props) => <div data-testid="echarts-mock" /> }));
 
@@ -85,5 +86,32 @@ describe('DerivativesMarket', () => {
     render(<DerivativesMarket centralData={mockCentralData} />);
     expect(screen.getAllByText('Vol Premium').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Gamma Exposure/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders Term Spread card from object-shaped termSpread with contango label', () => {
+    render(
+      <DerivativesSidebar
+        termSpread={{ value: 3, state: 'contango' }}
+        lastUpdated="2026-08-04"
+        isLive={false}
+        fetchLog={[]}
+      />
+    );
+    expect(screen.getByText('Term Spread')).toBeInTheDocument();
+    expect(screen.getByText('+3.00')).toBeInTheDocument();
+    expect(screen.getByText('Contango')).toBeInTheDocument();
+  });
+
+  it('renders Backwardation label for negative termSpread', () => {
+    render(
+      <DerivativesSidebar
+        termSpread={{ value: -2, state: 'backwardation' }}
+        lastUpdated="2026-08-04"
+        isLive={false}
+        fetchLog={[]}
+      />
+    );
+    expect(screen.getByText('-2.00')).toBeInTheDocument();
+    expect(screen.getByText('Backwardation')).toBeInTheDocument();
   });
 });

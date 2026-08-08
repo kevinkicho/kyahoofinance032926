@@ -80,12 +80,17 @@ function DerivativesSidebar({
 
       <div className="deriv-sidebar-title" style={{ marginTop: 12 }}>Structural Risk</div>
       <div className="deriv-metric-card">
-        {typeof termSpread === 'number' && (
+        {termSpread?.value != null && (
           <div className="deriv-metric-row">
             <span className="deriv-metric-name">Term Spread</span>
-            <span className="deriv-metric-num" style={{ color: termSpread > 0 ? '#4ade80' : '#f87171' }}>
-              <MetricValue value={termSpread} seriesKey="vix" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`} />
+            <span className="deriv-metric-num" style={{ color: termSpread.value > 0 ? '#4ade80' : '#f87171' }}>
+              <MetricValue value={termSpread.value} seriesKey="vix" timestamp={lastUpdated} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`} />
             </span>
+            {termSpread.state && (
+              <span style={{ color: 'var(--text-muted)', fontSize: 10, display: 'block' }}>
+                {termSpread.state === 'contango' ? 'Contango' : termSpread.state === 'backwardation' ? 'Backwardation' : termSpread.state}
+              </span>
+            )}
           </div>
         )}
         {skewIndex?.value != null && (
