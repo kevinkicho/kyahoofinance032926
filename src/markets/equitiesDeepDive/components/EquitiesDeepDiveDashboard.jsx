@@ -277,7 +277,7 @@ function buildSqueezeOption(mostShorted, colors) {
       backgroundColor: colors.tooltipBg,
       borderColor: colors.tooltipBorder,
       textStyle: { color: colors.text, fontSize: 11 },
-      formatter: p => `${p.data[3]}<br/>Short Float: ${p.data[0]?.toFixed(1)}%<br/>1W Return: ${p.data[1]?.toFixed(1)}%`,
+      formatter: p => `${p.data[4] || p.data[3]}<br/>Short Float: ${p.data[0]?.toFixed(1)}%<br/>1W Return: ${p.data[1]?.toFixed(1)}%`,
     },
     grid: { top: 28, right: 8, bottom: 28, left: 8, containLabel: true },
     xAxis: {
@@ -298,7 +298,7 @@ function buildSqueezeOption(mostShorted, colors) {
     },
     series: [{
       type: 'scatter',
-      data: candidates.map(s => [s.shortFloat ?? 0, s.perf1w ?? 0, s.marketCapB ?? 1, s.ticker]),
+      data: candidates.map(s => [s.shortFloat ?? 0, s.perf1w ?? 0, s.marketCapB ?? 1, s.ticker, s.name]),
       symbolSize: d => Math.max(8, Math.min(40, Math.sqrt(d[2] ?? 1) * 3)),
       itemStyle: { color: '#ef4444', opacity: 0.8 },
       label: {
