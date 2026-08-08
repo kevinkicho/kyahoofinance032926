@@ -233,7 +233,8 @@ function buildShortedOption(mostShorted, colors) {
         if (!item) return base;
         const dtc = item.daysToCover != null ? ` · ${item.daysToCover.toFixed(1)}d to cover` : '';
         const pw = item.perf1w != null ? ` · 1W ${item.perf1w >= 0 ? '+' : ''}${item.perf1w.toFixed(1)}%` : '';
-        return `${base}${dtc}${pw}`;
+        const mcap = item.marketCapB != null ? ` · $${item.marketCapB}B` : '';
+        return `${base}${dtc}${pw}${mcap}`;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
