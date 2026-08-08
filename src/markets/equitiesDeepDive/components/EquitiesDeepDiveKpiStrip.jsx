@@ -25,8 +25,9 @@ function buildSectorBarOption({ sectors, spyPerf, colors }) {
         const s = sorted[i];
         if (!s) return '';
         const v = Number(s.perf1m ?? 0);
+        const y = Number(s.perf1y ?? 0);
         const vsSpy = spyPerf != null ? v - spyPerf : null;
-        return `<b>${s.code || s.name}</b><br/>1M: <b>${v >= 0 ? '+' : ''}${v.toFixed(2)}%</b>${vsSpy != null ? `<br/>vs SPY: ${vsSpy >= 0 ? '+' : ''}${vsSpy.toFixed(2)}pp` : ''}`;
+        return `<b>${s.code || s.name}</b><br/>1M: <b>${v >= 0 ? '+' : ''}${v.toFixed(2)}%</b>${vsSpy != null ? `<br/>vs SPY: ${vsSpy >= 0 ? '+' : ''}${vsSpy.toFixed(2)}pp` : ''}<br/>1Y: <b>${y >= 0 ? '+' : ''}${y.toFixed(2)}%</b>`;
       },
     },
     grid: { top: 4, right: 44, bottom: 4, left: 4, containLabel: true },
@@ -126,7 +127,8 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
     const worst = ranked[ranked.length - 1];
     const ref = spyPerf ?? 0;
     const beating = etfs.filter(s => (s.perf1m ?? 0) >= ref).length;
-    return { best, worst, beating, total: etfs.length };
+    const yrLeader = [...etfs].sort((a, b) => (b.perf1y ?? -99) - (a.perf1y ?? -99))[0];
+    return { best, worst, beating, total: etfs.length, yrLeader };
   }, [etfs, spyPerf]);
 
   const sectorOption = useMemo(
@@ -188,6 +190,11 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
               <span className="eqd-kpi-pill-label">Beating SPY</span>
               <span className="eqd-kpi-pill-value" style={{ color: '#6366f1' }}>{summary.beating}/{summary.total}</span>
               <span className="eqd-kpi-pill-sub">sectors</span>
+            </div>
+            <div className="eqd-kpi-pill">
+              <span className="eqd-kpi-pill-label">1Y Leader</span>
+              <span className="eqd-kpi-pill-value" style={{ color: '#f59e0b' }}>{summary.yrLeader.code}</span>
+              <span className="eqd-kpi-pill-sub">+{(summary.yrLeader.perf1y ?? 0).toFixed(1)}% 1Y</span>
             </div>
           </div>
         )}
