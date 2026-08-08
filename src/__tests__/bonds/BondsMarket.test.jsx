@@ -51,4 +51,25 @@ describe('BondsMarket', () => {
     render(<BondsMarket centralData={mockCentralData} />);
     expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED|LOADING|UNAVAIL/i).length).toBeGreaterThan(0);
   });
+
+  it('renders exactly one 5s30s row with the real spreadHistory value', () => {
+    const withSpreads = {
+      ...mockCentralData,
+      data: {
+        ...mockCentralData.data,
+        spreadIndicators: { t10y2y: 0.4, t10y3m: 0.8 },
+        spreadHistory: {
+          dates: ['2026-08-03'],
+          t10y2y: [0.4],
+          t10y3m: [0.8],
+          t5y30y: [0.82],
+          latest: { t10y2y: 0.4, t10y3m: 0.8, t5y30y: 0.82 },
+        },
+      },
+    };
+    render(<BondsMarket centralData={withSpreads} />);
+    const rows = screen.getAllByText('5s30s');
+    expect(rows.length).toBe(1);
+    expect(screen.getByText('+0.82%')).toBeInTheDocument();
+  });
 });

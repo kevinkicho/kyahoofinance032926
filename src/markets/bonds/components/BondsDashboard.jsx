@@ -302,12 +302,6 @@ function BondsDashboard({
                   </span>
                 </div>
                 <div className="bonds-metric-row">
-                  <span className="bonds-metric-name">5s30s</span>
-                  <span className={`bonds-metric-num ${spreadIndicators?.t5y30y >= 0 ? 'positive' : 'negative'}`}>
-                    <MetricValue value={spreadIndicators?.t5y30y} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t5y30y" timestamp={lastUpdated} />
-                  </span>
-                </div>
-                <div className="bonds-metric-row">
                   <span className="bonds-metric-name">10s3m</span>
                   <span className={`bonds-metric-num ${spreadIndicators?.t10y3m >= 0 ? 'positive' : 'negative'}`}>
                     <MetricValue value={spreadIndicators?.t10y3m} format={v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y3m" timestamp={lastUpdated} />
