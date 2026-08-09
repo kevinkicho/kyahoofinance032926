@@ -558,6 +558,12 @@ function EquitiesDeepDiveDashboard({
                 <span className="eqd-metric-num eqd-name">{factorKpis.topStock.name}</span>
               </div>
             ) : null}
+            {factorKpis.topStock.sector ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{factorKpis.topStock.sector}</span>
+              </div>
+            ) : null}
             {factorKpis.topStock.composite != null ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
