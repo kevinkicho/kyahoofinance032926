@@ -174,8 +174,9 @@ function buildInFavorOption(inFavor, colors) {
   };
 }
 
-function buildBeatRateOption(beatRates, colors) {
+function buildBeatRateOption(beatRates, sectors, colors) {
   const sorted = [...beatRates].sort((a, b) => (b.beatRate ?? 0) - (a.beatRate ?? 0));
+  const perf1mByName = new Map((sectors ?? []).map(s => [s.name, s.perf1m]));
   return {
     animation: false,
     backgroundColor: 'transparent',
@@ -187,7 +188,10 @@ function buildBeatRateOption(beatRates, colors) {
       formatter: (params) => {
         const item = sorted[params[0].dataIndex];
         const base = `${params[0].name}: ${params[0].value?.toFixed(1)}%`;
-        return item ? `${base} (${item.beatCount}/${item.totalCount})` : base;
+        if (!item) return base;
+        const perf1m = perf1mByName.get(item.sector);
+        const perf1mStr = perf1m != null ? ` · 1M ${perf1m >= 0 ? '+' : ''}${perf1m.toFixed(1)}%` : '';
+        return `${base} (${item.beatCount}/${item.totalCount})${perf1mStr}`;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
@@ -375,7 +379,7 @@ function EquitiesDeepDiveDashboard({
 
   const rankedOption = useMemo(() => sectors?.length > 0 ? buildRankedOption(sectors, colors) : null, [sectors, colors]);
   const inFavorOption = useMemo(() => inFavor ? buildInFavorOption(inFavor, colors) : null, [inFavor, colors]);
-  const beatRateOption = useMemo(() => beatRates?.length > 0 ? buildBeatRateOption(beatRates, colors) : null, [beatRates, colors]);
+  const beatRateOption = useMemo(() => beatRates?.length > 0 ? buildBeatRateOption(beatRates, sectors, colors) : null, [beatRates, sectors, colors]);
   const shortedOption = useMemo(() => mostShorted?.length > 0 ? buildShortedOption(mostShorted, colors) : null, [mostShorted, colors]);
   const squeezeOption = useMemo(() => mostShorted?.length > 0 ? buildSqueezeOption(mostShorted, colors) : null, [mostShorted, colors]);
 
