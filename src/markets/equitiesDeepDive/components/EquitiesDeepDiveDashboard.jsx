@@ -85,8 +85,9 @@ function buildRankedOption(sectors, colors) {
         const s = etfs.find(e => e.name === name);
         const d = Number(s?.perf1d ?? 0);
         const dLine = s ? `1D: <b>${d >= 0 ? '+' : ''}${d.toFixed(2)}%</b>` : '';
+        const vsSpy = s?.perf1m != null ? `vs SPY 1M: <b>${(s.perf1m - spyRef) >= 0 ? '+' : ''}${(s.perf1m - spyRef).toFixed(1)}%</b>` : '';
         const lines = params.map(p => `${p.marker}${p.seriesName}: ${(p.value ?? 0).toFixed(1)}%`);
-        return `${name}<br/>${dLine ? `${dLine}<br/>` : ''}${lines.join('<br/>')}`;
+        return `${name}<br/>${dLine ? `${dLine}<br/>` : ''}${vsSpy ? `${vsSpy}<br/>` : ''}${lines.join('<br/>')}`;
       },
     },
     legend: {
