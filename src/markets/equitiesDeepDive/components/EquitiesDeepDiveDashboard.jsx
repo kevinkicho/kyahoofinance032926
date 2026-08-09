@@ -536,6 +536,12 @@ function EquitiesDeepDiveDashboard({
                 <span className="eqd-metric-num eqd-name">{factorKpis.topStock.name}</span>
               </div>
             ) : null}
+            {factorKpis.topStock.composite != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">Composite {factorKpis.topStock.composite}</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Avg Composite</span>
               <span className="eqd-metric-num"><MetricValue value={factorKpis.avgComposite} seriesKey="avgFactorScore" timestamp={lastUpdated} format={v => v.toFixed(0)} /></span>
