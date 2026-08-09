@@ -624,7 +624,7 @@ function EquitiesDeepDiveDashboard({
             {insiderTransactions[0]?.type ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
-                <span className="eqd-metric-num eqd-name">{insiderTransactions[0].type}</span>
+                <span className="eqd-metric-num eqd-name">{insiderTransactions[0].name ? `${insiderTransactions[0].name} · ` : ''}{insiderTransactions[0].type}</span>
               </div>
             ) : null}
           </div>
