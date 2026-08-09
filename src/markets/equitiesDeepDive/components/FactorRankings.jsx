@@ -224,7 +224,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
                 </tr>
               </thead>
               <tbody>
-                {stocks.map(s => (
+                {[...stocks].sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0)).map(s => (
                   <tr key={s.ticker} className="eq-row">
                     <td className="eq-cell"><strong>{s.ticker}</strong></td>
                     <td className="eq-cell eq-name">{s.name || '—'}</td>
