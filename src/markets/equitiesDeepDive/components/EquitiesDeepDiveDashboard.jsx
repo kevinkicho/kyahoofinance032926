@@ -1061,7 +1061,7 @@ function EquitiesDeepDiveDashboard({
         kpi: 'Sector ETFs · factor rotation · vs SPY',
         sidebar: 'Sectors · factors · earnings · short interest',
         etf: '1W · 1M · 3M · 1Y returns vs SPY',
-        'factor-favor': 'Average composite by factor',
+        'factor-favor': 'Percentile deviation by factor · indigo = positive',
         'sector-beat': '% of names beating EPS estimates',
         shorted: '% of float short · days to cover',
         scores: stocks.length > 0 ? `Top ${Math.min(stocks.length, 10)} by composite` : undefined,
