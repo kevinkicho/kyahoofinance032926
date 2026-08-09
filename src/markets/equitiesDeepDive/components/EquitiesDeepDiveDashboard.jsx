@@ -443,6 +443,7 @@ function EquitiesDeepDiveDashboard({
     const sortedUpcoming = [...upcoming].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
     const avgBeatRate = avg((beatRates || []).map(row => row.beatRate));
     const bestBeat = (beatRates || []).reduce((best, row) => (row.beatRate ?? -Infinity) > (best?.beatRate ?? -Infinity) ? row : best, null);
+    const worstBeat = (beatRates || []).reduce((worst, row) => (row.beatRate ?? Infinity) < (worst?.beatRate ?? Infinity) ? row : worst, null);
     const factors = [
       { name: 'Momentum', value: inFavor.momentum },
       { name: 'Value', value: inFavor.value },
@@ -459,6 +460,7 @@ function EquitiesDeepDiveDashboard({
       totalUpcoming: upcoming.length,
       avgBeatRate,
       bestBeat,
+      worstBeat,
       topFactor,
       revisionRate,
       qualityCount,
@@ -875,7 +877,7 @@ function EquitiesDeepDiveDashboard({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginBottom: 10 }}>
           {[
             { label: 'Next Report', value: earningsQuality.next?.ticker || '—', sub: [earningsQuality.next?.name, earningsQuality.next?.sector, earningsQuality.next?.date, (earningsQuality.next?.epsEst != null && earningsQuality.next?.epsPrev != null ? `est $${earningsQuality.next.epsEst} vs prior $${earningsQuality.next.epsPrev}` : null)].filter(Boolean).join(' · ') || 'schedule' },
-            { label: 'Beat Breadth', value: earningsQuality.avgBeatRate != null ? `${earningsQuality.avgBeatRate.toFixed(1)}%` : '—', sub: earningsQuality.bestBeat?.beatCount != null && earningsQuality.bestBeat?.totalCount ? `${earningsQuality.bestBeat.sector || earningsQuality.bestBeat.name || 'best sector'} (${earningsQuality.bestBeat.beatCount}/${earningsQuality.bestBeat.totalCount})` : (earningsQuality.bestBeat?.sector || earningsQuality.bestBeat?.name || 'by sector') },
+            { label: 'Beat Breadth', value: earningsQuality.avgBeatRate != null ? `${earningsQuality.avgBeatRate.toFixed(1)}%` : '—', sub: [earningsQuality.bestBeat?.sector ? `${earningsQuality.bestBeat.sector} ${earningsQuality.bestBeat.beatRate?.toFixed(0)}%` : null, earningsQuality.worstBeat?.sector ? `worst ${earningsQuality.worstBeat.sector} ${earningsQuality.worstBeat.beatRate?.toFixed(0)}%` : null].filter(Boolean).join(' · ') || (earningsQuality.bestBeat?.sector || 'by sector') },
             { label: 'Positive Revisions', value: earningsQuality.revisionRate != null ? `${earningsQuality.revisionRate.toFixed(0)}%` : '—', sub: `${earningsQuality.totalUpcoming} upcoming` },
             { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : 'rotation' },
           ].map(item => (
