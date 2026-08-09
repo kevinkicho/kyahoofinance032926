@@ -92,19 +92,22 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
   const kpis = useMemo(() => {
     if (!stocks.length) return null;
     const factors = [
-      { name: 'Momentum', val: inFavor.momentum ?? 0 },
-      { name: 'Value', val: inFavor.value ?? 0 },
-      { name: 'Quality', val: inFavor.quality ?? 0 },
-      { name: 'Low-Vol', val: inFavor.lowVol ?? 0 },
+      { name: 'Momentum', key: 'momentum', val: inFavor.momentum ?? 0 },
+      { name: 'Value',    key: 'value',    val: inFavor.value ?? 0 },
+      { name: 'Quality',  key: 'quality',  val: inFavor.quality ?? 0 },
+      { name: 'Low-Vol',   key: 'lowVol',   val: inFavor.lowVol ?? 0 },
     ];
     const topFactor = factors.reduce((a, b) => a.val > b.val ? a : b);
+    const topFactorStock = topFactor.key ? stocks
+      .filter(s => s[topFactor.key] != null)
+      .sort((a, b) => (b[topFactor.key] ?? 0) - (a[topFactor.key] ?? 0))[0] || null : null;
     const topStock = stocks.reduce((a, b) => (a.composite ?? 0) > (b.composite ?? 0) ? a : b);
     const avgComposite = stocks.reduce((s, st) => s + (st.composite ?? 0), 0) / stocks.length;
     const highQuality = stocks.filter(s => (s.quality ?? 0) >= 70).length;
     const topQualityStock = stocks
       .filter(s => (s.quality ?? 0) >= 70)
       .sort((a, b) => (b.quality ?? 0) - (a.quality ?? 0))[0] || null;
-    return { topFactor, topStock, avgComposite, highQuality, topQualityStock };
+    return { topFactor, topFactorStock, topStock, avgComposite, highQuality, topQualityStock };
   }, [inFavor, stocks]);
 
   if (!factorData) return null;
@@ -121,7 +124,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Top Factor</span>
             <span className="eq-kpi-value accent">{kpis.topFactor.name}</span>
-            <span className="eq-kpi-sub">{kpis.topFactor.val >= 0 ? '+' : ''}{kpis.topFactor.val.toFixed(1)}%</span>
+            <span className="eq-kpi-sub">{kpis.topFactor.val >= 0 ? '+' : ''}{kpis.topFactor.val.toFixed(1)}%{kpis.topFactorStock ? ` · Top ${kpis.topFactorStock.ticker} ${kpis.topFactorStock[kpis.topFactor.key]?.toFixed(0)}` : ''}</span>
           </div>
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Top Stock</span>
