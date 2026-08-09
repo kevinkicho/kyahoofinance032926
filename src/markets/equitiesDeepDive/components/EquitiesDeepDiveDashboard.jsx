@@ -282,7 +282,7 @@ function buildSqueezeOption(mostShorted, colors) {
       backgroundColor: colors.tooltipBg,
       borderColor: colors.tooltipBorder,
       textStyle: { color: colors.text, fontSize: 11 },
-      formatter: p => `${p.data[4] || p.data[3]}${p.data[5] ? `<br/>${p.data[5]}` : ''}<br/>Short Float: ${p.data[0]?.toFixed(1)}%<br/>1W Return: ${p.data[1]?.toFixed(1)}%`,
+      formatter: p => `${p.data[4] || p.data[3]}${p.data[5] ? `<br/>${p.data[5]}` : ''}<br/>Short Float: ${p.data[0]?.toFixed(1)}%<br/>1W Return: ${p.data[1]?.toFixed(1)}%${p.data[2] != null ? `<br/>Mkt Cap: $${p.data[2]}B` : ''}`,
     },
     grid: { top: 28, right: 8, bottom: 28, left: 8, containLabel: true },
     xAxis: {
