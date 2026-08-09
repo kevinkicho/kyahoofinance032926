@@ -486,10 +486,22 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">Best</span>
               <span className="eqd-metric-num" style={{ color: '#22c55e' }}>{sectorKpis.best.name}</span>
             </div>
+            {sectorKpis.best.perf1d != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">1D {(sectorKpis.best.perf1d >= 0 ? '+' : '')}{sectorKpis.best.perf1d.toFixed(1)}%</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Worst</span>
               <span className="eqd-metric-num" style={{ color: '#ef4444' }}>{sectorKpis.worst.name}</span>
             </div>
+            {sectorKpis.worst.perf1d != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">1D {(sectorKpis.worst.perf1d >= 0 ? '+' : '')}{sectorKpis.worst.perf1d.toFixed(1)}%</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">SPY</span>
               <span className="eqd-metric-num"><MetricValue value={sectorKpis.spyPerf} seriesKey="sp500Perf" timestamp={lastUpdated} format={v => fmtChangePct(v)} /></span>
