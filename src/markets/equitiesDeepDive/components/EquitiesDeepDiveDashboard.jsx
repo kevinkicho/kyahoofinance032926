@@ -489,7 +489,7 @@ function EquitiesDeepDiveDashboard({
             {sectorKpis.best.perf1d != null ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
-                <span className="eqd-metric-num eqd-name">1D {(sectorKpis.best.perf1d >= 0 ? '+' : '')}{sectorKpis.best.perf1d.toFixed(1)}%</span>
+                <span className="eqd-metric-num eqd-name">1D {(sectorKpis.best.perf1d >= 0 ? '+' : '')}{sectorKpis.best.perf1d.toFixed(1)}% · 1M {(sectorKpis.best.perf1m ?? 0) >= 0 ? '+' : ''}{(sectorKpis.best.perf1m ?? 0).toFixed(1)}%</span>
               </div>
             ) : null}
             <div className="eqd-metric-row">
@@ -499,7 +499,7 @@ function EquitiesDeepDiveDashboard({
             {sectorKpis.worst.perf1d != null ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
-                <span className="eqd-metric-num eqd-name">1D {(sectorKpis.worst.perf1d >= 0 ? '+' : '')}{sectorKpis.worst.perf1d.toFixed(1)}%</span>
+                <span className="eqd-metric-num eqd-name">1D {(sectorKpis.worst.perf1d >= 0 ? '+' : '')}{sectorKpis.worst.perf1d.toFixed(1)}% · 1M {(sectorKpis.worst.perf1m ?? 0) >= 0 ? '+' : ''}{(sectorKpis.worst.perf1m ?? 0).toFixed(1)}%</span>
               </div>
             ) : null}
             <div className="eqd-metric-row">
