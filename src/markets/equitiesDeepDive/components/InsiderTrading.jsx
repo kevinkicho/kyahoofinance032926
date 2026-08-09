@@ -80,7 +80,9 @@ function buildTxByTickerOption(transactions, colors) {
         const ticker = tickers[params[0].dataIndex];
         const d = byTicker[ticker];
         const f = usesValue ? fmtValue : fmtShares;
-        return `${ticker}<br/>Buys: ${f(d.buys)}<br/>Sells: ${f(d.sells)}${d.other ? `<br/>Other: ${f(d.other)}` : ''}`;
+        const net = d.buys - d.sells;
+        const netLine = `<br/>Net: <b style="color:${net >= 0 ? '#22c55e' : '#ef4444'}">${net >= 0 ? '+' : ''}${f(net)}</b>`;
+        return `${ticker}<br/>Buys: ${f(d.buys)}<br/>Sells: ${f(d.sells)}${netLine}${d.other ? `<br/>Other: ${f(d.other)}` : ''}`;
       },
     },
     grid: { top: 8, right: 8, bottom: 8, left: 8, containLabel: true },
