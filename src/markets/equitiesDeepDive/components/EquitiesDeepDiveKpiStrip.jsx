@@ -69,7 +69,7 @@ function buildSectorBarOption({ sectors, spyPerf, colors }) {
   };
 }
 
-function FactorRow({ label, value, colors }) {
+function FactorRow({ label, value, colors, title }) {
   const v = Number(value ?? 0);
   const safe = Number.isFinite(v) ? v : 0;
   const positive = safe >= 0;
@@ -77,7 +77,7 @@ function FactorRow({ label, value, colors }) {
   // Bar fill width: cap at ±10% range, scale to 100%
   const pct = Math.min(Math.abs(safe) / 10, 1) * 100;
   return (
-    <div className="eqd-factor-row">
+    <div className="eqd-factor-row" title={title || ''}>
       <span className="eqd-factor-label">{label}</span>
       <div className="eqd-factor-bar-track" style={{ background: colors.cardBg }}>
         <div
@@ -112,6 +112,20 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
     }
     return [];
   }, [factorData]);
+
+  const stocks = useMemo(() => factorData?.stocks ?? [], [factorData]);
+
+  const topByFactor = useMemo(() => {
+    const map = {};
+    FACTOR_KEYS.forEach(({ key }) => {
+      let best = null;
+      stocks.forEach(s => {
+        if (s[key] != null && (best == null || s[key] > best[key])) best = s;
+      });
+      map[key] = best;
+    });
+    return map;
+  }, [stocks]);
 
   // SPY is included in the sector list — pull it out so the chart shows
   // only the 11 sector ETFs and uses SPY as the reference line.
@@ -163,9 +177,12 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
       <div className="eqd-kpi-section eqd-kpi-section-factors">
         <div className="eqd-kpi-section-title">Factor Rotation</div>
         <div className="eqd-factor-list">
-          {factors.length ? factors.map(f => (
-            <FactorRow key={f.name} label={f.name} value={f.value} colors={colors} />
-          )) : <div className="eqd-kpi-empty">No factor data</div>}
+          {factors.length ? factors.map(f => {
+            const fk = FACTOR_KEYS.find(k => k.label === f.name);
+            const top = fk ? topByFactor[fk.key] : null;
+            const title = top ? `Top: ${top.ticker} ${top[fk.key].toFixed(0)}` : '';
+            return <FactorRow key={f.name} label={f.name} value={f.value} colors={colors} title={title} />;
+          }) : <div className="eqd-kpi-empty">No factor data</div>}
         </div>
       </div>
 
