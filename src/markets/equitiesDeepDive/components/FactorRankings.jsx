@@ -165,7 +165,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
               <div className="eq-kpi-pill">
                 <span className="eq-kpi-label">Divergence</span>
                 <span className="eq-kpi-value" style={{ color: signal.color }}>
-                  {(breadthDivergence.divergence ?? 0) >= 0 ? '+' : ''}{breadthDivergence.divergence?.toFixed(2)}%
+                  {(breadthDivergence.divergence ?? 0) >= 0 ? '+' : ''}{breadthDivergence.divergence?.toFixed(2)}pp
                 </span>
                 <span className="eq-kpi-sub" style={{ color: signal.color }}>{signal.label}</span>
               </div>
