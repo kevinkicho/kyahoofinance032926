@@ -519,6 +519,12 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">Top Factor</span>
               <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{factorKpis.topFactor.name}</span>
             </div>
+            {factorKpis.topFactor.value != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{Number(factorKpis.topFactor.value).toFixed(1)}% MTD</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Top Stock</span>
               <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{factorKpis.topStock.ticker}</span>
