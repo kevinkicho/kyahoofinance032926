@@ -521,7 +521,7 @@ function EquitiesDeepDiveDashboard({
             <div className="eqd-sidebar-title">Sector Performance</div>
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Best</span>
-              <span className="eqd-metric-num" style={{ color: '#22c55e' }}>{sectorKpis.best.name}</span>
+              <span className="eqd-metric-num" style={{ color: '#22c55e' }}>{sectorKpis.best.code ? `${sectorKpis.best.code} · ` : ''}{sectorKpis.best.name}</span>
             </div>
             {sectorKpis.best.perf1d != null ? (
               <div className="eqd-metric-row">
@@ -531,7 +531,7 @@ function EquitiesDeepDiveDashboard({
             ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Worst</span>
-              <span className="eqd-metric-num" style={{ color: '#ef4444' }}>{sectorKpis.worst.name}</span>
+              <span className="eqd-metric-num" style={{ color: '#ef4444' }}>{sectorKpis.worst.code ? `${sectorKpis.worst.code} · ` : ''}{sectorKpis.worst.name}</span>
             </div>
             {sectorKpis.worst.perf1d != null ? (
               <div className="eqd-metric-row">
