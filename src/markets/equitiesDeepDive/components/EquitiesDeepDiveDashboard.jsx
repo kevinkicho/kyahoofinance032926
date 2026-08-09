@@ -653,6 +653,12 @@ function EquitiesDeepDiveDashboard({
                 <span className="eqd-metric-num eqd-name">{upcoming[0].date}</span>
               </div>
             ) : null}
+            {upcoming[0].sector ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{upcoming[0].sector}</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Upcoming</span>
               <span className="eqd-metric-num"><MetricValue value={upcoming.length} seriesKey="earningsEpsEst" timestamp={lastUpdated} /></span>
