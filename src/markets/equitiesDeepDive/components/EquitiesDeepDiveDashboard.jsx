@@ -256,7 +256,7 @@ function buildShortedOption(mostShorted, colors) {
       textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => {
         const item = sorted[params[0].dataIndex];
-        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}% short`;
+        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}% short${item.name ? ` · ${item.name}` : ''}`;
         if (!item) return base;
         const dtc = item.daysToCover != null ? ` · ${item.daysToCover.toFixed(1)}d to cover` : '';
         const pw = item.perf1w != null ? ` · 1W ${item.perf1w >= 0 ? '+' : ''}${item.perf1w.toFixed(1)}%` : '';
