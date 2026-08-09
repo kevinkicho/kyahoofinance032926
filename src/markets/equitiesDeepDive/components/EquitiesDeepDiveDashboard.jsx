@@ -785,7 +785,7 @@ function EquitiesDeepDiveDashboard({
           </tr>
         </thead>
         <tbody>
-          {stocks.slice(0, 10).map(s => (
+          {[...stocks].sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0)).slice(0, 10).map(s => (
             <tr key={s.ticker} className="eqd-row">
               <td className="eqd-cell"><strong>{s.ticker}</strong></td>
               <td className="eqd-cell eqd-name">{s.name || '—'}</td>
