@@ -215,7 +215,7 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
             <div className="eqd-kpi-pill">
               <span className="eqd-kpi-pill-label">1Y Leader</span>
               <span className="eqd-kpi-pill-value" style={{ color: '#f59e0b' }}>{summary.yrLeader.code}</span>
-              <span className="eqd-kpi-pill-sub">{summary.yrLeader.name ? `${summary.yrLeader.name} · ` : ''}+{(summary.yrLeader.perf1y ?? 0).toFixed(1)}% 1Y{summary.yrLeader.perf1d != null ? ` · 1D ${summary.yrLeader.perf1d >= 0 ? '+' : ''}${summary.yrLeader.perf1d.toFixed(1)}%` : ''}{summary.yrLeader.perf1m != null ? ` · 1M ${summary.yrLeader.perf1m >= 0 ? '+' : ''}${summary.yrLeader.perf1m.toFixed(1)}%` : ''}</span>
+              <span className="eqd-kpi-pill-sub">{summary.yrLeader.name ? `${summary.yrLeader.name} · ` : ''}+{(summary.yrLeader.perf1y ?? 0).toFixed(1)}% 1Y{summary.yrLeader.perf1d != null ? ` · 1D ${summary.yrLeader.perf1d >= 0 ? '+' : ''}${summary.yrLeader.perf1d.toFixed(1)}%` : ''}{summary.yrLeader.perf1m != null ? ` · 1M ${summary.yrLeader.perf1m >= 0 ? '+' : ''}${summary.yrLeader.perf1m.toFixed(1)}%` : ''}{summary.yrLeader.perf3m != null ? ` · 3M ${summary.yrLeader.perf3m >= 0 ? '+' : ''}${summary.yrLeader.perf3m.toFixed(1)}%` : ''}</span>
             </div>
           </div>
         )}
