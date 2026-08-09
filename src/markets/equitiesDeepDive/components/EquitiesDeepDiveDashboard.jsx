@@ -788,7 +788,7 @@ function EquitiesDeepDiveDashboard({
           <div key={i} className="eqd-mini-row">
             <span className="eqd-mini-name">{inst.name.length > 18 ? inst.name.slice(0, 18) + '…' : inst.name}</span>
             <span className="eqd-mini-value"><MetricValue value={inst.totalValue} seriesKey="institutionTotalValue" timestamp={lastUpdated} format={v => `$${(v / 1000).toFixed(1)}T`} /></span>
-            {inst.topHoldings?.[0] ? <span className="eqd-mini-sub">Top: {inst.topHoldings[0].ticker} · {inst.topHoldings[0].pctOfPortfolio != null ? `${inst.topHoldings[0].pctOfPortfolio.toFixed(1)}%` : ''}</span> : null}
+            {inst.topHoldings?.[0] ? <span className="eqd-mini-sub">Top: {inst.topHoldings[0].ticker}{inst.topHoldings[0].name ? ` · ${inst.topHoldings[0].name}` : ''} · {inst.topHoldings[0].pctOfPortfolio != null ? `${inst.topHoldings[0].pctOfPortfolio.toFixed(1)}%` : ''}</span> : null}
           </div>
         ))}
       </div>
