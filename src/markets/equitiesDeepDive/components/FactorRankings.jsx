@@ -155,12 +155,14 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
                 <span className={`eq-kpi-value ${(breadthDivergence.spy1m ?? 0) >= 0 ? 'positive' : 'negative'}`}>
                   {(breadthDivergence.spy1m ?? 0) >= 0 ? '+' : ''}{breadthDivergence.spy1m?.toFixed(2)}%
                 </span>
+                <span className="eq-kpi-sub">cap-weighted</span>
               </div>
               <div className="eq-kpi-pill">
                 <span className="eq-kpi-label">RSP 1M</span>
                 <span className={`eq-kpi-value ${(breadthDivergence.rsp1m ?? 0) >= 0 ? 'positive' : 'negative'}`}>
                   {(breadthDivergence.rsp1m ?? 0) >= 0 ? '+' : ''}{breadthDivergence.rsp1m?.toFixed(2)}%
                 </span>
+                <span className="eq-kpi-sub">equal-weight</span>
               </div>
               <div className="eq-kpi-pill">
                 <span className="eq-kpi-label">Divergence</span>
