@@ -766,6 +766,12 @@ function EquitiesDeepDiveDashboard({
                 <span className="eqd-metric-num eqd-name">{insiderTransactions[0].name ? `${insiderTransactions[0].name} · ` : ''}{insiderTransactions[0].type}</span>
               </div>
             ) : null}
+            {insiderTransactions[0]?.date ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{insiderTransactions[0].date}</span>
+              </div>
+            ) : null}
           </div>
         )}
       </>
