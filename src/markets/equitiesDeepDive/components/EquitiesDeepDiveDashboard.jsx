@@ -592,7 +592,7 @@ function EquitiesDeepDiveDashboard({
             {factorKpis.topStock.composite != null ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
-                <span className="eqd-metric-num eqd-name">Composite {factorKpis.topStock.composite}{(() => { const s = factorKpis.topStock; const factors = [{ name: 'Value', val: s.value }, { name: 'Momentum', val: s.momentum }, { name: 'Quality', val: s.quality }, { name: 'Low-Vol', val: s.lowVol }].filter(f => f.val != null); if (!factors.length) return ''; const best = factors.reduce((a, b) => (b.val ?? 0) > (a.val ?? 0) ? b : a); return ` · ${best.name} ${best.val.toFixed(0)}`; })()}</span>
+                <span className="eqd-metric-num eqd-name">Composite {factorKpis.topStock.composite}{(() => { const s = factorKpis.topStock; const factors = [{ name: 'Value', val: s.value }, { name: 'Momentum', val: s.momentum }, { name: 'Quality', val: s.quality }, { name: 'Low-Vol', val: s.lowVol }].filter(f => f.val != null); if (!factors.length) return ''; const best = factors.reduce((a, b) => (b.val ?? 0) > (a.val ?? 0) ? b : a); const worst = factors.reduce((a, b) => (b.val ?? 999) < (a.val ?? 999) ? b : a); return ` · ${best.name} ${best.val.toFixed(0)} · ${worst.name} ${worst.val.toFixed(0)}`; })()}</span>
               </div>
             ) : null}
             <div className="eqd-metric-row">
