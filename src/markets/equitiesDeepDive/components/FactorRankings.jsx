@@ -139,7 +139,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">{`Quality \u2265 70`}</span>
             <span className="eq-kpi-value accent">{kpis.highQuality}</span>
-            <span className="eq-kpi-sub">of {stocks.length}{stocks.length > 0 ? ` · ${Math.round(kpis.highQuality / stocks.length * 100)}%` : ''}{kpis.topQualityStock ? ` · Top: ${kpis.topQualityStock.ticker} ${kpis.topQualityStock.quality?.toFixed(0)}` : ''}</span>
+            <span className="eq-kpi-sub">of {stocks.length}{stocks.length > 0 ? ` · ${Math.round(kpis.highQuality / stocks.length * 100)}%` : ''}{kpis.topQualityStock ? ` · Top: ${kpis.topQualityStock.ticker}${kpis.topQualityStock.name ? ` (${kpis.topQualityStock.name})` : ''} ${kpis.topQualityStock.quality?.toFixed(0)}` : ''}</span>
           </div>
         </div>
       )}
