@@ -87,7 +87,9 @@ function buildRankedOption(sectors, colors) {
         const dLine = s ? `1D: <b>${d >= 0 ? '+' : ''}${d.toFixed(2)}%</b>` : '';
         const vsSpy = s?.perf1m != null ? `vs SPY 1M: <b>${(s.perf1m - spyRef) >= 0 ? '+' : ''}${(s.perf1m - spyRef).toFixed(1)}%</b>` : '';
         const lines = params.map(p => `${p.marker}${p.seriesName}: ${(p.value ?? 0).toFixed(1)}%`);
-        return `${name}<br/>${dLine ? `${dLine}<br/>` : ''}${vsSpy ? `${vsSpy}<br/>` : ''}${lines.join('<br/>')}`;
+        const code = s?.code || '';
+        const header = code ? `${code} · ${name}` : name;
+        return `${header}<br/>${dLine ? `${dLine}<br/>` : ''}${vsSpy ? `${vsSpy}<br/>` : ''}${lines.join('<br/>')}`;
       },
     },
     legend: {
