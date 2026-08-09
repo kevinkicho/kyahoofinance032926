@@ -342,7 +342,7 @@ export default function InsiderTrading({ insiderData }) {
                     <tr key={`${h.ticker}-${h.name}-${i}`} className="eqd-row">
                       <td className="eqd-cell"><strong>{h.ticker || '\u2014'}</strong></td>
                       <td className="eqd-cell eqd-name">{h.name || '\u2014'}</td>
-                      <td className="eqd-cell eqd-name">{(h.title || h.relation || '').trim() || '\u2014'}</td>
+                      <td className="eqd-cell eqd-name">{(() => { const role = (h.title || h.relation || '').trim(); const rel = (h.relation || '').trim(); if (!role && !rel) return '\u2014'; if (rel && rel !== role) return `${role} (${rel})`; return role || rel || '\u2014'; })()}</td>
                       <td className="eqd-cell eqd-num">{fmtShares(h.shares)}</td>
                       <td className="eqd-cell eqd-dir" style={{ color: txColor(cls.kind) }} title={h.date ? `Last transaction ${h.date}` : ''}>
                         {h.lastTx || '\u2014'}{h.date ? ` · ${h.date}` : ''}
