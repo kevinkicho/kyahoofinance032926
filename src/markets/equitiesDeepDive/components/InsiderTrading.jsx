@@ -266,7 +266,7 @@ export default function InsiderTrading({ insiderData }) {
             >
               {fmtValue(kpis.net)}
             </span>
-            <span className="eq-kpi-sub">buy − sell</span>
+            <span className="eq-kpi-sub">{(() => { const total = kpis.totalBuyValue + kpis.totalSellValue; const bias = total > 0 ? Math.round(kpis.net / total * 100) : null; return bias != null ? `${bias >= 0 ? '+' : ''}${bias}% ${bias >= 0 ? 'buy' : 'sell'} bias` : 'buy − sell'; })()}</span>
           </div>
         </div>
       )}
