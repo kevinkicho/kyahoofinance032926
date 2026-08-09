@@ -98,7 +98,7 @@ function FactorRow({ label, value, colors, title }) {
         )}
       </div>
       <span className="eqd-factor-value" style={{ color: isNull ? colors.textDim : color }}>
-        {isNull ? '—' : `${safe >= 0 ? '+' : ''}${safe.toFixed(2)}%`}
+        {isNull ? '—' : `${safe >= 0 ? '+' : ''}${safe.toFixed(2)}pp`}
       </span>
     </div>
   );
