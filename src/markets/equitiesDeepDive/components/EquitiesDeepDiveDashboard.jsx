@@ -652,7 +652,7 @@ function EquitiesDeepDiveDashboard({
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">{`Short > 20%`}</span>
               <span className="eqd-metric-num" style={{ color: shortKpis.above20 > 3 ? '#ef4444' : '#6366f1' }}>
-                <MetricValue value={shortKpis.above20} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v}`} />/<MetricValue value={shortKpis.total} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v}`} />
+                <MetricValue value={shortKpis.above20} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v}`} />/<MetricValue value={shortKpis.total} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v}`} />{shortKpis.total > 0 ? ` · ${Math.round(shortKpis.above20 / shortKpis.total * 100)}%` : ''}
               </span>
             </div>
           </div>
