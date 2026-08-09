@@ -134,7 +134,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Avg Composite</span>
             <span className="eq-kpi-value accent">{kpis.avgComposite.toFixed(0)}</span>
-            <span className="eq-kpi-sub">{kpis.topStock ? `Top: ${kpis.topStock.ticker} (${kpis.topStock.composite})` : ''}</span>
+            <span className="eq-kpi-sub">{kpis.topStock ? `Top: ${kpis.topStock.ticker}${kpis.topStock.name ? ` (${kpis.topStock.name})` : ''} (${kpis.topStock.composite})` : ''}</span>
           </div>
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">{`Quality \u2265 70`}</span>
