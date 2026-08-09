@@ -548,6 +548,12 @@ function EquitiesDeepDiveDashboard({
                 <span className="eqd-metric-num eqd-name">{shortKpis.top.name}</span>
               </div>
             ) : null}
+            {shortKpis.top.daysToCover != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{shortKpis.top.daysToCover.toFixed(1)}d to cover</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Avg Float</span>
               <span className="eqd-metric-num"><MetricValue value={shortKpis.avgShort} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
