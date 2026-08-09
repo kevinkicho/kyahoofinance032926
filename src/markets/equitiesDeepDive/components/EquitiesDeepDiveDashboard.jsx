@@ -479,10 +479,13 @@ function EquitiesDeepDiveDashboard({
       revisionRate,
       qualityCount,
       avgComposite,
-      breadth: breadthDivergence?.signal || breadthDivergence?.status || breadthDivergence?.summary
-        || (breadthDivergence?.divergence != null
-          ? (breadthDivergence.divergence > 2 ? 'Narrow breadth (top-heavy)' : breadthDivergence.divergence < -2 ? 'Broad breadth' : 'Neutral')
-          : null),
+      breadth: (() => {
+        const d = breadthDivergence?.divergence;
+        if (d == null) return null;
+        if (d > 2) return 'Narrow breadth (top-heavy)';
+        if (d < -2) return 'Broad breadth';
+        return 'Neutral';
+      })(),
     };
   }, [upcoming, beatRates, inFavor, stocks, breadthDivergence]);
 
