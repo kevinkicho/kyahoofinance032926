@@ -4,13 +4,23 @@ import { useTheme } from '../../../hub/ThemeContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './EquitiesDeepDiveDashboard.css';
 
-function buildInFavorOption(inFavor, colors) {
+function buildInFavorOption(inFavor, stocks, colors) {
   const factors = [
-    { name: 'Low-Vol',  value: inFavor.lowVol    ?? 0 },
-    { name: 'Quality',  value: inFavor.quality   ?? 0 },
-    { name: 'Value',    value: inFavor.value      ?? 0 },
-    { name: 'Momentum', value: inFavor.momentum   ?? 0 },
+    { name: 'Low-Vol',  key: 'lowVol',   value: inFavor.lowVol    ?? 0 },
+    { name: 'Quality',  key: 'quality',  value: inFavor.quality   ?? 0 },
+    { name: 'Value',    key: 'value',    value: inFavor.value      ?? 0 },
+    { name: 'Momentum', key: 'momentum', value: inFavor.momentum   ?? 0 },
   ];
+  const topByFactor = {};
+  factors.forEach(f => {
+    let best = null;
+    (stocks || []).forEach(s => {
+      if (s[f.key] != null && (best == null || s[f.key] > best[f.key])) best = s;
+    });
+    topByFactor[f.key] = best;
+  });
+  const nameToKey = {};
+  factors.forEach(f => { nameToKey[f.name] = f.key; });
   return {
     animation: false,
     backgroundColor: 'transparent',
@@ -19,7 +29,13 @@ function buildInFavorOption(inFavor, colors) {
       backgroundColor: colors.tooltipBg,
       borderColor: colors.tooltipBorder,
       textStyle: { color: colors.text, fontSize: 11 },
-      formatter: (params) => `${params[0].name}: ${params[0].value?.toFixed(1)}%`,
+      formatter: (params) => {
+        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}%`;
+        const key = nameToKey[params[0].name];
+        const top = key ? topByFactor[key] : null;
+        if (!top) return base;
+        return `${base} · Top ${top.ticker} ${top[key].toFixed(0)}`;
+      },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
     xAxis: {
@@ -71,7 +87,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
   const { colors } = useTheme();
   const { inFavor = {}, stocks = [] } = factorData ?? {};
 
-  const inFavorOption = useMemo(() => buildInFavorOption(inFavor, colors), [inFavor, colors]);
+  const inFavorOption = useMemo(() => buildInFavorOption(inFavor, stocks, colors), [inFavor, stocks, colors]);
 
   const kpis = useMemo(() => {
     if (!stocks.length) return null;
