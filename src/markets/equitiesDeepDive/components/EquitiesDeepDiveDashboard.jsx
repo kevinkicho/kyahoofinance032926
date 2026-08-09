@@ -494,6 +494,10 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">SPY</span>
               <span className="eqd-metric-num"><MetricValue value={sectorKpis.spyPerf} seriesKey="sp500Perf" timestamp={lastUpdated} format={v => fmtChangePct(v)} /></span>
             </div>
+            <div className="eqd-metric-row">
+              <span className="eqd-metric-name">Beating SPY</span>
+              <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{sectorKpis.outperforming}/{sectorKpis.total}</span>
+            </div>
           </div>
         )}
         {factorKpis && (
