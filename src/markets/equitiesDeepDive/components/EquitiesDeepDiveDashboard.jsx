@@ -159,7 +159,7 @@ function buildInFavorOption(inFavor, stocks, colors) {
         const key = nameToKey[params[0].name];
         const top = key ? topByFactor[key] : null;
         if (!top) return base;
-        return `${base} · Top ${top.ticker} ${top[key].toFixed(0)}`;
+        return `${base} · Top ${top.ticker}${top.name ? ` (${top.name})` : ''} ${top[key].toFixed(0)}`;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
