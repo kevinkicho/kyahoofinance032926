@@ -848,7 +848,7 @@ function EquitiesDeepDiveDashboard({
                   {hasDir ? (
                     <span
                       className={`eqd-dir-badge ${isUp ? 'is-up' : 'is-down'}`}
-                      title={isUp ? 'EPS est ≥ prior quarter' : 'EPS est < prior quarter'}
+                      title={hasDir ? `Est $${Number(e.epsEst).toFixed(2)} vs prior $${Number(e.epsPrev).toFixed(2)} (${Number(e.epsPrev) !== 0 ? `${((Number(e.epsEst) - Number(e.epsPrev)) / Math.abs(Number(e.epsPrev)) * 100).toFixed(1)}%` : 'n/a'})` : 'Prior EPS unavailable'}
                       aria-label={isUp ? 'Estimate above prior' : 'Estimate below prior'}
                     >
                       {isUp ? '▲' : '▼'}
