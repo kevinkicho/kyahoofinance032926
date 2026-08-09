@@ -181,7 +181,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
             <div className="eq-kpi-pill">
               <span className="eq-kpi-label">Earnings Yield</span>
               <span className="eq-kpi-value accent">{equityRiskPremium.earningsYield?.toFixed(2)}%</span>
-              <span className="eq-kpi-sub">1 / P/E</span>
+              <span className="eq-kpi-sub">1 / P/E{equityRiskPremium.earningsYield != null && equityRiskPremium.earningsYield > 0 ? ` · P/E ${(100 / equityRiskPremium.earningsYield).toFixed(1)}` : ''}</span>
             </div>
             <div className="eq-kpi-pill">
               <span className="eq-kpi-label">10Y Treasury</span>
