@@ -668,6 +668,30 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">Sells</span>
               <span className="eqd-metric-num" style={{ color: '#ef4444' }}>{insiderTransactions.filter(t => { const ty = (t.type || '').toLowerCase(); return ty.includes('sale') || ty.includes('sell'); }).length}</span>
             </div>
+            {(() => {
+              let buyVal = 0, sellVal = 0;
+              insiderTransactions.forEach(t => {
+                const ty = (t.type || '').toLowerCase();
+                const v = Number(t.value) || 0;
+                if (ty.includes('purchase') || ty.includes('buy')) buyVal += v;
+                else if (ty.includes('sale') || ty.includes('sell')) sellVal += v;
+              });
+              if (buyVal === 0 && sellVal === 0) return null;
+              const net = buyVal - sellVal;
+              const fmt = n => {
+                const abs = Math.abs(n);
+                if (abs >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+                if (abs >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
+                if (abs >= 1e3) return `$${(n / 1e3).toFixed(0)}K`;
+                return `$${Math.round(n)}`;
+              };
+              return (
+                <div className="eqd-metric-row">
+                  <span className="eqd-metric-name">Net $</span>
+                  <span className="eqd-metric-num" style={{ color: net >= 0 ? '#22c55e' : '#ef4444' }}>{net >= 0 ? '+' : ''}{fmt(net)}</span>
+                </div>
+              );
+            })()}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Tickers</span>
               <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{new Set(insiderTransactions.map(t => t.ticker)).size}</span>
