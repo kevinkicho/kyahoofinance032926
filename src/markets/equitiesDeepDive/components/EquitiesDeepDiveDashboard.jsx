@@ -964,7 +964,7 @@ function EquitiesDeepDiveDashboard({
             <tr className="eqd-row">
               <td className="eqd-cell">Breadth signal</td>
               <td className="eqd-cell">{earningsQuality.breadth || '—'}</td>
-              <td className="eqd-cell">{breadthDivergence?.spy1m != null && breadthDivergence?.rsp1m != null ? `SPY ${(breadthDivergence.spy1m >= 0 ? '+' : '')}${breadthDivergence.spy1m.toFixed(2)}% · RSP ${(breadthDivergence.rsp1m >= 0 ? '+' : '')}${breadthDivergence.rsp1m.toFixed(2)}%` : 'Divergence context'}</td>
+              <td className="eqd-cell">{breadthDivergence?.spy1m != null && breadthDivergence?.rsp1m != null ? `SPY ${(breadthDivergence.spy1m >= 0 ? '+' : '')}${breadthDivergence.spy1m.toFixed(2)}% · RSP ${(breadthDivergence.rsp1m >= 0 ? '+' : '')}${breadthDivergence.rsp1m.toFixed(2)}%${breadthDivergence.divergence != null ? ` · Δ ${(breadthDivergence.divergence >= 0 ? '+' : '')}${breadthDivergence.divergence.toFixed(1)}pp` : ''}` : 'Divergence context'}</td>
             </tr>
           </tbody>
         </table>
