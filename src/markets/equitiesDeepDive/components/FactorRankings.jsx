@@ -101,7 +101,10 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
     const topStock = stocks.reduce((a, b) => (a.composite ?? 0) > (b.composite ?? 0) ? a : b);
     const avgComposite = stocks.reduce((s, st) => s + (st.composite ?? 0), 0) / stocks.length;
     const highQuality = stocks.filter(s => (s.quality ?? 0) >= 70).length;
-    return { topFactor, topStock, avgComposite, highQuality };
+    const topQualityStock = stocks
+      .filter(s => (s.quality ?? 0) >= 70)
+      .sort((a, b) => (b.quality ?? 0) - (a.quality ?? 0))[0] || null;
+    return { topFactor, topStock, avgComposite, highQuality, topQualityStock };
   }, [inFavor, stocks]);
 
   if (!factorData) return null;
@@ -133,7 +136,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">{`Quality \u2265 70`}</span>
             <span className="eq-kpi-value accent">{kpis.highQuality}</span>
-            <span className="eq-kpi-sub">of {stocks.length}</span>
+            <span className="eq-kpi-sub">of {stocks.length}{kpis.topQualityStock ? ` · Top: ${kpis.topQualityStock.ticker} ${kpis.topQualityStock.quality?.toFixed(0)}` : ''}</span>
           </div>
         </div>
       )}
