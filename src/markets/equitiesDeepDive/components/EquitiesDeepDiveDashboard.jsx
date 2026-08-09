@@ -450,12 +450,15 @@ function EquitiesDeepDiveDashboard({
     const bestBeat = (beatRates || []).reduce((best, row) => (row.beatRate ?? -Infinity) > (best?.beatRate ?? -Infinity) ? row : best, null);
     const worstBeat = (beatRates || []).reduce((worst, row) => (row.beatRate ?? Infinity) < (worst?.beatRate ?? Infinity) ? row : worst, null);
     const factors = [
-      { name: 'Momentum', value: inFavor.momentum },
-      { name: 'Value', value: inFavor.value },
-      { name: 'Quality', value: inFavor.quality },
-      { name: 'Low-Vol', value: inFavor.lowVol },
+      { name: 'Momentum', key: 'momentum', value: inFavor.momentum },
+      { name: 'Value',    key: 'value',    value: inFavor.value },
+      { name: 'Quality',  key: 'quality',  value: inFavor.quality },
+      { name: 'Low-Vol',   key: 'lowVol',   value: inFavor.lowVol },
     ].filter(row => row.value != null);
     const topFactor = factors.reduce((best, row) => Number(row.value) > Number(best?.value ?? -Infinity) ? row : best, null);
+    const topFactorStock = topFactor?.key ? stocks
+      .filter(s => s[topFactor.key] != null)
+      .sort((a, b) => (b[topFactor.key] ?? 0) - (a[topFactor.key] ?? 0))[0] || null : null;
     const positiveRevisions = upcoming.filter(row => row.epsEst != null && row.epsPrev != null && Number(row.epsEst) >= Number(row.epsPrev)).length;
     const revisionRate = upcoming.length ? (positiveRevisions / upcoming.length) * 100 : null;
     const qualityCount = stocks.filter(row => Number(row.quality ?? 0) >= 70).length;
@@ -468,6 +471,7 @@ function EquitiesDeepDiveDashboard({
       bestBeat,
       worstBeat,
       topFactor,
+      topFactorStock,
       revisionRate,
       qualityCount,
       avgComposite,
@@ -906,7 +910,7 @@ function EquitiesDeepDiveDashboard({
             { label: 'Next Report', value: earningsQuality.next?.ticker || '—', sub: [earningsQuality.next?.name, earningsQuality.next?.sector, earningsQuality.next?.date, (earningsQuality.next?.epsEst != null && earningsQuality.next?.epsPrev != null ? `est $${earningsQuality.next.epsEst} vs prior $${earningsQuality.next.epsPrev}` : null)].filter(Boolean).join(' · ') || 'schedule' },
             { label: 'Beat Breadth', value: earningsQuality.avgBeatRate != null ? `${earningsQuality.avgBeatRate.toFixed(1)}%` : '—', sub: [earningsQuality.bestBeat?.sector ? `${earningsQuality.bestBeat.sector} ${earningsQuality.bestBeat.beatRate?.toFixed(0)}%` : null, earningsQuality.worstBeat?.sector ? `worst ${earningsQuality.worstBeat.sector} ${earningsQuality.worstBeat.beatRate?.toFixed(0)}%` : null].filter(Boolean).join(' · ') || (earningsQuality.bestBeat?.sector || 'by sector') },
             { label: 'Positive Revisions', value: earningsQuality.revisionRate != null ? `${earningsQuality.revisionRate.toFixed(0)}%` : '—', sub: `${earningsQuality.positiveRevisions ?? 0}/${earningsQuality.totalUpcoming} upcoming` },
-            { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : 'rotation' },
+            { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: [earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : null, earningsQuality.topFactorStock ? `Top ${earningsQuality.topFactorStock.ticker} ${earningsQuality.topFactorStock[earningsQuality.topFactor.key]?.toFixed(0)}` : null].filter(Boolean).join(' · ') || 'rotation' },
           ].map(item => (
             <div key={item.label} className="eqd-metric-card" style={{ margin: 0 }}>
               <div className="eqd-sidebar-title">{item.label}</div>
