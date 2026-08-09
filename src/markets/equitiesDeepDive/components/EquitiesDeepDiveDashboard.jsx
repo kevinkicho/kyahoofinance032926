@@ -602,6 +602,12 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">Most Shorted</span>
               <span className="eqd-metric-num" style={{ color: '#ef4444' }}>{shortKpis.top.ticker}</span>
             </div>
+            {shortKpis.top.shortFloat != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{shortKpis.top.shortFloat.toFixed(1)}% short</span>
+              </div>
+            ) : null}
             {shortKpis.top.name ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
