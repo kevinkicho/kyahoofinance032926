@@ -852,6 +852,9 @@ function EquitiesDeepDiveDashboard({
 
     const recentChangesBody = (recentChanges?.bigBuys?.length > 0 || recentChanges?.bigSells?.length > 0 || recentChanges?.newPositions?.length > 0) ? (
       <div className="eqd-mini-table">
+        {recentChanges.lastQuarter ? (
+          <div className="eqd-mini-sub" style={{ fontWeight: 600, marginBottom: 4 }}>13F Changes · {recentChanges.lastQuarter}</div>
+        ) : null}
         {recentChanges.bigBuys?.slice(0, 2).map((b, i) => (
           <div key={`buy-${i}`} className="eqd-mini-row">
             <span className="eqd-mini-name"><strong>{b.ticker}</strong> {b.name}</span>
