@@ -948,7 +948,7 @@ function EquitiesDeepDiveDashboard({
           <tbody>
             <tr className="eqd-row">
               <td className="eqd-cell">High-quality stocks</td>
-              <td className="eqd-cell eqd-num">{earningsQuality.qualityCount}/{stocks.length || 0}</td>
+              <td className="eqd-cell eqd-num">{earningsQuality.qualityCount}/{stocks.length || 0}{stocks.length > 0 ? ` · ${Math.round(earningsQuality.qualityCount / stocks.length * 100)}%` : ''}</td>
               <td className="eqd-cell">{(() => {
                 const hq = stocks.filter(s => Number(s.quality ?? 0) >= 70).sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0))[0];
                 return hq ? `Top: ${hq.ticker}${hq.name ? ` (${hq.name})` : ''}${hq.sector ? ` · ${hq.sector}` : ''} (q${hq.quality ?? '?'}, c${hq.composite ?? '?'})` : 'Quality score 70+';
