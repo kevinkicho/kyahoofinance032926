@@ -181,7 +181,7 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
           {factors.length ? factors.map(f => {
             const fk = FACTOR_KEYS.find(k => k.label === f.name);
             const top = fk ? topByFactor[fk.key] : null;
-            const title = top ? `Top: ${top.ticker} ${top[fk.key].toFixed(0)}` : '';
+            const title = top ? `Top: ${top.ticker}${top.name ? ` (${top.name})` : ''} ${top[fk.key].toFixed(0)}` : '';
             return <FactorRow key={f.name} label={f.name} value={f.value} colors={colors} title={title} />;
           }) : <div className="eqd-kpi-empty">No factor data</div>}
         </div>
