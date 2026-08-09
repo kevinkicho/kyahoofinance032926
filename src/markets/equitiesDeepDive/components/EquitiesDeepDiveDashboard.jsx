@@ -194,7 +194,7 @@ function buildInFavorOption(inFavor, stocks, colors) {
 
 function buildBeatRateOption(beatRates, sectors, colors) {
   const sorted = [...beatRates].sort((a, b) => (b.beatRate ?? 0) - (a.beatRate ?? 0));
-  const perf1mByName = new Map((sectors ?? []).map(s => [s.name, s.perf1m]));
+  const perfByName = new Map((sectors ?? []).map(s => [s.name, { perf1d: s.perf1d, perf1m: s.perf1m }]));
   return {
     animation: false,
     backgroundColor: 'transparent',
@@ -207,9 +207,10 @@ function buildBeatRateOption(beatRates, sectors, colors) {
         const item = sorted[params[0].dataIndex];
         const base = `${params[0].name}: ${params[0].value?.toFixed(1)}%`;
         if (!item) return base;
-        const perf1m = perf1mByName.get(item.sector);
-        const perf1mStr = perf1m != null ? ` · 1M ${perf1m >= 0 ? '+' : ''}${perf1m.toFixed(1)}%` : '';
-        return `${base} (${item.beatCount}/${item.totalCount})${perf1mStr}`;
+        const perf = perfByName.get(item.sector);
+        const perf1dStr = perf?.perf1d != null ? ` · 1D ${perf.perf1d >= 0 ? '+' : ''}${perf.perf1d.toFixed(1)}%` : '';
+        const perf1mStr = perf?.perf1m != null ? ` · 1M ${perf.perf1m >= 0 ? '+' : ''}${perf.perf1m.toFixed(1)}%` : '';
+        return `${base} (${item.beatCount}/${item.totalCount})${perf1dStr}${perf1mStr}`;
       },
     },
     grid: { top: 8, right: 40, bottom: 8, left: 8, containLabel: true },
