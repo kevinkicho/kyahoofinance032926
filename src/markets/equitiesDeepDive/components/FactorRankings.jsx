@@ -129,7 +129,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Top Stock</span>
             <span className="eq-kpi-value accent">{kpis.topStock.ticker}</span>
-            <span className="eq-kpi-sub">{kpis.topStock.name ? `${kpis.topStock.name} · ` : ''}{kpis.topStock.sector ? `${kpis.topStock.sector} · ` : ''}Composite {kpis.topStock.composite}</span>
+            <span className="eq-kpi-sub">{kpis.topStock.name ? `${kpis.topStock.name} · ` : ''}{kpis.topStock.sector ? `${kpis.topStock.sector} · ` : ''}Composite {kpis.topStock.composite}{(() => { const s = kpis.topStock; const factors = [{ name: 'Value', val: s.value }, { name: 'Momentum', val: s.momentum }, { name: 'Quality', val: s.quality }, { name: 'Low-Vol', val: s.lowVol }].filter(f => f.val != null); if (!factors.length) return ''; const best = factors.reduce((a, b) => (b.val ?? 0) > (a.val ?? 0) ? b : a); return ` · ${best.name} ${best.val.toFixed(0)}`; })()}</span>
           </div>
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Avg Composite</span>
