@@ -71,6 +71,7 @@ function buildSectorBarOption({ sectors, spyPerf, colors }) {
 }
 
 function FactorRow({ label, value, colors, title }) {
+  const isNull = value == null;
   const v = Number(value ?? 0);
   const safe = Number.isFinite(v) ? v : 0;
   const positive = safe >= 0;
@@ -81,19 +82,23 @@ function FactorRow({ label, value, colors, title }) {
     <div className="eqd-factor-row" title={title || ''}>
       <span className="eqd-factor-label">{label}</span>
       <div className="eqd-factor-bar-track" style={{ background: colors.cardBg }}>
-        <div
-          className="eqd-factor-bar-fill"
-          style={{
-            width: `${pct}%`,
-            background: color,
-            marginLeft: positive ? '50%' : `${50 - pct / 2}%`,
-            transform: positive ? 'none' : 'translateX(-100%)',
-          }}
-        />
-        <div className="eqd-factor-bar-axis" style={{ background: colors.textDim }} />
+        {isNull ? null : (
+          <>
+            <div
+              className="eqd-factor-bar-fill"
+              style={{
+                width: `${pct}%`,
+                background: color,
+                marginLeft: positive ? '50%' : `${50 - pct / 2}%`,
+                transform: positive ? 'none' : 'translateX(-100%)',
+              }}
+            />
+            <div className="eqd-factor-bar-axis" style={{ background: colors.textDim }} />
+          </>
+        )}
       </div>
-      <span className="eqd-factor-value" style={{ color }}>
-        {safe >= 0 ? '+' : ''}{safe.toFixed(2)}%
+      <span className="eqd-factor-value" style={{ color: isNull ? colors.textDim : color }}>
+        {isNull ? '—' : `${safe >= 0 ? '+' : ''}${safe.toFixed(2)}%`}
       </span>
     </div>
   );
