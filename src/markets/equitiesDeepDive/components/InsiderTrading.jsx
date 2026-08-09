@@ -251,7 +251,7 @@ export default function InsiderTrading({ insiderData }) {
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Sells</span>
             <span className="eq-kpi-value negative">{kpis.sellCount}</span>
-            <span className="eq-kpi-sub">{fmtValue(kpis.totalSellValue)}</span>
+            <span className="eq-kpi-sub">{fmtValue(kpis.totalSellValue)}{kpis.sellCount > 0 ? ` · avg ${fmtValue(kpis.totalSellValue / kpis.sellCount)}` : ''}</span>
           </div>
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Tickers</span>
