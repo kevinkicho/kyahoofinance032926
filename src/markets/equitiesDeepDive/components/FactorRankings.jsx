@@ -208,7 +208,7 @@ export default function FactorRankings({ factorData, breadthDivergence, equityRi
         </div>
         <div className="eq-chart-panel">
           <div className="eq-chart-title">Stock Factor Scores</div>
-          <div className="eq-chart-subtitle">Top 20 stocks by composite · green ≥ 70 · red ≤ 30</div>
+          <div className="eq-chart-subtitle">Ranked by composite · green ≥ 70 · red ≤ 30</div>
           <div className="eq-scroll">
             <table className="eq-table">
               <thead>
