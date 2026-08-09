@@ -303,7 +303,7 @@ export default function InsiderTrading({ insiderData }) {
           {holdersOption && (
             <div className="eq-chart-panel">
               <div className="eq-chart-title">Top Insider Holders</div>
-              <div className="eq-chart-subtitle">Direct position · shares held</div>
+              <div className="eq-chart-subtitle">Direct position · shares held · top 10</div>
               <div className="eq-chart-wrap">
                 <SafeECharts
                   option={holdersOption}
