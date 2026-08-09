@@ -130,12 +130,13 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
 
   // SPY is included in the sector list — pull it out so the chart shows
   // only the 11 sector ETFs and uses SPY as the reference line.
-  const { etfs, spyPerf, spyPerf1d } = useMemo(() => {
+  const { etfs, spyPerf, spyPerf1d, spyPerf3m } = useMemo(() => {
     const spy = sectors.find(s => s.code === 'SPY' || s.name === 'S&P 500');
     return {
       etfs: sectors.filter(s => s !== spy),
       spyPerf: spy?.perf1m ?? null,
       spyPerf1d: spy?.perf1d ?? null,
+      spyPerf3m: spy?.perf3m ?? null,
     };
   }, [sectors]);
 
@@ -206,7 +207,7 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
             <div className="eqd-kpi-pill">
               <span className="eqd-kpi-pill-label">SPY</span>
               <span className="eqd-kpi-pill-value">{spyPerf != null ? `${spyPerf >= 0 ? '+' : ''}${spyPerf.toFixed(1)}%` : '—'}</span>
-              <span className="eqd-kpi-pill-sub">benchmark{spyPerf1d != null ? ` · 1D ${spyPerf1d >= 0 ? '+' : ''}${spyPerf1d.toFixed(1)}%` : ''}</span>
+              <span className="eqd-kpi-pill-sub">benchmark{spyPerf1d != null ? ` · 1D ${spyPerf1d >= 0 ? '+' : ''}${spyPerf1d.toFixed(1)}%` : ''}{spyPerf3m != null ? ` · 3M ${spyPerf3m >= 0 ? '+' : ''}${spyPerf3m.toFixed(1)}%` : ''}</span>
             </div>
             <div className="eqd-kpi-pill">
               <span className="eqd-kpi-pill-label">Beating SPY</span>
