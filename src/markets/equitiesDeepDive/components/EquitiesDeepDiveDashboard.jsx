@@ -414,16 +414,19 @@ function EquitiesDeepDiveDashboard({
   const factorKpis = useMemo(() => {
     if (!stocks.length) return null;
     const factors = [
-      { name: 'Momentum', val: inFavor.momentum ?? 0 },
-      { name: 'Value', val: inFavor.value ?? 0 },
-      { name: 'Quality', val: inFavor.quality ?? 0 },
-      { name: 'Low-Vol', val: inFavor.lowVol ?? 0 },
+      { name: 'Momentum', key: 'momentum', val: inFavor.momentum ?? 0 },
+      { name: 'Value',    key: 'value',    val: inFavor.value ?? 0 },
+      { name: 'Quality',  key: 'quality',  val: inFavor.quality ?? 0 },
+      { name: 'Low-Vol',   key: 'lowVol',   val: inFavor.lowVol ?? 0 },
     ];
     const topFactor = factors.reduce((a, b) => a.val > b.val ? a : b);
+    const topFactorStock = topFactor.key ? stocks
+      .filter(s => s[topFactor.key] != null)
+      .sort((a, b) => (b[topFactor.key] ?? 0) - (a[topFactor.key] ?? 0))[0] || null : null;
     const topStock = stocks.reduce((a, b) => (a.composite ?? 0) > (b.composite ?? 0) ? a : b);
     const avgComposite = stocks.reduce((s, st) => s + (st.composite ?? 0), 0) / stocks.length;
     const highQuality = stocks.filter(s => (s.quality ?? 0) >= 70).length;
-    return { topFactor, topStock, avgComposite, highQuality };
+    return { topFactor, topFactorStock, topStock, avgComposite, highQuality };
   }, [inFavor, stocks]);
 
   const shortKpis = useMemo(() => {
@@ -548,7 +551,7 @@ function EquitiesDeepDiveDashboard({
             {factorKpis.topFactor.value != null ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
-                <span className="eqd-metric-num eqd-name">{Number(factorKpis.topFactor.value).toFixed(1)}% MTD</span>
+                <span className="eqd-metric-num eqd-name">{Number(factorKpis.topFactor.value).toFixed(1)}% MTD{factorKpis.topFactorStock ? ` · Top ${factorKpis.topFactorStock.ticker} ${factorKpis.topFactorStock[factorKpis.topFactor.key]?.toFixed(0)}` : ''}</span>
               </div>
             ) : null}
             <div className="eqd-metric-row">
