@@ -460,6 +460,7 @@ function EquitiesDeepDiveDashboard({
     return {
       next: sortedUpcoming[0] || null,
       totalUpcoming: upcoming.length,
+      positiveRevisions,
       avgBeatRate,
       bestBeat,
       worstBeat,
@@ -895,7 +896,7 @@ function EquitiesDeepDiveDashboard({
           {[
             { label: 'Next Report', value: earningsQuality.next?.ticker || '—', sub: [earningsQuality.next?.name, earningsQuality.next?.sector, earningsQuality.next?.date, (earningsQuality.next?.epsEst != null && earningsQuality.next?.epsPrev != null ? `est $${earningsQuality.next.epsEst} vs prior $${earningsQuality.next.epsPrev}` : null)].filter(Boolean).join(' · ') || 'schedule' },
             { label: 'Beat Breadth', value: earningsQuality.avgBeatRate != null ? `${earningsQuality.avgBeatRate.toFixed(1)}%` : '—', sub: [earningsQuality.bestBeat?.sector ? `${earningsQuality.bestBeat.sector} ${earningsQuality.bestBeat.beatRate?.toFixed(0)}%` : null, earningsQuality.worstBeat?.sector ? `worst ${earningsQuality.worstBeat.sector} ${earningsQuality.worstBeat.beatRate?.toFixed(0)}%` : null].filter(Boolean).join(' · ') || (earningsQuality.bestBeat?.sector || 'by sector') },
-            { label: 'Positive Revisions', value: earningsQuality.revisionRate != null ? `${earningsQuality.revisionRate.toFixed(0)}%` : '—', sub: `${earningsQuality.totalUpcoming} upcoming` },
+            { label: 'Positive Revisions', value: earningsQuality.revisionRate != null ? `${earningsQuality.revisionRate.toFixed(0)}%` : '—', sub: `${earningsQuality.positiveRevisions ?? 0}/${earningsQuality.totalUpcoming} upcoming` },
             { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : 'rotation' },
           ].map(item => (
             <div key={item.label} className="eqd-metric-card" style={{ margin: 0 }}>
