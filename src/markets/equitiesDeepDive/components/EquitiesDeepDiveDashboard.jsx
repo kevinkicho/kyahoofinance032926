@@ -801,7 +801,10 @@ function EquitiesDeepDiveDashboard({
             <tr className="eqd-row">
               <td className="eqd-cell">Average composite</td>
               <td className="eqd-cell eqd-num">{earningsQuality.avgComposite != null ? earningsQuality.avgComposite.toFixed(1) : '—'}</td>
-              <td className="eqd-cell">Factor universe</td>
+              <td className="eqd-cell">{(() => {
+                const top = [...stocks].sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0))[0];
+                return top ? `Top: ${top.ticker} (${top.composite})` : 'Factor universe';
+              })()}</td>
             </tr>
             <tr className="eqd-row">
               <td className="eqd-cell">Breadth signal</td>
