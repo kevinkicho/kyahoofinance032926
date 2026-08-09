@@ -615,6 +615,18 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">Tickers</span>
               <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{new Set(insiderTransactions.map(t => t.ticker)).size}</span>
             </div>
+            {insiderTransactions[0] && (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name">Latest</span>
+                <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{insiderTransactions[0].ticker}</span>
+              </div>
+            )}
+            {insiderTransactions[0]?.type ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{insiderTransactions[0].type}</span>
+              </div>
+            ) : null}
           </div>
         )}
       </>
