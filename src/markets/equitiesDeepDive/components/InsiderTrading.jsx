@@ -132,7 +132,7 @@ function buildInsiderHoldersOption(holders, colors) {
         const h = top[params[0].dataIndex];
         const role = (h?.title || h?.relation || '').trim();
         const roleLine = role ? `<br/>${role}` : '';
-        const lastTx = h?.lastTx ? `<br/>Last: ${h.lastTx}` : '';
+        const lastTx = h?.lastTx ? `<br/>Last: ${h.lastTx}${h?.date ? ` (${h.date})` : ''}` : '';
         return `${h?.name || params[0].name}${h?.ticker ? ` (${h.ticker})` : ''}${roleLine}<br/>${fmtShares(params[0].value)} shares${lastTx}`;
       },
     },
