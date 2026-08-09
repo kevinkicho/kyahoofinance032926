@@ -30,7 +30,7 @@ function buildInFavorOption(inFavor, stocks, colors) {
       borderColor: colors.tooltipBorder,
       textStyle: { color: colors.text, fontSize: 11 },
       formatter: (params) => {
-        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}%`;
+        const base = `${params[0].name}: ${params[0].value?.toFixed(1)}pp`;
         const key = nameToKey[params[0].name];
         const top = key ? topByFactor[key] : null;
         if (!top) return base;
