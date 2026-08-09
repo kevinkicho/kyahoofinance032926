@@ -210,7 +210,7 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
             <div className="eqd-kpi-pill">
               <span className="eqd-kpi-pill-label">Beating SPY</span>
               <span className="eqd-kpi-pill-value" style={{ color: '#6366f1' }}>{summary.beating}/{summary.total}</span>
-              <span className="eqd-kpi-pill-sub">sectors</span>
+              <span className="eqd-kpi-pill-sub">{summary.total > 0 ? `${Math.round(summary.beating / summary.total * 100)}%` : '—'} beating</span>
             </div>
             <div className="eqd-kpi-pill">
               <span className="eqd-kpi-pill-label">1Y Leader</span>
