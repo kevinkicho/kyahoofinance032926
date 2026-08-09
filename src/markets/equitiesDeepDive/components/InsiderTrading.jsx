@@ -256,7 +256,7 @@ export default function InsiderTrading({ insiderData }) {
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Tickers</span>
             <span className="eq-kpi-value accent">{kpis.uniqueTickers}</span>
-            <span className="eq-kpi-sub">tracked</span>
+            <span className="eq-kpi-sub">{kpis.otherCount > 0 ? `${kpis.otherCount} other` : 'tracked'}</span>
           </div>
           <div className="eq-kpi-pill">
             <span className="eq-kpi-label">Net $</span>
