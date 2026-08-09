@@ -114,6 +114,13 @@ function buildTxByTickerOption(transactions, colors) {
         stack: 'total',
         data: tickers.map(t => ({ value: -byTicker[t].sells, itemStyle: { color: '#ef4444' } })),
       },
+      {
+        name: 'Other',
+        type: 'bar',
+        stack: 'other',
+        data: tickers.map(t => ({ value: byTicker[t].other, itemStyle: { color: '#94a3b8' } })),
+        barWidth: '60%',
+      },
     ],
   };
 }
