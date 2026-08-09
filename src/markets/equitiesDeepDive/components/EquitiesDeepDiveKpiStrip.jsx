@@ -76,8 +76,8 @@ function FactorRow({ label, value, colors, title }) {
   const safe = Number.isFinite(v) ? v : 0;
   const positive = safe >= 0;
   const color = positive ? '#22c55e' : '#ef4444';
-  // Bar fill width: cap at ±10% range, scale to 100%
-  const pct = Math.min(Math.abs(safe) / 10, 1) * 100;
+  // Bar fill width: cap at ±25pp range, scale to 100%
+  const pct = Math.min(Math.abs(safe) / 25, 1) * 100;
   return (
     <div className="eqd-factor-row" title={title || ''}>
       <span className="eqd-factor-label">{label}</span>
