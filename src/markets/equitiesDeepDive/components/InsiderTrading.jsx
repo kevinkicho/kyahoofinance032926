@@ -49,7 +49,7 @@ function buildTxByTickerOption(transactions, colors) {
   const byTicker = {};
   transactions.forEach(t => {
     if (!t.ticker) return;
-    if (!byTicker[t.ticker]) byTicker[t.ticker] = { buys: 0, sells: 0, other: 0 };
+    if (!byTicker[t.ticker]) byTicker[t.ticker] = { buys: 0, sells: 0, other: 0, count: 0 };
     const { kind } = classifyTx(t.type, t.text);
     // Prefer $ value; fall back to share count so hollow-value rows still chart.
     const weight = Number.isFinite(Number(t.value)) && Number(t.value) > 0
@@ -58,6 +58,7 @@ function buildTxByTickerOption(transactions, colors) {
     if (kind === 'buy') byTicker[t.ticker].buys += weight;
     else if (kind === 'sell') byTicker[t.ticker].sells += weight;
     else byTicker[t.ticker].other += weight;
+    byTicker[t.ticker].count += 1;
   });
   const tickers = Object.keys(byTicker)
     .sort((a, b) => {
@@ -82,7 +83,7 @@ function buildTxByTickerOption(transactions, colors) {
         const f = usesValue ? fmtValue : fmtShares;
         const net = d.buys - d.sells;
         const netLine = `<br/>Net: <b style="color:${net >= 0 ? '#22c55e' : '#ef4444'}">${net >= 0 ? '+' : ''}${f(net)}</b>`;
-        return `${ticker}<br/>Buys: ${f(d.buys)}<br/>Sells: ${f(d.sells)}${netLine}${d.other ? `<br/>Other: ${f(d.other)}` : ''}`;
+        return `${ticker}<br/>Buys: ${f(d.buys)}<br/>Sells: ${f(d.sells)}${netLine}${d.other ? `<br/>Other: ${f(d.other)}` : ''}<br/>${d.count} transaction${d.count !== 1 ? 's' : ''}`;
       },
     },
     grid: { top: 8, right: 8, bottom: 8, left: 8, containLabel: true },
