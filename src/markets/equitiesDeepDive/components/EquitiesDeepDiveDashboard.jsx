@@ -565,7 +565,7 @@ function EquitiesDeepDiveDashboard({
             {factorKpis.topFactor.value != null ? (
               <div className="eqd-metric-row">
                 <span className="eqd-metric-name" />
-                <span className="eqd-metric-num eqd-name">{Number(factorKpis.topFactor.value).toFixed(1)}% MTD{factorKpis.topFactorStock ? ` · Top ${factorKpis.topFactorStock.ticker} ${factorKpis.topFactorStock[factorKpis.topFactor.key]?.toFixed(0)}` : ''}</span>
+                <span className="eqd-metric-num eqd-name">{Number(factorKpis.topFactor.value).toFixed(1)}% MTD{factorKpis.topFactorStock ? ` · Top ${factorKpis.topFactorStock.ticker}${factorKpis.topFactorStock.name ? ` (${factorKpis.topFactorStock.name})` : ''} ${factorKpis.topFactorStock[factorKpis.topFactor.key]?.toFixed(0)}` : ''}</span>
               </div>
             ) : null}
             <div className="eqd-metric-row">
@@ -926,7 +926,7 @@ function EquitiesDeepDiveDashboard({
             { label: 'Next Report', value: earningsQuality.next?.ticker || '—', sub: [earningsQuality.next?.name, earningsQuality.next?.sector, earningsQuality.next?.date, earningsQuality.next?.marketCapB != null ? `$${earningsQuality.next.marketCapB}B` : null, (earningsQuality.next?.epsEst != null && earningsQuality.next?.epsPrev != null ? `est $${earningsQuality.next.epsEst} vs prior $${earningsQuality.next.epsPrev}` : null)].filter(Boolean).join(' · ') || 'schedule' },
             { label: 'Beat Breadth', value: earningsQuality.avgBeatRate != null ? `${earningsQuality.avgBeatRate.toFixed(1)}%` : '—', sub: [earningsQuality.bestBeat?.sector ? `${earningsQuality.bestBeat.sector} ${earningsQuality.bestBeat.beatRate?.toFixed(0)}%` : null, earningsQuality.worstBeat?.sector ? `worst ${earningsQuality.worstBeat.sector} ${earningsQuality.worstBeat.beatRate?.toFixed(0)}%` : null].filter(Boolean).join(' · ') || (earningsQuality.bestBeat?.sector || 'by sector') },
             { label: 'Positive Revisions', value: earningsQuality.revisionRate != null ? `${earningsQuality.revisionRate.toFixed(0)}%` : '—', sub: `${earningsQuality.positiveRevisions ?? 0}/${earningsQuality.totalUpcoming} upcoming` },
-            { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: [earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : null, earningsQuality.topFactorStock ? `Top ${earningsQuality.topFactorStock.ticker} ${earningsQuality.topFactorStock[earningsQuality.topFactor.key]?.toFixed(0)}` : null].filter(Boolean).join(' · ') || 'rotation' },
+            { label: 'Top Factor', value: earningsQuality.topFactor?.name || '—', sub: [earningsQuality.topFactor?.value != null ? `${Number(earningsQuality.topFactor.value).toFixed(1)} score` : null, earningsQuality.topFactorStock ? `Top ${earningsQuality.topFactorStock.ticker}${earningsQuality.topFactorStock.name ? ` (${earningsQuality.topFactorStock.name})` : ''} ${earningsQuality.topFactorStock[earningsQuality.topFactor.key]?.toFixed(0)}` : null].filter(Boolean).join(' · ') || 'rotation' },
           ].map(item => (
             <div key={item.label} className="eqd-metric-card" style={{ margin: 0 }}>
               <div className="eqd-sidebar-title">{item.label}</div>
