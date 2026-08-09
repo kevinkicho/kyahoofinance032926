@@ -431,7 +431,9 @@ function EquitiesDeepDiveDashboard({
     const top = mostShorted.reduce((a, b) => (a.shortFloat ?? 0) > (b.shortFloat ?? 0) ? a : b);
     const avgShort = mostShorted.reduce((s, st) => s + (st.shortFloat ?? 0), 0) / mostShorted.length;
     const above20 = mostShorted.filter(s => (s.shortFloat ?? 0) > 20).length;
-    return { top, avgShort, above20, total: mostShorted.length };
+    const dayCovers = mostShorted.map(s => s.daysToCover).filter(v => v != null && Number.isFinite(v));
+    const avgDaysToCover = dayCovers.length ? dayCovers.reduce((s, v) => s + v, 0) / dayCovers.length : null;
+    return { top, avgShort, above20, total: mostShorted.length, avgDaysToCover };
   }, [mostShorted]);
 
   const earningsQuality = useMemo(() => {
@@ -617,6 +619,12 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">Avg Float</span>
               <span className="eqd-metric-num"><MetricValue value={shortKpis.avgShort} seriesKey="avgShortInterest" timestamp={lastUpdated} format={v => `${v.toFixed(1)}%`} /></span>
             </div>
+            {shortKpis.avgDaysToCover != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{shortKpis.avgDaysToCover.toFixed(1)}d avg cover</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">{`Short > 20%`}</span>
               <span className="eqd-metric-num" style={{ color: shortKpis.above20 > 3 ? '#ef4444' : '#6366f1' }}>
