@@ -409,8 +409,9 @@ function EquitiesDeepDiveDashboard({
     const best = etfs.reduce((a, b) => (a.perf1m ?? -99) > (b.perf1m ?? -99) ? a : b);
     const worst = etfs.reduce((a, b) => (a.perf1m ?? 99) < (b.perf1m ?? 99) ? a : b);
     const spyPerf = spy?.perf1m ?? 0;
+    const spyPerf1d = spy?.perf1d ?? null;
     const outperforming = etfs.filter(s => (s.perf1m ?? 0) >= spyPerf).length;
-    return { best, worst, spyPerf, outperforming, total: etfs.length };
+    return { best, worst, spyPerf, spyPerf1d, outperforming, total: etfs.length };
   }, [sectors]);
 
   const factorKpis = useMemo(() => {
@@ -541,6 +542,12 @@ function EquitiesDeepDiveDashboard({
               <span className="eqd-metric-name">SPY</span>
               <span className="eqd-metric-num"><MetricValue value={sectorKpis.spyPerf} seriesKey="sp500Perf" timestamp={lastUpdated} format={v => fmtChangePct(v)} /></span>
             </div>
+            {sectorKpis.spyPerf1d != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">1D {sectorKpis.spyPerf1d >= 0 ? '+' : ''}{sectorKpis.spyPerf1d.toFixed(1)}%</span>
+              </div>
+            ) : null}
             <div className="eqd-metric-row">
               <span className="eqd-metric-name">Beating SPY</span>
               <span className="eqd-metric-num" style={{ color: '#6366f1' }}>{sectorKpis.outperforming}/{sectorKpis.total}</span>
