@@ -655,6 +655,12 @@ function EquitiesDeepDiveDashboard({
                 <span className="eqd-metric-num eqd-name">{aggregateTopHoldings[0].name}</span>
               </div>
             ) : null}
+            {aggregateTopHoldings?.[0]?.holders != null ? (
+              <div className="eqd-metric-row">
+                <span className="eqd-metric-name" />
+                <span className="eqd-metric-num eqd-name">{aggregateTopHoldings[0].holders}/{institutions.length} institutions</span>
+              </div>
+            ) : null}
           </div>
         )}
         {insiderTransactions.length > 0 && (
