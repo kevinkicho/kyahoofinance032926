@@ -283,7 +283,7 @@ export default function InsiderTrading({ insiderData }) {
           {txByTickerOption && (
             <div className="eq-chart-panel">
               <div className="eq-chart-title">Transactions by Ticker</div>
-              <div className="eq-chart-subtitle">Green = buys · Red = sells</div>
+              <div className="eq-chart-subtitle">Green = buys · Red = sells · Gray = other</div>
               <div className="eq-chart-wrap">
                 <SafeECharts
                   option={txByTickerOption}
