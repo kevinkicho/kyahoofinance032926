@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -158,9 +158,9 @@ function CommoditiesDashboard({
 
   // ── EIA petroleum: gasoline + Henry Hub gas dual line, crude stocks ──
   const eiaPetrolOption = useMemo(() => {
-    const gas = eiaPetCtx?.data?.gasoline?.series || [];
-    const ng = eiaPetCtx?.data?.naturalGas?.series || [];
-    if (!gas.length && !ng.length) return null;
+    const gas = eiaPetrolSeriesPoints(eiaPetCtx?.data, 'gasoline');
+    const ng = eiaPetrolSeriesPoints(eiaPetCtx?.data, 'naturalGas');
+    if (!gas.length) return null;
     // Align natural-gas daily history to gasoline weekly dates (gas is the
     // anchor — weekly is easier to read at this size). Take the gas value
     // closest to each gasoline date.
@@ -202,8 +202,8 @@ function CommoditiesDashboard({
         key: 'gasoline',
         label: 'Gasoline',
         unit: '$/gal',
-        value: data.gasoline?.latest?.value,
-        yoy: data.gasoline?.yoyPct,
+        value: eiaPetrolLatest(data, 'gasoline')?.value,
+        yoy: typeof data.gasoline?.yoyPct === 'number' && Number.isFinite(data.gasoline.yoyPct) ? data.gasoline.yoyPct : null,
         color: '#f59e0b',
         format: v => `$${v.toFixed(2)}`,
       },
@@ -211,8 +211,8 @@ function CommoditiesDashboard({
         key: 'naturalGas',
         label: 'Henry Hub',
         unit: '$/MMBtu',
-        value: data.naturalGas?.latest?.value,
-        yoy: data.naturalGas?.yoyPct,
+        value: eiaPetrolLatest(data, 'naturalGas')?.value,
+        yoy: typeof data.naturalGas?.yoyPct === 'number' && Number.isFinite(data.naturalGas.yoyPct) ? data.naturalGas.yoyPct : null,
         color: '#3b82f6',
         format: v => `$${v.toFixed(2)}`,
       },
@@ -220,8 +220,8 @@ function CommoditiesDashboard({
         key: 'crudeStocks',
         label: 'Crude Stocks',
         unit: 'M bbl',
-        value: data.crudeStocks?.latest?.value,
-        yoy: data.crudeStocks?.yoyPct,
+        value: eiaPetrolLatest(data, 'crudeStocks')?.value,
+        yoy: typeof data.crudeStocks?.yoyPct === 'number' && Number.isFinite(data.crudeStocks.yoyPct) ? data.crudeStocks.yoyPct : null,
         color: '#22c55e',
         format: v => `${(v / 1000).toFixed(0)}M`,
       },
@@ -884,7 +884,7 @@ function CommoditiesDashboard({
         ),
 
         'eia-petrol': (
-          eiaPetrolOption ? (
+          hasEiaPetrolSeries(eiaPetCtx?.data) ? (
             <div style={{ display: 'grid', gridTemplateRows: petroleumKpis.length ? 'auto 1fr' : '1fr', gap: 8, height: '100%', minHeight: 0 }}>
               {petroleumKpis.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${petroleumKpis.length}, minmax(0, 1fr))`, gap: 8 }}>
@@ -1266,7 +1266,7 @@ function CommoditiesDashboard({
       cot: !!cotData,
       comfx: !!commodityCurrencies,
       'usda-ag': !!(usdaCtx?.data?.isLive || usdaFredOption),
-      'eia-petrol': !!eiaPetCtx?.data?.isLive,
+      'eia-petrol': hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': !!tradeCtx?.data?.isLive,
       'physical-pressure': !!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive),
       'materials-grid': materialPriceMap.size > 0,
@@ -1295,9 +1295,7 @@ function CommoditiesDashboard({
         : usdaFredOption
           ? 'FRED fallback · Corn/Wheat/Soybeans ($/mt)'
           : 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS',
-      'eia-petrol': eiaPetCtx?.data?.gasoline?.latest && eiaPetCtx?.data?.naturalGas?.latest
-        ? `Gasoline $${eiaPetCtx.data.gasoline.latest.value.toFixed(2)}/gal (${eiaPetCtx.data.gasoline.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.gasoline.yoyPct?.toFixed(0)}% YoY) · NG $${eiaPetCtx.data.naturalGas.latest.value.toFixed(2)}/MMBtu (${eiaPetCtx.data.naturalGas.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.naturalGas.yoyPct?.toFixed(0)}% YoY)${eiaPetCtx?.data?.crudeStocks?.latest ? ` · Crude stocks ${(eiaPetCtx.data.crudeStocks.latest.value / 1000).toFixed(0)}M bbl` : ''}`
-        : 'Retail gasoline · Henry Hub spot · weekly',
+      'eia-petrol': eiaPetrolSubtitle(eiaPetCtx?.data) || 'Retail gasoline · Henry Hub spot · weekly',
       'us-trade': tradeCtx?.data?.summary
         ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
         : 'Monthly net trade by bloc · 24-month series · Census Bureau',
@@ -1317,7 +1315,7 @@ function CommoditiesDashboard({
     __disabled: {
       'wti-brent': !wtiBrentOption,
       'usda-ag': !(usdaOption || usdaFredOption),
-      'eia-petrol': !eiaPetrolOption,
+      'eia-petrol': !hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': !tradeOption,
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },

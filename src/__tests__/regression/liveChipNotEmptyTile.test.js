@@ -168,6 +168,10 @@ import {
 import {
   hasFaoPriceSeries,
   faoPricePoints,
+  hasEiaPetrolSeries,
+  eiaPetrolSeriesPoints,
+  eiaPetrolLatest,
+  eiaPetrolSubtitle,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3121,5 +3125,83 @@ describe('commodities leftover empty-capable tiles (fao-prices)', () => {
     expect(points.map((p) => p.value)).toEqual([120.4, 118.2]);
     expect(() => points.map((p) => p.value.toFixed(1))).not.toThrow();
     expect(points[0].value.toFixed(1)).toBe('120.4');
+  });
+});
+
+describe('commodities leftover empty-capable tiles (eia-petrol)', () => {
+  it('dashboard does not hardcode leftover isLive on eia-petrol', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/'eia-petrol':\s*!!eiaPetCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/'eia-petrol':\s*hasEiaPetrolSeries\(eiaPetCtx\?\.data\)/);
+  });
+
+  it('hasEiaPetrolSeries is false for empty / leftover isLive / dates-only bags', () => {
+    expect(hasEiaPetrolSeries()).toBe(false);
+    expect(hasEiaPetrolSeries(null)).toBe(false);
+    expect(hasEiaPetrolSeries({})).toBe(false);
+    expect(hasEiaPetrolSeries({ isLive: true })).toBe(false);
+    expect(hasEiaPetrolSeries({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasEiaPetrolSeries({ gasoline: { isLive: true, latest: { isLive: true } } })).toBe(false);
+    expect(hasEiaPetrolSeries({ gasoline: { series: [] } })).toBe(false);
+    expect(hasEiaPetrolSeries({ isLive: true, gasoline: { series: [{ date: '2024-01-01' }] } })).toBe(false);
+    expect(hasEiaPetrolSeries({ gasoline: { series: [{ date: '2024-01-01', value: null }] } })).toBe(false);
+    expect(hasEiaPetrolSeries({ gasoline: { series: [{ date: '2024-01-01', value: '3.21' }] } })).toBe(false);
+    expect(hasEiaPetrolSeries({ gasoline: { series: [{ isLive: true }, { lastUpdated: '2024-01' }] } })).toBe(false);
+    expect(hasEiaPetrolSeries({
+      isLive: true,
+      naturalGas: { series: [{ date: '2024-01-01', value: 2.84 }] },
+    })).toBe(false);
+  });
+
+  it('hasEiaPetrolSeries is true when a painted gasoline point exists', () => {
+    expect(hasEiaPetrolSeries({ gasoline: { series: [{ date: '2024-01-01', value: 3.21 }] } })).toBe(true);
+    expect(hasEiaPetrolSeries({
+      isLive: true,
+      gasoline: { series: [{ date: 'not-a-date', value: 3.21 }, { date: '2024-02-01', value: 3.18 }] },
+    })).toBe(true);
+  });
+
+  it('eiaPetrolSeriesPoints skips leftover sibling rows so remount does not crash', () => {
+    expect(() => eiaPetrolSeriesPoints({ isLive: true, gasoline: { series: [null, { isLive: true }, 'x'] } }, 'gasoline')).not.toThrow();
+    expect(eiaPetrolSeriesPoints({ gasoline: { series: [null, { date: '2024-01-01', value: 3.21 }, { date: 'bad', value: 3.5 }, { value: true }] } }, 'gasoline').map((p) => p.value)).toEqual([3.21]);
+    const points = eiaPetrolSeriesPoints({
+      isLive: true,
+      gasoline: {
+        series: [
+          { isLive: true },
+          { date: '2024-01-01', value: 3.21 },
+          { date: '2024-02-01', value: 3.18 },
+          { date: '2024-03-01', value: '3.19' },
+        ],
+      },
+    }, 'gasoline');
+    expect(points.map((p) => p.value)).toEqual([3.21, 3.18]);
+    expect(() => points.map((p) => p.value.toFixed(2))).not.toThrow();
+    expect(() => points.map((p) => new Date(p.date).toISOString())).not.toThrow();
+    expect(points[0].value.toFixed(2)).toBe('3.21');
+  });
+
+  it('eiaPetrolSubtitle skips leftover latest / yoy so remount does not crash', () => {
+    expect(() => eiaPetrolSubtitle({ isLive: true, gasoline: { latest: { isLive: true } }, naturalGas: { latest: { isLive: true } } })).not.toThrow();
+    expect(eiaPetrolSubtitle({ isLive: true, gasoline: { latest: { isLive: true } }, naturalGas: { latest: { isLive: true } } })).toBe(null);
+    expect(eiaPetrolSubtitle({ gasoline: { latest: { value: '3.21' } }, naturalGas: { latest: { value: 2.84 } } })).toBe(null);
+    expect(eiaPetrolLatest({ gasoline: { latest: { isLive: true, value: true } } }, 'gasoline')).toBe(null);
+    const text = eiaPetrolSubtitle({
+      isLive: true,
+      gasoline: { latest: { value: 3.21 }, yoyPct: true },
+      naturalGas: { latest: { value: 2.84 }, yoyPct: '8' },
+      crudeStocks: { latest: { isLive: true } },
+    });
+    expect(text).toBe('Gasoline $3.21/gal · NG $2.84/MMBtu');
+    expect(() => eiaPetrolSubtitle({
+      gasoline: { latest: { value: 3.21 }, yoyPct: -4.1 },
+      naturalGas: { latest: { value: 2.84 }, yoyPct: 8.6 },
+      crudeStocks: { latest: { value: 432100 } },
+    })).not.toThrow();
+    expect(eiaPetrolSubtitle({
+      gasoline: { latest: { value: 3.21 }, yoyPct: -4.1 },
+      naturalGas: { latest: { value: 2.84 }, yoyPct: 8.6 },
+      crudeStocks: { latest: { value: 432100 } },
+    })).toBe('Gasoline $3.21/gal (-4% YoY) · NG $2.84/MMBtu (+9% YoY) · Crude stocks 432M bbl');
   });
 });
