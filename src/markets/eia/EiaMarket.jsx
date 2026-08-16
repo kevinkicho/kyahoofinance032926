@@ -5,6 +5,14 @@ import DataFooter from '../../components/DataFooter/DataFooter';
 import SafeECharts from '../../components/SafeECharts';
 import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import './EiaMarket.css';
+import {
+  hasElectricityPrices,
+  hasElectricitySales,
+  hasElectricityPriceTrends,
+  hasCo2SectorRows,
+  hasPetroleumSeries,
+  hasHenryHubSeries,
+} from './EiaLiveChips.js';
 
 const EIA_LAYOUT = {
   lg: [
@@ -388,10 +396,17 @@ function EiaMarket({ centralData } = {}) {
     const ids = Object.keys(bodies);
     return {
       __render: (panelId) => bodies[panelId] ?? null,
-      __live: Object.fromEntries(ids.map((id) => [id, !!props.isLive])),
+      __live: {
+        prices: hasElectricityPrices(props.electricity),
+        consumption: hasElectricitySales(props.electricity),
+        trends: hasElectricityPriceTrends(props.electricity),
+        co2: hasCo2SectorRows(props.co2Emissions),
+        petroleum: hasPetroleumSeries(props.petroleum),
+        'natural-gas': hasHenryHubSeries(props.naturalGas),
+      },
       __noFooter: Object.fromEntries(ids.map((id) => [id, true])),
     };
-  }, [priceCards, salesCards, trendCharts, co2Sectors, petroCharts, ng, ngOpt, props.isLive, props.isLoading]);
+  }, [priceCards, salesCards, trendCharts, co2Sectors, petroCharts, ng, ngOpt, props.electricity, props.co2Emissions, props.petroleum, props.naturalGas, props.isLoading]);
 
   return (
     <div className="eia-market" data-market="eia">

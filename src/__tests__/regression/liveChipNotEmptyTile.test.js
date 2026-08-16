@@ -43,6 +43,14 @@ import {
   hasTedSpreadSeries,
   hasMuniMarketSummary,
 } from '../../markets/credit/components/CreditLiveChips.js';
+import {
+  hasElectricityPrices,
+  hasElectricitySales,
+  hasElectricityPriceTrends,
+  hasCo2SectorRows,
+  hasPetroleumSeries,
+  hasHenryHubSeries,
+} from '../../markets/eia/EiaLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -510,5 +518,102 @@ describe('credit empty-capable tiles (kpi / spreads / EM / CP / CLO / defaults /
 
   it('hasMuniMarketSummary is true when MSRB summary exists', () => {
     expect(hasMuniMarketSummary({ summary: { tradesAll: 12000 } })).toBe(true);
+  });
+});
+
+describe('eia empty-capable tiles (prices / consumption / trends / co2 / petroleum / natural-gas)', () => {
+  it('market does not blanket !!props.isLive on empty-capable tiles', () => {
+    const dash = src('markets/eia/EiaMarket.jsx');
+    expect(dash).not.toMatch(/Object\.fromEntries\(ids\.map\(\(id\) => \[id, !!props\.isLive\]\)\)/);
+    expect(dash).not.toMatch(/prices:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/consumption:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/trends:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/co2:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/petroleum:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/'natural-gas':\s*!!props\.isLive/);
+    expect(dash).toMatch(/prices:\s*hasElectricityPrices/);
+    expect(dash).toMatch(/consumption:\s*hasElectricitySales/);
+    expect(dash).toMatch(/trends:\s*hasElectricityPriceTrends/);
+    expect(dash).toMatch(/co2:\s*hasCo2SectorRows/);
+    expect(dash).toMatch(/petroleum:\s*hasPetroleumSeries/);
+    expect(dash).toMatch(/'natural-gas':\s*hasHenryHubSeries/);
+  });
+
+  it('hasElectricityPrices is false for empty / sibling-only payloads', () => {
+    expect(hasElectricityPrices(null)).toBe(false);
+    expect(hasElectricityPrices({})).toBe(false);
+    expect(hasElectricityPrices({ isLive: true })).toBe(false);
+    expect(hasElectricityPrices({ residential: { price: { values: [12, 13, 14] } } })).toBe(false);
+    expect(hasElectricityPrices({ residential: { latest: {} } })).toBe(false);
+  });
+
+  it('hasElectricityPrices is true when a sector latest.price exists', () => {
+    expect(hasElectricityPrices({ residential: { latest: { price: 16.2 } } })).toBe(true);
+    expect(hasElectricityPrices({ industrial: { latest: { price: 8.4, period: '2024-12' } } })).toBe(true);
+  });
+
+  it('hasElectricitySales is false for empty / price-only payloads', () => {
+    expect(hasElectricitySales(null)).toBe(false);
+    expect(hasElectricitySales({})).toBe(false);
+    expect(hasElectricitySales({ isLive: true })).toBe(false);
+    expect(hasElectricitySales({ residential: { latest: { price: 16.2 } } })).toBe(false);
+    expect(hasElectricitySales({ commercial: { latest: { sales: null } } })).toBe(false);
+  });
+
+  it('hasElectricitySales is true when a sector latest.sales exists', () => {
+    expect(hasElectricitySales({ commercial: { latest: { sales: 110000 } } })).toBe(true);
+  });
+
+  it('hasElectricityPriceTrends is false for empty / all-null / short series', () => {
+    expect(hasElectricityPriceTrends(null)).toBe(false);
+    expect(hasElectricityPriceTrends({})).toBe(false);
+    expect(hasElectricityPriceTrends({ residential: { latest: { price: 16.2 } } })).toBe(false);
+    expect(hasElectricityPriceTrends({ residential: { price: { values: [12, 13] } } })).toBe(false);
+    expect(hasElectricityPriceTrends({ residential: { price: { values: [null, null, null] } } })).toBe(false);
+  });
+
+  it('hasElectricityPriceTrends is true when a sector has a sparkline-capable series', () => {
+    expect(hasElectricityPriceTrends({ residential: { price: { values: [12, 13, 14] } } })).toBe(true);
+    expect(hasElectricityPriceTrends({ industrial: { price: { values: [null, 8.1, 8.4] } } })).toBe(true);
+  });
+
+  it('hasCo2SectorRows is false for empty / Total-only / sibling-only payloads', () => {
+    expect(hasCo2SectorRows(null)).toBe(false);
+    expect(hasCo2SectorRows({})).toBe(false);
+    expect(hasCo2SectorRows({ isLive: true, total: { latest: 4800 } })).toBe(false);
+    expect(hasCo2SectorRows({ bySector: [] })).toBe(false);
+    expect(hasCo2SectorRows({ bySector: [{ name: 'Total', latest: 4800 }] })).toBe(false);
+    expect(hasCo2SectorRows({ bySector: [{ name: 'TT', latest: 4800 }] })).toBe(false);
+  });
+
+  it('hasCo2SectorRows is true when a non-total sector row exists', () => {
+    expect(hasCo2SectorRows({ bySector: [{ name: 'Electric Power', latest: 1500, unit: 'MMmt' }] })).toBe(true);
+  });
+
+  it('hasPetroleumSeries is false for empty / latest-only / single-point payloads', () => {
+    expect(hasPetroleumSeries(null)).toBe(false);
+    expect(hasPetroleumSeries({})).toBe(false);
+    expect(hasPetroleumSeries({ isLive: true })).toBe(false);
+    expect(hasPetroleumSeries({ wti: { latest: { value: 78.2 } } })).toBe(false);
+    expect(hasPetroleumSeries({ wti: { values: [78.2] } })).toBe(false);
+    expect(hasPetroleumSeries({ wti: { values: [null, null] } })).toBe(false);
+    expect(hasPetroleumSeries({ jetFuel: { values: [2.1, 2.2] } })).toBe(false);
+  });
+
+  it('hasPetroleumSeries is true when a product has a sparkline-capable series', () => {
+    expect(hasPetroleumSeries({ wti: { values: [76.1, 78.2] } })).toBe(true);
+    expect(hasPetroleumSeries({ gasoline: { values: [null, 3.1, 3.2] } })).toBe(true);
+  });
+
+  it('hasHenryHubSeries is false for empty / latest-only payloads', () => {
+    expect(hasHenryHubSeries(null)).toBe(false);
+    expect(hasHenryHubSeries({})).toBe(false);
+    expect(hasHenryHubSeries({ isLive: true })).toBe(false);
+    expect(hasHenryHubSeries({ henryHub: { latest: { value: 2.4 } } })).toBe(false);
+    expect(hasHenryHubSeries({ henryHub: { values: [] } })).toBe(false);
+  });
+
+  it('hasHenryHubSeries is true when Henry Hub values exist', () => {
+    expect(hasHenryHubSeries({ henryHub: { values: [2.4], latest: { value: 2.4 } } })).toBe(true);
   });
 });
