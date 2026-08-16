@@ -22,6 +22,14 @@ import {
   hasSupplyMetrics,
   hasFhfaHpiSeries,
 } from '../../markets/realEstate/components/RealEstateHelpers.js';
+import {
+  hasHyOasSeries,
+  hasCombinedRatioHistory,
+  hasInsurancePenetrationRows,
+  hasInsurerRatioRows,
+  hasFemaDeclarationRows,
+  hasUsgsEarthquakeRows,
+} from '../../markets/insurance/components/InsuranceDashboard.jsx';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -240,5 +248,94 @@ describe('realEstate empty-capable tiles (shiller / reitperf / caprate / afford-
 
   it('hasFhfaHpiSeries is true when FHFA dates exist', () => {
     expect(hasFhfaHpiSeries({ dates: ['2024-01'], values: [420] })).toBe(true);
+  });
+});
+
+describe('insurance empty-capable tiles (hyoas / crhist / penetration / fema / usgs)', () => {
+  it('dashboard does not hardcode live on empty-capable tiles', () => {
+    const dash = src('markets/insurance/components/InsuranceDashboard.jsx');
+    expect(dash).not.toMatch(/hyoas:\s*!!isLive/);
+    expect(dash).not.toMatch(/crhist:\s*!!isLive/);
+    expect(dash).not.toMatch(/'ins-penetration':\s*!!wbCtx\?\.data\?\.countries\?\.length/);
+    expect(dash).not.toMatch(/'combined-ratios':\s*!!insRatiosCtx\?\.data\?\.isLive/);
+    expect(dash).not.toMatch(/'fema-disasters':\s*!!femaCtx\?\.data\?\.isLive/);
+    expect(dash).not.toMatch(/'usgs-earthquakes':\s*!!usgsCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/hyoas:\s*hasHyOasSeries/);
+    expect(dash).toMatch(/crhist:\s*hasCombinedRatioHistory/);
+    expect(dash).toMatch(/'ins-penetration':\s*hasInsurancePenetrationRows/);
+    expect(dash).toMatch(/'combined-ratios':\s*hasInsurerRatioRows/);
+    expect(dash).toMatch(/'fema-disasters':\s*hasFemaDeclarationRows/);
+    expect(dash).toMatch(/'usgs-earthquakes':\s*hasUsgsEarthquakeRows/);
+  });
+
+  it('hasHyOasSeries is false for empty / sibling-only payloads', () => {
+    expect(hasHyOasSeries(null)).toBe(false);
+    expect(hasHyOasSeries({})).toBe(false);
+    expect(hasHyOasSeries({ isLive: true })).toBe(false);
+    expect(hasHyOasSeries({ values: [400, 410] })).toBe(false);
+  });
+
+  it('hasHyOasSeries is true when HY OAS dates exist', () => {
+    expect(hasHyOasSeries({ dates: ['2024-01'], values: [310] })).toBe(true);
+  });
+
+  it('hasCombinedRatioHistory is false for empty / all-null padded series', () => {
+    expect(hasCombinedRatioHistory(null)).toBe(false);
+    expect(hasCombinedRatioHistory({})).toBe(false);
+    expect(hasCombinedRatioHistory({ dates: ['2024Q1'] })).toBe(false);
+    expect(hasCombinedRatioHistory({ values: [null, null, null] })).toBe(false);
+    expect(hasCombinedRatioHistory({ values: ['92.1'] })).toBe(false);
+  });
+
+  it('hasCombinedRatioHistory is true when a numeric combined ratio exists', () => {
+    expect(hasCombinedRatioHistory({ values: [null, 92.1] })).toBe(true);
+  });
+
+  it('hasInsurancePenetrationRows is false for empty / sibling-only countries', () => {
+    expect(hasInsurancePenetrationRows(null)).toBe(false);
+    expect(hasInsurancePenetrationRows({})).toBe(false);
+    expect(hasInsurancePenetrationRows({ countries: [] })).toBe(false);
+    expect(hasInsurancePenetrationRows({ countries: [{ code: 'US', gdpGrowth: 2.1 }] })).toBe(false);
+    expect(hasInsurancePenetrationRows({ US: { lifeInsPctGdp: 1.2 } })).toBe(false);
+  });
+
+  it('hasInsurancePenetrationRows is true when GFDD premium/GDP fields exist', () => {
+    expect(hasInsurancePenetrationRows({ countries: [{ code: 'US', lifeInsPctGdp: 1.2 }] })).toBe(true);
+    expect(hasInsurancePenetrationRows({ countries: [{ code: 'DE', nonLifeInsPctGdp: 3.4 }] })).toBe(true);
+  });
+
+  it('hasInsurerRatioRows is false for empty / isLive-only payloads', () => {
+    expect(hasInsurerRatioRows(null)).toBe(false);
+    expect(hasInsurerRatioRows({})).toBe(false);
+    expect(hasInsurerRatioRows({ isLive: true })).toBe(false);
+    expect(hasInsurerRatioRows({ issuers: [] })).toBe(false);
+    expect(hasInsurerRatioRows({ issuers: { PGR: { ticker: 'PGR' } } })).toBe(false);
+  });
+
+  it('hasInsurerRatioRows is true when an issuer has latest', () => {
+    expect(hasInsurerRatioRows({ issuers: { PGR: { latest: { combinedPct: 92.1 } } } })).toBe(true);
+  });
+
+  it('hasFemaDeclarationRows is false for empty / isLive-only payloads', () => {
+    expect(hasFemaDeclarationRows(null)).toBe(false);
+    expect(hasFemaDeclarationRows({})).toBe(false);
+    expect(hasFemaDeclarationRows({ isLive: true, summary: { totalRecent: 0 } })).toBe(false);
+    expect(hasFemaDeclarationRows({ declarations: [] })).toBe(false);
+  });
+
+  it('hasFemaDeclarationRows is true when declarations exist', () => {
+    expect(hasFemaDeclarationRows({ declarations: [{ type: 'Fire', firstDeclared: '2024-01-01' }] })).toBe(true);
+  });
+
+  it('hasUsgsEarthquakeRows is false for empty / isLive-only payloads', () => {
+    expect(hasUsgsEarthquakeRows(null)).toBe(false);
+    expect(hasUsgsEarthquakeRows({})).toBe(false);
+    expect(hasUsgsEarthquakeRows({ isLive: true, eventsCount: 0 })).toBe(false);
+    expect(hasUsgsEarthquakeRows({ events: [], magBuckets: [] })).toBe(false);
+  });
+
+  it('hasUsgsEarthquakeRows is true when events or mag buckets exist', () => {
+    expect(hasUsgsEarthquakeRows({ events: [{ mag: 5.1 }] })).toBe(true);
+    expect(hasUsgsEarthquakeRows({ magBuckets: [{ range: '5-6', count: 3 }] })).toBe(true);
   });
 });

@@ -7,6 +7,40 @@ import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './InsuranceDashboard.css';
 
+/** HY OAS tile charts fredHyOasHistory dates. */
+export function hasHyOasSeries(history) {
+  return Array.isArray(history?.dates) && history.dates.length > 0;
+}
+
+/** Combined-ratio history must have at least one numeric value (server pads nulls). */
+export function hasCombinedRatioHistory(history) {
+  if (!Array.isArray(history?.values) || !history.values.length) return false;
+  return history.values.some((v) => typeof v === 'number' && Number.isFinite(v));
+}
+
+/** Penetration chart only paints countries with GFDD premium/GDP fields. */
+export function hasInsurancePenetrationRows(wbData) {
+  const countries = Array.isArray(wbData?.countries) ? wbData.countries : [];
+  return countries.some((c) => c?.lifeInsPctGdp != null || c?.nonLifeInsPctGdp != null);
+}
+
+/** EDGAR combined-ratio bars need issuers with a latest observation. */
+export function hasInsurerRatioRows(insRatiosData) {
+  const issuers = insRatiosData?.issuers;
+  if (!issuers || typeof issuers !== 'object' || Array.isArray(issuers)) return false;
+  return Object.values(issuers).some((v) => v?.latest);
+}
+
+export function hasFemaDeclarationRows(femaData) {
+  return Array.isArray(femaData?.declarations) && femaData.declarations.length > 0;
+}
+
+export function hasUsgsEarthquakeRows(usgsData) {
+  if (Array.isArray(usgsData?.events) && usgsData.events.length > 0) return true;
+  if (Array.isArray(usgsData?.magBuckets) && usgsData.magBuckets.length > 0) return true;
+  return false;
+}
+
 function InsuranceDashboard({
   catBondSpreads, combinedRatioData, reserveAdequacyData,
   reinsurancePricing, reinsurers, fredHyOasHistory,
@@ -1381,19 +1415,19 @@ function InsuranceDashboard({
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
       kpi: !!isLive,
-      hyoas: !!isLive,
+      hyoas: hasHyOasSeries(fredHyOasHistory),
       catloss: !!isLive,
-      crhist: !!isLive,
+      crhist: hasCombinedRatioHistory(combinedRatioHistory),
       crline: !!isLive,
       reinsrates: !!isLive,
       reserves: !!(isLive && hasReserves),
       catbonds: !!(isLive && catBondSpreads?.length),
       etfs: !!(isLive && hasSectorETF),
       catastrophes: !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive),
-      'ins-penetration': !!wbCtx?.data?.countries?.length,
-      'combined-ratios': !!insRatiosCtx?.data?.isLive,
-      'fema-disasters': !!femaCtx?.data?.isLive,
-      'usgs-earthquakes': !!usgsCtx?.data?.isLive,
+      'ins-penetration': hasInsurancePenetrationRows(wbCtx?.data),
+      'combined-ratios': hasInsurerRatioRows(insRatiosCtx?.data),
+      'fema-disasters': hasFemaDeclarationRows(femaCtx?.data),
+      'usgs-earthquakes': hasUsgsEarthquakeRows(usgsCtx?.data),
       'cat-exposure': !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive || catLosses?.values?.length),
       'usgs-minerals': false,
       'ecb-supervisory': !!ecbCtx?.data?.isLive,
@@ -1418,6 +1452,12 @@ function InsuranceDashboard({
       catloss: !catLossesOption,
       crline: !crLineRows.length,
       reinsrates: !reinsRateRows.length,
+      hyoas: !hasHyOasSeries(fredHyOasHistory),
+      crhist: !hasCombinedRatioHistory(combinedRatioHistory),
+      'ins-penetration': !hasInsurancePenetrationRows(wbCtx?.data),
+      'combined-ratios': !hasInsurerRatioRows(insRatiosCtx?.data),
+      'fema-disasters': !hasFemaDeclarationRows(femaCtx?.data),
+      'usgs-earthquakes': !hasUsgsEarthquakeRows(usgsCtx?.data),
     },
     __noFooter: {
       kpi: true,
