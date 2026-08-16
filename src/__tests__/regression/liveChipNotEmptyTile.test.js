@@ -1897,6 +1897,33 @@ describe('equity+ leftover empty-capable tiles (factor-rankings remount)', () =>
   });
 });
 
+describe('equity+ leftover empty-capable tiles (kpi remount)', () => {
+  it('kpi strip does not forEach leftover isLive stock bags', () => {
+    const kpi = src('markets/equitiesDeepDive/components/EquitiesDeepDiveKpiStrip.jsx');
+    expect(kpi).not.toMatch(/factorData\?\.stocks \?\? \[\]/);
+    expect(kpi).toMatch(/factorStocks\(factorData\)/);
+  });
+
+  it('factorStocks skips leftover isLive bags so remount does not crash', () => {
+    expect(() => factorStocks({ isLive: true })).not.toThrow();
+    expect(() => factorStocks({ stocks: { isLive: true } })).not.toThrow();
+    expect(() => factorStocks({ stocks: true })).not.toThrow();
+    expect(factorStocks({ isLive: true })).toEqual([]);
+    expect(factorStocks({ stocks: { isLive: true } })).toEqual([]);
+    expect(factorStocks({ stocks: true })).toEqual([]);
+    expect(() => factorStocks({ stocks: { isLive: true } }).forEach(() => {})).not.toThrow();
+    const rows = factorStocks({
+      isLive: true,
+      stocks: [
+        { isLive: true },
+        { ticker: 'AAPL', momentum: 68, composite: 69.25 },
+      ],
+    });
+    expect(rows.map((s) => s.ticker)).toEqual([undefined, 'AAPL']);
+    expect(() => rows.forEach((s) => { if (s.momentum != null) s.momentum.toFixed(0); })).not.toThrow();
+  });
+});
+
 describe('equity+ leftover empty-capable tiles (insider remount)', () => {
   it('dashboard / insider tile do not spread leftover isLive holder or transaction bags', () => {
     const dash = src('markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx');

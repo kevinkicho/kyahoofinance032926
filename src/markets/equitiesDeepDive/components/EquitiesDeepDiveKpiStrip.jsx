@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import { factorStocks } from './EquitiesDeepDiveLiveChips.js';
 
 const FACTOR_KEYS = [
   { key: 'momentum', label: 'Momentum' },
@@ -119,7 +120,7 @@ const EquitiesDeepDiveKpiStrip = ({ sectorData, factorData }) => {
     return [];
   }, [factorData]);
 
-  const stocks = useMemo(() => factorData?.stocks ?? [], [factorData]);
+  const stocks = factorStocks(factorData);
 
   const topByFactor = useMemo(() => {
     const map = {};
