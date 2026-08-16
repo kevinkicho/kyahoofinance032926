@@ -1278,6 +1278,15 @@ export const PANEL_MANIFEST = [
     placeholders: "equitiesDeepDive:scores",
   },
   {
+    key: "equitiesDeepDive:factor-rankings",
+    marketId: "equitiesDeepDive",
+    panelId: "factor-rankings",
+    title: "Factor Rankings",
+    dashboard: "src/markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx",
+    module: "src/panels/equitiesDeepDive/factor-rankings.jsx",
+    placeholders: "equitiesDeepDive:factor-rankings",
+  },
+  {
     key: "equitiesDeepDive:earnings",
     marketId: "equitiesDeepDive",
     panelId: "earnings",

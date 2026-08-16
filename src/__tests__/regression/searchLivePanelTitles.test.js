@@ -9,6 +9,7 @@ import { SEARCH_INDEX } from '../../hub/markets.config.js';
 import { MARKET_PANELS } from '../../data/marketPanels.js';
 import { PANEL_REGISTRY, TRACEABLE_MARKETS } from '../../data/panelRegistry.js';
 import { MARKETS } from '../../hub/markets.config.js';
+import { getRegistryEntry } from '../../hub/lib/health/index.js';
 
 function idsFor(query) {
   return searchHub(query).map((r) => r.marketId);
@@ -42,6 +43,12 @@ describe('global search live panel titles', () => {
     expect(firstPanel('ted spread', 'credit')).toBe('ted-spread');
   });
 
+  it('finds Factor Rankings on Equity+ and jumps to factor-rankings', () => {
+    expect(idsFor('factor rankings')).toContain('equitiesDeepDive');
+    expect(firstPanel('factor rankings', 'equitiesDeepDive')).toBe('factor-rankings');
+    expect((MARKET_PANELS.equitiesDeepDive || []).some((p) => p.id === 'factor-rankings')).toBe(true);
+  });
+
   it('still matches ticker keywords and equities view-mode tabs', () => {
     expect(idsFor('AAPL')).toContain('equities');
     const race = searchHub('bar race').find((r) => r.marketId === 'equities');
@@ -69,5 +76,21 @@ describe('panelRegistry market ids', () => {
     expect(unknown).toEqual([]);
     expect(PANEL_REGISTRY.equitiesDeepDive).toBeTruthy();
     expect(PANEL_REGISTRY.equityDeepDive).toBeUndefined();
+  });
+
+  it('Equity+ registry ids match live tiles, not sector-rotation / earnings-watch', () => {
+    const live = new Set((MARKET_PANELS.equitiesDeepDive || []).map((p) => p.id));
+    const stale = ['sector-rotation', 'earnings-watch', 'short-interest', 'sec-13f'];
+    const ids = (PANEL_REGISTRY.equitiesDeepDive || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['etf', 'factor-rankings', 'earnings', 'shorted', 'insider', 'institutions']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('equitiesDeepDive', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('equitiesDeepDive', 'sector-rotation')).toBeNull();
+    expect(getRegistryEntry('equitiesDeepDive', 'earnings-watch')).toBeNull();
+    expect(getRegistryEntry('equitiesDeepDive', 'short-interest')).toBeNull();
+    expect(getRegistryEntry('equitiesDeepDive', 'sec-13f')).toBeNull();
   });
 });

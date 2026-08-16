@@ -39,8 +39,7 @@ import { DATA, attachHealthLayers } from './types.js';
  */
 
 export function getRegistryEntry(marketId, panelId) {
-  const regKey = marketId === 'equitiesDeepDive' ? 'equityDeepDive' : marketId;
-  const list = PANEL_REGISTRY[regKey] || PANEL_REGISTRY[marketId];
+  const list = PANEL_REGISTRY[marketId];
   if (!list) return null;
   return list.find((p) => p.id === panelId) || null;
 }

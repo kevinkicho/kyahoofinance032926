@@ -506,6 +506,7 @@ export const PANEL_PLACEHOLDERS = {
   'equitiesDeepDive:sector-beat': [p('sectorData', 'sectorData')],
   'equitiesDeepDive:shorted': [p('shortData', 'shortData')],
   'equitiesDeepDive:scores': [p('factorData', 'factorData')],
+  'equitiesDeepDive:factor-rankings': [any('fr', ['factorData.stocks', 'factorData.inFavor', 'factorData', 'breadthDivergence', 'equityRiskPremium'])],
   'equitiesDeepDive:earnings': [p('earningsData', 'earningsData')],
   'equitiesDeepDive:institutions': [p('inst', 'institutions', { crossMarket: 'institutional' })],
   'equitiesDeepDive:insider': [

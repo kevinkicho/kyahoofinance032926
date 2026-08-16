@@ -1,7 +1,6 @@
 // src/markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
-import BentoCard from '../../../components/BentoCard/BentoCard';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import InsiderTrading from './InsiderTrading';
@@ -1025,6 +1024,13 @@ function EquitiesDeepDiveDashboard({
         </div>
       ) : null,
       scores: scoresBody,
+      'factor-rankings': (
+        <FactorRankings
+          factorData={factorData}
+          breadthDivergence={breadthDivergence}
+          equityRiskPremium={equityRiskPremium}
+        />
+      ),
       earnings: earningsBody,
       institutions: (institutionsBody || topHoldingsBody || recentChangesBody) ? (
         <>
@@ -1058,6 +1064,7 @@ function EquitiesDeepDiveDashboard({
         'sector-beat': !!isLive && !!beatRateOption,
         shorted: !!isLive && !!shortedOption,
         scores: !!isLive && stocks.length > 0,
+        'factor-rankings': !!isLive && !!(factorData?.stocks?.length || factorData?.inFavor),
         earnings: !!isLive && upcoming.length > 0,
         institutions: !!isLive && institutions.length > 0,
         insider: !!isLive && (insiderHolders.length > 0 || insiderTransactions.length > 0),
@@ -1071,6 +1078,7 @@ function EquitiesDeepDiveDashboard({
         'sector-beat': '% of names beating EPS estimates',
         shorted: '% of float short · days to cover',
         scores: stocks.length > 0 ? `Top ${Math.min(stocks.length, 10)} by composite` : undefined,
+        'factor-rankings': 'Percentile scores · composite · breadth divergence · ERP',
         earnings: upcoming.length > 0 ? `Next ${Math.min(upcoming.length, 10)} reports` : undefined,
         institutions: 'By total AUM (13F)',
         insider: 'Form 4 filings · mega-cap sample',
@@ -1085,6 +1093,7 @@ function EquitiesDeepDiveDashboard({
         'sector-beat': 'Yahoo Finance',
         shorted: 'Yahoo Finance',
         scores: 'Yahoo Finance',
+        'factor-rankings': 'Yahoo Finance / FRED',
         earnings: 'Yahoo Finance',
         institutions: 'SEC EDGAR / Yahoo Finance',
         insider: 'SEC EDGAR / Yahoo Finance',
@@ -1094,35 +1103,9 @@ function EquitiesDeepDiveDashboard({
   }, [
     kpiPanel, sidebarPanel, spPE, buffettIndicator, equityRiskPremium, sectorKpis, factorKpis,
     shortKpis, upcoming, institutions, aggregateTopHoldings, insiderTransactions, insiderHolders,
-    stocks, rankedOption, inFavorOption, beatRateOption, shortedOption, earningsQuality,
+    stocks, factorData, breadthDivergence, rankedOption, inFavorOption, beatRateOption, shortedOption, earningsQuality,
     insiderData, isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
   ]);
-
-  // factor-rankings is UI-present but not in MARKET_PANELS.equitiesDeepDive — mount via extra.
-  const factorRankingsExtra = (
-    <BentoCard
-      key="factor-rankings"
-      panelKey="factor-rankings"
-      title="Factor Rankings"
-      subtitle="Percentile scores · composite · breadth divergence · ERP"
-      accent="equitiesDeepDive"
-      className="eqd-bento-card"
-      contentClassName="eqd-panel-scroll"
-      source="Yahoo Finance / FRED"
-      timestamp={lastUpdated}
-      isLive={isLive}
-      isCurrent={isCurrent}
-      fetchedOn={fetchedOn}
-      fetchLog={fetchLog}
-      error={error}
-    >
-      <FactorRankings
-        factorData={factorData}
-        breadthDivergence={breadthDivergence}
-        equityRiskPremium={equityRiskPremium}
-      />
-    </BentoCard>
-  );
 
   return (
     <div className="eqd-dashboard eqd-dashboard--bento" role="region" aria-label="Equities Deep Dive Dashboard">
@@ -1139,7 +1122,6 @@ function EquitiesDeepDiveDashboard({
           fetchLog,
           error,
         }}
-        extra={factorRankingsExtra}
       />
     </div>
   );

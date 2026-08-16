@@ -296,6 +296,11 @@ export const PANEL_FIELD_MAP = {
   'equitiesDeepDive:sector-beat': { field: 'sectorData', fieldPath: 'sectorData' },
   'equitiesDeepDive:shorted': { field: 'shortData', fieldPath: 'shortData' },
   'equitiesDeepDive:scores': { field: 'factorData', fieldPath: 'factorData' },
+  'equitiesDeepDive:factor-rankings': { anyOf: [
+    { field: 'factorData', fieldPath: 'factorData' },
+    { field: 'breadthDivergence', fieldPath: 'breadthDivergence' },
+    { field: 'equityRiskPremium', fieldPath: 'equityRiskPremium' },
+  ] },
   'equitiesDeepDive:earnings': { field: 'earningsData', fieldPath: 'earningsData' },
   'equitiesDeepDive:institutions': { field: 'institutions', fieldPath: 'institutions', crossMarket: 'institutional' },
   'equitiesDeepDive:insider': { anyOf: [

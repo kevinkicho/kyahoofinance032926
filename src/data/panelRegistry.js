@@ -359,12 +359,13 @@ export const PANEL_REGISTRY = {
   ],
 
   equitiesDeepDive: [
-    { id: 'sector-rotation', title: 'Sector Rotation', field: 'sectorData', fieldPath: 'sectorData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance ETFs', seriesIds: ['XLK','XLF','XLE'] }], renderCheck: 'sectorData && sectorData.length > 0' },
-    { id: 'factor-rankings', title: 'Factor Rankings', field: 'factorData', fieldPath: 'factorData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'factorData && factorData.length > 0' },
-    { id: 'earnings-watch', title: 'Earnings Watch', field: 'earningsData', fieldPath: 'earningsData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'earningsData && earningsData.length > 0' },
-    { id: 'short-interest', title: 'Short Interest', field: 'shortData', fieldPath: 'shortData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'shortData && shortData.length > 0' },
+    { id: 'etf', title: 'ETF Performance', field: 'sectorData', fieldPath: 'sectorData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance ETFs', seriesIds: ['XLK','XLF','XLE'] }], renderCheck: 'sectorData && (sectorData.sectors?.length > 0 || sectorData.length > 0)' },
+    { id: 'factor-rankings', title: 'Factor Rankings', field: 'factorData', fieldPath: 'factorData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'factorData && (factorData.stocks?.length > 0 || factorData.inFavor)' },
+    { id: 'earnings', title: 'Upcoming Earnings', field: 'earningsData', fieldPath: 'earningsData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'earningsData && (earningsData.upcoming?.length > 0 || earningsData.length > 0)' },
+    { id: 'shorted', title: 'Most Shorted', field: 'shortData', fieldPath: 'shortData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'shortData && (shortData.mostShorted?.length > 0 || shortData.length > 0)' },
     { id: 'insider', title: 'Insider Trading', field: 'insiderData', fieldPath: 'insiderData.transactions', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance / SEC Form 4', seriesIds: [] }], renderCheck: 'insiderData && (insiderData.transactions?.length > 0 || insiderData.holders?.length > 0)' },
-    { id: 'sec-13f', title: 'SEC 13F Holdings', field: 'holdings', fieldPath: 'holdings', crossMarket: 'institutional', source: 'institutional.js', external: [{ name: 'SEC 13F', seriesIds: [] }], renderCheck: 'instCtx?.data?.holdings?.length > 0' },
+    { id: 'institutions', title: 'Top Institutions', field: 'institutions', fieldPath: 'institutions', crossMarket: 'institutional', source: 'institutional.js', external: [{ name: 'SEC 13F', seriesIds: [] }], renderCheck: 'instCtx?.data?.institutions?.length > 0' },
+  
   ],
 
   eia: [

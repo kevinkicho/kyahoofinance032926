@@ -170,6 +170,7 @@ export const MARKET_PANELS = {
     { id: 'sector-beat', title: 'Sector Beat Rate' },
     { id: 'shorted', title: 'Most Shorted' },
     { id: 'scores', title: 'Stock Factor Scores' },
+    { id: 'factor-rankings', title: 'Factor Rankings' },
     { id: 'earnings', title: 'Upcoming Earnings' },
     { id: 'institutions', title: 'Top Institutions' },
     { id: 'insider', title: 'Insider Trading' },
