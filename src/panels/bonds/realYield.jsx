@@ -1,5 +1,6 @@
 import { definePanel } from '../definePanel';
 import RealYields from '../../markets/bonds/components/RealYields';
+import { hasRealYieldSeries } from '../../markets/bonds/components/BondsLiveChips';
 
 function Body({ ctx }) {
   const d = ctx?.bonds || {};
@@ -15,6 +16,6 @@ export default definePanel({
   contentClassName: 'bonds-panel-content',
   className: 'bonds-bento-card',
   modulePath: 'src/panels/bonds/realYield.js',
-  isLive: (ctx) => !!ctx?.bonds?.realYieldHistory?.dates?.length,
+  isLive: (ctx) => hasRealYieldSeries(ctx?.bonds?.realYieldHistory),
   Body,
 });

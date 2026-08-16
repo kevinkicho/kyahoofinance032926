@@ -99,6 +99,8 @@ import {
   hasFedBalanceSeries,
   hasM2Series,
   hasDebtGdpSeries,
+  hasCpiComponentsSeries,
+  hasRealYieldSeries,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -1303,6 +1305,55 @@ describe('bonds leftover empty-capable tiles (curvespreads / fed / m2 / debtgdp)
     expect(hasM2Series({ dates: ['2024-01'], values: [21.4] })).toBe(true);
     expect(hasDebtGdpSeries({ dates: ['2024-01'], values: [123] })).toBe(true);
     expect(hasFedBalanceSeries({ dates: ['2024-01'], values: [null, 7.2] })).toBe(true);
+  });
+});
+
+describe('bonds leftover empty-capable tiles (cpi / realYield)', () => {
+  it('panels do not hardcode leftover dates-only on empty-capable tiles', () => {
+    const cpi = src('panels/bonds/cpi.jsx');
+    const real = src('panels/bonds/realYield.jsx');
+    expect(cpi).not.toMatch(/isLive:\s*\(ctx\)\s*=>\s*!!ctx\?\.bonds\?\.cpiComponents\?\.dates\?\.length/);
+    expect(real).not.toMatch(/isLive:\s*\(ctx\)\s*=>\s*!!ctx\?\.bonds\?\.realYieldHistory\?\.dates\?\.length/);
+    expect(cpi).toMatch(/hasCpiComponentsSeries\(ctx\?\.bonds\?\.cpiComponents\)/);
+    expect(real).toMatch(/hasRealYieldSeries\(ctx\?\.bonds\?\.realYieldHistory\)/);
+  });
+
+  it('hasCpiComponentsSeries is false for empty / dates-only leftover bags', () => {
+    expect(hasCpiComponentsSeries()).toBe(false);
+    expect(hasCpiComponentsSeries(null)).toBe(false);
+    expect(hasCpiComponentsSeries({})).toBe(false);
+    expect(hasCpiComponentsSeries({ isLive: true })).toBe(false);
+    expect(hasCpiComponentsSeries({ dates: ['2024-01'] })).toBe(false);
+    expect(hasCpiComponentsSeries({ dates: ['2024-01'], all: [], core: [], food: [], energy: [] })).toBe(false);
+    expect(hasCpiComponentsSeries({ dates: ['2024-01'], all: [null, null] })).toBe(false);
+    expect(hasCpiComponentsSeries({ all: [3.2], core: [3.1] })).toBe(false);
+    expect(hasCpiComponentsSeries({ latest: { all: 3.2 } })).toBe(false);
+  });
+
+  it('hasCpiComponentsSeries is true when dates and a series paint', () => {
+    expect(hasCpiComponentsSeries({ dates: ['2024-01'], all: [3.2] })).toBe(true);
+    expect(hasCpiComponentsSeries({ dates: ['2024-01'], core: [3.1] })).toBe(true);
+    expect(hasCpiComponentsSeries({ dates: ['2024-01'], food: [2.4] })).toBe(true);
+    expect(hasCpiComponentsSeries({ dates: ['2024-01'], energy: [-1.2] })).toBe(true);
+    expect(hasCpiComponentsSeries({ dates: ['2024-01', '2024-02'], all: [null, 3.2] })).toBe(true);
+  });
+
+  it('hasRealYieldSeries is false for empty / dates-only leftover bags', () => {
+    expect(hasRealYieldSeries()).toBe(false);
+    expect(hasRealYieldSeries(null)).toBe(false);
+    expect(hasRealYieldSeries({})).toBe(false);
+    expect(hasRealYieldSeries({ isLive: true })).toBe(false);
+    expect(hasRealYieldSeries({ dates: ['2024-01'] })).toBe(false);
+    expect(hasRealYieldSeries({ dates: ['2024-01'], d5y: [], d10y: [] })).toBe(false);
+    expect(hasRealYieldSeries({ dates: ['2024-01'], d5y: [null, null] })).toBe(false);
+    expect(hasRealYieldSeries({ d5y: [1.8], d10y: [2.1] })).toBe(false);
+    expect(hasRealYieldSeries({ latest: 1.8 })).toBe(false);
+  });
+
+  it('hasRealYieldSeries is true when dates and a series paint', () => {
+    expect(hasRealYieldSeries({ dates: ['2024-01'], d5y: [1.8] })).toBe(true);
+    expect(hasRealYieldSeries({ dates: ['2024-01'], d10y: [2.1] })).toBe(true);
+    expect(hasRealYieldSeries({ dates: ['2024-01', '2024-02'], d5y: [null, 1.8] })).toBe(true);
   });
 });
 

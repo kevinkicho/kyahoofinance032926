@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import SafeECharts from '../../../components/SafeECharts';
+import { hasRealYieldSeries } from './BondsLiveChips';
 
 // Renders just the chart content. Parent wraps in <BentoCard
 // title="TIPS Real Yields"> and supplies the DataFooter slots.
@@ -8,7 +9,7 @@ function RealYields({ realYieldHistory, lastUpdated }) {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
-    if (!realYieldHistory?.dates?.length) return null;
+    if (!hasRealYieldSeries(realYieldHistory)) return null;
     const d = realYieldHistory.dates;
     const step = Math.max(1, Math.floor(d.length / 50));
     const dates = d.filter((_, i) => i % step === 0 || i === d.length - 1);

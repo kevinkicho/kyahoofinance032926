@@ -111,3 +111,15 @@ export function hasM2Series(m2HistoryData) {
 export function hasDebtGdpSeries(debtToGdpHistory) {
   return hasDatedValuesSeries(debtToGdpHistory);
 }
+
+/** CPI chart is empty when dates exist but no All/Core/Food/Energy series paint. */
+export function hasCpiComponentsSeries(cpiComponents) {
+  if (!Array.isArray(cpiComponents?.dates) || !cpiComponents.dates.length) return false;
+  return ['all', 'core', 'food', 'energy'].some((k) => hasPaintedSeries(cpiComponents?.[k]));
+}
+
+/** TIPS real-yield chart is empty when dates exist but no 5Y/10Y series paint. */
+export function hasRealYieldSeries(realYieldHistory) {
+  if (!Array.isArray(realYieldHistory?.dates) || !realYieldHistory.dates.length) return false;
+  return hasPaintedSeries(realYieldHistory?.d5y) || hasPaintedSeries(realYieldHistory?.d10y);
+}

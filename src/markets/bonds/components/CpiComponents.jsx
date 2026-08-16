@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import { hasCpiComponentsSeries } from './BondsLiveChips';
 
 const CpiComponents = ({ cpiComponents, lastUpdated }) => {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
-    if (!cpiComponents?.dates?.length) return null;
+    if (!hasCpiComponentsSeries(cpiComponents)) return null;
     
     // Filter for last 60 months if data is longer
     const dataLength = cpiComponents.dates.length;
