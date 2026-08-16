@@ -326,3 +326,47 @@ export function physicalPressureRows(eiaData, usdaData, tradeData) {
 export function hasPhysicalPressureRows(eiaData, usdaData, tradeData) {
   return physicalPressureRows(eiaData, usdaData, tradeData).length > 0;
 }
+
+/** COT rows that paint Spec/Comm/OI. Leftover isLive / bag-only commodities stay empty. */
+export function cotHistoryPoints(history) {
+  const rows = Array.isArray(history) ? history : [];
+  const points = [];
+  for (const row of rows) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    if (typeof row.date !== 'string' || !row.date) continue;
+    if (!isFiniteNumber(row.noncommNet)) continue;
+    points.push({ date: row.date, noncommNet: row.noncommNet });
+  }
+  return points;
+}
+
+function cotLatestNumber(latest, key) {
+  if (!latest || typeof latest !== 'object' || Array.isArray(latest)) return null;
+  return isFiniteNumber(latest[key]) ? latest[key] : null;
+}
+
+export function cotCommodityRows(cotData) {
+  const list = Array.isArray(cotData?.commodities) ? cotData.commodities : [];
+  const rows = [];
+  for (const c of list) {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) continue;
+    const name = typeof c.name === 'string' && c.name ? c.name : '';
+    if (!name) continue;
+    const noncommNet = cotLatestNumber(c.latest, 'noncommNet');
+    const commNet = cotLatestNumber(c.latest, 'commNet');
+    const totalOI = cotLatestNumber(c.latest, 'totalOI');
+    const netChange = cotLatestNumber(c.latest, 'netChange');
+    if (noncommNet == null && commNet == null && totalOI == null) continue;
+    rows.push({
+      name,
+      ticker: typeof c.ticker === 'string' ? c.ticker : '',
+      latest: { noncommNet, commNet, totalOI, netChange },
+      history: cotHistoryPoints(c.history),
+    });
+  }
+  return rows;
+}
+
+export function hasCotPositioning(cotData) {
+  return cotCommodityRows(cotData).length > 0;
+}

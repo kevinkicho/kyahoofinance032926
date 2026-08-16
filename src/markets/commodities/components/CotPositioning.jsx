@@ -4,6 +4,7 @@ import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommoditiesDashboard.css';
+import { cotCommodityRows } from './CommoditiesLiveChips.js';
 
 function fmtK(v) { return v != null ? `${(v / 1000).toFixed(0)}K` : '—'; }
 
@@ -89,7 +90,8 @@ function buildTrendOption(commodities, colors) {
 
 export default function CotPositioning({ cotData, lastUpdated }) {
   const { colors } = useTheme();
-  if (!cotData?.commodities?.length) return (
+  const commodities = cotCommodityRows(cotData);
+  if (!commodities.length) return (
     <div className="com-panel">
       <div className="com-panel-header">
         <span className="com-panel-title">COT Positioning</span>
@@ -99,8 +101,8 @@ export default function CotPositioning({ cotData, lastUpdated }) {
     </div>
   );
 
-  const wti  = cotData.commodities.find(c => c.name === 'WTI Crude Oil');
-  const gold = cotData.commodities.find(c => c.name === 'Gold');
+  const wti  = commodities.find(c => c.name === 'WTI Crude Oil');
+  const gold = commodities.find(c => c.name === 'Gold');
 
   return (
     <div className="com-panel">
@@ -163,7 +165,7 @@ export default function CotPositioning({ cotData, lastUpdated }) {
 
       {/* Existing commodity panels */}
       <div className="cot-grid" style={{ marginBottom: 8 }}>
-        {cotData.commodities.map(c => (
+        {commodities.map(c => (
           <div key={c.name} className="cot-commodity">
             <div className="cot-name">{c.name}</div>
             <div className="cot-metrics">
@@ -192,7 +194,7 @@ export default function CotPositioning({ cotData, lastUpdated }) {
                 </span>
               </div>
             </div>
-            {c.history?.length > 2 && (
+            {c.history.length > 2 && (
               <div style={{ flex: 1, minHeight: 0 }}>
                 <SafeECharts option={buildHistoryOption(c.history, c.name, colors)} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: `COT: ${c.name}`, source: 'CFTC', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
               </div>
@@ -202,11 +204,11 @@ export default function CotPositioning({ cotData, lastUpdated }) {
       </div>
 
       {/* Net positioning trend overlay */}
-      {cotData.commodities.length >= 2 && cotData.commodities[0].history?.length > 2 && (
+      {commodities.length >= 2 && commodities[0].history.length > 2 && (
         <div className="com-chart-panel" style={{ marginTop: 8 }}>
           <div className="com-chart-title">Net Speculative Positioning — 12 Week Trend</div>
           <div className="com-mini-chart">
-            <SafeECharts option={buildTrendOption(cotData.commodities, colors)} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Net Speculative Positioning Trend', source: 'CFTC', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
+            <SafeECharts option={buildTrendOption(commodities, colors)} style={{ height: '100%', maxHeight: '100%', width: '100%' }} sourceInfo={{ title: 'Net Speculative Positioning Trend', source: 'CFTC', endpoint: '/api/commodities', series: [], updatedAt: lastUpdated }} />
           </div>
         </div>
       )}

@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -1203,7 +1203,7 @@ function CommoditiesDashboard({
       sector: !!sectorHeatmapData,
       supply: !!supplyDemandData,
       'wti-brent': !!(fredCommodities?.wtiHistory && fredCommodities?.brentHistory),
-      cot: !!cotData,
+      cot: hasCotPositioning(cotData),
       comfx: !!commodityCurrencies,
       'usda-ag': !!(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': hasEiaPetrolSeries(eiaPetCtx?.data),
@@ -1256,6 +1256,7 @@ function CommoditiesDashboard({
       'eia-petrol': !hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': !hasUsTradeSeries(tradeCtx?.data),
       'physical-pressure': !hasPhysicalPressureRows(eiaPetCtx?.data, usdaCtx?.data, tradeCtx?.data),
+      cot: !hasCotPositioning(cotData),
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
     __noFooter: {},

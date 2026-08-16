@@ -184,6 +184,9 @@ import {
   usTradeSubtitle,
   physicalPressureRows,
   hasPhysicalPressureRows,
+  hasCotPositioning,
+  cotCommodityRows,
+  cotHistoryPoints,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3491,5 +3494,96 @@ describe('commodities leftover empty-capable tiles (physical-pressure)', () => {
     expect(rows[1].pressure).toBe('Lower');
     expect(rows[2].read).toBe('2026-06');
     expect(rows[2].pressure).toBe('Import demand');
+  });
+});
+
+describe('commodities leftover empty-capable tiles (cot)', () => {
+  it('dashboard does not hardcode leftover bag existence on cot', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/cot:\s*!!cotData/);
+    expect(dash).toMatch(/cot:\s*hasCotPositioning\(cotData\)/);
+    const market = src('markets/commodities/CommoditiesMarket.jsx');
+    expect(market).not.toMatch(/const cotData = props\.cotData \|\| cotFromSentiment/);
+    expect(market).toMatch(/hasCotPositioning\(props\.cotData\)/);
+  });
+
+  it('hasCotPositioning is false for empty / leftover isLive bags', () => {
+    expect(hasCotPositioning()).toBe(false);
+    expect(hasCotPositioning(null)).toBe(false);
+    expect(hasCotPositioning({})).toBe(false);
+    expect(hasCotPositioning({ isLive: true })).toBe(false);
+    expect(hasCotPositioning({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasCotPositioning({ commodities: [] })).toBe(false);
+    expect(hasCotPositioning({ isLive: true, commodities: [{ isLive: true }] })).toBe(false);
+    expect(hasCotPositioning({
+      isLive: true,
+      commodities: [{ name: 'Gold', latest: { isLive: true } }],
+    })).toBe(false);
+    expect(hasCotPositioning({
+      commodities: [{ name: 'Gold', latest: { noncommNet: '120000' } }],
+    })).toBe(false);
+    expect(hasCotPositioning({
+      commodities: [{ name: 'Gold', latest: { noncommNet: true, commNet: '12', totalOI: { isLive: true } } }],
+    })).toBe(false);
+    expect(hasCotPositioning({
+      commodities: [{ latest: { noncommNet: 120000 } }],
+    })).toBe(false);
+  });
+
+  it('hasCotPositioning is true when a painted Spec/Comm/OI number exists', () => {
+    expect(hasCotPositioning({
+      commodities: [{ name: 'Gold', latest: { noncommNet: 120000 } }],
+    })).toBe(true);
+    expect(hasCotPositioning({
+      isLive: true,
+      commodities: [
+        { isLive: true },
+        { name: 'WTI Crude Oil', latest: { isLive: true }, history: [{ isLive: true }] },
+        { name: 'Copper', latest: { totalOI: 210000 } },
+      ],
+    })).toBe(true);
+  });
+
+  it('cotCommodityRows / cotHistoryPoints skip leftover siblings so remount does not crash', () => {
+    expect(() => cotCommodityRows({ isLive: true, commodities: [null, { isLive: true }, 'x'] })).not.toThrow();
+    expect(cotCommodityRows({
+      commodities: [
+        { isLive: true },
+        { name: 'Gold', latest: { isLive: true }, history: [{ isLive: true }, { date: true }] },
+        { name: 'WTI Crude Oil', latest: { noncommNet: 185000, commNet: -190000, totalOI: 2100000, netChange: true } },
+      ],
+    }).map((r) => r.name)).toEqual(['WTI Crude Oil']);
+    const rows = cotCommodityRows({
+      isLive: true,
+      commodities: [
+        { isLive: true },
+        { name: 'Gold', latest: { noncommNet: 120000, commNet: -115000, totalOI: 450000, netChange: 8000 } },
+        { name: 'Silver', latest: { noncommNet: '12' } },
+      ],
+    });
+    expect(rows.map((r) => r.name)).toEqual(['Gold']);
+    expect(rows[0].latest.noncommNet).toBe(120000);
+    expect(rows[0].latest.netChange).toBe(8000);
+    expect(() => rows.map((r) => r.name.slice(0, 3))).not.toThrow();
+    expect(() => rows.map((r) => (r.latest.noncommNet / 1000).toFixed(0))).not.toThrow();
+    expect((rows[0].latest.noncommNet / 1000).toFixed(0)).toBe('120');
+
+    expect(() => cotHistoryPoints([null, { isLive: true }, 'x'])).not.toThrow();
+    expect(cotHistoryPoints([
+      { isLive: true },
+      { date: '2024-01-08', noncommNet: 110000 },
+      { date: '2024-01-15', noncommNet: true },
+      { date: true, noncommNet: 120000 },
+    ]).map((p) => p.noncommNet)).toEqual([110000]);
+    const points = cotHistoryPoints([
+      { isLive: true },
+      { date: '2024-01-01', noncommNet: 100000 },
+      { date: '2024-01-08', noncommNet: 110000 },
+      { date: '2024-01-15', noncommNet: 120000 },
+    ]);
+    expect(points.map((p) => p.noncommNet)).toEqual([100000, 110000, 120000]);
+    expect(() => points.map((p) => p.date.slice(5))).not.toThrow();
+    expect(() => points.map((p) => (p.noncommNet / 1000).toFixed(0))).not.toThrow();
+    expect(points[0].date.slice(5)).toBe('01-01');
   });
 });

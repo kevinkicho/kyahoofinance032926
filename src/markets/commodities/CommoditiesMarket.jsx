@@ -1,5 +1,6 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
+import { hasCotPositioning } from './components/CommoditiesLiveChips.js';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import CommoditiesDashboard from './components/CommoditiesDashboard';
@@ -635,7 +636,7 @@ function CommoditiesMarket({ centralData } = {}) {
     return Object.keys(out).length > 0 ? out : null;
   })();
 
-  const cotData = props.cotData || cotFromSentiment;
+  const cotData = hasCotPositioning(props.cotData) ? props.cotData : cotFromSentiment;
   const commodityCurrencies = props.commodityCurrencies || ccyFromFx;
 
   return (
