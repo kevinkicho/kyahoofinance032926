@@ -464,3 +464,48 @@ export function sectorHeatmapColumns(sectorHeatmapData) {
 export function hasSectorHeatmapRows(sectorHeatmapData) {
   return sectorHeatmapRows(sectorHeatmapData).length > 0;
 }
+
+/** Price table groups. Leftover isLive / bag-only sectors stay empty. */
+export function priceDashboardCommodities(list) {
+  const rows = Array.isArray(list) ? list : [];
+  const out = [];
+  for (const c of rows) {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) continue;
+    const name = typeof c.name === 'string' && c.name ? c.name : '';
+    if (!name) continue;
+    if (!isFiniteNumber(c.price)) continue;
+    const sparkSrc = Array.isArray(c.sparkline) ? c.sparkline : [];
+    const sparkline = sparkSrc.filter(isFiniteNumber);
+    out.push({
+      name,
+      ticker: typeof c.ticker === 'string' ? c.ticker : '',
+      category: typeof c.category === 'string' ? c.category : '',
+      unit: typeof c.unit === 'string' ? c.unit : '',
+      price: c.price,
+      change1d: isFiniteNumber(c.change1d) ? c.change1d : null,
+      change1w: isFiniteNumber(c.change1w) ? c.change1w : null,
+      change1m: isFiniteNumber(c.change1m) ? c.change1m : null,
+      sparkline: sparkline.length >= 2 ? sparkline : null,
+      source: typeof c.source === 'string' ? c.source : (typeof c._source === 'string' ? c._source : ''),
+    });
+  }
+  return out;
+}
+
+export function priceDashboardGroups(priceDashboardData) {
+  const list = Array.isArray(priceDashboardData) ? priceDashboardData : [];
+  const groups = [];
+  for (const s of list) {
+    if (!s || typeof s !== 'object' || Array.isArray(s)) continue;
+    const sector = typeof s.sector === 'string' && s.sector ? s.sector : '';
+    if (!sector) continue;
+    const commodities = priceDashboardCommodities(s.commodities);
+    if (!commodities.length) continue;
+    groups.push({ sector, commodities });
+  }
+  return groups;
+}
+
+export function hasPriceDashboardRows(priceDashboardData) {
+  return priceDashboardGroups(priceDashboardData).length > 0;
+}

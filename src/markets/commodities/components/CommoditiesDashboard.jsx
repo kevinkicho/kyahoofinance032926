@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints, hasCommodityFxRates, commodityFxRows, hasSectorHeatmapRows } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints, hasCommodityFxRates, commodityFxRows, hasSectorHeatmapRows, hasPriceDashboardRows, priceDashboardGroups } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -86,7 +86,7 @@ function CommoditiesDashboard({
   const faoCtx = useMarketData('fao');
 
   const allCommodities = useMemo(() => {
-    return priceDashboardData?.flatMap(s => s.commodities || []) || [];
+    return priceDashboardGroups(priceDashboardData).flatMap(s => s.commodities);
   }, [priceDashboardData]);
 
   const formatChange = (val) => {
@@ -398,7 +398,7 @@ function CommoditiesDashboard({
   };
 
   const sectorPulseRows = useMemo(() => {
-    return (priceDashboardData || []).map(sector => {
+    return priceDashboardGroups(priceDashboardData).map(sector => {
       const commodities = sector.commodities || [];
       const changes = commodities.map(rowChange).filter(v => v != null);
       const avg1d = avgNumeric(changes);
@@ -414,7 +414,7 @@ function CommoditiesDashboard({
 
   const regimeSnapshot = useMemo(() => {
     const sectorAvg = (names) => avgNumeric(
-      (priceDashboardData || [])
+      priceDashboardGroups(priceDashboardData)
         .filter(s => names.includes(s.sector))
         .flatMap(s => (s.commodities || []).map(rowChange))
     );
@@ -1200,7 +1200,7 @@ function CommoditiesDashboard({
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
       sidebar: !!(cotData || allCommodities.length || dbcEtf),
-      prices: !!priceDashboardData,
+      prices: hasPriceDashboardRows(priceDashboardData),
       futures: !!futuresCurveData,
       sector: hasSectorHeatmapRows(sectorHeatmapData),
       supply: !!supplyDemandData,
@@ -1261,6 +1261,7 @@ function CommoditiesDashboard({
       cot: !hasCotPositioning(cotData),
       comfx: !hasCommodityFxRates(commodityCurrencies),
       sector: !hasSectorHeatmapRows(sectorHeatmapData),
+      prices: !hasPriceDashboardRows(priceDashboardData),
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
     __noFooter: {},

@@ -2,9 +2,10 @@ import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CommoditiesDashboard.css';
+import { priceDashboardGroups } from './CommoditiesLiveChips.js';
 
 function PriceCharts({ priceDashboardData, allCommodities, colors, formatChange }) {
-  const sectors = priceDashboardData || [];
+  const sectors = priceDashboardGroups(priceDashboardData);
   const groupColors = { Energy: '#ef4444', Metals: '#f59e0b', Agriculture: '#22c55e', Livestock: '#8b5cf6', Fibers: '#06b6d4' };
   return (
     <div className="com-price-charts">

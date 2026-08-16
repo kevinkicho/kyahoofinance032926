@@ -1,6 +1,6 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
-import { hasCotPositioning, hasCommodityFxRates } from './components/CommoditiesLiveChips.js';
+import { hasCotPositioning, hasCommodityFxRates, hasPriceDashboardRows } from './components/CommoditiesLiveChips.js';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import CommoditiesDashboard from './components/CommoditiesDashboard';
@@ -522,7 +522,7 @@ function getCommoditiesProps(centralData) {
   }
   return {
     // Prefer mapped curves (null months stripped + spotPrice) when available.
-    priceDashboardData: d.priceDashboardData || mapped.priceDashboardData,
+    priceDashboardData: hasPriceDashboardRows(d.priceDashboardData) ? d.priceDashboardData : mapped.priceDashboardData,
     futuresCurveData: mapped.futuresCurveData || enrichFuturesCurve(d.futuresCurveData, d.yahoo?.futures?.['CL=F']?.price),
     sectorHeatmapData: d.sectorHeatmapData || mapped.sectorHeatmapData,
     // Prefer legacy shape, then mapped v2 (merged supplyDemand+eia+unit scale),

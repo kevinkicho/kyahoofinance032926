@@ -194,6 +194,9 @@ import {
   hasSectorHeatmapRows,
   sectorHeatmapRows,
   sectorHeatmapColumns,
+  hasPriceDashboardRows,
+  priceDashboardGroups,
+  priceDashboardCommodities,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3811,5 +3814,105 @@ describe('commodities leftover empty-capable tiles (sector)', () => {
     expect(() => sectorHeatmapColumns({ columns: [true, { isLive: true }, '1d%'] })).not.toThrow();
     expect(sectorHeatmapColumns({ columns: [true, { isLive: true }, '1d%', '1w%'] })).toEqual(['1d%', '1w%']);
     expect(() => sectorHeatmapColumns({ columns: ['1d%', '1w%', '1m%'] }).map((c) => c.slice(0, 2))).not.toThrow();
+  });
+});
+
+describe('commodities leftover empty-capable tiles (prices)', () => {
+  it('dashboard does not hardcode leftover bag existence on prices', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/prices:\s*!!priceDashboardData/);
+    expect(dash).toMatch(/prices:\s*hasPriceDashboardRows\(priceDashboardData\)/);
+    expect(dash).toMatch(/priceDashboardGroups\(priceDashboardData\)/);
+    const market = src('markets/commodities/CommoditiesMarket.jsx');
+    expect(market).not.toMatch(/priceDashboardData:\s*d\.priceDashboardData \|\| mapped\.priceDashboardData/);
+    expect(market).toMatch(/hasPriceDashboardRows\(d\.priceDashboardData\)/);
+    const heat = src('markets/commodities/components/PriceDashboard.jsx');
+    expect(heat).toMatch(/priceDashboardGroups\(priceDashboardData\)/);
+    expect(heat).not.toMatch(/priceDashboardData\.forEach\(s =>/);
+    const charts = src('markets/commodities/components/PriceCharts.jsx');
+    expect(charts).toMatch(/priceDashboardGroups\(priceDashboardData\)/);
+    expect(charts).not.toMatch(/const sectors = priceDashboardData \|\| \[\]/);
+  });
+
+  it('hasPriceDashboardRows is false for empty / leftover isLive bags', () => {
+    expect(hasPriceDashboardRows()).toBe(false);
+    expect(hasPriceDashboardRows(null)).toBe(false);
+    expect(hasPriceDashboardRows({})).toBe(false);
+    expect(hasPriceDashboardRows({ isLive: true })).toBe(false);
+    expect(hasPriceDashboardRows({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasPriceDashboardRows({ dates: ['2024-01'] })).toBe(false);
+    expect(hasPriceDashboardRows([])).toBe(false);
+    expect(hasPriceDashboardRows({ commodities: [{ isLive: true }] })).toBe(false);
+    expect(hasPriceDashboardRows({ isLive: true, commodities: [{ isLive: true }] })).toBe(false);
+    expect(hasPriceDashboardRows([{ isLive: true }])).toBe(false);
+    expect(hasPriceDashboardRows([{ sector: 'Energy', commodities: [{ isLive: true }] }])).toBe(false);
+    expect(hasPriceDashboardRows([{
+      sector: 'Energy',
+      commodities: [{ name: 'Gold', price: true, change1d: '0.34' }],
+    }])).toBe(false);
+    expect(hasPriceDashboardRows([{
+      commodities: [{ name: 'Gold', price: 2345.6 }],
+    }])).toBe(false);
+    expect(hasPriceDashboardRows([{
+      sector: 'Energy',
+      commodities: [{ price: 82.14 }],
+    }])).toBe(false);
+    expect(hasPriceDashboardRows({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      commodities: { isLive: true },
+    })).toBe(false);
+  });
+
+  it('hasPriceDashboardRows is true when a painted price exists', () => {
+    expect(hasPriceDashboardRows([{
+      sector: 'Energy',
+      commodities: [{ name: 'WTI Crude', price: 82.14 }],
+    }])).toBe(true);
+    expect(hasPriceDashboardRows([
+      { isLive: true },
+      { sector: 'Energy', commodities: [{ isLive: true }, { name: 'Gold', price: true }] },
+      { sector: 'Metals', commodities: [{ name: 'Gold', ticker: 'GC=F', price: 2345.6 }] },
+    ])).toBe(true);
+  });
+
+  it('priceDashboardGroups skips leftover siblings so remount does not crash', () => {
+    expect(() => priceDashboardGroups({ isLive: true })).not.toThrow();
+    expect(() => priceDashboardGroups({ commodities: { isLive: true } })).not.toThrow();
+    expect(() => priceDashboardGroups({ commodities: true })).not.toThrow();
+    expect(() => priceDashboardGroups([null, { isLive: true }, 'x'])).not.toThrow();
+    expect(priceDashboardGroups([
+      { isLive: true },
+      { sector: 'Energy', commodities: [{ name: 'Gold', price: true, change1d: '1.2', sparkline: { isLive: true } }] },
+      { sector: 'Metals', commodities: [{ name: 'Gold', ticker: 'GC=F', price: 2345.6, change1d: 0.34, change1w: 1.56, change1m: 5.21, sparkline: [2300, 2320, 2345.6] }] },
+    ]).map((g) => g.sector)).toEqual(['Metals']);
+    const groups = priceDashboardGroups([
+      { isLive: true },
+      { sector: 'Energy', commodities: [
+        { isLive: true },
+        { name: 'WTI Crude', ticker: 'CL=F', price: 82.14, change1d: 0.82, sparkline: [80, 81, 82.14] },
+        { name: 'Silver', price: '28.45' },
+      ] },
+    ]);
+    expect(groups.map((g) => g.sector)).toEqual(['Energy']);
+    expect(groups[0].commodities.map((c) => c.name)).toEqual(['WTI Crude']);
+    expect(groups[0].commodities[0].price).toBe(82.14);
+    expect(groups[0].commodities[0].change1d).toBe(0.82);
+    expect(() => groups.map((g) => g.sector.slice(0, 3))).not.toThrow();
+    expect(() => groups.flatMap((g) => g.commodities).map((c) => c.price.toFixed(2))).not.toThrow();
+    expect(() => groups.flatMap((g) => g.commodities).map((c) => c.change1d.toFixed(2))).not.toThrow();
+    expect(() => groups.flatMap((g) => g.commodities).map((c) => Math.min(...c.sparkline))).not.toThrow();
+    expect(groups[0].commodities[0].price.toFixed(2)).toBe('82.14');
+    expect(groups[0].commodities[0].change1d.toFixed(2)).toBe('0.82');
+
+    expect(() => priceDashboardCommodities({ isLive: true })).not.toThrow();
+    expect(() => priceDashboardCommodities([null, { isLive: true }, 'x'])).not.toThrow();
+    expect(priceDashboardCommodities([
+      { isLive: true },
+      { name: 'Gold', price: true },
+      { name: 'WTI Crude', price: 82.14, change1d: true, sparkline: { isLive: true } },
+    ]).map((c) => c.name)).toEqual(['WTI Crude']);
+    expect(() => priceDashboardGroups([{ sector: 'Energy', commodities: [{ name: 'Gold', price: 10, sparkline: { isLive: true } }] }]).flatMap((g) => g.commodities).map((c) => (c.sparkline || []).map((v) => v.toFixed(2)))).not.toThrow();
   });
 });

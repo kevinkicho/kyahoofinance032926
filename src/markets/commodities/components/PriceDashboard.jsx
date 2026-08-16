@@ -4,6 +4,7 @@ import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
 import './CommoditiesDashboard.css';
+import { priceDashboardGroups } from './CommoditiesLiveChips.js';
 
 function fmtPct(v) {
   if (v == null) return '—';
@@ -141,7 +142,7 @@ function resolveRow(spec, enhancedData, legacyMap) {
     }
   }
 
-  if (price == null) return null;
+  if (typeof price !== 'number' || !Number.isFinite(price)) return null;
 
   return {
     name: spec.name,
@@ -163,13 +164,11 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
   // Build a lookup from legacy data by ticker
   const legacyMap = useMemo(() => {
     const map = {};
-    if (priceDashboardData) {
-      priceDashboardData.forEach(s => {
-        (s.commodities || []).forEach(c => {
-          if (c.ticker) map[c.ticker] = c;
-          map[c.name] = c;
-        });
-      });
+    for (const s of priceDashboardGroups(priceDashboardData)) {
+      for (const c of s.commodities) {
+        if (c.ticker) map[c.ticker] = c;
+        map[c.name] = c;
+      }
     }
     return map;
   }, [priceDashboardData]);
@@ -196,7 +195,7 @@ export default function PriceDashboard({ priceDashboardData, dbcEtf, fredCommodi
     }
 
     // Fall back to legacy data (mock mode or no enhanced data)
-    return priceDashboardData || [];
+    return priceDashboardGroups(priceDashboardData);
   }, [enhancedData, legacyMap, priceDashboardData]);
 
   // KPI computations
