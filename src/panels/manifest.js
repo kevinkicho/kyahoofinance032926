@@ -795,7 +795,7 @@ export const PANEL_MANIFEST = [
     key: "insurance:usgs-minerals",
     marketId: "insurance",
     panelId: "usgs-minerals",
-    title: "USGS Earthquake Activity (30d)",
+    title: "USGS Minerals",
     dashboard: "src/markets/insurance/components/InsuranceDashboard.jsx",
     module: "src/panels/insurance/usgs-minerals.jsx",
     placeholders: "insurance:usgs-minerals",

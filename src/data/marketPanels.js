@@ -110,7 +110,7 @@ export const MARKET_PANELS = {
     { id: 'fema-disasters', title: 'FEMA Disaster Declarations' },
     { id: 'usgs-earthquakes', title: 'USGS Earthquake Activity' },
     { id: 'cat-exposure', title: 'Cat Exposure' },
-    { id: 'usgs-minerals', title: 'USGS Earthquake Activity (30d)' },
+    { id: 'usgs-minerals', title: 'USGS Minerals' },
     { id: 'ecb-supervisory', title: 'ECB Policy Rates' },
   ],
   commodities: [

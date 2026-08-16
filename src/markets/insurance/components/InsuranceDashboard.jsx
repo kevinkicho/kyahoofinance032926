@@ -1174,145 +1174,7 @@ function InsuranceDashboard({
           </div>
         ),
 
-        'usgs-minerals': (
-            <div className="usgs-eq-panel">
-              <div className="usgs-eq-buckets">
-                {(usgsCtx?.data?.magBuckets || []).map((b) => (
-                  <div key={b.range} className="usgs-eq-bucket">
-                    <span className="usgs-eq-bucket-r">{b.range}</span>
-                    <span
-                      className="usgs-eq-bucket-n"
-                      style={{
-                        color: String(b.range).startsWith('7')
-                          ? '#f87171'
-                          : String(b.range).startsWith('6')
-                            ? '#f59e0b'
-                            : '#22c55e',
-                      }}
-                    >
-                      {b.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="usgs-eq-table-wrap">
-                <table className="usgs-eq-table">
-                  <thead>
-                    <tr>
-                      <th>When (local)</th>
-                      <th>UTC</th>
-                      <th>Mag</th>
-                      <th>Place</th>
-                      <th>Depth</th>
-                      <th>Lat / Lon</th>
-                      <th>Type</th>
-                      <th>Status</th>
-                      <th>Felt</th>
-                      <th>Alert</th>
-                      <th>Sig</th>
-                      <th>Link</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(usgsCtx?.data?.events || []).slice(0, 20).map((e) => {
-                      const ms = e.timeMs ?? (e.time ? Date.parse(e.time) : NaN);
-                      const d = Number.isFinite(ms) ? new Date(ms) : null;
-                      const localStr = d
-                        ? d.toLocaleString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            timeZoneName: 'short',
-                          })
-                        : '—';
-                      const utcStr = d
-                        ? d.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-                        : (e.time ? String(e.time).replace('T', ' ').replace('Z', ' UTC') : '—');
-                      const magColor =
-                        (e.mag || 0) >= 7
-                          ? '#f87171'
-                          : (e.mag || 0) >= 6
-                            ? '#fb923c'
-                            : (e.mag || 0) >= 5
-                              ? '#f59e0b'
-                              : '#4ade80';
-                      const alertColor = {
-                        green: '#22c55e',
-                        yellow: '#eab308',
-                        orange: '#f97316',
-                        red: '#ef4444',
-                      }[String(e.alert || '').toLowerCase()] || 'var(--text-dim)';
-
-                      return (
-                        <tr key={e.id || `${e.time}-${e.place}`}>
-                          <td className="usgs-eq-time" title={e.time || ''}>{localStr}</td>
-                          <td className="usgs-eq-utc" title={e.time || ''}>{utcStr}</td>
-                          <td className="usgs-eq-mag" style={{ color: magColor }}>
-                            {e.mag != null ? `M${Number(e.mag).toFixed(1)}` : '—'}
-                            {e.magType ? <span className="usgs-eq-magtype">{e.magType}</span> : null}
-                          </td>
-                          <td className="usgs-eq-place" title={e.place || e.title || ''}>
-                            {e.place || e.title || '—'}
-                            {e.tsunami ? <span className="usgs-eq-flag">Tsunami</span> : null}
-                          </td>
-                          <td className="num">
-                            {e.depthKm != null ? `${Number(e.depthKm).toFixed(1)} km` : '—'}
-                          </td>
-                          <td className="num usgs-eq-ll">
-                            {e.lat != null && e.lon != null
-                              ? `${Number(e.lat).toFixed(2)}°, ${Number(e.lon).toFixed(2)}°`
-                              : '—'}
-                          </td>
-                          <td>{e.type || 'earthquake'}</td>
-                          <td>{e.status || '—'}</td>
-                          <td className="num">
-                            {e.felt != null
-                              ? Number(e.felt).toLocaleString('en-US')
-                              : '—'}
-                            {e.cdi != null ? (
-                              <span className="usgs-eq-sub"> CDI {Number(e.cdi).toFixed(1)}</span>
-                            ) : null}
-                            {e.mmi != null ? (
-                              <span className="usgs-eq-sub"> MMI {Number(e.mmi).toFixed(1)}</span>
-                            ) : null}
-                          </td>
-                          <td style={{ color: alertColor, fontWeight: 700, textTransform: 'capitalize' }}>
-                            {e.alert || '—'}
-                          </td>
-                          <td className="num">{e.sig != null ? e.sig : '—'}</td>
-                          <td>
-                            {e.url ? (
-                              <a
-                                href={e.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="usgs-eq-link"
-                                onMouseDown={(ev) => ev.stopPropagation()}
-                              >
-                                USGS
-                              </a>
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="usgs-eq-footer">
-                USGS GeoJSON M4.5+ month feed · times shown local + UTC · depth / lat-lon / felt / alert / significance from source
-                {usgsCtx?.data?.metadata?.generated
-                  ? ` · feed generated ${new Date(usgsCtx.data.metadata.generated).toLocaleString()}`
-                  : ''}
-              </div>
-            </div>
-        ),
+        'usgs-minerals': null,
 
         'ecb-supervisory': (
             (() => {
@@ -1533,7 +1395,7 @@ function InsuranceDashboard({
       'fema-disasters': !!femaCtx?.data?.isLive,
       'usgs-earthquakes': !!usgsCtx?.data?.isLive,
       'cat-exposure': !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive || catLosses?.values?.length),
-      'usgs-minerals': !!usgsCtx?.data?.isLive,
+      'usgs-minerals': false,
       'ecb-supervisory': !!ecbCtx?.data?.isLive,
     },
     __subtitle: {
@@ -1550,7 +1412,6 @@ function InsuranceDashboard({
         ? `Avg ${insRatiosCtx.data.summary.avgCombinedPct}% across ${insRatiosCtx.data.summary.issuersWithData} issuers · latest FY ${insRatiosCtx.data.summary.latestEnd}`
         : 'Loss ratio + expense ratio per issuer (latest fiscal year)',
       'cat-exposure': `${catExposure.label} · FEMA declarations · USGS seismicity · credit & underwriting`,
-      'usgs-minerals': `${usgsCtx?.data?.eventsCount ?? 0} M4.5+ events · feed + human-readable times`,
       'ecb-supervisory': 'Policy corridor · €STR · EURIBOR · M3 · HICP · ECB SDW',
     },
     __disabled: {
@@ -1576,7 +1437,6 @@ function InsuranceDashboard({
       'fema-disasters': 'OpenFEMA',
       'usgs-earthquakes': 'USGS',
       'cat-exposure': 'OpenFEMA / USGS / FRED',
-      'usgs-minerals': 'USGS Earthquake Hazards Program',
       'ecb-supervisory': 'ECB Statistical Data Warehouse',
     },
   };

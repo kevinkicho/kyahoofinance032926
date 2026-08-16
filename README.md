@@ -18,8 +18,9 @@ cd server && npm install && cd ..
 # 2. configure API keys (interactive — creates .env from .env.example)
 npm run setup
 
-# 3. launch backend + Vite
-npm start            # → http://localhost:5173
+# 3. launch backend + Vite (local dashboard)
+npm run dev          # dashboard on port 5173, API on 3001
+# or: npm run start:dev
 
 # 4. quality gate before any push
 npm run preflight
@@ -54,7 +55,8 @@ Free tiers in `.env` (gitignored). Skip any and matching panels degrade.
 
 | Command | What it does |
 |---|---|
-| `npm start` / `npm run dev` | Express + Vite on 5173 (API on 3001) |
+| `npm run dev` / `npm run start:dev` | Local Vite + API: dashboard on 5173, Express on 3001 |
+| `npm start` | Express API only (`node server/index.js`, port 3001 / `$PORT`) |
 | `npm run setup` | Interactive `.env` walkthrough |
 | `npm test` | Vitest unit suite |
 | `npm run test:health` | Focused health/regression pack (gates + recovery + etiquette) |

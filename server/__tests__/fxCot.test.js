@@ -80,6 +80,20 @@ describe('fetchCOTHistory', () => {
     expect(result.EUR[0].date).toBeDefined();
   });
 
+  it("uses single-quoted SoQL like and per-currency limit 52 without double-encoding", async () => {
+    fetchJSONSpy.mockResolvedValue([]);
+    await fetchCOTHistory();
+    const urls = fetchJSONSpy.mock.calls.map(c => c[0]);
+    expect(urls.length).toBeGreaterThan(0);
+    const euro = urls.find(u => decodeURIComponent(u).includes("EURO FX"));
+    expect(euro).toBeDefined();
+    expect(euro).toContain("limit=52");
+    const decoded = decodeURIComponent(euro);
+    expect(decoded).toContain("like '%EURO FX%'");
+    expect(decoded).not.toMatch(/like "/);
+    expect(euro).not.toMatch(/%2525/);
+  });
+
   it('returns null when fewer than 3 currencies have data', async () => {
     mockPerCurrency({
       'EURO FX': [

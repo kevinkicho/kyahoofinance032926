@@ -104,6 +104,30 @@ describe('Credit Route', () => {
     expect(resBody.isCurrent).toBe(false);
   });
 
+  it("builds EM countries on the happy path without throwing", async () => {
+    cache.readBestAvailableCache.mockResolvedValueOnce(null);
+    const yahoo = await import("../lib/yahoo.js");
+    yahoo.yf.quote.mockImplementation(async () => ({
+      regularMarketPrice: 40,
+      regularMarketChangePercent: 0.5,
+      trailingAnnualDividendYield: 0.045,
+    }));
+    const routeHandler = creditRouter.stack.find(s => s.route && s.route.path === "/").route.stack[0].handle;
+    const mockCache = { get: vi.fn(() => null), set: vi.fn(), del: vi.fn() };
+    const mockReq = { app: { locals: { cache: mockCache } }, query: { refresh: "1" }, headers: {} };
+    const mockRes = { json: vi.fn(), status: vi.fn().mockReturnThis() };
+    await expect(routeHandler(mockReq, mockRes)).resolves.toBeUndefined();
+    expect(mockRes.json).toHaveBeenCalled();
+    const resBody = mockRes.json.mock.calls[0][0];
+    expect(resBody.emBondData).toBeDefined();
+    expect(resBody.emBondData.countries.length).toBeGreaterThan(0);
+    expect(resBody._errors && resBody._errors.emBondData).toBeUndefined();
+    const withEtf = resBody.emBondData.countries.find(c => c.etfTicker);
+    expect(withEtf).toBeDefined();
+    expect(withEtf.etfYield).toBe(4.5);
+    expect(withEtf.yld10y).toBe(4.5);
+  });
+
   describe('emYieldFromEtfQuote', () => {
     it('returns null when trailing dividend yield is zero (no real yield)', () => {
       expect(emYieldFromEtfQuote({ trailingAnnualDividendYield: 0 })).toBeNull();

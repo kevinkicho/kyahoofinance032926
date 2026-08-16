@@ -182,8 +182,8 @@ export async function fetchCOTHistory() {
     // Query per currency so each gets its full 52-week window (a single
     // $limit=400 spans all markets and leaves each currency with ~1-3 pts).
     for (const [code, needle] of Object.entries(COT_NAME_MAP)) {
-      // SoQL string literals use double quotes; encode so they survive the URL.
-      const where = `$where=market_and_exchange_names like "${encodeURIComponent(`%${needle}%`)}"`;
+      // SoQL string literals are single-quoted; encode the clause once.
+      const where = `$where=${encodeURIComponent(`market_and_exchange_names like '%${needle}%'`)}`;
       const url = `${base}?${select}&${where}` +
         `&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=52`;
       const rows = (await fetchJSON(url)) || [];

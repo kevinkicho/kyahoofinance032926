@@ -412,7 +412,7 @@ let emBondCountries = [];
           debtGdp:   info.debtGdp,
           etfTicker: info.yahooETF,
           etfPrice:  price,
-          etfYield,
+          etfYield:  yld10y,
           dataSource: price != null ? 'Yahoo Finance' : 'no-yahoo-data',
         };
 

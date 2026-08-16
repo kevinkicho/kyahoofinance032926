@@ -22,7 +22,7 @@ function Body({ ctx }) {
   }
   return (
     <EmptyPanelBody
-      message={"USGS Earthquake Activity (30d) — awaiting data"}
+      message={"USGS Minerals — awaiting data"}
       reason={"insurance:usgs-minerals"}
     />
   );
@@ -32,7 +32,7 @@ export default definePanel({
   key: "insurance:usgs-minerals",
   panelId: "usgs-minerals",
   markets: ["insurance"],
-  title: "USGS Earthquake Activity (30d)",
+  title: "USGS Minerals",
   source: 'Market data',
   className: "insurance-bento-card",
   contentClassName: "insurance-panel-content",
