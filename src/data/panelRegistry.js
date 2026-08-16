@@ -358,7 +358,7 @@ export const PANEL_REGISTRY = {
     { id: 'earnings', title: 'Earnings Season', field: 'earningsSeason', fieldPath: 'earningsSeason', source: 'calendar.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'earningsSeason && earningsSeason.length > 0' },
   ],
 
-  equityDeepDive: [
+  equitiesDeepDive: [
     { id: 'sector-rotation', title: 'Sector Rotation', field: 'sectorData', fieldPath: 'sectorData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance ETFs', seriesIds: ['XLK','XLF','XLE'] }], renderCheck: 'sectorData && sectorData.length > 0' },
     { id: 'factor-rankings', title: 'Factor Rankings', field: 'factorData', fieldPath: 'factorData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'factorData && factorData.length > 0' },
     { id: 'earnings-watch', title: 'Earnings Watch', field: 'earningsData', fieldPath: 'earningsData', source: 'equityDeepDive.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'earningsData && earningsData.length > 0' },

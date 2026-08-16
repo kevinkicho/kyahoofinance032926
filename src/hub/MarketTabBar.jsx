@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { auth, googleProvider, signInWithPopup, signOut } from '../lib/firebase';
-import { MARKETS, SEARCH_INDEX } from './markets.config';
+import { MARKETS } from './markets.config';
 import { MARKET_PANELS } from '../data/marketPanels';
+import { searchHub } from './lib/searchMarkets';
 import { currencySymbols } from '../utils/constants';
 import { useTheme } from './ThemeContext';
 import { useCurrency } from './CurrencyContext';
@@ -257,15 +258,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
   };
   const handleHistClear = () => setHistoricalDate(null);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return SEARCH_INDEX.filter(entry =>
-      entry.label.toLowerCase().includes(q) ||
-      entry.subTabs.some(s => s.toLowerCase().includes(q)) ||
-      entry.keywords?.some(k => k.toLowerCase().includes(q))
-    );
-  }, [query]);
+  const results = useMemo(() => searchHub(query), [query]);
 
   // Ctrl+K → focus search input
   useEffect(() => {
@@ -304,7 +297,13 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
     setHighlighted(0);
   }, [results]);
 
-  function handleSelect(marketId, subTab) {
+  function handleSelect(marketId, subTab, panelId) {
+    if (panelId) {
+      handlePanelJump(marketId, panelId);
+      setQuery('');
+      setOpen(false);
+      return;
+    }
     setActiveMarket(marketId);
     if (subTab) {
       window.dispatchEvent(new CustomEvent('set-hub-subtab', { detail: { marketId, subTab } }));
@@ -325,9 +324,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
       e.preventDefault();
        if (results[highlighted]) {
          const entry = results[highlighted];
-         const q = query.trim().toLowerCase();
-         const matchingSub = entry.subTabs.find(s => s.toLowerCase().includes(q));
-         handleSelect(entry.marketId, matchingSub);
+         handleSelect(entry.marketId, entry.matchingSub, entry.matchingPanelId);
        }
     } else if (e.key === 'Escape') {
       setOpen(false);
@@ -686,9 +683,7 @@ export default function MarketTabBar({ activeMarket, setActiveMarket, onExport, 
                   onMouseEnter={() => setHighlighted(i)}
                     onMouseDown={e => { 
                       e.preventDefault(); 
-                      const q = query.trim().toLowerCase();
-                      const matchingSub = entry.subTabs.find(s => s.toLowerCase().includes(q));
-                      handleSelect(entry.marketId, matchingSub); 
+                      handleSelect(entry.marketId, entry.matchingSub, entry.matchingPanelId);
                     }}
                 >
                   <div className="hub-search-item-label">
