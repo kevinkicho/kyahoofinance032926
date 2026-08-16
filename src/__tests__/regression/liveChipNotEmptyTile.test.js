@@ -129,6 +129,8 @@ import {
   hasEurostatRows,
   hasOecdDirectRows,
   hasBeaIncomeContent,
+  hasImfCoferShares,
+  hasGlobalLiquidityContent,
 } from '../../markets/globalMacro/components/MacroLiveChips.js';
 import {
   hasEqdKpiMetrics,
@@ -2628,5 +2630,68 @@ describe('sentiment leftover empty-capable tiles (fed-risk-mood)', () => {
     expect(hasFedRiskMoodContent({ fsiHistory: { values: [-0.4] } })).toBe(true);
     expect(hasFedRiskMoodContent({ riskData: { fsi: 0.8 } })).toBe(true);
     expect(hasFedRiskMoodContent({ riskData: { signals: [{ name: 'Financial Stress', value: 1.1 }] } })).toBe(true);
+  });
+});
+
+describe('macro leftover empty-capable tiles (imf-cofer / global-liquidity)', () => {
+  it('dashboard does not hardcode leftover bag-existence on empty-capable tiles', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/'imf-cofer':\s*!!\(imfData\?\.cofer && Object\.keys\(imfData\.cofer\)\.length > 0\)/);
+    expect(dash).not.toMatch(/'global-liquidity':\s*!!\(dtsData\?\.series\?\.length \|\| ecbData\?\.m3Growth\?\.length \|\| beaData\?\.savingRate\?\.length\)/);
+    expect(dash).toMatch(/'imf-cofer':\s*hasImfCoferShares\(imfData\?\.cofer\)/);
+    expect(dash).toMatch(/'global-liquidity':\s*hasGlobalLiquidityContent\(/);
+  });
+
+  it('hasImfCoferShares is false for empty / keys-only leftover bags', () => {
+    expect(hasImfCoferShares()).toBe(false);
+    expect(hasImfCoferShares(null)).toBe(false);
+    expect(hasImfCoferShares({})).toBe(false);
+    expect(hasImfCoferShares({ isLive: true })).toBe(false);
+    expect(hasImfCoferShares({ USD: { asOf: '2024-Q1' } })).toBe(false);
+    expect(hasImfCoferShares({ USD: { value: 57.8 }, EUR: { value: 20.1 } })).toBe(false);
+    expect(hasImfCoferShares({
+      USD: { asOf: '2024-Q1' },
+      EUR: { asOf: '2024-Q1' },
+      JPY: { asOf: '2024-Q1' },
+    })).toBe(false);
+    expect(hasImfCoferShares({ USD: null, EUR: null, JPY: null })).toBe(false);
+  });
+
+  it('hasImfCoferShares is true when three currencies have painted shares', () => {
+    expect(hasImfCoferShares({
+      USD: { value: 57.8, asOf: '2024-Q1' },
+      EUR: { value: 20.1, asOf: '2024-Q1' },
+      JPY: { value: 5.8, asOf: '2024-Q1' },
+    })).toBe(true);
+    expect(hasImfCoferShares({
+      USD: { value: 58 },
+      EUR: { value: 20 },
+      JPY: { asOf: '2024-Q1' },
+      GBP: { value: 4.7 },
+    })).toBe(true);
+  });
+
+  it('hasGlobalLiquidityContent is false for empty / dates-only leftover bags', () => {
+    expect(hasGlobalLiquidityContent()).toBe(false);
+    expect(hasGlobalLiquidityContent({})).toBe(false);
+    expect(hasGlobalLiquidityContent({ dtsData: { isLive: true } })).toBe(false);
+    expect(hasGlobalLiquidityContent({ dtsData: { series: [{ date: '2024-01-02' }] } })).toBe(false);
+    expect(hasGlobalLiquidityContent({ dtsData: { series: [{ date: '2024-01-02', closeB: null }] } })).toBe(false);
+    expect(hasGlobalLiquidityContent({ dtsData: { latest: { date: '2024-01-02' } } })).toBe(false);
+    expect(hasGlobalLiquidityContent({ ecbData: { m3Growth: [{ period: '2024-01' }] } })).toBe(false);
+    expect(hasGlobalLiquidityContent({ beaData: { savingRate: [{ desc: 'Unrelated line', value: 5.1 }] } })).toBe(false);
+    expect(hasGlobalLiquidityContent({ beaData: { savingRate: [{ desc: 'Personal saving as a percentage of disposable personal income' }] } })).toBe(false);
+    expect(hasGlobalLiquidityContent({ gdpNowData: { latest: { event: 'advance' } } })).toBe(false);
+  });
+
+  it('hasGlobalLiquidityContent is true when a painted TGA, M3, saving, or GDPNow number exists', () => {
+    expect(hasGlobalLiquidityContent({ dtsData: { series: [{ date: '2024-01-02', closeB: 712 }] } })).toBe(true);
+    expect(hasGlobalLiquidityContent({ dtsData: { latest: { closeB: 700 } } })).toBe(true);
+    expect(hasGlobalLiquidityContent({ ecbData: { m3Growth: [{ period: '2024-01', value: 3.1 }] } })).toBe(true);
+    expect(hasGlobalLiquidityContent({
+      beaData: { savingRate: [{ desc: 'Personal saving as a percentage of disposable personal income', value: 4.8 }] },
+    })).toBe(true);
+    expect(hasGlobalLiquidityContent({ gdpNowData: { latest: { gdp: 2.4 } } })).toBe(true);
+    expect(hasGlobalLiquidityContent({ gdpNowData: { evolution: [{ gdp: 1.8 }] } })).toBe(true);
   });
 });

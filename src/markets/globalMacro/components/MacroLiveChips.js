@@ -4,6 +4,11 @@ function isFiniteNumber(v) {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
+function isPaintedNumber(v) {
+  if (v == null || v === '') return false;
+  return Number.isFinite(typeof v === 'number' ? v : Number(v));
+}
+
 function lastValue(hist) {
   return Array.isArray(hist?.values) ? hist.values[hist.values.length - 1] : null;
 }
@@ -150,4 +155,27 @@ export function hasBeaIncomeContent(beaData) {
     const desc = String(row.desc || '').toLowerCase();
     return BEA_INCOME_DESC.some((needle) => desc.includes(needle));
   });
+}
+
+/** COFER pie needs 3+ currency keys with a numeric share; leftover keys-only bag is empty. */
+export function hasImfCoferShares(cofer) {
+  if (!cofer || typeof cofer !== 'object' || Array.isArray(cofer)) return false;
+  if (Object.keys(cofer).length < 3) return false;
+  return Object.values(cofer).some((v) => isPaintedNumber(v?.value));
+}
+
+/** Liquidity cards/charts paint TGA close, M3, saving rate, or GDPNow; leftover series length is empty. */
+export function hasGlobalLiquidityContent({ dtsData, ecbData, beaData, gdpNowData } = {}) {
+  const tgaLatest = dtsData?.latest || (Array.isArray(dtsData?.series) ? dtsData.series[dtsData.series.length - 1] : null);
+  if (isPaintedNumber(tgaLatest?.closeB)) return true;
+  const tgaSeries = Array.isArray(dtsData?.series) ? dtsData.series : [];
+  if (tgaSeries.some((p) => isPaintedNumber(p?.closeB))) return true;
+  const m3 = Array.isArray(ecbData?.m3Growth) ? ecbData.m3Growth : [];
+  if (m3.some((p) => isPaintedNumber(p?.value))) return true;
+  const saving = Array.isArray(beaData?.savingRate) ? beaData.savingRate : [];
+  if (saving.some((r) => String(r?.desc || '').toLowerCase().includes('personal saving as a percentage') && isPaintedNumber(r?.value))) return true;
+  const evo = Array.isArray(gdpNowData?.evolution) ? gdpNowData.evolution : [];
+  const gdpNow = gdpNowData?.latest?.gdp ?? evo[evo.length - 1]?.gdp;
+  if (isPaintedNumber(gdpNow)) return true;
+  return false;
 }

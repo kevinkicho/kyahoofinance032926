@@ -32,6 +32,8 @@ import {
   hasEurostatRows,
   hasOecdDirectRows,
   hasBeaIncomeContent,
+  hasImfCoferShares,
+  hasGlobalLiquidityContent,
 } from './MacroLiveChips.js';
 import './GlobalMacroDashboard.css';
 
@@ -1092,7 +1094,7 @@ function GlobalMacroDashboard({
       activity: hasActivityContent(cfnai, yieldSpread),
       cli: hasCliRows(oecdCliDetail, oecdCli),
       'imf-reserves': hasReserveRows(imfData?.countries, imfData?.ifsReserves),
-      'imf-cofer': !!(imfData?.cofer && Object.keys(imfData.cofer).length > 0),
+      'imf-cofer': hasImfCoferShares(imfData?.cofer),
       'wb-trade': hasWbTradeRows(wbData),
       'wb-dev': hasWbDevRows(wbData),
       'ecb-eur': hasEcbEurContent(ecbData),
@@ -1104,7 +1106,7 @@ function GlobalMacroDashboard({
       eurostat: hasEurostatRows(eurostatData),
       'oecd-direct': hasOecdDirectRows(oecdData),
       'bea-income': hasBeaIncomeContent(beaData),
-      'global-liquidity': !!(dtsData?.series?.length || ecbData?.m3Growth?.length || beaData?.savingRate?.length),
+      'global-liquidity': hasGlobalLiquidityContent({ dtsData, ecbData, beaData, gdpNowData }),
     },
     __subtitle: {
       scorecard: scorecard.length ? 'Click row for details' : 'Waiting for country scorecard data…',
