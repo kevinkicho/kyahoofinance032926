@@ -323,22 +323,22 @@ export const PANEL_REGISTRY = {
 
   globalMacro: [
     { id: 'scorecard', title: 'Scorecard', field: 'scorecardData', fieldPath: 'scorecardData', source: 'globalMacro.js', external: [{ name: 'IMF / World Bank / FRED', seriesIds: [] }], renderCheck: 'scorecardData && scorecardData.length > 0' },
-    { id: 'central-bank-rates', title: 'Central Bank Rates', field: 'centralBankData', fieldPath: 'centralBankData', source: 'globalMacro.js', external: [{ name: 'FRED / ECB', seriesIds: ['FEDFUNDS','ECBMRRFR'] }], renderCheck: 'centralBankData && centralBankData.length > 0' },
-    { id: 'debt-monitor', title: 'Debt Monitor', field: 'debtData', fieldPath: 'debtData', source: 'globalMacro.js', external: [{ name: 'IMF / World Bank', seriesIds: [] }], renderCheck: 'debtData && debtData.length > 0' },
-    { id: 'growth-inflation', title: 'Growth & Inflation', field: 'growthInflationData', fieldPath: 'growthInflationData', source: 'globalMacro.js', external: [{ name: 'World Bank / FRED', seriesIds: ['GDP','CPIAUCSL'] }], renderCheck: 'growthInflationData && growthInflationData.length > 0' },
-    { id: 'economic-activity', title: 'Economic Activity', field: 'economicActivityData', fieldPath: 'economicActivityData', source: 'globalMacro.js', external: [{ name: 'OECD / FRED', seriesIds: ['UNRATE'] }], renderCheck: 'economicActivityData && Object.keys(economicActivityData).length > 0' },
-    { id: 'imf-weo', title: 'IMF World Economic Outlook', field: 'imfWEO', fieldPath: 'imfWEO', crossMarket: 'imf', source: 'imf.js', external: [{ name: 'IMF', seriesIds: [] }], renderCheck: 'imfCtx?.data?.countries?.length > 0' },
-    { id: 'oecd-indicators', title: 'OECD Leading Indicators', field: 'oecdCli', fieldPath: 'oecdCli', source: 'globalMacro.js', external: [{ name: 'OECD (via FRED)', seriesIds: ['USALOLITOAASTSAM'] }], renderCheck: 'oecdCli && Object.keys(oecdCli).length > 0' },
-    { id: 'bis-liquidity', title: 'BIS Global Liquidity', field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', source: 'globalMacro.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'bisCreditToGDP && Object.keys(bisCreditToGDP).length > 0' },
+    { id: 'rates', title: 'Central Bank Rates', field: 'centralBankData', fieldPath: 'centralBankData', source: 'globalMacro.js', external: [{ name: 'FRED / ECB', seriesIds: ['FEDFUNDS','ECBMRRFR'] }], renderCheck: 'centralBankData && centralBankData.length > 0' },
+    { id: 'debt', title: 'Debt Monitor', field: 'debtData', fieldPath: 'debtData', source: 'globalMacro.js', external: [{ name: 'IMF / World Bank', seriesIds: [] }], renderCheck: 'debtData && debtData.length > 0' },
+    { id: 'gdp', title: 'GDP Growth', field: 'growthInflationData', fieldPath: 'growthInflationData', source: 'globalMacro.js', external: [{ name: 'World Bank / FRED', seriesIds: ['GDP'] }], renderCheck: 'growthInflationData && growthInflationData.length > 0' },
+    { id: 'cpi', title: 'CPI Inflation', field: 'growthInflationData', fieldPath: 'growthInflationData', source: 'globalMacro.js', external: [{ name: 'World Bank / FRED', seriesIds: ['CPIAUCSL'] }], renderCheck: 'growthInflationData && growthInflationData.length > 0' },
+    { id: 'activity', title: 'Economic Activity', field: 'cfnai', fieldPath: 'cfnai', source: 'globalMacro.js', external: [{ name: 'FRED', seriesIds: ['CFNAI'] }], renderCheck: 'cfnai && (cfnai.latest != null || cfnai.values?.length > 0)' },
+    { id: 'imf-reserves', title: 'IMF Reserves', field: 'ifsReserves', fieldPath: 'ifsReserves', crossMarket: 'imf', source: 'imf.js', external: [{ name: 'IMF', seriesIds: [] }], renderCheck: 'imfCtx?.data?.ifsReserves || imfCtx?.data?.countries?.length > 0' },
+    { id: 'cli', title: 'OECD Leading Indicators', field: 'oecdCli', fieldPath: 'oecdCli', source: 'globalMacro.js', external: [{ name: 'OECD (via FRED)', seriesIds: ['USALOLITOAASTSAM'] }], renderCheck: 'oecdCli && Object.keys(oecdCli).length > 0' },
+    { id: 'global-liquidity', title: 'BIS Global Liquidity', field: 'series', fieldPath: 'series', crossMarket: 'treasuryDTS', source: 'treasuryDTS.js', external: [{ name: 'US Treasury DTS / ECB / BEA', seriesIds: [] }], renderCheck: 'dtsCtx?.data?.series' },
   ],
 
   credit: [
-    { id: 'ig-hy', title: 'IG/HY Dashboard', field: 'spreadData', fieldPath: 'spreadData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['BAMLH0A0HYM2','BAMLC0A0CM'] }], renderCheck: 'spreadData && Object.keys(spreadData).length > 0' },
-    { id: 'em-bonds', title: 'EM Bonds', field: 'emBondData', fieldPath: 'emBondData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['BAMLEMCBPIOAS'] }], renderCheck: 'emBondData && Object.keys(emBondData).length > 0' },
-    { id: 'loan-market', title: 'Loan Market', field: 'loanData', fieldPath: 'loanData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: [] }], renderCheck: 'loanData && Object.keys(loanData).length > 0' },
-    { id: 'default-watch', title: 'Default Watch', field: 'defaultData', fieldPath: 'defaultData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['DRSFRWBS'] }], renderCheck: 'defaultData && Object.keys(defaultData).length > 0' },
+    { id: 'credit-spreads', title: 'Credit Spreads', field: 'spreadData', fieldPath: 'spreadData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['BAMLH0A0HYM2','BAMLC0A0CM'] }], renderCheck: 'spreadData && Object.keys(spreadData).length > 0' },
+    { id: 'em-yields', title: 'EM ETF Yields', field: 'emBondData', fieldPath: 'emBondData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['BAMLEMCBPIOAS'] }], renderCheck: 'emBondData && Object.keys(emBondData).length > 0' },
+    { id: 'default-rates', title: 'Default Rates', field: 'defaultData', fieldPath: 'defaultData', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['DRSFRWBS'] }], renderCheck: 'defaultData && Object.keys(defaultData).length > 0' },
     { id: 'bis-total-credit', title: 'BIS Total Credit', field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', crossMarket: 'globalMacro', source: 'globalMacro.js', external: [{ name: 'BIS', seriesIds: [] }], renderCheck: 'macroCtx?.data?.bisCreditToGDP && Object.keys(macroCtx.data.bisCreditToGDP).length > 0' },
-    { id: 'fdic-summary', title: 'FDIC Banking Summary', field: 'summary', fieldPath: 'summary', crossMarket: 'fdic', source: 'fdic.js', external: [{ name: 'FDIC', seriesIds: [] }], renderCheck: 'fdicCtx?.data?.summary' },
+    { id: 'bank-sector', title: 'US Banking Sector (FDIC)', field: 'aggregate', fieldPath: 'aggregate', crossMarket: 'fdic', source: 'fdic.js', external: [{ name: 'FDIC', seriesIds: [] }], renderCheck: 'fdicCtx?.data?.aggregate' },
     { id: 'ted-spread', title: 'TED Spread', field: 'tedSpread', fieldPath: 'tedSpread', source: 'credit.js', external: [{ name: 'FRED', seriesIds: ['TEDRATE'] }], renderCheck: 'tedSpread && tedSpread.values?.length > 0' },
     { id: 'wb-debt', title: 'World Bank Debt Statistics', field: '(cross-market: worldbank)', fieldPath: 'wbCtx.data.countries', source: 'worldbank.js', external: [{ name: 'World Bank', seriesIds: ['NY.GDP.MKTP.KD.ZG','NE.TRD.GNFS.ZS'] }], renderCheck: 'wbCtx?.data?.countries?.length > 0', renderType: 'WorldBankDebtPanel' },
     { id: 'treasury-credit-holdings', title: 'Treasury Credit Holdings', field: '(cross-market: treasuryTIC)', fieldPath: 'ticCtx.data.latest', source: 'treasuryTIC.js', external: [{ name: 'US Treasury TIC', seriesIds: [] }], renderCheck: 'ticCtx?.data?.latest?.length > 0', renderType: 'TreasuryCreditHoldingsPanel' },
@@ -354,8 +354,9 @@ export const PANEL_REGISTRY = {
   ],
 
   calendar: [
-    { id: 'economic-calendar', title: 'Economic Calendar', field: 'economicEvents', fieldPath: 'economicEvents', source: 'calendar.js', external: [{ name: 'FRED Releases', seriesIds: [] }], renderCheck: 'economicEvents && economicEvents.length > 0' },
-    { id: 'central-bank-schedule', title: 'Central Bank Schedule', field: 'centralBanks', fieldPath: 'centralBanks', source: 'calendar.js', external: [{ name: 'Static', seriesIds: [] }], renderCheck: 'centralBanks && centralBanks.length > 0' },
+    { id: 'economic', title: 'Economic Calendar', field: 'economicEvents', fieldPath: 'economicEvents', source: 'calendar.js', external: [{ name: 'FRED Releases', seriesIds: [] }], renderCheck: 'economicEvents && economicEvents.length > 0' },
+    { id: 'cb-rates', title: 'Central Bank Rates', field: 'centralBanks', fieldPath: 'centralBanks', source: 'calendar.js', external: [{ name: 'FRED / BIS', seriesIds: [] }], renderCheck: 'centralBanks && centralBanks.length > 0' },
+    { id: 'cb-timeline', title: 'Upcoming Meetings', field: 'centralBanks', fieldPath: 'centralBanks', source: 'calendar.js', external: [{ name: 'FRED / BIS', seriesIds: [] }], renderCheck: 'centralBanks && centralBanks.length > 0' },
     { id: 'earnings', title: 'Earnings Season', field: 'earningsSeason', fieldPath: 'earningsSeason', source: 'calendar.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'earningsSeason && earningsSeason.length > 0' },
   ],
 

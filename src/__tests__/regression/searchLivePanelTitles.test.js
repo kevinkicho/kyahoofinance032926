@@ -132,4 +132,50 @@ describe('panelRegistry market ids', () => {
     expect(getRegistryEntry('commodities', 'futures-curve')).toBeNull();
     expect(getRegistryEntry('commodities', 'supply-demand')).toBeNull();
   });
+
+  it('Macro registry ids match live tiles, not central-bank-rates / growth-inflation', () => {
+    const live = new Set((MARKET_PANELS.globalMacro || []).map((p) => p.id));
+    const stale = ['central-bank-rates', 'debt-monitor', 'growth-inflation', 'economic-activity', 'imf-weo', 'oecd-indicators', 'bis-liquidity'];
+    const ids = (PANEL_REGISTRY.globalMacro || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['scorecard', 'rates', 'debt', 'gdp', 'cpi', 'activity', 'imf-reserves', 'cli', 'global-liquidity']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('globalMacro', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('globalMacro', 'central-bank-rates')).toBeNull();
+    expect(getRegistryEntry('globalMacro', 'growth-inflation')).toBeNull();
+    expect(getRegistryEntry('globalMacro', 'imf-weo')).toBeNull();
+    expect(getRegistryEntry('globalMacro', 'bis-liquidity')).toBeNull();
+  });
+
+  it('Credit registry ids match live tiles, not ig-hy / loan-market / fdic-summary', () => {
+    const live = new Set((MARKET_PANELS.credit || []).map((p) => p.id));
+    const stale = ['ig-hy', 'em-bonds', 'loan-market', 'default-watch', 'fdic-summary'];
+    const ids = (PANEL_REGISTRY.credit || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['credit-spreads', 'em-yields', 'default-rates', 'bank-sector', 'ted-spread', 'wb-debt', 'bis-total-credit', 'treasury-credit-holdings']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('credit', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('credit', 'ig-hy')).toBeNull();
+    expect(getRegistryEntry('credit', 'loan-market')).toBeNull();
+    expect(getRegistryEntry('credit', 'fdic-summary')).toBeNull();
+    expect(getRegistryEntry('credit', 'default-watch')).toBeNull();
+  });
+
+  it('Calendar registry ids match live tiles, not economic-calendar / central-bank-schedule', () => {
+    const live = new Set((MARKET_PANELS.calendar || []).map((p) => p.id));
+    const stale = ['economic-calendar', 'central-bank-schedule'];
+    const ids = (PANEL_REGISTRY.calendar || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['economic', 'cb-rates', 'cb-timeline', 'earnings']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('calendar', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('calendar', 'economic-calendar')).toBeNull();
+    expect(getRegistryEntry('calendar', 'central-bank-schedule')).toBeNull();
+  });
 });
