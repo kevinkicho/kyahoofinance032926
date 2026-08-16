@@ -1,5 +1,6 @@
 import { definePanel } from '../definePanel';
 import { CentralBankRatesPanel } from '../../markets/bonds/components/MacroAndRatesPanels';
+import { hasGlobalCentralBankRates } from '../../markets/bonds/components/BondsLiveChips';
 
 function Body({ ctx }) {
   const d = ctx?.bonds || {};
@@ -22,6 +23,6 @@ export default definePanel({
   className: 'bonds-bento-card',
   modulePath: 'src/panels/bonds/globalRates.js',
   getSubtitle: () => 'Overnight / policy rates · FRED + ECB',
-  isLive: (ctx) => !!(ctx?.bonds?.macroData?.centralBankRates || ctx?.ecb?.data),
+  isLive: (ctx) => hasGlobalCentralBankRates(ctx?.bonds?.macroData?.centralBankRates, ctx?.ecb?.data?.policyRates?.mainRefinancing?.value),
   Body,
 });

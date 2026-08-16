@@ -123,3 +123,91 @@ export function hasRealYieldSeries(realYieldHistory) {
   if (!Array.isArray(realYieldHistory?.dates) || !realYieldHistory.dates.length) return false;
   return hasPaintedSeries(realYieldHistory?.d5y) || hasPaintedSeries(realYieldHistory?.d10y);
 }
+
+const CREDIT_SPREAD_KEYS = ['IG', 'HY', 'EM', 'BBB'];
+const FFF_MONTHS = ['m1', 'm2', 'm3', 'm4', 'm5', 'm6'];
+const MACRO_LEVEL_KEYS = [
+  'fedBalanceSheet', 'm2', 'federalDebt', 'surplusDeficit',
+  'unemployment', 'laborParticipation', 'gdp', 'pce', 'tb3ms',
+];
+
+function lastFiniteInSeries(arr) {
+  if (!Array.isArray(arr)) return false;
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i] != null && Number.isFinite(Number(arr[i]))) return true;
+  }
+  return false;
+}
+
+function hasNumericField(obj) {
+  return obj?.value != null && Number.isFinite(Number(obj.value));
+}
+
+function lastFiniteValue(rows) {
+  if (!Array.isArray(rows) || !rows.length) return false;
+  const last = rows[rows.length - 1];
+  return last?.value != null && Number.isFinite(Number(last.value));
+}
+
+/** Credit-spreads tile is empty when dates exist but no IG/HY/EM/BBB series or current values paint. */
+export function hasCreditSpreadContent(spreadData) {
+  if (!spreadData || typeof spreadData !== 'object') return false;
+  const cur = spreadData.current;
+  if (
+    isFiniteNumeric(cur?.igSpread)
+    || isFiniteNumeric(cur?.hySpread)
+    || isFiniteNumeric(cur?.emSpread)
+    || isFiniteNumeric(cur?.bbbSpread)
+  ) return true;
+  return CREDIT_SPREAD_KEYS.some((k) => lastFiniteInSeries(spreadData[k]));
+}
+
+/** Duration ladder is empty when meta/asOf leftover or FFF keys exist but no bucket/FFF values paint. */
+export function hasDurationLadderContent(durationLadderData, fedFundsFutures, treasuryRates) {
+  if (Array.isArray(durationLadderData)) {
+    if (durationLadderData.some((d) => isFiniteNumeric(d?.amount) || isFiniteNumeric(d?.rate))) return true;
+  }
+  if (treasuryRates && typeof treasuryRates === 'object' && !Array.isArray(treasuryRates)) {
+    const buckets = ['0–2y', '2–5y', '5–10y', '10y+', '0-2y', '2-5y', '5-10y'];
+    if (buckets.some((b) => isFiniteNumeric(treasuryRates[b]))) return true;
+  }
+  if (fedFundsFutures && typeof fedFundsFutures === 'object' && !Array.isArray(fedFundsFutures)) {
+    const painted = FFF_MONTHS.filter((k) => isFiniteNumeric(fedFundsFutures[k])).length;
+    if (painted >= 2) return true;
+  }
+  return false;
+}
+
+/** Macro-indicators tile is empty when the leftover bag has keys but no numeric rows paint. */
+export function hasMacroIndicatorsContent(macroData, nationalDebt, debtToGdpHistory) {
+  if (isFiniteNumeric(nationalDebt) || isFiniteNumeric(debtToGdpHistory?.latest)) return true;
+  if (!macroData || typeof macroData !== 'object' || Array.isArray(macroData)) return false;
+  if (MACRO_LEVEL_KEYS.some((k) => isFiniteNumeric(macroData[k]))) return true;
+  const cb = macroData.centralBankRates;
+  if (cb && typeof cb === 'object' && !Array.isArray(cb)) {
+    if (Object.values(cb).some((v) => isFiniteNumeric(v))) return true;
+  }
+  return false;
+}
+
+/** ECB policy-rates tile is empty when policyRates/moneyMarket bags exist but no rates paint. */
+export function hasEcbPolicyRatesContent(ecbData) {
+  const pr = ecbData?.policyRates;
+  if (pr && typeof pr === 'object') {
+    if (hasNumericField(pr.depositFacility) || hasNumericField(pr.mainRefinancing) || hasNumericField(pr.marginalLending)) return true;
+    if (hasNumericField(pr.corridorWidth) || hasNumericField(pr.standingFacilitySpread)) return true;
+  }
+  const mm = ecbData?.moneyMarket;
+  if (mm && typeof mm === 'object') {
+    const keys = ['estr', 'estrP25', 'estrP75', 'estrMonthlyAvg', 'euribor1m', 'euribor3m', 'euribor6m', 'euribor1y'];
+    if (keys.some((k) => hasNumericField(mm[k]))) return true;
+  }
+  return lastFiniteValue(ecbData?.m3Growth) || lastFiniteValue(ecbData?.hicpDetail);
+}
+
+/** Global-rates tile is empty when centralBankRates or sibling ECB bags exist but no painted rate. */
+export function hasGlobalCentralBankRates(rates, ecbRate) {
+  if (isFiniteNumeric(ecbRate)) return true;
+  if (!rates || typeof rates !== 'object' || Array.isArray(rates)) return false;
+  return Object.values(rates).some((v) => isFiniteNumeric(v));
+}

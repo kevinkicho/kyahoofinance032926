@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import { hasEcbPolicyRatesContent } from './BondsLiveChips';
 import './BondsDashboard.css';
 
 /** Format FRED macro levels with correct units (never dump nested objects). */
@@ -149,7 +150,7 @@ function EcbPolicyRatesPanel({ data }) {
   const m3Last = data?.m3Growth?.length ? data.m3Growth[data.m3Growth.length - 1] : null;
   const hicpLast = data?.hicpDetail?.length ? data.hicpDetail[data.hicpDetail.length - 1] : null;
 
-  if (!pr && !mm && !m3Last && !hicpLast) {
+  if (!hasEcbPolicyRatesContent(data)) {
     return <div className="bonds-empty">ECB data unavailable</div>;
   }
 

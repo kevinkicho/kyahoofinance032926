@@ -1,5 +1,6 @@
 import { definePanel } from '../definePanel';
 import { EcbPolicyRatesPanel } from '../../markets/bonds/components/MacroAndRatesPanels';
+import { hasEcbPolicyRatesContent } from '../../markets/bonds/components/BondsLiveChips';
 
 function Body({ ctx }) {
   return <EcbPolicyRatesPanel data={ctx?.ecb?.data} />;
@@ -15,6 +16,6 @@ export default definePanel({
   className: 'bonds-bento-card',
   modulePath: 'src/panels/bonds/ecbYields.js',
   getSubtitle: () => 'Key rates · €STR · EURIBOR · M3/HICP',
-  isLive: (ctx) => !!(ctx?.ecb?.data?.policyRates || ctx?.ecb?.data?.moneyMarket),
+  isLive: (ctx) => hasEcbPolicyRatesContent(ctx?.ecb?.data),
   Body,
 });

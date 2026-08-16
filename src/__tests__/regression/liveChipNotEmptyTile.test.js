@@ -101,6 +101,11 @@ import {
   hasDebtGdpSeries,
   hasCpiComponentsSeries,
   hasRealYieldSeries,
+  hasCreditSpreadContent,
+  hasDurationLadderContent,
+  hasMacroIndicatorsContent,
+  hasEcbPolicyRatesContent,
+  hasGlobalCentralBankRates,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -1354,6 +1359,116 @@ describe('bonds leftover empty-capable tiles (cpi / realYield)', () => {
     expect(hasRealYieldSeries({ dates: ['2024-01'], d5y: [1.8] })).toBe(true);
     expect(hasRealYieldSeries({ dates: ['2024-01'], d10y: [2.1] })).toBe(true);
     expect(hasRealYieldSeries({ dates: ['2024-01', '2024-02'], d5y: [null, 1.8] })).toBe(true);
+  });
+});
+
+
+describe('bonds leftover empty-capable tiles (credit / duration / macro / ecb / global-rates)', () => {
+  it('panels do not hardcode leftover dates-only or bag-existence on empty-capable tiles', () => {
+    const credit = src('panels/bonds/credit.jsx');
+    const duration = src('panels/bonds/duration.jsx');
+    const macro = src('panels/bonds/macro.jsx');
+    const ecb = src('panels/bonds/ecbYields.jsx');
+    const global = src('panels/bonds/globalRates.jsx');
+    expect(credit).not.toMatch(/isLive:\s*\(ctx\)\s*=>\s*\{?[\s\S]*s\?\.dates\?\.length/);
+    expect(duration).not.toMatch(/durationLadderMeta \|\| \(d\.fedFundsFutures && Object\.keys\(d\.fedFundsFutures\)\.length > 1\)/);
+    expect(macro).not.toMatch(/!!\(m && Object\.keys\(m\)\.length > 0\)/);
+    expect(ecb).not.toMatch(/!!\(ctx\?\.ecb\?\.data\?\.policyRates \|\| ctx\?\.ecb\?\.data\?\.moneyMarket\)/);
+    expect(global).not.toMatch(/!!\(ctx\?\.bonds\?\.macroData\?\.centralBankRates \|\| ctx\?\.ecb\?\.data\)/);
+    expect(credit).toMatch(/hasCreditSpreadContent\(ctx\?\.bonds\?\.spreadData\)/);
+    expect(duration).toMatch(/hasDurationLadderContent\(/);
+    expect(macro).toMatch(/hasMacroIndicatorsContent\(/);
+    expect(ecb).toMatch(/hasEcbPolicyRatesContent\(ctx\?\.ecb\?\.data\)/);
+    expect(global).toMatch(/hasGlobalCentralBankRates\(/);
+  });
+
+  it('hasCreditSpreadContent is false for empty / dates-only leftover bags', () => {
+    expect(hasCreditSpreadContent()).toBe(false);
+    expect(hasCreditSpreadContent(null)).toBe(false);
+    expect(hasCreditSpreadContent({})).toBe(false);
+    expect(hasCreditSpreadContent({ isLive: true })).toBe(false);
+    expect(hasCreditSpreadContent({ dates: ['2024-01'] })).toBe(false);
+    expect(hasCreditSpreadContent({ dates: ['2024-01'], IG: [], HY: [], EM: [], BBB: [] })).toBe(false);
+    expect(hasCreditSpreadContent({ dates: ['2024-01'], IG: [null, null], HY: [null] })).toBe(false);
+    expect(hasCreditSpreadContent({ current: {} })).toBe(false);
+    expect(hasCreditSpreadContent({ current: { hySpread: null } })).toBe(false);
+  });
+
+  it('hasCreditSpreadContent is true when a series or current spread paints', () => {
+    expect(hasCreditSpreadContent({ dates: ['2024-01'], HY: [412] })).toBe(true);
+    expect(hasCreditSpreadContent({ dates: ['2024-01'], IG: [null, 98] })).toBe(true);
+    expect(hasCreditSpreadContent({ current: { hySpread: 412 } })).toBe(true);
+    expect(hasCreditSpreadContent({ current: { igSpread: 98 } })).toBe(true);
+    expect(hasCreditSpreadContent({ current: { emSpread: 210 } })).toBe(true);
+    expect(hasCreditSpreadContent({ BBB: [140] })).toBe(true);
+  });
+
+  it('hasDurationLadderContent is false for meta-only / sibling FFF-key leftover bags', () => {
+    expect(hasDurationLadderContent()).toBe(false);
+    expect(hasDurationLadderContent(null)).toBe(false);
+    expect(hasDurationLadderContent([])).toBe(false);
+    expect(hasDurationLadderContent([{ bucket: '0–2y' }], { isLive: true }, { asOf: '2024-01' })).toBe(false);
+    expect(hasDurationLadderContent(null, { m1: null, m2: null, effectiveRate: 5.33 })).toBe(false);
+    expect(hasDurationLadderContent(null, { m1: 5.33 })).toBe(false);
+    expect(hasDurationLadderContent([{ amount: null, rate: null }])).toBe(false);
+  });
+
+  it('hasDurationLadderContent is true when a bucket or two FFF months paint', () => {
+    expect(hasDurationLadderContent([{ bucket: '0–2y', amount: 6.2e6 }])).toBe(true);
+    expect(hasDurationLadderContent([{ bucket: '10y+', rate: 4.1 }])).toBe(true);
+    expect(hasDurationLadderContent(null, { m1: 5.33, m2: 5.21 })).toBe(true);
+    expect(hasDurationLadderContent(null, null, { '2–5y': 3.8 })).toBe(true);
+  });
+
+  it('hasMacroIndicatorsContent is false for empty / leftover bag-only payloads', () => {
+    expect(hasMacroIndicatorsContent()).toBe(false);
+    expect(hasMacroIndicatorsContent(null)).toBe(false);
+    expect(hasMacroIndicatorsContent({})).toBe(false);
+    expect(hasMacroIndicatorsContent({ isLive: true })).toBe(false);
+    expect(hasMacroIndicatorsContent({ centralBankRates: {}, centralBankMeta: {} })).toBe(false);
+    expect(hasMacroIndicatorsContent({ fedBalanceSheet: null, unemployment: null })).toBe(false);
+    expect(hasMacroIndicatorsContent({ centralBankRates: { US: null, EU: null } })).toBe(false);
+  });
+
+  it('hasMacroIndicatorsContent is true when a numeric row or CB rate paints', () => {
+    expect(hasMacroIndicatorsContent({ unemployment: 4.1 })).toBe(true);
+    expect(hasMacroIndicatorsContent({ m2: 21800 })).toBe(true);
+    expect(hasMacroIndicatorsContent({ centralBankRates: { US: 5.25 } })).toBe(true);
+    expect(hasMacroIndicatorsContent({}, 36e6)).toBe(true);
+    expect(hasMacroIndicatorsContent({}, null, { latest: 122 })).toBe(true);
+  });
+
+  it('hasEcbPolicyRatesContent is false for empty / leftover policyRate bags', () => {
+    expect(hasEcbPolicyRatesContent()).toBe(false);
+    expect(hasEcbPolicyRatesContent(null)).toBe(false);
+    expect(hasEcbPolicyRatesContent({})).toBe(false);
+    expect(hasEcbPolicyRatesContent({ isLive: true })).toBe(false);
+    expect(hasEcbPolicyRatesContent({ policyRates: {} })).toBe(false);
+    expect(hasEcbPolicyRatesContent({ moneyMarket: {} })).toBe(false);
+    expect(hasEcbPolicyRatesContent({ policyRates: { depositFacility: { period: '2024-01' } } })).toBe(false);
+    expect(hasEcbPolicyRatesContent({ m3Growth: [], hicpDetail: [] })).toBe(false);
+  });
+
+  it('hasEcbPolicyRatesContent is true when a policy, MM, or aggregate rate paints', () => {
+    expect(hasEcbPolicyRatesContent({ policyRates: { depositFacility: { value: 3.75 } } })).toBe(true);
+    expect(hasEcbPolicyRatesContent({ policyRates: { mainRefinancing: { value: 4.15 } } })).toBe(true);
+    expect(hasEcbPolicyRatesContent({ moneyMarket: { estr: { value: 3.91 } } })).toBe(true);
+    expect(hasEcbPolicyRatesContent({ m3Growth: [{ value: 3.2 }] })).toBe(true);
+    expect(hasEcbPolicyRatesContent({ hicpDetail: [{ value: 2.4 }] })).toBe(true);
+  });
+
+  it('hasGlobalCentralBankRates is false for empty / sibling ECB leftover bags', () => {
+    expect(hasGlobalCentralBankRates()).toBe(false);
+    expect(hasGlobalCentralBankRates(null)).toBe(false);
+    expect(hasGlobalCentralBankRates({})).toBe(false);
+    expect(hasGlobalCentralBankRates({ US: null, EU: null })).toBe(false);
+    expect(hasGlobalCentralBankRates({ isLive: true })).toBe(false);
+  });
+
+  it('hasGlobalCentralBankRates is true when a painted rate exists', () => {
+    expect(hasGlobalCentralBankRates({ US: 5.25 })).toBe(true);
+    expect(hasGlobalCentralBankRates({ EU: null }, 4.15)).toBe(true);
+    expect(hasGlobalCentralBankRates(null, 4.15)).toBe(true);
   });
 });
 

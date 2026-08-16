@@ -1,5 +1,6 @@
 import { definePanel } from '../definePanel';
 import DurationLadder from '../../markets/bonds/components/DurationLadder';
+import { hasDurationLadderContent } from '../../markets/bonds/components/BondsLiveChips';
 
 function Body({ ctx }) {
   const d = ctx?.bonds || {};
@@ -34,7 +35,7 @@ export default definePanel({
   },
   isLive: (ctx) => {
     const d = ctx?.bonds || {};
-    return !!(d.durationLadderMeta || (d.fedFundsFutures && Object.keys(d.fedFundsFutures).length > 1));
+    return hasDurationLadderContent(d.durationLadderData, d.fedFundsFutures, d.treasuryRates);
   },
   Body,
 });

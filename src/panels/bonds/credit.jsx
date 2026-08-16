@@ -1,9 +1,10 @@
 import { definePanel } from '../definePanel';
 import SpreadMonitor from '../../markets/bonds/components/SpreadMonitor';
+import { hasCreditSpreadContent } from '../../markets/bonds/components/BondsLiveChips';
 
 function Body({ ctx }) {
   const d = ctx?.bonds || {};
-  if (!(d.spreadData?.dates?.length || d.spreadData?.current)) {
+  if (!hasCreditSpreadContent(d.spreadData)) {
     return <div className="bonds-empty">No spread data available</div>;
   }
   return (
@@ -25,9 +26,6 @@ export default definePanel({
   className: 'bonds-bento-card',
   modulePath: 'src/panels/bonds/credit.js',
   getSubtitle: () => 'IG · HY · EM · BBB',
-  isLive: (ctx) => {
-    const s = ctx?.bonds?.spreadData;
-    return !!(s?.dates?.length || s?.current?.hySpread != null);
-  },
+  isLive: (ctx) => hasCreditSpreadContent(ctx?.bonds?.spreadData),
   Body,
 });
