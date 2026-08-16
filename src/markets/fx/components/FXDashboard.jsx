@@ -12,6 +12,11 @@ import TreasuryTicPanel, { hasTreasuryTicRows } from './TreasuryTicPanel';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import './FXDashboard.css';
+import {
+  hasFxKpiMetrics,
+  hasFxSpotRates,
+  hasFxMovers,
+} from './FXLiveChips.js';
 
 function Sparkline({ values }) {
   if (!values || values.length < 2) return null;
@@ -315,9 +320,9 @@ function FXDashboard({
   const panelCtx = useMemo(() => ({
     __render: renderPanel,
     __live: {
-      kpi: !!isLive,
-      sidebar: !!isLive,
-      movers: !!isLive,
+      kpi: hasFxKpiMetrics({ spotRates, changes, dxyHistory }),
+      sidebar: hasFxSpotRates(spotRates),
+      movers: hasFxMovers(changes),
       dxy: !!dxyHistory?.dates?.length,
       cot: !!(cotHistory && Object.keys(cotHistory).length > 0),
       corr: !!(history && Object.keys(history).length > 0),
@@ -359,7 +364,7 @@ function FXDashboard({
       'treasury-tic': 'US Treasury TIC',
     },
   }), [
-    renderPanel, isLive, dxyHistory, cotHistory, history, reer, rateDiff,
+    renderPanel, spotRates, changes, dxyHistory, cotHistory, history, reer, rateDiff,
     rateDifferentials, rateDiffRows, dxyOption, cotOption, hasCofer, ticCtx, hasTicHoldings,
   ]);
 

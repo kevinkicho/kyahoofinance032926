@@ -51,6 +51,11 @@ import {
   hasPetroleumSeries,
   hasHenryHubSeries,
 } from '../../markets/eia/EiaLiveChips.js';
+import {
+  hasFxKpiMetrics,
+  hasFxSpotRates,
+  hasFxMovers,
+} from '../../markets/fx/components/FXLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -615,5 +620,56 @@ describe('eia empty-capable tiles (prices / consumption / trends / co2 / petrole
 
   it('hasHenryHubSeries is true when Henry Hub values exist', () => {
     expect(hasHenryHubSeries({ henryHub: { values: [2.4], latest: { value: 2.4 } } })).toBe(true);
+  });
+});
+
+describe('fx empty-capable tiles (kpi / sidebar / movers)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/fx/components/FXDashboard.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!isLive/);
+    expect(dash).not.toMatch(/sidebar:\s*!!isLive/);
+    expect(dash).not.toMatch(/movers:\s*!!isLive/);
+    expect(dash).toMatch(/kpi:\s*hasFxKpiMetrics/);
+    expect(dash).toMatch(/sidebar:\s*hasFxSpotRates/);
+    expect(dash).toMatch(/movers:\s*hasFxMovers/);
+  });
+
+  it('hasFxKpiMetrics is false for empty / sibling-only payloads', () => {
+    expect(hasFxKpiMetrics()).toBe(false);
+    expect(hasFxKpiMetrics({})).toBe(false);
+    expect(hasFxKpiMetrics({ spotRates: { isLive: true } })).toBe(false);
+    expect(hasFxKpiMetrics({ spotRates: { USD: 1 } })).toBe(false);
+    expect(hasFxKpiMetrics({ changes: { USD: 0 }, dxyHistory: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasFxKpiMetrics({ dxyHistory: { values: [] } })).toBe(false);
+  });
+
+  it('hasFxKpiMetrics is true when a painted KPI number exists', () => {
+    expect(hasFxKpiMetrics({ spotRates: { EUR: 0.92 } })).toBe(true);
+    expect(hasFxKpiMetrics({ dxyHistory: { values: [104.2] } })).toBe(true);
+    expect(hasFxKpiMetrics({ changes: { GBP: -0.15 } })).toBe(true);
+  });
+
+  it('hasFxSpotRates is false for empty / USD-only / sibling-only payloads', () => {
+    expect(hasFxSpotRates(null)).toBe(false);
+    expect(hasFxSpotRates({})).toBe(false);
+    expect(hasFxSpotRates({ isLive: true })).toBe(false);
+    expect(hasFxSpotRates({ USD: 1 })).toBe(false);
+  });
+
+  it('hasFxSpotRates is true when a non-USD spot rate exists', () => {
+    expect(hasFxSpotRates({ EUR: 0.92, USD: 1 })).toBe(true);
+    expect(hasFxSpotRates({ JPY: 149.2 })).toBe(true);
+  });
+
+  it('hasFxMovers is false for empty / USD-only payloads', () => {
+    expect(hasFxMovers(null)).toBe(false);
+    expect(hasFxMovers({})).toBe(false);
+    expect(hasFxMovers({ isLive: true })).toBe(false);
+    expect(hasFxMovers({ USD: 0 })).toBe(false);
+  });
+
+  it('hasFxMovers is true when a non-USD 1d change exists', () => {
+    expect(hasFxMovers({ EUR: 0.21, USD: 0 })).toBe(true);
+    expect(hasFxMovers({ JPY: -0.4 })).toBe(true);
   });
 });
