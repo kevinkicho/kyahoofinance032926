@@ -402,7 +402,11 @@ export const PANEL_PLACEHOLDERS = {
   'globalMacro:cpi': [p('growth', 'growthInflationData')],
   'globalMacro:rates': [p('cb', 'centralBankData')],
   'globalMacro:debt': [p('debt', 'debtData')],
-  'globalMacro:activity': [any('act', ['cfnai', 'industrialProd', 'consumerSentiment', 'economicActivityData'])],
+  // Economic Activity paints the CFNAI chart (optional 10Y-2Y overlay).
+  // industrialProd / consumerSentiment / economicActivityData were leftover false-greens.
+  'globalMacro:activity': [
+    any('cfnai', ['cfnai.dates', 'cfnai.values', 'cfnai.latest', 'cfnai']),
+  ],
   'globalMacro:cli': [p('oecdCli', 'oecdCli')],
   // ImfReserves only renders imf.countries + imf.ifsReserves.
   // Scorecard/growth/WEO were false-green leftovers (same class as COFER).
@@ -476,7 +480,11 @@ export const PANEL_PLACEHOLDERS = {
   'sentiment:sidebar': [any('fg', ['fearGreedData', 'riskData'])],
   'sentiment:key-metrics': [p('riskData', 'riskData')],
   'sentiment:fear-greed': [p('fearGreedData', 'fearGreedData')],
-  'sentiment:fsi': [any('fsi', ['fsiHistory', 'riskData'])],
+  // Financial Stress Index chart only paints fsiHistory.
+  // riskData was a leftover sibling false-green (key-metrics / risk-dashboard).
+  'sentiment:fsi': [
+    any('fsi', ['fsiHistory.dates', 'fsiHistory.values', 'fsiHistory']),
+  ],
   'sentiment:cftc': [p('cftcData', 'cftcData')],
   'sentiment:cross-asset': [p('returnsData', 'returnsData')],
   'sentiment:risk-dashboard': [p('riskData', 'riskData')],

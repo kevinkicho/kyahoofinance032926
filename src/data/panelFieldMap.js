@@ -239,12 +239,8 @@ export const PANEL_FIELD_MAP = {
   'globalMacro:cpi': { field: 'growthInflationData', fieldPath: 'growthInflationData' },
   'globalMacro:rates': { field: 'centralBankData', fieldPath: 'centralBankData' },
   'globalMacro:debt': { field: 'debtData', fieldPath: 'debtData' },
-  'globalMacro:activity': { anyOf: [
-    { field: 'economicActivityData', fieldPath: 'economicActivityData' },
-    { field: 'industrialProd', fieldPath: 'industrialProd' },
-    { field: 'cfnai', fieldPath: 'cfnai' },
-    { field: 'consumerSentiment', fieldPath: 'consumerSentiment' },
-  ] },
+  // CFNAI activity chart. industrialProd / consumerSentiment are unused leftovers.
+  'globalMacro:activity': { field: 'cfnai', fieldPath: 'cfnai' },
   'globalMacro:cli': { field: 'oecdCli', fieldPath: 'oecdCli' },
   'globalMacro:imf-reserves': { anyOf: [
     { field: 'ifsReserves', fieldPath: 'ifsReserves', crossMarket: 'imf' },
@@ -338,7 +334,8 @@ export const PANEL_FIELD_MAP = {
   'sentiment:sidebar': { field: 'fearGreedData', fieldPath: 'fearGreedData' },
   'sentiment:key-metrics': { field: 'riskData', fieldPath: 'riskData' },
   'sentiment:fear-greed': { field: 'fearGreedData', fieldPath: 'fearGreedData' },
-  'sentiment:fsi': { field: 'riskData', fieldPath: 'riskData' },
+  // STLFSI chart. riskData is the sibling key-metrics / risk-dashboard tile.
+  'sentiment:fsi': { field: 'fsiHistory', fieldPath: 'fsiHistory' },
   'sentiment:cftc': { field: 'cftcData', fieldPath: 'cftcData' },
   'sentiment:cross-asset': { field: 'returnsData', fieldPath: 'returnsData' },
   'sentiment:risk-dashboard': { field: 'riskData', fieldPath: 'riskData' },
