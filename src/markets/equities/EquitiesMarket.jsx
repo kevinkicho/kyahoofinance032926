@@ -22,7 +22,7 @@ import BeaCorporateProfitsPanel, { hasBeaCorporateProfitsRows } from './componen
 import WorldBankMarketCapPanel, { hasWbMarketCapRows } from './components/WorldBankMarketCapPanel';
 import SecMegaCapFundamentalsPanel from './components/SecMegaCapFundamentalsPanel';
 import SecFilingActivityPanel from './components/SecFilingActivityPanel';
-import { hasSecFundamentalsRows, hasSecFilingActivity } from './components/EquitiesLiveChips.js';
+import { hasSecFundamentalsRows, hasSecFilingActivity, universeUpdateRows, hasUniverseUpdates } from './components/EquitiesLiveChips.js';
 
 import {
   INDEX_TICKERS, INDEX_LABELS,
@@ -937,19 +937,19 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   }, [edgarRows]);
   // Expansion queue: only show names not already in the static heatmap universe
   // (or already injected). Avoids "SPCX is a candidate" when it is already listed.
-  const universeUpdates = useMemo(() => {
+  const knownUniverseTickers = useMemo(() => {
     const known = new Set();
     for (const region of marketUniverse || []) {
       for (const child of region.children || []) {
         if (child?.name) known.add(String(child.name).toUpperCase());
       }
     }
-    const raw = universeCtx?.data?.updates || [];
-    return raw.filter((row) => {
-      const t = String(row?.name || row?.symbol || '').toUpperCase();
-      return t && !known.has(t);
-    });
-  }, [universeCtx?.data?.updates, marketUniverse]);
+    return known;
+  }, [marketUniverse]);
+  const universeUpdates = useMemo(
+    () => universeUpdateRows(universeCtx?.data, knownUniverseTickers),
+    [universeCtx?.data, knownUniverseTickers],
+  );
 
     // Synthetic fetchLog so DataFooter's click-to-open popover has something
     // to render. Without this, open() bails on `fetchLog.length === 0` and
@@ -1261,7 +1261,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       portfolio: true,
       'sec-fundamentals': hasSecFundamentalsRows(edgarCtx?.data),
       'sec-filings': hasSecFilingActivity(filingActivityCtx?.data),
-      'universe-updates': !!universeCtx?.data?._sources?.universeUpdates,
+      'universe-updates': hasUniverseUpdates(universeCtx?.data, knownUniverseTickers),
       'bea-corporate-profits': hasBeaProfits,
       'wb-market-cap': hasWbMcap,
       ...extraLive,

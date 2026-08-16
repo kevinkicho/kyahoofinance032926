@@ -14,7 +14,7 @@ import { hasHudAffordabilityRows } from '../../markets/realEstate/components/Hud
 import { hasTreasuryTicRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
 import { hasBeaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
 import { hasWbMarketCapRows } from '../../markets/equities/components/WorldBankMarketCapPanel.jsx';
-import { hasSecFundamentalsRows, hasSecFilingActivity } from '../../markets/equities/components/EquitiesLiveChips.js';
+import { hasSecFundamentalsRows, hasSecFilingActivity, universeUpdateRows, hasUniverseUpdates } from '../../markets/equities/components/EquitiesLiveChips.js';
 
 import {
   hasShillerSeries,
@@ -2834,5 +2834,53 @@ describe('fx leftover empty-capable tiles (ratediff)', () => {
     });
     expect(rows.map(([k]) => k)).toEqual(['fed', 'usFed_ecb']);
     expect(() => rows.map(([, v]) => v.toFixed(2))).not.toThrow();
+  });
+});
+
+describe('equities leftover empty-capable tiles (universe-updates)', () => {
+  it('market does not hardcode leftover _sources bag existence on universe-updates', () => {
+    const dash = src('markets/equities/EquitiesMarket.jsx');
+    expect(dash).not.toMatch(/'universe-updates':\s*!!universeCtx\?\.data\?\._sources/);
+    expect(dash).toMatch(/'universe-updates':\s*hasUniverseUpdates\(/);
+  });
+
+  it('hasUniverseUpdates is false for empty / sibling-key leftover bags', () => {
+    expect(hasUniverseUpdates()).toBe(false);
+    expect(hasUniverseUpdates(null)).toBe(false);
+    expect(hasUniverseUpdates({})).toBe(false);
+    expect(hasUniverseUpdates({ isLive: true })).toBe(false);
+    expect(hasUniverseUpdates({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasUniverseUpdates({ dates: ['2024-01'] })).toBe(false);
+    expect(hasUniverseUpdates({ _sources: { universeUpdates: true } })).toBe(false);
+    expect(hasUniverseUpdates({ isLive: true, updates: [] })).toBe(false);
+    expect(hasUniverseUpdates({ updates: { isLive: true, lastUpdated: '2024-01', dates: ['2024-01'] } })).toBe(false);
+    expect(hasUniverseUpdates({ updates: [{ isLive: true }, { lastUpdated: '2024-01' }] })).toBe(false);
+    expect(hasUniverseUpdates({ updates: [{ name: 'AAPL' }] }, ['AAPL'])).toBe(false);
+  });
+
+  it('hasUniverseUpdates is true when a discovered listing paints', () => {
+    expect(hasUniverseUpdates({ updates: [{ name: 'FOO' }] })).toBe(true);
+    expect(hasUniverseUpdates({ isLive: true, _sources: { universeUpdates: true }, updates: [{ symbol: 'BAR' }] })).toBe(true);
+    expect(hasUniverseUpdates({ updates: [{ name: 'AAPL' }, { name: 'NEWCO' }] }, ['AAPL'])).toBe(true);
+  });
+
+  it('universeUpdateRows skips leftover sibling keys so remount does not crash', () => {
+    expect(() => universeUpdateRows({ isLive: true, lastUpdated: '2024-01', dates: ['2024-01'], updates: { isLive: true } })).not.toThrow();
+    expect(universeUpdateRows({ updates: { isLive: true, lastUpdated: '2024-01', dates: ['2024-01'] } })).toEqual([]);
+    const rows = universeUpdateRows({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      _sources: { universeUpdates: true },
+      updates: [
+        { isLive: true },
+        { lastUpdated: '2024-01' },
+        { name: 'FOO', price: '2024-01', changePct: true, marketCap: 12.5 },
+      ],
+    });
+    expect(rows.map((r) => r.name)).toEqual(['FOO']);
+    expect(() => rows.map((r) => (r.price != null ? r.price.toFixed(2) : '—'))).not.toThrow();
+    expect(() => rows.map((r) => (r.changePct != null ? r.changePct.toFixed(2) : '—'))).not.toThrow();
+    expect(rows[0].marketCap.toFixed(1)).toBe('12.5');
   });
 });
