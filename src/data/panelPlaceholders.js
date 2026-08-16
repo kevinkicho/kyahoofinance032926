@@ -332,10 +332,10 @@ export const PANEL_PLACEHOLDERS = {
     any('catStream', ['catLosses.values', 'catLosses'], { required: false }),
     any('femaDecls', ['declarations', 'byType', 'summary'], { crossMarket: 'fema' }),
   ],
+  // Industry Combined Ratio paints combinedRatioHistory.
+  // combinedRatioData / industryAvg were leftover sibling false-greens (crline / kpi).
   'insurance:crhist': [
-    any('history', ['combinedRatioHistory.values', 'combinedRatioHistory', 'combinedRatioData.quarters']),
-    any('industryAvg', ['industryAvgCombinedRatio'], { required: false }),
-    any('lines', ['combinedRatioData.lines', 'combinedRatioData.byLine', 'combinedRatioData']),
+    any('history', ['combinedRatioHistory.values', 'combinedRatioHistory.quarters', 'combinedRatioHistory']),
   ],
   'insurance:crline': [
     any('byLine', ['combinedRatioData.byLine', 'combinedRatioData.lines']),
@@ -372,7 +372,9 @@ export const PANEL_PLACEHOLDERS = {
   'realEstate:reitetf': [any('vnq', ['reitEtf.price', 'reitEtf'])],
   'realEstate:reitperf': [p('reitData', 'reitData')],
   'realEstate:foreclosure': [p('foreclosureData', 'foreclosureData')],
-  'realEstate:mba': [any('mtg', ['mortgageRates', 'mbaApplications'])],
+  // MBA Applications chart paints mbaApplications purchase/refi.
+  // mortgageRates was a leftover sibling false-green (realEstate:metrics).
+  'realEstate:mba': [any('mba', ['mbaApplications.purchase.values', 'mbaApplications.purchase', 'mbaApplications'])],
   'realEstate:cre': [p('creDelinquencies', 'creDelinquencies')],
   'realEstate:caprate': [p('capRateData', 'capRateData')],
   'realEstate:supply': [p('supplyData', 'supplyData')],

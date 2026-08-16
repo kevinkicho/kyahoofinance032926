@@ -96,7 +96,9 @@ export const PANEL_FIELD_MAP = {
   'realEstate:reitetf': { field: 'reitEtf', fieldPath: 'reitEtf' },
   'realEstate:reitperf': { field: 'reitData', fieldPath: 'reitData' },
   'realEstate:foreclosure': { field: 'foreclosureData', fieldPath: 'foreclosureData' },
-  'realEstate:mba': { field: 'mortgageRates', fieldPath: 'mortgageRates' },
+  // MBA Applications chart paints mbaApplications purchase/refi.
+  // mortgageRates is the sibling Key Metrics tile.
+  'realEstate:mba': { field: 'mbaApplications', fieldPath: 'mbaApplications' },
   'realEstate:cre': { field: 'creDelinquencies', fieldPath: 'creDelinquencies' },
   'realEstate:caprate': { field: 'capRateData', fieldPath: 'capRateData' },
   'realEstate:supply': { field: 'supplyData', fieldPath: 'supplyData' },
@@ -124,11 +126,9 @@ export const PANEL_FIELD_MAP = {
     { field: 'catLosses', fieldPath: 'catLosses' },
     { field: 'declarations', fieldPath: 'declarations', crossMarket: 'fema' },
   ] },
-  'insurance:crhist': { anyOf: [
-    { field: 'combinedRatioHistory', fieldPath: 'combinedRatioHistory' },
-    { field: 'combinedRatioData', fieldPath: 'combinedRatioData' },
-    { field: 'industryAvgCombinedRatio', fieldPath: 'industryAvgCombinedRatio' },
-  ] },
+  // Industry Combined Ratio chart paints combinedRatioHistory only.
+  // combinedRatioData is the sibling by-line tile; industryAvg is the KPI strip.
+  'insurance:crhist': { field: 'combinedRatioHistory', fieldPath: 'combinedRatioHistory' },
   'insurance:crline': { field: 'combinedRatioData', fieldPath: 'combinedRatioData' },
   'insurance:reinsrates': { anyOf: [
     { field: 'reinsurancePricing', fieldPath: 'reinsurancePricing' },
