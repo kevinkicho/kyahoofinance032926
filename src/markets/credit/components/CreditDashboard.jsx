@@ -6,7 +6,7 @@ import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import WorldBankDebtPanel from './WorldBankDebtPanel';
-import BisTotalCreditPanel from './BisTotalCreditPanel';
+import BisTotalCreditPanel, { hasBisCreditRows } from './BisTotalCreditPanel';
 import TreasuryCreditHoldingsPanel from './TreasuryCreditHoldingsPanel';
 import './CreditDashboard.css';
 
@@ -62,6 +62,8 @@ function CreditDashboard({
   const fdicCtx = useMarketData('fdic');
   // 2026-05-04: MSRB EMMA municipal market activity.
   const msrbCtx = useMarketData('msrb');
+  const macroCtx = useMarketData('globalMacro');
+  const hasBisCredit = hasBisCreditRows(macroCtx?.data?.bisCreditToGDP);
 
   const igSpread = spreadData?.current?.igSpread;
   const hySpread = spreadData?.current?.hySpread;
@@ -709,7 +711,7 @@ function CreditDashboard({
       'bank-stress': !!(fdicCtx?.data?.aggregate?.length || spreadData),
       'ted-spread': !!isLive,
       'wb-debt': true,
-      'bis-total-credit': true,
+      'bis-total-credit': hasBisCredit,
       'treasury-credit-holdings': true,
     },
     __subtitle: {
@@ -757,7 +759,7 @@ function CreditDashboard({
   }), [
     spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards,
     commercialPaper, excessReserves, creditQuality, tedSpread, lastUpdated, fdicCtx,
-    msrbCtx, renderPanel, isLive, bankStress, spreadOption, emYieldsList,
+    msrbCtx, macroCtx, hasBisCredit, renderPanel, isLive, bankStress, spreadOption, emYieldsList,
   ]);
 
   return (

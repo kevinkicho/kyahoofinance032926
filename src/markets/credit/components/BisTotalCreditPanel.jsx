@@ -15,6 +15,10 @@ const FALLBACK_LABELS = {
  *  - { US: { series:[{period,value}], label } }  (preferred)
  *  - { US: 251.2 }                               (legacy / proxy scalar)
  */
+export function hasBisCreditRows(bisCreditToGDP) {
+  return normalizeRows(bisCreditToGDP).rows.length > 0;
+}
+
 function normalizeRows(bisCreditToGDP) {
   if (!bisCreditToGDP || typeof bisCreditToGDP !== 'object') return { rows: [], proxy: null, source: null };
 

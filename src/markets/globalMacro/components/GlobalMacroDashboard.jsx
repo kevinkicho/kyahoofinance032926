@@ -6,7 +6,7 @@ import SafeECharts from '../../../components/SafeECharts';
 import CountryDetailPanel from './CountryDetailPanel';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 // Merged-in panels from former IMF + World Bank tabs.
-import ImfReserves from '../../imf/ImfReserves';
+import ImfReserves, { hasReserveRows } from '../../imf/ImfReserves';
 import ImfCofier from '../../imf/ImfCofier';
 import WbDevScatter from '../../worldbank/WbDevScatter';
 import WbTradeOpenness from '../../worldbank/WbTradeOpenness';
@@ -1065,7 +1065,7 @@ function GlobalMacroDashboard({
       debt: !!isLive,
       activity: !!isLive,
       cli: !!isLive,
-      'imf-reserves': !!isLive,
+      'imf-reserves': hasReserveRows(imfData?.countries, imfData?.ifsReserves),
       'imf-cofer': !!(imfData?.cofer && Object.keys(imfData.cofer).length > 0),
       'wb-trade': !!isLive,
       'wb-dev': !!isLive,
@@ -1111,7 +1111,7 @@ function GlobalMacroDashboard({
       'global-liquidity': `${globalLiquidity.label} backdrop · TGA, ECB M3, saving rate, GDPNow`,
     },
     __disabled: {
-      'imf-reserves': !(imfData?.countries?.length > 0),
+      'imf-reserves': !hasReserveRows(imfData?.countries, imfData?.ifsReserves),
       'wb-trade': !(wbData?.countries?.length > 0),
       'wb-dev': !(wbData?.countries?.length > 0),
       'ecb-eur': !ecbData?.policyRates,

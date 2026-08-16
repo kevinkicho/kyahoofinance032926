@@ -87,10 +87,7 @@ export const PANEL_FIELD_MAP = {
   'derivatives:gamma': { field: 'gammaExposure', fieldPath: 'gammaExposure' },
   'derivatives:volprem': { field: 'volPremium', fieldPath: 'volPremium' },
   'derivatives:cftc-tff': { field: 'contracts', fieldPath: 'contracts', crossMarket: 'cftcTFF' },
-  'derivatives:bis-otc': { anyOf: [
-    { field: 'categories', fieldPath: 'categories', crossMarket: 'bisOTC' },
-    { field: 'vixTermStructure', fieldPath: 'vixTermStructure' },
-  ] },
+  'derivatives:bis-otc': { field: 'categories', fieldPath: 'categories', crossMarket: 'bisOTC' },
   'derivatives:ecb-derivatives': { field: 'policyRates', fieldPath: 'policyRates', crossMarket: 'ecb' },
 
   // ── Real Estate ──
@@ -322,16 +319,12 @@ export const PANEL_FIELD_MAP = {
   'credit:default-rates': { field: 'defaultData', fieldPath: 'defaultData' },
   'credit:delinquency': { field: 'delinquencyRates', fieldPath: 'delinquencyRates' },
   'credit:bank-sector': { field: 'aggregate', fieldPath: 'aggregate', crossMarket: 'fdic' },
-  'credit:credit-quality': { field: 'spreadData', fieldPath: 'spreadData' },
+  'credit:credit-quality': { field: 'creditQuality', fieldPath: 'creditQuality' },
   'credit:muni-market': { field: 'summary', fieldPath: 'summary', crossMarket: 'msrb' },
   'credit:bank-stress': { field: 'lendingStandards', fieldPath: 'lendingStandards' },
   'credit:ted-spread': { field: 'tedSpread', fieldPath: 'tedSpread' },
   'credit:wb-debt': { field: 'countries', fieldPath: 'countries', crossMarket: 'worldbank' },
-  'credit:bis-total-credit': { anyOf: [
-    { field: 'categories', fieldPath: 'categories', crossMarket: 'bisOTC' },
-    { field: 'spreadData', fieldPath: 'spreadData' },
-    { field: 'loanData', fieldPath: 'loanData' },
-  ] },
+  'credit:bis-total-credit': { field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', crossMarket: 'globalMacro' },
   'credit:treasury-credit-holdings': { field: 'latest', fieldPath: 'latest', crossMarket: 'treasuryTIC' },
 
   // ── Sentiment ──

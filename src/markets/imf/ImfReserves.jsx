@@ -2,28 +2,34 @@ import React, { useMemo } from 'react';
 import { useTheme } from '../../hub/ThemeContext';
 import SafeECharts from '../../components/SafeECharts/SafeECharts';
 
+/** Merge IFS year maps onto country rows; used by the tile and live chip. */
+export function reserveRows(countries, ifsReserves) {
+  if (!Array.isArray(countries) || !countries.length) return [];
+  return countries
+    .map((c) => {
+      if (c.intlReserves != null) return c;
+      const reservesByYear = ifsReserves?.[c.code];
+      if (reservesByYear && typeof reservesByYear === 'object') {
+        const years = Object.keys(reservesByYear).sort();
+        const latest = years.length ? reservesByYear[years[years.length - 1]] : null;
+        if (typeof latest === 'number') return { ...c, intlReserves: latest };
+      }
+      return c;
+    })
+    .filter((c) => c.intlReserves != null)
+    .sort((a, b) => b.intlReserves - a.intlReserves);
+}
+
+export function hasReserveRows(countries, ifsReserves) {
+  return reserveRows(countries, ifsReserves).length > 0;
+}
+
 function ImfReserves({ countries, ifsReserves, lastUpdated }) {
   const { colors } = useTheme();
 
   const chartData = useMemo(() => {
-    if (!countries?.length) return null;
-    // The IMF route returns reserves in a separate `ifsReserves` map
-    // (keyed by country code, value is `{year: reserveBn}`). The
-    // `countries` array doesn't carry `intlReserves` directly, so we
-    // merge here. Pick the latest year's value for each country.
-    return countries
-      .map(c => {
-        if (c.intlReserves != null) return c;
-        const reservesByYear = ifsReserves?.[c.code];
-        if (reservesByYear && typeof reservesByYear === 'object') {
-          const years = Object.keys(reservesByYear).sort();
-          const latest = years.length ? reservesByYear[years[years.length - 1]] : null;
-          if (typeof latest === 'number') return { ...c, intlReserves: latest };
-        }
-        return c;
-      })
-      .filter(c => c.intlReserves != null)
-      .sort((a, b) => b.intlReserves - a.intlReserves);
+    const rows = reserveRows(countries, ifsReserves);
+    return rows.length ? rows : null;
   }, [countries, ifsReserves]);
 
   const option = useMemo(() => {

@@ -291,7 +291,7 @@ export const PANEL_PLACEHOLDERS = {
   'credit:default-rates': [p('default', 'defaultData')],
   'credit:delinquency': [p('delinq', 'delinquencyRates')],
   'credit:bank-sector': [p('fdic', 'aggregate', { crossMarket: 'fdic' })],
-  'credit:credit-quality': [any('cq', ['creditQuality', 'spreadData'])],
+  'credit:credit-quality': [any('cq', ['creditQuality'])],
   'credit:muni-market': [p('msrb', 'summary', { crossMarket: 'msrb' })],
   'credit:bank-stress': [any('lend', ['lendingStandards', 'spreadData'])],
   'credit:ted-spread': [any('ted', ['tedSpread.values', 'tedSpread.latest', 'tedSpread'])],
@@ -383,16 +383,10 @@ export const PANEL_PLACEHOLDERS = {
   'globalMacro:debt': [p('debt', 'debtData')],
   'globalMacro:activity': [any('act', ['cfnai', 'industrialProd', 'consumerSentiment', 'economicActivityData'])],
   'globalMacro:cli': [p('oecdCli', 'oecdCli')],
-  // Prefer live IMF satellite; fall back to primary macro bags so DNS outages
-  // do not hard-fail the panel (required fallback always present on globalMacro).
+  // ImfReserves only renders imf.countries + imf.ifsReserves.
+  // Scorecard/growth/WEO were false-green leftovers (same class as COFER).
   'globalMacro:imf-reserves': [
-    any('ifs', [
-      'ifsReserves', // via cross-market resolution in anyOf market prefix
-      'scorecardData',
-      'growthInflationData',
-      'imfWEO',
-    ]),
-    any('ifsImf', ['ifsReserves', 'countries'], { crossMarket: 'imf', required: false }),
+    any('ifs', ['ifsReserves', 'countries'], { crossMarket: 'imf' }),
   ],
   'globalMacro:imf-cofer': [
     // ImfCofier only renders imf.cofer — scorecard/debt/WEO were false-green.
