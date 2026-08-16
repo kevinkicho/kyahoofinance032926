@@ -162,6 +162,8 @@ import {
   hasCryptoSidebarContent,
   hasTopCryptos,
   hasOnChainMetrics,
+  hasOnChainChart,
+  hashrateHistoryPoints,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3015,5 +3017,59 @@ describe('credit leftover empty-capable tiles (muni-market)', () => {
     expect(() => primary.map((r) => r.parM.toFixed(0))).not.toThrow();
     expect(() => primary.map((r) => (typeof r.avgSizeM === 'number' ? r.avgSizeM.toFixed(1) : '—'))).not.toThrow();
     expect(primary[0].parM.toFixed(0)).toBe('2100');
+  });
+});
+
+describe('crypto leftover empty-capable tiles (onchain-chart)', () => {
+  it('dashboard does not hardcode leftover isLive or history-length on onchain-chart', () => {
+    const dash = src('markets/crypto/components/CryptoDashboard.jsx');
+    expect(dash).not.toMatch(/'onchain-chart':\s*!!\(isLive && onChainData\?\.hashrate\?\.history\?\.length/);
+    expect(dash).toMatch(/'onchain-chart':\s*hasOnChainChart\(onChainData\)/);
+  });
+
+  it('hasOnChainChart is false for empty / leftover history bags', () => {
+    expect(hasOnChainChart()).toBe(false);
+    expect(hasOnChainChart(null)).toBe(false);
+    expect(hasOnChainChart({})).toBe(false);
+    expect(hasOnChainChart({ isLive: true })).toBe(false);
+    expect(hasOnChainChart({ hashrate: { isLive: true, current: 650 } })).toBe(false);
+    expect(hasOnChainChart({ hashrate: { history: [] } })).toBe(false);
+    expect(hasOnChainChart({ hashrate: { history: [{ timestamp: 1700000000, avgHashrate: 650 }] } })).toBe(false);
+    expect(hasOnChainChart({ hashrate: { history: [null, null] } })).toBe(false);
+    expect(hasOnChainChart({ hashrate: { history: [{ isLive: true }, { lastUpdated: '2024-01' }] } })).toBe(false);
+    expect(hasOnChainChart({ hashrate: { history: [{ timestamp: 1, avgHashrate: true }, { timestamp: 2, avgHashrate: '650' }] } })).toBe(false);
+    expect(hasOnChainChart({ hashrate: { history: [{ timestamp: 1, avgHashrate: 650 }, { timestamp: 2 }] } })).toBe(false);
+  });
+
+  it('hasOnChainChart is true when two painted hashrate points exist', () => {
+    expect(hasOnChainChart({
+      isLive: true,
+      hashrate: {
+        isLive: true,
+        history: [
+          { timestamp: 1700000000, avgHashrate: 640 },
+          { timestamp: 1700086400, avgHashrate: 650 },
+        ],
+      },
+    })).toBe(true);
+  });
+
+  it('hashrateHistoryPoints skips leftover sibling rows so remount does not crash', () => {
+    expect(() => hashrateHistoryPoints({ isLive: true, hashrate: { history: [null, { isLive: true }, 'x'] } })).not.toThrow();
+    expect(hashrateHistoryPoints({ hashrate: { history: [null, { timestamp: 1, avgHashrate: 650 }, { timestamp: 2, avgHashrate: true }] } }).map((p) => p.avgHashrate)).toEqual([650]);
+    const points = hashrateHistoryPoints({
+      isLive: true,
+      hashrate: {
+        history: [
+          { isLive: true },
+          { timestamp: 1700000000, avgHashrate: 640 },
+          { timestamp: 1700086400, avgHashrate: 650 },
+          { timestamp: 3, avgHashrate: '660' },
+        ],
+      },
+    });
+    expect(points.map((p) => p.avgHashrate)).toEqual([640, 650]);
+    expect(() => points.map((p) => p.avgHashrate.toFixed(1))).not.toThrow();
+    expect(() => points.map((p) => new Date(p.timestamp * 1000).getMonth())).not.toThrow();
   });
 });

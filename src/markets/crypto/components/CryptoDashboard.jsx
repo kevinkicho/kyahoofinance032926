@@ -12,6 +12,8 @@ import {
   hasCryptoSidebarContent,
   hasTopCryptos,
   hasOnChainMetrics,
+  hasOnChainChart,
+  hashrateHistoryPoints,
 } from './CryptoLiveChips.js';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
@@ -130,8 +132,8 @@ function CryptoDashboard({
   }, [fearGreedData, colors]);
 
   const onchainChartOption = useMemo(() => {
-    const hist = onChainData?.hashrate?.history;
-    if (!hist || hist.length < 2) return null;
+    const hist = hashrateHistoryPoints(onChainData);
+    if (hist.length < 2) return null;
     const dates = hist.map(h => {
       const d = new Date(h.timestamp * 1000);
       return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -461,7 +463,7 @@ function CryptoDashboard({
       'defi-tvl': !!(isLive && defiChains.length > 0),
       exchanges: !!isLive && hasRealExchVolume,
       onchain: hasOnChainMetrics(onChainData),
-      'onchain-chart': !!(isLive && onChainData?.hashrate?.history?.length > 0),
+      'onchain-chart': hasOnChainChart(onChainData),
       'stablecoin-composition': stablecoinMcap != null,
       'defi-tvl-trend': !!defiData?.chains?.length,
       'btc-onchain': hasOnChainMetrics(onChainData),

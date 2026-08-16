@@ -56,3 +56,20 @@ export function hasOnChainMetrics(onChainData) {
   if (isFiniteNumber(onChainData.mempool?.count)) return true;
   return isFiniteNumber(onChainData.fees?.fastest);
 }
+
+/** Hashrate-chart rows that paint; leftover isLive / history-length / sibling keys still empty / crash the tile. */
+export function hashrateHistoryPoints(onChainData) {
+  const hist = onChainData?.hashrate?.history;
+  if (!Array.isArray(hist)) return [];
+  const points = [];
+  for (const row of hist) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    if (!isFiniteNumber(row.avgHashrate) || !isFiniteNumber(row.timestamp)) continue;
+    points.push({ timestamp: row.timestamp, avgHashrate: row.avgHashrate });
+  }
+  return points;
+}
+
+export function hasOnChainChart(onChainData) {
+  return hashrateHistoryPoints(onChainData).length >= 2;
+}
