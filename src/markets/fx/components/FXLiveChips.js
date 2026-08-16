@@ -28,3 +28,16 @@ export function hasFxMovers(changes) {
   if (!changes || typeof changes !== 'object') return false;
   return Object.entries(changes).some(([code, v]) => code !== 'USD' && isFiniteNumber(v));
 }
+
+/** REER chart is empty when dates exist but no US/EU/JP/GB/CN series paints. */
+const REER_COUNTRIES = ['US', 'EU', 'JP', 'GB', 'CN'];
+export function hasReerSeries(reer) {
+  if (!Array.isArray(reer?.dates) || !reer.dates.length) return false;
+  return REER_COUNTRIES.some((k) => Array.isArray(reer[k]) && reer[k].length > 0);
+}
+
+/** Correlation matrix only uses G10 history; leftover sibling keys still empty the tile. */
+export function hasFxCorrelationHistory(history) {
+  if (!history || typeof history !== 'object') return false;
+  return G10.some((ccy) => Array.isArray(history[ccy]) && history[ccy].length > 0);
+}

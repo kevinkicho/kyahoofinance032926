@@ -16,6 +16,8 @@ import {
   hasFxKpiMetrics,
   hasFxSpotRates,
   hasFxMovers,
+  hasReerSeries,
+  hasFxCorrelationHistory,
 } from './FXLiveChips.js';
 
 function Sparkline({ values }) {
@@ -325,8 +327,8 @@ function FXDashboard({
       movers: hasFxMovers(changes),
       dxy: !!dxyHistory?.dates?.length,
       cot: !!(cotHistory && Object.keys(cotHistory).length > 0),
-      corr: !!(history && Object.keys(history).length > 0),
-      reer: !!reer?.dates?.length,
+      corr: hasFxCorrelationHistory(history),
+      reer: hasReerSeries(reer),
       ratediff: !!rateDiff?.length,
       carry: !!(rateDifferentials && rateDifferentials.fed != null),
       'rate-dashboard': !!rateDiffRows.length,

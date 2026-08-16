@@ -73,6 +73,8 @@ import {
   hasFxKpiMetrics,
   hasFxSpotRates,
   hasFxMovers,
+  hasReerSeries,
+  hasFxCorrelationHistory,
 } from '../../markets/fx/components/FXLiveChips.js';
 import {
   hasSentimentSidebarContent,
@@ -2106,5 +2108,44 @@ describe('macro leftover empty-capable tiles (kpi)', () => {
       dxyHistory: { values: [104.2] },
     })).toBe(true);
     expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'UK', cpi: 3.4 }] })).toBe(true);
+  });
+});
+
+describe('fx leftover empty-capable tiles (reer / corr)', () => {
+  it('dashboard does not hardcode leftover bag existence on reer or corr', () => {
+    const dash = src('markets/fx/components/FXDashboard.jsx');
+    expect(dash).not.toMatch(/reer:\s*!!reer\?\.dates\?\.length/);
+    expect(dash).not.toMatch(/corr:\s*!!\(history && Object\.keys\(history\)\.length/);
+    expect(dash).toMatch(/reer:\s*hasReerSeries\(/);
+    expect(dash).toMatch(/corr:\s*hasFxCorrelationHistory\(/);
+  });
+
+  it('hasReerSeries is false for empty / dates-only leftover bags', () => {
+    expect(hasReerSeries()).toBe(false);
+    expect(hasReerSeries(null)).toBe(false);
+    expect(hasReerSeries({})).toBe(false);
+    expect(hasReerSeries({ isLive: true })).toBe(false);
+    expect(hasReerSeries({ dates: ['2024-01'] })).toBe(false);
+    expect(hasReerSeries({ dates: ['2024-01'], US: [], EU: [] })).toBe(false);
+    expect(hasReerSeries({ US: [118.2] })).toBe(false);
+  });
+
+  it('hasReerSeries is true when a painted country series exists', () => {
+    expect(hasReerSeries({ dates: ['2024-01'], US: [118.2] })).toBe(true);
+    expect(hasReerSeries({ dates: ['2024-01', '2024-02'], JP: [78.1, 77.4] })).toBe(true);
+  });
+
+  it('hasFxCorrelationHistory is false for empty / sibling-key leftover bags', () => {
+    expect(hasFxCorrelationHistory()).toBe(false);
+    expect(hasFxCorrelationHistory(null)).toBe(false);
+    expect(hasFxCorrelationHistory({})).toBe(false);
+    expect(hasFxCorrelationHistory({ isLive: true })).toBe(false);
+    expect(hasFxCorrelationHistory({ USD: [1, 1.01], DXY: [104, 105] })).toBe(false);
+    expect(hasFxCorrelationHistory({ EUR: [] })).toBe(false);
+  });
+
+  it('hasFxCorrelationHistory is true when a G10 history series exists', () => {
+    expect(hasFxCorrelationHistory({ EUR: [0.92, 0.93] })).toBe(true);
+    expect(hasFxCorrelationHistory({ JPY: [149.1] })).toBe(true);
   });
 });
