@@ -78,3 +78,34 @@ export function hasTedSpreadSeries(tedSpread) {
 export function hasMuniMarketSummary(msrbData) {
   return !!(msrbData && msrbData.summary);
 }
+
+/** Bank-stress paints 6 cards; leftover spread / FDIC bags still dash out. */
+export function hasBankStressContent({
+  spreadData,
+  defaultData,
+  commercialPaper,
+  fdicData,
+} = {}) {
+  const hy = Number(spreadData?.current?.hySpread);
+  const ig = Number(spreadData?.current?.igSpread);
+  if (Number.isFinite(hy) || Number.isFinite(ig)) return true;
+
+  const def = defaultData?.rates?.[0]?.value ?? defaultData?.defaultRate;
+  if (typeof def === 'number' && Number.isFinite(def)) return true;
+
+  if (typeof commercialPaper?.rate === 'number' && Number.isFinite(commercialPaper.rate)) return true;
+
+  const aggregate = Array.isArray(fdicData?.aggregate) ? fdicData.aggregate : [];
+  const latest = aggregate[0];
+  const prior = aggregate[1];
+  if (
+    latest?.depositsB != null
+    && prior?.depositsB
+    && Number.isFinite(Number(latest.depositsB))
+    && Number.isFinite(Number(prior.depositsB))
+  ) {
+    return true;
+  }
+
+  return Array.isArray(fdicData?.failures) && fdicData.failures.length > 0;
+}

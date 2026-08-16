@@ -59,6 +59,7 @@ import {
   hasDelinquencyRows,
   hasTedSpreadSeries,
   hasMuniMarketSummary,
+  hasBankStressContent,
 } from '../../markets/credit/components/CreditLiveChips.js';
 import {
   hasElectricityPrices,
@@ -826,6 +827,42 @@ describe('credit empty-capable tiles (kpi / spreads / EM / CP / CLO / defaults /
 
   it('hasMuniMarketSummary is true when MSRB summary exists', () => {
     expect(hasMuniMarketSummary({ summary: { tradesAll: 12000 } })).toBe(true);
+  });
+});
+
+describe('credit leftover empty-capable tiles (bank-stress)', () => {
+  it('dashboard does not hardcode leftover bag existence on bank-stress', () => {
+    const dash = src('markets/credit/components/CreditDashboard.jsx');
+    expect(dash).not.toMatch(/'bank-stress':\s*!!\(fdicCtx\?\.data\?\.aggregate\?\.length \|\| spreadData\)/);
+    expect(dash).not.toMatch(/'bank-stress':\s*!!spreadData/);
+    expect(dash).toMatch(/'bank-stress':\s*hasBankStressContent\(/);
+  });
+
+  it('hasBankStressContent is false for empty / leftover bag-only payloads', () => {
+    expect(hasBankStressContent()).toBe(false);
+    expect(hasBankStressContent({})).toBe(false);
+    expect(hasBankStressContent({ spreadData: { isLive: true } })).toBe(false);
+    expect(hasBankStressContent({ spreadData: {} })).toBe(false);
+    expect(hasBankStressContent({ spreadData: { current: {}, history: { dates: ['2024-01'], HY: [310] } } })).toBe(false);
+    expect(hasBankStressContent({ defaultData: { chargeoffs: { dates: ['2024'] } } })).toBe(false);
+    expect(hasBankStressContent({ commercialPaper: { isLive: true, volume: 1e12 } })).toBe(false);
+    expect(hasBankStressContent({ fdicData: { aggregate: [{ year: 2024 }] } })).toBe(false);
+    expect(hasBankStressContent({ fdicData: { aggregate: [{ depositsB: 18000 }] } })).toBe(false);
+    expect(hasBankStressContent({ fdicData: { failures: [] } })).toBe(false);
+  });
+
+  it('hasBankStressContent is true when a painted stress metric exists', () => {
+    expect(hasBankStressContent({ spreadData: { current: { hySpread: 310 } } })).toBe(true);
+    expect(hasBankStressContent({ spreadData: { current: { igSpread: 95 } } })).toBe(true);
+    expect(hasBankStressContent({ defaultData: { defaultRate: 2.4 } })).toBe(true);
+    expect(hasBankStressContent({ defaultData: { rates: [{ category: 'C&I', value: 1.2 }] } })).toBe(true);
+    expect(hasBankStressContent({ commercialPaper: { rate: 4.3 } })).toBe(true);
+    expect(hasBankStressContent({
+      fdicData: { aggregate: [{ year: 2024, depositsB: 19000 }, { year: 2023, depositsB: 18000 }] },
+    })).toBe(true);
+    expect(hasBankStressContent({
+      fdicData: { failures: [{ name: 'Example Bank', date: '2024-03-01', assets: 2000 }] },
+    })).toBe(true);
   });
 });
 

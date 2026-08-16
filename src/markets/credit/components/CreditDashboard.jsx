@@ -20,6 +20,7 @@ import {
   hasDelinquencyRows,
   hasTedSpreadSeries,
   hasMuniMarketSummary,
+  hasBankStressContent,
 } from './CreditLiveChips.js';
 import './CreditDashboard.css';
 
@@ -725,7 +726,7 @@ function CreditDashboard({
       'bank-sector': !!(fdicCtx?.data?.aggregate?.length || fdicCtx?.data?.failures?.length),
       'credit-quality': !!creditQuality?.dates?.length,
       'muni-market': hasMuniMarketSummary(msrbCtx?.data),
-      'bank-stress': !!(fdicCtx?.data?.aggregate?.length || spreadData),
+      'bank-stress': hasBankStressContent({ spreadData, defaultData, commercialPaper, fdicData: fdicCtx?.data }),
       'ted-spread': hasTedSpreadSeries(tedSpread),
       'wb-debt': hasWbDebt,
       'bis-total-credit': hasBisCredit,
