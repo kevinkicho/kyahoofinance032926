@@ -41,3 +41,21 @@ export function hasFxCorrelationHistory(history) {
   if (!history || typeof history !== 'object') return false;
   return G10.some((ccy) => Array.isArray(history[ccy]) && history[ccy].length > 0);
 }
+
+/** DXY chart is empty when dates exist but no values paint. */
+export function hasDxyHistory(dxyHistory) {
+  if (!Array.isArray(dxyHistory?.dates) || !dxyHistory.dates.length) return false;
+  return Array.isArray(dxyHistory?.values) && dxyHistory.values.some((v) => v != null);
+}
+
+/** COT chart only uses currency series arrays; leftover sibling keys still empty / crash the tile. */
+export function cotHistorySeries(cotHistory) {
+  if (!cotHistory || typeof cotHistory !== 'object') return [];
+  return Object.entries(cotHistory).filter(([, arr]) => (
+    Array.isArray(arr) && arr.some((d) => d && d.net != null)
+  ));
+}
+
+export function hasCotHistory(cotHistory) {
+  return cotHistorySeries(cotHistory).length > 0;
+}

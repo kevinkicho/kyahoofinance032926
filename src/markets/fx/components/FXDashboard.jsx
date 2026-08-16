@@ -18,6 +18,9 @@ import {
   hasFxMovers,
   hasReerSeries,
   hasFxCorrelationHistory,
+  hasDxyHistory,
+  hasCotHistory,
+  cotHistorySeries,
 } from './FXLiveChips.js';
 
 function Sparkline({ values }) {
@@ -151,7 +154,7 @@ function FXDashboard({
   }, [rateDifferentials, changes, changes1m]);
 
   const dxyOption = useMemo(() => {
-    if (!dxyHistory?.dates?.length) return null;
+    if (!hasDxyHistory(dxyHistory)) return null;
     return {
       animation: false, backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
@@ -163,18 +166,18 @@ function FXDashboard({
   }, [dxyHistory, colors]);
 
   const cotOption = useMemo(() => {
-    if (!cotHistory || !Object.keys(cotHistory).length) return null;
-    const currencies = Object.keys(cotHistory).slice(0, 6);
-    const dates = cotHistory[currencies[0]]?.map(d => d.date.slice(5)) || [];
+    const series = cotHistorySeries(cotHistory).slice(0, 6);
+    if (!series.length) return null;
+    const dates = series[0][1].map(d => (typeof d.date === 'string' ? d.date.slice(5) : ''));
     const lineColors = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
     return {
       animation: false, backgroundColor: 'transparent',
       tooltip: { trigger: 'axis' },
-      legend: { data: currencies, top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
+      legend: { data: series.map(([ccy]) => ccy), top: 0, textStyle: { color: colors.textSecondary, fontSize: 9 } },
       grid: { top: 24, right: 16, bottom: 24, left: 44 },
       xAxis: { type: 'category', data: dates, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.floor(dates.length / 5) } },
       yAxis: { type: 'value', name: 'Net % of OI', nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 }, splitLine: { lineStyle: { color: colors.cardBg } } },
-      series: currencies.map((ccy, idx) => ({ name: ccy, type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 1.5, color: lineColors[idx % lineColors.length] }, data: cotHistory[ccy].map(d => d.net) })),
+      series: series.map(([ccy, arr], idx) => ({ name: ccy, type: 'line', smooth: true, symbol: 'none', lineStyle: { width: 1.5, color: lineColors[idx % lineColors.length] }, data: arr.map(d => d.net) })),
     };
   }, [cotHistory, colors]);
 
@@ -325,8 +328,8 @@ function FXDashboard({
       kpi: hasFxKpiMetrics({ spotRates, changes, dxyHistory }),
       sidebar: hasFxSpotRates(spotRates),
       movers: hasFxMovers(changes),
-      dxy: !!dxyHistory?.dates?.length,
-      cot: !!(cotHistory && Object.keys(cotHistory).length > 0),
+      dxy: hasDxyHistory(dxyHistory),
+      cot: hasCotHistory(cotHistory),
       corr: hasFxCorrelationHistory(history),
       reer: hasReerSeries(reer),
       ratediff: !!rateDiff?.length,

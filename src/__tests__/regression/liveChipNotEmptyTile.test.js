@@ -75,6 +75,9 @@ import {
   hasFxMovers,
   hasReerSeries,
   hasFxCorrelationHistory,
+  hasDxyHistory,
+  hasCotHistory,
+  cotHistorySeries,
 } from '../../markets/fx/components/FXLiveChips.js';
 import {
   hasSentimentSidebarContent,
@@ -2147,5 +2150,50 @@ describe('fx leftover empty-capable tiles (reer / corr)', () => {
   it('hasFxCorrelationHistory is true when a G10 history series exists', () => {
     expect(hasFxCorrelationHistory({ EUR: [0.92, 0.93] })).toBe(true);
     expect(hasFxCorrelationHistory({ JPY: [149.1] })).toBe(true);
+  });
+});
+
+describe('fx leftover empty-capable tiles (dxy / cot)', () => {
+  it('dashboard does not hardcode leftover bag existence on dxy or cot', () => {
+    const dash = src('markets/fx/components/FXDashboard.jsx');
+    expect(dash).not.toMatch(/dxy:\s*!!dxyHistory\?\.dates\?\.length/);
+    expect(dash).not.toMatch(/cot:\s*!!\(cotHistory && Object\.keys\(cotHistory\)\.length/);
+    expect(dash).toMatch(/dxy:\s*hasDxyHistory\(/);
+    expect(dash).toMatch(/cot:\s*hasCotHistory\(/);
+  });
+
+  it('hasDxyHistory is false for empty / dates-only leftover bags', () => {
+    expect(hasDxyHistory()).toBe(false);
+    expect(hasDxyHistory(null)).toBe(false);
+    expect(hasDxyHistory({})).toBe(false);
+    expect(hasDxyHistory({ isLive: true })).toBe(false);
+    expect(hasDxyHistory({ dates: ['2024-01'] })).toBe(false);
+    expect(hasDxyHistory({ dates: ['2024-01'], values: [] })).toBe(false);
+    expect(hasDxyHistory({ values: [104.2] })).toBe(false);
+  });
+
+  it('hasDxyHistory is true when dates and values paint', () => {
+    expect(hasDxyHistory({ dates: ['2024-01'], values: [104.2] })).toBe(true);
+  });
+
+  it('hasCotHistory is false for empty / sibling-key leftover bags', () => {
+    expect(hasCotHistory()).toBe(false);
+    expect(hasCotHistory(null)).toBe(false);
+    expect(hasCotHistory({})).toBe(false);
+    expect(hasCotHistory({ isLive: true })).toBe(false);
+    expect(hasCotHistory({ lastUpdated: '2024-01-01' })).toBe(false);
+    expect(hasCotHistory({ EUR: [] })).toBe(false);
+    expect(hasCotHistory({ EUR: [{}] })).toBe(false);
+  });
+
+  it('hasCotHistory is true when a currency series paints net positioning', () => {
+    expect(hasCotHistory({ EUR: [{ date: '2024-01-01', net: 12.5 }] })).toBe(true);
+    expect(hasCotHistory({ isLive: true, JPY: [{ date: '2024-01-01', net: -3 }] })).toBe(true);
+  });
+
+  it('cotHistorySeries skips leftover sibling keys so remount does not crash', () => {
+    const series = cotHistorySeries({ isLive: true, lastUpdated: '2024-01', EUR: [{ date: '2024-01-01', net: 4 }] });
+    expect(series.map(([ccy]) => ccy)).toEqual(['EUR']);
+    expect(() => series.map(([, arr]) => arr.map((d) => d.net))).not.toThrow();
   });
 });
