@@ -14,6 +14,14 @@ import { hasHudAffordabilityRows } from '../../markets/realEstate/components/Hud
 import { hasTreasuryTicRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
 import { hasBeaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
 import { hasWbMarketCapRows } from '../../markets/equities/components/WorldBankMarketCapPanel.jsx';
+import {
+  hasShillerSeries,
+  hasReitPerfRows,
+  hasCapRateRows,
+  hasAffordabilityStackMetrics,
+  hasSupplyMetrics,
+  hasFhfaHpiSeries,
+} from '../../markets/realEstate/components/RealEstateHelpers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -144,5 +152,93 @@ describe('equities bea / wb-market-cap live chips', () => {
   it('hasWbMarketCapRows is true when WDI observations exist', () => {
     expect(hasWbMarketCapRows([{ code: 'US', mktCapUsd: 50.2 }])).toBe(true);
     expect(hasWbMarketCapRows([{ code: 'JP', gdpGrowth: 1.1 }])).toBe(true);
+  });
+});
+
+describe('realEstate empty-capable tiles (shiller / reitperf / caprate / afford-stack)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/realEstate/components/RealEstateDashboard.jsx');
+    expect(dash).not.toMatch(/shiller:\s*!!isLive/);
+    expect(dash).not.toMatch(/reitperf:\s*!!isLive/);
+    expect(dash).not.toMatch(/caprate:\s*!!isLive/);
+    expect(dash).not.toMatch(/'afford-stack':\s*!!isLive/);
+    expect(dash).not.toMatch(/supply:\s*!!isLive/);
+    expect(dash).not.toMatch(/'fhfa-hpi':\s*!!isLive/);
+    expect(dash).toMatch(/shiller:\s*hasShillerSeries/);
+    expect(dash).toMatch(/reitperf:\s*hasReitPerfRows/);
+    expect(dash).toMatch(/caprate:\s*hasCapRateRows/);
+    expect(dash).toMatch(/'afford-stack':\s*hasAffordabilityStackMetrics/);
+    expect(dash).toMatch(/supply:\s*hasSupplyMetrics/);
+    expect(dash).toMatch(/'fhfa-hpi':\s*hasFhfaHpiSeries/);
+  });
+
+  it('hasShillerSeries is false for empty / metro-only payloads', () => {
+    expect(hasShillerSeries(null)).toBe(false);
+    expect(hasShillerSeries({})).toBe(false);
+    expect(hasShillerSeries({ isLive: true })).toBe(false);
+    expect(hasShillerSeries({ metros: { Miami: { latest: 350 } } })).toBe(false);
+    expect(hasShillerSeries({ national: { values: [300] } })).toBe(false);
+  });
+
+  it('hasShillerSeries is true when national dates exist', () => {
+    expect(hasShillerSeries({ dates: ['2024-01'], values: [310] })).toBe(true);
+    expect(hasShillerSeries({ national: { dates: ['2024-01'], values: [310] } })).toBe(true);
+  });
+
+  it('hasReitPerfRows is false for empty / sibling-only payloads', () => {
+    expect(hasReitPerfRows(null)).toBe(false);
+    expect(hasReitPerfRows([])).toBe(false);
+    expect(hasReitPerfRows({ VNQ: { changePct: 1.2 } })).toBe(false);
+  });
+
+  it('hasReitPerfRows is true when performance rows exist', () => {
+    expect(hasReitPerfRows([{ symbol: 'VNQ', changePct: 1.2 }])).toBe(true);
+  });
+
+  it('hasCapRateRows is false for empty / sibling-only payloads', () => {
+    expect(hasCapRateRows(null)).toBe(false);
+    expect(hasCapRateRows([])).toBe(false);
+    expect(hasCapRateRows({ office: 6.2 })).toBe(false);
+  });
+
+  it('hasCapRateRows is true when sector rows exist', () => {
+    expect(hasCapRateRows([{ sector: 'Office', impliedYieldPct: 6.2 }])).toBe(true);
+  });
+
+  it('hasAffordabilityStackMetrics is false for empty / label-only stacks', () => {
+    expect(hasAffordabilityStackMetrics(null)).toBe(false);
+    expect(hasAffordabilityStackMetrics([])).toBe(false);
+    expect(hasAffordabilityStackMetrics({ stressLabel: 'Partial' })).toBe(false);
+    expect(hasAffordabilityStackMetrics({ isLive: true, price: '400000' })).toBe(false);
+  });
+
+  it('hasAffordabilityStackMetrics is true when a painted metric is numeric', () => {
+    expect(hasAffordabilityStackMetrics({ price: 400000, stressLabel: 'Partial' })).toBe(true);
+    expect(hasAffordabilityStackMetrics({ rate: 6.75 })).toBe(true);
+    expect(hasAffordabilityStackMetrics({ annualBurden: 31.2 })).toBe(true);
+  });
+
+  it('hasSupplyMetrics is false for empty / sibling-only payloads', () => {
+    expect(hasSupplyMetrics(null)).toBe(false);
+    expect(hasSupplyMetrics({})).toBe(false);
+    expect(hasSupplyMetrics({ housingStarts: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasSupplyMetrics({ monthsSupply: '6.1' })).toBe(false);
+  });
+
+  it('hasSupplyMetrics is true when a supply series or scalar exists', () => {
+    expect(hasSupplyMetrics({ housingStarts: { values: [1400] } })).toBe(true);
+    expect(hasSupplyMetrics({ monthsSupply: 6.1 })).toBe(true);
+    expect(hasSupplyMetrics({ activeListings: 1200000 })).toBe(true);
+  });
+
+  it('hasFhfaHpiSeries is false for empty / sibling-only payloads', () => {
+    expect(hasFhfaHpiSeries(null)).toBe(false);
+    expect(hasFhfaHpiSeries({})).toBe(false);
+    expect(hasFhfaHpiSeries({ latest: { value: 420 } })).toBe(false);
+    expect(hasFhfaHpiSeries({ values: [400, 410] })).toBe(false);
+  });
+
+  it('hasFhfaHpiSeries is true when FHFA dates exist', () => {
+    expect(hasFhfaHpiSeries({ dates: ['2024-01'], values: [420] })).toBe(true);
   });
 });

@@ -54,4 +54,43 @@ function getCommoditySnapshot(data) {
 }
 
 
-export { latestNumber, fmtAcct, fmtUsdAcct, fmtPctAcct, getCommoditySnapshot };
+/** National Case-Shiller dates the shiller tile charts. */
+function hasShillerSeries(caseShillerData) {
+  const d = caseShillerData?.national || caseShillerData;
+  return Array.isArray(d?.dates) && d.dates.length > 0;
+}
+
+function hasReitPerfRows(reitData) {
+  return Array.isArray(reitData) && reitData.length > 0;
+}
+
+function hasCapRateRows(capRateData) {
+  return Array.isArray(capRateData) && capRateData.length > 0;
+}
+
+/** Affordability stack paints 5 cards; live only when at least one metric is numeric. */
+function hasAffordabilityStackMetrics(stack) {
+  if (!stack || typeof stack !== 'object' || Array.isArray(stack)) return false;
+  return [stack.price, stack.rate, stack.payment, stack.hudMedianIncome, stack.annualBurden]
+    .some((v) => typeof v === 'number' && Number.isFinite(v));
+}
+
+function hasSupplyMetrics(supplyData) {
+  if (!supplyData || typeof supplyData !== 'object') return false;
+  if (Array.isArray(supplyData.housingStarts?.values) && supplyData.housingStarts.values.length > 0) return true;
+  if (Array.isArray(supplyData.permits?.values) && supplyData.permits.values.length > 0) return true;
+  if (typeof supplyData.monthsSupply === 'number' && Number.isFinite(supplyData.monthsSupply)) return true;
+  if (supplyData.activeListings != null) return true;
+  return false;
+}
+
+function hasFhfaHpiSeries(fhfaHpi) {
+  return Array.isArray(fhfaHpi?.dates) && fhfaHpi.dates.length > 0;
+}
+
+export {
+  latestNumber, fmtAcct, fmtUsdAcct, fmtPctAcct, getCommoditySnapshot,
+  hasShillerSeries, hasReitPerfRows, hasCapRateRows, hasAffordabilityStackMetrics,
+  hasSupplyMetrics, hasFhfaHpiSeries,
+};
+

@@ -18,7 +18,11 @@ import {
   useCensusData,
 } from '../../census/components/CensusDashboard';
 import RentalAffordabilityMap from './RentalAffordabilityMap';
-import { latestNumber, fmtAcct, fmtUsdAcct, fmtPctAcct, getCommoditySnapshot } from './RealEstateHelpers';
+import {
+  latestNumber, fmtAcct, fmtUsdAcct, fmtPctAcct, getCommoditySnapshot,
+  hasShillerSeries, hasReitPerfRows, hasCapRateRows, hasAffordabilityStackMetrics,
+  hasSupplyMetrics, hasFhfaHpiSeries,
+} from './RealEstateHelpers';
 import './RealEstateDashboard.css';
 
 const LAYOUT = {
@@ -988,21 +992,21 @@ function RealEstateDashboard({
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
       metrics: !!isLive,
-      shiller: !!isLive,
+      shiller: hasShillerSeries(caseShillerData),
       reitetf: !!isLive,
-      reitperf: !!isLive,
+      reitperf: hasReitPerfRows(reitData),
       foreclosure: !!isLive,
       mba: !!isLive,
       cre: !!isLive,
-      caprate: !!isLive,
-      supply: !!isLive,
+      caprate: hasCapRateRows(capRateData),
+      supply: hasSupplyMetrics(supplyData),
       'hud-afford': !!isLive,
-      'afford-stack': !!isLive,
+      'afford-stack': hasAffordabilityStackMetrics(affordabilityStack),
       'census-housing': !!isLive,
       'census-trade': !!isLive,
       'census-trends-housing': !!isLive,
       'census-trends-trade': !!isLive,
-      'fhfa-hpi': !!isLive,
+      'fhfa-hpi': hasFhfaHpiSeries(fhfaHpi),
       'bis-property-prices': hasBisPropertyRows(priceIndexData),
       'metro-case-shiller': hasMetroCaseShillerRows(caseShillerData),
       'hud-affordability-by-metro': hasHudAffordabilityRows(hudData),
@@ -1019,6 +1023,12 @@ function RealEstateDashboard({
     __disabled: {
       'census-housing': housingExtraCards.length === 0 && !hasCensusHousingKpi,
       'census-trade': tradeExtraCards.length === 0 && !hasCensusEcoKpi,
+      shiller: !hasShillerSeries(caseShillerData),
+      reitperf: !hasReitPerfRows(reitData),
+      caprate: !hasCapRateRows(capRateData),
+      supply: !hasSupplyMetrics(supplyData),
+      'afford-stack': !hasAffordabilityStackMetrics(affordabilityStack),
+      'fhfa-hpi': !hasFhfaHpiSeries(fhfaHpi),
       'bis-property-prices': !hasBisPropertyRows(priceIndexData),
       'metro-case-shiller': !hasMetroCaseShillerRows(caseShillerData),
       'hud-affordability-by-metro': !hasHudAffordabilityRows(hudData),
