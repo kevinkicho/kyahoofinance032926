@@ -211,3 +211,44 @@ export function hasGlobalCentralBankRates(rates, ecbRate) {
   if (!rates || typeof rates !== 'object' || Array.isArray(rates)) return false;
   return Object.values(rates).some((v) => isFiniteNumeric(v));
 }
+
+/** Foreign-holders tile is empty when latest[] exists but no holdingsB / history paints. */
+export function hasForeignHoldersContent(ticData) {
+  const latest = ticData?.latest;
+  if (Array.isArray(latest) && latest.some((r) => isFiniteNumeric(r?.holdingsB))) {
+    const history = ticData?.history;
+    if (history && typeof history === "object" && !Array.isArray(history)) {
+      const paintedHistory = Object.values(history).some((rows) => (
+        Array.isArray(rows) && rows.some((row) => isFiniteNumeric(row?.holdingsB) && row?.period)
+      ));
+      if (paintedHistory) return true;
+    }
+  }
+  return false;
+}
+
+/** Money-market tile is empty when SOFR/RRP bags exist but no rate or volume paints. */
+export function hasMoneyMarketContent(nyfedData) {
+  const sofrSeries = nyfedData?.sofr?.series;
+  if (Array.isArray(sofrSeries) && sofrSeries.some((r) => isFiniteNumeric(r?.rate))) return true;
+  const rrp = nyfedData?.rrp;
+  if (Array.isArray(rrp) && rrp.some((r) => isFiniteNumeric(r?.acceptedB))) return true;
+  const latest = nyfedData?.sofr?.latest;
+  if (isFiniteNumeric(latest?.rate) || isFiniteNumeric(latest)) return true;
+  const effr = nyfedData?.effr;
+  if (isFiniteNumeric(effr?.latest) || isFiniteNumeric(effr)) return true;
+  return false;
+}
+
+/** Auctions tile is empty when auction rows exist but no BTC / allotment / yield paints. */
+export function hasAuctionContent(auctionData) {
+  const rows = auctionData?.auctions;
+  if (Array.isArray(rows) && rows.some((r) => (
+    isFiniteNumeric(r?.bidToCover) || isFiniteNumeric(r?.indirectPct) || isFiniteNumeric(r?.stopYieldPct)
+  ))) return true;
+  const summary = auctionData?.summary;
+  if (summary && typeof summary === "object" && !Array.isArray(summary)) {
+    if (isFiniteNumeric(summary.avgBidToCover) || isFiniteNumeric(summary.avgIndirectPct)) return true;
+  }
+  return false;
+}

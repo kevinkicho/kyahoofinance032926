@@ -15,7 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
-import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries } from './BondsLiveChips.js';
+import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -658,9 +658,9 @@ function BondsDashboard({
       fed: hasFedBalanceSeries(fedBalanceSheetHistory),
       m2: hasM2Series(m2HistoryData),
       debtgdp: hasDebtGdpSeries(debtToGdpHistory),
-      'foreign-holders': !!(ticCtx?.data?.latest?.length),
-      'money-market': !!(nyfedCtx?.data?.sofr?.series?.length),
-      auctions: !!(auctionCtx?.data?.auctions?.length),
+      'foreign-holders': hasForeignHoldersContent(ticCtx?.data),
+      'money-market': hasMoneyMarketContent(nyfedCtx?.data),
+      auctions: hasAuctionContent(auctionCtx?.data),
       'treasury-cost': hasTreasuryCostRates(treasuryCostCtx?.data?.latest),
     },
     __subtitle: {

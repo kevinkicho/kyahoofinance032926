@@ -106,6 +106,9 @@ import {
   hasMacroIndicatorsContent,
   hasEcbPolicyRatesContent,
   hasGlobalCentralBankRates,
+  hasForeignHoldersContent,
+  hasMoneyMarketContent,
+  hasAuctionContent,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -1469,6 +1472,81 @@ describe('bonds leftover empty-capable tiles (credit / duration / macro / ecb / 
     expect(hasGlobalCentralBankRates({ US: 5.25 })).toBe(true);
     expect(hasGlobalCentralBankRates({ EU: null }, 4.15)).toBe(true);
     expect(hasGlobalCentralBankRates(null, 4.15)).toBe(true);
+  });
+});
+
+describe('bonds leftover empty-capable tiles (foreign-holders / money-market / auctions)', () => {
+  it('dashboard does not hardcode leftover bag-existence on empty-capable tiles', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/'foreign-holders':\s*!!\(ticCtx\?\.data\?\.latest\?\.length\)/);
+    expect(dash).not.toMatch(/'money-market':\s*!!\(nyfedCtx\?\.data\?\.sofr\?\.series\?\.length\)/);
+    expect(dash).not.toMatch(/auctions:\s*!!\(auctionCtx\?\.data\?\.auctions\?\.length\)/);
+    expect(dash).toMatch(/'foreign-holders':\s*hasForeignHoldersContent\(ticCtx\?\.data\)/);
+    expect(dash).toMatch(/'money-market':\s*hasMoneyMarketContent\(nyfedCtx\?\.data\)/);
+    expect(dash).toMatch(/auctions:\s*hasAuctionContent\(auctionCtx\?\.data\)/);
+  });
+
+  it('hasForeignHoldersContent is false for empty / latest-only leftover bags', () => {
+    expect(hasForeignHoldersContent()).toBe(false);
+    expect(hasForeignHoldersContent(null)).toBe(false);
+    expect(hasForeignHoldersContent({})).toBe(false);
+    expect(hasForeignHoldersContent({ isLive: true })).toBe(false);
+    expect(hasForeignHoldersContent({ latest: [{ country: 'Japan' }] })).toBe(false);
+    expect(hasForeignHoldersContent({ latest: [{ country: 'Japan', holdingsB: null }] })).toBe(false);
+    expect(hasForeignHoldersContent({ latest: [{ country: 'Japan', holdingsB: 1120 }] })).toBe(false);
+    expect(hasForeignHoldersContent({ history: { Japan: [{ period: '2024-01' }] } })).toBe(false);
+    expect(hasForeignHoldersContent({
+      latest: [{ country: 'Japan', holdingsB: 1120 }],
+      history: { Japan: [{ period: '2024-01' }] },
+    })).toBe(false);
+  });
+
+  it('hasForeignHoldersContent is true when latest and history holdings paint', () => {
+    expect(hasForeignHoldersContent({
+      latest: [{ country: 'Japan', holdingsB: 1120 }],
+      history: { Japan: [{ period: '2024-01', holdingsB: 1100 }] },
+    })).toBe(true);
+    expect(hasForeignHoldersContent({
+      latest: [{ country: 'China, Mainland', holdingsB: 780 }],
+      history: { 'China, Mainland': [{ period: '2024-02', holdingsB: 790 }] },
+    })).toBe(true);
+  });
+
+  it('hasMoneyMarketContent is false for empty / dates-only leftover bags', () => {
+    expect(hasMoneyMarketContent()).toBe(false);
+    expect(hasMoneyMarketContent(null)).toBe(false);
+    expect(hasMoneyMarketContent({})).toBe(false);
+    expect(hasMoneyMarketContent({ isLive: true })).toBe(false);
+    expect(hasMoneyMarketContent({ sofr: { series: [{ date: '2024-01' }] } })).toBe(false);
+    expect(hasMoneyMarketContent({ sofr: { series: [{ date: '2024-01', rate: null }] } })).toBe(false);
+    expect(hasMoneyMarketContent({ rrp: [{ date: '2024-01' }] })).toBe(false);
+    expect(hasMoneyMarketContent({ sofr: { latest: {} } })).toBe(false);
+  });
+
+  it('hasMoneyMarketContent is true when a SOFR rate or RRP volume paints', () => {
+    expect(hasMoneyMarketContent({ sofr: { series: [{ date: '2024-01', rate: 5.32 }] } })).toBe(true);
+    expect(hasMoneyMarketContent({ rrp: [{ date: '2024-01', acceptedB: 2100 }] })).toBe(true);
+    expect(hasMoneyMarketContent({ sofr: { latest: { rate: 5.31 } } })).toBe(true);
+    expect(hasMoneyMarketContent({ sofr: { latest: 5.31 } })).toBe(true);
+    expect(hasMoneyMarketContent({ effr: { latest: 5.33 } })).toBe(true);
+  });
+
+  it('hasAuctionContent is false for empty / dates-only leftover bags', () => {
+    expect(hasAuctionContent()).toBe(false);
+    expect(hasAuctionContent(null)).toBe(false);
+    expect(hasAuctionContent({})).toBe(false);
+    expect(hasAuctionContent({ isLive: true })).toBe(false);
+    expect(hasAuctionContent({ auctions: [{ auctionDate: '2024-01-02', securityTerm: '10Y' }] })).toBe(false);
+    expect(hasAuctionContent({ auctions: [{ auctionDate: '2024-01-02', bidToCover: null }] })).toBe(false);
+    expect(hasAuctionContent({ summary: { count: 12 } })).toBe(false);
+  });
+
+  it('hasAuctionContent is true when a BTC, allotment, or yield paints', () => {
+    expect(hasAuctionContent({ auctions: [{ auctionDate: '2024-01-02', bidToCover: 2.54 }] })).toBe(true);
+    expect(hasAuctionContent({ auctions: [{ auctionDate: '2024-01-02', indirectPct: 62 }] })).toBe(true);
+    expect(hasAuctionContent({ auctions: [{ auctionDate: '2024-01-02', stopYieldPct: 4.21 }] })).toBe(true);
+    expect(hasAuctionContent({ summary: { avgBidToCover: 2.48 } })).toBe(true);
+    expect(hasAuctionContent({ summary: { avgIndirectPct: 61 } })).toBe(true);
   });
 });
 
