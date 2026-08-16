@@ -15,6 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
+import { hasBondsKpiMetrics } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -650,7 +651,7 @@ function BondsDashboard({
     treasuryCost: treasuryCostCtx,
     __render: renderPanel,
     __live: {
-      kpi: !!isLive,
+      kpi: hasBondsKpiMetrics({ treasuryRates, yieldCurveData, spreadIndicators, fedFundsFutures, spreadData, breakevensData }),
       metrics: !!(macroData && Object.values(macroData).some(v => v != null)),
       ratings: !!creditRatingsAsOf,
       curvespreads: !!(spreadHistory?.dates?.length > 0),
@@ -683,7 +684,7 @@ function BondsDashboard({
     realYieldHistory, breakevensData, durationLadderData, durationLadderMeta,
     treasuryRates, fedFundsFutures, cpiComponents, macroData, nationalDebt,
     debtToGdpHistory, convertAndFormat, lastUpdated, fredYieldHistory, yieldHistory,
-    ecbCtx, ticCtx, nyfedCtx, auctionCtx, treasuryCostCtx, renderPanel, isLive,
+    ecbCtx, ticCtx, nyfedCtx, auctionCtx, treasuryCostCtx, renderPanel,
     creditRatingsAsOf, creditRatingsData, spreadHistory, fedBalanceSheetHistory,
     m2HistoryData, auctionDemandSummary, spreadHistoryOption, fedBalanceOption,
     m2Option, debtToGdpOption,

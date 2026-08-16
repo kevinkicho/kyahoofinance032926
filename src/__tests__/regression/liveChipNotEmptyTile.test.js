@@ -64,6 +64,7 @@ import {
   hasCrossAssetReturns,
   hasRiskDashboardContent,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
+import { hasBondsKpiMetrics } from '../../markets/bonds/components/BondsLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -779,5 +780,39 @@ describe('sentiment empty-capable tiles (sidebar / key-metrics / FSI / CFTC / cr
     expect(hasRiskDashboardContent({ riskData: { signals: [{ name: 'VIX', value: 18.2 }] } })).toBe(true);
     expect(hasRiskDashboardContent({ fsiHistory: { dates: ['2024-01'], values: [0.12] } })).toBe(true);
     expect(hasRiskDashboardContent({ marginDebt: { dates: ['2024-01'], values: [812000] } })).toBe(true);
+  });
+});
+
+describe('bonds empty-capable tiles (kpi)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!isLive/);
+    expect(dash).toMatch(/kpi:\s*hasBondsKpiMetrics/);
+  });
+
+  it('hasBondsKpiMetrics is false for empty / sibling-only payloads', () => {
+    expect(hasBondsKpiMetrics()).toBe(false);
+    expect(hasBondsKpiMetrics({})).toBe(false);
+    expect(hasBondsKpiMetrics({ treasuryRates: { isLive: true } })).toBe(false);
+    expect(hasBondsKpiMetrics({ yieldCurveData: { US: {} } })).toBe(false);
+    expect(hasBondsKpiMetrics({ spreadData: { history: { dates: ['2024-01'] } } })).toBe(false);
+    expect(hasBondsKpiMetrics({ breakevensData: { history: { dates: ['2024-01'] } } })).toBe(false);
+    expect(hasBondsKpiMetrics({ fedFundsFutures: { isLive: true } })).toBe(false);
+    expect(hasBondsKpiMetrics({ spreadIndicators: { isLive: true } })).toBe(false);
+  });
+
+  it('hasBondsKpiMetrics is true when a painted KPI number exists', () => {
+    expect(hasBondsKpiMetrics({ treasuryRates: { US10Y: 4.25 } })).toBe(true);
+    expect(hasBondsKpiMetrics({ yieldCurveData: { US: { '10y': 4.2 } } })).toBe(true);
+    expect(hasBondsKpiMetrics({ treasuryRates: { US2Y: 4.1 } })).toBe(true);
+    expect(hasBondsKpiMetrics({ spreadIndicators: { t10y2y: -0.15 } })).toBe(true);
+    expect(hasBondsKpiMetrics({ fedFundsFutures: { m1: 5.25 } })).toBe(true);
+    expect(hasBondsKpiMetrics({ treasuryRates: { fedFunds: 5.33 } })).toBe(true);
+    expect(hasBondsKpiMetrics({ spreadData: { current: { igSpread: 95 } } })).toBe(true);
+    expect(hasBondsKpiMetrics({ spreadData: { current: { hy: 310 } } })).toBe(true);
+    expect(hasBondsKpiMetrics({ breakevensData: { current: { be5y: 2.31 } } })).toBe(true);
+    expect(hasBondsKpiMetrics({
+      treasuryRates: { US10Y: 4.25, US2Y: 4.10 },
+    })).toBe(true);
   });
 });
