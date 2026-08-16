@@ -82,7 +82,12 @@ import {
   hasRiskDashboardContent,
   hasNewsSentimentSeries,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
-import { hasBondsKpiMetrics } from '../../markets/bonds/components/BondsLiveChips.js';
+import {
+  hasBondsKpiMetrics,
+  hasBondsMetricsContent,
+  hasCreditRatingsRows,
+  hasTreasuryCostRates,
+} from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasScorecardRows,
   hasRateBarRows,
@@ -1103,6 +1108,69 @@ describe('bonds empty-capable tiles (kpi)', () => {
     expect(hasBondsKpiMetrics({
       treasuryRates: { US10Y: 4.25, US2Y: 4.10 },
     })).toBe(true);
+  });
+});
+
+describe('bonds leftover empty-capable tiles (metrics / ratings / treasury-cost)', () => {
+  it('dashboard does not hardcode leftover bag existence on empty-capable tiles', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/metrics:\s*!!\(macroData && Object\.values\(macroData\)/);
+    expect(dash).not.toMatch(/ratings:\s*!!creditRatingsAsOf/);
+    expect(dash).not.toMatch(/'treasury-cost':\s*!!treasuryCostCtx\?\.data\?\.latest/);
+    expect(dash).toMatch(/metrics:\s*hasBondsMetricsContent\(/);
+    expect(dash).toMatch(/ratings:\s*hasCreditRatingsRows\(creditRatingsData\)/);
+    expect(dash).toMatch(/'treasury-cost':\s*hasTreasuryCostRates\(treasuryCostCtx\?\.data\?\.latest\)/);
+  });
+
+  it('hasBondsMetricsContent is false for empty / leftover bag-only payloads', () => {
+    expect(hasBondsMetricsContent()).toBe(false);
+    expect(hasBondsMetricsContent({})).toBe(false);
+    expect(hasBondsMetricsContent({ macroData: { isLive: true } })).toBe(false);
+    expect(hasBondsMetricsContent({ macroData: { centralBankRates: {} } })).toBe(false);
+    expect(hasBondsMetricsContent({ yieldCurveData: { US: {} } })).toBe(false);
+    expect(hasBondsMetricsContent({ spreadIndicators: { isLive: true } })).toBe(false);
+    expect(hasBondsMetricsContent({ tipsYields: {} })).toBe(false);
+    expect(hasBondsMetricsContent({ spreadData: { history: { dates: ['2024-01'] } } })).toBe(false);
+    expect(hasBondsMetricsContent({ fedFundsFutures: { isLive: true } })).toBe(false);
+    expect(hasBondsMetricsContent({ breakevensData: { history: { dates: ['2024-01'] } } })).toBe(false);
+  });
+
+  it('hasBondsMetricsContent is true when a painted sidebar number exists', () => {
+    expect(hasBondsMetricsContent({ yieldCurveData: { US: { '10y': 4.2 } } })).toBe(true);
+    expect(hasBondsMetricsContent({ spreadIndicators: { t10y2y: -0.15 } })).toBe(true);
+    expect(hasBondsMetricsContent({ tipsYields: { '10y': 1.8 } })).toBe(true);
+    expect(hasBondsMetricsContent({ macroData: { unemployment: 4.1 } })).toBe(true);
+    expect(hasBondsMetricsContent({ nationalDebt: 36000000 })).toBe(true);
+    expect(hasBondsMetricsContent({ breakevensData: { current: { be5y: 2.31 } } })).toBe(true);
+    expect(hasBondsMetricsContent({ fedFundsFutures: { effectiveRate: 5.33 } })).toBe(true);
+    expect(hasBondsMetricsContent({ spreadData: { current: { igSpread: 95 } } })).toBe(true);
+  });
+
+  it('hasCreditRatingsRows is false for empty / asOf-only leftover payloads', () => {
+    expect(hasCreditRatingsRows()).toBe(false);
+    expect(hasCreditRatingsRows(null)).toBe(false);
+    expect(hasCreditRatingsRows({})).toBe(false);
+    expect(hasCreditRatingsRows([])).toBe(false);
+    expect(hasCreditRatingsRows({ asOf: '2024-01-01', isLive: true })).toBe(false);
+  });
+
+  it('hasCreditRatingsRows is true when a country row exists', () => {
+    expect(hasCreditRatingsRows([{ country: 'US', name: 'United States', sp: 'AA+' }])).toBe(true);
+  });
+
+  it('hasTreasuryCostRates is false for empty / latest-bag-only payloads', () => {
+    expect(hasTreasuryCostRates()).toBe(false);
+    expect(hasTreasuryCostRates(null)).toBe(false);
+    expect(hasTreasuryCostRates({})).toBe(false);
+    expect(hasTreasuryCostRates({ isLive: true })).toBe(false);
+    expect(hasTreasuryCostRates({ Bills: {} })).toBe(false);
+    expect(hasTreasuryCostRates({ Bills: { rate: null } })).toBe(false);
+    expect(hasTreasuryCostRates({ Notes: { rate: '—' } })).toBe(false);
+  });
+
+  it('hasTreasuryCostRates is true when a painted rate exists', () => {
+    expect(hasTreasuryCostRates({ Bills: { rate: 4.52 } })).toBe(true);
+    expect(hasTreasuryCostRates({ Notes: { rate: '3.80' } })).toBe(true);
   });
 });
 

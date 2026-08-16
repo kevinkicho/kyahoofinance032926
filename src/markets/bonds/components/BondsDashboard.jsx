@@ -15,7 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
-import { hasBondsKpiMetrics } from './BondsLiveChips.js';
+import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -652,8 +652,8 @@ function BondsDashboard({
     __render: renderPanel,
     __live: {
       kpi: hasBondsKpiMetrics({ treasuryRates, yieldCurveData, spreadIndicators, fedFundsFutures, spreadData, breakevensData }),
-      metrics: !!(macroData && Object.values(macroData).some(v => v != null)),
-      ratings: !!creditRatingsAsOf,
+      metrics: hasBondsMetricsContent({ yieldCurveData, spreadIndicators, spreadHistory, tipsYields, macroData, nationalDebt, debtToGdpHistory, breakevensData, fedFundsFutures, spreadData }),
+      ratings: hasCreditRatingsRows(creditRatingsData),
       curvespreads: !!(spreadHistory?.dates?.length > 0),
       fed: !!(fedBalanceSheetHistory?.dates?.length > 0),
       m2: !!(m2HistoryData?.dates?.length > 0),
@@ -661,7 +661,7 @@ function BondsDashboard({
       'foreign-holders': !!(ticCtx?.data?.latest?.length),
       'money-market': !!(nyfedCtx?.data?.sofr?.series?.length),
       auctions: !!(auctionCtx?.data?.auctions?.length),
-      'treasury-cost': !!treasuryCostCtx?.data?.latest,
+      'treasury-cost': hasTreasuryCostRates(treasuryCostCtx?.data?.latest),
     },
     __subtitle: {
       kpi: 'US Treasury yields · Fed funds · curve spread · credit spreads · 5Y breakeven',
