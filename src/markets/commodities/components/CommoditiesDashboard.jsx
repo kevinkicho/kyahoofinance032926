@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -101,16 +101,15 @@ function CommoditiesDashboard({
 
   // ── USDA ag prices: 4-line chart, last 36 months per commodity ────────
   const usdaOption = useMemo(() => {
-    const summary = usdaCtx?.data?.summary || [];
-    const commodities = usdaCtx?.data?.commodities || {};
-    if (!summary.length) return null;
-    const periods = (commodities[summary[0].key] || []).map(p => `${p.period.slice(0, 3)}-${String(p.year).slice(2)}`);
-    const series = summary.map(s => ({
-      name: `${s.desc} (${s.unit})`,
+    const rows = usdaAgSummaryRows(usdaCtx?.data);
+    if (!rows.length) return null;
+    const periods = rows[0].points.map(p => `${p.period.slice(0, 3)}-${String(p.year).slice(2)}`);
+    const series = rows.map(s => ({
+      name: s.unit ? `${s.desc} (${s.unit})` : s.desc,
       type: 'line',
       smooth: true,
       symbol: 'none',
-      data: (commodities[s.key] || []).map(p => p.value),
+      data: s.points.map(p => p.value),
       lineStyle: { color: s.color, width: 1.8 },
     }));
     return {
@@ -133,15 +132,15 @@ function CommoditiesDashboard({
   ];
   const usdaFredOption = useMemo(() => {
     const fred = enhancedData?.fred || {};
-    const rows = USDA_FRED_KEYS.filter((m) => Array.isArray(fred[m.key]?.history) && fred[m.key].history.length > 0);
+    const rows = USDA_FRED_KEYS.filter((m) => usdaFredHistoryPoints(fred, m.key).length > 0);
     if (!rows.length) return null;
-    const dates = fred[rows[0].key].history.map((p) => String(p.date).slice(0, 7));
+    const dates = usdaFredHistoryPoints(fred, rows[0].key).map((p) => String(p.date).slice(0, 7));
     const series = rows.map((m) => ({
       name: `${m.name} ($/mt)`,
       type: 'line',
       smooth: true,
       symbol: 'none',
-      data: fred[m.key].history.map((p) => p.value),
+      data: usdaFredHistoryPoints(fred, m.key).map((p) => p.value),
       lineStyle: { color: m.color, width: 1.8 },
     }));
     return {
@@ -1265,7 +1264,7 @@ function CommoditiesDashboard({
       'wti-brent': !!(fredCommodities?.wtiHistory && fredCommodities?.brentHistory),
       cot: !!cotData,
       comfx: !!commodityCurrencies,
-      'usda-ag': !!(usdaCtx?.data?.isLive || usdaFredOption),
+      'usda-ag': !!(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': !!tradeCtx?.data?.isLive,
       'physical-pressure': !!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive),
@@ -1290,11 +1289,10 @@ function CommoditiesDashboard({
         </>
       ),
       'wti-brent': '1 Year (FRED daily)',
-      'usda-ag': usdaOption
-        ? (usdaCtx?.data?.summary || []).filter(s => s.latest).slice(0, 4).map(s => `${s.desc.slice(0, 4)} ${s.latest.value.toFixed(2)}${s.unit.replace('$/','/')}${s.yoyPct != null ? ` (${s.yoyPct >= 0 ? '+' : ''}${s.yoyPct.toFixed(0)}% YoY)` : ''}`).join(' · ') || 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS'
-        : usdaFredOption
+      'usda-ag': usdaAgSubtitle(usdaCtx?.data)
+        || (hasUsdaFredSeries(enhancedData?.fred)
           ? 'FRED fallback · Corn/Wheat/Soybeans ($/mt)'
-          : 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS',
+          : 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS'),
       'eia-petrol': eiaPetrolSubtitle(eiaPetCtx?.data) || 'Retail gasoline · Henry Hub spot · weekly',
       'us-trade': tradeCtx?.data?.summary
         ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
@@ -1314,7 +1312,7 @@ function CommoditiesDashboard({
     },
     __disabled: {
       'wti-brent': !wtiBrentOption,
-      'usda-ag': !(usdaOption || usdaFredOption),
+      'usda-ag': !(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': !hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': !tradeOption,
       'fao-prices': !(faoCtx?.data?.series?.length > 0),

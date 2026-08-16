@@ -67,3 +67,84 @@ export function eiaPetrolSubtitle(eiaData) {
   if (crude) text += ` · Crude stocks ${(crude.value / 1000).toFixed(0)}M bbl`;
   return text;
 }
+
+
+/** USDA NASS rows that paint the ag-prices chart. Leftover isLive / period-only stay empty. */
+export function usdaAgSeriesPoints(usdaData, key) {
+  const series = Array.isArray(usdaData?.commodities?.[key]) ? usdaData.commodities[key] : [];
+  const points = [];
+  for (const row of series) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    if (typeof row.period !== 'string' || !row.period) continue;
+    if (!isFiniteNumber(row.year) || !isFiniteNumber(row.value)) continue;
+    points.push({ period: row.period, year: row.year, value: row.value });
+  }
+  return points;
+}
+
+/** Summary commodities that have at least one painted NASS point. */
+export function usdaAgSummaryRows(usdaData) {
+  const summary = Array.isArray(usdaData?.summary) ? usdaData.summary : [];
+  const rows = [];
+  for (const s of summary) {
+    if (!s || typeof s !== 'object' || Array.isArray(s)) continue;
+    if (typeof s.key !== 'string' || !s.key) continue;
+    const points = usdaAgSeriesPoints(usdaData, s.key);
+    if (!points.length) continue;
+    rows.push({
+      key: s.key,
+      desc: typeof s.desc === 'string' && s.desc ? s.desc : s.key,
+      unit: typeof s.unit === 'string' ? s.unit : '',
+      color: typeof s.color === 'string' ? s.color : undefined,
+      points,
+    });
+  }
+  return rows;
+}
+
+export function hasUsdaAgSeries(usdaData) {
+  return usdaAgSummaryRows(usdaData).length > 0;
+}
+
+const USDA_FRED_KEYS = ['corn', 'wheat', 'soybeans'];
+
+/** FRED fallback histories that paint the tile when NASS is empty. */
+export function usdaFredHistoryPoints(fred, key) {
+  const history = Array.isArray(fred?.[key]?.history) ? fred[key].history : [];
+  const points = [];
+  for (const row of history) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    if (typeof row.date !== 'string' || !row.date) continue;
+    if (!isFiniteNumber(row.value)) continue;
+    points.push({ date: row.date, value: row.value });
+  }
+  return points;
+}
+
+export function hasUsdaFredSeries(fred) {
+  return USDA_FRED_KEYS.some((key) => usdaFredHistoryPoints(fred, key).length > 0);
+}
+
+/** Subtitle for usda-ag; leftover latest / desc / unit / yoy must not throw. */
+export function usdaAgSubtitle(usdaData) {
+  const summary = Array.isArray(usdaData?.summary) ? usdaData.summary : [];
+  const parts = [];
+  for (const s of summary) {
+    if (!s || typeof s !== 'object' || Array.isArray(s)) continue;
+    const latest = s.latest;
+    if (!latest || typeof latest !== 'object' || Array.isArray(latest)) continue;
+    if (!isFiniteNumber(latest.value)) continue;
+    const desc = typeof s.desc === 'string' && s.desc
+      ? s.desc
+      : (typeof s.key === 'string' ? s.key : '');
+    if (!desc) continue;
+    const unit = typeof s.unit === 'string' ? s.unit.replace('$/','/') : '';
+    let text = desc.slice(0, 4) + ' ' + latest.value.toFixed(2) + unit;
+    if (isFiniteNumber(s.yoyPct)) {
+      text += ' (' + (s.yoyPct >= 0 ? '+' : '') + s.yoyPct.toFixed(0) + '% YoY)';
+    }
+    parts.push(text);
+    if (parts.length >= 4) break;
+  }
+  return parts.length ? parts.join(' · ') : null;
+}

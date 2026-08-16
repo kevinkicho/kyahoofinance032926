@@ -172,6 +172,12 @@ import {
   eiaPetrolSeriesPoints,
   eiaPetrolLatest,
   eiaPetrolSubtitle,
+  hasUsdaAgSeries,
+  usdaAgSeriesPoints,
+  usdaAgSummaryRows,
+  hasUsdaFredSeries,
+  usdaFredHistoryPoints,
+  usdaAgSubtitle,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3203,5 +3209,107 @@ describe('commodities leftover empty-capable tiles (eia-petrol)', () => {
       naturalGas: { latest: { value: 2.84 }, yoyPct: 8.6 },
       crudeStocks: { latest: { value: 432100 } },
     })).toBe('Gasoline $3.21/gal (-4% YoY) · NG $2.84/MMBtu (+9% YoY) · Crude stocks 432M bbl');
+  });
+});
+
+describe('commodities leftover empty-capable tiles (usda-ag)', () => {
+  it('dashboard does not hardcode leftover isLive on usda-ag', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/'usda-ag':\s*!!\(usdaCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/'usda-ag':\s*!!\(hasUsdaAgSeries\(usdaCtx\?\.data\) \|\| hasUsdaFredSeries\(enhancedData\?\.fred\)\)/);
+  });
+
+  it('hasUsdaAgSeries is false for empty / leftover isLive / period-only bags', () => {
+    expect(hasUsdaAgSeries()).toBe(false);
+    expect(hasUsdaAgSeries(null)).toBe(false);
+    expect(hasUsdaAgSeries({})).toBe(false);
+    expect(hasUsdaAgSeries({ isLive: true })).toBe(false);
+    expect(hasUsdaAgSeries({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasUsdaAgSeries({ summary: [], commodities: {} })).toBe(false);
+    expect(hasUsdaAgSeries({ isLive: true, summary: [{ isLive: true }] })).toBe(false);
+    expect(hasUsdaAgSeries({
+      isLive: true,
+      summary: [{ key: 'corn', latest: { isLive: true } }],
+      commodities: { corn: [{ period: 'Jan', year: 2026 }] },
+    })).toBe(false);
+    expect(hasUsdaAgSeries({
+      summary: [{ key: 'corn', desc: 'Corn', unit: '$/bu' }],
+      commodities: { corn: [{ period: 'Jan', year: 2026, value: '4.12' }] },
+    })).toBe(false);
+    expect(hasUsdaAgSeries({
+      summary: [{ key: 'corn' }],
+      commodities: { corn: [{ isLive: true }, { lastUpdated: '2024-01' }] },
+    })).toBe(false);
+  });
+
+  it('hasUsdaAgSeries is true when a painted NASS point exists', () => {
+    expect(hasUsdaAgSeries({
+      summary: [{ key: 'corn', desc: 'Corn', unit: '$/bu' }],
+      commodities: { corn: [{ period: 'Jan', year: 2026, value: 4.12 }] },
+    })).toBe(true);
+    expect(hasUsdaAgSeries({
+      isLive: true,
+      summary: [{ key: 'wheat', desc: 'Wheat' }, { isLive: true }],
+      commodities: {
+        wheat: [{ period: 'Jan' }, { period: 'Feb', year: 2026, value: 5.48 }],
+      },
+    })).toBe(true);
+  });
+
+  it('usdaAgSeriesPoints skips leftover sibling rows so remount does not crash', () => {
+    expect(() => usdaAgSeriesPoints({ isLive: true, commodities: { corn: [null, { isLive: true }, 'x'] } }, 'corn')).not.toThrow();
+    expect(usdaAgSeriesPoints({
+      commodities: { corn: [null, { period: 'Jan', year: 2026, value: 4.12 }, { period: 'Feb', year: 2026, value: true }] },
+    }, 'corn').map((p) => p.value)).toEqual([4.12]);
+    const points = usdaAgSeriesPoints({
+      isLive: true,
+      commodities: {
+        corn: [
+          { isLive: true },
+          { period: 'Jan', year: 2026, value: 4.12 },
+          { period: 'Feb', year: 2026, value: 4.28 },
+          { period: 'Mar', year: 2026, value: '4.19' },
+        ],
+      },
+    }, 'corn');
+    expect(points.map((p) => p.value)).toEqual([4.12, 4.28]);
+    expect(() => points.map((p) => p.value.toFixed(2))).not.toThrow();
+    expect(() => points.map((p) => p.period.slice(0, 3) + '-' + String(p.year).slice(2))).not.toThrow();
+    expect(points[0].value.toFixed(2)).toBe('4.12');
+  });
+
+  it('usdaAgSubtitle skips leftover latest / desc / unit so remount does not crash', () => {
+    expect(() => usdaAgSubtitle({ isLive: true, summary: [{ isLive: true, latest: { isLive: true } }] })).not.toThrow();
+    expect(usdaAgSubtitle({ isLive: true, summary: [{ isLive: true, latest: { isLive: true } }] })).toBe(null);
+    expect(usdaAgSubtitle({ summary: [{ desc: 'Corn', unit: '$/bu', latest: { value: '4.12' } }] })).toBe(null);
+    expect(usdaAgSubtitle({
+      isLive: true,
+      summary: [{ desc: 'Corn', unit: '$/bu', latest: { value: 4.12 }, yoyPct: true }],
+    })).toBe('Corn 4.12/bu');
+    expect(() => usdaAgSubtitle({
+      summary: [{ desc: 'Corn', unit: '$/bu', latest: { value: 4.12 }, yoyPct: -6.1 }],
+    })).not.toThrow();
+    expect(usdaAgSubtitle({
+      summary: [{ desc: 'Corn', unit: '$/bu', latest: { value: 4.12 }, yoyPct: -6.1 }],
+    })).toBe('Corn 4.12/bu (-6% YoY)');
+  });
+
+  it('hasUsdaFredSeries is false for leftover FRED bags and true for painted history', () => {
+    expect(hasUsdaFredSeries()).toBe(false);
+    expect(hasUsdaFredSeries({ isLive: true })).toBe(false);
+    expect(hasUsdaFredSeries({ wti: { history: [{ date: '2024-01', value: 78.4 }] } })).toBe(false);
+    expect(hasUsdaFredSeries({ corn: { history: [{ date: '2024-01' }] } })).toBe(false);
+    expect(hasUsdaFredSeries({ corn: { history: [{ isLive: true }, { date: '2024-01', value: '168.2' }] } })).toBe(false);
+    expect(hasUsdaFredSeries({ corn: { history: [{ date: '2024-01', value: 168.2 }] } })).toBe(true);
+    expect(() => usdaFredHistoryPoints({ corn: { history: [null, { isLive: true }, { date: '2024-01', value: 168.2 }] } }, 'corn')).not.toThrow();
+    expect(usdaFredHistoryPoints({ corn: { history: [null, { isLive: true }, { date: '2024-01', value: 168.2 }] } }, 'corn').map((p) => p.value)).toEqual([168.2]);
+  });
+
+  it('usdaAgSummaryRows skips leftover summary so remount does not crash', () => {
+    expect(() => usdaAgSummaryRows({ isLive: true, summary: [null, { isLive: true }, 'x'] })).not.toThrow();
+    expect(usdaAgSummaryRows({
+      summary: [{ isLive: true }, { key: 'corn', desc: 'Corn', unit: '$/bu' }],
+      commodities: { corn: [{ period: 'Jan', year: 2026, value: 4.12 }] },
+    }).map((r) => r.key)).toEqual(['corn']);
   });
 });
