@@ -120,9 +120,9 @@ function buildCreditMiniOption(dates, values, colors) {
 }
 
 export default function FearGreed({ fearGreedData, consumerCredit }) {
-  if (!fearGreedData) return null;
+  // Hooks must run on empty splash / refresh before data arrives.
   const { colors } = useTheme();
-  const { score = 50, label = 'Neutral', altmeScore, history = [], indicators = [] } = fearGreedData;
+  const { score = 50, label = 'Neutral', altmeScore, history = [], indicators = [] } = fearGreedData || {};
   const color = scoreColor(score);
   const gaugeOption = useMemo(() => buildGaugeOption(score, colors), [score, colors]);
   const historyOption = useMemo(() => buildHistoryOption(history, colors), [history, colors]);
@@ -139,6 +139,8 @@ export default function FearGreed({ fearGreedData, consumerCredit }) {
     ? consumerCredit.values[consumerCredit.values.length - 2]
     : null;
   const creditRising = creditLatest != null && creditPrev != null && creditLatest >= creditPrev;
+
+  if (!fearGreedData) return null;
 
   return (
     <div className="sent-panel">

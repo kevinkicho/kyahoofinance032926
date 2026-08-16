@@ -101,15 +101,17 @@ function buildSupplyOption(supplyData, colors) {
 }
 
 export default function AffordabilityMap({ affordabilityData, mortgageRates, supplyData, medianHomePrice, rentalVacancy }) {
+  // Hooks must run on empty splash / refresh before data arrives.
   const { colors } = useTheme();
-  if (!affordabilityData) return null;
-  const { current, history = [] } = affordabilityData;
+  const { current, history = [] } = affordabilityData || {};
   const historyOption = useMemo(() => history.length >= 2 ? buildHistoryOption(history, colors) : null, [history, colors]);
   const supplyOption = useMemo(() => supplyData?.housingStarts?.values?.length >= 4 ? buildSupplyOption(supplyData, colors) : null, [supplyData, colors]);
   const medianPriceOption = useMemo(() => medianHomePrice?.dates?.length >= 4 ? buildMedianPriceOption(medianHomePrice, colors) : null, [medianHomePrice, colors]);
 
   const startsLatest = supplyData?.housingStarts?.values?.at(-1);
   const permitsLatest = supplyData?.permits?.values?.at(-1);
+
+  if (!affordabilityData) return null;
 
   return (
     <div className="re-panel">

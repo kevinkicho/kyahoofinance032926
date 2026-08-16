@@ -46,6 +46,12 @@ describe('FearGreed', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('survives empty-then-data remount without a hooks-order crash', () => {
+    const { rerender } = render(<FearGreed fearGreedData={null} />);
+    expect(() => rerender(<FearGreed fearGreedData={mockFearGreedData} />)).not.toThrow();
+    expect(screen.getByText('Fear & Greed')).toBeInTheDocument();
+  });
+
   it('renders panel title and subtitle', () => {
     render(<FearGreed fearGreedData={mockFearGreedData} />);
     expect(screen.getByText('Fear & Greed')).toBeInTheDocument();

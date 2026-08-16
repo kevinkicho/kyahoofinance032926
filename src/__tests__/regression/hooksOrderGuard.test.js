@@ -47,4 +47,28 @@ describe('hooks order guard', () => {
     expect(skeletonBeforeMemo).toBe(false);
     expect(body).toMatch(/useMemo\s*\(/);
   });
+
+  it('CftcPositioning runs hooks before empty-state early return', () => {
+    assertHooksBeforeEmptyReturn(
+      'markets/sentiment/components/CftcPositioning.jsx',
+      'export default function CftcPositioning',
+      /if\s*\(\s*!cftcData\s*\)\s*return\s*null/,
+    );
+  });
+
+  it('FearGreed runs hooks before empty-state early return', () => {
+    assertHooksBeforeEmptyReturn(
+      'markets/sentiment/components/FearGreed.jsx',
+      'export default function FearGreed',
+      /if\s*\(\s*!fearGreedData\s*\)\s*return\s*null/,
+    );
+  });
+
+  it('AffordabilityMap runs hooks before empty-state early return', () => {
+    assertHooksBeforeEmptyReturn(
+      'markets/realEstate/components/AffordabilityMap.jsx',
+      'export default function AffordabilityMap',
+      /if\s*\(\s*!affordabilityData\s*\)\s*return\s*null/,
+    );
+  });
 });

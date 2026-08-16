@@ -47,6 +47,12 @@ describe('AffordabilityMap', () => {
     const { container } = render(<AffordabilityMap affordabilityData={null} />);
     expect(container.innerHTML).toBe('');
   });
+
+  it('survives empty-then-data remount without a hooks-order crash', () => {
+    const { rerender } = render(<AffordabilityMap affordabilityData={null} />);
+    expect(() => rerender(<AffordabilityMap affordabilityData={mockData} />)).not.toThrow();
+    expect(screen.getByText('US Housing Affordability')).toBeInTheDocument();
+  });
 });
 
 describe('AffordabilityMap — mortgage rates', () => {

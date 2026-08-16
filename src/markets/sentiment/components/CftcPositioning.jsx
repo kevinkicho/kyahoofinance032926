@@ -57,9 +57,9 @@ function Section({ title, items, height = 180, colors }) {
 }
 
 export default function CftcPositioning({ cftcData, bare = false }) {
-  if (!cftcData) return null;
+  // Hooks must run on empty splash / refresh before data arrives.
   const { colors } = useTheme();
-  const { currencies = [], equities = [], rates = [], commodities = [], asOf } = cftcData;
+  const { currencies = [], equities = [], rates = [], commodities = [], asOf } = cftcData || {};
 
   const kpi = useMemo(() => {
     const allItems = [...currencies, ...equities, ...rates, ...commodities];
@@ -70,6 +70,8 @@ export default function CftcPositioning({ cftcData, bare = false }) {
     const netLongCount = allItems.filter(i => i.netPct > 0).length;
     return { mostLong, mostShort, avg, netLongCount };
   }, [currencies, equities, rates, commodities]);
+
+  if (!cftcData) return null;
 
   const body = (
     <>
