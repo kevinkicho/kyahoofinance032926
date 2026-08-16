@@ -86,8 +86,10 @@ export const PANEL_PLACEHOLDERS = {
     any('wti', ['fred.wti.history', 'fred.wti.values']),
     any('brent', ['fred.brent.history', 'fred.brent.values']),
   ],
+  // COT Positioning paints cotData.commodities only.
+  // cftcTFF.contracts was a leftover sibling false-green (derivatives CFTC TFF tile).
   'commodities:cot': [
-    any('cot', ['cotData', 'cftcTFF.contracts']),
+    any('cot', ['cotData.commodities', 'cotData']),
   ],
   // Commodity FX table paints commodityCurrencies only.
   // fred.dollarIndex was a leftover sibling false-green (DXY / FRED bag).

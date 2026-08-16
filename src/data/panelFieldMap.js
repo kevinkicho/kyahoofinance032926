@@ -180,10 +180,9 @@ export const PANEL_FIELD_MAP = {
     { field: 'brent', fieldPath: 'fred.brent.history' },
     { field: 'brent', fieldPath: 'fred.brent.values' },
   ] },
-  'commodities:cot': { anyOf: [
-    { field: 'cotData', fieldPath: 'cotData' },
-    { field: 'contracts', fieldPath: 'contracts', crossMarket: 'cftcTFF' },
-  ] },
+  // COT Positioning paints cotData.commodities only.
+  // cftcTFF.contracts is the sibling derivatives CFTC TFF tile.
+  'commodities:cot': { field: 'cotData', fieldPath: 'cotData.commodities' },
   // Commodity FX table paints commodityCurrencies only.
   // fred.dollarIndex is unused leftover (DXY / FRED bag).
   'commodities:comfx': { field: 'commodityCurrencies', fieldPath: 'commodityCurrencies' },
