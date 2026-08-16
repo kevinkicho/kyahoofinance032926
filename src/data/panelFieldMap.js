@@ -182,10 +182,9 @@ export const PANEL_FIELD_MAP = {
     { field: 'cotData', fieldPath: 'cotData' },
     { field: 'contracts', fieldPath: 'contracts', crossMarket: 'cftcTFF' },
   ] },
-  'commodities:comfx': { anyOf: [
-    { field: 'commodityCurrencies', fieldPath: 'commodityCurrencies' },
-    { field: 'fred', fieldPath: 'fred.dollarIndex' },
-  ] },
+  // Commodity FX table paints commodityCurrencies only.
+  // fred.dollarIndex is unused leftover (DXY / FRED bag).
+  'commodities:comfx': { field: 'commodityCurrencies', fieldPath: 'commodityCurrencies' },
   'commodities:usda-ag': { anyOf: [
     { field: 'commodities', fieldPath: 'commodities', crossMarket: 'usda' },
     { field: 'fred', fieldPath: 'fred' },
@@ -195,10 +194,14 @@ export const PANEL_FIELD_MAP = {
     { field: 'eia', fieldPath: 'eia' },
     { field: 'petroleum', fieldPath: 'petroleum', crossMarket: 'eiaPetroleum' },
   ] },
+  // Physical Pressure paints eiaPetroleum + USDA + Census trade.
+  // supplyDemand / commodities.eia / yahoo were leftover sibling false-greens.
   'commodities:physical-pressure': { anyOf: [
-    { field: 'supplyDemand', fieldPath: 'supplyDemand' },
-    { field: 'eia', fieldPath: 'eia' },
-    { field: 'yahoo', fieldPath: 'yahoo' },
+    { field: 'crudeStocks', fieldPath: 'crudeStocks', crossMarket: 'eiaPetroleum' },
+    { field: 'gasoline', fieldPath: 'gasoline', crossMarket: 'eiaPetroleum' },
+    { field: 'naturalGas', fieldPath: 'naturalGas', crossMarket: 'eiaPetroleum' },
+    { field: 'summary', fieldPath: 'summary', crossMarket: 'usda' },
+    { field: 'summary', fieldPath: 'summary.worldBalanceB', crossMarket: 'censusTrade' },
   ] },
   'commodities:materials-grid': { anyOf: [
     { field: 'fred', fieldPath: 'fred' },

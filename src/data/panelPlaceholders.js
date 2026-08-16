@@ -93,8 +93,10 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:cot': [
     any('cot', ['cotData', 'cftcTFF.contracts']),
   ],
+  // Commodity FX table paints commodityCurrencies only.
+  // fred.dollarIndex was a leftover sibling false-green (DXY / FRED bag).
   'commodities:comfx': [
-    any('dollar', ['fred.dollarIndex.value', 'fred.dollarIndex']),
+    any('fx', ['commodityCurrencies.CAD.rate', 'commodityCurrencies.AUD.rate', 'commodityCurrencies']),
   ],
   'commodities:energy-stack': [
     any('wti', ['eia.wti_price.value', 'eia.brent_price.value']),
@@ -115,10 +117,18 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:eia-petrol': [
     any('petroleum', ['eia.wti_price.value', 'eia.wti_price', 'eia.gasoline_regular.value', 'eiaPetroleum.gasoline']),
   ],
+  // Physical Pressure table paints eiaPetroleum + USDA + Census trade.
+  // supplyDemand / commodities.eia / yahoo were leftover sibling false-greens.
   'commodities:physical-pressure': [
-    p('crudeStocks', 'supplyDemand.crudeStocks.latest'),
-    p('natGas', 'supplyDemand.natGasStorage.latest'),
-    any('eia.stocks', ['eia.crude_stocks.value', 'eia.crude_stocks', 'eia.natgas_storage.value', 'eia.natgas_storage']),
+    any('pressure', [
+      'eiaPetroleum.crudeStocks.latest.value',
+      'eiaPetroleum.gasoline.latest.value',
+      'eiaPetroleum.naturalGas.latest.value',
+      'eiaPetroleum.crudeStocks',
+      'usda.summary',
+      'censusTrade.summary.worldBalanceB',
+      'censusTrade.summary',
+    ]),
   ],
   'commodities:usda-ag': [
     any('ag', ['fred.wheat.value', 'fred.rice.value', 'fred.corn.value', 'fred.wheat', 'fred.corn', 'usda.commodities']),
