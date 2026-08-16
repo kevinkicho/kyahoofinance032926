@@ -135,6 +135,7 @@ export const MARKET_PANELS = {
     { id: 'material-detail', title: 'Strategic Material Detail' },
     { id: 'exposure-matrix', title: 'Material-to-Sector Exposure Matrix' },
     { id: 'fao-prices', title: 'FAO Food Price Index' },
+    { id: 'us-trade', title: 'US Trade Balance' },
   ],
   globalMacro: [
     { id: 'kpi', title: 'Macro Key Metrics' },

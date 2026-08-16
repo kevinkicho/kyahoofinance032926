@@ -2,7 +2,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import { useMarketData } from '../../../hub/DataContext';
-import BentoCard from '../../../components/BentoCard/BentoCard';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import SafeECharts from '../../../components/SafeECharts';
 import PriceDashboard from './PriceDashboard';
@@ -908,7 +907,11 @@ function CommoditiesDashboard({
           )
         ),
 
-        // us-trade: not in MARKET_PANELS / panel registry — mounted via MarketPanelGrid extra
+        'us-trade': tradeOption ? (
+          <SafeECharts option={tradeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Trade Balance', source: 'US Census Bureau', endpoint: '/api/census-trade', series: [], updatedAt: tradeCtx?.lastUpdated || lastUpdated }} />
+        ) : (
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: 8 }}>US trade balance unavailable</div>
+        ),
 
         'physical-pressure': (
           physicalPressureRows.length > 0 ? (
@@ -1263,6 +1266,7 @@ function CommoditiesDashboard({
       comfx: !!commodityCurrencies,
       'usda-ag': !!(usdaCtx?.data?.isLive || usdaFredOption),
       'eia-petrol': !!eiaPetCtx?.data?.isLive,
+      'us-trade': !!tradeCtx?.data?.isLive,
       'physical-pressure': !!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive),
       'materials-grid': materialPriceMap.size > 0,
       criticality: true,
@@ -1293,6 +1297,9 @@ function CommoditiesDashboard({
       'eia-petrol': eiaPetCtx?.data?.gasoline?.latest && eiaPetCtx?.data?.naturalGas?.latest
         ? `Gasoline $${eiaPetCtx.data.gasoline.latest.value.toFixed(2)}/gal (${eiaPetCtx.data.gasoline.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.gasoline.yoyPct?.toFixed(0)}% YoY) · NG $${eiaPetCtx.data.naturalGas.latest.value.toFixed(2)}/MMBtu (${eiaPetCtx.data.naturalGas.yoyPct >= 0 ? '+' : ''}${eiaPetCtx.data.naturalGas.yoyPct?.toFixed(0)}% YoY)${eiaPetCtx?.data?.crudeStocks?.latest ? ` · Crude stocks ${(eiaPetCtx.data.crudeStocks.latest.value / 1000).toFixed(0)}M bbl` : ''}`
         : 'Retail gasoline · Henry Hub spot · weekly',
+      'us-trade': tradeCtx?.data?.summary
+        ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
+        : 'Monthly net trade by bloc · 24-month series · Census Bureau',
       'physical-pressure': `${physicalPressureRows.length} physical and trade indicators from current snapshots`,
       'materials-grid': `${strategicMaterials.length} materials · live prices shown where futures/proxies exist`,
       criticality: 'Supply-risk score + import reliance',
@@ -1310,6 +1317,7 @@ function CommoditiesDashboard({
       'wti-brent': !wtiBrentOption,
       'usda-ag': !(usdaOption || usdaFredOption),
       'eia-petrol': !eiaPetrolOption,
+      'us-trade': !tradeOption,
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
     __noFooter: {},
@@ -1324,6 +1332,7 @@ function CommoditiesDashboard({
       comfx: 'FX Market / Spot',
       'usda-ag': usdaOption ? 'USDA NASS' : 'FRED',
       'eia-petrol': 'EIA',
+      'us-trade': 'US Census Bureau',
       'physical-pressure': 'EIA / USDA NASS / US Census Bureau',
       'materials-grid': 'USGS critical-minerals taxonomy / Yahoo Finance proxies',
       criticality: 'USGS / curated supply-chain metadata',
@@ -1353,26 +1362,6 @@ function CommoditiesDashboard({
           fetchLog,
           error,
         }}
-        extra={tradeOption ? (
-          <BentoCard
-            key="us-trade"
-            title="US Trade Balance"
-            subtitle={tradeCtx?.data?.summary
-              ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
-              : 'Monthly net trade by bloc · 24-month series · Census Bureau'}
-            accent="commodities"
-            className="com-bento-card"
-            source="US Census Bureau"
-            timestamp={tradeCtx?.lastUpdated || lastUpdated}
-            isLive={!!tradeCtx?.data?.isLive}
-            isCurrent={tradeCtx?.isCurrent ?? isCurrent}
-            fetchedOn={tradeCtx?.fetchedOn || fetchedOn}
-            fetchLog={tradeCtx?.fetchLog || fetchLog}
-            error={tradeCtx?.error || error}
-          >
-            <SafeECharts option={tradeOption} style={{ height: '100%', width: '100%' }} sourceInfo={{ title: 'US Trade Balance', source: 'US Census Bureau', endpoint: '/api/census-trade', series: [], updatedAt: tradeCtx?.lastUpdated || lastUpdated }} />
-          </BentoCard>
-        ) : null}
       />
     </div>
   );

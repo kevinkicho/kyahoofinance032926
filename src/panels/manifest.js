@@ -999,6 +999,15 @@ export const PANEL_MANIFEST = [
     placeholders: "commodities:fao-prices",
   },
   {
+    key: "commodities:us-trade",
+    marketId: "commodities",
+    panelId: "us-trade",
+    title: "US Trade Balance",
+    dashboard: "src/markets/commodities/components/CommoditiesDashboard.jsx",
+    module: "src/panels/commodities/us-trade.jsx",
+    placeholders: "commodities:us-trade",
+  },
+  {
     key: "globalMacro:kpi",
     marketId: "globalMacro",
     panelId: "kpi",

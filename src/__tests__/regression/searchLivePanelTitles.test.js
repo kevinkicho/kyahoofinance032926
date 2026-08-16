@@ -49,6 +49,12 @@ describe('global search live panel titles', () => {
     expect((MARKET_PANELS.equitiesDeepDive || []).some((p) => p.id === 'factor-rankings')).toBe(true);
   });
 
+  it('finds US Trade Balance on commodities and jumps to us-trade', () => {
+    expect(idsFor('us trade balance')).toContain('commodities');
+    expect(firstPanel('us trade balance', 'commodities')).toBe('us-trade');
+    expect((MARKET_PANELS.commodities || []).some((p) => p.id === 'us-trade')).toBe(true);
+  });
+
   it('still matches ticker keywords and equities view-mode tabs', () => {
     expect(idsFor('AAPL')).toContain('equities');
     const race = searchHub('bar race').find((r) => r.marketId === 'equities');
@@ -92,5 +98,20 @@ describe('panelRegistry market ids', () => {
     expect(getRegistryEntry('equitiesDeepDive', 'earnings-watch')).toBeNull();
     expect(getRegistryEntry('equitiesDeepDive', 'short-interest')).toBeNull();
     expect(getRegistryEntry('equitiesDeepDive', 'sec-13f')).toBeNull();
+  });
+
+  it('Commodities registry ids match live tiles, not price-dashboard / futures-curve / supply-demand', () => {
+    const live = new Set((MARKET_PANELS.commodities || []).map((p) => p.id));
+    const stale = ['price-dashboard', 'futures-curve', 'supply-demand'];
+    const ids = (PANEL_REGISTRY.commodities || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['prices', 'futures', 'supply', 'us-trade']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('commodities', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('commodities', 'price-dashboard')).toBeNull();
+    expect(getRegistryEntry('commodities', 'futures-curve')).toBeNull();
+    expect(getRegistryEntry('commodities', 'supply-demand')).toBeNull();
   });
 });

@@ -19,6 +19,7 @@ import p_curve_board from './curve-board.jsx';
 import p_material_detail from './material-detail.jsx';
 import p_exposure_matrix from './exposure-matrix.jsx';
 import p_fao_prices from './fao-prices.jsx';
+import p_us_trade from './us-trade.jsx';
 
 /** @type {import('../definePanel').PanelDefinition[]} */
 export const COMMODITIES_PANELS = [
@@ -42,7 +43,8 @@ export const COMMODITIES_PANELS = [
   p_curve_board,
   p_material_detail,
   p_exposure_matrix,
-  p_fao_prices
+  p_fao_prices,
+  p_us_trade
 ];
 
 export const COMMODITIES_PANEL_BY_ID = Object.fromEntries(

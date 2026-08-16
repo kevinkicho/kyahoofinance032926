@@ -290,8 +290,8 @@ export const PANEL_REGISTRY = {
   ],
 
   commodities: [
-    { id: 'price-dashboard', title: 'Price Dashboard', field: 'priceDashboardData', fieldPath: 'priceDashboardData', source: 'commoditiesEnhanced.js:298 (EIA+Yahoo)', external: [{ name: 'FRED / EIA / Yahoo', seriesIds: ['GOLDAMGBD228NLBM','POILWTIUSDM'] }], renderCheck: 'priceDashboardData && priceDashboardData.length > 0' },
-    { id: 'futures-curve', title: 'Futures Curve', field: 'futuresCurveData', fieldPath: 'futuresCurveData', source: 'commoditiesEnhanced.js:498 (Yahoo CME)', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'futuresCurveData && futuresCurveData.labels?.length > 0', renderType: 'FuturesCurve component' },
+    { id: 'prices', title: 'Commodity Prices', field: 'priceDashboardData', fieldPath: 'priceDashboardData', source: 'commoditiesEnhanced.js:298 (EIA+Yahoo)', external: [{ name: 'FRED / EIA / Yahoo', seriesIds: ['GOLDAMGBD228NLBM','POILWTIUSDM'] }], renderCheck: 'priceDashboardData && priceDashboardData.length > 0' },
+    { id: 'futures', title: 'Futures Curve', field: 'futuresCurveData', fieldPath: 'futuresCurveData', source: 'commoditiesEnhanced.js:498 (Yahoo CME)', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'futuresCurveData && futuresCurveData.labels?.length > 0', renderType: 'FuturesCurve component' },
     { id: 'sector', title: 'Sector Performance', field: 'sectorHeatmapData', fieldPath: 'sectorHeatmapData.commodities', source: 'commoditiesEnhanced.js (Yahoo futures + historical)', external: [{ name: 'Yahoo Finance', seriesIds: [] }, { name: 'FRED PPI', seriesIds: ['WPUFD49207'] }], renderCheck: '!!sectorHeatmapData && sectorHeatmapData.commodities?.length > 0', renderType: 'SectorHeatmap component', shapeCheck: (val) => {
       if (!val || typeof val !== 'object') return { ok: false, detail: 'null' };
       const comms = val.commodities;
@@ -302,7 +302,7 @@ export const PANEL_REGISTRY = {
       if (m1Present === 0) return { ok: false, detail: `WRONG SHAPE: ${comms.length} commodities but m1 is null for all — historical closes not fetched` };
       return { ok: true, detail: `${comms.length} commodities, w1=${w1Present}/${comms.length}, m1=${m1Present}/${comms.length}` };
     }, notes: 'w1/m1 require Yahoo historical chart data (30+ daily closes). If null, backend didn\'t fetch chart() data. PPI YoY needs FRED WPUFD49207 in FRED_COMMODITIES — check fredCommodities.ppiCommodity for the mini chart.' },
-    { id: 'supply-demand', title: 'Supply & Demand', field: 'supplyDemandData', fieldPath: 'supplyDemandData', source: 'commoditiesEnhanced.js:324 (EIA)', external: [{ name: 'EIA / USDA', seriesIds: [] }], renderCheck: 'supplyDemandData && Object.keys(supplyDemandData).length > 0' },
+    { id: 'supply', title: 'Supply & Demand', field: 'supplyDemandData', fieldPath: 'supplyDemandData', source: 'commoditiesEnhanced.js:324 (EIA)', external: [{ name: 'EIA / USDA', seriesIds: [] }], renderCheck: 'supplyDemandData && Object.keys(supplyDemandData).length > 0' },
     { id: 'cot', title: 'COT Positioning', field: 'cotData', fieldPath: 'cotData', source: 'commoditiesEnhanced.js (CFTC)', external: [{ name: 'CFTC Socrata', seriesIds: [] }], renderCheck: 'cotData && cotData.length > 0' },
     { id: 'comfx', title: 'Commodity FX (vs USD)', field: 'commodityCurrencies', fieldPath: 'commodityCurrencies', source: 'commoditiesEnhanced.js (Yahoo FX pairs)', external: [{ name: 'Yahoo Finance', seriesIds: ['AUDUSD=X','USDCAD=X','USDBRL=X'] }], renderCheck: '!!commodityCurrencies', renderType: 'Custom table', shapeCheck: (val) => {
       if (!val || typeof val !== 'object') return { ok: false, detail: 'null — backend did not include commodityCurrencies in enhanced route' };
@@ -312,6 +312,7 @@ export const PANEL_REGISTRY = {
       if (withRate.length === 0) return { ok: false, detail: `${keys.length} currencies but all have null rate` };
       return { ok: true, detail: `${withRate.length} currencies with rates` };
     }, notes: 'Only built in legacy commodities.js route. Enhanced route must fetch AUDUSD=X, USDCAD=X, etc. via Yahoo.' },
+    { id: 'us-trade', title: 'US Trade Balance', field: 'blocs', fieldPath: 'blocs', crossMarket: 'censusTrade', source: 'censusTrade.js', external: [{ name: 'US Census Bureau', seriesIds: [] }], renderCheck: 'tradeCtx?.data?.blocs?.length > 0', renderType: 'SafeECharts' },
     { id: 'curve-board', title: 'Curve Structure Board', field: 'futuresCurveData', fieldPath: 'futuresCurveData.spotPrice', source: 'commoditiesEnhanced.js:498', external: [{ name: 'Yahoo Finance CME', seriesIds: [] }], renderCheck: '!!(futuresCurveData || goldFuturesCurve)', renderType: 'curveBoardRows memo', shapeCheck: (val) => {
       if (!val || typeof val !== 'object') return { ok: false, detail: 'null' };
       if (!val.labels || val.labels.length === 0) return { ok: false, detail: 'no labels' };

@@ -245,6 +245,10 @@ export const PANEL_FIELD_MAP = {
     { field: 'foodPriceIndex', fieldPath: 'foodPriceIndex', crossMarket: 'fao' },
     { field: 'series', fieldPath: 'series', crossMarket: 'fao' },
   ] },
+  'commodities:us-trade': { anyOf: [
+    { field: 'blocs', fieldPath: 'blocs', crossMarket: 'censusTrade' },
+    { field: 'summary', fieldPath: 'summary', crossMarket: 'censusTrade' },
+  ] },
 
   // ── Global Macro ──
   'globalMacro:kpi': { field: 'scorecardData', fieldPath: 'scorecardData' },

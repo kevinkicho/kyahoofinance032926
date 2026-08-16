@@ -166,6 +166,9 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:fao-prices': [
     any('food', ['foodPriceIndex.values', 'foodPriceIndex.latest', 'foodPriceIndex', 'series'], { crossMarket: 'fao' }),
   ],
+  'commodities:us-trade': [
+    any('trade', ['blocs', 'summary.worldBalanceB', 'summary'], { crossMarket: 'censusTrade' }),
+  ],
   // Never bind health to whole `fred` / `yahoo` bags — any sibling series greened hollow panels.
   'commodities:materials-grid': [
     any('copper', ['fred.copper.value', 'fred.copper', 'yahoo.futures.HG=F.price']),
