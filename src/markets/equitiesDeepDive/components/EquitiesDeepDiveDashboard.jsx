@@ -16,6 +16,8 @@ import {
   factorStocks,
   earningsUpcoming,
   earningsBeatRates,
+  insiderHolderRows,
+  insiderTransactionRows,
 } from './EquitiesDeepDiveLiveChips.js';
 
 function fmtChangePct(v) {
@@ -404,7 +406,8 @@ function EquitiesDeepDiveDashboard({
   const beatRates = earningsBeatRates(earningsData);
   const { mostShorted = [] } = shortData ?? {};
   const { institutions = [], aggregateTopHoldings = [], recentChanges = {} } = institutionalData ?? {};
-  const { holders: insiderHolders = [], transactions: insiderTransactions = [] } = insiderData ?? {};
+  const insiderHolders = insiderHolderRows(insiderData);
+  const insiderTransactions = insiderTransactionRows(insiderData);
 
   const rankedOption = useMemo(() => sectors?.length > 0 ? buildRankedOption(sectors, colors) : null, [sectors, colors]);
   const inFavorOption = useMemo(() => inFavor ? buildInFavorOption(inFavor, stocks, colors) : null, [inFavor, stocks, colors]);

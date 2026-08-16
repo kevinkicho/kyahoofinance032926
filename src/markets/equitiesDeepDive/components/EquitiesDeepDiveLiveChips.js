@@ -68,6 +68,17 @@ export function earningsBeatRates(earningsData) {
   return Array.isArray(earningsData?.beatRates) ? earningsData.beatRates : [];
 }
 
+/** Insider holder rows. Leftover holders bag remount-crash [...holders]. */
+export function insiderHolderRows(insiderData) {
+  return Array.isArray(insiderData?.holders) ? insiderData.holders : [];
+}
+
+/** Insider transaction rows. Leftover transactions bag remount-crash [...transactions]. */
+export function insiderTransactionRows(insiderData) {
+  return Array.isArray(insiderData?.transactions) ? insiderData.transactions : [];
+}
+
+
 /** Factor-rankings always paints a 0-chart; leftover inFavor bag is empty. */
 export function hasFactorRankingsContent(factorData) {
   if (factorStocks(factorData).length > 0) return true;

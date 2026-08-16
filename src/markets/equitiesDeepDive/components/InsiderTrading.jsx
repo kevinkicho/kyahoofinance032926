@@ -2,6 +2,10 @@ import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquitiesDeepDiveDashboard.css';
+import {
+  insiderHolderRows,
+  insiderTransactionRows,
+} from './EquitiesDeepDiveLiveChips.js';
 
 function fmtShares(v) {
   if (v == null || !Number.isFinite(Number(v))) return '\u2014';
@@ -176,7 +180,8 @@ function buildInsiderHoldersOption(holders, colors) {
 
 export default function InsiderTrading({ insiderData }) {
   const { colors } = useTheme();
-  const { holders = [], transactions = [] } = insiderData ?? {};
+  const holders = insiderHolderRows(insiderData);
+  const transactions = insiderTransactionRows(insiderData);
 
   // Prefer rows with identity + size; keep table dense instead of 40 hollow cells.
   const displayTx = useMemo(() => {

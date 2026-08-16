@@ -149,6 +149,8 @@ import {
   factorStocks,
   earningsUpcoming,
   earningsBeatRates,
+  insiderHolderRows,
+  insiderTransactionRows,
 } from '../../markets/equitiesDeepDive/components/EquitiesDeepDiveLiveChips.js';
 import {
   hasCalendarKpiMetrics,
@@ -1892,6 +1894,44 @@ describe('equity+ leftover empty-capable tiles (factor-rankings remount)', () =>
       inFavor: { isLive: true },
       stocks: [{ isLive: true }, { ticker: 'MSFT', composite: 67.5 }],
     })).toBe(true);
+  });
+});
+
+describe('equity+ leftover empty-capable tiles (insider remount)', () => {
+  it('dashboard / insider tile do not spread leftover isLive holder or transaction bags', () => {
+    const dash = src('markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx');
+    expect(dash).not.toMatch(/const \{ holders: insiderHolders = \[\], transactions: insiderTransactions = \[\] \} = insiderData/);
+    expect(dash).toMatch(/insiderHolderRows\(insiderData\)/);
+    expect(dash).toMatch(/insiderTransactionRows\(insiderData\)/);
+    const tile = src('markets/equitiesDeepDive/components/InsiderTrading.jsx');
+    expect(tile).not.toMatch(/const \{ holders = \[\], transactions = \[\] \} = insiderData/);
+    expect(tile).toMatch(/insiderHolderRows\(insiderData\)/);
+    expect(tile).toMatch(/insiderTransactionRows\(insiderData\)/);
+  });
+
+  it('insider helpers skip leftover isLive bags so remount does not crash', () => {
+    expect(() => insiderHolderRows({ isLive: true })).not.toThrow();
+    expect(() => insiderHolderRows({ holders: { isLive: true } })).not.toThrow();
+    expect(() => insiderHolderRows({ holders: true })).not.toThrow();
+    expect(insiderHolderRows({ isLive: true })).toEqual([]);
+    expect(insiderHolderRows({ holders: { isLive: true } })).toEqual([]);
+    expect(insiderHolderRows({ holders: true })).toEqual([]);
+    expect(() => [...insiderHolderRows({ holders: { isLive: true } })].sort((a, b) => (Number(b.shares) || 0) - (Number(a.shares) || 0))).not.toThrow();
+    const holders = insiderHolderRows({
+      isLive: true,
+      holders: [
+        { isLive: true },
+        { name: 'Cook', shares: 3200000 },
+      ],
+    });
+    expect(holders.map((h) => h.name)).toEqual([undefined, 'Cook']);
+    expect(() => [...holders].filter((h) => h && (h.shares != null || h.name)).map((h) => h.name)).not.toThrow();
+
+    expect(() => insiderTransactionRows({ isLive: true })).not.toThrow();
+    expect(() => insiderTransactionRows({ transactions: { isLive: true } })).not.toThrow();
+    expect(insiderTransactionRows({ transactions: { isLive: true } })).toEqual([]);
+    expect(() => [...insiderTransactionRows({ transactions: { isLive: true } })].sort()).not.toThrow();
+    expect(insiderTransactionRows({ transactions: [{ ticker: 'AAPL', shares: 1200 }] }).map((r) => r.ticker)).toEqual(['AAPL']);
   });
 });
 
