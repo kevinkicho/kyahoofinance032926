@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -564,25 +564,27 @@ function CommoditiesDashboard({
 
   // ── US trade balance per bloc — line chart, 24 months ─────────────────
   const tradeOption = useMemo(() => {
-    const blocs = tradeCtx?.data?.blocs || [];
-    if (!blocs.length) return null;
-    const world = blocs.find(b => b.code === '-');
-    const others = blocs.filter(b => b.code !== '-');
-    const periods = (world?.series || others[0]?.series || []).map(p => p.month);
+    const rows = usTradeBlocs(tradeCtx?.data);
+    if (!rows.length) return null;
+    const world = rows.find(b => b.code === '-') || rows[0];
+    const periods = world.points.map(p => p.month);
     if (!periods.length) return null;
     const palette = ['#94a3b8', '#22d3ee', '#f59e0b', '#10b981', '#a78bfa', '#ec4899'];
-    const series = blocs.map((b, i) => ({
-      name: b.label,
-      type: 'line',
-      smooth: true,
-      symbol: 'none',
-      lineStyle: { color: palette[i % palette.length], width: b.code === '-' ? 2.4 : 1.4 },
-      data: b.series.map(p => p.balanceB),
-    }));
+    const series = rows.map((b, i) => {
+      const byMonth = new Map(b.points.map(p => [p.month, p.balanceB]));
+      return {
+        name: b.label,
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { color: palette[i % palette.length], width: b.code === '-' ? 2.4 : 1.4 },
+        data: periods.map(m => (byMonth.has(m) ? byMonth.get(m) : null)),
+      };
+    });
     return {
       animation: false,
       backgroundColor: 'transparent',
-      tooltip: { trigger: 'axis', valueFormatter: v => v != null ? (v >= 0 ? '+' : '') + '$' + v.toFixed(1) + 'B' : '—' },
+      tooltip: { trigger: 'axis', valueFormatter: v => (typeof v === 'number' && Number.isFinite(v)) ? ((v >= 0 ? '+' : '') + '$' + v.toFixed(1) + 'B') : '—' },
       legend: { top: 0, textStyle: { color: colors.textSecondary, fontSize: 10 } },
       grid: { top: 28, right: 12, bottom: 24, left: 48 },
       xAxis: { type: 'category', data: periods, axisLabel: { color: colors.textMuted, fontSize: 9, interval: Math.max(0, Math.floor(periods.length / 8)) }, axisLine: { lineStyle: { color: colors.cardBg } } },
@@ -1266,7 +1268,7 @@ function CommoditiesDashboard({
       comfx: !!commodityCurrencies,
       'usda-ag': !!(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': hasEiaPetrolSeries(eiaPetCtx?.data),
-      'us-trade': !!tradeCtx?.data?.isLive,
+      'us-trade': hasUsTradeSeries(tradeCtx?.data),
       'physical-pressure': !!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive),
       'materials-grid': materialPriceMap.size > 0,
       criticality: true,
@@ -1294,9 +1296,8 @@ function CommoditiesDashboard({
           ? 'FRED fallback · Corn/Wheat/Soybeans ($/mt)'
           : 'Corn / Soybeans / Wheat / Cattle · price received · USDA NASS'),
       'eia-petrol': eiaPetrolSubtitle(eiaPetCtx?.data) || 'Retail gasoline · Henry Hub spot · weekly',
-      'us-trade': tradeCtx?.data?.summary
-        ? `${tradeCtx.data.summary.latestMonth}: $${tradeCtx.data.summary.worldExportsB?.toFixed(1)}B exports · $${tradeCtx.data.summary.worldImportsB?.toFixed(1)}B imports · net ${tradeCtx.data.summary.worldBalanceB >= 0 ? '+' : ''}$${tradeCtx.data.summary.worldBalanceB?.toFixed(1)}B`
-        : 'Monthly net trade by bloc · 24-month series · Census Bureau',
+      'us-trade': usTradeSubtitle(tradeCtx?.data)
+        || 'Monthly net trade by bloc · 24-month series · Census Bureau',
       'physical-pressure': `${physicalPressureRows.length} physical and trade indicators from current snapshots`,
       'materials-grid': `${strategicMaterials.length} materials · live prices shown where futures/proxies exist`,
       criticality: 'Supply-risk score + import reliance',
@@ -1314,7 +1315,7 @@ function CommoditiesDashboard({
       'wti-brent': !wtiBrentOption,
       'usda-ag': !(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': !hasEiaPetrolSeries(eiaPetCtx?.data),
-      'us-trade': !tradeOption,
+      'us-trade': !hasUsTradeSeries(tradeCtx?.data),
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
     __noFooter: {},

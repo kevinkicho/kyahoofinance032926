@@ -148,3 +148,60 @@ export function usdaAgSubtitle(usdaData) {
   }
   return parts.length ? parts.join(' · ') : null;
 }
+
+
+/** Census trade rows that paint the US-trade chart. Leftover isLive / month-only stay empty. */
+export function usTradeBlocPoints(bloc) {
+  const series = Array.isArray(bloc?.series) ? bloc.series : [];
+  const points = [];
+  for (const row of series) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
+    if (typeof row.month !== 'string' || !row.month) continue;
+    if (!isFiniteNumber(row.balanceB)) continue;
+    points.push({
+      month: row.month,
+      balanceB: row.balanceB,
+      exportsB: isFiniteNumber(row.exportsB) ? row.exportsB : null,
+      importsB: isFiniteNumber(row.importsB) ? row.importsB : null,
+    });
+  }
+  return points;
+}
+
+/** Blocs that have at least one painted balance point. */
+export function usTradeBlocs(tradeData) {
+  const blocs = Array.isArray(tradeData?.blocs) ? tradeData.blocs : [];
+  const rows = [];
+  for (const b of blocs) {
+    if (!b || typeof b !== 'object' || Array.isArray(b)) continue;
+    const points = usTradeBlocPoints(b);
+    if (!points.length) continue;
+    const code = typeof b.code === 'string' ? b.code : '';
+    const label = typeof b.label === 'string' && b.label
+      ? b.label
+      : (code || 'Bloc');
+    rows.push({ code, label, points });
+  }
+  return rows;
+}
+
+export function hasUsTradeSeries(tradeData) {
+  return usTradeBlocs(tradeData).length > 0;
+}
+
+/** Subtitle for us-trade; leftover summary / toFixed bags must not throw. */
+export function usTradeSubtitle(tradeData) {
+  const summary = tradeData?.summary;
+  if (!summary || typeof summary !== 'object' || Array.isArray(summary)) return null;
+  const month = typeof summary.latestMonth === 'string' && summary.latestMonth
+    ? summary.latestMonth
+    : '';
+  if (!month) return null;
+  if (!isFiniteNumber(summary.worldExportsB) || !isFiniteNumber(summary.worldImportsB) || !isFiniteNumber(summary.worldBalanceB)) {
+    return null;
+  }
+  const exp = summary.worldExportsB;
+  const imp = summary.worldImportsB;
+  const bal = summary.worldBalanceB;
+  return month + ': $' + exp.toFixed(1) + 'B exports · $' + imp.toFixed(1) + 'B imports · net ' + (bal >= 0 ? '+' : '') + '$' + bal.toFixed(1) + 'B';
+}

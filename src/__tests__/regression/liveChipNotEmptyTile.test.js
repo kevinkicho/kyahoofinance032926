@@ -178,6 +178,10 @@ import {
   hasUsdaFredSeries,
   usdaFredHistoryPoints,
   usdaAgSubtitle,
+  hasUsTradeSeries,
+  usTradeBlocPoints,
+  usTradeBlocs,
+  usTradeSubtitle,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3311,5 +3315,97 @@ describe('commodities leftover empty-capable tiles (usda-ag)', () => {
       summary: [{ isLive: true }, { key: 'corn', desc: 'Corn', unit: '$/bu' }],
       commodities: { corn: [{ period: 'Jan', year: 2026, value: 4.12 }] },
     }).map((r) => r.key)).toEqual(['corn']);
+  });
+});
+
+describe('commodities leftover empty-capable tiles (us-trade)', () => {
+  it('dashboard does not hardcode leftover isLive on us-trade', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/'us-trade':\s*!!tradeCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/'us-trade':\s*hasUsTradeSeries\(tradeCtx\?\.data\)/);
+  });
+
+  it('hasUsTradeSeries is false for empty / leftover isLive / month-only bags', () => {
+    expect(hasUsTradeSeries()).toBe(false);
+    expect(hasUsTradeSeries(null)).toBe(false);
+    expect(hasUsTradeSeries({})).toBe(false);
+    expect(hasUsTradeSeries({ isLive: true })).toBe(false);
+    expect(hasUsTradeSeries({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasUsTradeSeries({ blocs: [], summary: { isLive: true } })).toBe(false);
+    expect(hasUsTradeSeries({ isLive: true, blocs: [{ isLive: true }] })).toBe(false);
+    expect(hasUsTradeSeries({
+      isLive: true,
+      blocs: [{ code: '-', label: 'World', series: { isLive: true } }],
+    })).toBe(false);
+    expect(hasUsTradeSeries({
+      isLive: true,
+      blocs: [{ code: '-', series: [{ month: '2024-01' }] }],
+    })).toBe(false);
+    expect(hasUsTradeSeries({
+      blocs: [{ code: '-', series: [{ month: '2024-01', balanceB: null }] }],
+    })).toBe(false);
+    expect(hasUsTradeSeries({
+      blocs: [{ code: '-', series: [{ month: '2024-01', balanceB: '-68.4' }] }],
+    })).toBe(false);
+    expect(hasUsTradeSeries({
+      blocs: [{ code: '-', series: [{ isLive: true }, { lastUpdated: '2024-01' }] }],
+    })).toBe(false);
+  });
+
+  it('hasUsTradeSeries is true when a painted balance point exists', () => {
+    expect(hasUsTradeSeries({
+      blocs: [{ code: '-', label: 'World', series: [{ month: '2024-01', balanceB: -68.4 }] }],
+    })).toBe(true);
+    expect(hasUsTradeSeries({
+      isLive: true,
+      blocs: [
+        { isLive: true },
+        { code: '0020', label: 'USMCA', series: [{ month: '2024-01' }, { month: '2024-02', balanceB: 12.5 }] },
+      ],
+    })).toBe(true);
+  });
+
+  it('usTradeBlocPoints skips leftover sibling rows so remount does not crash', () => {
+    expect(() => usTradeBlocPoints({ isLive: true, series: [null, { isLive: true }, 'x'] })).not.toThrow();
+    expect(usTradeBlocPoints({
+      series: [null, { month: '2024-01', balanceB: -68.4 }, { month: '2024-02', balanceB: true }],
+    }).map((p) => p.balanceB)).toEqual([-68.4]);
+    const points = usTradeBlocPoints({
+      isLive: true,
+      series: [
+        { isLive: true },
+        { month: '2024-01', balanceB: -68.4 },
+        { month: '2024-02', balanceB: -71.2 },
+        { month: '2024-03', balanceB: '-69.1' },
+      ],
+    });
+    expect(points.map((p) => p.balanceB)).toEqual([-68.4, -71.2]);
+    expect(() => points.map((p) => p.balanceB.toFixed(1))).not.toThrow();
+    expect(() => points.map((p) => p.month.slice(0, 7))).not.toThrow();
+    expect(points[0].balanceB.toFixed(1)).toBe('-68.4');
+  });
+
+  it('usTradeSubtitle skips leftover summary so remount does not crash', () => {
+    expect(() => usTradeSubtitle({ isLive: true, summary: { isLive: true } })).not.toThrow();
+    expect(usTradeSubtitle({ isLive: true, summary: { isLive: true } })).toBe(null);
+    expect(usTradeSubtitle({ summary: { latestMonth: '2024-01', worldExportsB: true, worldImportsB: 260.1, worldBalanceB: -68.4 } })).toBe(null);
+    expect(usTradeSubtitle({ summary: { latestMonth: '2024-01', worldExportsB: '191.7', worldImportsB: 260.1, worldBalanceB: -68.4 } })).toBe(null);
+    expect(usTradeSubtitle({
+      isLive: true,
+      summary: { latestMonth: true, worldExportsB: 191.7, worldImportsB: 260.1, worldBalanceB: -68.4 },
+    })).toBe(null);
+    expect(() => usTradeSubtitle({
+      summary: { latestMonth: '2024-01', worldExportsB: 191.7, worldImportsB: 260.1, worldBalanceB: -68.4 },
+    })).not.toThrow();
+    expect(usTradeSubtitle({
+      summary: { latestMonth: '2024-01', worldExportsB: 191.7, worldImportsB: 260.1, worldBalanceB: -68.4 },
+    })).toBe('2024-01: $191.7B exports · $260.1B imports · net $-68.4B');
+  });
+
+  it('usTradeBlocs skips leftover blocs so remount does not crash', () => {
+    expect(() => usTradeBlocs({ isLive: true, blocs: [null, { isLive: true }, 'x'] })).not.toThrow();
+    expect(usTradeBlocs({
+      blocs: [{ isLive: true }, { code: '-', label: 'World', series: [{ month: '2024-01', balanceB: -68.4 }] }],
+    }).map((r) => r.code)).toEqual(['-']);
   });
 });
