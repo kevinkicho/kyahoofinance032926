@@ -353,9 +353,11 @@ export const PANEL_PLACEHOLDERS = {
     any('proxy', ['catBondProxy.price', 'catBondProxy']),
     any('spreads', ['catBondSpreads']),
   ],
+  // Sector / Industry Pulse paints sectorETF.
+  // catBondProxy was a leftover sibling false-green (insurance:catbonds).
   'insurance:etfs': [
     // sectorETF is often an array of holdings, not a single .price object
-    any('etf', ['sectorETF.0.price', 'sectorETF.price', 'sectorETF', 'catBondProxy.price', 'catBondProxy']),
+    any('etf', ['sectorETF.0.price', 'sectorETF.price', 'sectorETF']),
     any('change', ['sectorETF.0.changePct', 'sectorETF.changePct', 'sectorETF'], { required: false }),
   ],
   'insurance:catastrophes': [p('fema', 'declarations', { crossMarket: 'fema' })],
@@ -378,7 +380,9 @@ export const PANEL_PLACEHOLDERS = {
   'realEstate:cre': [p('creDelinquencies', 'creDelinquencies')],
   'realEstate:caprate': [p('capRateData', 'capRateData')],
   'realEstate:supply': [p('supplyData', 'supplyData')],
-  'realEstate:hud-afford': [any('hud', ['hudData', 'affordabilityData'])],
+  // HUD Rental Affordability paints hudData.
+  // affordabilityData was a leftover sibling false-green (afford-stack).
+  'realEstate:hud-afford': [any('hud', ['hudData'])],
   'realEstate:afford-stack': [p('affordabilityData', 'affordabilityData')],
   'realEstate:census-housing': [p('series', 'series', { crossMarket: 'census' })],
   'realEstate:census-trade': [p('series', 'series', { crossMarket: 'census' })],
@@ -387,7 +391,9 @@ export const PANEL_PLACEHOLDERS = {
   'realEstate:fhfa-hpi': [p('fhfaHpi', 'fhfaHpi')],
   'realEstate:bis-property-prices': [p('priceIndexData', 'priceIndexData')],
   'realEstate:metro-case-shiller': [p('caseShillerData', 'caseShillerData')],
-  'realEstate:hud-affordability-by-metro': [any('hud', ['hudData', 'affordabilityData'])],
+  // Metro HUD table paints hudData.
+  // affordabilityData was a leftover sibling false-green (afford-stack).
+  'realEstate:hud-affordability-by-metro': [any('hud', ['hudData'])],
 
   'globalMacro:kpi': [p('scorecard', 'scorecardData')],
   'globalMacro:sidebar': [p('scorecard', 'scorecardData')],

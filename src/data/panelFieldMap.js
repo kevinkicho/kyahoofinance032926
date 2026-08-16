@@ -102,10 +102,9 @@ export const PANEL_FIELD_MAP = {
   'realEstate:cre': { field: 'creDelinquencies', fieldPath: 'creDelinquencies' },
   'realEstate:caprate': { field: 'capRateData', fieldPath: 'capRateData' },
   'realEstate:supply': { field: 'supplyData', fieldPath: 'supplyData' },
-  'realEstate:hud-afford': { anyOf: [
-    { field: 'hudData', fieldPath: 'hudData' },
-    { field: 'affordabilityData', fieldPath: 'affordabilityData' },
-  ] },
+  // HUD Rental Affordability paints hudData (chart/map).
+  // affordabilityData is the sibling Housing Affordability Stack tile.
+  'realEstate:hud-afford': { field: 'hudData', fieldPath: 'hudData' },
   'realEstate:afford-stack': { field: 'affordabilityData', fieldPath: 'affordabilityData' },
   'realEstate:census-housing': { field: 'series', fieldPath: 'series', crossMarket: 'census' },
   'realEstate:census-trade': { field: 'series', fieldPath: 'series', crossMarket: 'census' },
@@ -114,10 +113,9 @@ export const PANEL_FIELD_MAP = {
   'realEstate:fhfa-hpi': { field: 'fhfaHpi', fieldPath: 'fhfaHpi' },
   'realEstate:bis-property-prices': { field: 'priceIndexData', fieldPath: 'priceIndexData' },
   'realEstate:metro-case-shiller': { field: 'caseShillerData', fieldPath: 'caseShillerData' },
-  'realEstate:hud-affordability-by-metro': { anyOf: [
-    { field: 'hudData', fieldPath: 'hudData' },
-    { field: 'affordabilityData', fieldPath: 'affordabilityData' },
-  ] },
+  // HUD Affordability by Metro paints hudData only.
+  // affordabilityData is the sibling afford-stack tile.
+  'realEstate:hud-affordability-by-metro': { field: 'hudData', fieldPath: 'hudData' },
 
   // ── Insurance ──
   'insurance:kpi': { field: 'hyOAS', fieldPath: 'hyOAS' },
@@ -139,6 +137,8 @@ export const PANEL_FIELD_MAP = {
     { field: 'catBondProxy', fieldPath: 'catBondProxy' },
     { field: 'catBondSpreads', fieldPath: 'catBondSpreads' },
   ] },
+  // Sector / Industry Pulse paints sectorETF only.
+  // catBondProxy is the sibling catbonds tile.
   'insurance:etfs': { field: 'sectorETF', fieldPath: 'sectorETF' },
   'insurance:catastrophes': { field: 'declarations', fieldPath: 'declarations', crossMarket: 'fema' },
   'insurance:ins-penetration': { field: 'countries', fieldPath: 'countries', crossMarket: 'worldbank' },
