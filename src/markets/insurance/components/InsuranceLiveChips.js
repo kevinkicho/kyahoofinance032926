@@ -104,3 +104,57 @@ export function reinsuranceRateRows(reinsurancePricing, reinsurers) {
 export function hasReinsuranceRateRows(reinsurancePricing, reinsurers) {
   return reinsuranceRateRows(reinsurancePricing, reinsurers).length > 0;
 }
+
+function isFiniteNumber(v) {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+
+function hasNumericField(obj) {
+  return obj?.value != null && Number.isFinite(Number(obj.value));
+}
+
+function lastFiniteValue(rows) {
+  if (!Array.isArray(rows) || !rows.length) return false;
+  const last = rows[rows.length - 1];
+  return last?.value != null && Number.isFinite(Number(last.value));
+}
+
+/** Catastrophes tile paints FEMA decls / by-type and USGS events; sibling isLive is leftover. */
+export function hasCatastropheRows(femaData, usgsData) {
+  if (Array.isArray(femaData?.declarations) && femaData.declarations.length > 0) return true;
+  if (Array.isArray(femaData?.byType) && femaData.byType.length > 0) return true;
+  if (Array.isArray(usgsData?.events) && usgsData.events.length > 0) return true;
+  if (Array.isArray(usgsData?.magBuckets) && usgsData.magBuckets.length > 0) return true;
+  if (usgsData?.biggest?.mag != null && Number.isFinite(Number(usgsData.biggest.mag))) return true;
+  return false;
+}
+
+/** Cat-exposure KPIs/lists paint FEMA/USGS rows or credit/underwriting numbers; score is always 0. */
+export function hasCatExposureContent({
+  femaData,
+  usgsData,
+  catLosses,
+  fredHyOasHistory,
+  industryAvgCombinedRatio,
+} = {}) {
+  if (hasCatastropheRows(femaData, usgsData)) return true;
+  if (Array.isArray(catLosses?.values) && catLosses.values.some((v) => isFiniteNumber(v))) return true;
+  const hy = fredHyOasHistory?.values;
+  if (Array.isArray(hy) && isFiniteNumber(hy[hy.length - 1])) return true;
+  return isFiniteNumber(industryAvgCombinedRatio);
+}
+
+/** ECB supervisory cards paint policy / MM / M3 / HICP values; bag isLive is leftover. */
+export function hasEcbSupervisoryContent(ecbData) {
+  const pr = ecbData?.policyRates;
+  if (pr && typeof pr === 'object') {
+    if (hasNumericField(pr.depositFacility) || hasNumericField(pr.mainRefinancing) || hasNumericField(pr.marginalLending)) return true;
+    if (hasNumericField(pr.corridorWidth) || hasNumericField(pr.standingFacilitySpread)) return true;
+  }
+  const mm = ecbData?.moneyMarket;
+  if (mm && typeof mm === 'object') {
+    const keys = ['estr', 'estrP25', 'estrP75', 'estrMonthlyAvg', 'euribor1m', 'euribor3m', 'euribor6m', 'euribor1y', 'estrVolume', 'estrTransactions'];
+    if (keys.some((k) => hasNumericField(mm[k]))) return true;
+  }
+  return lastFiniteValue(ecbData?.m3Growth) || lastFiniteValue(ecbData?.hicpDetail);
+}

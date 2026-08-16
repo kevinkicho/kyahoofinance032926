@@ -14,6 +14,9 @@ import {
   hasCombinedRatioByLine,
   reinsuranceRateRows,
   hasReinsuranceRateRows,
+  hasCatastropheRows,
+  hasCatExposureContent,
+  hasEcbSupervisoryContent,
 } from './InsuranceLiveChips.js';
 
 /** HY OAS tile charts fredHyOasHistory dates. */
@@ -1374,14 +1377,20 @@ function InsuranceDashboard({
       reserves: !!(isLive && hasReserves),
       catbonds: !!(isLive && catBondSpreads?.length),
       etfs: !!(isLive && hasSectorETF),
-      catastrophes: !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive),
+      catastrophes: hasCatastropheRows(femaCtx?.data, usgsCtx?.data),
       'ins-penetration': hasInsurancePenetrationRows(wbCtx?.data),
       'combined-ratios': hasInsurerRatioRows(insRatiosCtx?.data),
       'fema-disasters': hasFemaDeclarationRows(femaCtx?.data),
       'usgs-earthquakes': hasUsgsEarthquakeRows(usgsCtx?.data),
-      'cat-exposure': !!(femaCtx?.data?.isLive || usgsCtx?.data?.isLive || catLosses?.values?.length),
+      'cat-exposure': hasCatExposureContent({
+        femaData: femaCtx?.data,
+        usgsData: usgsCtx?.data,
+        catLosses,
+        fredHyOasHistory,
+        industryAvgCombinedRatio,
+      }),
       'usgs-minerals': false,
-      'ecb-supervisory': !!ecbCtx?.data?.isLive,
+      'ecb-supervisory': hasEcbSupervisoryContent(ecbCtx?.data),
     },
     __subtitle: {
       catloss: catLossesResolved?._note || undefined,

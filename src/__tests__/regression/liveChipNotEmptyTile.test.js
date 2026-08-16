@@ -43,6 +43,9 @@ import {
   hasCatLossSeries,
   hasCombinedRatioByLine,
   hasReinsuranceRateRows,
+  hasCatastropheRows,
+  hasCatExposureContent,
+  hasEcbSupervisoryContent,
 } from '../../markets/insurance/components/InsuranceLiveChips.js';
 import {
   hasCreditKpiMetrics,
@@ -1784,5 +1787,71 @@ describe('macro leftover empty-capable tiles (ecb / tga / gdpnow / sep / clevela
     expect(hasBeaIncomeContent({
       savingRate: [{ desc: 'Personal income', value: 24000, period: '2024-05' }],
     })).toBe(true);
+  });
+});
+
+describe('insurance leftover empty-capable tiles (catastrophes / cat-exposure / ecb-supervisory)', () => {
+  it('dashboard does not hardcode sibling isLive on leftover tiles', () => {
+    const dash = src('markets/insurance/components/InsuranceDashboard.jsx');
+    expect(dash).not.toMatch(/catastrophes:\s*!!\(femaCtx\?\.data\?\.isLive/);
+    expect(dash).not.toMatch(/'cat-exposure':\s*!!\(femaCtx\?\.data\?\.isLive/);
+    expect(dash).not.toMatch(/'ecb-supervisory':\s*!!ecbCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/catastrophes:\s*hasCatastropheRows/);
+    expect(dash).toMatch(/'cat-exposure':\s*hasCatExposureContent/);
+    expect(dash).toMatch(/'ecb-supervisory':\s*hasEcbSupervisoryContent/);
+  });
+
+  it('hasCatastropheRows is false for empty / sibling isLive-only payloads', () => {
+    expect(hasCatastropheRows()).toBe(false);
+    expect(hasCatastropheRows({}, {})).toBe(false);
+    expect(hasCatastropheRows({ isLive: true, summary: { totalRecent: 0 } }, { isLive: true, eventsCount: 0 })).toBe(false);
+    expect(hasCatastropheRows({ declarations: [] }, { events: [], magBuckets: [] })).toBe(false);
+  });
+
+  it('hasCatastropheRows is true when FEMA or USGS rows exist', () => {
+    expect(hasCatastropheRows({ declarations: [{ type: 'Fire', firstDeclared: '2024-01-01' }] })).toBe(true);
+    expect(hasCatastropheRows({ byType: [{ type: 'Fire', count: 8 }] })).toBe(true);
+    expect(hasCatastropheRows(null, { events: [{ mag: 5.1 }] })).toBe(true);
+    expect(hasCatastropheRows(null, { magBuckets: [{ range: '5-6', count: 3 }] })).toBe(true);
+    expect(hasCatastropheRows(null, { biggest: { mag: 6.2, place: 'Chile' } })).toBe(true);
+  });
+
+  it('hasCatExposureContent is false for empty / sibling isLive-only payloads', () => {
+    expect(hasCatExposureContent()).toBe(false);
+    expect(hasCatExposureContent({})).toBe(false);
+    expect(hasCatExposureContent({
+      femaData: { isLive: true, summary: { totalRecent: 0 } },
+      usgsData: { isLive: true, eventsCount: 0 },
+      catLosses: { isLive: true },
+      fredHyOasHistory: { isLive: true },
+    })).toBe(false);
+    expect(hasCatExposureContent({ catLosses: { values: [] } })).toBe(false);
+    expect(hasCatExposureContent({ catLosses: { values: [null] } })).toBe(false);
+    expect(hasCatExposureContent({ fredHyOasHistory: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasCatExposureContent({ industryAvgCombinedRatio: '92.1' })).toBe(false);
+  });
+
+  it('hasCatExposureContent is true when a painted KPI or list exists', () => {
+    expect(hasCatExposureContent({ femaData: { declarations: [{ type: 'Fire' }] } })).toBe(true);
+    expect(hasCatExposureContent({ usgsData: { events: [{ mag: 5.1 }] } })).toBe(true);
+    expect(hasCatExposureContent({ catLosses: { values: [12.4] } })).toBe(true);
+    expect(hasCatExposureContent({ fredHyOasHistory: { values: [3.1] } })).toBe(true);
+    expect(hasCatExposureContent({ industryAvgCombinedRatio: 92.1 })).toBe(true);
+  });
+
+  it('hasEcbSupervisoryContent is false for empty / isLive-only payloads', () => {
+    expect(hasEcbSupervisoryContent()).toBe(false);
+    expect(hasEcbSupervisoryContent({})).toBe(false);
+    expect(hasEcbSupervisoryContent({ isLive: true })).toBe(false);
+    expect(hasEcbSupervisoryContent({ isLive: true, policyRates: {}, moneyMarket: {}, m3Growth: [], hicpDetail: [] })).toBe(false);
+    expect(hasEcbSupervisoryContent({ policyRates: { depositFacility: { period: '2024-06' } } })).toBe(false);
+    expect(hasEcbSupervisoryContent({ m3Growth: [{ period: '2024-05' }] })).toBe(false);
+  });
+
+  it('hasEcbSupervisoryContent is true when a policy, money-market, or macro print exists', () => {
+    expect(hasEcbSupervisoryContent({ policyRates: { mainRefinancing: { value: 4.15, period: '2024-06' } } })).toBe(true);
+    expect(hasEcbSupervisoryContent({ moneyMarket: { estr: { value: 3.9 } } })).toBe(true);
+    expect(hasEcbSupervisoryContent({ m3Growth: [{ value: 3.1 }] })).toBe(true);
+    expect(hasEcbSupervisoryContent({ hicpDetail: [{ value: 2.4 }] })).toBe(true);
   });
 });
