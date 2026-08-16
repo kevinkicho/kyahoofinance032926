@@ -23,6 +23,7 @@ import {
   hasShillerSeries, hasReitPerfRows, hasCapRateRows, hasAffordabilityStackMetrics,
   hasSupplyMetrics, hasFhfaHpiSeries,
   hasReitEtfHistory, hasForeclosureSeries, hasMbaApplications, hasCreDelinquencies,
+  hasReMetrics, hasCensusHousingContent, hasCensusTradeContent, hasCensusTrendSeries,
 } from './RealEstateHelpers';
 import './RealEstateDashboard.css';
 
@@ -992,7 +993,11 @@ function RealEstateDashboard({
   const panelCtx = {
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
-      metrics: !!isLive,
+      metrics: hasReMetrics({
+        caseShillerData, medianHomePrice, affordabilityData, mortgageRates,
+        housingStarts, supplyData, existingHomeSales, homeownershipRate,
+        rentalVacancy, foreclosureData, creDelinquencies, commoditiesData,
+      }),
       shiller: hasShillerSeries(caseShillerData),
       reitetf: hasReitEtfHistory(reitEtf),
       reitperf: hasReitPerfRows(reitData),
@@ -1003,10 +1008,10 @@ function RealEstateDashboard({
       supply: hasSupplyMetrics(supplyData),
       'hud-afford': hasHudAffordabilityRows(hudData),
       'afford-stack': hasAffordabilityStackMetrics(affordabilityStack),
-      'census-housing': !!isLive,
-      'census-trade': !!isLive,
-      'census-trends-housing': !!isLive,
-      'census-trends-trade': !!isLive,
+      'census-housing': hasCensusHousingContent(censusKpiData, housingExtraCards),
+      'census-trade': hasCensusTradeContent(censusKpiData, tradeExtraCards),
+      'census-trends-housing': hasCensusTrendSeries(censusHousingSeries),
+      'census-trends-trade': hasCensusTrendSeries(censusEcoSeries),
       'fhfa-hpi': hasFhfaHpiSeries(fhfaHpi),
       'bis-property-prices': hasBisPropertyRows(priceIndexData),
       'metro-case-shiller': hasMetroCaseShillerRows(caseShillerData),

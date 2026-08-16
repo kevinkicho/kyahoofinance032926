@@ -106,10 +106,63 @@ function hasCreDelinquencies(creDelinquencies) {
   return Array.isArray(creDelinquencies?.values) && creDelinquencies.values.length > 0;
 }
 
+const CENSUS_HOUSING_KEYS = ['housingStarts', 'buildingPermits', 'newHomeSales', 'constructionSpending'];
+const CENSUS_ECO_KEYS = ['retailSales', 'durableGoods', 'tradeBalance'];
+
+/** Metrics tile paints price / rate / activity / distress / commodity rows. */
+function hasReMetrics({
+  caseShillerData,
+  medianHomePrice,
+  affordabilityData,
+  mortgageRates,
+  housingStarts,
+  supplyData,
+  existingHomeSales,
+  homeownershipRate,
+  rentalVacancy,
+  foreclosureData,
+  creDelinquencies,
+  commoditiesData,
+} = {}) {
+  const shiller = caseShillerData?.national?.values || caseShillerData?.values;
+  if (typeof shiller?.[shiller.length - 1] === 'number') return true;
+  if (typeof latestNumber(medianHomePrice) === 'number') return true;
+  if (typeof affordabilityData?.current?.medianPrice === 'number') return true;
+  if (typeof mortgageRates?.rate30y === 'number' || typeof mortgageRates?.rate15y === 'number') return true;
+  if (typeof latestNumber(housingStarts, ['starts', 'values']) === 'number') return true;
+  if (typeof latestNumber(supplyData?.housingStarts) === 'number') return true;
+  if (typeof latestNumber(existingHomeSales) === 'number') return true;
+  if (typeof homeownershipRate === 'number') return true;
+  if (typeof rentalVacancy === 'number') return true;
+  if (hasForeclosureSeries(foreclosureData)) return true;
+  if (hasCreDelinquencies(creDelinquencies)) return true;
+  if (getCommoditySnapshot(commoditiesData)) return true;
+  return false;
+}
+
+/** Housing & Construction KPI cards: extra cards or census keys with a latest value. */
+function hasCensusHousingContent(kpiData, extraCards) {
+  if (Array.isArray(extraCards) && extraCards.some((c) => c && c.value != null)) return true;
+  return Array.isArray(kpiData) && kpiData.some((k) => CENSUS_HOUSING_KEYS.includes(k.key) && k.latest?.value != null);
+}
+
+/** Trade & Consumption KPI cards: extra cards or census eco keys with a latest value. */
+function hasCensusTradeContent(kpiData, extraCards) {
+  if (Array.isArray(extraCards) && extraCards.some((c) => c && c.value != null)) return true;
+  return Array.isArray(kpiData) && kpiData.some((k) => CENSUS_ECO_KEYS.includes(k.key) && k.latest?.value != null);
+}
+
+/** Trends tiles chart already-filtered census series arrays. */
+function hasCensusTrendSeries(series) {
+  return Array.isArray(series) && series.length > 0;
+}
+
+
 export {
   latestNumber, fmtAcct, fmtUsdAcct, fmtPctAcct, getCommoditySnapshot,
   hasShillerSeries, hasReitPerfRows, hasCapRateRows, hasAffordabilityStackMetrics,
   hasSupplyMetrics, hasFhfaHpiSeries,
   hasReitEtfHistory, hasForeclosureSeries, hasMbaApplications, hasCreDelinquencies,
+  hasReMetrics, hasCensusHousingContent, hasCensusTradeContent, hasCensusTrendSeries,
 };
 

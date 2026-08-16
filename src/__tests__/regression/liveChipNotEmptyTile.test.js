@@ -25,6 +25,10 @@ import {
   hasForeclosureSeries,
   hasMbaApplications,
   hasCreDelinquencies,
+  hasReMetrics,
+  hasCensusHousingContent,
+  hasCensusTradeContent,
+  hasCensusTrendSeries,
 } from '../../markets/realEstate/components/RealEstateHelpers.js';
 import {
   hasHyOasSeries,
@@ -256,6 +260,11 @@ describe('equities bea / wb-market-cap live chips', () => {
 describe('realEstate empty-capable tiles (shiller / reitperf / caprate / afford-stack)', () => {
   it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
     const dash = src('markets/realEstate/components/RealEstateDashboard.jsx');
+    expect(dash).not.toMatch(/metrics:\s*!!isLive/);
+    expect(dash).not.toMatch(/'census-housing':\s*!!isLive/);
+    expect(dash).not.toMatch(/'census-trade':\s*!!isLive/);
+    expect(dash).not.toMatch(/'census-trends-housing':\s*!!isLive/);
+    expect(dash).not.toMatch(/'census-trends-trade':\s*!!isLive/);
     expect(dash).not.toMatch(/shiller:\s*!!isLive/);
     expect(dash).not.toMatch(/reitperf:\s*!!isLive/);
     expect(dash).not.toMatch(/caprate:\s*!!isLive/);
@@ -278,6 +287,11 @@ describe('realEstate empty-capable tiles (shiller / reitperf / caprate / afford-
     expect(dash).toMatch(/mba:\s*hasMbaApplications/);
     expect(dash).toMatch(/cre:\s*hasCreDelinquencies/);
     expect(dash).toMatch(/'hud-afford':\s*hasHudAffordabilityRows/);
+    expect(dash).toMatch(/metrics:\s*hasReMetrics/);
+    expect(dash).toMatch(/'census-housing':\s*hasCensusHousingContent/);
+    expect(dash).toMatch(/'census-trade':\s*hasCensusTradeContent/);
+    expect(dash).toMatch(/'census-trends-housing':\s*hasCensusTrendSeries/);
+    expect(dash).toMatch(/'census-trends-trade':\s*hasCensusTrendSeries/);
   });
 
   it('hasShillerSeries is false for empty / metro-only payloads', () => {
@@ -396,6 +410,60 @@ describe('realEstate empty-capable tiles (shiller / reitperf / caprate / afford-
 
   it('hasCreDelinquencies is true when CRE delinquency values exist', () => {
     expect(hasCreDelinquencies({ values: [4.2] })).toBe(true);
+  });
+
+  it('hasReMetrics is false for empty / sibling-only payloads', () => {
+    expect(hasReMetrics()).toBe(false);
+    expect(hasReMetrics({})).toBe(false);
+    expect(hasReMetrics({ isLive: true })).toBe(false);
+    expect(hasReMetrics({ caseShillerData: { metros: { Miami: { latest: 350 } } } })).toBe(false);
+    expect(hasReMetrics({ mortgageRates: { asOf: '2024-01-01' } })).toBe(false);
+    expect(hasReMetrics({ foreclosureData: { isLive: true } })).toBe(false);
+    expect(hasReMetrics({ commoditiesData: { yahoo: { futures: {} } } })).toBe(false);
+  });
+
+  it('hasReMetrics is true when a painted metric exists', () => {
+    expect(hasReMetrics({ caseShillerData: { values: [310] } })).toBe(true);
+    expect(hasReMetrics({ medianHomePrice: { values: [420000] } })).toBe(true);
+    expect(hasReMetrics({ mortgageRates: { rate30y: 6.75 } })).toBe(true);
+    expect(hasReMetrics({ homeownershipRate: 65.8 })).toBe(true);
+    expect(hasReMetrics({ commoditiesData: { gold: { price: 2400 } } })).toBe(true);
+  });
+
+  it('hasCensusHousingContent is false for empty / sibling-only payloads', () => {
+    expect(hasCensusHousingContent(null)).toBe(false);
+    expect(hasCensusHousingContent([])).toBe(false);
+    expect(hasCensusHousingContent([{ key: 'housingStarts' }])).toBe(false);
+    expect(hasCensusHousingContent([{ key: 'retailSales', latest: { value: 700 } }])).toBe(false);
+    expect(hasCensusHousingContent([], [{ key: 'housingStarts' }])).toBe(false);
+  });
+
+  it('hasCensusHousingContent is true when a housing card or extra value exists', () => {
+    expect(hasCensusHousingContent([{ key: 'housingStarts', latest: { value: 1400 } }])).toBe(true);
+    expect(hasCensusHousingContent([], [{ key: 'medianHomePrice', value: 420000 }])).toBe(true);
+  });
+
+  it('hasCensusTradeContent is false for empty / sibling-only / housing-only payloads', () => {
+    expect(hasCensusTradeContent(null)).toBe(false);
+    expect(hasCensusTradeContent([])).toBe(false);
+    expect(hasCensusTradeContent([{ key: 'retailSales' }])).toBe(false);
+    expect(hasCensusTradeContent([{ key: 'housingStarts', latest: { value: 1400 } }])).toBe(false);
+    expect(hasCensusTradeContent([], [{ key: 'retailSales' }])).toBe(false);
+  });
+
+  it('hasCensusTradeContent is true when a trade card or extra value exists', () => {
+    expect(hasCensusTradeContent([{ key: 'retailSales', latest: { value: 700 } }])).toBe(true);
+    expect(hasCensusTradeContent([], [{ key: 'pce', value: 19000 }])).toBe(true);
+  });
+
+  it('hasCensusTrendSeries is false for empty / sibling-only payloads', () => {
+    expect(hasCensusTrendSeries(null)).toBe(false);
+    expect(hasCensusTrendSeries({})).toBe(false);
+    expect(hasCensusTrendSeries([])).toBe(false);
+  });
+
+  it('hasCensusTrendSeries is true when a filtered series exists', () => {
+    expect(hasCensusTrendSeries([{ key: 'housingStarts', history: { values: [1, 2, 3] } }])).toBe(true);
   });
 });
 
