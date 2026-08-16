@@ -191,6 +191,9 @@ import {
   wtiBrentHistoryPoints,
   hasCommodityFxRates,
   commodityFxRows,
+  hasSectorHeatmapRows,
+  sectorHeatmapRows,
+  sectorHeatmapColumns,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3722,5 +3725,91 @@ describe('commodities leftover empty-capable tiles (comfx)', () => {
     expect(() => rows.map((r) => r.rate.toFixed(4))).not.toThrow();
     expect(() => rows.map((r) => r.code.slice(0, 2))).not.toThrow();
     expect(rows[0].rate.toFixed(4)).toBe('1.3612');
+  });
+});
+
+describe('commodities leftover empty-capable tiles (sector)', () => {
+  it('dashboard does not hardcode leftover bag existence on sector', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/sector:\s*!!sectorHeatmapData/);
+    expect(dash).toMatch(/sector:\s*hasSectorHeatmapRows\(sectorHeatmapData\)/);
+    const heat = src('markets/commodities/components/SectorHeatmap.jsx');
+    expect(heat).toMatch(/sectorHeatmapRows\(sectorHeatmapData\)/);
+    expect(heat).not.toMatch(/const \{ commodities = \[\], columns = \[\] \} = sectorHeatmapData/);
+  });
+
+  it('hasSectorHeatmapRows is false for empty / leftover isLive bags', () => {
+    expect(hasSectorHeatmapRows()).toBe(false);
+    expect(hasSectorHeatmapRows(null)).toBe(false);
+    expect(hasSectorHeatmapRows({})).toBe(false);
+    expect(hasSectorHeatmapRows({ isLive: true })).toBe(false);
+    expect(hasSectorHeatmapRows({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasSectorHeatmapRows({ dates: ['2024-01'] })).toBe(false);
+    expect(hasSectorHeatmapRows({ commodities: [] })).toBe(false);
+    expect(hasSectorHeatmapRows({ commodities: { isLive: true } })).toBe(false);
+    expect(hasSectorHeatmapRows({ commodities: true })).toBe(false);
+    expect(hasSectorHeatmapRows({ isLive: true, commodities: [{ isLive: true }] })).toBe(false);
+    expect(hasSectorHeatmapRows({
+      commodities: [{ name: 'Gold', d1: true, w1: '1.2', m1: { isLive: true } }],
+    })).toBe(false);
+    expect(hasSectorHeatmapRows({
+      commodities: [{ d1: 0.82 }],
+    })).toBe(false);
+    expect(hasSectorHeatmapRows({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      columns: { isLive: true },
+    })).toBe(false);
+  });
+
+  it('hasSectorHeatmapRows is true when a painted sector change exists', () => {
+    expect(hasSectorHeatmapRows({
+      commodities: [{ name: 'Gold', d1: 0.34 }],
+    })).toBe(true);
+    expect(hasSectorHeatmapRows({
+      isLive: true,
+      commodities: [
+        { isLive: true },
+        { name: 'Gold', d1: true },
+        { name: 'WTI Crude', w1: 1.23 },
+      ],
+    })).toBe(true);
+  });
+
+  it('sectorHeatmapRows skips leftover siblings so remount does not crash', () => {
+    expect(() => sectorHeatmapRows({ isLive: true })).not.toThrow();
+    expect(() => sectorHeatmapRows({ commodities: { isLive: true } })).not.toThrow();
+    expect(() => sectorHeatmapRows({ commodities: true })).not.toThrow();
+    expect(() => sectorHeatmapRows({ commodities: [null, { isLive: true }, 'x'] })).not.toThrow();
+    expect(sectorHeatmapRows({
+      commodities: [
+        { isLive: true },
+        { name: 'Gold', d1: true, w1: '1.2', m1: { isLive: true } },
+        { name: 'WTI Crude', ticker: 'CL=F', sector: 'Energy', d1: 0.82, w1: 1.23, m1: -0.45 },
+      ],
+    }).map((r) => r.name)).toEqual(['WTI Crude']);
+    const rows = sectorHeatmapRows({
+      isLive: true,
+      commodities: [
+        { isLive: true },
+        { name: 'Gold', ticker: 'GC=F', sector: 'Metals', d1: 0.34, w1: 1.56, m1: 5.21 },
+        { name: 'Silver', d1: '0.23' },
+      ],
+    });
+    expect(rows.map((r) => r.name)).toEqual(['Gold']);
+    expect(rows[0].d1).toBe(0.34);
+    expect(rows[0].w1).toBe(1.56);
+    expect(rows[0].m1).toBe(5.21);
+    expect(() => rows.map((r) => r.name.slice(0, 3))).not.toThrow();
+    expect(() => rows.map((r) => r.d1.toFixed(2))).not.toThrow();
+    expect(rows[0].name.slice(0, 3)).toBe('Gol');
+    expect(rows[0].d1.toFixed(2)).toBe('0.34');
+
+    expect(() => sectorHeatmapColumns({ isLive: true })).not.toThrow();
+    expect(() => sectorHeatmapColumns({ columns: { isLive: true } })).not.toThrow();
+    expect(() => sectorHeatmapColumns({ columns: [true, { isLive: true }, '1d%'] })).not.toThrow();
+    expect(sectorHeatmapColumns({ columns: [true, { isLive: true }, '1d%', '1w%'] })).toEqual(['1d%', '1w%']);
+    expect(() => sectorHeatmapColumns({ columns: ['1d%', '1w%', '1m%'] }).map((c) => c.slice(0, 2))).not.toThrow();
   });
 });

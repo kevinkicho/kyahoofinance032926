@@ -430,3 +430,37 @@ export function commodityFxRows(commodityCurrencies) {
 export function hasCommodityFxRates(commodityCurrencies) {
   return commodityFxRows(commodityCurrencies).length > 0;
 }
+
+/** Sector Performance rows. Leftover isLive / bag-only commodities stay empty. */
+export function sectorHeatmapRows(sectorHeatmapData) {
+  const list = Array.isArray(sectorHeatmapData?.commodities) ? sectorHeatmapData.commodities : [];
+  const rows = [];
+  for (const c of list) {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) continue;
+    const name = typeof c.name === 'string' && c.name ? c.name : '';
+    if (!name) continue;
+    const d1 = isFiniteNumber(c.d1) ? c.d1 : null;
+    const w1 = isFiniteNumber(c.w1) ? c.w1 : null;
+    const m1 = isFiniteNumber(c.m1) ? c.m1 : null;
+    if (d1 == null && w1 == null && m1 == null) continue;
+    rows.push({
+      name,
+      ticker: typeof c.ticker === 'string' ? c.ticker : '',
+      sector: typeof c.sector === 'string' ? c.sector : '',
+      d1,
+      w1,
+      m1,
+    });
+  }
+  return rows;
+}
+
+export function sectorHeatmapColumns(sectorHeatmapData) {
+  const raw = Array.isArray(sectorHeatmapData?.columns) ? sectorHeatmapData.columns : [];
+  const cols = raw.filter((c) => typeof c === 'string' && c);
+  return cols.length ? cols : ['1d%', '1w%', '1m%'];
+}
+
+export function hasSectorHeatmapRows(sectorHeatmapData) {
+  return sectorHeatmapRows(sectorHeatmapData).length > 0;
+}

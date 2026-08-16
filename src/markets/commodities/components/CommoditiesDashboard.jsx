@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints, hasCommodityFxRates, commodityFxRows } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints, hasCommodityFxRates, commodityFxRows, hasSectorHeatmapRows } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -1202,7 +1202,7 @@ function CommoditiesDashboard({
       sidebar: !!(cotData || allCommodities.length || dbcEtf),
       prices: !!priceDashboardData,
       futures: !!futuresCurveData,
-      sector: !!sectorHeatmapData,
+      sector: hasSectorHeatmapRows(sectorHeatmapData),
       supply: !!supplyDemandData,
       'wti-brent': hasWtiBrentSeries(fredCommodities),
       cot: hasCotPositioning(cotData),
@@ -1260,6 +1260,7 @@ function CommoditiesDashboard({
       'physical-pressure': !hasPhysicalPressureRows(eiaPetCtx?.data, usdaCtx?.data, tradeCtx?.data),
       cot: !hasCotPositioning(cotData),
       comfx: !hasCommodityFxRates(commodityCurrencies),
+      sector: !hasSectorHeatmapRows(sectorHeatmapData),
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
     __noFooter: {},

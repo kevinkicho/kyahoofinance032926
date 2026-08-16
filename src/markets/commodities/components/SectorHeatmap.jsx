@@ -4,6 +4,7 @@ import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './CommoditiesDashboard.css';
+import { sectorHeatmapRows, sectorHeatmapColumns } from './CommoditiesLiveChips.js';
 
 function heatClass(v) {
   if (v == null) return 'com-heat-neu';
@@ -30,7 +31,8 @@ const SECTORS_ORDER = ['Energy', 'Metals', 'Agriculture', 'Livestock'];
 
 export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view = 'heatmap', lastUpdated }) {
   const { colors } = useTheme();
-  const { commodities = [], columns = [] } = sectorHeatmapData || {};
+  const commodities = sectorHeatmapRows(sectorHeatmapData);
+  const columns = sectorHeatmapColumns(sectorHeatmapData);
   const colKeys = ['d1', 'w1', 'm1'];
 
   // KPI computations
@@ -100,7 +102,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
         </thead>
         <tbody>
           {sorted.map(c => (
-            <tr key={c.ticker} className="com-row">
+            <tr key={c.ticker || c.name} className="com-row">
               <td className="com-cell">{c.name}</td>
               <td className="com-cell" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{c.sector}</td>
               <td className={`com-cell ${pctClass(c.d1)}`} style={{ fontWeight: 600 }}><MetricValue value={c.d1} seriesKey="sectorPerformance" timestamp={lastUpdated} format={v => v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '—'} /></td>
@@ -132,7 +134,7 @@ export default function SectorHeatmap({ sectorHeatmapData, fredCommodities, view
                 <td colSpan={columns.length + 1}>{sector}</td>
               </tr>
               {rows.map(c => (
-                <tr key={c.ticker} className="com-row">
+                <tr key={c.ticker || c.name} className="com-row">
                   <td className="com-cell">{c.name}</td>
                   {colKeys.map(k => (
                     <td key={k} className={`com-cell ${heatClass(c[k])}`} style={{ fontWeight: 500 }}>
