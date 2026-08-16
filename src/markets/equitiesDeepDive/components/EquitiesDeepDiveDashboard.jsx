@@ -18,6 +18,7 @@ import {
   earningsBeatRates,
   insiderHolderRows,
   insiderTransactionRows,
+  institutionRows,
 } from './EquitiesDeepDiveLiveChips.js';
 
 function fmtChangePct(v) {
@@ -405,7 +406,8 @@ function EquitiesDeepDiveDashboard({
   const upcoming = earningsUpcoming(earningsData);
   const beatRates = earningsBeatRates(earningsData);
   const { mostShorted = [] } = shortData ?? {};
-  const { institutions = [], aggregateTopHoldings = [], recentChanges = {} } = institutionalData ?? {};
+  const institutions = institutionRows(institutionalData);
+  const { aggregateTopHoldings = [], recentChanges = {} } = institutionalData ?? {};
   const insiderHolders = insiderHolderRows(insiderData);
   const insiderTransactions = insiderTransactionRows(insiderData);
 
@@ -908,13 +910,16 @@ function EquitiesDeepDiveDashboard({
 
     const institutionsBody = institutions.length > 0 ? (
       <div className="eqd-mini-table">
-        {institutions.slice(0, 6).map((inst, i) => (
+        {institutions.slice(0, 6).map((inst, i) => {
+          const name = typeof inst?.name === 'string' ? inst.name : '';
+          return (
           <div key={i} className="eqd-mini-row">
-            <span className="eqd-mini-name" title={inst.ticker ? `${inst.ticker} · ${inst.name}` : inst.name}>{inst.name.length > 18 ? inst.name.slice(0, 18) + '…' : inst.name}</span>
+            <span className="eqd-mini-name" title={inst.ticker ? `${inst.ticker} · ${name}` : name}>{name.length > 18 ? name.slice(0, 18) + '…' : name}</span>
             <span className="eqd-mini-value"><MetricValue value={inst.totalValue} seriesKey="institutionTotalValue" timestamp={lastUpdated} format={v => `$${(v / 1000).toFixed(1)}T`} /></span>
             {inst.topHoldings?.[0] ? <span className="eqd-mini-sub">Top: {inst.topHoldings[0].ticker}{inst.topHoldings[0].name ? ` · ${inst.topHoldings[0].name}` : ''}{inst.topHoldings[0].value != null ? ` · $${inst.topHoldings[0].value}B` : ''} · {inst.topHoldings[0].pctOfPortfolio != null ? `${inst.topHoldings[0].pctOfPortfolio.toFixed(1)}%` : ''}</span> : null}
           </div>
-        ))}
+          );
+        })}
       </div>
     ) : null;
 

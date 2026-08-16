@@ -85,6 +85,12 @@ export function hasFactorRankingsContent(factorData) {
   return hasNumericInFavor(factorData?.inFavor);
 }
 
+
+/** Institution rows the table can slice. Leftover isLive / institutions bag remount-crash .slice / inst.name.length. */
+export function institutionRows(institutionalData) {
+  return Array.isArray(institutionalData?.institutions) ? institutionalData.institutions : [];
+}
+
 /** Valuation is an empty fragment unless a gated section would paint. */
 export function hasEqdValuationContent({
   spPE,
@@ -104,7 +110,7 @@ export function hasEqdValuationContent({
   if (Array.isArray(factorData?.stocks) && factorData.stocks.length > 0) return true;
   if (Array.isArray(shortData?.mostShorted) && shortData.mostShorted.length > 0) return true;
   if (Array.isArray(earningsData?.upcoming) && earningsData.upcoming.length > 0) return true;
-  if (Array.isArray(institutionalData?.institutions) && institutionalData.institutions.length > 0) return true;
+  if (institutionRows(institutionalData).length > 0) return true;
   if (Array.isArray(insiderData?.transactions) && insiderData.transactions.length > 0) return true;
   return false;
 }

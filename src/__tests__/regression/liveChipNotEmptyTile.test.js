@@ -152,6 +152,7 @@ import {
   earningsBeatRates,
   insiderHolderRows,
   insiderTransactionRows,
+  institutionRows,
 } from '../../markets/equitiesDeepDive/components/EquitiesDeepDiveLiveChips.js';
 import {
   hasCalendarKpiMetrics,
@@ -1987,6 +1988,38 @@ describe('equity+ leftover empty-capable tiles (insider remount)', () => {
     expect(insiderTransactionRows({ transactions: { isLive: true } })).toEqual([]);
     expect(() => [...insiderTransactionRows({ transactions: { isLive: true } })].sort()).not.toThrow();
     expect(insiderTransactionRows({ transactions: [{ ticker: 'AAPL', shares: 1200 }] }).map((r) => r.ticker)).toEqual(['AAPL']);
+  });
+});
+
+
+describe('equity+ leftover empty-capable tiles (institutions remount)', () => {
+  it('dashboard does not slice leftover isLive institution bags', () => {
+    const dash = src('markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx');
+    expect(dash).not.toMatch(/const \{ institutions = \[\], aggregateTopHoldings = \[\], recentChanges = \{\} \} = institutionalData/);
+    expect(dash).toMatch(/institutionRows\(institutionalData\)/);
+    expect(dash).not.toMatch(/inst\.name\.length > 18/);
+  });
+
+  it('institutionRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => institutionRows({ isLive: true })).not.toThrow();
+    expect(() => institutionRows({ institutions: { isLive: true } })).not.toThrow();
+    expect(() => institutionRows({ institutions: true })).not.toThrow();
+    expect(institutionRows({ isLive: true })).toEqual([]);
+    expect(institutionRows({ institutions: { isLive: true } })).toEqual([]);
+    expect(institutionRows({ institutions: true })).toEqual([]);
+    expect(() => institutionRows({ institutions: { isLive: true } }).slice(0, 6)).not.toThrow();
+    const rows = institutionRows({
+      isLive: true,
+      institutions: [
+        { isLive: true },
+        { name: 'Vanguard', totalValue: 8200 },
+      ],
+    });
+    expect(rows.map((r) => r.name)).toEqual([undefined, 'Vanguard']);
+    expect(() => rows.slice(0, 6).map((inst) => {
+      const name = typeof inst?.name === 'string' ? inst.name : '';
+      return name.length > 18 ? name.slice(0, 18) + '…' : name;
+    })).not.toThrow();
   });
 });
 

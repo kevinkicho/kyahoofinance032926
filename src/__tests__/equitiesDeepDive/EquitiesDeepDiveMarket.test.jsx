@@ -79,4 +79,11 @@ describe('EquitiesDeepDiveMarket', () => {
     render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={mockInstitutionalData} />);
     expect(screen.getAllByText(/WAITING|PENDING|NO DATA|STALE|FETCHED|LOADING|UNAVAIL/i).length).toBeGreaterThan(0);
   });
+
+  it('handles leftover isLive institution bags without remount-crashing', () => {
+    expect(() => render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={{ ...mockInstitutionalData, data: { isLive: true } }} />)).not.toThrow();
+    expect(() => render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={{ ...mockInstitutionalData, data: { institutions: { isLive: true } } }} />)).not.toThrow();
+    expect(() => render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={{ ...mockInstitutionalData, data: { institutions: [{ isLive: true }] } }} />)).not.toThrow();
+  });
+
 });
