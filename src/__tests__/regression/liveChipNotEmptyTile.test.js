@@ -75,6 +75,12 @@ import {
   hasWbTradeRows,
   hasWbDevRows,
 } from '../../markets/globalMacro/components/MacroLiveChips.js';
+import {
+  hasEqdKpiMetrics,
+  hasEqdSidebarContent,
+  hasEqdValuationContent,
+  hasEqdEarningsQuality,
+} from '../../markets/equitiesDeepDive/components/EquitiesDeepDiveLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -956,5 +962,91 @@ describe('macro empty-capable tiles (sidebar / scorecard / gdp / cpi / rates / d
         { code: 'DE', gdpPerCap: 51000, gdpGrowth: 0.4 },
       ],
     })).toBe(true);
+  });
+});
+
+describe('equity+ empty-capable tiles (kpi / sidebar / valuation / earnings-quality)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!isLive/);
+    expect(dash).not.toMatch(/sidebar:\s*!!isLive/);
+    expect(dash).not.toMatch(/valuation:\s*!!isLive/);
+    expect(dash).not.toMatch(/'earnings-quality':\s*!!isLive/);
+    expect(dash).toMatch(/kpi:\s*hasEqdKpiMetrics/);
+    expect(dash).toMatch(/sidebar:\s*hasEqdSidebarContent/);
+    expect(dash).toMatch(/valuation:\s*hasEqdValuationContent/);
+    expect(dash).toMatch(/'earnings-quality':\s*hasEqdEarningsQuality/);
+  });
+
+  it('hasEqdKpiMetrics is false for empty / SPY-only / sibling-only payloads', () => {
+    expect(hasEqdKpiMetrics()).toBe(false);
+    expect(hasEqdKpiMetrics({})).toBe(false);
+    expect(hasEqdKpiMetrics({ sectorData: { isLive: true } })).toBe(false);
+    expect(hasEqdKpiMetrics({ factorData: { isLive: true, inFavor: {} } })).toBe(false);
+    expect(hasEqdKpiMetrics({ sectorData: { sectors: [{ code: 'SPY', name: 'S&P 500', perf1m: 1.2 }] } })).toBe(false);
+    expect(hasEqdKpiMetrics({ factorData: { inFavor: { momentum: null } } })).toBe(false);
+  });
+
+  it('hasEqdKpiMetrics is true when a non-SPY sector or numeric factor exists', () => {
+    expect(hasEqdKpiMetrics({ sectorData: { sectors: [{ code: 'XLK', name: 'Technology', perf1m: 3.1 }] } })).toBe(true);
+    expect(hasEqdKpiMetrics({ factorData: { inFavor: { momentum: 4.2 } } })).toBe(true);
+    expect(hasEqdKpiMetrics({ factorData: [{ name: 'Value', value: -1.5 }] })).toBe(true);
+  });
+
+  it('hasEqdSidebarContent is false for empty / sibling-only payloads', () => {
+    expect(hasEqdSidebarContent()).toBe(false);
+    expect(hasEqdSidebarContent({})).toBe(false);
+    expect(hasEqdSidebarContent({ sectorData: { isLive: true } })).toBe(false);
+    expect(hasEqdSidebarContent({ factorData: { isLive: true, inFavor: { momentum: 4.2 } } })).toBe(false);
+    expect(hasEqdSidebarContent({ earningsData: { isLive: true, upcoming: [] } })).toBe(false);
+    expect(hasEqdSidebarContent({ shortData: { isLive: true, mostShorted: [] } })).toBe(false);
+  });
+
+  it('hasEqdSidebarContent is true when a painted sidebar row exists', () => {
+    expect(hasEqdSidebarContent({ sectorData: { sectors: [{ name: 'Technology', perf1m: 3.1 }] } })).toBe(true);
+    expect(hasEqdSidebarContent({ factorData: { factorReturns: [{ name: 'Momentum', value: 2.4 }] } })).toBe(true);
+    expect(hasEqdSidebarContent({ earningsData: { avgSurprise: 4.1 } })).toBe(true);
+    expect(hasEqdSidebarContent({ shortData: { aggregateShortPct: 2.8 } })).toBe(true);
+  });
+
+  it('hasEqdValuationContent is false for empty / sibling-only payloads', () => {
+    expect(hasEqdValuationContent()).toBe(false);
+    expect(hasEqdValuationContent({})).toBe(false);
+    expect(hasEqdValuationContent({ buffettIndicator: { isLive: true } })).toBe(false);
+    expect(hasEqdValuationContent({ equityRiskPremium: { isLive: true } })).toBe(false);
+    expect(hasEqdValuationContent({ sectorData: { sectors: [{ code: 'SPY', perf1m: 1.2 }] } })).toBe(false);
+    expect(hasEqdValuationContent({ factorData: { inFavor: { momentum: 4.2 } } })).toBe(false);
+    expect(hasEqdValuationContent({ shortData: { isLive: true } })).toBe(false);
+    expect(hasEqdValuationContent({ earningsData: { isLive: true } })).toBe(false);
+    expect(hasEqdValuationContent({ institutionalData: { isLive: true } })).toBe(false);
+    expect(hasEqdValuationContent({ insiderData: { isLive: true } })).toBe(false);
+  });
+
+  it('hasEqdValuationContent is true when a gated valuation section would paint', () => {
+    expect(hasEqdValuationContent({ spPE: 22.4 })).toBe(true);
+    expect(hasEqdValuationContent({ buffettIndicator: { ratio: 198 } })).toBe(true);
+    expect(hasEqdValuationContent({ equityRiskPremium: { erp: 1.8 } })).toBe(true);
+    expect(hasEqdValuationContent({ sectorData: { sectors: [{ code: 'XLF', name: 'Financials' }] } })).toBe(true);
+    expect(hasEqdValuationContent({ factorData: { stocks: [{ ticker: 'AAPL', composite: 72 }] } })).toBe(true);
+    expect(hasEqdValuationContent({ shortData: { mostShorted: [{ ticker: 'GME', shortFloat: 21 }] } })).toBe(true);
+    expect(hasEqdValuationContent({ earningsData: { upcoming: [{ ticker: 'MSFT', date: '2026-01-28' }] } })).toBe(true);
+    expect(hasEqdValuationContent({ institutionalData: { institutions: [{ name: 'Vanguard' }] } })).toBe(true);
+    expect(hasEqdValuationContent({ insiderData: { transactions: [{ ticker: 'AAPL', type: 'Buy' }] } })).toBe(true);
+  });
+
+  it('hasEqdEarningsQuality is false for empty / sibling-only / dash-only payloads', () => {
+    expect(hasEqdEarningsQuality()).toBe(false);
+    expect(hasEqdEarningsQuality({})).toBe(false);
+    expect(hasEqdEarningsQuality({ earningsData: { isLive: true, upcoming: [], beatRates: [] } })).toBe(false);
+    expect(hasEqdEarningsQuality({ factorData: { isLive: true, inFavor: {}, stocks: [] } })).toBe(false);
+    expect(hasEqdEarningsQuality({ breadthDivergence: { isLive: true, spy1m: 1.2 } })).toBe(false);
+  });
+
+  it('hasEqdEarningsQuality is true when a painted quality metric exists', () => {
+    expect(hasEqdEarningsQuality({ earningsData: { upcoming: [{ ticker: 'NVDA' }] } })).toBe(true);
+    expect(hasEqdEarningsQuality({ earningsData: { beatRates: [{ sector: 'Tech', beatRate: 74 }] } })).toBe(true);
+    expect(hasEqdEarningsQuality({ factorData: { inFavor: { quality: 3.2 } } })).toBe(true);
+    expect(hasEqdEarningsQuality({ factorData: { stocks: [{ ticker: 'MSFT', quality: 81 }] } })).toBe(true);
+    expect(hasEqdEarningsQuality({ breadthDivergence: { divergence: -1.4 } })).toBe(true);
   });
 });

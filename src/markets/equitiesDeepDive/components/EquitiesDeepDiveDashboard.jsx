@@ -7,6 +7,12 @@ import InsiderTrading from './InsiderTrading';
 import FactorRankings from './FactorRankings';
 import { useTheme } from '../../../hub/ThemeContext';
 import './EquitiesDeepDiveDashboard.css';
+import {
+  hasEqdKpiMetrics,
+  hasEqdSidebarContent,
+  hasEqdValuationContent,
+  hasEqdEarningsQuality,
+} from './EquitiesDeepDiveLiveChips.js';
 
 function fmtChangePct(v) {
   if (v == null) return '';
@@ -1056,9 +1062,12 @@ function EquitiesDeepDiveDashboard({
     return {
       __render: (panelId) => bodies[panelId] ?? null,
       __live: {
-        kpi: !!isLive,
-        sidebar: !!isLive,
-        valuation: !!isLive,
+        kpi: hasEqdKpiMetrics({ sectorData, factorData }),
+        sidebar: hasEqdSidebarContent({ sectorData, factorData, earningsData, shortData }),
+        valuation: hasEqdValuationContent({
+          spPE, buffettIndicator, equityRiskPremium, sectorData, factorData,
+          shortData, earningsData, institutionalData, insiderData,
+        }),
         etf: !!isLive && !!rankedOption,
         'factor-favor': !!isLive && !!inFavorOption,
         'sector-beat': !!isLive && !!beatRateOption,
@@ -1068,7 +1077,7 @@ function EquitiesDeepDiveDashboard({
         earnings: !!isLive && upcoming.length > 0,
         institutions: !!isLive && institutions.length > 0,
         insider: !!isLive && (insiderHolders.length > 0 || insiderTransactions.length > 0),
-        'earnings-quality': !!isLive,
+        'earnings-quality': hasEqdEarningsQuality({ earningsData, factorData, breadthDivergence }),
       },
       __subtitle: {
         kpi: 'Sector ETFs · factor rotation · vs SPY',
@@ -1101,10 +1110,11 @@ function EquitiesDeepDiveDashboard({
       },
     };
   }, [
-    kpiPanel, sidebarPanel, spPE, buffettIndicator, equityRiskPremium, sectorKpis, factorKpis,
+    kpiPanel, sidebarPanel, sectorData, factorData, earningsData, shortData, institutionalData, insiderData,
+    spPE, buffettIndicator, equityRiskPremium, sectorKpis, factorKpis,
     shortKpis, upcoming, institutions, aggregateTopHoldings, insiderTransactions, insiderHolders,
-    stocks, factorData, breadthDivergence, rankedOption, inFavorOption, beatRateOption, shortedOption, earningsQuality,
-    insiderData, isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
+    stocks, breadthDivergence, rankedOption, inFavorOption, beatRateOption, shortedOption, earningsQuality,
+    isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
   ]);
 
   return (
