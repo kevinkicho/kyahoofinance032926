@@ -534,12 +534,19 @@ export const PANEL_PLACEHOLDERS = {
 
   // EIA: leaf series, not whole sector bags when avoidable
   'eia:kpi': [any('pet', ['petroleum.price', 'petroleum.latest', 'petroleum'])],
-  'eia:prices': [any('p', ['petroleum.price', 'petroleum.latest', 'petroleum', 'naturalGas.price', 'naturalGas'])],
+  // US Electricity Retail Prices paints electricity sector prices only.
+  // petroleum / naturalGas were leftover sibling false-greens.
+  'eia:prices': [
+    any('elec', ['electricity.residential.latest.price', 'electricity.commercial.latest.price', 'electricity.industrial.latest.price', 'electricity.residential.latest', 'electricity']),
+  ],
   'eia:electricity': [any('e', ['electricity.price', 'electricity.latest', 'electricity'])],
   'eia:petroleum': [any('p', ['petroleum.price', 'petroleum.latest', 'petroleum'])],
   'eia:natural-gas': [any('g', ['naturalGas.price', 'naturalGas.latest', 'naturalGas'])],
   'eia:co2': [any('c', ['co2Emissions.latest', 'co2Emissions.value', 'co2Emissions'])],
-  'eia:consumption': [any('c', ['electricity.consumption', 'electricity', 'petroleum.consumption', 'petroleum'])],
+  // Electricity Consumption paints sector sales. petroleum was a leftover sibling.
+  'eia:consumption': [
+    any('sales', ['electricity.residential.latest.sales', 'electricity.commercial.latest.sales', 'electricity.industrial.latest.sales', 'electricity.residential.sales']),
+  ],
   'eia:trends': [any('t', ['petroleum', 'naturalGas', 'electricity'])],
   'eia:summary': [p('petroleum', 'petroleum')],
 

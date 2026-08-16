@@ -381,18 +381,14 @@ export const PANEL_FIELD_MAP = {
   'bls:unemployment-duration': { field: 'series', fieldPath: 'series' },
 
   'eia:kpi': { field: 'petroleum', fieldPath: 'petroleum' },
-  'eia:prices': { anyOf: [
-    { field: 'petroleum', fieldPath: 'petroleum' },
-    { field: 'naturalGas', fieldPath: 'naturalGas' },
-  ] },
+  // Electricity retail prices tile. petroleum/naturalGas are sibling panels.
+  'eia:prices': { field: 'electricity', fieldPath: 'electricity' },
   'eia:electricity': { field: 'electricity', fieldPath: 'electricity' },
   'eia:petroleum': { field: 'petroleum', fieldPath: 'petroleum' },
   'eia:natural-gas': { field: 'naturalGas', fieldPath: 'naturalGas' },
   'eia:co2': { field: 'co2Emissions', fieldPath: 'co2Emissions' },
-  'eia:consumption': { anyOf: [
-    { field: 'electricity', fieldPath: 'electricity' },
-    { field: 'petroleum', fieldPath: 'petroleum' },
-  ] },
+  // Electricity consumption tile. petroleum is the sibling petroleum panel.
+  'eia:consumption': { field: 'electricity', fieldPath: 'electricity' },
   'eia:trends': { anyOf: [
     { field: 'petroleum', fieldPath: 'petroleum' },
     { field: 'naturalGas', fieldPath: 'naturalGas' },
