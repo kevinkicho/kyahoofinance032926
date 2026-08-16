@@ -13,11 +13,8 @@ export const PANEL_FIELD_MAP = {
   'equities:heatmap': { field: 'quotes', fieldPath: 'quotes' },
   'equities:sidebar': { field: 'quotes', fieldPath: 'quotes' },
   'equities:portfolio': { field: 'quotes', fieldPath: 'quotes' },
-  'equities:universe-updates': { anyOf: [
-    { field: 'updates', fieldPath: 'updates', crossMarket: 'universeUpdates' },
-    { field: 'universe', fieldPath: 'universe' },
-    { field: 'quotes', fieldPath: 'quotes' },
-  ] },
+  // Tile paints only universeUpdates.updates. universe/quotes are heatmap siblings.
+  'equities:universe-updates': { field: 'updates', fieldPath: 'updates', crossMarket: 'universeUpdates' },
   'equities:sec-fundamentals': { field: 'tickers', fieldPath: 'tickers', crossMarket: 'edgar' },
   'equities:sec-filings': { field: 'byTicker', fieldPath: 'byTicker', crossMarket: 'edgarFilingActivity' },
   'equities:bea-corporate-profits': { field: 'gdpComponents', fieldPath: 'gdpComponents', crossMarket: 'bea' },
@@ -320,7 +317,15 @@ export const PANEL_FIELD_MAP = {
   'credit:bank-sector': { field: 'aggregate', fieldPath: 'aggregate', crossMarket: 'fdic' },
   'credit:credit-quality': { field: 'creditQuality', fieldPath: 'creditQuality' },
   'credit:muni-market': { field: 'summary', fieldPath: 'summary', crossMarket: 'msrb' },
-  'credit:bank-stress': { field: 'lendingStandards', fieldPath: 'lendingStandards' },
+  // Bank Stress Monitor paints FDIC deposits/failures + HY/default/CP.
+  // Unused SLOOS lendingStandards was a leftover false-green.
+  'credit:bank-stress': { anyOf: [
+    { field: 'aggregate', fieldPath: 'aggregate', crossMarket: 'fdic' },
+    { field: 'failures', fieldPath: 'failures', crossMarket: 'fdic' },
+    { field: 'spreadData', fieldPath: 'spreadData' },
+    { field: 'defaultData', fieldPath: 'defaultData' },
+    { field: 'commercialPaper', fieldPath: 'commercialPaper' },
+  ] },
   'credit:ted-spread': { field: 'tedSpread', fieldPath: 'tedSpread' },
   'credit:wb-debt': { field: 'countries', fieldPath: 'countries', crossMarket: 'worldbank' },
   'credit:bis-total-credit': { field: 'bisCreditToGDP', fieldPath: 'bisCreditToGDP', crossMarket: 'globalMacro' },

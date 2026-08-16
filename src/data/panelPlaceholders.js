@@ -296,7 +296,13 @@ export const PANEL_PLACEHOLDERS = {
   'credit:bank-sector': [p('fdic', 'aggregate', { crossMarket: 'fdic' })],
   'credit:credit-quality': [any('cq', ['creditQuality'])],
   'credit:muni-market': [p('msrb', 'summary', { crossMarket: 'msrb' })],
-  'credit:bank-stress': [any('lend', ['lendingStandards', 'spreadData'])],
+  // Bank Stress Monitor paints FDIC + HY/default/CP. Unused lendingStandards leftover.
+  'credit:bank-stress': [
+    any('fdic', ['aggregate', 'failures'], { crossMarket: 'fdic' }),
+    any('spreads', ['spreadData.current.hySpread', 'spreadData.current', 'spreadData'], { required: false }),
+    any('defaults', ['defaultData.defaultRate', 'defaultData'], { required: false }),
+    any('cp', ['commercialPaper.rate', 'commercialPaper'], { required: false }),
+  ],
   'credit:ted-spread': [any('ted', ['tedSpread.values', 'tedSpread.latest', 'tedSpread'])],
   'credit:wb-debt': [p('countries', 'countries', { crossMarket: 'worldbank' })],
   'credit:bis-total-credit': [
@@ -421,7 +427,8 @@ export const PANEL_PLACEHOLDERS = {
   'equities:heatmap': [p('quotes', 'quotes')],
   'equities:sidebar': [p('quotes', 'quotes')],
   'equities:portfolio': [p('quotes', 'quotes')],
-  'equities:universe-updates': [any('u', ['universe', 'quotes', 'universeUpdates.updates'])],
+  // Tile paints only discovered listings. universe/quotes were leftover false-greens.
+  'equities:universe-updates': [p('updates', 'updates', { crossMarket: 'universeUpdates' })],
   'equities:sec-fundamentals': [p('edgar', 'tickers', { crossMarket: 'edgar' })],
   // edgarFilingActivity: total/tickerCount are numeric; byTicker/material are string catalogs
   'equities:sec-filings': [
