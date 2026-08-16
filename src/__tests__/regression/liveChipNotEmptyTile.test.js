@@ -163,6 +163,8 @@ import {
   hasVixTermSeries,
   hasFredVixSeries,
   hasSkewContent,
+  hasVolSurfaceGrid,
+  volSurfaceHeatmap,
 } from '../../markets/derivatives/components/DerivativesLiveChips.js';
 import {
   hasBlsSeries,
@@ -2693,5 +2695,46 @@ describe('macro leftover empty-capable tiles (imf-cofer / global-liquidity)', ()
     })).toBe(true);
     expect(hasGlobalLiquidityContent({ gdpNowData: { latest: { gdp: 2.4 } } })).toBe(true);
     expect(hasGlobalLiquidityContent({ gdpNowData: { evolution: [{ gdp: 1.8 }] } })).toBe(true);
+  });
+});
+
+describe('derivatives leftover empty-capable tiles (volsurf)', () => {
+  it('dashboard does not hardcode leftover grid-only bag existence on volsurf', () => {
+    const dash = src('markets/derivatives/components/DerivativesDashboard.jsx');
+    expect(dash).not.toMatch(/volsurf:\s*!!volSurfaceData\?\.grid\?\.length/);
+    expect(dash).toMatch(/volsurf:\s*hasVolSurfaceGrid\(volSurfaceData\)/);
+  });
+
+  it('hasVolSurfaceGrid is false for empty / grid-only leftover bags', () => {
+    expect(hasVolSurfaceGrid()).toBe(false);
+    expect(hasVolSurfaceGrid(null)).toBe(false);
+    expect(hasVolSurfaceGrid({})).toBe(false);
+    expect(hasVolSurfaceGrid({ isLive: true })).toBe(false);
+    expect(hasVolSurfaceGrid({ grid: [[]] })).toBe(false);
+    expect(hasVolSurfaceGrid({ grid: [[20]] })).toBe(false);
+    expect(hasVolSurfaceGrid({ grid: [[20]], strikes: [100] })).toBe(false);
+    expect(hasVolSurfaceGrid({ grid: [[20]], expiries: ['1M'] })).toBe(false);
+    expect(hasVolSurfaceGrid({ strikes: [100], expiries: ['1M'], grid: [[null]] })).toBe(false);
+    expect(hasVolSurfaceGrid({ strikes: [100], expiries: ['1M'], grid: [[]] })).toBe(false);
+  });
+
+  it('hasVolSurfaceGrid is true when strikes, expiries, and a numeric cell paint', () => {
+    expect(hasVolSurfaceGrid({ strikes: [100], expiries: ['1M'], grid: [[18.2]] })).toBe(true);
+    expect(hasVolSurfaceGrid({ strikes: [90, 110], expiries: ['1M', '3M'], grid: [[null, 16.4], [19.1, null]] })).toBe(true);
+    expect(hasVolSurfaceGrid({ strikes: [100], expiries: ['1M'], grid: [['17.4']] })).toBe(true);
+  });
+
+  it('volSurfaceHeatmap skips leftover grid-only bags so remount does not crash', () => {
+    expect(() => volSurfaceHeatmap({ isLive: true, grid: [[]] })).not.toThrow();
+    expect(() => volSurfaceHeatmap({ grid: [[20]] })).not.toThrow();
+    expect(() => volSurfaceHeatmap({ grid: [[20]], strikes: [100] })).not.toThrow();
+    expect(volSurfaceHeatmap({ grid: [[20]] }).cells).toEqual([]);
+    const painted = volSurfaceHeatmap({
+      strikes: [100, 110],
+      expiries: ['1M'],
+      grid: [[20, 18]],
+    });
+    expect(painted.cells).toEqual([[0, 0, 20], [1, 0, 18]]);
+    expect(() => painted.cells.map((c) => c[2].toFixed(1))).not.toThrow();
   });
 });

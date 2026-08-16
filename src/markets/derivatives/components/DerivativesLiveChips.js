@@ -110,3 +110,26 @@ export function hasSkewContent(skewHistory, skewIndex) {
   if (!Array.isArray(skewHistory?.dates) || !skewHistory.dates.length) return false;
   return Array.isArray(skewHistory?.values) && skewHistory.values.some((v) => typeof v === 'number' && Number.isFinite(v));
 }
+
+/** Vol-surface cells; leftover grid-only bags (no strikes/expiries) stay empty. */
+export function volSurfaceHeatmap(volSurfaceData) {
+  const strikes = Array.isArray(volSurfaceData?.strikes) ? volSurfaceData.strikes : [];
+  const expiries = Array.isArray(volSurfaceData?.expiries) ? volSurfaceData.expiries : [];
+  const grid = Array.isArray(volSurfaceData?.grid) ? volSurfaceData.grid : [];
+  if (!strikes.length || !expiries.length || !grid.length) {
+    return { cells: [], strikes: [], expiries: [] };
+  }
+  const cells = [];
+  for (let ei = 0; ei < expiries.length; ei++) {
+    const row = Array.isArray(grid[ei]) ? grid[ei] : [];
+    for (let si = 0; si < strikes.length; si++) {
+      const v = row[si];
+      if (v != null && Number.isFinite(Number(v))) cells.push([si, ei, Number(v)]);
+    }
+  }
+  return { cells, strikes, expiries };
+}
+
+export function hasVolSurfaceGrid(volSurfaceData) {
+  return volSurfaceHeatmap(volSurfaceData).cells.length > 0;
+}

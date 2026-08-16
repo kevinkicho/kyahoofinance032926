@@ -16,6 +16,8 @@ import {
   hasVixTermSeries,
   hasFredVixSeries,
   hasSkewContent,
+  hasVolSurfaceGrid,
+  volSurfaceHeatmap,
 } from './DerivativesLiveChips.js';
 import './DerivativesDashboard.css';
 
@@ -99,11 +101,9 @@ function DerivativesDashboard({
   }, [fredVixHistory, colors]);
 
   const heatmapOption = useMemo(() => {
-    if (!volSurfaceData?.grid?.length) return null;
-    const { strikes, expiries, grid } = volSurfaceData;
-    const data = [];
-    expiries.forEach((_, ei) => { strikes.forEach((_, si) => { data.push([si, ei, grid[ei][si]]); }); });
-    const allVols = grid.flat();
+    const { cells, strikes, expiries } = volSurfaceHeatmap(volSurfaceData);
+    if (!cells.length) return null;
+    const allVols = cells.map((c) => c[2]);
     const minVol = Math.min(...allVols);
     const maxVol = Math.max(...allVols);
     return {
@@ -113,7 +113,7 @@ function DerivativesDashboard({
       xAxis: { type: 'category', data: strikes.map(s => `${s}%`), name: 'Strike', nameLocation: 'middle', nameGap: 20, nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 } },
       yAxis: { type: 'category', data: expiries, name: 'Expiry', nameLocation: 'middle', nameGap: 32, nameTextStyle: { color: colors.textMuted, fontSize: 9 }, axisLabel: { color: colors.textMuted, fontSize: 9 } },
       visualMap: { min: minVol, max: maxVol, calculable: true, orient: 'vertical', right: 4, top: 24, textStyle: { color: colors.textMuted, fontSize: 8 }, inRange: { color: ['#1e3a5f', '#2563eb', '#7c3aed', '#db2777', '#ef4444'] } },
-      series: [{ type: 'heatmap', data, label: { show: true, fontSize: 7, color: colors.text, formatter: p => p.data[2].toFixed(1) } }],
+      series: [{ type: 'heatmap', data: cells, label: { show: true, fontSize: 7, color: colors.text, formatter: p => p.data[2].toFixed(1) } }],
     };
   }, [volSurfaceData, colors]);
 
@@ -716,7 +716,7 @@ function DerivativesDashboard({
       vixterm: hasVixTermSeries(vixTermStructure),
       vix1y: hasFredVixSeries(fredVixHistory),
       skew: hasSkewContent(skewHistory, skewIndex),
-      volsurf: !!volSurfaceData?.grid?.length,
+      volsurf: hasVolSurfaceGrid(volSurfaceData),
       flow: !!optionsFlow?.length,
       gamma: gexData.hasGex,
       volprem: hasVolPremium(volPremium),
