@@ -71,4 +71,20 @@ describe('hooks order guard', () => {
       /if\s*\(\s*!affordabilityData\s*\)\s*return\s*null/,
     );
   });
+
+  it('CrossAssetReturns runs hooks before empty-state early return', () => {
+    assertHooksBeforeEmptyReturn(
+      'markets/sentiment/components/CrossAssetReturns.jsx',
+      'export default function CrossAssetReturns',
+      /if\s*\(\s*!returnsData\s*\)\s*return\s*null/,
+    );
+  });
+
+  it('CycleIndicators runs hooks before empty-state early return', () => {
+    assertHooksBeforeEmptyReturn(
+      'markets/crypto/components/CycleIndicators.jsx',
+      'export default function CycleIndicators',
+      /if\s*\(\s*!fearGreedData\s*\)\s*return\s*null/,
+    );
+  });
 });

@@ -22,9 +22,9 @@ function fmtRet(v) {
 const CATEGORY_ORDER = ['US Equity', 'Global', 'Fixed Income', 'Real Assets', 'Crypto'];
 
 export default function CrossAssetReturns({ returnsData }) {
-  if (!returnsData) return null;
+  // Hooks must run on empty splash / refresh before data arrives.
   const { colors } = useTheme();
-  const { assets = [], asOf } = returnsData;
+  const { assets = [], asOf } = returnsData || {};
 
   // Group by category in defined order
   const grouped = CATEGORY_ORDER.map(cat => ({
@@ -44,6 +44,8 @@ export default function CrossAssetReturns({ returnsData }) {
     const pos1mCount = with1m.filter(a => a.ret1m > 0).length;
     return { best1m, worst1m, best1d, pos1mCount, total: with1m.length };
   }, [assets]);
+
+  if (!returnsData) return null;
 
   return (
     <div className="sent-panel">

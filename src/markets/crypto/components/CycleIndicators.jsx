@@ -123,9 +123,9 @@ function buildCorrelationOption(correlations, colors) {
 }
 
 export default function CycleIndicators({ fearGreedData }) {
+  // Hooks must run on empty splash / refresh before data arrives.
   const { colors } = useTheme();
-  if (!fearGreedData) return null;
-  const { value = 50, history = [], correlations = [] } = fearGreedData;
+  const { value = 50, history = [], correlations = [] } = fearGreedData || {};
   const label = fearGreedLabel(value);
 
   const kpis = useMemo(() => {
@@ -137,6 +137,8 @@ export default function CycleIndicators({ fearGreedData }) {
       : null;
     return { avg30d, min30d, max30d, mostCorr };
   }, [history, correlations]);
+
+  if (!fearGreedData) return null;
 
   return (
     <div className="crypto-panel">
