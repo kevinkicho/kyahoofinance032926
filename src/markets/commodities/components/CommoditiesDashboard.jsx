@@ -11,6 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
+import { hasFaoPriceSeries, faoPricePoints } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -1224,23 +1225,23 @@ function CommoditiesDashboard({
         ),
 
         'fao-prices': (
-          faoCtx?.data?.series?.length > 0 ? (
+          hasFaoPriceSeries(faoCtx?.data) ? (
             <div style={{ height: '100%', minHeight: 0, padding: 4 }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 6 }}>
                 <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary, #eee)' }}>
-                  {faoCtx.data.series[faoCtx.data.series.length - 1]?.value?.toFixed(1)}
+                  {faoPricePoints(faoCtx?.data).at(-1)?.value.toFixed(1)}
                 </span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>index · {faoCtx.data.series[faoCtx.data.series.length - 1]?.date}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #666)' }}>index · {faoPricePoints(faoCtx?.data).at(-1)?.date}</span>
               </div>
               <div style={{ height: 'calc(100% - 30px)', minHeight: 0 }}>
                 <SafeECharts
                   option={{
                     animation: false, backgroundColor: 'transparent',
                     grid: { left: 40, right: 8, top: 8, bottom: 20 },
-                    xAxis: { type: 'category', data: faoCtx.data.series.map(s => s.date), axisLabel: { fontSize: 9, color: '#888', interval: Math.floor(faoCtx.data.series.length / 5) } },
+                    xAxis: { type: 'category', data: faoPricePoints(faoCtx?.data).map(s => s.date), axisLabel: { fontSize: 9, color: '#888', interval: Math.floor(faoPricePoints(faoCtx?.data).length / 5) } },
                     yAxis: { type: 'value', axisLabel: { fontSize: 9, color: '#888' }, splitLine: { lineStyle: { color: '#222' } } },
                     tooltip: { trigger: 'axis' },
-                    series: [{ type: 'line', data: faoCtx.data.series.map(s => s.value), smooth: true, symbol: 'none', lineStyle: { color: '#22c55e', width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#22c55e40' }, { offset: 1, color: '#22c55e05' }] } } }],
+                    series: [{ type: 'line', data: faoPricePoints(faoCtx?.data).map(s => s.value), smooth: true, symbol: 'none', lineStyle: { color: '#22c55e', width: 2 }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#22c55e40' }, { offset: 1, color: '#22c55e05' }] } } }],
                   }}
                   style={{ height: '100%', width: '100%' }}
                   sourceInfo={{ title: 'FAO Food Price Index', source: 'FAO', endpoint: '/api/fao', series: [] }}
@@ -1277,7 +1278,7 @@ function CommoditiesDashboard({
       'curve-board': !!(futuresCurveData || goldFuturesCurve),
       'material-detail': !!selectedMaterial,
       'exposure-matrix': true,
-      'fao-prices': !!faoCtx?.data?.isLive,
+      'fao-prices': hasFaoPriceSeries(faoCtx?.data),
     },
     __subtitle: {
       prices: (

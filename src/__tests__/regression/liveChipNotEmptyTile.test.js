@@ -166,6 +166,10 @@ import {
   hashrateHistoryPoints,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
 import {
+  hasFaoPriceSeries,
+  faoPricePoints,
+} from '../../markets/commodities/components/CommoditiesLiveChips.js';
+import {
   hasDerivativesKpiMetrics,
   hasVolPremium,
   hasCftcTffRows,
@@ -3071,5 +3075,51 @@ describe('crypto leftover empty-capable tiles (onchain-chart)', () => {
     expect(points.map((p) => p.avgHashrate)).toEqual([640, 650]);
     expect(() => points.map((p) => p.avgHashrate.toFixed(1))).not.toThrow();
     expect(() => points.map((p) => new Date(p.timestamp * 1000).getMonth())).not.toThrow();
+  });
+});
+
+describe('commodities leftover empty-capable tiles (fao-prices)', () => {
+  it('dashboard does not hardcode leftover isLive on fao-prices', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/'fao-prices':\s*!!faoCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/'fao-prices':\s*hasFaoPriceSeries\(faoCtx\?\.data\)/);
+  });
+
+  it('hasFaoPriceSeries is false for empty / leftover isLive / dates-only bags', () => {
+    expect(hasFaoPriceSeries()).toBe(false);
+    expect(hasFaoPriceSeries(null)).toBe(false);
+    expect(hasFaoPriceSeries({})).toBe(false);
+    expect(hasFaoPriceSeries({ isLive: true })).toBe(false);
+    expect(hasFaoPriceSeries({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasFaoPriceSeries({ series: [] })).toBe(false);
+    expect(hasFaoPriceSeries({ isLive: true, series: [{ date: '2024-01' }] })).toBe(false);
+    expect(hasFaoPriceSeries({ series: [{ date: '2024-01', value: null }] })).toBe(false);
+    expect(hasFaoPriceSeries({ series: [{ date: '2024-01', value: '120.4' }] })).toBe(false);
+    expect(hasFaoPriceSeries({ series: [{ isLive: true }, { lastUpdated: '2024-01' }] })).toBe(false);
+  });
+
+  it('hasFaoPriceSeries is true when a painted FAO index exists', () => {
+    expect(hasFaoPriceSeries({ series: [{ date: '2024-01', value: 120.4 }] })).toBe(true);
+    expect(hasFaoPriceSeries({
+      isLive: true,
+      series: [{ date: '2024-01' }, { date: '2024-02', value: 118.2 }],
+    })).toBe(true);
+  });
+
+  it('faoPricePoints skips leftover sibling rows so remount does not crash', () => {
+    expect(() => faoPricePoints({ isLive: true, series: [null, { isLive: true }, 'x'] })).not.toThrow();
+    expect(faoPricePoints({ series: [null, { date: '2024-01', value: 120.4 }, { value: true }] }).map((p) => p.value)).toEqual([120.4]);
+    const points = faoPricePoints({
+      isLive: true,
+      series: [
+        { isLive: true },
+        { date: '2024-01', value: 120.4 },
+        { date: '2024-02', value: 118.2 },
+        { date: '2024-03', value: '119' },
+      ],
+    });
+    expect(points.map((p) => p.value)).toEqual([120.4, 118.2]);
+    expect(() => points.map((p) => p.value.toFixed(1))).not.toThrow();
+    expect(points[0].value.toFixed(1)).toBe('120.4');
   });
 });
