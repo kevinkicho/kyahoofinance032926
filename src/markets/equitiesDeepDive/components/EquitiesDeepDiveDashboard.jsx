@@ -12,6 +12,10 @@ import {
   hasEqdSidebarContent,
   hasEqdValuationContent,
   hasEqdEarningsQuality,
+  hasFactorRankingsContent,
+  factorStocks,
+  earningsUpcoming,
+  earningsBeatRates,
 } from './EquitiesDeepDiveLiveChips.js';
 
 function fmtChangePct(v) {
@@ -394,9 +398,10 @@ function EquitiesDeepDiveDashboard({
   const { colors } = useTheme();
 
   const { sectors = [] } = sectorData ?? {};
-  const { inFavor = {}, stocks = [] } = factorData ?? {};
-  const upcoming = earningsData?.upcoming ?? [];
-  const beatRates = earningsData?.beatRates ?? [];
+  const { inFavor = {} } = factorData ?? {};
+  const stocks = factorStocks(factorData);
+  const upcoming = earningsUpcoming(earningsData);
+  const beatRates = earningsBeatRates(earningsData);
   const { mostShorted = [] } = shortData ?? {};
   const { institutions = [], aggregateTopHoldings = [], recentChanges = {} } = institutionalData ?? {};
   const { holders: insiderHolders = [], transactions: insiderTransactions = [] } = insiderData ?? {};
@@ -1073,7 +1078,7 @@ function EquitiesDeepDiveDashboard({
         'sector-beat': !!isLive && !!beatRateOption,
         shorted: !!isLive && !!shortedOption,
         scores: !!isLive && stocks.length > 0,
-        'factor-rankings': !!isLive && !!(factorData?.stocks?.length || factorData?.inFavor),
+        'factor-rankings': !!isLive && hasFactorRankingsContent(factorData),
         earnings: !!isLive && upcoming.length > 0,
         institutions: !!isLive && institutions.length > 0,
         insider: !!isLive && (insiderHolders.length > 0 || insiderTransactions.length > 0),

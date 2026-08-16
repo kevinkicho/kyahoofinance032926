@@ -145,6 +145,10 @@ import {
   hasEqdSidebarContent,
   hasEqdValuationContent,
   hasEqdEarningsQuality,
+  hasFactorRankingsContent,
+  factorStocks,
+  earningsUpcoming,
+  earningsBeatRates,
 } from '../../markets/equitiesDeepDive/components/EquitiesDeepDiveLiveChips.js';
 import {
   hasCalendarKpiMetrics,
@@ -1817,6 +1821,77 @@ describe('equity+ empty-capable tiles (kpi / sidebar / valuation / earnings-qual
     expect(hasEqdEarningsQuality({ factorData: { inFavor: { quality: 3.2 } } })).toBe(true);
     expect(hasEqdEarningsQuality({ factorData: { stocks: [{ ticker: 'MSFT', quality: 81 }] } })).toBe(true);
     expect(hasEqdEarningsQuality({ breadthDivergence: { divergence: -1.4 } })).toBe(true);
+  });
+});
+
+describe('equity+ leftover empty-capable tiles (factor-rankings remount)', () => {
+  it('dashboard does not spread leftover isLive factor / earnings bags', () => {
+    const dash = src('markets/equitiesDeepDive/components/EquitiesDeepDiveDashboard.jsx');
+    expect(dash).not.toMatch(/const \{ inFavor = \{\}, stocks = \[\] \} = factorData/);
+    expect(dash).not.toMatch(/earningsData\?\.upcoming \?\? \[\]/);
+    expect(dash).not.toMatch(/earningsData\?\.beatRates \?\? \[\]/);
+    expect(dash).not.toMatch(/'factor-rankings':\s*!!isLive && !!\(factorData\?\.stocks\?\.length \|\| factorData\?\.inFavor\)/);
+    expect(dash).toMatch(/factorStocks\(factorData\)/);
+    expect(dash).toMatch(/earningsUpcoming\(earningsData\)/);
+    expect(dash).toMatch(/earningsBeatRates\(earningsData\)/);
+    expect(dash).toMatch(/'factor-rankings':\s*!!isLive && hasFactorRankingsContent\(factorData\)/);
+    const fr = src('markets/equitiesDeepDive/components/FactorRankings.jsx');
+    expect(fr).not.toMatch(/const \{ inFavor = \{\}, stocks = \[\] \} = factorData/);
+    expect(fr).toMatch(/factorStocks\(factorData\)/);
+  });
+
+  it('factorStocks / earnings helpers skip leftover isLive bags so remount does not crash', () => {
+    expect(() => factorStocks({ isLive: true })).not.toThrow();
+    expect(() => factorStocks({ stocks: { isLive: true } })).not.toThrow();
+    expect(() => factorStocks({ stocks: true })).not.toThrow();
+    expect(factorStocks({ isLive: true })).toEqual([]);
+    expect(factorStocks({ stocks: { isLive: true } })).toEqual([]);
+    expect(factorStocks({ stocks: true })).toEqual([]);
+    expect(() => [...factorStocks({ stocks: { isLive: true } })].sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0))).not.toThrow();
+    expect(() => factorStocks({ stocks: { isLive: true } }).forEach(() => {})).not.toThrow();
+    const rows = factorStocks({
+      isLive: true,
+      stocks: [
+        { isLive: true },
+        { ticker: 'AAPL', composite: 69.25 },
+      ],
+    });
+    expect(rows.map((s) => s.ticker)).toEqual([undefined, 'AAPL']);
+    expect(() => [...rows].sort((a, b) => (b.composite ?? 0) - (a.composite ?? 0)).map((s) => s.ticker)).not.toThrow();
+
+    expect(() => earningsUpcoming({ isLive: true })).not.toThrow();
+    expect(() => earningsUpcoming({ upcoming: { isLive: true } })).not.toThrow();
+    expect(earningsUpcoming({ upcoming: { isLive: true } })).toEqual([]);
+    expect(() => [...earningsUpcoming({ upcoming: { isLive: true } })].sort()).not.toThrow();
+    expect(earningsUpcoming({ upcoming: [{ ticker: 'NVDA', date: '2026-01-28' }] }).map((r) => r.ticker)).toEqual(['NVDA']);
+
+    expect(() => earningsBeatRates({ isLive: true })).not.toThrow();
+    expect(() => earningsBeatRates({ beatRates: { isLive: true } })).not.toThrow();
+    expect(earningsBeatRates({ beatRates: { isLive: true } })).toEqual([]);
+    expect(() => (earningsBeatRates({ beatRates: { isLive: true } }) || []).map((r) => r.beatRate)).not.toThrow();
+    expect(earningsBeatRates({ beatRates: [{ sector: 'Tech', beatRate: 74 }] }).map((r) => r.beatRate)).toEqual([74]);
+  });
+
+  it('hasFactorRankingsContent is false for empty / leftover isLive bags', () => {
+    expect(hasFactorRankingsContent()).toBe(false);
+    expect(hasFactorRankingsContent(null)).toBe(false);
+    expect(hasFactorRankingsContent({})).toBe(false);
+    expect(hasFactorRankingsContent({ isLive: true })).toBe(false);
+    expect(hasFactorRankingsContent({ inFavor: { isLive: true } })).toBe(false);
+    expect(hasFactorRankingsContent({ stocks: { isLive: true } })).toBe(false);
+    expect(hasFactorRankingsContent({ stocks: true })).toBe(false);
+    expect(hasFactorRankingsContent({ inFavor: {}, stocks: [] })).toBe(false);
+    expect(hasFactorRankingsContent({ inFavor: { momentum: null, value: true } })).toBe(false);
+  });
+
+  it('hasFactorRankingsContent is true when a painted stock or numeric inFavor exists', () => {
+    expect(hasFactorRankingsContent({ stocks: [{ ticker: 'AAPL', composite: 69.25 }] })).toBe(true);
+    expect(hasFactorRankingsContent({ inFavor: { momentum: 3.5 } })).toBe(true);
+    expect(hasFactorRankingsContent({
+      isLive: true,
+      inFavor: { isLive: true },
+      stocks: [{ isLive: true }, { ticker: 'MSFT', composite: 67.5 }],
+    })).toBe(true);
   });
 });
 

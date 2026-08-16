@@ -36,4 +36,10 @@ describe('FactorRankings', () => {
   it('handles null factorData gracefully', () => {
     expect(() => render(<FactorRankings factorData={null} />)).not.toThrow();
   });
+
+  it('handles leftover isLive stock bags without remount-crashing', () => {
+    expect(() => render(<FactorRankings factorData={{ isLive: true }} />)).not.toThrow();
+    expect(() => render(<FactorRankings factorData={{ stocks: { isLive: true } }} />)).not.toThrow();
+    expect(() => render(<FactorRankings factorData={{ inFavor: { isLive: true }, stocks: true }} />)).not.toThrow();
+  });
 });

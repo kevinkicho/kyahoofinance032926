@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import { factorStocks } from './EquitiesDeepDiveLiveChips.js';
 import './EquitiesDeepDiveDashboard.css';
 
 function buildInFavorOption(inFavor, stocks, colors) {
@@ -85,7 +86,8 @@ function breadthSignal(divergence) {
 
 export default function FactorRankings({ factorData, breadthDivergence, equityRiskPremium }) {
   const { colors } = useTheme();
-  const { inFavor = {}, stocks = [] } = factorData ?? {};
+  const { inFavor = {} } = factorData ?? {};
+  const stocks = factorStocks(factorData);
 
   const inFavorOption = useMemo(() => buildInFavorOption(inFavor, stocks, colors), [inFavor, stocks, colors]);
 
