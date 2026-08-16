@@ -15,7 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
-import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates } from './BondsLiveChips.js';
+import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -90,22 +90,22 @@ function BondsDashboard({
   }, [treasuryRates, fedFundsFutures, spreadIndicators, spreadData, breakevensData, yieldCurveData]);
 
   const spreadHistoryOption = useMemo(
-    () => buildSpreadHistoryOption(spreadHistory, colors),
+    () => hasCurveSpreadSeries(spreadHistory) ? buildSpreadHistoryOption(spreadHistory, colors) : null,
     [spreadHistory, colors],
   );
 
   const fedBalanceOption = useMemo(
-    () => buildFedBalanceOption(fedBalanceSheetHistory, colors, currentSymbol),
+    () => hasFedBalanceSeries(fedBalanceSheetHistory) ? buildFedBalanceOption(fedBalanceSheetHistory, colors, currentSymbol) : null,
     [fedBalanceSheetHistory, colors, currentSymbol],
   );
 
   const m2Option = useMemo(
-    () => buildM2Option(m2HistoryData, colors, currentSymbol),
+    () => hasM2Series(m2HistoryData) ? buildM2Option(m2HistoryData, colors, currentSymbol) : null,
     [m2HistoryData, colors, currentSymbol],
   );
 
   const debtToGdpOption = useMemo(
-    () => buildDebtToGdpOption(debtToGdpHistory, colors),
+    () => hasDebtGdpSeries(debtToGdpHistory) ? buildDebtToGdpOption(debtToGdpHistory, colors) : null,
     [debtToGdpHistory, colors],
   );
 
@@ -654,10 +654,10 @@ function BondsDashboard({
       kpi: hasBondsKpiMetrics({ treasuryRates, yieldCurveData, spreadIndicators, fedFundsFutures, spreadData, breakevensData }),
       metrics: hasBondsMetricsContent({ yieldCurveData, spreadIndicators, spreadHistory, tipsYields, macroData, nationalDebt, debtToGdpHistory, breakevensData, fedFundsFutures, spreadData }),
       ratings: hasCreditRatingsRows(creditRatingsData),
-      curvespreads: !!(spreadHistory?.dates?.length > 0),
-      fed: !!(fedBalanceSheetHistory?.dates?.length > 0),
-      m2: !!(m2HistoryData?.dates?.length > 0),
-      debtgdp: !!(debtToGdpHistory?.dates?.length > 0),
+      curvespreads: hasCurveSpreadSeries(spreadHistory),
+      fed: hasFedBalanceSeries(fedBalanceSheetHistory),
+      m2: hasM2Series(m2HistoryData),
+      debtgdp: hasDebtGdpSeries(debtToGdpHistory),
       'foreign-holders': !!(ticCtx?.data?.latest?.length),
       'money-market': !!(nyfedCtx?.data?.sofr?.series?.length),
       auctions: !!(auctionCtx?.data?.auctions?.length),

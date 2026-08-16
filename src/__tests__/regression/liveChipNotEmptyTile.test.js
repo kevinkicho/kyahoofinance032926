@@ -95,6 +95,10 @@ import {
   hasBondsMetricsContent,
   hasCreditRatingsRows,
   hasTreasuryCostRates,
+  hasCurveSpreadSeries,
+  hasFedBalanceSeries,
+  hasM2Series,
+  hasDebtGdpSeries,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -1244,6 +1248,58 @@ describe('bonds leftover empty-capable tiles (metrics / ratings / treasury-cost)
   it('hasTreasuryCostRates is true when a painted rate exists', () => {
     expect(hasTreasuryCostRates({ Bills: { rate: 4.52 } })).toBe(true);
     expect(hasTreasuryCostRates({ Notes: { rate: '3.80' } })).toBe(true);
+  });
+});
+
+describe('bonds leftover empty-capable tiles (curvespreads / fed / m2 / debtgdp)', () => {
+  it('dashboard does not hardcode leftover dates-only on empty-capable tiles', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/curvespreads:\s*!!\(spreadHistory\?\.dates\?\.length/);
+    expect(dash).not.toMatch(/fed:\s*!!\(fedBalanceSheetHistory\?\.dates\?\.length/);
+    expect(dash).not.toMatch(/m2:\s*!!\(m2HistoryData\?\.dates\?\.length/);
+    expect(dash).not.toMatch(/debtgdp:\s*!!\(debtToGdpHistory\?\.dates\?\.length/);
+    expect(dash).toMatch(/curvespreads:\s*hasCurveSpreadSeries\(spreadHistory\)/);
+    expect(dash).toMatch(/fed:\s*hasFedBalanceSeries\(fedBalanceSheetHistory\)/);
+    expect(dash).toMatch(/m2:\s*hasM2Series\(m2HistoryData\)/);
+    expect(dash).toMatch(/debtgdp:\s*hasDebtGdpSeries\(debtToGdpHistory\)/);
+  });
+
+  it('hasCurveSpreadSeries is false for empty / dates-only leftover bags', () => {
+    expect(hasCurveSpreadSeries()).toBe(false);
+    expect(hasCurveSpreadSeries(null)).toBe(false);
+    expect(hasCurveSpreadSeries({})).toBe(false);
+    expect(hasCurveSpreadSeries({ isLive: true })).toBe(false);
+    expect(hasCurveSpreadSeries({ dates: ['2024-01'] })).toBe(false);
+    expect(hasCurveSpreadSeries({ dates: ['2024-01'], t10y2y: [], t10y3m: [], t5y30y: [] })).toBe(false);
+    expect(hasCurveSpreadSeries({ dates: ['2024-01'], t10y2y: [null, null] })).toBe(false);
+    expect(hasCurveSpreadSeries({ t10y2y: [0.12], t10y3m: [-1.1] })).toBe(false);
+    expect(hasCurveSpreadSeries({ latest: { t5y30y: 0.45 } })).toBe(false);
+  });
+
+  it('hasCurveSpreadSeries is true when dates and a series paint', () => {
+    expect(hasCurveSpreadSeries({ dates: ['2024-01'], t10y2y: [0.12] })).toBe(true);
+    expect(hasCurveSpreadSeries({ dates: ['2024-01'], t10y3m: [-1.1] })).toBe(true);
+    expect(hasCurveSpreadSeries({ dates: ['2024-01'], t5y30y: [0.45] })).toBe(true);
+    expect(hasCurveSpreadSeries({ dates: ['2024-01'], t10y2y: [null, 0.12] })).toBe(true);
+  });
+
+  it('hasFedBalanceSeries / hasM2Series / hasDebtGdpSeries are false for dates-only leftover bags', () => {
+    expect(hasFedBalanceSeries()).toBe(false);
+    expect(hasM2Series(null)).toBe(false);
+    expect(hasDebtGdpSeries({})).toBe(false);
+    expect(hasFedBalanceSeries({ isLive: true })).toBe(false);
+    expect(hasM2Series({ dates: ['2024-01'] })).toBe(false);
+    expect(hasDebtGdpSeries({ dates: ['2024-01'], values: [] })).toBe(false);
+    expect(hasFedBalanceSeries({ dates: ['2024-01'], values: [null, null] })).toBe(false);
+    expect(hasM2Series({ values: [21.4] })).toBe(false);
+    expect(hasDebtGdpSeries({ latest: 123 })).toBe(false);
+  });
+
+  it('hasFedBalanceSeries / hasM2Series / hasDebtGdpSeries are true when dates and values paint', () => {
+    expect(hasFedBalanceSeries({ dates: ['2024-01'], values: [7.2] })).toBe(true);
+    expect(hasM2Series({ dates: ['2024-01'], values: [21.4] })).toBe(true);
+    expect(hasDebtGdpSeries({ dates: ['2024-01'], values: [123] })).toBe(true);
+    expect(hasFedBalanceSeries({ dates: ['2024-01'], values: [null, 7.2] })).toBe(true);
   });
 });
 

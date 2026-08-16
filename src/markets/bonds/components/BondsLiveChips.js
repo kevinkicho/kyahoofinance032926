@@ -83,3 +83,31 @@ export function hasTreasuryCostRates(latest) {
   if (!latest || typeof latest !== 'object' || Array.isArray(latest)) return false;
   return Object.values(latest).some((val) => isFiniteNumeric(val?.rate));
 }
+
+function hasPaintedSeries(arr) {
+  return Array.isArray(arr) && arr.some((v) => v != null);
+}
+
+/** Curve-spreads chart is empty when dates exist but no 2s10s/10s3s/5s30s series paint. */
+export function hasCurveSpreadSeries(spreadHistory) {
+  if (!Array.isArray(spreadHistory?.dates) || !spreadHistory.dates.length) return false;
+  return ['t10y2y', 't10y3m', 't5y30y'].some((k) => hasPaintedSeries(spreadHistory?.[k]));
+}
+
+/** Fed / M2 / debt-GDP charts are empty when dates exist but no values paint. */
+function hasDatedValuesSeries(series) {
+  if (!Array.isArray(series?.dates) || !series.dates.length) return false;
+  return hasPaintedSeries(series?.values);
+}
+
+export function hasFedBalanceSeries(fedBalanceSheetHistory) {
+  return hasDatedValuesSeries(fedBalanceSheetHistory);
+}
+
+export function hasM2Series(m2HistoryData) {
+  return hasDatedValuesSeries(m2HistoryData);
+}
+
+export function hasDebtGdpSeries(debtToGdpHistory) {
+  return hasDatedValuesSeries(debtToGdpHistory);
+}
