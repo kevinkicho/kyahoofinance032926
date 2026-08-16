@@ -97,6 +97,7 @@ import {
   hasCryptoSidebarContent,
   hasTopCryptos,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
+import { hasDerivativesKpiMetrics } from '../../markets/derivatives/components/DerivativesLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -1243,5 +1244,38 @@ describe('crypto empty-capable tiles (sidebar / top-cryptos)', () => {
   it('hasTopCryptos is true when a coin row exists', () => {
     expect(hasTopCryptos([{ symbol: 'SOL', price: 140 }])).toBe(true);
     expect(hasTopCryptos({ coins: [{ id: 'bitcoin', symbol: 'btc' }] })).toBe(true);
+  });
+});
+
+describe('derivatives empty-capable tiles (kpi)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/derivatives/components/DerivativesDashboard.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!isLive/);
+    expect(dash).toMatch(/kpi:\s*hasDerivativesKpiMetrics/);
+  });
+
+  it('hasDerivativesKpiMetrics is false for empty / sibling-only payloads', () => {
+    expect(hasDerivativesKpiMetrics()).toBe(false);
+    expect(hasDerivativesKpiMetrics({})).toBe(false);
+    expect(hasDerivativesKpiMetrics({ vixTermStructure: { isLive: true } })).toBe(false);
+    expect(hasDerivativesKpiMetrics({ vixTermStructure: { dates: ['1M', '3M'] } })).toBe(false);
+    expect(hasDerivativesKpiMetrics({ vixTermStructure: { values: [18.2, 19.1] } })).toBe(false);
+    expect(hasDerivativesKpiMetrics({ vixTermStructure: { dates: ['1M'], values: [null] } })).toBe(false);
+    expect(hasDerivativesKpiMetrics({ putCallRatio: { isLive: true } })).toBe(false);
+    expect(hasDerivativesKpiMetrics({ skewIndex: { interpretation: 'elevated' } })).toBe(false);
+    expect(hasDerivativesKpiMetrics({ gammaExposure: { isLive: true } })).toBe(false);
+    expect(hasDerivativesKpiMetrics({ gammaExposure: [] })).toBe(false);
+  });
+
+  it('hasDerivativesKpiMetrics is true when a painted KPI number exists', () => {
+    expect(hasDerivativesKpiMetrics({ vixTermStructure: { dates: ['9D', '1M', '3M'], values: [17.4, 18.2, 19.1] } })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ vixTermStructure: { dates: ['9D'], values: [17.4] } })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ vixTermStructure: { dates: ['3M'], values: [19.1] } })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ putCallRatio: 0.92 })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ skewIndex: 132.4 })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ skewIndex: { value: 141.2 } })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ gammaExposure: 12.5 })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ gammaExposure: { total: -8.2 } })).toBe(true);
+    expect(hasDerivativesKpiMetrics({ gammaExposure: [{ value: 3.1 }, { value: -1.4 }] })).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import MetricValue from '../../../components/MetricValue/MetricValue';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import DerivativesSidebar from './DerivativesSidebar';
 import EcbDerivativesPanel from './EcbDerivativesPanel';
+import { hasDerivativesKpiMetrics } from './DerivativesLiveChips.js';
 import './DerivativesDashboard.css';
 
 /** Western thousand separators: 20292.7 → $20,292.7B */
@@ -702,7 +703,7 @@ function DerivativesDashboard({
     ecb: ecbCtx,
     __render: renderPanel,
     __live: {
-      kpi: !!isLive,
+      kpi: hasDerivativesKpiMetrics({ vixTermStructure, putCallRatio, skewIndex, gammaExposure }),
       metrics: !!vixTermStructure?.values?.length,
       vixterm: !!vixTermStructure?.dates?.length,
       vix1y: !!fredVixHistory?.dates?.length,
