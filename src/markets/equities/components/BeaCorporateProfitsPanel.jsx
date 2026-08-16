@@ -97,6 +97,15 @@ function buildLineOption({ periods, values, colors, name, color, yFormat, valueF
   };
 }
 
+export function hasBeaCorporateProfitsRows(data) {
+  if (!data || typeof data !== 'object') return false;
+  return !!(
+    (Array.isArray(data.gdpComponents) && data.gdpComponents.length)
+    || (Array.isArray(data.savingRate) && data.savingRate.length)
+    || (Array.isArray(data.corporateProfits) && data.corporateProfits.length)
+  );
+}
+
 export default function BeaCorporateProfitsPanel() {
   const { colors } = useTheme();
   const beaCtx = useMarketData('bea');
@@ -187,8 +196,7 @@ export default function BeaCorporateProfitsPanel() {
     return latest;
   }, [gdpComponents, gdpSeries.latest]);
 
-  const hasAny = gdpSeries.latest || savingSeries.latest || profitsSeries.latest
-    || gdpComponents.length || savingRate.length || corporateProfits.length;
+  const hasAny = hasBeaCorporateProfitsRows({ gdpComponents, savingRate, corporateProfits });
 
   if (!hasAny) {
     return (

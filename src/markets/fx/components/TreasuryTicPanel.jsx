@@ -5,6 +5,10 @@ import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './TreasuryTicPanel.css';
 
+export function hasTreasuryTicRows(latest) {
+  return Array.isArray(latest) && latest.length > 0;
+}
+
 const TIC_PALETTE = [
   '#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa',
   '#22d3ee', '#fb923c', '#4ade80', '#e879f9', '#94a3b8',
@@ -93,7 +97,7 @@ export default function TreasuryTicPanel() {
     };
   }, [topHolders, colors]);
 
-  if (!topHolders.length) {
+  if (!hasTreasuryTicRows(topHolders)) {
     return <div className="tic-panel tic-empty">Treasury TIC data unavailable.</div>;
   }
 

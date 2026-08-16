@@ -11,6 +11,9 @@ import { hasTreasuryCreditHoldings } from '../../markets/credit/components/Treas
 import { hasBisPropertyRows } from '../../markets/realEstate/components/BisPropertyPricePanel.jsx';
 import { hasMetroCaseShillerRows } from '../../markets/realEstate/components/MetroCaseShillerPanel.jsx';
 import { hasHudAffordabilityRows } from '../../markets/realEstate/components/HudAffordabilityPanel.jsx';
+import { hasTreasuryTicRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
+import { hasBeaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
+import { hasWbMarketCapRows } from '../../markets/equities/components/WorldBankMarketCapPanel.jsx';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -87,5 +90,59 @@ describe('realEstate hardcoded-live tiles', () => {
   it('hasHudAffordabilityRows is true when rent-to-income rows exist', () => {
     expect(hasHudAffordabilityRows([{ city: 'Miami', ratio: 41.2 }])).toBe(true);
     expect(hasHudAffordabilityRows([{ city: 'Miami', rentToIncome: 0.31 }])).toBe(true);
+  });
+});
+
+describe('fx treasury-tic live chip', () => {
+  it('dashboard does not hardcode live=true', () => {
+    const dash = src('markets/fx/components/FXDashboard.jsx');
+    expect(dash).not.toMatch(/'treasury-tic':\s*true/);
+    expect(dash).toMatch(/'treasury-tic':\s*hasTicHoldings/);
+  });
+
+  it('hasTreasuryTicRows is false for empty / sibling-only payloads', () => {
+    expect(hasTreasuryTicRows(null)).toBe(false);
+    expect(hasTreasuryTicRows([])).toBe(false);
+    expect(hasTreasuryTicRows({ Japan: 1100 })).toBe(false);
+  });
+
+  it('hasTreasuryTicRows is true when holder rows exist', () => {
+    expect(hasTreasuryTicRows([{ country: 'Japan', holdingsB: 1100 }])).toBe(true);
+  });
+});
+
+describe('equities bea / wb-market-cap live chips', () => {
+  it('dashboard does not hardcode live=true', () => {
+    const dash = src('markets/equities/EquitiesMarket.jsx');
+    expect(dash).not.toMatch(/'bea-corporate-profits':\s*true/);
+    expect(dash).not.toMatch(/'wb-market-cap':\s*true/);
+    expect(dash).toMatch(/'bea-corporate-profits':\s*hasBeaProfits/);
+    expect(dash).toMatch(/'wb-market-cap':\s*hasWbMcap/);
+  });
+
+  it('hasBeaCorporateProfitsRows is false for empty / sibling-only payloads', () => {
+    expect(hasBeaCorporateProfitsRows(null)).toBe(false);
+    expect(hasBeaCorporateProfitsRows({})).toBe(false);
+    expect(hasBeaCorporateProfitsRows({ isLive: true })).toBe(false);
+    expect(hasBeaCorporateProfitsRows({ gdpComponents: [], savingRate: [], corporateProfits: [] })).toBe(false);
+  });
+
+  it('hasBeaCorporateProfitsRows is true when NIPA rows exist', () => {
+    expect(hasBeaCorporateProfitsRows({ gdpComponents: [{ period: '2024Q4', value: 2.4 }] })).toBe(true);
+    expect(hasBeaCorporateProfitsRows({ savingRate: [{ period: '2024-12', value: 4.1 }] })).toBe(true);
+    expect(hasBeaCorporateProfitsRows({ corporateProfits: [{ period: '2024Q4', valueBn: 3100 }] })).toBe(true);
+  });
+
+  it('hasWbMarketCapRows is false for empty / sibling-only payloads', () => {
+    expect(hasWbMarketCapRows(null)).toBe(false);
+    expect(hasWbMarketCapRows({})).toBe(false);
+    expect(hasWbMarketCapRows([])).toBe(false);
+    expect(hasWbMarketCapRows([{ code: 'US', name: 'United States' }])).toBe(false);
+    expect(hasWbMarketCapRows({ US: { mktCapUsd: 50 } })).toBe(false);
+  });
+
+  it('hasWbMarketCapRows is true when WDI observations exist', () => {
+    expect(hasWbMarketCapRows([{ code: 'US', mktCapUsd: 50.2 }])).toBe(true);
+    expect(hasWbMarketCapRows([{ code: 'JP', gdpGrowth: 1.1 }])).toBe(true);
   });
 });

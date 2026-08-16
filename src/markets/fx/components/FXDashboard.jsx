@@ -8,7 +8,7 @@ import CurrencyCorrelationMatrix from './CurrencyCorrelationMatrix';
 import FXSidebar from './FXSidebar';
 import ImfCoferPanel, { hasCoferRows } from './ImfCoferPanel';
 import { useMarketData } from '../../../hub/DataContext';
-import TreasuryTicPanel from './TreasuryTicPanel';
+import TreasuryTicPanel, { hasTreasuryTicRows } from './TreasuryTicPanel';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import './FXDashboard.css';
@@ -73,6 +73,8 @@ function FXDashboard({
   const fxCtx = useMarketData('fx');
   const imfCtx = useMarketData('imf');
   const hasCofer = hasCoferRows(fxCtx?.data?.imfReserves, imfCtx?.data?.cofer);
+  const ticCtx = useMarketData('treasuryTIC');
+  const hasTicHoldings = hasTreasuryTicRows(ticCtx?.data?.latest);
   // Top-of-grid KPI metrics. Each pill is clickable (MetricValue popover
   // exposes the FRED ID + source). Values are formatted to 4 decimals for
   // FX rates and 2 decimals for DXY / G10 average.
@@ -324,7 +326,7 @@ function FXDashboard({
       carry: !!(rateDifferentials && rateDifferentials.fed != null),
       'rate-dashboard': !!rateDiffRows.length,
       'imf-cofer': hasCofer,
-      'treasury-tic': true,
+      'treasury-tic': hasTicHoldings,
     },
     __subtitle: {
       kpi: 'Spot rates · DXY · G10 average',
@@ -338,6 +340,7 @@ function FXDashboard({
       cot: !cotOption,
       ratediff: !rateDiff?.length,
       'rate-dashboard': !rateDiffRows.length,
+      'treasury-tic': !hasTicHoldings,
     },
     __noFooter: {
       sidebar: true,
@@ -357,7 +360,7 @@ function FXDashboard({
     },
   }), [
     renderPanel, isLive, dxyHistory, cotHistory, history, reer, rateDiff,
-    rateDifferentials, rateDiffRows, dxyOption, cotOption, hasCofer,
+    rateDifferentials, rateDiffRows, dxyOption, cotOption, hasCofer, ticCtx, hasTicHoldings,
   ]);
 
   return (

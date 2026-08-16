@@ -18,8 +18,8 @@ import { putSnapshot as putIDBSnapshot } from '../../utils/snapshotDB';
 import KeyIndicesStrip from './components/KeyIndicesStrip';
 import PortfolioTracker from './components/PortfolioTracker';
 import MetricValue from '../../components/MetricValue/MetricValue';
-import BeaCorporateProfitsPanel from './components/BeaCorporateProfitsPanel';
-import WorldBankMarketCapPanel from './components/WorldBankMarketCapPanel';
+import BeaCorporateProfitsPanel, { hasBeaCorporateProfitsRows } from './components/BeaCorporateProfitsPanel';
+import WorldBankMarketCapPanel, { hasWbMarketCapRows } from './components/WorldBankMarketCapPanel';
 import SecMegaCapFundamentalsPanel from './components/SecMegaCapFundamentalsPanel';
 import SecFilingActivityPanel from './components/SecFilingActivityPanel';
 
@@ -400,6 +400,10 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const edgarCtx = dataCtx?.getMarket?.('edgar');
   const filingActivityCtx = dataCtx?.getMarket?.('edgarFilingActivity');
   const universeCtx = dataCtx?.getMarket?.('universeUpdates');
+  const beaCtx = dataCtx?.getMarket?.('bea');
+  const wbCtx = dataCtx?.getMarket?.('worldbank');
+  const hasBeaProfits = hasBeaCorporateProfitsRows(beaCtx?.data);
+  const hasWbMcap = hasWbMarketCapRows(wbCtx?.data?.countries);
   const centralSnapshot = centralData?.data || null;
   const centralQuotes = useMemo(() => compactQuotesFromSnapshot(centralSnapshot?.quotes), [centralSnapshot]);
 
@@ -1257,8 +1261,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       'sec-fundamentals': !!edgarCtx?.data?.isLive,
       'sec-filings': !!filingActivityCtx?.data?.isLive,
       'universe-updates': !!universeCtx?.data?._sources?.universeUpdates,
-      'bea-corporate-profits': true,
-      'wb-market-cap': true,
+      'bea-corporate-profits': hasBeaProfits,
+      'wb-market-cap': hasWbMcap,
       ...extraLive,
     },
     __subtitle: {
@@ -1290,6 +1294,10 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       'bea-corporate-profits': 'Bureau of Economic Analysis (NIPA)',
       'wb-market-cap': 'World Bank WDI',
       ...extraSource,
+    },
+    __disabled: {
+      'bea-corporate-profits': !hasBeaProfits,
+      'wb-market-cap': !hasWbMcap,
     },
   });
 

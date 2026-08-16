@@ -47,6 +47,22 @@ function heatInflation(v) {
   return '#f87171';
 }
 
+export function hasWbMarketCapCountry(c) {
+  return !!(
+    c &&
+    (c.mktCapUsd != null ||
+      c.mktCapGdp != null ||
+      c.gdpGrowth != null ||
+      c.gdpPerCap != null ||
+      c.inflation != null)
+  );
+}
+
+export function hasWbMarketCapRows(countries) {
+  if (!Array.isArray(countries)) return false;
+  return countries.some(hasWbMarketCapCountry);
+}
+
 export default function WorldBankMarketCapPanel() {
   const wbCtx = useMarketData('worldbank');
   const data = wbCtx?.data || {};
@@ -55,15 +71,7 @@ export default function WorldBankMarketCapPanel() {
 
   const rows = useMemo(() => {
     // Real WDI rows only — drop empty shells
-    const list = countries.filter(
-      (c) =>
-        c &&
-        (c.mktCapUsd != null ||
-          c.mktCapGdp != null ||
-          c.gdpGrowth != null ||
-          c.gdpPerCap != null ||
-          c.inflation != null),
-    );
+    const list = countries.filter(hasWbMarketCapCountry);
     list.sort((a, b) => {
       const am = a.mktCapUsd ?? a.mktCapGdp ?? 0;
       const bm = b.mktCapUsd ?? b.mktCapGdp ?? 0;
@@ -108,7 +116,7 @@ export default function WorldBankMarketCapPanel() {
     [rows],
   );
 
-  if (!rows.length) {
+  if (!hasWbMarketCapRows(rows)) {
     return (
       <div className="wb-mcap-empty">
         World Bank WDI unavailable — no live observations returned.
