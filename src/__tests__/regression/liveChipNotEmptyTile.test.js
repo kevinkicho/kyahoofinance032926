@@ -125,7 +125,12 @@ import {
   hasTopCryptos,
   hasOnChainMetrics,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
-import { hasDerivativesKpiMetrics } from '../../markets/derivatives/components/DerivativesLiveChips.js';
+import {
+  hasDerivativesKpiMetrics,
+  hasVolPremium,
+  hasCftcTffRows,
+  hasEcbDerivativesContent,
+} from '../../markets/derivatives/components/DerivativesLiveChips.js';
 import {
   hasBlsSeries,
   hasBlsKpiItems,
@@ -1556,6 +1561,62 @@ describe('derivatives empty-capable tiles (kpi)', () => {
     expect(hasDerivativesKpiMetrics({ gammaExposure: 12.5 })).toBe(true);
     expect(hasDerivativesKpiMetrics({ gammaExposure: { total: -8.2 } })).toBe(true);
     expect(hasDerivativesKpiMetrics({ gammaExposure: [{ value: 3.1 }, { value: -1.4 }] })).toBe(true);
+  });
+});
+
+describe('derivatives leftover empty-capable tiles (volprem / cftc-tff / ecb-derivatives)', () => {
+  it('dashboard does not hardcode leftover bag existence on empty-capable tiles', () => {
+    const dash = src('markets/derivatives/components/DerivativesDashboard.jsx');
+    expect(dash).not.toMatch(/volprem:\s*!!volPremium/);
+    expect(dash).not.toMatch(/'cftc-tff':\s*!!cftcTFFCtx\?\.data\?\.contracts/);
+    expect(dash).not.toMatch(/'ecb-derivatives':\s*!!ecbCtx\?\.data\?\.policyRates/);
+    expect(dash).toMatch(/volprem:\s*hasVolPremium\(volPremium\)/);
+    expect(dash).toMatch(/'cftc-tff':\s*hasCftcTffRows\(cftcTFFCtx\?\.data\)/);
+    expect(dash).toMatch(/'ecb-derivatives':\s*hasEcbDerivativesContent\(ecbCtx\?\.data\)/);
+  });
+
+  it('hasVolPremium is false for empty / sibling isLive-only payloads', () => {
+    expect(hasVolPremium()).toBe(false);
+    expect(hasVolPremium(null)).toBe(false);
+    expect(hasVolPremium({})).toBe(false);
+    expect(hasVolPremium({ isLive: true })).toBe(false);
+    expect(hasVolPremium({ realizedVol30d: 12.4, premium: 3.1 })).toBe(false);
+    expect(hasVolPremium({ atm1mIV: null })).toBe(false);
+  });
+
+  it('hasVolPremium is true when ATM 1M IV is numeric', () => {
+    expect(hasVolPremium({ atm1mIV: 18.2 })).toBe(true);
+    expect(hasVolPremium({ atm1mIV: '16.4' })).toBe(true);
+  });
+
+  it('hasCftcTffRows is false for empty / contracts-bag-only payloads', () => {
+    expect(hasCftcTffRows()).toBe(false);
+    expect(hasCftcTffRows(null)).toBe(false);
+    expect(hasCftcTffRows({})).toBe(false);
+    expect(hasCftcTffRows({ isLive: true })).toBe(false);
+    expect(hasCftcTffRows({ contracts: {} })).toBe(false);
+    expect(hasCftcTffRows({ contracts: { SPX: { name: 'S&P 500' } } })).toBe(false);
+    expect(hasCftcTffRows({ contracts: { SPX: { series: [] } } })).toBe(false);
+  });
+
+  it('hasCftcTffRows is true when a contract series exists', () => {
+    expect(hasCftcTffRows({ contracts: { SPX: { series: [{ nonCommLong: 12000, nonCommShort: 8000 }] } } })).toBe(true);
+  });
+
+  it('hasEcbDerivativesContent is false for empty / sibling bag-only payloads', () => {
+    expect(hasEcbDerivativesContent()).toBe(false);
+    expect(hasEcbDerivativesContent(null)).toBe(false);
+    expect(hasEcbDerivativesContent({})).toBe(false);
+    expect(hasEcbDerivativesContent({ isLive: true })).toBe(false);
+    expect(hasEcbDerivativesContent({ policyRates: {}, moneyMarket: {} })).toBe(false);
+    expect(hasEcbDerivativesContent({ policyRates: { depositFacility: {} }, m3Growth: [], hicpDetail: [] })).toBe(false);
+  });
+
+  it('hasEcbDerivativesContent is true when a painted ECB number exists', () => {
+    expect(hasEcbDerivativesContent({ policyRates: { depositFacility: { value: 2.0 } } })).toBe(true);
+    expect(hasEcbDerivativesContent({ moneyMarket: { estr: { value: 1.89 } } })).toBe(true);
+    expect(hasEcbDerivativesContent({ m3Growth: [{ value: 3.1 }] })).toBe(true);
+    expect(hasEcbDerivativesContent({ hicpDetail: [{ value: 2.4 }] })).toBe(true);
   });
 });
 

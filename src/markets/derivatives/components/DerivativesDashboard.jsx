@@ -8,7 +8,12 @@ import MetricValue from '../../../components/MetricValue/MetricValue';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import DerivativesSidebar from './DerivativesSidebar';
 import EcbDerivativesPanel from './EcbDerivativesPanel';
-import { hasDerivativesKpiMetrics } from './DerivativesLiveChips.js';
+import {
+  hasDerivativesKpiMetrics,
+  hasVolPremium,
+  hasCftcTffRows,
+  hasEcbDerivativesContent,
+} from './DerivativesLiveChips.js';
 import './DerivativesDashboard.css';
 
 /** Western thousand separators: 20292.7 → $20,292.7B */
@@ -711,10 +716,10 @@ function DerivativesDashboard({
       volsurf: !!volSurfaceData?.grid?.length,
       flow: !!optionsFlow?.length,
       gamma: gexData.hasGex,
-      volprem: !!volPremium,
-      'cftc-tff': !!cftcTFFCtx?.data?.contracts,
+      volprem: hasVolPremium(volPremium),
+      'cftc-tff': hasCftcTffRows(cftcTFFCtx?.data),
       'bis-otc': !!(bisOTCCtx?.data?.categories && Object.keys(bisOTCCtx.data.categories).some((k) => bisOTCCtx.data.categories[k]?.series?.length)),
-      'ecb-derivatives': !!ecbCtx?.data?.policyRates || !!ecbCtx?.data?.moneyMarket,
+      'ecb-derivatives': hasEcbDerivativesContent(ecbCtx?.data),
     },
     __subtitle: {
       skew: skewIndex?.value != null
