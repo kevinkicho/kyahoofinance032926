@@ -370,3 +370,25 @@ export function cotCommodityRows(cotData) {
 export function hasCotPositioning(cotData) {
   return cotCommodityRows(cotData).length > 0;
 }
+
+/** WTI vs Brent overlay points. Leftover isLive / dates-only / non-string dates stay empty. */
+export function wtiBrentHistoryPoints(history) {
+  const dates = Array.isArray(history?.dates) ? history.dates : [];
+  const values = Array.isArray(history?.values) ? history.values : [];
+  const points = [];
+  const n = Math.min(dates.length, values.length);
+  for (let i = 0; i < n; i++) {
+    const date = dates[i];
+    const value = values[i];
+    if (typeof date !== 'string' || !date) continue;
+    if (!isFiniteNumber(value)) continue;
+    points.push({ date, value });
+  }
+  return points;
+}
+
+export function hasWtiBrentSeries(fredCommodities) {
+  return wtiBrentHistoryPoints(fredCommodities?.wtiHistory).length > 0
+    && wtiBrentHistoryPoints(fredCommodities?.brentHistory).length > 0;
+}
+

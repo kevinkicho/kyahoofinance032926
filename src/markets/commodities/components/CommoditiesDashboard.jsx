@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -534,9 +534,11 @@ function CommoditiesDashboard({
 
   // WTI vs Brent overlay option
   const wtiBrentOption = useMemo(() => {
-    const wtiH = fredCommodities?.wtiHistory;
-    const brentH = fredCommodities?.brentHistory;
-    if (!wtiH?.dates?.length || !brentH?.dates?.length) return null;
+    const wtiPts = wtiBrentHistoryPoints(fredCommodities?.wtiHistory);
+    const brentPts = wtiBrentHistoryPoints(fredCommodities?.brentHistory);
+    if (!wtiPts.length || !brentPts.length) return null;
+    const dates = wtiPts.map((p) => p.date);
+    const brentByDate = new Map(brentPts.map((p) => [p.date, p.value]));
     return {
       animation: false,
       backgroundColor: 'transparent',
@@ -554,9 +556,9 @@ function CommoditiesDashboard({
       grid: { top: 24, right: 8, bottom: 24, left: 44, containLabel: false },
       xAxis: {
         type: 'category',
-        data: wtiH.dates,
+        data: dates,
         axisLine: { lineStyle: { color: colors.cardBg } },
-        axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => v ? v.slice(5) : v, interval: Math.floor(wtiH.dates.length / 6) },
+        axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => (typeof v === 'string' && v.length >= 5) ? v.slice(5) : v, interval: Math.floor(dates.length / 6) },
       },
       yAxis: {
         type: 'value',
@@ -565,8 +567,8 @@ function CommoditiesDashboard({
         axisLabel: { color: colors.textMuted, fontSize: 9, formatter: v => `$${v}` },
       },
       series: [
-        { name: 'WTI', type: 'line', data: wtiH.values, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#ca8a04' }, itemStyle: { color: '#ca8a04' } },
-        { name: 'Brent', type: 'line', data: brentH.values, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#60a5fa' }, itemStyle: { color: '#60a5fa' } },
+        { name: 'WTI', type: 'line', data: wtiPts.map((p) => p.value), smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#ca8a04' }, itemStyle: { color: '#ca8a04' } },
+        { name: 'Brent', type: 'line', data: dates.map((d) => (brentByDate.has(d) ? brentByDate.get(d) : null)), smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#60a5fa' }, itemStyle: { color: '#60a5fa' } },
       ],
     };
   }, [fredCommodities, colors]);
@@ -1202,7 +1204,7 @@ function CommoditiesDashboard({
       futures: !!futuresCurveData,
       sector: !!sectorHeatmapData,
       supply: !!supplyDemandData,
-      'wti-brent': !!(fredCommodities?.wtiHistory && fredCommodities?.brentHistory),
+      'wti-brent': hasWtiBrentSeries(fredCommodities),
       cot: hasCotPositioning(cotData),
       comfx: !!commodityCurrencies,
       'usda-ag': !!(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),

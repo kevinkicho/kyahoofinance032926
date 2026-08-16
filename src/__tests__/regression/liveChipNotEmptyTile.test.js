@@ -187,6 +187,8 @@ import {
   hasCotPositioning,
   cotCommodityRows,
   cotHistoryPoints,
+  hasWtiBrentSeries,
+  wtiBrentHistoryPoints,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3587,3 +3589,72 @@ describe('commodities leftover empty-capable tiles (cot)', () => {
     expect(points[0].date.slice(5)).toBe('01-01');
   });
 });
+describe('commodities leftover empty-capable tiles (wti-brent)', () => {
+  it('dashboard does not hardcode leftover bag existence on wti-brent', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/'wti-brent':\s*!!\(fredCommodities\?\.wtiHistory && fredCommodities\?\.brentHistory\)/);
+    expect(dash).toMatch(/'wti-brent':\s*hasWtiBrentSeries\(fredCommodities\)/);
+    expect(dash).toMatch(/wtiBrentHistoryPoints\(fredCommodities\?\.wtiHistory\)/);
+  });
+
+  it('hasWtiBrentSeries is false for empty / leftover isLive bags', () => {
+    expect(hasWtiBrentSeries()).toBe(false);
+    expect(hasWtiBrentSeries(null)).toBe(false);
+    expect(hasWtiBrentSeries({})).toBe(false);
+    expect(hasWtiBrentSeries({ isLive: true })).toBe(false);
+    expect(hasWtiBrentSeries({ wtiHistory: { isLive: true }, brentHistory: { isLive: true } })).toBe(false);
+    expect(hasWtiBrentSeries({
+      wtiHistory: { dates: [], values: [] },
+      brentHistory: { dates: [], values: [] },
+    })).toBe(false);
+    expect(hasWtiBrentSeries({
+      wtiHistory: { dates: ['2024-01-02'], values: [] },
+      brentHistory: { dates: ['2024-01-02'], values: [] },
+    })).toBe(false);
+    expect(hasWtiBrentSeries({
+      wtiHistory: { dates: ['2024-01-02'], values: ['70'] },
+      brentHistory: { dates: ['2024-01-02'], values: [80] },
+    })).toBe(false);
+    expect(hasWtiBrentSeries({
+      wtiHistory: { dates: [true], values: [70] },
+      brentHistory: { dates: ['2024-01-02'], values: [80] },
+    })).toBe(false);
+    expect(hasWtiBrentSeries({
+      wtiHistory: { dates: ['2024-01-02'], values: [70] },
+      brentHistory: { isLive: true },
+    })).toBe(false);
+  });
+
+  it('hasWtiBrentSeries is true when both series have a painted point', () => {
+    expect(hasWtiBrentSeries({
+      wtiHistory: { dates: ['2024-01-02'], values: [70.12] },
+      brentHistory: { dates: ['2024-01-02'], values: [74.5] },
+    })).toBe(true);
+    expect(hasWtiBrentSeries({
+      isLive: true,
+      wtiHistory: { isLive: true, dates: [true, '2024-01-02'], values: [true, 70.12] },
+      brentHistory: { dates: ['2024-01-03', '2024-01-02'], values: [75, 74.5] },
+    })).toBe(true);
+  });
+
+  it('wtiBrentHistoryPoints skips leftover siblings so remount does not crash', () => {
+    expect(() => wtiBrentHistoryPoints({ isLive: true })).not.toThrow();
+    expect(() => wtiBrentHistoryPoints({ dates: true, values: true })).not.toThrow();
+    expect(() => wtiBrentHistoryPoints({ dates: [true, { isLive: true }, 123], values: [70, 71, 72] })).not.toThrow();
+    expect(wtiBrentHistoryPoints({
+      dates: [true, '2024-01-02', '2024-01-03'],
+      values: [70, 71.25, '72'],
+    }).map((p) => p.value)).toEqual([71.25]);
+    const points = wtiBrentHistoryPoints({
+      isLive: true,
+      dates: ['2024-01-02', '2024-01-03', '2024-01-04'],
+      values: [70.12, 71.25, 72.5],
+    });
+    expect(points.map((p) => p.value)).toEqual([70.12, 71.25, 72.5]);
+    expect(() => points.map((p) => p.date.slice(5))).not.toThrow();
+    expect(() => points.map((p) => p.value.toFixed(2))).not.toThrow();
+    expect(points[0].date.slice(5)).toBe('01-02');
+    expect(points[0].value.toFixed(2)).toBe('70.12');
+  });
+});
+
