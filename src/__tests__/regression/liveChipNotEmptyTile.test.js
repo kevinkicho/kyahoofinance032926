@@ -80,6 +80,7 @@ import {
   hasCftcCurrencies,
   hasCrossAssetReturns,
   hasRiskDashboardContent,
+  hasNewsSentimentSeries,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
 import { hasBondsKpiMetrics } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
@@ -1853,5 +1854,26 @@ describe('insurance leftover empty-capable tiles (catastrophes / cat-exposure / 
     expect(hasEcbSupervisoryContent({ moneyMarket: { estr: { value: 3.9 } } })).toBe(true);
     expect(hasEcbSupervisoryContent({ m3Growth: [{ value: 3.1 }] })).toBe(true);
     expect(hasEcbSupervisoryContent({ hicpDetail: [{ value: 2.4 }] })).toBe(true);
+  });
+});
+
+describe('sentiment leftover empty-capable tiles (news-sentiment)', () => {
+  it('dashboard does not hardcode sibling isLive on leftover tiles', () => {
+    const dash = src('markets/sentiment/components/SentimentDashboard.jsx');
+    expect(dash).not.toMatch(/'news-sentiment':\s*!!newsSentimentCtx\?\.isLive/);
+    expect(dash).toMatch(/'news-sentiment':\s*hasNewsSentimentSeries/);
+  });
+
+  it('hasNewsSentimentSeries is false for empty / sibling isLive-only payloads', () => {
+    expect(hasNewsSentimentSeries()).toBe(false);
+    expect(hasNewsSentimentSeries(null)).toBe(false);
+    expect(hasNewsSentimentSeries({})).toBe(false);
+    expect(hasNewsSentimentSeries({ isLive: true })).toBe(false);
+    expect(hasNewsSentimentSeries({ isLive: true, latest: { date: '2024-01-02', sentiment: 0.12 } })).toBe(false);
+    expect(hasNewsSentimentSeries({ series: [] })).toBe(false);
+  });
+
+  it('hasNewsSentimentSeries is true when SF Fed series rows exist', () => {
+    expect(hasNewsSentimentSeries({ series: [{ date: '2024-01-02', sentiment: 0.12 }] })).toBe(true);
   });
 });

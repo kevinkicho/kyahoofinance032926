@@ -14,6 +14,7 @@ import {
   hasCftcCurrencies,
   hasCrossAssetReturns,
   hasRiskDashboardContent,
+  hasNewsSentimentSeries,
 } from './SentimentLiveChips.js';
 import './SentimentDashboard.css';
 
@@ -813,7 +814,7 @@ function SentimentDashboard({
       'cross-asset': hasCrossAssetReturns(returnsData),
       'risk-dashboard': hasRiskDashboardContent({ riskData, vvixHistory, fsiHistory, marginDebt }),
       leverage: !!(marginDebt?.values?.length || consumerCredit?.values?.length),
-      'news-sentiment': !!newsSentimentCtx?.isLive,
+      'news-sentiment': hasNewsSentimentSeries(newsSentimentData),
       'fed-risk-mood': !!(newsSentimentData?.series?.length || riskData),
     },
     __subtitle: {

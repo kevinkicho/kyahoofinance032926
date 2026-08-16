@@ -117,3 +117,8 @@ export function hasRiskDashboardContent({
   ) return true;
   return false;
 }
+
+/** News-sentiment chart is EmptyPanelBody unless SF Fed series rows exist. */
+export function hasNewsSentimentSeries(newsSentimentData) {
+  return Array.isArray(newsSentimentData?.series) && newsSentimentData.series.length > 0;
+}
