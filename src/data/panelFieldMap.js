@@ -164,11 +164,9 @@ export const PANEL_FIELD_MAP = {
     { field: 'futuresCurveData', fieldPath: 'futuresCurveData' },
     { field: 'goldFuturesCurve', fieldPath: 'goldFuturesCurve' },
   ] },
-  'commodities:sector': { anyOf: [
-    { field: 'sectorHeatmapData', fieldPath: 'sectorHeatmapData.commodities' },
-    { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
-    { field: 'yahoo', fieldPath: 'yahoo.futures' },
-  ] },
+  // Sector Performance paints sectorHeatmapData rows only.
+  // priceDashboardData is the sibling prices tile; yahoo.futures is unused leftover.
+  'commodities:sector': { field: 'sectorHeatmapData', fieldPath: 'sectorHeatmapData.commodities' },
   'commodities:supply': { anyOf: [
     { field: 'supplyDemand', fieldPath: 'supplyDemand' },
     { field: 'eia', fieldPath: 'eia' },
@@ -217,11 +215,9 @@ export const PANEL_FIELD_MAP = {
     { field: 'yahoo', fieldPath: 'yahoo.futures.SI=F' },
     { field: 'yahoo', fieldPath: 'yahoo.futures' },
   ] },
-  'commodities:regime': { anyOf: [
-    { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
-    { field: 'sectorHeatmapData', fieldPath: 'sectorHeatmapData.commodities' },
-    { field: 'yahoo', fieldPath: 'yahoo.futures' },
-  ] },
+  // Commodity Regime paints priceDashboardData sector averages.
+  // sectorHeatmapData is the sibling sector tile; yahoo.futures is unused leftover.
+  'commodities:regime': { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
   'commodities:energy-stack': { field: 'eia', fieldPath: 'eia' },
   'commodities:curve-board': { anyOf: [
     { field: 'futuresCurveData', fieldPath: 'futuresCurveData' },

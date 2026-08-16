@@ -75,16 +75,10 @@ export const PANEL_PLACEHOLDERS = {
     any('gold.prices', ['goldFuturesCurve.prices', 'yahoo.futures.GC=F.price']),
     any('gold.spot', ['goldFuturesCurve.spotPrice', 'yahoo.futures.GC=F.price']),
   ],
+  // Sector Performance paints sectorHeatmapData rows.
+  // priceDashboardData / yahoo.futures were leftover sibling false-greens (prices tile).
   'commodities:sector': [
-    // Require actual heatmap rows (not merely any FRED object → false green).
-    any('heatmap.rows', ['sectorHeatmapData.commodities', 'priceDashboardData']),
-    any('energy.or.metals', [
-      'yahoo.futures.CL=F.price',
-      'yahoo.futures.GC=F.price',
-      'eia.wti_price.value',
-      'fred.wti.value',
-      'fred.copper.value',
-    ]),
+    any('heatmap.rows', ['sectorHeatmapData.commodities', 'sectorHeatmapData']),
   ],
   'commodities:wti-brent': [
     any('wti', ['eia.wti_price.value', 'fred.wti.value', 'yahoo.futures.CL=F.price']),
@@ -150,9 +144,10 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:battery-chain': [
     any('copper', ['fred.copper.value', 'fred.copper', 'yahoo.futures.HG=F.price']),
   ],
+  // Commodity Regime paints priceDashboardData sector averages.
+  // sectorHeatmapData / yahoo.futures were leftover sibling false-greens (sector tile).
   'commodities:regime': [
-    any('dashboard', ['priceDashboardData', 'sectorHeatmapData.commodities', 'yahoo.futures']),
-    any('energy', ['yahoo.futures.CL=F.price', 'eia.wti_price.value', 'fred.wti.value']),
+    any('dashboard', ['priceDashboardData.0.commodities', 'priceDashboardData.0', 'priceDashboardData']),
   ],
   'commodities:material-detail': [
     any('copper', ['fred.copper.value', 'fred.copper']),
