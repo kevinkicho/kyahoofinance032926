@@ -123,8 +123,10 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:usda-ag': [
     any('ag', ['fred.wheat.value', 'fred.rice.value', 'fred.corn.value', 'fred.wheat', 'fred.corn', 'usda.commodities']),
   ],
+  // FAO tile only paints fao.series / foodPriceIndex.
+  // Wheat / whole FRED bag were false-green leftovers.
   'commodities:fao-prices': [
-    any('food', ['fao.foodPriceIndex.value', 'fao.foodPriceIndex', 'fred.wheat.value', 'fred.wheat']),
+    any('food', ['foodPriceIndex.values', 'foodPriceIndex.latest', 'foodPriceIndex', 'series'], { crossMarket: 'fao' }),
   ],
   // Never bind health to whole `fred` / `yahoo` bags — any sibling series greened hollow panels.
   'commodities:materials-grid': [
@@ -248,9 +250,10 @@ export const PANEL_PLACEHOLDERS = {
   'derivatives:kpi': [p('vixTerm', 'vixTermStructure'), any('vix', ['vixEnrichment', 'fredVixHistory'])],
   'derivatives:metrics': [any('enrich', ['vixEnrichment', 'putCallRatio', 'vixPercentile'])],
   'derivatives:vixterm': [p('vixTermStructure', 'vixTermStructure')],
-  // fredVixHistory often null under FRED 403 — fall back to term / enrichment
+  // VIX 1Y chart only paints fredVixHistory.
+  // Term / enrichment / percentile were sibling false-green leftovers.
   'derivatives:vix1y': [
-    any('vix1y', ['fredVixHistory', 'vixTermStructure', 'vixEnrichment', 'vixPercentile']),
+    any('vix1y', ['fredVixHistory.dates', 'fredVixHistory.values', 'fredVixHistory']),
   ],
   'derivatives:skew': [
     any('spot', ['skewIndex.value', 'skewIndex']),

@@ -228,8 +228,7 @@ export const PANEL_FIELD_MAP = {
   'commodities:exposure-matrix': { field: 'yahoo', fieldPath: 'yahoo' },
   'commodities:fao-prices': { anyOf: [
     { field: 'foodPriceIndex', fieldPath: 'foodPriceIndex', crossMarket: 'fao' },
-    { field: 'worldBank', fieldPath: 'worldBank' },
-    { field: 'fred', fieldPath: 'fred' },
+    { field: 'series', fieldPath: 'series', crossMarket: 'fao' },
   ] },
 
   // ── Global Macro ──
