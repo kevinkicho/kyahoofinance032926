@@ -75,8 +75,30 @@ export function hasTedSpreadSeries(tedSpread) {
   return Array.isArray(tedSpread?.values) && tedSpread.values.length > 0;
 }
 
+/** Trade-activity rows that paint trades / par; leftover sibling keys still empty / crash the tile. */
+export function muniTradeRows(msrbData) {
+  const rows = Array.isArray(msrbData?.tradeTypes) ? msrbData.tradeTypes : [];
+  return rows.filter((r) => {
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return false;
+    if (typeof r.type !== 'string' || !r.type.trim()) return false;
+    return isFiniteNumber(r.trades) || isFiniteNumber(r.parM);
+  });
+}
+
+/** Primary-market bars that paint par $M; leftover period / isLive sibling keys still empty / crash the tile. */
+export function muniPrimaryRows(msrbData) {
+  const rows = Array.isArray(msrbData?.primaryMarket) ? msrbData.primaryMarket : [];
+  return rows.filter((r) => {
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return false;
+    if (typeof r.period !== 'string' || !r.period.trim()) return false;
+    if (/total/i.test(r.period)) return false;
+    return isFiniteNumber(r.parM);
+  });
+}
+
+/** Muni tile is empty unless a trade or issuance row paints; leftover summary bag is leftover. */
 export function hasMuniMarketSummary(msrbData) {
-  return !!(msrbData && msrbData.summary);
+  return muniTradeRows(msrbData).length > 0 || muniPrimaryRows(msrbData).length > 0;
 }
 
 /** Bank-stress paints 6 cards; leftover spread / FDIC bags still dash out. */

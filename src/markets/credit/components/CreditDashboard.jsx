@@ -20,6 +20,8 @@ import {
   hasDelinquencyRows,
   hasTedSpreadSeries,
   hasMuniMarketSummary,
+  muniTradeRows,
+  muniPrimaryRows,
   hasBankStressContent,
   hasCreditQualitySeries,
 } from './CreditLiveChips.js';
@@ -204,7 +206,7 @@ function CreditDashboard({
   // Monthly issuance (par $M) — gives a sense of new-issue calendar pace
   // and demand. Total row excluded from the bars.
   const msrbPrimaryOption = useMemo(() => {
-    const rows = (msrbCtx?.data?.primaryMarket || []).filter(r => !/total/i.test(r.period));
+    const rows = muniPrimaryRows(msrbCtx?.data);
     if (!rows.length) return null;
     return {
       animation: false,
@@ -212,7 +214,7 @@ function CreditDashboard({
       tooltip: { trigger: 'axis', formatter: ps => {
         const i = ps[0]?.dataIndex;
         const r = rows[i];
-        return r ? `<b>${r.period}</b><br/>Issues: ${r.issues?.toLocaleString()}<br/>Par: $${r.parM?.toLocaleString()}M<br/>Avg size: $${r.avgSizeM?.toFixed(1)}M` : '';
+        return r ? `<b>${r.period}</b><br/>Issues: ${r.issues?.toLocaleString()}<br/>Par: $${r.parM?.toLocaleString()}M<br/>Avg size: $${typeof r.avgSizeM === 'number' && Number.isFinite(r.avgSizeM) ? r.avgSizeM.toFixed(1) : '—'}M` : '';
       }},
       grid: { top: 12, right: 12, bottom: 28, left: 50 },
       xAxis: { type: 'category', data: rows.map(r => r.period.slice(0, 3)), axisLabel: { color: colors.textMuted, fontSize: 9 }, axisLine: { lineStyle: { color: colors.cardBg } } },
@@ -608,7 +610,7 @@ function CreditDashboard({
           : <EmptyPanelBody message="No credit quality data" />;
 
       case 'muni-market':
-        return msrbCtx?.data?.summary
+        return hasMuniMarketSummary(msrbCtx?.data)
           ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 12, height: '100%' }}>
               <div>
@@ -622,7 +624,7 @@ function CreditDashboard({
                     </tr>
                   </thead>
                   <tbody>
-                    {(msrbCtx?.data?.tradeTypes || []).map((r, i) => (
+                    {muniTradeRows(msrbCtx?.data).map((r, i) => (
                       <tr key={i} style={{ borderBottom: `1px solid ${colors.cardBg}`, fontWeight: /All/i.test(r.type) ? 600 : 400 }}>
                         <td style={{ padding: '4px 6px', color: colors.textSecondary }}>{r.type}</td>
                         <td style={{ padding: '4px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.trades?.toLocaleString()}</td>
@@ -741,8 +743,8 @@ function CreditDashboard({
       'credit-quality': creditQuality?.latest
         ? `Baa-Aaa spread: ${creditQuality.latest.spreadBps} bps · Aaa ${creditQuality.latest.aaaPct?.toFixed(2)}% / Baa ${creditQuality.latest.baaPct?.toFixed(2)}% (${creditQuality.latest.date})`
         : "Moody's seasoned Aaa & Baa corporate yields · 1-year history",
-      'muni-market': msrbCtx?.data?.summary?.tradesAll
-        ? `${msrbCtx.data.summary.tradesAll.toLocaleString()} trades / $${msrbCtx.data.summary.parAllM?.toLocaleString()}M par · YTD ${msrbCtx.data.summary.ytdIssues?.toLocaleString()} issues / $${(msrbCtx.data.summary.ytdParM / 1000).toFixed(1)}B`
+      'muni-market': typeof msrbCtx?.data?.summary?.tradesAll === 'number' && Number.isFinite(msrbCtx.data.summary.tradesAll)
+        ? `${msrbCtx.data.summary.tradesAll.toLocaleString()} trades / $${typeof msrbCtx.data.summary.parAllM === 'number' ? msrbCtx.data.summary.parAllM.toLocaleString() : '—'}M par · YTD ${typeof msrbCtx.data.summary.ytdIssues === 'number' ? msrbCtx.data.summary.ytdIssues.toLocaleString() : '—'} issues / $${typeof msrbCtx.data.summary.ytdParM === 'number' && Number.isFinite(msrbCtx.data.summary.ytdParM) ? (msrbCtx.data.summary.ytdParM / 1000).toFixed(1) : '—'}B`
         : 'MSRB EMMA · trade activity + new-issue calendar',
       'wb-debt': 'GDP growth and trade openness by country',
       'bis-total-credit': 'Credit-to-GDP ratios for major economies',

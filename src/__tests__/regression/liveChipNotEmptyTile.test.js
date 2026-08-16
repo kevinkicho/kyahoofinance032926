@@ -61,6 +61,8 @@ import {
   hasDelinquencyRows,
   hasTedSpreadSeries,
   hasMuniMarketSummary,
+  muniTradeRows,
+  muniPrimaryRows,
   hasBankStressContent,
   hasCreditQualitySeries,
 } from '../../markets/credit/components/CreditLiveChips.js';
@@ -860,8 +862,9 @@ describe('credit empty-capable tiles (kpi / spreads / EM / CP / CLO / defaults /
     expect(hasMuniMarketSummary({ isLive: true, tradeTypes: [] })).toBe(false);
   });
 
-  it('hasMuniMarketSummary is true when MSRB summary exists', () => {
-    expect(hasMuniMarketSummary({ summary: { tradesAll: 12000 } })).toBe(true);
+  it('hasMuniMarketSummary is true when a trade or issuance row paints', () => {
+    expect(hasMuniMarketSummary({ tradeTypes: [{ type: 'All', trades: 12000, parM: 410 }] })).toBe(true);
+    expect(hasMuniMarketSummary({ primaryMarket: [{ period: 'January', parM: 2100 }] })).toBe(true);
   });
 });
 
@@ -2932,5 +2935,85 @@ describe('bonds leftover empty-capable tiles (yield)', () => {
     expect(rows.map(([k]) => k)).toEqual(['US']);
     expect(() => rows.map(([, curve]) => curve['10y'].toFixed(2))).not.toThrow();
     expect(rows[0][1]['10y'].toFixed(2)).toBe('4.25');
+  });
+});
+
+
+describe('credit leftover empty-capable tiles (muni-market)', () => {
+  it('dashboard does not hardcode leftover summary bag existence on muni-market', () => {
+    const dash = src('markets/credit/components/CreditDashboard.jsx');
+    expect(dash).not.toMatch(/'muni-market':\s*!!msrbCtx\?\.data\?\.summary/);
+    expect(dash).not.toMatch(/return msrbCtx\?\.data\?\.summary/);
+    expect(dash).toMatch(/'muni-market':\s*hasMuniMarketSummary\(/);
+    expect(dash).toMatch(/return hasMuniMarketSummary\(msrbCtx\?\.data\)/);
+  });
+
+  it('hasMuniMarketSummary is false for empty / leftover summary bags', () => {
+    expect(hasMuniMarketSummary()).toBe(false);
+    expect(hasMuniMarketSummary(null)).toBe(false);
+    expect(hasMuniMarketSummary({})).toBe(false);
+    expect(hasMuniMarketSummary({ isLive: true })).toBe(false);
+    expect(hasMuniMarketSummary({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasMuniMarketSummary({ dates: ['2024-01'] })).toBe(false);
+    expect(hasMuniMarketSummary({ summary: { isLive: true, lastUpdated: '2024-01', dates: ['2024-01'] } })).toBe(false);
+    expect(hasMuniMarketSummary({ summary: { tradesAll: true, parAllM: '410', ytdParM: true } })).toBe(false);
+    expect(hasMuniMarketSummary({ summary: { tradesAll: 12000 } })).toBe(false);
+    expect(hasMuniMarketSummary({ tradeTypes: [] })).toBe(false);
+    expect(hasMuniMarketSummary({ tradeTypes: [{ isLive: true }, { lastUpdated: '2024-01' }] })).toBe(false);
+    expect(hasMuniMarketSummary({ tradeTypes: [{ type: 'All', trades: true, parM: '12' }] })).toBe(false);
+    expect(hasMuniMarketSummary({ primaryMarket: [{ period: true, parM: 100 }] })).toBe(false);
+    expect(hasMuniMarketSummary({ primaryMarket: [{ period: 'Total', parM: 900 }] })).toBe(false);
+    expect(hasMuniMarketSummary({ primaryMarket: [{ period: 'January' }] })).toBe(false);
+  });
+
+  it('hasMuniMarketSummary is true when a painted trade or issuance row exists', () => {
+    expect(hasMuniMarketSummary({
+      isLive: true,
+      summary: { isLive: true, tradesAll: true },
+      tradeTypes: [{ type: 'Customer Bought', trades: 1200, parM: 45.5 }],
+    })).toBe(true);
+    expect(hasMuniMarketSummary({
+      summary: { lastUpdated: '2024-01' },
+      primaryMarket: [{ period: 'January', parM: 2100 }],
+    })).toBe(true);
+  });
+
+  it('muniTradeRows / muniPrimaryRows skip leftover sibling keys so remount does not crash', () => {
+    expect(() => muniTradeRows({ isLive: true, summary: { isLive: true }, tradeTypes: { isLive: true } })).not.toThrow();
+    expect(muniTradeRows({ tradeTypes: [{ isLive: true }, { lastUpdated: '2024-01' }, { type: 'All', trades: true, parM: '12' }] })).toEqual([]);
+    const trades = muniTradeRows({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      summary: { isLive: true, lastUpdated: '2024-01', tradesAll: true },
+      tradeTypes: [
+        { isLive: true },
+        { lastUpdated: '2024-01' },
+        { type: 'Customer Bought', trades: 1200, parM: 45.5, avgSizeM: true },
+      ],
+    });
+    expect(trades.map((r) => r.type)).toEqual(['Customer Bought']);
+    expect(() => trades.map((r) => r.trades.toLocaleString())).not.toThrow();
+    expect(() => trades.map((r) => r.parM.toFixed(1))).not.toThrow();
+    expect(trades[0].parM.toFixed(1)).toBe('45.5');
+
+    expect(() => muniPrimaryRows({ isLive: true, primaryMarket: { isLive: true } })).not.toThrow();
+    expect(muniPrimaryRows({ primaryMarket: [{ period: true, parM: 100 }, { period: 'Total', parM: 900 }, { period: 'January' }] })).toEqual([]);
+    const primary = muniPrimaryRows({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      primaryMarket: [
+        { isLive: true },
+        { period: true, parM: 100 },
+        { period: 'Total', parM: 9000 },
+        { period: 'January', parM: 2100, issues: 80, avgSizeM: 26.2 },
+      ],
+    });
+    expect(primary.map((r) => r.period)).toEqual(['January']);
+    expect(() => primary.map((r) => r.period.slice(0, 3))).not.toThrow();
+    expect(() => primary.map((r) => r.parM.toFixed(0))).not.toThrow();
+    expect(() => primary.map((r) => (typeof r.avgSizeM === 'number' ? r.avgSizeM.toFixed(1) : '—'))).not.toThrow();
+    expect(primary[0].parM.toFixed(0)).toBe('2100');
   });
 });
