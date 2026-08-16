@@ -56,6 +56,14 @@ import {
   hasFxSpotRates,
   hasFxMovers,
 } from '../../markets/fx/components/FXLiveChips.js';
+import {
+  hasSentimentSidebarContent,
+  hasSentimentKeyMetrics,
+  hasFsiHistory,
+  hasCftcCurrencies,
+  hasCrossAssetReturns,
+  hasRiskDashboardContent,
+} from '../../markets/sentiment/components/SentimentLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -671,5 +679,105 @@ describe('fx empty-capable tiles (kpi / sidebar / movers)', () => {
   it('hasFxMovers is true when a non-USD 1d change exists', () => {
     expect(hasFxMovers({ EUR: 0.21, USD: 0 })).toBe(true);
     expect(hasFxMovers({ JPY: -0.4 })).toBe(true);
+  });
+});
+
+describe('sentiment empty-capable tiles (sidebar / key-metrics / FSI / CFTC / cross-asset / risk-dashboard)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/sentiment/components/SentimentDashboard.jsx');
+    expect(dash).not.toMatch(/sidebar:\s*!!isLive/);
+    expect(dash).not.toMatch(/'key-metrics':\s*!!isLive/);
+    expect(dash).not.toMatch(/fsi:\s*!!isLive/);
+    expect(dash).not.toMatch(/cftc:\s*!!isLive/);
+    expect(dash).not.toMatch(/'cross-asset':\s*!!isLive/);
+    expect(dash).not.toMatch(/'risk-dashboard':\s*!!isLive/);
+    expect(dash).toMatch(/sidebar:\s*hasSentimentSidebarContent/);
+    expect(dash).toMatch(/'key-metrics':\s*hasSentimentKeyMetrics/);
+    expect(dash).toMatch(/fsi:\s*hasFsiHistory/);
+    expect(dash).toMatch(/cftc:\s*hasCftcCurrencies/);
+    expect(dash).toMatch(/'cross-asset':\s*hasCrossAssetReturns/);
+    expect(dash).toMatch(/'risk-dashboard':\s*hasRiskDashboardContent/);
+  });
+
+  it('hasSentimentSidebarContent is false for empty / sibling-only payloads', () => {
+    expect(hasSentimentSidebarContent()).toBe(false);
+    expect(hasSentimentSidebarContent({})).toBe(false);
+    expect(hasSentimentSidebarContent({ fearGreedData: { isLive: true } })).toBe(false);
+    expect(hasSentimentSidebarContent({ riskData: { isLive: true, signals: [] } })).toBe(false);
+    expect(hasSentimentSidebarContent({ marginDebt: { dates: ['2024-01'] } })).toBe(false);
+  });
+
+  it('hasSentimentSidebarContent is true when a painted sidebar metric exists', () => {
+    expect(hasSentimentSidebarContent({ fearGreedData: { value: 42 } })).toBe(true);
+    expect(hasSentimentSidebarContent({ riskData: { vix: 18.2 } })).toBe(true);
+    expect(hasSentimentSidebarContent({ riskData: { overallLabel: 'Risk-On' } })).toBe(true);
+    expect(hasSentimentSidebarContent({ marginDebt: { values: [812000] } })).toBe(true);
+  });
+
+  it('hasSentimentKeyMetrics is false for empty / sibling-only payloads', () => {
+    expect(hasSentimentKeyMetrics()).toBe(false);
+    expect(hasSentimentKeyMetrics({})).toBe(false);
+    expect(hasSentimentKeyMetrics({ fearGreedData: { classification: 'Fear' } })).toBe(false);
+    expect(hasSentimentKeyMetrics({ riskData: { isLive: true, overallLabel: 'Risk-On' } })).toBe(false);
+    expect(hasSentimentKeyMetrics({ fsiHistory: { dates: ['2024-01'] } })).toBe(false);
+  });
+
+  it('hasSentimentKeyMetrics is true when a painted key-metrics number exists', () => {
+    expect(hasSentimentKeyMetrics({ riskData: { overallScore: 61 } })).toBe(true);
+    expect(hasSentimentKeyMetrics({ fearGreedData: { altmeScore: 38 } })).toBe(true);
+    expect(hasSentimentKeyMetrics({ riskData: { move: 92.4 } })).toBe(true);
+    expect(hasSentimentKeyMetrics({ fsiHistory: { values: [0.12] } })).toBe(true);
+  });
+
+  it('hasFsiHistory is false for empty / values-only / sibling-only payloads', () => {
+    expect(hasFsiHistory(null)).toBe(false);
+    expect(hasFsiHistory({})).toBe(false);
+    expect(hasFsiHistory({ isLive: true })).toBe(false);
+    expect(hasFsiHistory({ values: [0.12] })).toBe(false);
+    expect(hasFsiHistory({ dates: [] })).toBe(false);
+  });
+
+  it('hasFsiHistory is true when FSI dates exist', () => {
+    expect(hasFsiHistory({ dates: ['2024-01'], values: [0.12] })).toBe(true);
+  });
+
+  it('hasCftcCurrencies is false for empty / sibling-only payloads', () => {
+    expect(hasCftcCurrencies(null)).toBe(false);
+    expect(hasCftcCurrencies({})).toBe(false);
+    expect(hasCftcCurrencies({ isLive: true, asOf: '2024-01-02' })).toBe(false);
+    expect(hasCftcCurrencies({ currencies: [] })).toBe(false);
+  });
+
+  it('hasCftcCurrencies is true when currency rows exist', () => {
+    expect(hasCftcCurrencies({ currencies: [{ code: 'EUR', netPctOi: 12 }] })).toBe(true);
+  });
+
+  it('hasCrossAssetReturns is false for empty / sibling-only payloads', () => {
+    expect(hasCrossAssetReturns(null)).toBe(false);
+    expect(hasCrossAssetReturns({})).toBe(false);
+    expect(hasCrossAssetReturns({ isLive: true })).toBe(false);
+    expect(hasCrossAssetReturns({ assets: [] })).toBe(false);
+    expect(hasCrossAssetReturns([])).toBe(false);
+  });
+
+  it('hasCrossAssetReturns is true when return rows exist', () => {
+    expect(hasCrossAssetReturns({ assets: [{ label: 'SPX', ret1d: 0.4 }] })).toBe(true);
+    expect(hasCrossAssetReturns([{ ticker: 'GLD', return: -0.2 }])).toBe(true);
+  });
+
+  it('hasRiskDashboardContent is false for empty / sibling-only payloads', () => {
+    expect(hasRiskDashboardContent()).toBe(false);
+    expect(hasRiskDashboardContent({})).toBe(false);
+    expect(hasRiskDashboardContent({ riskData: { isLive: true } })).toBe(false);
+    expect(hasRiskDashboardContent({ fsiHistory: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasRiskDashboardContent({ vvixHistory: { dates: ['2024-01'], values: [18.2] } })).toBe(false);
+    expect(hasRiskDashboardContent({ marginDebt: { values: [812000] } })).toBe(false);
+  });
+
+  it('hasRiskDashboardContent is true when a score, signal, or history series exists', () => {
+    expect(hasRiskDashboardContent({ riskData: { overallScore: 61 } })).toBe(true);
+    expect(hasRiskDashboardContent({ riskData: { signals: [{ name: 'VIX', value: 18.2 }] } })).toBe(true);
+    expect(hasRiskDashboardContent({ fsiHistory: { dates: ['2024-01'], values: [0.12] } })).toBe(true);
+    expect(hasRiskDashboardContent({ marginDebt: { dates: ['2024-01'], values: [812000] } })).toBe(true);
   });
 });

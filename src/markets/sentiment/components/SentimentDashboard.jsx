@@ -7,6 +7,14 @@ import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import CftcPositioning from './CftcPositioning';
 import RiskDashboard from './RiskDashboard';
 import SentimentSidebar from './SentimentSidebar';
+import {
+  hasSentimentSidebarContent,
+  hasSentimentKeyMetrics,
+  hasFsiHistory,
+  hasCftcCurrencies,
+  hasCrossAssetReturns,
+  hasRiskDashboardContent,
+} from './SentimentLiveChips.js';
 import './SentimentDashboard.css';
 
 const LAYOUT = {
@@ -797,13 +805,13 @@ function SentimentDashboard({
     newsSentiment: newsSentimentCtx,
     __render: renderPanel,
     __live: {
-      sidebar: !!isLive,
-      'key-metrics': !!isLive,
+      sidebar: hasSentimentSidebarContent({ fearGreedData, riskData, marginDebt, consumerCredit, vvixHistory, fsiHistory }),
+      'key-metrics': hasSentimentKeyMetrics({ fearGreedData, riskData, marginDebt, vvixHistory, fsiHistory }),
       'fear-greed': !!(isLive && fgiValue != null),
-      fsi: !!isLive,
-      cftc: !!isLive,
-      'cross-asset': !!isLive,
-      'risk-dashboard': !!isLive,
+      fsi: hasFsiHistory(fsiHistory),
+      cftc: hasCftcCurrencies(cftcData),
+      'cross-asset': hasCrossAssetReturns(returnsData),
+      'risk-dashboard': hasRiskDashboardContent({ riskData, vvixHistory, fsiHistory, marginDebt }),
       leverage: !!(marginDebt?.values?.length || consumerCredit?.values?.length),
       'news-sentiment': !!newsSentimentCtx?.isLive,
       'fed-risk-mood': !!(newsSentimentData?.series?.length || riskData),
