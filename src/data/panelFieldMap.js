@@ -133,12 +133,11 @@ export const PANEL_FIELD_MAP = {
     { field: 'reinsurers', fieldPath: 'reinsurers' },
   ] },
   'insurance:reserves': { field: 'reserveAdequacyData', fieldPath: 'reserveAdequacyData' },
-  'insurance:catbonds': { anyOf: [
-    { field: 'catBondProxy', fieldPath: 'catBondProxy' },
-    { field: 'catBondSpreads', fieldPath: 'catBondSpreads' },
-  ] },
+  // Cat Bond Spreads paints catBondSpreads only.
+  // catBondProxy is an unused Yahoo ILS leftover (not painted).
+  'insurance:catbonds': { field: 'catBondSpreads', fieldPath: 'catBondSpreads' },
   // Sector / Industry Pulse paints sectorETF only.
-  // catBondProxy is the sibling catbonds tile.
+  // catBondProxy is an unused Yahoo ILS leftover (not painted by etfs or catbonds).
   'insurance:etfs': { field: 'sectorETF', fieldPath: 'sectorETF' },
   'insurance:catastrophes': { field: 'declarations', fieldPath: 'declarations', crossMarket: 'fema' },
   'insurance:ins-penetration': { field: 'countries', fieldPath: 'countries', crossMarket: 'worldbank' },
@@ -198,7 +197,7 @@ export const PANEL_FIELD_MAP = {
     { field: 'soybeans', fieldPath: 'fred.soybeans.history' },
   ] },
   // EIA Petroleum tile paints eiaPetroleum gasoline/Henry Hub/crude stocks.
-  // commodities.eia is the sibling energy-stack / prices bag.
+  // commodities.eia is the sibling prices bag.
   'commodities:eia-petrol': { anyOf: [
     { field: 'gasoline', fieldPath: 'gasoline', crossMarket: 'eiaPetroleum' },
     { field: 'naturalGas', fieldPath: 'naturalGas', crossMarket: 'eiaPetroleum' },
@@ -230,7 +229,12 @@ export const PANEL_FIELD_MAP = {
   // Commodity Regime paints priceDashboardData sector averages.
   // sectorHeatmapData is the sibling sector tile; yahoo.futures is unused leftover.
   'commodities:regime': { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
-  'commodities:energy-stack': { field: 'eia', fieldPath: 'eia' },
+  // Energy Stack paints priceDashboardData energy futures + optional EIA crude stocks.
+  // commodities.eia is the sibling prices bag leftover.
+  'commodities:energy-stack': { anyOf: [
+    { field: 'priceDashboardData', fieldPath: 'priceDashboardData' },
+    { field: 'crudeStocks', fieldPath: 'crudeStocks', crossMarket: 'eiaPetroleum' },
+  ] },
   'commodities:curve-board': { anyOf: [
     { field: 'futuresCurveData', fieldPath: 'futuresCurveData' },
     { field: 'goldFuturesCurve', fieldPath: 'goldFuturesCurve' },

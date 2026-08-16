@@ -98,10 +98,16 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:comfx': [
     any('fx', ['commodityCurrencies.CAD.rate', 'commodityCurrencies.AUD.rate', 'commodityCurrencies']),
   ],
+  // Energy Stack paints priceDashboardData energy futures + optional EIA crude stocks.
+  // commodities.eia / yahoo.futures were leftover sibling false-greens (prices tile).
   'commodities:energy-stack': [
-    any('wti', ['eia.wti_price.value', 'eia.brent_price.value']),
-    any('natgas', ['eia.natgas.value', 'eia.natgas_storage.value']),
-    any('gasoline', ['eia.gasoline_regular.value', 'eia.gasoline_padd1.value']),
+    any('stack', [
+      'priceDashboardData.0.commodities',
+      'priceDashboardData.0',
+      'priceDashboardData',
+      'eiaPetroleum.crudeStocks.latest.value',
+      'eiaPetroleum.crudeStocks',
+    ]),
   ],
   'commodities:curve-board': [
     p('labels', 'futuresCurveData.labels'),
@@ -115,7 +121,7 @@ export const PANEL_PLACEHOLDERS = {
     any('palladium', ['yahoo.futures.PA=F.price', 'yahoo.futures.PA=F'], { required: false }),
   ],
   // EIA Petroleum tile paints eiaPetroleum gasoline / Henry Hub / crude stocks.
-  // commodities.eia was a leftover sibling false-green (energy-stack / prices).
+  // commodities.eia was a leftover sibling false-green (prices tile).
   'commodities:eia-petrol': [
     any('petrol', [
       'eiaPetroleum.gasoline.latest.value',
@@ -382,12 +388,13 @@ export const PANEL_PLACEHOLDERS = {
     any('reserves', ['reserveAdequacyData.lines', 'reserveAdequacyData.adequacy', 'reserveAdequacyData']),
     any('adequacy', ['reserveAdequacyData.adequacy', 'reserveAdequacyData.lines'], { required: false }),
   ],
+  // Cat Bond Spreads paints catBondSpreads only.
+  // catBondProxy was a leftover Yahoo ILS false-green (not painted).
   'insurance:catbonds': [
-    any('proxy', ['catBondProxy.price', 'catBondProxy']),
-    any('spreads', ['catBondSpreads']),
+    any('spreads', ['catBondSpreads.0.spreadBps', 'catBondSpreads.0.spread', 'catBondSpreads']),
   ],
   // Sector / Industry Pulse paints sectorETF.
-  // catBondProxy was a leftover sibling false-green (insurance:catbonds).
+  // catBondProxy was a leftover Yahoo ILS false-green (not painted by etfs or catbonds).
   'insurance:etfs': [
     // sectorETF is often an array of holdings, not a single .price object
     any('etf', ['sectorETF.0.price', 'sectorETF.price', 'sectorETF']),
