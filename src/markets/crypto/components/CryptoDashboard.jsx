@@ -8,6 +8,10 @@ import DefiTvlTrendPanel from './DefiTvlTrendPanel';
 import BtcOnChainPanel from './BtcOnChainPanel';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import './CryptoDashboard.css';
+import {
+  hasCryptoSidebarContent,
+  hasTopCryptos,
+} from './CryptoLiveChips.js';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
 //   Row 0-4: sidebar + top-cryptos + fear-greed + funding (each w:3)
@@ -447,8 +451,10 @@ function CryptoDashboard({
   const panelCtx = useMemo(() => ({
     __render: renderPanel,
     __live: {
-      sidebar: !!isLive,
-      'top-cryptos': !!isLive,
+      sidebar: hasCryptoSidebarContent({
+        coinMarketData, fearGreedData, stablecoinMcap, btcDominance, ethGas,
+      }),
+      'top-cryptos': hasTopCryptos(coinMarketData),
       'fear-greed': !!(isLive && fgiValue != null),
       funding: !!(isLive && fundingRates.length > 0),
       'defi-tvl': !!(isLive && defiChains.length > 0),
@@ -490,6 +496,7 @@ function CryptoDashboard({
   }), [
     renderPanel, isLive, fgiValue, fgiLabel, fundingRates, defiChains,
     onChainData, onchainChartOption, stablecoinMcap, defiData,
+    coinMarketData, fearGreedData, btcDominance, ethGas, hasRealExchVolume,
   ]);
 
   return (

@@ -93,6 +93,10 @@ import {
   hasReleaseImpactRows,
   hasCatalystRows,
 } from '../../markets/calendar/CalendarLiveChips.js';
+import {
+  hasCryptoSidebarContent,
+  hasTopCryptos,
+} from '../../markets/crypto/components/CryptoLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -1190,5 +1194,54 @@ describe('calendar empty-capable tiles (kpi / sidebar / events / CB / earnings /
     expect(hasCatalystRows({ treasuryAuctions: [{ auctionDate: '2026-01-15', security: '10Y' }] })).toBe(true);
     expect(hasCatalystRows({ earningsSeason: [{ date: '2026-01-28', ticker: 'AAPL' }] })).toBe(true);
     expect(hasCatalystRows({ optionsExpiry: [{ date: '2026-01-16' }] })).toBe(true);
+  });
+});
+
+describe('crypto empty-capable tiles (sidebar / top-cryptos)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/crypto/components/CryptoDashboard.jsx');
+    expect(dash).not.toMatch(/sidebar:\s*!!isLive/);
+    expect(dash).not.toMatch(/'top-cryptos':\s*!!isLive/);
+    expect(dash).toMatch(/sidebar:\s*hasCryptoSidebarContent/);
+    expect(dash).toMatch(/'top-cryptos':\s*hasTopCryptos/);
+  });
+
+  it('hasCryptoSidebarContent is false for empty / sibling-only / dash-only payloads', () => {
+    expect(hasCryptoSidebarContent()).toBe(false);
+    expect(hasCryptoSidebarContent({})).toBe(false);
+    expect(hasCryptoSidebarContent({ coinMarketData: { isLive: true } })).toBe(false);
+    expect(hasCryptoSidebarContent({ coinMarketData: [] })).toBe(false);
+    expect(hasCryptoSidebarContent({ coinMarketData: { coins: [] } })).toBe(false);
+    expect(hasCryptoSidebarContent({ coinMarketData: [{ symbol: 'SOL', price: 140 }] })).toBe(false);
+    expect(hasCryptoSidebarContent({ fearGreedData: { isLive: true, label: 'Fear' } })).toBe(false);
+    expect(hasCryptoSidebarContent({ ethGas: { isLive: true } })).toBe(false);
+    expect(hasCryptoSidebarContent({ stablecoinMcap: null, btcDominance: null })).toBe(false);
+  });
+
+  it('hasCryptoSidebarContent is true when a painted sidebar metric exists', () => {
+    expect(hasCryptoSidebarContent({ coinMarketData: [{ symbol: 'BTC', price: 64000 }] })).toBe(true);
+    expect(hasCryptoSidebarContent({ coinMarketData: { coins: [{ id: 'ethereum', symbol: 'eth' }] } })).toBe(true);
+    expect(hasCryptoSidebarContent({ coinMarketData: { globalStats: { totalMarketCapT: 2.4 } } })).toBe(true);
+    expect(hasCryptoSidebarContent({ coinMarketData: { total_market_cap_usd: 2.4e12 } })).toBe(true);
+    expect(hasCryptoSidebarContent({ btcDominance: 54.2 })).toBe(true);
+    expect(hasCryptoSidebarContent({ stablecoinMcap: 1.6e11 })).toBe(true);
+    expect(hasCryptoSidebarContent({ ethGas: 18 })).toBe(true);
+    expect(hasCryptoSidebarContent({ ethGas: { average: 22 } })).toBe(true);
+    expect(hasCryptoSidebarContent({ fearGreedData: { value: 42 } })).toBe(true);
+    expect(hasCryptoSidebarContent({ fearGreedData: { score: 28 } })).toBe(true);
+  });
+
+  it('hasTopCryptos is false for empty / sibling-only payloads', () => {
+    expect(hasTopCryptos(null)).toBe(false);
+    expect(hasTopCryptos([])).toBe(false);
+    expect(hasTopCryptos({})).toBe(false);
+    expect(hasTopCryptos({ isLive: true })).toBe(false);
+    expect(hasTopCryptos({ coins: [] })).toBe(false);
+    expect(hasTopCryptos({ globalStats: { totalMarketCapT: 2.4 } })).toBe(false);
+  });
+
+  it('hasTopCryptos is true when a coin row exists', () => {
+    expect(hasTopCryptos([{ symbol: 'SOL', price: 140 }])).toBe(true);
+    expect(hasTopCryptos({ coins: [{ id: 'bitcoin', symbol: 'btc' }] })).toBe(true);
   });
 });
