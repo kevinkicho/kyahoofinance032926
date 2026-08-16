@@ -202,7 +202,9 @@ export const PANEL_PLACEHOLDERS = {
     any('real5y', ['breakevensData.current.real5y', 'tipsYields.5y'], { required: false }),
   ],
   'bonds:duration': [p('buckets', 'durationLadder.buckets')],
-  'bonds:macro': [any('macro', ['macroData', 'nationalDebt', 'fedBalanceSheetHistory.values'])],
+  // Macro Indicators paints macroData + nationalDebt.
+  // fedBalanceSheetHistory was a leftover sibling false-green (bonds:fed).
+  'bonds:macro': [any('macro', ['macroData', 'nationalDebt'])],
   'bonds:foreign-holders': [p('latest', 'latest', { crossMarket: 'treasuryTIC' })],
   'bonds:money-market': [p('sofr', 'sofr', { crossMarket: 'nyfed' })],
   // Auctions live on treasuryAuctions market, not the bonds primary payload.
@@ -212,8 +214,10 @@ export const PANEL_PLACEHOLDERS = {
   'bonds:ecb-yields': [
     any('policy', ['policyRates', 'moneyMarket', 'yieldCurve'], { crossMarket: 'ecb' }),
   ],
+  // Global CB policy rates paint FRED centralBankRates + ECB overlay.
+  // yieldCurveData / treasuryRates were leftover sibling false-greens.
   'bonds:global-rates': [
-    any('curve', ['yieldCurveData', 'treasuryRates', 'macroData.centralBankRates']),
+    any('rates', ['macroData.centralBankRates', 'macroData.centralBankRates.US', 'ecb.policyRates.mainRefinancing.value', 'ecb.policyRates']),
   ],
   'bonds:treasury-cost': [p('latest', 'latest', { crossMarket: 'treasuryCost' })],
 

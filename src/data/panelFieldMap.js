@@ -38,10 +38,11 @@ export const PANEL_FIELD_MAP = {
   'bonds:debtgdp': { field: 'debtToGdpHistory', fieldPath: 'debtToGdpHistory' },
   'bonds:breakevens': { field: 'breakevensData', fieldPath: 'breakevensData' },
   'bonds:duration': { field: 'durationLadder', fieldPath: 'durationLadder' },
+  // Macro Indicators paints macroData + nationalDebt.
+  // fedBalanceSheetHistory is the sibling Fed chart.
   'bonds:macro': { anyOf: [
     { field: 'macroData', fieldPath: 'macroData' },
     { field: 'nationalDebt', fieldPath: 'nationalDebt' },
-    { field: 'fedBalanceSheetHistory', fieldPath: 'fedBalanceSheetHistory' },
   ] },
   'bonds:foreign-holders': { field: 'latest', fieldPath: 'latest', crossMarket: 'treasuryTIC' },
   'bonds:money-market': { field: 'sofr', fieldPath: 'sofr', crossMarket: 'nyfed' },
@@ -50,8 +51,10 @@ export const PANEL_FIELD_MAP = {
     { field: 'auctions', fieldPath: 'auctions', crossMarket: 'treasuryAuctions' },
   ] },
   'bonds:ecb-yields': { field: 'policyRates', fieldPath: 'policyRates', crossMarket: 'ecb' },
+  // Global CB policy rates paint FRED centralBankRates + ECB MRR overlay.
+  // yieldCurveData is the sibling yield-curve panel.
   'bonds:global-rates': { anyOf: [
-    { field: 'yieldCurveData', fieldPath: 'yieldCurveData' },
+    { field: 'centralBankRates', fieldPath: 'macroData.centralBankRates' },
     { field: 'policyRates', fieldPath: 'policyRates', crossMarket: 'ecb' },
   ] },
   'bonds:treasury-cost': { field: 'latest', fieldPath: 'latest', crossMarket: 'treasuryCost' },
