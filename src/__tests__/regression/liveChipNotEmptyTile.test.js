@@ -81,6 +81,18 @@ import {
   hasEqdValuationContent,
   hasEqdEarningsQuality,
 } from '../../markets/equitiesDeepDive/components/EquitiesDeepDiveLiveChips.js';
+import {
+  hasCalendarKpiMetrics,
+  hasCalendarSidebarContent,
+  hasEconomicEvents,
+  hasCentralBanks,
+  hasEarningsSeason,
+  hasKeyDataRows,
+  hasTreasuryAuctions,
+  hasOptionsExpiry,
+  hasReleaseImpactRows,
+  hasCatalystRows,
+} from '../../markets/calendar/CalendarLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -1048,5 +1060,135 @@ describe('equity+ empty-capable tiles (kpi / sidebar / valuation / earnings-qual
     expect(hasEqdEarningsQuality({ factorData: { inFavor: { quality: 3.2 } } })).toBe(true);
     expect(hasEqdEarningsQuality({ factorData: { stocks: [{ ticker: 'MSFT', quality: 81 }] } })).toBe(true);
     expect(hasEqdEarningsQuality({ breadthDivergence: { divergence: -1.4 } })).toBe(true);
+  });
+});
+
+describe('calendar empty-capable tiles (kpi / sidebar / events / CB / earnings / key-data / treasury / options / impact / catalysts)', () => {
+  it('market does not hardcode !!props.isLive on empty-capable tiles', () => {
+    const dash = src('markets/calendar/CalendarMarket.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/sidebar:\s*!!\(props\.isLive/);
+    expect(dash).not.toMatch(/economic:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/'cb-rates':\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/'cb-timeline':\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/earnings:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/'key-data':\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/treasury:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/options:\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/'release-impact':\s*!!props\.isLive/);
+    expect(dash).not.toMatch(/'catalyst-wall':\s*!!props\.isLive/);
+    expect(dash).toMatch(/kpi:\s*hasCalendarKpiMetrics/);
+    expect(dash).toMatch(/sidebar:\s*hasCalendarSidebarContent/);
+    expect(dash).toMatch(/economic:\s*hasEconomicEvents/);
+    expect(dash).toMatch(/'cb-rates':\s*hasCentralBanks/);
+    expect(dash).toMatch(/'cb-timeline':\s*hasCentralBanks/);
+    expect(dash).toMatch(/earnings:\s*hasEarningsSeason/);
+    expect(dash).toMatch(/'key-data':\s*hasKeyDataRows/);
+    expect(dash).toMatch(/treasury:\s*hasTreasuryAuctions/);
+    expect(dash).toMatch(/options:\s*hasOptionsExpiry/);
+    expect(dash).toMatch(/'release-impact':\s*hasReleaseImpactRows/);
+    expect(dash).toMatch(/'catalyst-wall':\s*hasCatalystRows/);
+  });
+
+  it('hasCalendarKpiMetrics is false for empty / sibling-only / meeting-less CB payloads', () => {
+    expect(hasCalendarKpiMetrics()).toBe(false);
+    expect(hasCalendarKpiMetrics({})).toBe(false);
+    expect(hasCalendarKpiMetrics({ isLive: true })).toBe(false);
+    expect(hasCalendarKpiMetrics({ treasuryAuctions: [{ date: '2026-01-15' }] })).toBe(false);
+    expect(hasCalendarKpiMetrics({ keyReleases: [{ date: '2026-01-15', name: 'CPI' }] })).toBe(false);
+    expect(hasCalendarKpiMetrics({ centralBanks: [{ bank: 'Fed' }] })).toBe(false);
+  });
+
+  it('hasCalendarKpiMetrics is true when a painted KPI source exists', () => {
+    expect(hasCalendarKpiMetrics({ economicEvents: [{ date: '2026-01-20', event: 'CPI' }] })).toBe(true);
+    expect(hasCalendarKpiMetrics({ earningsSeason: [{ date: '2026-01-28', ticker: 'AAPL' }] })).toBe(true);
+    expect(hasCalendarKpiMetrics({ centralBanks: [{ bank: 'Fed', nextMeeting: '2026-01-28' }] })).toBe(true);
+    expect(hasCalendarKpiMetrics({ centralBanks: [{ bank: 'ECB', daysUntil: 12 }] })).toBe(true);
+  });
+
+  it('hasCalendarSidebarContent is false for empty / sibling-only payloads', () => {
+    expect(hasCalendarSidebarContent()).toBe(false);
+    expect(hasCalendarSidebarContent({})).toBe(false);
+    expect(hasCalendarSidebarContent({ isLive: true })).toBe(false);
+    expect(hasCalendarSidebarContent({ coverage: { low: true } })).toBe(false);
+  });
+
+  it('hasCalendarSidebarContent is true when a sidebar list has rows', () => {
+    expect(hasCalendarSidebarContent({ economicEvents: [{ date: '2026-01-20', event: 'CPI' }] })).toBe(true);
+    expect(hasCalendarSidebarContent({ centralBanks: [{ bank: 'Fed' }] })).toBe(true);
+    expect(hasCalendarSidebarContent({ earningsSeason: [{ ticker: 'MSFT' }] })).toBe(true);
+    expect(hasCalendarSidebarContent({ keyReleases: [{ name: 'NFP' }] })).toBe(true);
+    expect(hasCalendarSidebarContent({ treasuryAuctions: [{ date: '2026-01-15' }] })).toBe(true);
+    expect(hasCalendarSidebarContent({ optionsExpiry: [{ date: '2026-01-16' }] })).toBe(true);
+  });
+
+  it('list tiles are false for empty / sibling-only payloads', () => {
+    expect(hasEconomicEvents(null)).toBe(false);
+    expect(hasEconomicEvents([])).toBe(false);
+    expect(hasEconomicEvents({ isLive: true })).toBe(false);
+    expect(hasCentralBanks(null)).toBe(false);
+    expect(hasCentralBanks([])).toBe(false);
+    expect(hasEarningsSeason(null)).toBe(false);
+    expect(hasEarningsSeason([])).toBe(false);
+    expect(hasTreasuryAuctions(null)).toBe(false);
+    expect(hasTreasuryAuctions([])).toBe(false);
+    expect(hasOptionsExpiry(null)).toBe(false);
+    expect(hasOptionsExpiry([])).toBe(false);
+  });
+
+  it('list tiles are true when their own rows exist', () => {
+    expect(hasEconomicEvents([{ date: '2026-01-20', event: 'CPI' }])).toBe(true);
+    expect(hasCentralBanks([{ bank: 'Fed', nextMeeting: '2026-01-28' }])).toBe(true);
+    expect(hasEarningsSeason([{ ticker: 'AAPL', date: '2026-01-28' }])).toBe(true);
+    expect(hasTreasuryAuctions([{ date: '2026-01-15', security: '10Y' }])).toBe(true);
+    expect(hasOptionsExpiry([{ date: '2026-01-16', type: 'Monthly' }])).toBe(true);
+  });
+
+  it('hasKeyDataRows is false for empty / non-US-FRED events', () => {
+    expect(hasKeyDataRows(null, null)).toBe(false);
+    expect(hasKeyDataRows([], [])).toBe(false);
+    expect(hasKeyDataRows({ isLive: true }, { isLive: true })).toBe(false);
+    expect(hasKeyDataRows([], [{ country: 'DE', source: 'Econdb', event: 'CPI' }])).toBe(false);
+    expect(hasKeyDataRows([], [{ country: 'US', source: 'Yahoo', event: 'Earnings' }])).toBe(false);
+  });
+
+  it('hasKeyDataRows is true when keyReleases exist or a US FRED event can stand in', () => {
+    expect(hasKeyDataRows([{ name: 'CPI', date: '2026-01-15' }], [])).toBe(true);
+    expect(hasKeyDataRows([], [{ country: 'US', source: 'FRED', event: 'CPI', date: '2026-01-15' }])).toBe(true);
+  });
+
+  it('hasReleaseImpactRows is false for empty / earnings-auction / low-importance foreign rows', () => {
+    expect(hasReleaseImpactRows()).toBe(false);
+    expect(hasReleaseImpactRows({})).toBe(false);
+    expect(hasReleaseImpactRows({ isLive: true })).toBe(false);
+    expect(hasReleaseImpactRows({ keyReleases: [{ name: 'CPI' }] })).toBe(false);
+    expect(hasReleaseImpactRows({ economicEvents: [{ date: '2026-01-20', event: 'AAPL earnings', country: 'US', importance: 3 }] })).toBe(false);
+    expect(hasReleaseImpactRows({ economicEvents: [{ date: '2026-01-20', event: 'CPI', country: 'DE', importance: 1 }] })).toBe(false);
+  });
+
+  it('hasReleaseImpactRows is true when a dated key release or US/FRED/high-importance event exists', () => {
+    expect(hasReleaseImpactRows({ keyReleases: [{ date: '2026-01-15', name: 'CPI' }] })).toBe(true);
+    expect(hasReleaseImpactRows({ keyReleases: [{ date: '2026-01-15' }] })).toBe(true);
+    expect(hasReleaseImpactRows({ economicEvents: [{ date: '2026-01-20', event: 'CPI', country: 'US' }] })).toBe(true);
+    expect(hasReleaseImpactRows({ economicEvents: [{ date: '2026-01-20', event: 'HICP', source: 'FRED' }] })).toBe(true);
+    expect(hasReleaseImpactRows({ economicEvents: [{ date: '2026-01-20', event: 'GDP', importance: 2 }] })).toBe(true);
+  });
+
+  it('hasCatalystRows is false for empty / dateless / sibling-only payloads', () => {
+    expect(hasCatalystRows()).toBe(false);
+    expect(hasCatalystRows({})).toBe(false);
+    expect(hasCatalystRows({ isLive: true })).toBe(false);
+    expect(hasCatalystRows({ economicEvents: [{ event: 'CPI' }] })).toBe(false);
+    expect(hasCatalystRows({ centralBanks: [{ bank: 'Fed' }] })).toBe(false);
+    expect(hasCatalystRows({ treasuryAuctions: [{ security: '10Y' }] })).toBe(false);
+  });
+
+  it('hasCatalystRows is true when any dated calendar row exists', () => {
+    expect(hasCatalystRows({ economicEvents: [{ date: '2026-01-20', event: 'CPI' }] })).toBe(true);
+    expect(hasCatalystRows({ keyReleases: [{ date: '2026-01-15', name: 'NFP' }] })).toBe(true);
+    expect(hasCatalystRows({ centralBanks: [{ nextMeeting: '2026-01-28', bank: 'Fed' }] })).toBe(true);
+    expect(hasCatalystRows({ treasuryAuctions: [{ auctionDate: '2026-01-15', security: '10Y' }] })).toBe(true);
+    expect(hasCatalystRows({ earningsSeason: [{ date: '2026-01-28', ticker: 'AAPL' }] })).toBe(true);
+    expect(hasCatalystRows({ optionsExpiry: [{ date: '2026-01-16' }] })).toBe(true);
   });
 });

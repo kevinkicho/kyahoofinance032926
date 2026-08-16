@@ -8,6 +8,18 @@ import CentralBankSchedule from './components/CentralBankSchedule';
 import EarningsSeason from './components/EarningsSeason';
 import KeyReleases from './components/KeyReleases';
 import { normalizeCalendarData } from '../../data/marketNormalizers';
+import {
+  hasCalendarKpiMetrics,
+  hasCalendarSidebarContent,
+  hasEconomicEvents,
+  hasCentralBanks,
+  hasEarningsSeason,
+  hasKeyDataRows,
+  hasTreasuryAuctions,
+  hasOptionsExpiry,
+  hasReleaseImpactRows,
+  hasCatalystRows,
+} from './CalendarLiveChips.js';
 import './CalendarMarket.css';
 
 
@@ -723,17 +735,17 @@ function CalendarMarket({ centralData } = {}) {
     return {
       __render: (panelId) => bodies[panelId] ?? null,
       __live: {
-        kpi: !!props.isLive,
-        sidebar: !!(props.isLive || dataReady),
-        economic: !!props.isLive,
-        'cb-rates': !!props.isLive,
-        'cb-timeline': !!props.isLive,
-        earnings: !!props.isLive,
-        'key-data': !!props.isLive,
-        treasury: !!props.isLive,
-        options: !!props.isLive,
-        'release-impact': !!props.isLive,
-        'catalyst-wall': !!props.isLive,
+        kpi: hasCalendarKpiMetrics(props),
+        sidebar: hasCalendarSidebarContent(props),
+        economic: hasEconomicEvents(props.economicEvents),
+        'cb-rates': hasCentralBanks(props.centralBanks),
+        'cb-timeline': hasCentralBanks(props.centralBanks),
+        earnings: hasEarningsSeason(props.earningsSeason),
+        'key-data': hasKeyDataRows(props.keyReleases, props.economicEvents),
+        treasury: hasTreasuryAuctions(props.treasuryAuctions),
+        options: hasOptionsExpiry(props.optionsExpiry),
+        'release-impact': hasReleaseImpactRows(props),
+        'catalyst-wall': hasCatalystRows(props),
       },
       __subtitle: {
         sidebar: dataReady
