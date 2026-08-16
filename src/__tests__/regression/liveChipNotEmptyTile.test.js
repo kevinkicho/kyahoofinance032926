@@ -182,6 +182,8 @@ import {
   usTradeBlocPoints,
   usTradeBlocs,
   usTradeSubtitle,
+  physicalPressureRows,
+  hasPhysicalPressureRows,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3407,5 +3409,87 @@ describe('commodities leftover empty-capable tiles (us-trade)', () => {
     expect(usTradeBlocs({
       blocs: [{ isLive: true }, { code: '-', label: 'World', series: [{ month: '2024-01', balanceB: -68.4 }] }],
     }).map((r) => r.code)).toEqual(['-']);
+  });
+});
+
+describe('commodities leftover empty-capable tiles (physical-pressure)', () => {
+  it('dashboard does not hardcode leftover isLive on physical-pressure', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/'physical-pressure':\s*!!\(eiaPetCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/'physical-pressure':\s*hasPhysicalPressureRows\(eiaPetCtx\?\.data, usdaCtx\?\.data, tradeCtx\?\.data\)/);
+  });
+
+  it('hasPhysicalPressureRows is false for empty / leftover isLive bags', () => {
+    expect(hasPhysicalPressureRows()).toBe(false);
+    expect(hasPhysicalPressureRows(null, null, null)).toBe(false);
+    expect(hasPhysicalPressureRows({}, {}, {})).toBe(false);
+    expect(hasPhysicalPressureRows({ isLive: true }, { isLive: true }, { isLive: true })).toBe(false);
+    expect(hasPhysicalPressureRows({ lastUpdated: '2024-01' }, { lastUpdated: '2024-01' }, { lastUpdated: '2024-01' })).toBe(false);
+    expect(hasPhysicalPressureRows(
+      { isLive: true, crudeStocks: { latest: { isLive: true } }, gasoline: { latest: { isLive: true } } },
+      { isLive: true, summary: { isLive: true } },
+      { isLive: true, summary: { isLive: true } },
+    )).toBe(false);
+    expect(hasPhysicalPressureRows(
+      { crudeStocks: { latest: { value: '432100' } } },
+      { summary: [{ key: 'corn', latest: { value: '4.12' } }] },
+      { summary: { worldBalanceB: '-68.4' } },
+    )).toBe(false);
+    expect(hasPhysicalPressureRows(
+      { crudeStocks: { latest: { value: true } } },
+      { summary: [{ isLive: true, latest: true }] },
+      { summary: { worldBalanceB: true, latestMonth: '2024-01' } },
+    )).toBe(false);
+  });
+
+  it('hasPhysicalPressureRows is true when a painted row exists', () => {
+    expect(hasPhysicalPressureRows({ crudeStocks: { latest: { value: 432100 } } })).toBe(true);
+    expect(hasPhysicalPressureRows(null, { summary: [{ key: 'corn', desc: 'Corn', latest: { value: 4.12 } }] })).toBe(true);
+    expect(hasPhysicalPressureRows(null, null, { summary: { worldBalanceB: -68.4 } })).toBe(true);
+    expect(hasPhysicalPressureRows(
+      { isLive: true, gasoline: { latest: { isLive: true } } },
+      { isLive: true, summary: [{ isLive: true }, { key: 'wheat', desc: 'Wheat', latest: { value: 5.48 } }] },
+      { isLive: true, summary: { isLive: true } },
+    )).toBe(true);
+  });
+
+  it('physicalPressureRows skips leftover siblings so remount does not crash', () => {
+    expect(() => physicalPressureRows({ isLive: true }, { isLive: true, summary: { isLive: true } }, { isLive: true, summary: { isLive: true } })).not.toThrow();
+    expect(() => physicalPressureRows(
+      { crudeStocks: { latest: { isLive: true }, yoyPct: { isLive: true } } },
+      { summary: [null, { isLive: true }, 'x', { desc: { isLive: true }, latest: { value: 4.12 } }] },
+      { summary: { worldBalanceB: { isLive: true }, latestMonth: { isLive: true } } },
+    )).not.toThrow();
+    const rows = physicalPressureRows(
+      { isLive: true, crudeStocks: { latest: { value: 432100 }, yoyPct: true }, gasoline: { latest: { isLive: true } } },
+      { summary: [{ isLive: true }, { key: 'corn', desc: 'Corn', unit: '$/bu', latest: { value: 4.12 }, yoyPct: { isLive: true } }] },
+      { summary: { worldBalanceB: -68.4, latestMonth: { isLive: true } } },
+    );
+    expect(rows.map((r) => r.market)).toEqual(['Crude stocks', 'Corn', 'US trade balance']);
+    expect(rows.every((r) => typeof r.market === 'string')).toBe(true);
+    expect(rows.every((r) => typeof r.value === 'string')).toBe(true);
+    expect(rows.every((r) => typeof r.unit === 'string')).toBe(true);
+    expect(rows.every((r) => typeof r.pressure === 'string')).toBe(true);
+    expect(rows.every((r) => typeof r.read === 'string')).toBe(true);
+    expect(() => rows.map((r) => r.read.slice(0, 3))).not.toThrow();
+    expect(rows[0].value).toBe('432');
+    expect(rows[0].read).toBe('No YoY');
+    expect(rows[1].read).toBe('No YoY');
+    expect(rows[2].read).toBe('latest month');
+    expect(rows[2].value).toBe('\u221268.4');
+  });
+
+  it('physicalPressureRows paints finite yoy and trade month', () => {
+    const rows = physicalPressureRows(
+      { crudeStocks: { latest: { value: 432100 }, yoyPct: 1.2 } },
+      { summary: [{ desc: 'Corn', unit: '$/bu', latest: { value: 4.12 }, yoyPct: -6.2 }] },
+      { summary: { worldBalanceB: -68.4, latestMonth: '2026-06' } },
+    );
+    expect(rows[0].read).toBe('+1.2% YoY');
+    expect(rows[0].pressure).toBe('Looser');
+    expect(rows[1].read).toBe('-6.2% YoY');
+    expect(rows[1].pressure).toBe('Lower');
+    expect(rows[2].read).toBe('2026-06');
+    expect(rows[2].pressure).toBe('Import demand');
   });
 });

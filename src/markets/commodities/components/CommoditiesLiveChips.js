@@ -205,3 +205,124 @@ export function usTradeSubtitle(tradeData) {
   const bal = summary.worldBalanceB;
   return month + ': $' + exp.toFixed(1) + 'B exports · $' + imp.toFixed(1) + 'B imports · net ' + (bal >= 0 ? '+' : '') + '$' + bal.toFixed(1) + 'B';
 }
+
+/** Physical Pressure table rows. Leftover isLive / bag-only sources stay empty. */
+function fmtPressureNum(n, digits) {
+  if (!isFiniteNumber(n)) return null;
+  return n.toLocaleString('en-US', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function pressureYoyRead(yoy) {
+  if (!isFiniteNumber(yoy)) return 'No YoY';
+  return (yoy >= 0 ? '+' : '') + yoy.toFixed(1) + '% YoY';
+}
+
+function pressureFromYoy(yoy, up, down) {
+  return isFiniteNumber(yoy) && yoy > 0 ? up : down;
+}
+
+function usdaLatestNumber(item) {
+  if (isFiniteNumber(item?.latest)) return item.latest;
+  const latest = item?.latest;
+  if (!latest || typeof latest !== 'object' || Array.isArray(latest)) return null;
+  return isFiniteNumber(latest.value) ? latest.value : null;
+}
+
+export function physicalPressureRows(eiaData, usdaData, tradeData) {
+  const rows = [];
+
+  const crude = eiaPetrolLatest(eiaData, 'crudeStocks');
+  if (crude) {
+    const value = fmtPressureNum(crude.value / 1000, 0);
+    if (value != null) {
+      rows.push({
+        market: 'Crude stocks',
+        value,
+        unit: 'M bbl',
+        pressure: pressureFromYoy(eiaData?.crudeStocks?.yoyPct, 'Looser', 'Tighter'),
+        read: pressureYoyRead(eiaData?.crudeStocks?.yoyPct),
+      });
+    }
+  }
+
+  const gas = eiaPetrolLatest(eiaData, 'gasoline');
+  if (gas) {
+    const value = fmtPressureNum(gas.value, 2);
+    if (value != null) {
+      rows.push({
+        market: 'Gasoline',
+        value,
+        unit: '$/gal',
+        pressure: pressureFromYoy(eiaData?.gasoline?.yoyPct, 'Inflationary', 'Disinflationary'),
+        read: pressureYoyRead(eiaData?.gasoline?.yoyPct),
+      });
+    }
+  }
+
+  const ng = eiaPetrolLatest(eiaData, 'naturalGas');
+  if (ng) {
+    const value = fmtPressureNum(ng.value, 2);
+    if (value != null) {
+      rows.push({
+        market: 'Henry Hub gas',
+        value,
+        unit: '$/MMBtu',
+        pressure: pressureFromYoy(eiaData?.naturalGas?.yoyPct, 'Tighter', 'Softer'),
+        read: pressureYoyRead(eiaData?.naturalGas?.yoyPct),
+      });
+    }
+  }
+
+  const summary = Array.isArray(usdaData?.summary) ? usdaData.summary : [];
+  for (const item of summary.slice(0, 4)) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const raw = usdaLatestNumber(item);
+    if (raw == null) continue;
+    const value = fmtPressureNum(raw, 2);
+    if (value == null) continue;
+    const market = typeof item.desc === 'string' && item.desc
+      ? item.desc
+      : (typeof item.key === 'string' && item.key ? item.key : '');
+    if (!market) continue;
+    const unitFromLatest = item.latest && typeof item.latest === 'object' && !Array.isArray(item.latest)
+      && typeof item.latest.unit === 'string'
+      ? item.latest.unit
+      : '';
+    const unit = typeof item.unit === 'string' ? item.unit : unitFromLatest;
+    rows.push({
+      market,
+      value,
+      unit,
+      pressure: pressureFromYoy(item.yoyPct, 'Upward', 'Lower'),
+      read: pressureYoyRead(item.yoyPct),
+    });
+  }
+
+  const tradeSummary = tradeData?.summary;
+  if (tradeSummary && typeof tradeSummary === 'object' && !Array.isArray(tradeSummary)
+      && isFiniteNumber(tradeSummary.worldBalanceB)) {
+    const bal = tradeSummary.worldBalanceB;
+    const abs = fmtPressureNum(Math.abs(bal), 1);
+    if (abs != null) {
+      const month = typeof tradeSummary.latestMonth === 'string' && tradeSummary.latestMonth
+        ? tradeSummary.latestMonth
+        : 'latest month';
+      rows.push({
+        market: 'US trade balance',
+        value: (bal >= 0 ? '+' : '−') + abs,
+        unit: '$B',
+        pressure: bal < 0 ? 'Import demand' : 'Export surplus',
+        read: month,
+      });
+    }
+  }
+
+  return rows;
+}
+
+export function hasPhysicalPressureRows(eiaData, usdaData, tradeData) {
+  return physicalPressureRows(eiaData, usdaData, tradeData).length > 0;
+}

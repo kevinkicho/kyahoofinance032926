@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -228,71 +228,10 @@ function CommoditiesDashboard({
     return rows.filter(row => row.value != null);
   }, [eiaPetCtx]);
 
-  const physicalPressureRows = useMemo(() => {
-    const pctRead = yoy => yoy == null ? 'No YoY' : `${Number(yoy) >= 0 ? '+' : ''}${Number(yoy).toFixed(1)}% YoY`;
-    // Split numeric display from unit so the Latest column can align values
-    // (tabular, right) and units (fixed-width, left) independently.
-    const fmtNum = (n, digits = 2) => {
-      const v = Number(n);
-      if (!Number.isFinite(v)) return null;
-      return v.toLocaleString('en-US', {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-      });
-    };
-    const rows = [];
-    const eia = eiaPetCtx?.data || {};
-    if (eia.crudeStocks?.latest?.value != null) {
-      rows.push({
-        market: 'Crude stocks',
-        value: fmtNum(Number(eia.crudeStocks.latest.value) / 1000, 0),
-        unit: 'M bbl',
-        pressure: eia.crudeStocks.yoyPct != null && Number(eia.crudeStocks.yoyPct) > 0 ? 'Looser' : 'Tighter',
-        read: pctRead(eia.crudeStocks.yoyPct),
-      });
-    }
-    if (eia.gasoline?.latest?.value != null) {
-      rows.push({
-        market: 'Gasoline',
-        value: fmtNum(eia.gasoline.latest.value, 2),
-        unit: '$/gal',
-        pressure: eia.gasoline.yoyPct != null && Number(eia.gasoline.yoyPct) > 0 ? 'Inflationary' : 'Disinflationary',
-        read: pctRead(eia.gasoline.yoyPct),
-      });
-    }
-    if (eia.naturalGas?.latest?.value != null) {
-      rows.push({
-        market: 'Henry Hub gas',
-        value: fmtNum(eia.naturalGas.latest.value, 2),
-        unit: '$/MMBtu',
-        pressure: eia.naturalGas.yoyPct != null && Number(eia.naturalGas.yoyPct) > 0 ? 'Tighter' : 'Softer',
-        read: pctRead(eia.naturalGas.yoyPct),
-      });
-    }
-    (usdaCtx?.data?.summary || []).slice(0, 4).forEach(item => {
-      if (item?.latest?.value == null && item?.latest == null) return;
-      const raw = item.latest?.value ?? item.latest;
-      if (raw == null || !Number.isFinite(Number(raw))) return;
-      rows.push({
-        market: item.desc || item.key,
-        value: fmtNum(raw, 2),
-        unit: item.unit || item.latest?.unit || '',
-        pressure: item.yoyPct != null && Number(item.yoyPct) > 0 ? 'Upward' : 'Lower',
-        read: pctRead(item.yoyPct),
-      });
-    });
-    if (tradeCtx?.data?.summary?.worldBalanceB != null) {
-      const bal = Number(tradeCtx.data.summary.worldBalanceB);
-      rows.push({
-        market: 'US trade balance',
-        value: `${bal >= 0 ? '+' : '−'}${fmtNum(Math.abs(bal), 1)}`,
-        unit: '$B',
-        pressure: bal < 0 ? 'Import demand' : 'Export surplus',
-        read: tradeCtx.data.summary.latestMonth || 'latest month',
-      });
-    }
-    return rows.filter(row => row.value != null);
-  }, [eiaPetCtx, usdaCtx, tradeCtx]);
+  const physicalPressureRows = useMemo(
+    () => buildPhysicalPressureRows(eiaPetCtx?.data, usdaCtx?.data, tradeCtx?.data),
+    [eiaPetCtx, usdaCtx, tradeCtx],
+  );
 
   // Live $/unit quotes for strategic materials. Prefer dashboard rows, then
   // Yahoo futures from the enhanced payload (same feed as Commodity Prices),
@@ -1269,7 +1208,7 @@ function CommoditiesDashboard({
       'usda-ag': !!(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': hasUsTradeSeries(tradeCtx?.data),
-      'physical-pressure': !!(eiaPetCtx?.data?.isLive || usdaCtx?.data?.isLive || tradeCtx?.data?.isLive),
+      'physical-pressure': hasPhysicalPressureRows(eiaPetCtx?.data, usdaCtx?.data, tradeCtx?.data),
       'materials-grid': materialPriceMap.size > 0,
       criticality: true,
       'battery-chain': materialPriceMap.size > 0,
@@ -1316,6 +1255,7 @@ function CommoditiesDashboard({
       'usda-ag': !(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': !hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': !hasUsTradeSeries(tradeCtx?.data),
+      'physical-pressure': !hasPhysicalPressureRows(eiaPetCtx?.data, usdaCtx?.data, tradeCtx?.data),
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
     __noFooter: {},
