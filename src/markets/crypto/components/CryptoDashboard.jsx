@@ -14,6 +14,7 @@ import {
   hasOnChainMetrics,
   hasOnChainChart,
   hashrateHistoryPoints,
+  coinRows,
 } from './CryptoLiveChips.js';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
@@ -72,9 +73,7 @@ function CryptoDashboard({
     return [];
   }, [defiData]);
 
-  const coins = useMemo(() => {
-    return (coinMarketData?.coins || coinMarketData || []).slice(0, 10);
-  }, [coinMarketData]);
+  const coins = useMemo(() => coinRows(coinMarketData).slice(0, 10), [coinMarketData]);
 
   const fgiValue = fearGreedData?.value ?? fearGreedData?.score ?? null;
   const fgiLabel = fearGreedData?.label

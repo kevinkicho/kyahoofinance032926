@@ -23,6 +23,11 @@ function totalMarketCap(coinMarketData) {
   return null;
 }
 
+/** Coin rows the table / sidebar can slice. Leftover isLive / coins bag remount-crash .slice. */
+export function coinRows(coinMarketData) {
+  return coinList(coinMarketData);
+}
+
 /** Sidebar always paints Market + FGI dashes; live only when a painted metric is real. */
 export function hasCryptoSidebarContent({
   coinMarketData,

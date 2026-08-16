@@ -164,6 +164,7 @@ import {
   hasOnChainMetrics,
   hasOnChainChart,
   hashrateHistoryPoints,
+  coinRows,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
 import {
   hasFaoPriceSeries,
@@ -1995,6 +1996,40 @@ describe('crypto empty-capable tiles (sidebar / top-cryptos)', () => {
   it('hasTopCryptos is true when a coin row exists', () => {
     expect(hasTopCryptos([{ symbol: 'SOL', price: 140 }])).toBe(true);
     expect(hasTopCryptos({ coins: [{ id: 'bitcoin', symbol: 'btc' }] })).toBe(true);
+  });
+});
+
+describe('crypto leftover empty-capable tiles (top-cryptos remount)', () => {
+  it('dashboard and sidebar do not slice leftover isLive coin bags', () => {
+    const dash = src('markets/crypto/components/CryptoDashboard.jsx');
+    expect(dash).not.toMatch(/coinMarketData\?\.coins \|\| coinMarketData \|\| \[\]/);
+    expect(dash).toMatch(/coinRows\(coinMarketData\)/);
+    const side = src('markets/crypto/components/CryptoSidebar.jsx');
+    expect(side).not.toMatch(/coinMarketData\?\.coins \|\| coinMarketData \|\| \[\]/);
+    expect(side).toMatch(/coinRows\(coinMarketData\)/);
+  });
+
+  it('coinRows skips leftover isLive / coins bags so remount does not crash', () => {
+    expect(() => coinRows({ isLive: true })).not.toThrow();
+    expect(() => coinRows({ coins: { isLive: true } })).not.toThrow();
+    expect(() => coinRows({ coins: true })).not.toThrow();
+    expect(coinRows({ isLive: true })).toEqual([]);
+    expect(coinRows({ coins: { isLive: true } })).toEqual([]);
+    expect(coinRows({ coins: true })).toEqual([]);
+    expect(() => coinRows({ isLive: true }).slice(0, 10)).not.toThrow();
+    expect(() => coinRows({ coins: { isLive: true } }).slice(0, 10)).not.toThrow();
+    const rows = coinRows({
+      isLive: true,
+      coins: [
+        { isLive: true },
+        { symbol: 'BTC', id: 'bitcoin', price: 64000 },
+      ],
+    });
+    expect(rows.map((c) => c.symbol)).toEqual([undefined, 'BTC']);
+    expect(() => rows.slice(0, 10).map((c) => c.symbol)).not.toThrow();
+    expect(hasTopCryptos({ isLive: true })).toBe(false);
+    expect(hasTopCryptos({ coins: { isLive: true } })).toBe(false);
+    expect(hasTopCryptos({ coins: [{ symbol: 'BTC', price: 64000 }] })).toBe(true);
   });
 });
 

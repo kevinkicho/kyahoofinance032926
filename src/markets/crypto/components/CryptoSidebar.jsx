@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import { coinRows } from './CryptoLiveChips.js';
 import './CryptoSidebar.css';
 
 function fgiLabel(value) {
@@ -41,8 +42,9 @@ export default function CryptoSidebar({
   isCurrent,
 }) {
   const coins = useMemo(() => {
-    if (convertedCoins && convertedCoins.length) return convertedCoins;
-    return (coinMarketData?.coins || coinMarketData || []).slice(0, 10);
+    const converted = coinRows(convertedCoins);
+    if (converted.length) return converted.slice(0, 10);
+    return coinRows(coinMarketData).slice(0, 10);
   }, [coinMarketData, convertedCoins]);
 
   const btcData = useMemo(() => coins.find(c => c.symbol === 'BTC' || c.id === 'bitcoin'), [coins]);
