@@ -349,8 +349,10 @@ export const PANEL_REGISTRY = {
     { id: 'cftc', title: 'CFTC Positioning', field: 'cftcData', fieldPath: 'cftcData', source: 'sentiment.js', external: [{ name: 'CFTC Socrata', seriesIds: [] }], renderCheck: 'cftcData && cftcData.length > 0' },
     { id: 'risk-dashboard', title: 'Risk Dashboard', field: 'riskData', fieldPath: 'riskData', source: 'sentiment.js', external: [{ name: 'FRED', seriesIds: ['BAMLH0A0HYM2','T10Y2Y'] }], renderCheck: 'riskData && Object.keys(riskData).length > 0' },
     { id: 'cross-asset', title: 'Cross-Asset Returns', field: 'returnsData', fieldPath: 'returnsData', source: 'sentiment.js', external: [{ name: 'Yahoo Finance', seriesIds: [] }], renderCheck: 'returnsData && Object.keys(returnsData).length > 0' },
-    { id: 'eurostat-confidence', title: 'Eurostat Confidence', field: 'eurostatConfidence', fieldPath: 'eurostatConfidence', crossMarket: 'eurostat', source: 'eurostat.js', external: [{ name: 'Eurostat', seriesIds: [] }], renderCheck: 'eurostatCtx?.data?.confidence' },
-    { id: 'oecd-leading', title: 'OECD Leading Indicators', field: 'oecdCli', fieldPath: 'oecdCli', crossMarket: 'globalMacro', source: 'globalMacro.js', external: [{ name: 'OECD (via FRED)', seriesIds: ['USALOLITOAASTSAM'] }], renderCheck: 'macroCtx?.data?.oecdCli && Object.keys(macroCtx.data.oecdCli).length > 0' },
+    { id: 'fsi', title: 'Financial Stress Index', field: 'fsiHistory', fieldPath: 'fsiHistory', source: 'sentiment.js', external: [{ name: 'FRED', seriesIds: ['STLFSI4'] }], renderCheck: 'fsiHistory && (fsiHistory.values?.length > 0 || Object.keys(fsiHistory).length > 0)' },
+    { id: 'leverage', title: 'Leverage Metrics', field: 'marginDebt', fieldPath: 'marginDebt', source: 'sentiment.js', external: [{ name: 'FINRA / FRED', seriesIds: [] }], renderCheck: 'marginDebt || consumerCredit || mutualFundFlows' },
+    { id: 'news-sentiment', title: 'Daily News Sentiment Index (SF Fed)', field: 'series', fieldPath: 'series', crossMarket: 'fedNewsSentiment', source: 'fedNewsSentiment.js', external: [{ name: 'SF Fed', seriesIds: [] }], renderCheck: 'newsCtx?.data?.series' },
+    { id: 'fed-risk-mood', title: 'Fed Narrative & Risk Mood', field: 'series', fieldPath: 'series', crossMarket: 'fedNewsSentiment', source: 'fedNewsSentiment.js', external: [{ name: 'SF Fed', seriesIds: [] }], renderCheck: 'newsCtx?.data?.series' },
   ],
 
   calendar: [

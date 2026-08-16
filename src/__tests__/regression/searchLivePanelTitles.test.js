@@ -178,4 +178,18 @@ describe('panelRegistry market ids', () => {
     expect(getRegistryEntry('calendar', 'economic-calendar')).toBeNull();
     expect(getRegistryEntry('calendar', 'central-bank-schedule')).toBeNull();
   });
+
+  it('Sentiment registry ids match live tiles, not eurostat-confidence / oecd-leading', () => {
+    const live = new Set((MARKET_PANELS.sentiment || []).map((p) => p.id));
+    const stale = ['eurostat-confidence', 'oecd-leading'];
+    const ids = (PANEL_REGISTRY.sentiment || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['fear-greed', 'cftc', 'risk-dashboard', 'cross-asset', 'fsi', 'leverage', 'news-sentiment', 'fed-risk-mood']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('sentiment', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('sentiment', 'eurostat-confidence')).toBeNull();
+    expect(getRegistryEntry('sentiment', 'oecd-leading')).toBeNull();
+  });
 });
