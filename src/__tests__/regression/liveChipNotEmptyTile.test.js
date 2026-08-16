@@ -87,6 +87,7 @@ import {
   hasCrossAssetReturns,
   hasRiskDashboardContent,
   hasNewsSentimentSeries,
+  hasFedRiskMoodContent,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
 import {
   hasBondsKpiMetrics,
@@ -2195,5 +2196,37 @@ describe('fx leftover empty-capable tiles (dxy / cot)', () => {
     const series = cotHistorySeries({ isLive: true, lastUpdated: '2024-01', EUR: [{ date: '2024-01-01', net: 4 }] });
     expect(series.map(([ccy]) => ccy)).toEqual(['EUR']);
     expect(() => series.map(([, arr]) => arr.map((d) => d.net))).not.toThrow();
+  });
+});
+
+describe('sentiment leftover empty-capable tiles (fed-risk-mood)', () => {
+  it('dashboard does not hardcode leftover riskData bag existence on fed-risk-mood', () => {
+    const dash = src('markets/sentiment/components/SentimentDashboard.jsx');
+    expect(dash).not.toMatch(/'fed-risk-mood':\s*!!\(newsSentimentData\?\.series\?\.length \|\| riskData\)/);
+    expect(dash).toMatch(/'fed-risk-mood':\s*hasFedRiskMoodContent/);
+  });
+
+  it('hasFedRiskMoodContent is false for empty / leftover bag-only payloads', () => {
+    expect(hasFedRiskMoodContent()).toBe(false);
+    expect(hasFedRiskMoodContent({})).toBe(false);
+    expect(hasFedRiskMoodContent({ riskData: { isLive: true } })).toBe(false);
+    expect(hasFedRiskMoodContent({ riskData: {} })).toBe(false);
+    expect(hasFedRiskMoodContent({ riskData: { signals: [] } })).toBe(false);
+    expect(hasFedRiskMoodContent({ newsSentimentData: { isLive: true, latest: { date: '2024-01-02', sentiment: 0.12 } } })).toBe(false);
+    expect(hasFedRiskMoodContent({ newsSentimentData: { series: [] } })).toBe(false);
+    expect(hasFedRiskMoodContent({ newsSentimentData: { series: [{ date: '2024-01-02' }] } })).toBe(false);
+    expect(hasFedRiskMoodContent({ fearGreedData: { isLive: true } })).toBe(false);
+    expect(hasFedRiskMoodContent({ fsiHistory: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasFedRiskMoodContent({ fsiHistory: { dates: ['2024-01'], values: [] } })).toBe(false);
+  });
+
+  it('hasFedRiskMoodContent is true when a painted card number exists', () => {
+    expect(hasFedRiskMoodContent({ newsSentimentData: { series: [{ date: '2024-01-02', sentiment: 0.12 }] } })).toBe(true);
+    expect(hasFedRiskMoodContent({ fearGreedData: { value: 42 } })).toBe(true);
+    expect(hasFedRiskMoodContent({ fearGreedData: { score: 55 } })).toBe(true);
+    expect(hasFedRiskMoodContent({ riskData: { overallScore: 61 } })).toBe(true);
+    expect(hasFedRiskMoodContent({ fsiHistory: { values: [-0.4] } })).toBe(true);
+    expect(hasFedRiskMoodContent({ riskData: { fsi: 0.8 } })).toBe(true);
+    expect(hasFedRiskMoodContent({ riskData: { signals: [{ name: 'Financial Stress', value: 1.1 }] } })).toBe(true);
   });
 });

@@ -122,3 +122,29 @@ export function hasRiskDashboardContent({
 export function hasNewsSentimentSeries(newsSentimentData) {
   return Array.isArray(newsSentimentData?.series) && newsSentimentData.series.length > 0;
 }
+
+function fsiFromSignals(riskData) {
+  const signals = riskData?.signals;
+  if (!Array.isArray(signals)) return null;
+  const hit = signals.find((s) => /financial stress|stlfsi|fsi/i.test(s?.name || ''));
+  return hit ? num(hit.value) : null;
+}
+
+/** Fed-risk-mood always paints 5 cards; leftover riskData bag still dashes all but fake +0 Mixed. */
+export function hasFedRiskMoodContent({
+  newsSentimentData,
+  fearGreedData,
+  riskData,
+  fsiHistory,
+} = {}) {
+  const series = newsSentimentData?.series;
+  if (Array.isArray(series) && series.length) {
+    const latest = series[series.length - 1];
+    if (num(latest?.sentiment) != null) return true;
+  }
+  if (num(fearGreedData?.value, fearGreedData?.score, fearGreedData?.altmeScore) != null) return true;
+  if (num(riskData?.overallScore) != null) return true;
+  if (num(lastValue(fsiHistory), riskData?.fsi) != null) return true;
+  if (fsiFromSignals(riskData) != null) return true;
+  return false;
+}

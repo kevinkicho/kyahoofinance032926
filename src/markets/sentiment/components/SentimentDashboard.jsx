@@ -15,6 +15,7 @@ import {
   hasCrossAssetReturns,
   hasRiskDashboardContent,
   hasNewsSentimentSeries,
+  hasFedRiskMoodContent,
 } from './SentimentLiveChips.js';
 import './SentimentDashboard.css';
 
@@ -815,7 +816,7 @@ function SentimentDashboard({
       'risk-dashboard': hasRiskDashboardContent({ riskData, vvixHistory, fsiHistory, marginDebt }),
       leverage: !!(marginDebt?.values?.length || consumerCredit?.values?.length),
       'news-sentiment': hasNewsSentimentSeries(newsSentimentData),
-      'fed-risk-mood': !!(newsSentimentData?.series?.length || riskData),
+      'fed-risk-mood': hasFedRiskMoodContent({ newsSentimentData, fearGreedData, riskData, fsiHistory }),
     },
     __subtitle: {
       sidebar: 'Regime · F&G · vol · credit · leverage',
