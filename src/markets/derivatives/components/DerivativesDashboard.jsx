@@ -13,6 +13,9 @@ import {
   hasVolPremium,
   hasCftcTffRows,
   hasEcbDerivativesContent,
+  hasVixTermSeries,
+  hasFredVixSeries,
+  hasSkewContent,
 } from './DerivativesLiveChips.js';
 import './DerivativesDashboard.css';
 
@@ -710,9 +713,9 @@ function DerivativesDashboard({
     __live: {
       kpi: hasDerivativesKpiMetrics({ vixTermStructure, putCallRatio, skewIndex, gammaExposure }),
       metrics: !!vixTermStructure?.values?.length,
-      vixterm: !!vixTermStructure?.dates?.length,
-      vix1y: !!fredVixHistory?.dates?.length,
-      skew: !!skewHistory?.dates?.length || skewIndex?.value != null,
+      vixterm: hasVixTermSeries(vixTermStructure),
+      vix1y: hasFredVixSeries(fredVixHistory),
+      skew: hasSkewContent(skewHistory, skewIndex),
       volsurf: !!volSurfaceData?.grid?.length,
       flow: !!optionsFlow?.length,
       gamma: gexData.hasGex,

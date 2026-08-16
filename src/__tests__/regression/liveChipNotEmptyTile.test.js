@@ -148,6 +148,9 @@ import {
   hasVolPremium,
   hasCftcTffRows,
   hasEcbDerivativesContent,
+  hasVixTermSeries,
+  hasFredVixSeries,
+  hasSkewContent,
 } from '../../markets/derivatives/components/DerivativesLiveChips.js';
 import {
   hasBlsSeries,
@@ -1814,6 +1817,74 @@ describe('derivatives leftover empty-capable tiles (volprem / cftc-tff / ecb-der
     expect(hasEcbDerivativesContent({ moneyMarket: { estr: { value: 1.89 } } })).toBe(true);
     expect(hasEcbDerivativesContent({ m3Growth: [{ value: 3.1 }] })).toBe(true);
     expect(hasEcbDerivativesContent({ hicpDetail: [{ value: 2.4 }] })).toBe(true);
+  });
+});
+
+
+describe('derivatives leftover empty-capable tiles (vixterm / vix1y / skew)', () => {
+  it('dashboard does not hardcode leftover dates-only on empty-capable tiles', () => {
+    const dash = src('markets/derivatives/components/DerivativesDashboard.jsx');
+    expect(dash).not.toMatch(/vixterm:\s*!!vixTermStructure\?\.dates\?\.length/);
+    expect(dash).not.toMatch(/vix1y:\s*!!fredVixHistory\?\.dates\?\.length/);
+    expect(dash).not.toMatch(/skew:\s*!!skewHistory\?\.dates\?\.length/);
+    expect(dash).toMatch(/vixterm:\s*hasVixTermSeries\(vixTermStructure\)/);
+    expect(dash).toMatch(/vix1y:\s*hasFredVixSeries\(fredVixHistory\)/);
+    expect(dash).toMatch(/skew:\s*hasSkewContent\(skewHistory, skewIndex\)/);
+  });
+
+  it('hasVixTermSeries is false for empty / dates-only leftover bags', () => {
+    expect(hasVixTermSeries()).toBe(false);
+    expect(hasVixTermSeries(null)).toBe(false);
+    expect(hasVixTermSeries({})).toBe(false);
+    expect(hasVixTermSeries({ isLive: true })).toBe(false);
+    expect(hasVixTermSeries({ dates: ['1M', '3M'] })).toBe(false);
+    expect(hasVixTermSeries({ dates: ['1M'], values: [], prevValues: [] })).toBe(false);
+    expect(hasVixTermSeries({ dates: ['1M'], values: [null, null] })).toBe(false);
+    expect(hasVixTermSeries({ values: [18.2] })).toBe(false);
+    expect(hasVixTermSeries({ latest: 18.2 })).toBe(false);
+  });
+
+  it('hasVixTermSeries is true when dates and a series paint', () => {
+    expect(hasVixTermSeries({ dates: ['1M'], values: [18.2] })).toBe(true);
+    expect(hasVixTermSeries({ dates: ['1M'], prevValues: [17.4] })).toBe(true);
+    expect(hasVixTermSeries({ dates: ['1M', '3M'], values: [null, 19.1] })).toBe(true);
+  });
+
+  it('hasFredVixSeries is false for empty / dates-only leftover bags', () => {
+    expect(hasFredVixSeries()).toBe(false);
+    expect(hasFredVixSeries(null)).toBe(false);
+    expect(hasFredVixSeries({})).toBe(false);
+    expect(hasFredVixSeries({ isLive: true })).toBe(false);
+    expect(hasFredVixSeries({ dates: ['2024-01'] })).toBe(false);
+    expect(hasFredVixSeries({ dates: ['2024-01'], values: [] })).toBe(false);
+    expect(hasFredVixSeries({ dates: ['2024-01'], values: [null, null] })).toBe(false);
+    expect(hasFredVixSeries({ values: [16.4] })).toBe(false);
+    expect(hasFredVixSeries({ latest: 16.4 })).toBe(false);
+  });
+
+  it('hasFredVixSeries is true when dates and values paint', () => {
+    expect(hasFredVixSeries({ dates: ['2024-01'], values: [16.4] })).toBe(true);
+    expect(hasFredVixSeries({ dates: ['2024-01', '2024-02'], values: [null, 18.1] })).toBe(true);
+  });
+
+  it('hasSkewContent is false for empty / dates-only leftover bags', () => {
+    expect(hasSkewContent()).toBe(false);
+    expect(hasSkewContent(null)).toBe(false);
+    expect(hasSkewContent({})).toBe(false);
+    expect(hasSkewContent({ isLive: true })).toBe(false);
+    expect(hasSkewContent({ dates: ['2024-01'] })).toBe(false);
+    expect(hasSkewContent({ dates: ['2024-01'], values: [] })).toBe(false);
+    expect(hasSkewContent({ dates: ['2024-01'], values: [null, null] })).toBe(false);
+    expect(hasSkewContent({ values: [141.2] })).toBe(false);
+    expect(hasSkewContent({ dates: ['2024-01'] }, { interpretation: 'elevated' })).toBe(false);
+    expect(hasSkewContent({ dates: ['2024-01'] }, { value: null })).toBe(false);
+  });
+
+  it('hasSkewContent is true when history paints or spot is numeric', () => {
+    expect(hasSkewContent({ dates: ['2024-01'], values: [141.2] })).toBe(true);
+    expect(hasSkewContent({ dates: ['2024-01', '2024-02'], values: [null, 132.4] })).toBe(true);
+    expect(hasSkewContent(null, { value: 141.2 })).toBe(true);
+    expect(hasSkewContent({ dates: ['2024-01'] }, { value: '132.4' })).toBe(true);
   });
 });
 

@@ -83,3 +83,30 @@ export function hasEcbDerivativesContent(ecbData) {
   }
   return lastFiniteValue(ecbData?.m3Growth) || lastFiniteValue(ecbData?.hicpDetail);
 }
+
+function hasPaintedSeries(arr) {
+  return Array.isArray(arr) && arr.some((v) => v != null);
+}
+
+function hasDatedValuesSeries(series) {
+  if (!Array.isArray(series?.dates) || !series.dates.length) return false;
+  return hasPaintedSeries(series?.values);
+}
+
+/** VIX term chart is empty when dates exist but no current/prev series paint. */
+export function hasVixTermSeries(vixTermStructure) {
+  if (!Array.isArray(vixTermStructure?.dates) || !vixTermStructure.dates.length) return false;
+  return hasPaintedSeries(vixTermStructure?.values) || hasPaintedSeries(vixTermStructure?.prevValues);
+}
+
+/** VIX 1Y chart is empty when dates exist but no values paint. */
+export function hasFredVixSeries(fredVixHistory) {
+  return hasDatedValuesSeries(fredVixHistory);
+}
+
+/** Skew tile is empty when history is dates-only and spot is missing. */
+export function hasSkewContent(skewHistory, skewIndex) {
+  if (skewIndex?.value != null && Number.isFinite(Number(skewIndex.value))) return true;
+  if (!Array.isArray(skewHistory?.dates) || !skewHistory.dates.length) return false;
+  return Array.isArray(skewHistory?.values) && skewHistory.values.some((v) => typeof v === 'number' && Number.isFinite(v));
+}
