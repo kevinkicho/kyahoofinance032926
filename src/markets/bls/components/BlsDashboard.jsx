@@ -2,6 +2,18 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
+import {
+  hasBlsSeries,
+  hasBlsKpiItems,
+  hasBlsTrendsLaborItems,
+  hasBlsTrendsPricesItems,
+  hasBlsJoltsItems,
+  hasBlsProductivityItems,
+  hasBlsCpiItems,
+  hasBlsPpiItems,
+  hasBlsEciItems,
+  hasBlsDurationItems,
+} from './BlsLiveChips.js';
 
 const BLS_LAYOUT = {
   // Every thematic panel uses the same master-detail pattern as
@@ -182,8 +194,7 @@ function usePanelItems(series, defs) {
     return defs
       .map(({ key, label, color }) => {
         const s = series?.[key];
-        if (!s?._source && !s?.history?.values?.length && s?.latest?.value == null) return null;
-        if (!s) return null;
+        if (!hasBlsSeries(s)) return null;
         const change = computeChange(key, s);
         const changeClass = change
           ? changeTone(key, parseFloat(change.pct))
@@ -403,7 +414,17 @@ export default function BlsDashboard({ series, isLive }) {
       eci: <MasterDetailBody items={eciItems} emptyHint="No ECI series" />,
       'unemployment-duration': <MasterDetailBody items={durationItems} emptyHint="No duration series" totalDefs={DURATION_DEFS.length} />,
     };
-    const live = Object.fromEntries(Object.keys(bodies).map((id) => [id, !!isLive]));
+    const live = {
+      kpi: hasBlsKpiItems(series),
+      'trends-top': hasBlsTrendsLaborItems(series),
+      'trends-bottom': hasBlsTrendsPricesItems(series),
+      jolts: hasBlsJoltsItems(series),
+      productivity: hasBlsProductivityItems(series),
+      'cpi-components': hasBlsCpiItems(series),
+      'ppi-by-industry': hasBlsPpiItems(series),
+      eci: hasBlsEciItems(series),
+      'unemployment-duration': hasBlsDurationItems(series),
+    };
     const noFooter = Object.fromEntries(Object.keys(bodies).map((id) => [id, true]));
     return {
       __render: (panelId) => bodies[panelId] ?? null,
@@ -412,7 +433,7 @@ export default function BlsDashboard({ series, isLive }) {
     };
   }, [
     kpiItems, trendsLaborItems, trendsPricesItems, joltsItems, productivityItems,
-    cpiItems, ppiItems, eciItems, durationItems, isLive,
+    cpiItems, ppiItems, eciItems, durationItems, series,
   ]);
 
   if (!isLive && kpiItems.length === 0) {

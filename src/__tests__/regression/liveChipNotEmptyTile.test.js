@@ -102,6 +102,18 @@ import {
   hasTopCryptos,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
 import { hasDerivativesKpiMetrics } from '../../markets/derivatives/components/DerivativesLiveChips.js';
+import {
+  hasBlsSeries,
+  hasBlsKpiItems,
+  hasBlsTrendsLaborItems,
+  hasBlsTrendsPricesItems,
+  hasBlsJoltsItems,
+  hasBlsProductivityItems,
+  hasBlsCpiItems,
+  hasBlsPpiItems,
+  hasBlsEciItems,
+  hasBlsDurationItems,
+} from '../../markets/bls/components/BlsLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -1339,5 +1351,128 @@ describe('derivatives empty-capable tiles (kpi)', () => {
     expect(hasDerivativesKpiMetrics({ gammaExposure: 12.5 })).toBe(true);
     expect(hasDerivativesKpiMetrics({ gammaExposure: { total: -8.2 } })).toBe(true);
     expect(hasDerivativesKpiMetrics({ gammaExposure: [{ value: 3.1 }, { value: -1.4 }] })).toBe(true);
+  });
+});
+
+describe('bls empty-capable tiles (kpi / trends / jolts / productivity / cpi / ppi / eci / duration)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/bls/components/BlsDashboard.jsx');
+    expect(dash).not.toMatch(/Object\.keys\(bodies\)\.map\(\(id\) => \[id, !!isLive\]\)/);
+    expect(dash).not.toMatch(/kpi:\s*!!isLive/);
+    expect(dash).not.toMatch(/jolts:\s*!!isLive/);
+    expect(dash).not.toMatch(/productivity:\s*!!isLive/);
+    expect(dash).not.toMatch(/eci:\s*!!isLive/);
+    expect(dash).toMatch(/kpi:\s*hasBlsKpiItems/);
+    expect(dash).toMatch(/'trends-top':\s*hasBlsTrendsLaborItems/);
+    expect(dash).toMatch(/'trends-bottom':\s*hasBlsTrendsPricesItems/);
+    expect(dash).toMatch(/jolts:\s*hasBlsJoltsItems/);
+    expect(dash).toMatch(/productivity:\s*hasBlsProductivityItems/);
+    expect(dash).toMatch(/'cpi-components':\s*hasBlsCpiItems/);
+    expect(dash).toMatch(/'ppi-by-industry':\s*hasBlsPpiItems/);
+    expect(dash).toMatch(/eci:\s*hasBlsEciItems/);
+    expect(dash).toMatch(/'unemployment-duration':\s*hasBlsDurationItems/);
+  });
+
+  it('hasBlsSeries is false for empty / sibling-only payloads', () => {
+    expect(hasBlsSeries(null)).toBe(false);
+    expect(hasBlsSeries(undefined)).toBe(false);
+    expect(hasBlsSeries({})).toBe(false);
+    expect(hasBlsSeries({ isLive: true })).toBe(false);
+    expect(hasBlsSeries({ label: 'Unemployment Rate' })).toBe(false);
+    expect(hasBlsSeries({ latest: null, history: { dates: [], values: [] }, _source: false })).toBe(false);
+    expect(hasBlsSeries({ latest: { period: 'March' }, history: { dates: ['2026-03'] } })).toBe(false);
+  });
+
+  it('hasBlsSeries is true when source, history, or latest value exists', () => {
+    expect(hasBlsSeries({ _source: true })).toBe(true);
+    expect(hasBlsSeries({ history: { values: [4.3] } })).toBe(true);
+    expect(hasBlsSeries({ latest: { value: 4.3 } })).toBe(true);
+    expect(hasBlsSeries({ latest: { value: 0 } })).toBe(true);
+  });
+
+  it('hasBlsKpiItems is false for empty / sibling-only payloads', () => {
+    expect(hasBlsKpiItems()).toBe(false);
+    expect(hasBlsKpiItems(null)).toBe(false);
+    expect(hasBlsKpiItems({})).toBe(false);
+    expect(hasBlsKpiItems({ isLive: true })).toBe(false);
+    expect(hasBlsKpiItems({ eciTotal: { latest: { value: 4.1 }, _source: true } })).toBe(false);
+    expect(hasBlsKpiItems({ joltsHires: { latest: { value: 5500 }, _source: true } })).toBe(false);
+    expect(hasBlsKpiItems({ unempLess5Weeks: { latest: { value: 2182 }, _source: true } })).toBe(false);
+  });
+
+  it('hasBlsKpiItems is true when a KPI series exists', () => {
+    expect(hasBlsKpiItems({ unemployment: { latest: { value: 4.3 } } })).toBe(true);
+    expect(hasBlsKpiItems({ nonfarmPayrolls: { history: { values: [158000] } } })).toBe(true);
+  });
+
+  it('hasBlsTrendsLaborItems / hasBlsTrendsPricesItems ignore the other trend group', () => {
+    expect(hasBlsTrendsLaborItems({ cpi: { latest: { value: 330.2 } } })).toBe(false);
+    expect(hasBlsTrendsPricesItems({ unemployment: { latest: { value: 4.3 } } })).toBe(false);
+    expect(hasBlsTrendsLaborItems({ unemployment: { latest: { value: 4.3 } } })).toBe(true);
+    expect(hasBlsTrendsPricesItems({ cpi: { latest: { value: 330.2 } } })).toBe(true);
+  });
+
+  it('hasBlsJoltsItems is false for empty / sibling-only payloads', () => {
+    expect(hasBlsJoltsItems()).toBe(false);
+    expect(hasBlsJoltsItems({ isLive: true })).toBe(false);
+    expect(hasBlsJoltsItems({ unemployment: { latest: { value: 4.3 }, _source: true } })).toBe(false);
+    expect(hasBlsJoltsItems({ eciTotal: { latest: { value: 4.1 } } })).toBe(false);
+  });
+
+  it('hasBlsJoltsItems is true when a JOLTS series exists', () => {
+    expect(hasBlsJoltsItems({ jobOpenings: { latest: { value: 7200 } } })).toBe(true);
+    expect(hasBlsJoltsItems({ joltsHires: { _source: true } })).toBe(true);
+  });
+
+  it('hasBlsProductivityItems is false for empty / sibling-only payloads', () => {
+    expect(hasBlsProductivityItems()).toBe(false);
+    expect(hasBlsProductivityItems({ unemployment: { latest: { value: 4.3 } } })).toBe(false);
+    expect(hasBlsProductivityItems({ cpi: { latest: { value: 330.2 } } })).toBe(false);
+  });
+
+  it('hasBlsProductivityItems is true when output or unit labor cost exists', () => {
+    expect(hasBlsProductivityItems({ outputPerHour: { latest: { value: 114.2 } } })).toBe(true);
+    expect(hasBlsProductivityItems({ unitLaborCosts: { history: { values: [118.1] } } })).toBe(true);
+  });
+
+  it('hasBlsCpiItems / hasBlsPpiItems are false for empty / sibling-only payloads', () => {
+    expect(hasBlsCpiItems()).toBe(false);
+    expect(hasBlsPpiItems()).toBe(false);
+    expect(hasBlsCpiItems({ ppi: { latest: { value: 145.2 } } })).toBe(false);
+    expect(hasBlsPpiItems({ cpi: { latest: { value: 330.2 } } })).toBe(false);
+    expect(hasBlsCpiItems({ unemployment: { latest: { value: 4.3 } } })).toBe(false);
+  });
+
+  it('hasBlsCpiItems / hasBlsPpiItems are true when a component series exists', () => {
+    expect(hasBlsCpiItems({ cpi: { latest: { value: 330.2 } } })).toBe(true);
+    expect(hasBlsCpiItems({ cpiFood: { _source: true } })).toBe(true);
+    expect(hasBlsPpiItems({ ppi: { latest: { value: 145.2 } } })).toBe(true);
+    expect(hasBlsPpiItems({ ppiServices: { history: { values: [130.4] } } })).toBe(true);
+  });
+
+  it('hasBlsEciItems is false for empty / sibling-only payloads', () => {
+    expect(hasBlsEciItems()).toBe(false);
+    expect(hasBlsEciItems({ isLive: true })).toBe(false);
+    expect(hasBlsEciItems({ unemployment: { latest: { value: 4.3 }, _source: true } })).toBe(false);
+    expect(hasBlsEciItems({ jobOpenings: { latest: { value: 7200 } } })).toBe(false);
+  });
+
+  it('hasBlsEciItems is true when a compensation series exists', () => {
+    expect(hasBlsEciItems({ eciTotal: { latest: { value: 4.1 } } })).toBe(true);
+    expect(hasBlsEciItems({ eciWages: { _source: true } })).toBe(true);
+  });
+
+  it('hasBlsDurationItems is false for empty / sibling-only / _source-false payloads', () => {
+    expect(hasBlsDurationItems()).toBe(false);
+    expect(hasBlsDurationItems({ unemployment: { latest: { value: 4.3 } } })).toBe(false);
+    expect(hasBlsDurationItems({
+      unemp15To26Weeks: { latest: null, history: { dates: [], values: [] }, _source: false },
+      unemp27PlusWeeks: { latest: null, history: { dates: [], values: [] }, _source: false },
+    })).toBe(false);
+  });
+
+  it('hasBlsDurationItems is true when a duration series exists', () => {
+    expect(hasBlsDurationItems({ unempLess5Weeks: { latest: { value: 2182 } } })).toBe(true);
+    expect(hasBlsDurationItems({ unemp27PlusWeeks: { history: { values: [1300] } } })).toBe(true);
   });
 });
