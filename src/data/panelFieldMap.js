@@ -172,9 +172,13 @@ export const PANEL_FIELD_MAP = {
     { field: 'eia', fieldPath: 'eia' },
     { field: 'fred', fieldPath: 'fred' },
   ] },
+  // WTI vs Brent chart paints FRED wti/brent history only.
+  // eia / yahoo.futures are leftover sibling false-greens (prices tile).
   'commodities:wti-brent': { anyOf: [
-    { field: 'eia', fieldPath: 'eia' },
-    { field: 'fred', fieldPath: 'fred.wti' },
+    { field: 'wti', fieldPath: 'fred.wti.history' },
+    { field: 'wti', fieldPath: 'fred.wti.values' },
+    { field: 'brent', fieldPath: 'fred.brent.history' },
+    { field: 'brent', fieldPath: 'fred.brent.values' },
   ] },
   'commodities:cot': { anyOf: [
     { field: 'cotData', fieldPath: 'cotData' },
@@ -188,9 +192,12 @@ export const PANEL_FIELD_MAP = {
     { field: 'fred', fieldPath: 'fred' },
     { field: 'worldBank', fieldPath: 'worldBank' },
   ] },
+  // EIA Petroleum tile paints eiaPetroleum gasoline/Henry Hub/crude stocks.
+  // commodities.eia is the sibling energy-stack / prices bag.
   'commodities:eia-petrol': { anyOf: [
-    { field: 'eia', fieldPath: 'eia' },
-    { field: 'petroleum', fieldPath: 'petroleum', crossMarket: 'eiaPetroleum' },
+    { field: 'gasoline', fieldPath: 'gasoline', crossMarket: 'eiaPetroleum' },
+    { field: 'naturalGas', fieldPath: 'naturalGas', crossMarket: 'eiaPetroleum' },
+    { field: 'crudeStocks', fieldPath: 'crudeStocks', crossMarket: 'eiaPetroleum' },
   ] },
   // Physical Pressure paints eiaPetroleum + USDA + Census trade.
   // supplyDemand / commodities.eia / yahoo were leftover sibling false-greens.

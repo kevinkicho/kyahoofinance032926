@@ -80,9 +80,11 @@ export const PANEL_PLACEHOLDERS = {
   'commodities:sector': [
     any('heatmap.rows', ['sectorHeatmapData.commodities', 'sectorHeatmapData']),
   ],
+  // WTI vs Brent chart paints FRED daily history only.
+  // eia / yahoo.futures / latest .value were leftover sibling false-greens (prices tile).
   'commodities:wti-brent': [
-    any('wti', ['eia.wti_price.value', 'fred.wti.value', 'yahoo.futures.CL=F.price']),
-    any('brent', ['eia.brent_price.value', 'fred.brent.value', 'yahoo.futures.BZ=F.price']),
+    any('wti', ['fred.wti.history', 'fred.wti.values']),
+    any('brent', ['fred.brent.history', 'fred.brent.values']),
   ],
   'commodities:cot': [
     any('cot', ['cotData', 'cftcTFF.contracts']),
@@ -108,8 +110,16 @@ export const PANEL_PLACEHOLDERS = {
     any('platinum', ['yahoo.futures.PL=F.price', 'yahoo.futures.PL=F'], { required: false }),
     any('palladium', ['yahoo.futures.PA=F.price', 'yahoo.futures.PA=F'], { required: false }),
   ],
+  // EIA Petroleum tile paints eiaPetroleum gasoline / Henry Hub / crude stocks.
+  // commodities.eia was a leftover sibling false-green (energy-stack / prices).
   'commodities:eia-petrol': [
-    any('petroleum', ['eia.wti_price.value', 'eia.wti_price', 'eia.gasoline_regular.value', 'eiaPetroleum.gasoline']),
+    any('petrol', [
+      'eiaPetroleum.gasoline.latest.value',
+      'eiaPetroleum.naturalGas.latest.value',
+      'eiaPetroleum.crudeStocks.latest.value',
+      'eiaPetroleum.gasoline.series',
+      'eiaPetroleum.gasoline',
+    ]),
   ],
   // Physical Pressure table paints eiaPetroleum + USDA + Census trade.
   // supplyDemand / commodities.eia / yahoo were leftover sibling false-greens.
