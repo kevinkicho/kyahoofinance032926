@@ -234,13 +234,10 @@ export const PANEL_PLACEHOLDERS = {
   'fx:carry': [p('rateDifferentials', 'rateDifferentials')],
   'fx:rate-dashboard': [p('rateDifferentials', 'rateDifferentials')],
   'fx:imf-cofer': [
-    any('reserves', [
-      'imfReserves.reserves',
-      'imfReserves',
-      'spotRates', // soft content if IMF absent
-      'dxyHistory',
-    ]),
-    any('reservesImf', ['cofer', 'ifsReserves'], { crossMarket: 'imf', required: false }),
+    // Tile paints only IMF COFER shares (fx.imfReserves or imf.cofer).
+    // Spot/DXY must not fill this slot — that was a false-green leftover.
+    any('reserves', ['imfReserves.reserves', 'imfReserves', 'imf.cofer']),
+    any('reservesImf', ['cofer'], { crossMarket: 'imf', required: false }),
     any('usdShare', ['imfReserves.reserves.USD', 'cofer.USD'], { required: false }),
   ],
   'fx:treasury-tic': [p('latest', 'latest', { crossMarket: 'treasuryTIC' })],
@@ -398,8 +395,8 @@ export const PANEL_PLACEHOLDERS = {
     any('ifsImf', ['ifsReserves', 'countries'], { crossMarket: 'imf', required: false }),
   ],
   'globalMacro:imf-cofer': [
-    any('cofer', ['scorecardData', 'debtData', 'imfWEO', 'cofer']),
-    any('coferImf', ['cofer'], { crossMarket: 'imf', required: false }),
+    // ImfCofier only renders imf.cofer — scorecard/debt/WEO were false-green.
+    any('cofer', ['cofer'], { crossMarket: 'imf' }),
   ],
   'globalMacro:wb-trade': [p('wb', 'countries', { crossMarket: 'worldbank' })],
   'globalMacro:wb-dev': [p('wb', 'countries', { crossMarket: 'worldbank' })],

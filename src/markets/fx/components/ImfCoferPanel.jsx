@@ -22,6 +22,10 @@ const COFER_COLORS = {
  *  - fx.imfReserves.reserves: { USD: 57.8 } or { USD: { share, valueB } }
  *  - imf.cofer: { USD: { value: 57.8, asOf } }
  */
+export function hasCoferRows(imfReserves, imfCofer) {
+  return normalizeCofer(imfReserves, imfCofer).rows.length > 0;
+}
+
 function normalizeCofer(imfReserves, imfCofer) {
   const rows = [];
   let asOf = imfReserves?.asOf || null;

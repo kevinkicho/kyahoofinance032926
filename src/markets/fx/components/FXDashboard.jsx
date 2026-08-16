@@ -6,7 +6,8 @@ import CarryMap from './CarryMap';
 import ReerChart from './ReerChart';
 import CurrencyCorrelationMatrix from './CurrencyCorrelationMatrix';
 import FXSidebar from './FXSidebar';
-import ImfCoferPanel from './ImfCoferPanel';
+import ImfCoferPanel, { hasCoferRows } from './ImfCoferPanel';
+import { useMarketData } from '../../../hub/DataContext';
 import TreasuryTicPanel from './TreasuryTicPanel';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
@@ -69,6 +70,9 @@ function FXDashboard({
   history, reer, rateDifferentials, dxyHistory, cotData, cotHistory,
   isLive, isUsingFallbackRates, lastUpdated, fetchLog, error, fetchedOn, isCurrent,
 }) {
+  const fxCtx = useMarketData('fx');
+  const imfCtx = useMarketData('imf');
+  const hasCofer = hasCoferRows(fxCtx?.data?.imfReserves, imfCtx?.data?.cofer);
   // Top-of-grid KPI metrics. Each pill is clickable (MetricValue popover
   // exposes the FRED ID + source). Values are formatted to 4 decimals for
   // FX rates and 2 decimals for DXY / G10 average.
@@ -319,7 +323,7 @@ function FXDashboard({
       ratediff: !!rateDiff?.length,
       carry: !!(rateDifferentials && rateDifferentials.fed != null),
       'rate-dashboard': !!rateDiffRows.length,
-      'imf-cofer': !!isLive,
+      'imf-cofer': hasCofer,
       'treasury-tic': true,
     },
     __subtitle: {
@@ -353,7 +357,7 @@ function FXDashboard({
     },
   }), [
     renderPanel, isLive, dxyHistory, cotHistory, history, reer, rateDiff,
-    rateDifferentials, rateDiffRows, dxyOption, cotOption,
+    rateDifferentials, rateDiffRows, dxyOption, cotOption, hasCofer,
   ]);
 
   return (
