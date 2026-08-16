@@ -160,6 +160,8 @@ export const PANEL_FIELD_MAP = {
     { field: 'fred', fieldPath: 'fred' },
     { field: 'eia', fieldPath: 'eia' },
   ] },
+  // Futures Curves paints futuresCurveData + optional goldFuturesCurve.
+  // yahoo.futures / eia are leftover sibling false-greens (prices tile).
   'commodities:futures': { anyOf: [
     { field: 'futuresCurveData', fieldPath: 'futuresCurveData' },
     { field: 'goldFuturesCurve', fieldPath: 'goldFuturesCurve' },
@@ -186,10 +188,14 @@ export const PANEL_FIELD_MAP = {
   // Commodity FX table paints commodityCurrencies only.
   // fred.dollarIndex is unused leftover (DXY / FRED bag).
   'commodities:comfx': { field: 'commodityCurrencies', fieldPath: 'commodityCurrencies' },
+  // US Ag Commodity Prices paints USDA NASS or FRED corn/wheat/soybeans.
+  // worldBank / whole FRED bag were leftover sibling false-greens (FAO / prices).
   'commodities:usda-ag': { anyOf: [
     { field: 'commodities', fieldPath: 'commodities', crossMarket: 'usda' },
-    { field: 'fred', fieldPath: 'fred' },
-    { field: 'worldBank', fieldPath: 'worldBank' },
+    { field: 'summary', fieldPath: 'summary', crossMarket: 'usda' },
+    { field: 'wheat', fieldPath: 'fred.wheat.history' },
+    { field: 'corn', fieldPath: 'fred.corn.history' },
+    { field: 'soybeans', fieldPath: 'fred.soybeans.history' },
   ] },
   // EIA Petroleum tile paints eiaPetroleum gasoline/Henry Hub/crude stocks.
   // commodities.eia is the sibling energy-stack / prices bag.

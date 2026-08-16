@@ -67,13 +67,15 @@ export const PANEL_PLACEHOLDERS = {
     any('gold', ['yahoo.futures.GC=F.price', 'fred.gold_am.value', 'fred.gold_am'], { required: false }),
     any('silver', ['yahoo.futures.SI=F.price', 'fred.silver.value', 'fred.silver'], { required: false }),
   ],
+  // Futures Curves paints futuresCurveData + optional goldFuturesCurve.
+  // yahoo.futures / eia.wti_price were leftover sibling false-greens (prices tile).
   'commodities:futures': [
     p('curve.labels', 'futuresCurveData.labels'),
     p('curve.prices', 'futuresCurveData.prices'),
-    any('curve.spot', ['futuresCurveData.spotPrice', 'futuresCurveData.prices', 'yahoo.futures.CL=F.price', 'eia.wti_price.value']),
-    any('gold.labels', ['goldFuturesCurve.labels', 'yahoo.futures.GC=F.price']),
-    any('gold.prices', ['goldFuturesCurve.prices', 'yahoo.futures.GC=F.price']),
-    any('gold.spot', ['goldFuturesCurve.spotPrice', 'yahoo.futures.GC=F.price']),
+    any('curve.spot', ['futuresCurveData.spotPrice', 'futuresCurveData.prices']),
+    any('gold.labels', ['goldFuturesCurve.labels'], { required: false }),
+    any('gold.prices', ['goldFuturesCurve.prices'], { required: false }),
+    any('gold.spot', ['goldFuturesCurve.spotPrice', 'goldFuturesCurve.prices'], { required: false }),
   ],
   // Sector Performance paints sectorHeatmapData rows.
   // priceDashboardData / yahoo.futures were leftover sibling false-greens (prices tile).
@@ -136,8 +138,22 @@ export const PANEL_PLACEHOLDERS = {
       'censusTrade.summary',
     ]),
   ],
+  // US Ag Commodity Prices paints USDA NASS or FRED corn/wheat/soybeans.
+  // worldBank / whole FRED bag / rice were leftover sibling false-greens (FAO / prices).
   'commodities:usda-ag': [
-    any('ag', ['fred.wheat.value', 'fred.rice.value', 'fred.corn.value', 'fred.wheat', 'fred.corn', 'usda.commodities']),
+    any('ag', [
+      'usda.summary',
+      'usda.commodities',
+      'fred.wheat.history',
+      'fred.corn.history',
+      'fred.soybeans.history',
+      'fred.wheat.value',
+      'fred.corn.value',
+      'fred.soybeans.value',
+      'fred.wheat',
+      'fred.corn',
+      'fred.soybeans',
+    ]),
   ],
   // FAO tile only paints fao.series / foodPriceIndex.
   // Wheat / whole FRED bag were false-green leftovers.
