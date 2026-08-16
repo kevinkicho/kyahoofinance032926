@@ -30,6 +30,19 @@ import {
   hasFemaDeclarationRows,
   hasUsgsEarthquakeRows,
 } from '../../markets/insurance/components/InsuranceDashboard.jsx';
+import {
+  hasCreditKpiMetrics,
+  hasKeyMetricsContent,
+  hasSpreadHistory,
+  hasSpreadSummary,
+  hasEmYieldRows,
+  hasCpRates,
+  hasCloTranches,
+  hasDefaultRateRows,
+  hasDelinquencyRows,
+  hasTedSpreadSeries,
+  hasMuniMarketSummary,
+} from '../../markets/credit/components/CreditLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -337,5 +350,165 @@ describe('insurance empty-capable tiles (hyoas / crhist / penetration / fema / u
   it('hasUsgsEarthquakeRows is true when events or mag buckets exist', () => {
     expect(hasUsgsEarthquakeRows({ events: [{ mag: 5.1 }] })).toBe(true);
     expect(hasUsgsEarthquakeRows({ magBuckets: [{ range: '5-6', count: 3 }] })).toBe(true);
+  });
+});
+
+
+describe('credit empty-capable tiles (kpi / spreads / EM / CP / CLO / defaults / TED / muni)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/credit/components/CreditDashboard.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!isLive/);
+    expect(dash).not.toMatch(/'key-metrics':\s*!!isLive/);
+    expect(dash).not.toMatch(/'credit-spreads':\s*!!isLive/);
+    expect(dash).not.toMatch(/'spread-summary':\s*!!isLive/);
+    expect(dash).not.toMatch(/'em-yields':\s*!!isLive/);
+    expect(dash).not.toMatch(/'cp-rates':\s*!!isLive/);
+    expect(dash).not.toMatch(/'clo-tranches':\s*!!isLive/);
+    expect(dash).not.toMatch(/'default-rates':\s*!!isLive/);
+    expect(dash).not.toMatch(/delinquency:\s*!!isLive/);
+    expect(dash).not.toMatch(/'ted-spread':\s*!!isLive/);
+    expect(dash).not.toMatch(/'muni-market':\s*!!msrbCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/kpi:\s*hasCreditKpiMetrics/);
+    expect(dash).toMatch(/'key-metrics':\s*hasKeyMetricsContent/);
+    expect(dash).toMatch(/'credit-spreads':\s*hasSpreadHistory/);
+    expect(dash).toMatch(/'spread-summary':\s*hasSpreadSummary/);
+    expect(dash).toMatch(/'em-yields':\s*hasEmYieldRows/);
+    expect(dash).toMatch(/'cp-rates':\s*hasCpRates/);
+    expect(dash).toMatch(/'clo-tranches':\s*hasCloTranches/);
+    expect(dash).toMatch(/'default-rates':\s*hasDefaultRateRows/);
+    expect(dash).toMatch(/delinquency:\s*hasDelinquencyRows/);
+    expect(dash).toMatch(/'ted-spread':\s*hasTedSpreadSeries/);
+    expect(dash).toMatch(/'muni-market':\s*hasMuniMarketSummary/);
+  });
+
+  it('hasCreditKpiMetrics is false for empty / isLive-only payloads', () => {
+    expect(hasCreditKpiMetrics()).toBe(false);
+    expect(hasCreditKpiMetrics({})).toBe(false);
+    expect(hasCreditKpiMetrics({ spreadData: { isLive: true } })).toBe(false);
+    expect(hasCreditKpiMetrics({ spreadData: { current: {} }, defaultData: { rates: [] } })).toBe(false);
+    expect(hasCreditKpiMetrics({ commercialPaper: { isLive: true } })).toBe(false);
+  });
+
+  it('hasCreditKpiMetrics is true when a painted KPI number exists', () => {
+    expect(hasCreditKpiMetrics({ spreadData: { current: { igSpread: 95 } } })).toBe(true);
+    expect(hasCreditKpiMetrics({ defaultData: { rates: [{ category: 'C&I Charge-Off', value: 1.2 }] } })).toBe(true);
+    expect(hasCreditKpiMetrics({ commercialPaper: { rate: 4.3 } })).toBe(true);
+    expect(hasCreditKpiMetrics({ emBondData: { countries: [{ country: 'MX', spread: 210 }] } })).toBe(true);
+  });
+
+  it('hasKeyMetricsContent is false for empty / sibling-only payloads', () => {
+    expect(hasKeyMetricsContent()).toBe(false);
+    expect(hasKeyMetricsContent({ spreadData: { history: { dates: ['2024-01'] } } })).toBe(false);
+    expect(hasKeyMetricsContent({ defaultData: { chargeoffs: { dates: ['2024'] } } })).toBe(false);
+  });
+
+  it('hasKeyMetricsContent is true when a sidebar metric exists', () => {
+    expect(hasKeyMetricsContent({ spreadData: { current: { hySpread: 310 } } })).toBe(true);
+    expect(hasKeyMetricsContent({ defaultData: { rates: [{ category: 'Cards', value: 3.1 }] } })).toBe(true);
+    expect(hasKeyMetricsContent({ delinquencyRates: [{ type: 'Consumer', rate: 2.4 }] })).toBe(true);
+  });
+
+  it('hasSpreadHistory is false for empty / current-only payloads', () => {
+    expect(hasSpreadHistory(null)).toBe(false);
+    expect(hasSpreadHistory({})).toBe(false);
+    expect(hasSpreadHistory({ isLive: true, current: { igSpread: 95 } })).toBe(false);
+    expect(hasSpreadHistory({ history: { dates: ['2024-01'], IG: [null, null] } })).toBe(false);
+  });
+
+  it('hasSpreadHistory is true when a history series has values', () => {
+    expect(hasSpreadHistory({ history: { dates: ['2024-01'], HY: [310] } })).toBe(true);
+  });
+
+  it('hasSpreadSummary is false for empty / history-only payloads', () => {
+    expect(hasSpreadSummary(null)).toBe(false);
+    expect(hasSpreadSummary({})).toBe(false);
+    expect(hasSpreadSummary({ history: { dates: ['2024-01'], IG: [95] } })).toBe(false);
+    expect(hasSpreadSummary({ current: {} })).toBe(false);
+  });
+
+  it('hasSpreadSummary is true when a current OAS exists', () => {
+    expect(hasSpreadSummary({ current: { emSpread: 180 } })).toBe(true);
+  });
+
+  it('hasEmYieldRows is false for empty / sibling-only payloads', () => {
+    expect(hasEmYieldRows(null)).toBe(false);
+    expect(hasEmYieldRows({})).toBe(false);
+    expect(hasEmYieldRows({ isLive: true })).toBe(false);
+    expect(hasEmYieldRows({ countries: [] })).toBe(false);
+    expect(hasEmYieldRows({ MX: { yld10y: 9.1 } })).toBe(false);
+  });
+
+  it('hasEmYieldRows is true when country rows exist', () => {
+    expect(hasEmYieldRows({ countries: [{ country: 'MX', yld10y: 9.1 }] })).toBe(true);
+    expect(hasEmYieldRows([{ country: 'BR', etfYield: 6.2 }])).toBe(true);
+  });
+
+  it('hasCpRates is false for empty / isLive-only payloads', () => {
+    expect(hasCpRates(null)).toBe(false);
+    expect(hasCpRates({})).toBe(false);
+    expect(hasCpRates({ isLive: true })).toBe(false);
+    expect(hasCpRates([])).toBe(false);
+  });
+
+  it('hasCpRates is true when a CP rate or volume exists', () => {
+    expect(hasCpRates({ rate: 4.3 })).toBe(true);
+    expect(hasCpRates({ financial3m: 4.5, nonfinancial3m: 4.2 })).toBe(true);
+    expect(hasCpRates({ volume: 1.2e12 })).toBe(true);
+  });
+
+  it('hasCloTranches is false for empty / sibling-only payloads', () => {
+    expect(hasCloTranches(null)).toBe(false);
+    expect(hasCloTranches({})).toBe(false);
+    expect(hasCloTranches({ isLive: true })).toBe(false);
+    expect(hasCloTranches({ cloTranches: [] })).toBe(false);
+    expect(hasCloTranches({ AAA: { spread: 120 } })).toBe(false);
+  });
+
+  it('hasCloTranches is true when tranche rows exist', () => {
+    expect(hasCloTranches({ cloTranches: [{ tranche: 'AAA', spread: 120 }] })).toBe(true);
+    expect(hasCloTranches([{ tranche: 'BBB', yield: 7.1 }])).toBe(true);
+  });
+
+  it('hasDefaultRateRows is false for empty / sibling-only payloads', () => {
+    expect(hasDefaultRateRows(null)).toBe(false);
+    expect(hasDefaultRateRows({})).toBe(false);
+    expect(hasDefaultRateRows({ isLive: true, defaultRate: null })).toBe(false);
+    expect(hasDefaultRateRows({ rates: [] })).toBe(false);
+    expect(hasDefaultRateRows({ chargeoffs: { dates: ['2024'] } })).toBe(false);
+  });
+
+  it('hasDefaultRateRows is true when rate rows exist', () => {
+    expect(hasDefaultRateRows({ rates: [{ category: 'C&I Charge-Off', value: 1.2 }] })).toBe(true);
+  });
+
+  it('hasDelinquencyRows is false for empty / sibling-only payloads', () => {
+    expect(hasDelinquencyRows(null)).toBe(false);
+    expect(hasDelinquencyRows([])).toBe(false);
+    expect(hasDelinquencyRows({ Consumer: 2.4 })).toBe(false);
+  });
+
+  it('hasDelinquencyRows is true when delinquency rows exist', () => {
+    expect(hasDelinquencyRows([{ type: 'Consumer', rate: 2.4 }])).toBe(true);
+  });
+
+  it('hasTedSpreadSeries is false for empty / isLive-only payloads', () => {
+    expect(hasTedSpreadSeries(null)).toBe(false);
+    expect(hasTedSpreadSeries({})).toBe(false);
+    expect(hasTedSpreadSeries({ isLive: true, latest: 0.15 })).toBe(false);
+    expect(hasTedSpreadSeries({ dates: ['2024-01'] })).toBe(false);
+  });
+
+  it('hasTedSpreadSeries is true when TED values exist', () => {
+    expect(hasTedSpreadSeries({ values: [0.15, 0.18], dates: ['2024-01', '2024-02'] })).toBe(true);
+  });
+
+  it('hasMuniMarketSummary is false for empty / isLive-only payloads', () => {
+    expect(hasMuniMarketSummary(null)).toBe(false);
+    expect(hasMuniMarketSummary({})).toBe(false);
+    expect(hasMuniMarketSummary({ isLive: true, tradeTypes: [] })).toBe(false);
+  });
+
+  it('hasMuniMarketSummary is true when MSRB summary exists', () => {
+    expect(hasMuniMarketSummary({ summary: { tradesAll: 12000 } })).toBe(true);
   });
 });
