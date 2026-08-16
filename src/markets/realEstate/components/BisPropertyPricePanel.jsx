@@ -59,6 +59,11 @@ function fmtAcct(v, digits = 1) {
   });
 }
 
+export function hasBisPropertyRows(priceIndexData) {
+  if (!priceIndexData || typeof priceIndexData !== 'object') return false;
+  return Object.values(priceIndexData).some((series) => Array.isArray(series?.values) && series.values.length > 0);
+}
+
 export default function BisPropertyPricePanel() {
   const reCtx = useMarketData('realEstate');
   const data = reCtx?.data || {};

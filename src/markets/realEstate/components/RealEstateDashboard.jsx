@@ -5,9 +5,9 @@ import { useMarketData } from '../../../hub/DataContext';
 import SafeECharts from '../../../components/SafeECharts';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import MetricValue from '../../../components/MetricValue/MetricValue';
-import BisPropertyPricePanel from './BisPropertyPricePanel';
-import MetroCaseShillerPanel from './MetroCaseShillerPanel';
-import HudAffordabilityPanel from './HudAffordabilityPanel';
+import BisPropertyPricePanel, { hasBisPropertyRows } from './BisPropertyPricePanel';
+import MetroCaseShillerPanel, { hasMetroCaseShillerRows } from './MetroCaseShillerPanel';
+import HudAffordabilityPanel, { hasHudAffordabilityRows } from './HudAffordabilityPanel';
 import {
   HousingPanel as CensusHousingPanel,
   TradePanel as CensusTradePanel,
@@ -1003,9 +1003,9 @@ function RealEstateDashboard({
       'census-trends-housing': !!isLive,
       'census-trends-trade': !!isLive,
       'fhfa-hpi': !!isLive,
-      'bis-property-prices': true,
-      'metro-case-shiller': true,
-      'hud-affordability-by-metro': true,
+      'bis-property-prices': hasBisPropertyRows(priceIndexData),
+      'metro-case-shiller': hasMetroCaseShillerRows(caseShillerData),
+      'hud-affordability-by-metro': hasHudAffordabilityRows(hudData),
     },
     __subtitle: {
       metrics: 'Prices · rates · activity · distress',
@@ -1019,6 +1019,9 @@ function RealEstateDashboard({
     __disabled: {
       'census-housing': housingExtraCards.length === 0 && !hasCensusHousingKpi,
       'census-trade': tradeExtraCards.length === 0 && !hasCensusEcoKpi,
+      'bis-property-prices': !hasBisPropertyRows(priceIndexData),
+      'metro-case-shiller': !hasMetroCaseShillerRows(caseShillerData),
+      'hud-affordability-by-metro': !hasHudAffordabilityRows(hudData),
     },
     __noFooter: {},
     __source: {

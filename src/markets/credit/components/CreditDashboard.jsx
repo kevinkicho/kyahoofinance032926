@@ -5,9 +5,9 @@ import EmptyPanelBody from '../../../components/BentoCard/EmptyPanelBody';
 import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
-import WorldBankDebtPanel from './WorldBankDebtPanel';
+import WorldBankDebtPanel, { hasWbDebtRows } from './WorldBankDebtPanel';
 import BisTotalCreditPanel, { hasBisCreditRows } from './BisTotalCreditPanel';
-import TreasuryCreditHoldingsPanel from './TreasuryCreditHoldingsPanel';
+import TreasuryCreditHoldingsPanel, { hasTreasuryCreditHoldings } from './TreasuryCreditHoldingsPanel';
 import './CreditDashboard.css';
 
 // KPI strip is now a real bento child at row 0 (h:2). All other panels
@@ -63,7 +63,11 @@ function CreditDashboard({
   // 2026-05-04: MSRB EMMA municipal market activity.
   const msrbCtx = useMarketData('msrb');
   const macroCtx = useMarketData('globalMacro');
+  const wbCtx = useMarketData('worldbank');
+  const ticCtx = useMarketData('treasuryTIC');
   const hasBisCredit = hasBisCreditRows(macroCtx?.data?.bisCreditToGDP);
+  const hasWbDebt = hasWbDebtRows(wbCtx?.data?.countries);
+  const hasTicHoldings = hasTreasuryCreditHoldings(ticCtx?.data?.latest);
 
   const igSpread = spreadData?.current?.igSpread;
   const hySpread = spreadData?.current?.hySpread;
@@ -710,9 +714,9 @@ function CreditDashboard({
       'muni-market': !!msrbCtx?.data?.isLive,
       'bank-stress': !!(fdicCtx?.data?.aggregate?.length || spreadData),
       'ted-spread': !!isLive,
-      'wb-debt': true,
+      'wb-debt': hasWbDebt,
       'bis-total-credit': hasBisCredit,
-      'treasury-credit-holdings': true,
+      'treasury-credit-holdings': hasTicHoldings,
     },
     __subtitle: {
       kpi: 'IG/HY/EM OAS · charge-offs · commercial paper',
@@ -755,11 +759,13 @@ function CreditDashboard({
       'credit-quality': !creditQuality?.dates?.length,
       'muni-market': !msrbCtx?.data?.summary,
       'ted-spread': !(tedSpread?.values?.length > 0),
+      'wb-debt': !hasWbDebt,
+      'treasury-credit-holdings': !hasTicHoldings,
     },
   }), [
     spreadData, emBondData, loanData, defaultData, delinquencyRates, lendingStandards,
     commercialPaper, excessReserves, creditQuality, tedSpread, lastUpdated, fdicCtx,
-    msrbCtx, macroCtx, hasBisCredit, renderPanel, isLive, bankStress, spreadOption, emYieldsList,
+    msrbCtx, macroCtx, hasBisCredit, wbCtx, ticCtx, hasWbDebt, hasTicHoldings, renderPanel, isLive, bankStress, spreadOption, emYieldsList,
   ]);
 
   return (

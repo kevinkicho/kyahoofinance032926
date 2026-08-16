@@ -28,6 +28,11 @@ function normalizeMetro(m) {
   };
 }
 
+export function hasHudAffordabilityRows(hudData) {
+  if (!Array.isArray(hudData)) return false;
+  return hudData.some((m) => normalizeMetro(m)?.ratio != null);
+}
+
 export default function HudAffordabilityPanel() {
   const reCtx = useMarketData('realEstate');
   const data = reCtx?.data || {};

@@ -2,6 +2,12 @@ import React, { useMemo } from 'react';
 import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 
+export function hasMetroCaseShillerRows(caseShillerData) {
+  const metros = caseShillerData?.metros;
+  if (!metros || typeof metros !== 'object') return false;
+  return Object.entries(metros).some(([, info]) => info && typeof info === 'object');
+}
+
 export default function MetroCaseShillerPanel() {
   const reCtx = useMarketData('realEstate');
   const data = reCtx?.data || {};

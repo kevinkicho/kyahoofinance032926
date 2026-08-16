@@ -2,6 +2,10 @@ import React, { useMemo } from 'react';
 import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 
+export function hasTreasuryCreditHoldings(latest) {
+  return Array.isArray(latest) && latest.length > 0;
+}
+
 export default function TreasuryCreditHoldingsPanel() {
   const ticCtx = useMarketData('treasuryTIC');
   const data = ticCtx?.data || {};
@@ -11,7 +15,7 @@ export default function TreasuryCreditHoldingsPanel() {
     return latest.slice(0, 10);
   }, [latest]);
 
-  if (!topHolders.length) {
+  if (!hasTreasuryCreditHoldings(topHolders)) {
     return <div className="eq-panel-content" style={{ padding: 16, color: 'var(--text-muted)', fontSize: 12 }}>Treasury TIC data unavailable.</div>;
   }
 

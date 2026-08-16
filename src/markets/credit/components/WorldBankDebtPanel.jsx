@@ -2,6 +2,10 @@ import React, { useMemo } from 'react';
 import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 
+export function hasWbDebtRows(countries) {
+  return Array.isArray(countries) && countries.length > 0;
+}
+
 export default function WorldBankDebtPanel() {
   const wbCtx = useMarketData('worldbank');
   const data = wbCtx?.data || {};
@@ -11,7 +15,7 @@ export default function WorldBankDebtPanel() {
     return [...countries].sort((a, b) => (b.gdpGrowth || 0) - (a.gdpGrowth || 0));
   }, [countries]);
 
-  if (!sorted.length) {
+  if (!hasWbDebtRows(sorted)) {
     return <div className="eq-panel-content" style={{ padding: 16, color: 'var(--text-muted)', fontSize: 12 }}>World Bank data unavailable.</div>;
   }
 
