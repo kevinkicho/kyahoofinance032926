@@ -285,6 +285,7 @@ export const PANEL_REGISTRY = {
       { title: 'Error Log' },
       { title: 'Panel Trace Inspector' },
       { title: 'Endpoint Coverage Matrix' },
+      { title: 'Data Quality Score' },
       { title: 'Panel Visibility Audit' },
     ],
   },

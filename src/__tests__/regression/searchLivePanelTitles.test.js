@@ -61,6 +61,18 @@ describe('global search live panel titles', () => {
     expect((MARKET_PANELS.watchlist || []).some((p) => p.id === 'cross-alerts')).toBe(true);
   });
 
+  it('finds Data Quality Score on analytics and jumps to data-quality', () => {
+    expect(idsFor('data quality score')).toContain('analytics');
+    expect(firstPanel('data quality score', 'analytics')).toBe('data-quality');
+    expect((MARKET_PANELS.analytics || []).some((p) => p.id === 'data-quality')).toBe(true);
+  });
+
+  it('finds Panel Visibility Audit on analytics and jumps to visibility-audit', () => {
+    expect(idsFor('panel visibility audit')).toContain('analytics');
+    expect(firstPanel('panel visibility audit', 'analytics')).toBe('visibility-audit');
+    expect((MARKET_PANELS.analytics || []).some((p) => p.id === 'visibility-audit')).toBe(true);
+  });
+
   it('still matches ticker keywords and equities view-mode tabs', () => {
     expect(idsFor('AAPL')).toContain('equities');
     const race = searchHub('bar race').find((r) => r.marketId === 'equities');

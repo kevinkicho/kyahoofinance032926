@@ -455,6 +455,8 @@ export const PANEL_FIELD_MAP = {
   'analytics:routes': { field: 'sources', fieldPath: 'sources' },
   'analytics:panel-trace': { field: 'sources', fieldPath: 'sources' },
   'analytics:coverage-matrix': { field: 'sources', fieldPath: 'sources' },
+  'analytics:data-quality': { field: 'dataFreshness', fieldPath: 'dataFreshness.markets' },
+  'analytics:visibility-audit': { field: 'dataFreshness', fieldPath: 'dataFreshness.markets' },
 };
 
 // Note: analytics primary endpoint is /api/rate-limits → { date, sources }

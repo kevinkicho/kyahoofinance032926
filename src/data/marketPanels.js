@@ -279,5 +279,7 @@ export const MARKET_PANELS = {
     { id: 'routes', title: 'Express Routes' },
     { id: 'panel-trace', title: 'Panel Trace Inspector' },
     { id: 'coverage-matrix', title: 'Endpoint Coverage Matrix' },
+    { id: 'data-quality', title: 'Data Quality Score' },
+    { id: 'visibility-audit', title: 'Panel Visibility Audit' },
   ],
 };

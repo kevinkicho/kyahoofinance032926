@@ -12,6 +12,8 @@ import p_cache_files from './cache-files.jsx';
 import p_routes from './routes.jsx';
 import p_panel_trace from './panel-trace.jsx';
 import p_coverage_matrix from './coverage-matrix.jsx';
+import p_data_quality from './data-quality.jsx';
+import p_visibility_audit from './visibility-audit.jsx';
 
 /** @type {import('../definePanel').PanelDefinition[]} */
 export const ANALYTICS_PANELS = [
@@ -28,7 +30,9 @@ export const ANALYTICS_PANELS = [
   p_cache_files,
   p_routes,
   p_panel_trace,
-  p_coverage_matrix
+  p_coverage_matrix,
+  p_data_quality,
+  p_visibility_audit
 ];
 
 export const ANALYTICS_PANEL_BY_ID = Object.fromEntries(

@@ -656,6 +656,8 @@ export const PANEL_PLACEHOLDERS = {
   'analytics:routes': [any('sources', ['endpoints', 'apiUsage.sources'])],
   'analytics:panel-trace': [any('sources', ['endpoints', 'apiUsage.sources', 'dataFreshness'])],
   'analytics:coverage-matrix': [any('sources', ['dataFreshness.markets', 'endpoints', 'apiUsage.sources'])],
+  'analytics:data-quality': [any('a', ['dataFreshness.markets', 'dataFreshness', 'endpoints'])],
+  'analytics:visibility-audit': [any('a', ['dataFreshness.markets', 'endpoints', 'apiUsage.sources'])],
 };
 
 /**

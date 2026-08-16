@@ -50,6 +50,21 @@ describe('AnalyticsMarket', () => {
     });
   });
 
+  it('mounts Data Quality Score and Panel Visibility Audit as catalog panels', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      endpoints: [], apiUsage: { sources: [] }, environment: {},
+      uptime: { seconds: 100 }, memCache: { keyCount: 0, hitRate: 0 }, routes: [],
+      dataFreshness: { markets: [{ market: 'bonds', isCurrent: true, fetchedOn: '2026-08-16', keyCount: 8 }] },
+    }));
+    render(<AnalyticsMarket />);
+    await waitFor(() => {
+      expect(screen.getByText('Data Quality Score')).toBeInTheDocument();
+      expect(screen.getByText('Panel Visibility Audit')).toBeInTheDocument();
+    });
+    expect(document.querySelector('[data-panel-key="data-quality"]')).toBeTruthy();
+    expect(document.querySelector('[data-panel-key="visibility-audit"]')).toBeTruthy();
+  });
+
   it('renders analytics dashboard with data', async () => {
     mockFetch.mockResolvedValue(jsonResponse({
       endpoints: [

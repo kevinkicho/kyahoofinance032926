@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api, apiUrl } from '../../lib/api';
-import BentoCard from '../../components/BentoCard/BentoCard';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import { useMarketData, useDataContext } from '../../hub/DataContext';
@@ -1236,16 +1235,20 @@ export default function AnalyticsMarket({ onNavigate }) {
                 </tbody>
               </table>
             );
+          case 'data-quality':
+            return <DataQualityScore markets={data.dataFreshness?.markets || []} />;
+          case 'visibility-audit':
+            return <PanelVisibilityAudit onNavigate={onNavigate} />;
           default:
             return null;
         }
       },
       __live: Object.fromEntries(
-        ['kpi', 'provenance', 'diagnostics', 'server', 'api-usage', 'source-health', 'endpoints', 'freshness', 'error-log', 'mem-cache', 'cache-files', 'routes', 'panel-trace', 'coverage-matrix']
+        ['kpi', 'provenance', 'diagnostics', 'server', 'api-usage', 'source-health', 'endpoints', 'freshness', 'error-log', 'mem-cache', 'cache-files', 'routes', 'panel-trace', 'coverage-matrix', 'data-quality', 'visibility-audit']
           .map((id) => [id, true]),
       ),
       __noFooter: Object.fromEntries(
-        ['kpi', 'provenance', 'diagnostics', 'server', 'api-usage', 'source-health', 'endpoints', 'freshness', 'error-log', 'mem-cache', 'cache-files', 'routes', 'panel-trace', 'coverage-matrix']
+        ['kpi', 'provenance', 'diagnostics', 'server', 'api-usage', 'source-health', 'endpoints', 'freshness', 'error-log', 'mem-cache', 'cache-files', 'routes', 'panel-trace', 'coverage-matrix', 'data-quality', 'visibility-audit']
           .map((id) => [id, true]),
       ),
       __subtitle: {
@@ -1262,36 +1265,10 @@ export default function AnalyticsMarket({ onNavigate }) {
         routes: `${routes.length} routes`,
         'panel-trace': 'Trace data flow: frontend panel → backend field → external API',
         'coverage-matrix': `${coverageRows.filter(r => r.status === 'ok').length}/${coverageRows.length} markets with source coverage`,
+        'data-quality': `Avg ${Math.round((data.dataFreshness?.markets || []).reduce((s, m) => s + (m.isCurrent ? 100 : m.fetchedOn ? 30 : 0), 0) / Math.max((data.dataFreshness?.markets || []).length, 1))} / 100`,
+        'visibility-audit': 'Audit DOM visibility of grid panels',
       },
     };
-
-    // Array (not Fragment) so BentoWrapper/RGL sees each key as a direct child.
-    const analyticsExtra = [
-      <BentoCard
-        key="data-quality"
-        panelKey="data-quality"
-        title="Data Quality Score"
-        subtitle={`Avg ${Math.round((data.dataFreshness?.markets || []).reduce((s, m) => s + (m.isCurrent ? 100 : m.fetchedOn ? 30 : 0), 0) / Math.max((data.dataFreshness?.markets || []).length, 1))} / 100`}
-        accent="analytics"
-        className="ana-bento-card"
-        contentClassName="ana-panel-scroll"
-        noFooter
-      >
-        <DataQualityScore markets={data.dataFreshness?.markets || []} />
-      </BentoCard>,
-      <BentoCard
-        key="visibility-audit"
-        panelKey="visibility-audit"
-        title="Panel Visibility Audit"
-        subtitle="Audit DOM visibility of grid panels"
-        accent="analytics"
-        className="ana-bento-card"
-        contentClassName="ana-panel-scroll"
-        noFooter
-      >
-        <PanelVisibilityAudit onNavigate={onNavigate} />
-      </BentoCard>,
-    ];
 
     return (
       <div className="ana-market">
@@ -1317,7 +1294,6 @@ export default function AnalyticsMarket({ onNavigate }) {
             storageKey="analytics-layout-v4"
             accent="analytics"
             ctx={panelCtx}
-            extra={analyticsExtra}
           />
         </div>
         <DataFooter

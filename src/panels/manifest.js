@@ -2087,6 +2087,24 @@ export const PANEL_MANIFEST = [
     module: "src/panels/analytics/coverage-matrix.jsx",
     placeholders: "analytics:coverage-matrix",
   },
+  {
+    key: "analytics:data-quality",
+    marketId: "analytics",
+    panelId: "data-quality",
+    title: "Data Quality Score",
+    dashboard: "src/markets/analytics/AnalyticsMarket.jsx",
+    module: "src/panels/analytics/data-quality.jsx",
+    placeholders: "analytics:data-quality",
+  },
+  {
+    key: "analytics:visibility-audit",
+    marketId: "analytics",
+    panelId: "visibility-audit",
+    title: "Panel Visibility Audit",
+    dashboard: "src/markets/analytics/AnalyticsMarket.jsx",
+    module: "src/panels/analytics/visibility-audit.jsx",
+    placeholders: "analytics:visibility-audit",
+  },
 ];
 
 export function getPanelManifestEntry(marketId, panelId) {
