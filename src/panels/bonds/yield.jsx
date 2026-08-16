@@ -1,5 +1,6 @@
 import { definePanel } from '../definePanel';
 import YieldCurve from '../../markets/bonds/components/YieldCurve';
+import { hasYieldCurveContent, yieldCurveCountries } from '../../markets/bonds/components/BondsLiveChips';
 
 function Body({ ctx }) {
   const d = ctx?.bonds || {};
@@ -24,13 +25,9 @@ export default definePanel({
   className: 'bonds-bento-card',
   modulePath: 'src/panels/bonds/yield.js',
   getSubtitle: (ctx) => {
-    const yc = ctx?.bonds?.yieldCurveData || {};
-    const n = Object.keys(yc).filter((k) => yc[k] && Object.values(yc[k]).some((v) => v != null)).length;
+    const n = yieldCurveCountries(ctx?.bonds?.yieldCurveData).length;
     return `${n} markets · US multi-tenor + global 10Y`;
   },
-  isLive: (ctx) => {
-    const yc = ctx?.bonds?.yieldCurveData || {};
-    return Object.keys(yc).some((k) => yc[k] && Object.values(yc[k]).some((v) => v != null));
-  },
+  isLive: (ctx) => hasYieldCurveContent(ctx?.bonds?.yieldCurveData),
   Body,
 });

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
+import { hasYieldCurveContent } from './BondsLiveChips';
 import './BondsDashboard.css';
 
 const TENORS = ['3m', '6m', '1y', '2y', '5y', '10y', '30y'];
@@ -16,12 +17,17 @@ const COUNTRY_COLORS = {
 
 function hasAnyYield(curve) {
   if (!curve || typeof curve !== 'object') return false;
-  return TENORS.some((t) => curve[t] != null && Number.isFinite(Number(curve[t])));
+  return TENORS.some((t) => typeof curve[t] === 'number' && Number.isFinite(curve[t]));
+}
+
+function finiteTenor(curve, tenor) {
+  const v = curve?.[tenor];
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
 }
 
 function tenorCount(curve) {
   if (!curve) return 0;
-  return TENORS.filter((t) => curve[t] != null && Number.isFinite(Number(curve[t]))).length;
+  return TENORS.filter((t) => finiteTenor(curve, t) != null).length;
 }
 
 export default function YieldCurve({
@@ -34,13 +40,13 @@ export default function YieldCurve({
   const { colors } = useTheme();
 
   const us = yieldCurveData?.US || {};
-  const us10y = us['10y'] ?? null;
-  const spread10y2y = spreadIndicators?.t10y2y ?? (
-    us['10y'] != null && us['2y'] != null ? us['10y'] - us['2y'] : null
-  );
-  const spread10y3m = spreadIndicators?.t10y3m ?? (
-    us['10y'] != null && us['3m'] != null ? us['10y'] - us['3m'] : null
-  );
+  const us10y = finiteTenor(us, '10y');
+  const us2y = finiteTenor(us, '2y');
+  const us3m = finiteTenor(us, '3m');
+  const spread10y2y = finiteTenor({ t10y2y: spreadIndicators?.t10y2y }, 't10y2y')
+    ?? (us10y != null && us2y != null ? us10y - us2y : null);
+  const spread10y3m = finiteTenor({ t10y3m: spreadIndicators?.t10y3m }, 't10y3m')
+    ?? (us10y != null && us3m != null ? us10y - us3m : null);
 
   const { fullCurveCountries, intl10y } = useMemo(() => {
     const data = yieldCurveData || {};
@@ -49,7 +55,7 @@ export default function YieldCurve({
     for (const [cc, curve] of Object.entries(data)) {
       if (!hasAnyYield(curve)) continue;
       if (tenorCount(curve) >= 3) full.push(cc);
-      else if (curve['10y'] != null) intl.push({ code: cc, y10: Number(curve['10y']) });
+      else if (finiteTenor(curve, '10y') != null) intl.push({ code: cc, y10: finiteTenor(curve, '10y') });
     }
     // Always prefer US first in full curves
     full.sort((a, b) => (a === 'US' ? -1 : b === 'US' ? 1 : a.localeCompare(b)));
@@ -61,8 +67,8 @@ export default function YieldCurve({
     let best = null;
     let bestSpread = -Infinity;
     for (const [cc, curve] of Object.entries(yieldCurveData || {})) {
-      const s30 = curve?.['30y'];
-      const s3m = curve?.['3m'];
+      const s30 = finiteTenor(curve, '30y');
+      const s3m = finiteTenor(curve, '3m');
       if (s30 != null && s3m != null) {
         const spread = s30 - s3m;
         if (spread > bestSpread) {
@@ -237,10 +243,10 @@ export default function YieldCurve({
     };
   }, [yieldHistory, fredYieldHistory, colors]);
 
-  const maxYield = Math.max(...TENORS.map((t) => us[t] ?? 0), 0.01);
+  const maxYield = Math.max(...TENORS.map((t) => finiteTenor(us, t) ?? 0), 0.01);
   const usHasData = hasAnyYield(us);
 
-  if (!yieldCurveData || !Object.keys(yieldCurveData).some((k) => hasAnyYield(yieldCurveData[k]))) {
+  if (!hasYieldCurveContent(yieldCurveData)) {
     return (
       <div className="yc-panel yc-panel--empty" data-panel-empty="1">
         No data available — FRED Treasury series unavailable.
@@ -255,8 +261,8 @@ export default function YieldCurve({
         <div className="yc-kpi">
           <span className="yc-kpi-label">US 10Y</span>
           <span className="yc-kpi-value yc-kpi-value--accent">
-            {us10y != null
-              ? <MetricValue value={us10y} format={(v) => `${v.toFixed(2)}%`} seriesKey="10y" timestamp={lastUpdated} />
+            {typeof us10y === 'number' && Number.isFinite(us10y)
+              ? <MetricValue value={us10y} format={(v) => `${Number(v).toFixed(2)}%`} seriesKey="10y" timestamp={lastUpdated} />
               : '—'}
           </span>
         </div>
@@ -266,8 +272,8 @@ export default function YieldCurve({
             className="yc-kpi-value"
             style={{ color: spread10y2y == null ? undefined : spread10y2y >= 0 ? '#4ade80' : '#f87171' }}
           >
-            {spread10y2y != null
-              ? <MetricValue value={spread10y2y} format={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y2y" timestamp={lastUpdated} />
+            {typeof spread10y2y === 'number' && Number.isFinite(spread10y2y)
+              ? <MetricValue value={spread10y2y} format={(v) => `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`} seriesKey="t10y2y" timestamp={lastUpdated} />
               : '—'}
           </span>
         </div>
@@ -277,8 +283,8 @@ export default function YieldCurve({
             className="yc-kpi-value"
             style={{ color: spread10y3m == null ? undefined : spread10y3m >= 0 ? '#4ade80' : '#f87171' }}
           >
-            {spread10y3m != null
-              ? <MetricValue value={spread10y3m} format={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`} seriesKey="t10y3m" timestamp={lastUpdated} />
+            {typeof spread10y3m === 'number' && Number.isFinite(spread10y3m)
+              ? <MetricValue value={spread10y3m} format={(v) => `${Number(v) >= 0 ? '+' : ''}${Number(v).toFixed(2)}%`} seriesKey="t10y3m" timestamp={lastUpdated} />
               : '—'}
           </span>
         </div>
@@ -317,7 +323,7 @@ export default function YieldCurve({
           <div className="yc-section-title">US yield by tenor</div>
           <div className="yc-tenor-list">
             {usHasData ? TENORS.map((t) => {
-              const val = us[t];
+              const val = finiteTenor(us, t);
               const pct = val != null ? (val / maxYield) * 100 : 0;
               return (
                 <div key={t} className="yc-tenor-row">
@@ -329,7 +335,7 @@ export default function YieldCurve({
                     />
                   </div>
                   <span className="yc-tenor-val">
-                    {val != null ? `${Number(val).toFixed(2)}%` : '—'}
+                    {val != null ? `${val.toFixed(2)}%` : '—'}
                   </span>
                 </div>
               );

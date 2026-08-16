@@ -97,6 +97,8 @@ import {
 import {
   hasBondsKpiMetrics,
   hasBondsMetricsContent,
+  hasYieldCurveContent,
+  yieldCurveCountries,
   hasCreditRatingsRows,
   hasTreasuryCostRates,
   hasCurveSpreadSeries,
@@ -2882,5 +2884,53 @@ describe('equities leftover empty-capable tiles (universe-updates)', () => {
     expect(() => rows.map((r) => (r.price != null ? r.price.toFixed(2) : '—'))).not.toThrow();
     expect(() => rows.map((r) => (r.changePct != null ? r.changePct.toFixed(2) : '—'))).not.toThrow();
     expect(rows[0].marketCap.toFixed(1)).toBe('12.5');
+  });
+});
+
+describe('bonds leftover empty-capable tiles (yield)', () => {
+  it('panel does not treat leftover sibling keys as live yield markets', () => {
+    const panel = src('panels/bonds/yield.jsx');
+    expect(panel).not.toMatch(/Object\.values\(yc\[k\]\)\.some\(\s*\(v\) => v != null\s*\)/);
+    expect(panel).toMatch(/isLive:\s*\(ctx\) => hasYieldCurveContent\(ctx\?\.bonds\?\.yieldCurveData\)/);
+  });
+
+  it('hasYieldCurveContent is false for empty / sibling-key leftover bags', () => {
+    expect(hasYieldCurveContent()).toBe(false);
+    expect(hasYieldCurveContent(null)).toBe(false);
+    expect(hasYieldCurveContent({})).toBe(false);
+    expect(hasYieldCurveContent({ isLive: true })).toBe(false);
+    expect(hasYieldCurveContent({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasYieldCurveContent({ dates: ['2024-01'] })).toBe(false);
+    expect(hasYieldCurveContent({ _sources: { yieldCurve: true } })).toBe(false);
+    expect(hasYieldCurveContent({ US: { isLive: true, lastUpdated: '2024-01', dates: ['2024-01'] } })).toBe(false);
+    expect(hasYieldCurveContent({ US: { '3m': null, '10y': null, '30y': null } })).toBe(false);
+    expect(hasYieldCurveContent({ US: { '10y': '4.25' } })).toBe(false);
+    expect(hasYieldCurveContent({ DE: { '10y': true } })).toBe(false);
+  });
+
+  it('hasYieldCurveContent is true when a country paints a finite tenor', () => {
+    expect(hasYieldCurveContent({ US: { '10y': 4.25 } })).toBe(true);
+    expect(hasYieldCurveContent({ isLive: true, lastUpdated: '2024-01', DE: { '10y': 2.4 } })).toBe(true);
+    expect(hasYieldCurveContent({
+      isLive: true,
+      dates: ['2024-01'],
+      US: { isLive: true, '3m': null, '10y': 4.2 },
+    })).toBe(true);
+  });
+
+  it('yieldCurveCountries skips leftover sibling keys so remount does not crash', () => {
+    expect(() => yieldCurveCountries({ isLive: true, lastUpdated: '2024-01', dates: ['2024-01'], _sources: { yieldCurve: true } })).not.toThrow();
+    expect(yieldCurveCountries({ isLive: true, lastUpdated: '2024-01', dates: ['2024-01'], US: { isLive: true } })).toEqual([]);
+    const rows = yieldCurveCountries({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      _sources: { yieldCurve: true },
+      US: { isLive: true, lastUpdated: '2024-01', dates: ['2024-01'], '10y': 4.25, '2y': true },
+      DE: { '10y': '2.40' },
+    });
+    expect(rows.map(([k]) => k)).toEqual(['US']);
+    expect(() => rows.map(([, curve]) => curve['10y'].toFixed(2))).not.toThrow();
+    expect(rows[0][1]['10y'].toFixed(2)).toBe('4.25');
   });
 });

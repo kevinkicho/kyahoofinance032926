@@ -73,6 +73,26 @@ export function hasBondsMetricsContent({
   return false;
 }
 
+const YIELD_TENORS = ['3m', '6m', '1y', '2y', '5y', '10y', '30y'];
+
+function tenorNumber(curve, tenor) {
+  const v = curve?.[tenor];
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/** Yield-curve countries that paint a tenor; leftover sibling keys still empty / crash the tile. */
+export function yieldCurveCountries(yieldCurveData) {
+  if (!yieldCurveData || typeof yieldCurveData !== 'object' || Array.isArray(yieldCurveData)) return [];
+  return Object.entries(yieldCurveData).filter(([, curve]) => {
+    if (!curve || typeof curve !== 'object' || Array.isArray(curve)) return false;
+    return YIELD_TENORS.some((t) => tenorNumber(curve, t) != null);
+  });
+}
+
+export function hasYieldCurveContent(yieldCurveData) {
+  return yieldCurveCountries(yieldCurveData).length > 0;
+}
+
 /** Ratings tile is empty unless a country row exists; asOf bag is leftover. */
 export function hasCreditRatingsRows(creditRatingsData) {
   return Array.isArray(creditRatingsData) && creditRatingsData.length > 0;
