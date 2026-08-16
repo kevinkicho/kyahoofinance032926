@@ -392,3 +392,41 @@ export function hasWtiBrentSeries(fredCommodities) {
     && wtiBrentHistoryPoints(fredCommodities?.brentHistory).length > 0;
 }
 
+
+/** Commodity-bloc FX rows. Leftover isLive / bag-only keys stay empty. */
+const COMMODITY_FX_CODES = ['CAD', 'AUD', 'NOK', 'BRL', 'CLP', 'ZAR'];
+
+function commodityFxRate(entry) {
+  if (isFiniteNumber(entry)) return entry;
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+  return isFiniteNumber(entry.rate) ? entry.rate : null;
+}
+
+function commodityFxChange(entry) {
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+  if (isFiniteNumber(entry.changePct)) return entry.changePct;
+  if (isFiniteNumber(entry.change1d)) return entry.change1d;
+  return null;
+}
+
+export function commodityFxRows(commodityCurrencies) {
+  if (!commodityCurrencies || typeof commodityCurrencies !== 'object' || Array.isArray(commodityCurrencies)) {
+    return [];
+  }
+  const rows = [];
+  for (const code of COMMODITY_FX_CODES) {
+    const entry = commodityCurrencies[code];
+    const rate = commodityFxRate(entry);
+    if (rate == null) continue;
+    rows.push({
+      code,
+      rate,
+      changePct: commodityFxChange(entry),
+    });
+  }
+  return rows;
+}
+
+export function hasCommodityFxRates(commodityCurrencies) {
+  return commodityFxRows(commodityCurrencies).length > 0;
+}

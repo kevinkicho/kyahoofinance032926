@@ -189,6 +189,8 @@ import {
   cotHistoryPoints,
   hasWtiBrentSeries,
   wtiBrentHistoryPoints,
+  hasCommodityFxRates,
+  commodityFxRows,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3658,3 +3660,67 @@ describe('commodities leftover empty-capable tiles (wti-brent)', () => {
   });
 });
 
+
+describe('commodities leftover empty-capable tiles (comfx)', () => {
+  it('dashboard does not hardcode leftover bag existence on comfx', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/comfx:\s*!!commodityCurrencies/);
+    expect(dash).toMatch(/comfx:\s*hasCommodityFxRates\(commodityCurrencies\)/);
+    expect(dash).toMatch(/commodityFxRows\(commodityCurrencies\)/);
+    const market = src('markets/commodities/CommoditiesMarket.jsx');
+    expect(market).not.toMatch(/const commodityCurrencies = props\.commodityCurrencies \|\| ccyFromFx/);
+    expect(market).toMatch(/hasCommodityFxRates\(props\.commodityCurrencies\)/);
+  });
+
+  it('hasCommodityFxRates is false for empty / leftover isLive bags', () => {
+    expect(hasCommodityFxRates()).toBe(false);
+    expect(hasCommodityFxRates(null)).toBe(false);
+    expect(hasCommodityFxRates({})).toBe(false);
+    expect(hasCommodityFxRates({ isLive: true })).toBe(false);
+    expect(hasCommodityFxRates({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasCommodityFxRates({ dates: ['2024-01'] })).toBe(false);
+    expect(hasCommodityFxRates({ CAD: { isLive: true } })).toBe(false);
+    expect(hasCommodityFxRates({ CAD: { rate: true } })).toBe(false);
+    expect(hasCommodityFxRates({ CAD: { rate: '1.3612' } })).toBe(false);
+    expect(hasCommodityFxRates({ CAD: { changePct: 0.14 } })).toBe(false);
+    expect(hasCommodityFxRates({ isLive: true, lastUpdated: '2024-01', dates: ['2024-01'] })).toBe(false);
+  });
+
+  it('hasCommodityFxRates is true when a painted commodity FX rate exists', () => {
+    expect(hasCommodityFxRates({ CAD: 1.3612 })).toBe(true);
+    expect(hasCommodityFxRates({ CAD: { rate: 1.3612 } })).toBe(true);
+    expect(hasCommodityFxRates({
+      isLive: true,
+      lastUpdated: '2024-01',
+      CAD: { isLive: true },
+      AUD: { rate: 1.528 },
+    })).toBe(true);
+  });
+
+  it('commodityFxRows skips leftover sibling keys so remount does not crash', () => {
+    expect(() => commodityFxRows({ isLive: true, lastUpdated: '2024-01', dates: ['2024-01'] })).not.toThrow();
+    expect(commodityFxRows({ isLive: true, CAD: { isLive: true }, AUD: { rate: true } })).toEqual([]);
+    expect(commodityFxRows({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      CAD: { rate: 1.3612, changePct: true },
+      AUD: { rate: 1.528, change1d: -0.22 },
+      NOK: 10.842,
+      USD: { rate: 1 },
+    }).map((r) => r.code)).toEqual(['CAD', 'AUD', 'NOK']);
+    const rows = commodityFxRows({
+      isLive: true,
+      CAD: { rate: 1.3612, changePct: 0.14 },
+      AUD: { rate: 1.528, change1d: -0.22 },
+      NOK: 10.842,
+    });
+    expect(rows.map((r) => r.rate)).toEqual([1.3612, 1.528, 10.842]);
+    expect(rows[0].changePct).toBe(0.14);
+    expect(rows[1].changePct).toBe(-0.22);
+    expect(rows[2].changePct).toBe(null);
+    expect(() => rows.map((r) => r.rate.toFixed(4))).not.toThrow();
+    expect(() => rows.map((r) => r.code.slice(0, 2))).not.toThrow();
+    expect(rows[0].rate.toFixed(4)).toBe('1.3612');
+  });
+});

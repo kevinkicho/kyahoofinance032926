@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints, hasCommodityFxRates, commodityFxRows } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -784,8 +784,8 @@ function CommoditiesDashboard({
                 <span style={{ textAlign: 'right' }}>Rate</span>
                 <span style={{ textAlign: 'right' }}>1d %</span>
               </div>
-              {commodityCurrencies && Object.keys(commodityCurrencies).length > 0 ? (
-                Object.entries(commodityCurrencies).map(([cur, data]) => {
+              {hasCommodityFxRates(commodityCurrencies) ? (
+                commodityFxRows(commodityCurrencies).map((row) => {
                   const meta = {
                     CAD: 'Canada · oil / lumber',
                     AUD: 'Australia · metals / coal',
@@ -795,16 +795,16 @@ function CommoditiesDashboard({
                     ZAR: 'S. Africa · PGM / gold',
                   };
                   return (
-                    <div key={cur} className="com-fx-row">
+                    <div key={row.code} className="com-fx-row">
                       <span className="com-fx-name">
-                        <span className="com-fx-code">{cur}</span>
-                        <span className="com-fx-desc">{meta[cur] || 'Commodity bloc'}</span>
+                        <span className="com-fx-code">{row.code}</span>
+                        <span className="com-fx-desc">{meta[row.code] || 'Commodity bloc'}</span>
                       </span>
                       <span className="com-fx-rate">
-                        {data.rate != null ? Number(data.rate).toFixed(4) : '—'}
+                        {row.rate.toFixed(4)}
                       </span>
                       <span className="com-fx-change">
-                        {formatChange(data.changePct ?? data.change1d)}
+                        {formatChange(row.changePct)}
                       </span>
                     </div>
                   );
@@ -1206,7 +1206,7 @@ function CommoditiesDashboard({
       supply: !!supplyDemandData,
       'wti-brent': hasWtiBrentSeries(fredCommodities),
       cot: hasCotPositioning(cotData),
-      comfx: !!commodityCurrencies,
+      comfx: hasCommodityFxRates(commodityCurrencies),
       'usda-ag': !!(hasUsdaAgSeries(usdaCtx?.data) || hasUsdaFredSeries(enhancedData?.fred)),
       'eia-petrol': hasEiaPetrolSeries(eiaPetCtx?.data),
       'us-trade': hasUsTradeSeries(tradeCtx?.data),
@@ -1259,6 +1259,7 @@ function CommoditiesDashboard({
       'us-trade': !hasUsTradeSeries(tradeCtx?.data),
       'physical-pressure': !hasPhysicalPressureRows(eiaPetCtx?.data, usdaCtx?.data, tradeCtx?.data),
       cot: !hasCotPositioning(cotData),
+      comfx: !hasCommodityFxRates(commodityCurrencies),
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },
     __noFooter: {},

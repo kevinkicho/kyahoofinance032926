@@ -1,6 +1,6 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
-import { hasCotPositioning } from './components/CommoditiesLiveChips.js';
+import { hasCotPositioning, hasCommodityFxRates } from './components/CommoditiesLiveChips.js';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import CommoditiesDashboard from './components/CommoditiesDashboard';
@@ -637,7 +637,7 @@ function CommoditiesMarket({ centralData } = {}) {
   })();
 
   const cotData = hasCotPositioning(props.cotData) ? props.cotData : cotFromSentiment;
-  const commodityCurrencies = props.commodityCurrencies || ccyFromFx;
+  const commodityCurrencies = hasCommodityFxRates(props.commodityCurrencies) ? props.commodityCurrencies : ccyFromFx;
 
   return (
     // The internal "Market Summary" bento panel inside CommoditiesDashboard
