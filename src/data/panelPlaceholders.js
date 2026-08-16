@@ -547,7 +547,11 @@ export const PANEL_PLACEHOLDERS = {
   'eia:consumption': [
     any('sales', ['electricity.residential.latest.sales', 'electricity.commercial.latest.sales', 'electricity.industrial.latest.sales', 'electricity.residential.sales']),
   ],
-  'eia:trends': [any('t', ['petroleum', 'naturalGas', 'electricity'])],
+  // Price Trends (3-Year Monthly) paints electricity sector price series only.
+  // petroleum / naturalGas were leftover sibling false-greens.
+  'eia:trends': [
+    any('t', ['electricity.residential.price.values', 'electricity.commercial.price.values', 'electricity.industrial.price.values', 'electricity.residential.price']),
+  ],
   'eia:summary': [p('petroleum', 'petroleum')],
 
   // Empty triggered list is healthy (All Clear) — score rules as live slots too.

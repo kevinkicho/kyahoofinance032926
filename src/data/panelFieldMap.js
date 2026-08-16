@@ -389,11 +389,8 @@ export const PANEL_FIELD_MAP = {
   'eia:co2': { field: 'co2Emissions', fieldPath: 'co2Emissions' },
   // Electricity consumption tile. petroleum is the sibling petroleum panel.
   'eia:consumption': { field: 'electricity', fieldPath: 'electricity' },
-  'eia:trends': { anyOf: [
-    { field: 'petroleum', fieldPath: 'petroleum' },
-    { field: 'naturalGas', fieldPath: 'naturalGas' },
-    { field: 'electricity', fieldPath: 'electricity' },
-  ] },
+  // Electricity 3-year monthly price trends. petroleum/naturalGas are sibling panels.
+  'eia:trends': { field: 'electricity', fieldPath: 'electricity' },
   'eia:summary': { field: 'petroleum', fieldPath: 'petroleum' },
 
   // ── Alerts / Watchlist / Analytics (client-side / federated) ──
