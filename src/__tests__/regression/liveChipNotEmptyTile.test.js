@@ -88,6 +88,15 @@ import {
   hasCliRows,
   hasWbTradeRows,
   hasWbDevRows,
+  hasEcbEurContent,
+  hasTgaSeries,
+  hasGdpNowEvolution,
+  hasFomcSepProjections,
+  hasClevelandNowcast,
+  hasBeaAccountsRows,
+  hasEurostatRows,
+  hasOecdDirectRows,
+  hasBeaIncomeContent,
 } from '../../markets/globalMacro/components/MacroLiveChips.js';
 import {
   hasEqdKpiMetrics,
@@ -1637,5 +1646,143 @@ describe('bls empty-capable tiles (kpi / trends / jolts / productivity / cpi / p
   it('hasBlsDurationItems is true when a duration series exists', () => {
     expect(hasBlsDurationItems({ unempLess5Weeks: { latest: { value: 2182 } } })).toBe(true);
     expect(hasBlsDurationItems({ unemp27PlusWeeks: { history: { values: [1300] } } })).toBe(true);
+  });
+});
+describe('macro leftover empty-capable tiles (ecb / tga / gdpnow / sep / cleveland / bea / eurostat / oecd)', () => {
+  it('dashboard does not hardcode !!xxxData?.isLive on leftover tiles', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/'ecb-eur':\s*!!ecbData\?\.isLive/);
+    expect(dash).not.toMatch(/'tga-balance':\s*!!dtsData\?\.isLive/);
+    expect(dash).not.toMatch(/gdpnow:\s*!!gdpNowData\?\.isLive/);
+    expect(dash).not.toMatch(/'fomc-sep':\s*!!sepData\?\.isLive/);
+    expect(dash).not.toMatch(/cleveland:\s*!!cleveData\?\.isLive/);
+    expect(dash).not.toMatch(/'bea-accounts':\s*!!beaData\?\.isLive/);
+    expect(dash).not.toMatch(/eurostat:\s*!!eurostatData\?\.isLive/);
+    expect(dash).not.toMatch(/'oecd-direct':\s*!!oecdData\?\.isLive/);
+    expect(dash).not.toMatch(/'bea-income':\s*!!beaData\?\.isLive/);
+    expect(dash).toMatch(/'ecb-eur':\s*hasEcbEurContent/);
+    expect(dash).toMatch(/'tga-balance':\s*hasTgaSeries/);
+    expect(dash).toMatch(/gdpnow:\s*hasGdpNowEvolution/);
+    expect(dash).toMatch(/'fomc-sep':\s*hasFomcSepProjections/);
+    expect(dash).toMatch(/cleveland:\s*hasClevelandNowcast/);
+    expect(dash).toMatch(/'bea-accounts':\s*hasBeaAccountsRows/);
+    expect(dash).toMatch(/eurostat:\s*hasEurostatRows/);
+    expect(dash).toMatch(/'oecd-direct':\s*hasOecdDirectRows/);
+    expect(dash).toMatch(/'bea-income':\s*hasBeaIncomeContent/);
+  });
+
+  it('hasEcbEurContent is false for empty / sibling-only payloads', () => {
+    expect(hasEcbEurContent()).toBe(false);
+    expect(hasEcbEurContent({})).toBe(false);
+    expect(hasEcbEurContent({ isLive: true })).toBe(false);
+    expect(hasEcbEurContent({ isLive: true, m3Growth: [{ value: 3.1 }], hicpDetail: [{ value: 2.4 }] })).toBe(false);
+    expect(hasEcbEurContent({ policyRates: {} })).toBe(false);
+    expect(hasEcbEurContent({ moneyMarket: { estr: { value: 3.9 } } })).toBe(false);
+  });
+
+  it('hasEcbEurContent is true when a corridor rate or money-market print exists', () => {
+    expect(hasEcbEurContent({ policyRates: { mainRefinancing: { value: 4.15, period: '2024-06' } } })).toBe(true);
+    expect(hasEcbEurContent({
+      policyRates: { corridorWidth: { value: 0.75 } },
+      moneyMarket: { estr: { value: 3.9 } },
+    })).toBe(true);
+  });
+
+  it('hasTgaSeries is false for empty / isLive-only payloads', () => {
+    expect(hasTgaSeries()).toBe(false);
+    expect(hasTgaSeries({})).toBe(false);
+    expect(hasTgaSeries({ isLive: true, latest: { closeB: 700 } })).toBe(false);
+    expect(hasTgaSeries({ series: [] })).toBe(false);
+  });
+
+  it('hasTgaSeries is true when DTS series points exist', () => {
+    expect(hasTgaSeries({ series: [{ date: '2024-06-01', closeB: 700 }] })).toBe(true);
+  });
+
+  it('hasGdpNowEvolution is false for empty / currentQuarter-only payloads', () => {
+    expect(hasGdpNowEvolution()).toBe(false);
+    expect(hasGdpNowEvolution({})).toBe(false);
+    expect(hasGdpNowEvolution({ isLive: true, currentQuarter: '2024Q2', latest: { gdp: 2.1 } })).toBe(false);
+    expect(hasGdpNowEvolution({ evolution: [] })).toBe(false);
+  });
+
+  it('hasGdpNowEvolution is true when evolution points exist', () => {
+    expect(hasGdpNowEvolution({ evolution: [{ date: '2024-06-01', gdp: 2.1 }] })).toBe(true);
+  });
+
+  it('hasFomcSepProjections is false for empty / summary-only payloads', () => {
+    expect(hasFomcSepProjections()).toBe(false);
+    expect(hasFomcSepProjections({})).toBe(false);
+    expect(hasFomcSepProjections({ isLive: true, summary: { releaseDate: '2024-06-12' } })).toBe(false);
+    expect(hasFomcSepProjections({ projections: [] })).toBe(false);
+  });
+
+  it('hasFomcSepProjections is true when SEP rows exist', () => {
+    expect(hasFomcSepProjections({ projections: [{ variable: 'PCE inflation', median: { current: 2.6 } }] })).toBe(true);
+  });
+
+  it('hasClevelandNowcast is false for empty / isLive-only payloads', () => {
+    expect(hasClevelandNowcast()).toBe(false);
+    expect(hasClevelandNowcast({})).toBe(false);
+    expect(hasClevelandNowcast({ isLive: true })).toBe(false);
+    expect(hasClevelandNowcast({ tables: [], byKind: { mom: { cpi: 0.2 } } })).toBe(false);
+  });
+
+  it('hasClevelandNowcast is true when tables or a YoY/latest headline exist', () => {
+    expect(hasClevelandNowcast({ tables: [{ kind: 'yoy', rows: [{ cpi: 2.4 }] }] })).toBe(true);
+    expect(hasClevelandNowcast({ latest: { cpi: 2.4 } })).toBe(true);
+    expect(hasClevelandNowcast({ byKind: { yoy: { cpi: 2.4 } } })).toBe(true);
+  });
+
+  it('hasBeaAccountsRows is false for empty / sibling-only payloads', () => {
+    expect(hasBeaAccountsRows()).toBe(false);
+    expect(hasBeaAccountsRows({})).toBe(false);
+    expect(hasBeaAccountsRows({ isLive: true, corporateProfits: [{ value: 3200 }] })).toBe(false);
+    expect(hasBeaAccountsRows({ gdpComponents: [], savingRate: [] })).toBe(false);
+  });
+
+  it('hasBeaAccountsRows is true when GDP components or saving-rate rows exist', () => {
+    expect(hasBeaAccountsRows({ gdpComponents: [{ desc: 'Gross domestic product', value: 28000 }] })).toBe(true);
+    expect(hasBeaAccountsRows({ savingRate: [{ desc: 'Personal saving as a percentage', value: 4.1 }] })).toBe(true);
+  });
+
+  it('hasEurostatRows is false for empty / isLive-only payloads', () => {
+    expect(hasEurostatRows()).toBe(false);
+    expect(hasEurostatRows({})).toBe(false);
+    expect(hasEurostatRows({ isLive: true })).toBe(false);
+    expect(hasEurostatRows({ hicp: [], unemployment: [], govtDeficit: [] })).toBe(false);
+  });
+
+  it('hasEurostatRows is true when HICP, unemployment, or deficit rows exist', () => {
+    expect(hasEurostatRows({ hicp: [{ period: '2024-05', value: 2.6 }] })).toBe(true);
+    expect(hasEurostatRows({ unemployment: [{ period: '2024-05', value: 6.4 }] })).toBe(true);
+  });
+
+  it('hasOecdDirectRows is false for empty / sibling-only payloads', () => {
+    expect(hasOecdDirectRows()).toBe(false);
+    expect(hasOecdDirectRows({})).toBe(false);
+    expect(hasOecdDirectRows({ isLive: true })).toBe(false);
+    expect(hasOecdDirectRows({ cli: { USA: [] } })).toBe(false);
+    expect(hasOecdDirectRows({ cli: { USA: [{ period: '2024-03' }] } })).toBe(false);
+  });
+
+  it('hasOecdDirectRows is true when a country CLI series has a value', () => {
+    expect(hasOecdDirectRows({ cli: { USA: [{ period: '2024-03', value: 99.8 }] } })).toBe(true);
+  });
+
+  it('hasBeaIncomeContent is false for empty / GDP-sibling payloads', () => {
+    expect(hasBeaIncomeContent()).toBe(false);
+    expect(hasBeaIncomeContent({})).toBe(false);
+    expect(hasBeaIncomeContent({ isLive: true, gdpComponents: [{ desc: 'Gross domestic product', value: 28000 }] })).toBe(false);
+    expect(hasBeaIncomeContent({ savingRate: [{ desc: 'Unrelated line', value: 1, period: '2024Q1' }] })).toBe(false);
+  });
+
+  it('hasBeaIncomeContent is true when saving-rate cycle or income lines exist', () => {
+    expect(hasBeaIncomeContent({
+      savingRate: [{ desc: 'Personal saving as a percentage of disposable personal income', value: 4.1, period: '2024-05' }],
+    })).toBe(true);
+    expect(hasBeaIncomeContent({
+      savingRate: [{ desc: 'Personal income', value: 24000, period: '2024-05' }],
+    })).toBe(true);
   });
 });

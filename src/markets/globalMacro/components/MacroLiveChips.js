@@ -58,3 +58,76 @@ export function hasWbDevRows(wbData) {
   const countries = Array.isArray(wbData?.countries) ? wbData.countries : [];
   return countries.filter((c) => c?.gdpPerCap != null && c?.gdpGrowth != null).length >= 2;
 }
+
+/** ECB EUR tile paints only when policyRates exists; M3/HICP siblings can set isLive. */
+export function hasEcbEurContent(ecbData) {
+  const pr = ecbData?.policyRates;
+  if (!pr || typeof pr !== 'object') return false;
+  if (pr.depositFacility || pr.mainRefinancing || pr.marginalLending) return true;
+  const mm = ecbData?.moneyMarket;
+  return !!(mm && (mm.estr || mm.euribor1m || mm.euribor3m || mm.euribor6m || mm.euribor1y));
+}
+
+/** TGA chart paints dts.series; isLive can be true with an empty series. */
+export function hasTgaSeries(dtsData) {
+  return Array.isArray(dtsData?.series) && dtsData.series.length > 0;
+}
+
+/** GDPNow chart paints evolution[]; currentQuarter-only is the sibling field-map leftover. */
+export function hasGdpNowEvolution(gdpNowData) {
+  return Array.isArray(gdpNowData?.evolution) && gdpNowData.evolution.length > 0;
+}
+
+/** FOMC SEP table paints projections[]; summary-only stays on the loading body. */
+export function hasFomcSepProjections(sepData) {
+  return Array.isArray(sepData?.projections) && sepData.projections.length > 0;
+}
+
+/** Cleveland nowcast is empty unless tables or a YoY/latest headline exist. */
+export function hasClevelandNowcast(cleveData) {
+  const tables = Array.isArray(cleveData?.tables) ? cleveData.tables : [];
+  if (tables.length > 0) return true;
+  return !!(cleveData?.byKind?.yoy || cleveData?.latest);
+}
+
+/** BEA accounts cards gate on gdpComponents / savingRate; corporateProfits is a sibling. */
+export function hasBeaAccountsRows(beaData) {
+  return (Array.isArray(beaData?.gdpComponents) && beaData.gdpComponents.length > 0)
+    || (Array.isArray(beaData?.savingRate) && beaData.savingRate.length > 0);
+}
+
+/** Eurostat chart needs HICP, unemployment, or deficit rows. */
+export function hasEurostatRows(eurostatData) {
+  return (Array.isArray(eurostatData?.hicp) && eurostatData.hicp.length > 0)
+    || (Array.isArray(eurostatData?.unemployment) && eurostatData.unemployment.length > 0)
+    || (Array.isArray(eurostatData?.govtDeficit) && eurostatData.govtDeficit.length > 0);
+}
+
+/** OECD CLI momentum bars need country series with a latest value. */
+export function hasOecdDirectRows(oecdData) {
+  const cli = oecdData?.cli && typeof oecdData.cli === 'object' ? oecdData.cli : {};
+  return Object.values(cli).some((rows) => {
+    const series = Array.isArray(rows) ? rows : [];
+    return series.some((r) => r?.value != null);
+  });
+}
+
+const BEA_INCOME_DESC = [
+  'personal income',
+  'disposable personal income',
+  'personal outlays',
+  'personal consumption',
+  'personal saving',
+];
+
+/** BEA income tile paints savingRate income lines / saving-rate cycle; GDP bag is sibling. */
+export function hasBeaIncomeContent(beaData) {
+  const rows = Array.isArray(beaData?.savingRate) ? beaData.savingRate : [];
+  if (rows.some((r) => String(r?.desc || '').toLowerCase().includes('personal saving as a percentage'))) return true;
+  const latestPeriod = rows[0]?.period;
+  return rows.some((row) => {
+    if (row.period !== latestPeriod || row.value == null) return false;
+    const desc = String(row.desc || '').toLowerCase();
+    return BEA_INCOME_DESC.some((needle) => desc.includes(needle));
+  });
+}
