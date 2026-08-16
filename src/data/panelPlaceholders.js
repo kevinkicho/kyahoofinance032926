@@ -509,7 +509,12 @@ export const PANEL_PLACEHOLDERS = {
   'equitiesDeepDive:sector-beat': [p('sectorData', 'sectorData')],
   'equitiesDeepDive:shorted': [p('shortData', 'shortData')],
   'equitiesDeepDive:scores': [p('factorData', 'factorData')],
-  'equitiesDeepDive:factor-rankings': [any('fr', ['factorData.stocks', 'factorData.inFavor', 'factorData', 'breadthDivergence', 'equityRiskPremium'])],
+  // Factor Rankings paints factorData stocks / inFavor.
+  // breadthDivergence / equityRiskPremium were leftover sibling false-greens
+  // (valuation / earnings-quality extras; gated behind factorData in the tile).
+  'equitiesDeepDive:factor-rankings': [
+    any('fr', ['factorData.stocks', 'factorData.inFavor', 'factorData']),
+  ],
   'equitiesDeepDive:earnings': [p('earningsData', 'earningsData')],
   'equitiesDeepDive:institutions': [p('inst', 'institutions', { crossMarket: 'institutional' })],
   'equitiesDeepDive:insider': [
