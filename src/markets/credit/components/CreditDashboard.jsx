@@ -21,6 +21,7 @@ import {
   hasTedSpreadSeries,
   hasMuniMarketSummary,
   hasBankStressContent,
+  hasCreditQualitySeries,
 } from './CreditLiveChips.js';
 import './CreditDashboard.css';
 
@@ -172,7 +173,7 @@ function CreditDashboard({
   // weakening; tightening = benign / risk-on.
   const creditQualityOption = useMemo(() => {
     const cq = creditQuality;
-    if (!cq?.dates?.length) return null;
+    if (!hasCreditQualitySeries(cq)) return null;
     const dates = cq.dates;
     return {
       animation: false,
@@ -724,7 +725,7 @@ function CreditDashboard({
       'default-rates': hasDefaultRateRows(defaultData),
       delinquency: hasDelinquencyRows(delinquencyRates),
       'bank-sector': !!(fdicCtx?.data?.aggregate?.length || fdicCtx?.data?.failures?.length),
-      'credit-quality': !!creditQuality?.dates?.length,
+      'credit-quality': hasCreditQualitySeries(creditQuality),
       'muni-market': hasMuniMarketSummary(msrbCtx?.data),
       'bank-stress': hasBankStressContent({ spreadData, defaultData, commercialPaper, fdicData: fdicCtx?.data }),
       'ted-spread': hasTedSpreadSeries(tedSpread),
@@ -776,7 +777,7 @@ function CreditDashboard({
       'clo-tranches': !hasCloTranches(loanData),
       'default-rates': !hasDefaultRateRows(defaultData),
       delinquency: !hasDelinquencyRows(delinquencyRates),
-      'credit-quality': !creditQuality?.dates?.length,
+      'credit-quality': !hasCreditQualitySeries(creditQuality),
       'muni-market': !hasMuniMarketSummary(msrbCtx?.data),
       'ted-spread': !hasTedSpreadSeries(tedSpread),
       'wb-debt': !hasWbDebt,

@@ -60,6 +60,7 @@ import {
   hasTedSpreadSeries,
   hasMuniMarketSummary,
   hasBankStressContent,
+  hasCreditQualitySeries,
 } from '../../markets/credit/components/CreditLiveChips.js';
 import {
   hasElectricityPrices,
@@ -870,6 +871,34 @@ describe('credit leftover empty-capable tiles (bank-stress)', () => {
     expect(hasBankStressContent({
       fdicData: { failures: [{ name: 'Example Bank', date: '2024-03-01', assets: 2000 }] },
     })).toBe(true);
+  });
+});
+
+
+describe('credit leftover empty-capable tiles (credit-quality)', () => {
+  it('dashboard does not hardcode leftover dates-only on credit-quality', () => {
+    const dash = src('markets/credit/components/CreditDashboard.jsx');
+    expect(dash).not.toMatch(/'credit-quality':\s*!!creditQuality\?\.dates\?\.length/);
+    expect(dash).toMatch(/'credit-quality':\s*hasCreditQualitySeries\(/);
+  });
+
+  it('hasCreditQualitySeries is false for empty / dates-only leftover bags', () => {
+    expect(hasCreditQualitySeries()).toBe(false);
+    expect(hasCreditQualitySeries(null)).toBe(false);
+    expect(hasCreditQualitySeries({})).toBe(false);
+    expect(hasCreditQualitySeries({ isLive: true })).toBe(false);
+    expect(hasCreditQualitySeries({ dates: ['2024-01'] })).toBe(false);
+    expect(hasCreditQualitySeries({ dates: ['2024-01'], aaaPct: [], baaPct: [], spreadBps: [] })).toBe(false);
+    expect(hasCreditQualitySeries({ dates: ['2024-01'], aaaPct: [null, null] })).toBe(false);
+    expect(hasCreditQualitySeries({ aaaPct: [4.7], baaPct: [5.5] })).toBe(false);
+    expect(hasCreditQualitySeries({ latest: { spreadBps: 80 } })).toBe(false);
+  });
+
+  it('hasCreditQualitySeries is true when dates and a series paint', () => {
+    expect(hasCreditQualitySeries({ dates: ['2024-01'], aaaPct: [4.7] })).toBe(true);
+    expect(hasCreditQualitySeries({ dates: ['2024-01'], baaPct: [5.5] })).toBe(true);
+    expect(hasCreditQualitySeries({ dates: ['2024-01'], spreadBps: [80] })).toBe(true);
+    expect(hasCreditQualitySeries({ dates: ['2024-01'], aaaPct: [null, 4.7] })).toBe(true);
   });
 });
 

@@ -109,3 +109,11 @@ export function hasBankStressContent({
 
   return Array.isArray(fdicData?.failures) && fdicData.failures.length > 0;
 }
+
+/** Credit-quality chart is empty when dates exist but no Aaa/Baa/spread series paint. */
+export function hasCreditQualitySeries(creditQuality) {
+  if (!Array.isArray(creditQuality?.dates) || !creditQuality.dates.length) return false;
+  return ['aaaPct', 'baaPct', 'spreadBps'].some(
+    (k) => Array.isArray(creditQuality?.[k]) && creditQuality[k].some((v) => v != null),
+  );
+}
