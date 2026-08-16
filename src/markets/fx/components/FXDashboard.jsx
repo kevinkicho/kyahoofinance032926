@@ -21,6 +21,8 @@ import {
   hasDxyHistory,
   hasCotHistory,
   cotHistorySeries,
+  rateDiffEntries,
+  hasRateDiffRows,
 } from './FXLiveChips.js';
 
 function Sparkline({ values }) {
@@ -124,10 +126,7 @@ function FXDashboard({
       .slice(0, 12);
   }, [changes, changes1w, changes1m, sparklines, cotData]);
 
-  const rateDiff = useMemo(() => {
-    if (!rateDifferentials) return null;
-    return Object.entries(rateDifferentials).filter(([, v]) => v != null).slice(0, 8);
-  }, [rateDifferentials]);
+  const rateDiff = useMemo(() => rateDiffEntries(rateDifferentials).slice(0, 8), [rateDifferentials]);
 
   const rateDiffRows = useMemo(() => {
     if (!rateDifferentials) return [];
@@ -332,7 +331,7 @@ function FXDashboard({
       cot: hasCotHistory(cotHistory),
       corr: hasFxCorrelationHistory(history),
       reer: hasReerSeries(reer),
-      ratediff: !!rateDiff?.length,
+      ratediff: hasRateDiffRows(rateDifferentials),
       carry: !!(rateDifferentials && rateDifferentials.fed != null),
       'rate-dashboard': !!rateDiffRows.length,
       'imf-cofer': hasCofer,

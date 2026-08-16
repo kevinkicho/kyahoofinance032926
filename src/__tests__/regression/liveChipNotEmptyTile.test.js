@@ -81,6 +81,8 @@ import {
   hasDxyHistory,
   hasCotHistory,
   cotHistorySeries,
+  rateDiffEntries,
+  hasRateDiffRows,
 } from '../../markets/fx/components/FXLiveChips.js';
 import {
   hasSentimentSidebarContent,
@@ -2795,5 +2797,42 @@ describe('equities leftover empty-capable tiles (sec-fundamentals / sec-filings)
       total: 0,
       byTicker: { AAPL: [], MSFT: [{ form: '10-Q' }] },
     })).toBe(true);
+  });
+});
+
+describe('fx leftover empty-capable tiles (ratediff)', () => {
+  it('dashboard does not hardcode leftover bag existence on ratediff', () => {
+    const dash = src('markets/fx/components/FXDashboard.jsx');
+    expect(dash).not.toMatch(/ratediff:\s*!!rateDiff\?\.length/);
+    expect(dash).toMatch(/ratediff:\s*hasRateDiffRows\(/);
+  });
+
+  it('hasRateDiffRows is false for empty / sibling-key leftover bags', () => {
+    expect(hasRateDiffRows()).toBe(false);
+    expect(hasRateDiffRows(null)).toBe(false);
+    expect(hasRateDiffRows({})).toBe(false);
+    expect(hasRateDiffRows({ isLive: true })).toBe(false);
+    expect(hasRateDiffRows({ lastUpdated: '2024-01' })).toBe(false);
+    expect(hasRateDiffRows({ dates: ['2024-01'] })).toBe(false);
+    expect(hasRateDiffRows({ fed: null, ecb: null, usFed_ecb: null })).toBe(false);
+    expect(hasRateDiffRows({ fed: '5.25' })).toBe(false);
+  });
+
+  it('hasRateDiffRows is true when a numeric policy or spread paints', () => {
+    expect(hasRateDiffRows({ fed: 5.25 })).toBe(true);
+    expect(hasRateDiffRows({ isLive: true, usFed_ecb: 1.5 })).toBe(true);
+    expect(hasRateDiffRows({ lastUpdated: '2024-01', boj: 0.1 })).toBe(true);
+  });
+
+  it('rateDiffEntries skips leftover sibling keys so remount does not crash', () => {
+    const rows = rateDiffEntries({
+      isLive: true,
+      lastUpdated: '2024-01',
+      dates: ['2024-01'],
+      fed: 5.25,
+      usFed_ecb: 1.5,
+    });
+    expect(rows.map(([k]) => k)).toEqual(['fed', 'usFed_ecb']);
+    expect(() => rows.map(([, v]) => v.toFixed(2))).not.toThrow();
   });
 });

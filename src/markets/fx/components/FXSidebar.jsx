@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import DataFooter from '../../../components/DataFooter/DataFooter';
+import { rateDiffEntries } from './FXLiveChips.js';
 
 // Currency baskets used for the G10 / EM averages shown in the sidebar.
 const G10 = ['EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'CAD', 'SEK', 'NOK', 'NZD'];
@@ -51,10 +52,7 @@ export default function FXSidebar({
     return { g10: g10Avg, em: emAvg };
   }, [changes]);
 
-  const rateDiff = useMemo(() => {
-    if (!rateDifferentials) return [];
-    return Object.entries(rateDifferentials).filter(([, v]) => v != null).slice(0, 6);
-  }, [rateDifferentials]);
+  const rateDiff = useMemo(() => rateDiffEntries(rateDifferentials).slice(0, 6), [rateDifferentials]);
 
   const cotLatest = useMemo(() => {
     if (!cotHistory || !Object.keys(cotHistory).length) return [];

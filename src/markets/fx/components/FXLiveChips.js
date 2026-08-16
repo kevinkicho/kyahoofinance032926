@@ -59,3 +59,13 @@ export function cotHistorySeries(cotHistory) {
 export function hasCotHistory(cotHistory) {
   return cotHistorySeries(cotHistory).length > 0;
 }
+
+/** Rate-diff rows; leftover sibling keys (isLive, lastUpdated, dates) still empty / crash the tile. */
+export function rateDiffEntries(rateDifferentials) {
+  if (!rateDifferentials || typeof rateDifferentials !== 'object' || Array.isArray(rateDifferentials)) return [];
+  return Object.entries(rateDifferentials).filter(([, v]) => typeof v === 'number' && Number.isFinite(v));
+}
+
+export function hasRateDiffRows(rateDifferentials) {
+  return rateDiffEntries(rateDifferentials).length > 0;
+}
