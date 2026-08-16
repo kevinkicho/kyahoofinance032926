@@ -88,9 +88,28 @@ function hasFhfaHpiSeries(fhfaHpi) {
   return Array.isArray(fhfaHpi?.dates) && fhfaHpi.dates.length > 0;
 }
 
+function hasReitEtfHistory(reitEtf) {
+  return Array.isArray(reitEtf?.history?.dates) && reitEtf.history.dates.length > 0;
+}
+
+function hasForeclosureSeries(foreclosureData) {
+  if (Array.isArray(foreclosureData?.foreclosures?.values) && foreclosureData.foreclosures.values.length > 0) return true;
+  if (Array.isArray(foreclosureData?.delinquencies?.values) && foreclosureData.delinquencies.values.length > 0) return true;
+  return false;
+}
+
+function hasMbaApplications(mbaApplications) {
+  return Array.isArray(mbaApplications?.purchase?.values) && mbaApplications.purchase.values.length > 0;
+}
+
+function hasCreDelinquencies(creDelinquencies) {
+  return Array.isArray(creDelinquencies?.values) && creDelinquencies.values.length > 0;
+}
+
 export {
   latestNumber, fmtAcct, fmtUsdAcct, fmtPctAcct, getCommoditySnapshot,
   hasShillerSeries, hasReitPerfRows, hasCapRateRows, hasAffordabilityStackMetrics,
   hasSupplyMetrics, hasFhfaHpiSeries,
+  hasReitEtfHistory, hasForeclosureSeries, hasMbaApplications, hasCreDelinquencies,
 };
 

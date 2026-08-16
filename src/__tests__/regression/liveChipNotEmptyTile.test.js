@@ -21,6 +21,10 @@ import {
   hasAffordabilityStackMetrics,
   hasSupplyMetrics,
   hasFhfaHpiSeries,
+  hasReitEtfHistory,
+  hasForeclosureSeries,
+  hasMbaApplications,
+  hasCreDelinquencies,
 } from '../../markets/realEstate/components/RealEstateHelpers.js';
 import {
   hasHyOasSeries,
@@ -240,12 +244,22 @@ describe('realEstate empty-capable tiles (shiller / reitperf / caprate / afford-
     expect(dash).not.toMatch(/'afford-stack':\s*!!isLive/);
     expect(dash).not.toMatch(/supply:\s*!!isLive/);
     expect(dash).not.toMatch(/'fhfa-hpi':\s*!!isLive/);
+    expect(dash).not.toMatch(/reitetf:\s*!!isLive/);
+    expect(dash).not.toMatch(/foreclosure:\s*!!isLive/);
+    expect(dash).not.toMatch(/mba:\s*!!isLive/);
+    expect(dash).not.toMatch(/cre:\s*!!isLive/);
+    expect(dash).not.toMatch(/'hud-afford':\s*!!isLive/);
     expect(dash).toMatch(/shiller:\s*hasShillerSeries/);
     expect(dash).toMatch(/reitperf:\s*hasReitPerfRows/);
     expect(dash).toMatch(/caprate:\s*hasCapRateRows/);
     expect(dash).toMatch(/'afford-stack':\s*hasAffordabilityStackMetrics/);
     expect(dash).toMatch(/supply:\s*hasSupplyMetrics/);
     expect(dash).toMatch(/'fhfa-hpi':\s*hasFhfaHpiSeries/);
+    expect(dash).toMatch(/reitetf:\s*hasReitEtfHistory/);
+    expect(dash).toMatch(/foreclosure:\s*hasForeclosureSeries/);
+    expect(dash).toMatch(/mba:\s*hasMbaApplications/);
+    expect(dash).toMatch(/cre:\s*hasCreDelinquencies/);
+    expect(dash).toMatch(/'hud-afford':\s*hasHudAffordabilityRows/);
   });
 
   it('hasShillerSeries is false for empty / metro-only payloads', () => {
@@ -316,6 +330,54 @@ describe('realEstate empty-capable tiles (shiller / reitperf / caprate / afford-
 
   it('hasFhfaHpiSeries is true when FHFA dates exist', () => {
     expect(hasFhfaHpiSeries({ dates: ['2024-01'], values: [420] })).toBe(true);
+  });
+
+  it('hasReitEtfHistory is false for empty / sibling-only payloads', () => {
+    expect(hasReitEtfHistory(null)).toBe(false);
+    expect(hasReitEtfHistory({})).toBe(false);
+    expect(hasReitEtfHistory({ isLive: true })).toBe(false);
+    expect(hasReitEtfHistory({ price: 92.4, history: { closes: [90, 91] } })).toBe(false);
+    expect(hasReitEtfHistory({ history: { dates: [] } })).toBe(false);
+  });
+
+  it('hasReitEtfHistory is true when VNQ history dates exist', () => {
+    expect(hasReitEtfHistory({ history: { dates: ['2024-01'], closes: [90] } })).toBe(true);
+  });
+
+  it('hasForeclosureSeries is false for empty / sibling-only payloads', () => {
+    expect(hasForeclosureSeries(null)).toBe(false);
+    expect(hasForeclosureSeries({})).toBe(false);
+    expect(hasForeclosureSeries({ isLive: true })).toBe(false);
+    expect(hasForeclosureSeries({ foreclosures: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasForeclosureSeries({ delinquencies: { dates: ['2024-01'] } })).toBe(false);
+  });
+
+  it('hasForeclosureSeries is true when a distress series exists', () => {
+    expect(hasForeclosureSeries({ foreclosures: { values: [0.4] } })).toBe(true);
+    expect(hasForeclosureSeries({ delinquencies: { values: [2.1] } })).toBe(true);
+  });
+
+  it('hasMbaApplications is false for empty / sibling-only / refi-only payloads', () => {
+    expect(hasMbaApplications(null)).toBe(false);
+    expect(hasMbaApplications({})).toBe(false);
+    expect(hasMbaApplications({ isLive: true })).toBe(false);
+    expect(hasMbaApplications({ purchase: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasMbaApplications({ refi: { values: [2100] } })).toBe(false);
+  });
+
+  it('hasMbaApplications is true when purchase values exist', () => {
+    expect(hasMbaApplications({ purchase: { values: [180] } })).toBe(true);
+  });
+
+  it('hasCreDelinquencies is false for empty / sibling-only payloads', () => {
+    expect(hasCreDelinquencies(null)).toBe(false);
+    expect(hasCreDelinquencies({})).toBe(false);
+    expect(hasCreDelinquencies({ isLive: true })).toBe(false);
+    expect(hasCreDelinquencies({ dates: ['2024-01'] })).toBe(false);
+  });
+
+  it('hasCreDelinquencies is true when CRE delinquency values exist', () => {
+    expect(hasCreDelinquencies({ values: [4.2] })).toBe(true);
   });
 });
 
