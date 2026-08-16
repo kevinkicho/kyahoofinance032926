@@ -17,6 +17,7 @@ import {
   hasCpRates,
   hasCloTranches,
   hasDefaultRateRows,
+  defaultRateRows,
   hasDelinquencyRows,
   hasTedSpreadSeries,
   hasMuniMarketSummary,
@@ -286,7 +287,7 @@ function CreditDashboard({
                   </div>
                 </div>
               )}
-              {(defaultData?.rates || []).slice(0, 3).map((d) => (
+              {defaultRateRows(defaultData).slice(0, 3).map((d) => (
                 <div key={d.category || d.series} className="credit-metric-card">
                   <div className="credit-metric-row">
                     <span className="credit-metric-name" style={{ fontSize: 10 }}>{d.category}</span>
@@ -503,7 +504,7 @@ function CreditDashboard({
                 </tr>
               </thead>
               <tbody>
-                {(defaultData?.rates || []).slice(0, 10).map((d) => {
+                {defaultRateRows(defaultData).slice(0, 10).map((d) => {
                   const unit = d.unit || '%';
                   const fmt = (v) => {
                     if (v == null || !Number.isFinite(Number(v))) return '—';

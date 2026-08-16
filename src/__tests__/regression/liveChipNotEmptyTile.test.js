@@ -58,6 +58,7 @@ import {
   hasCpRates,
   hasCloTranches,
   hasDefaultRateRows,
+  defaultRateRows,
   hasDelinquencyRows,
   hasTedSpreadSeries,
   hasMuniMarketSummary,
@@ -912,6 +913,34 @@ describe('credit empty-capable tiles (kpi / spreads / EM / CP / CLO / defaults /
   it('hasMuniMarketSummary is true when a trade or issuance row paints', () => {
     expect(hasMuniMarketSummary({ tradeTypes: [{ type: 'All', trades: 12000, parM: 410 }] })).toBe(true);
     expect(hasMuniMarketSummary({ primaryMarket: [{ period: 'January', parM: 2100 }] })).toBe(true);
+  });
+});
+
+
+describe('credit leftover empty-capable tiles (default-rates remount)', () => {
+  it('dashboard does not slice leftover isLive default-rate bags', () => {
+    const dash = src('markets/credit/components/CreditDashboard.jsx');
+    expect(dash).not.toMatch(/defaultData\?\.rates \|\| \[\]/);
+    expect(dash).toMatch(/defaultRateRows\(defaultData\)/);
+  });
+
+  it('defaultRateRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => defaultRateRows({ isLive: true })).not.toThrow();
+    expect(() => defaultRateRows({ rates: { isLive: true } })).not.toThrow();
+    expect(() => defaultRateRows({ rates: true })).not.toThrow();
+    expect(defaultRateRows({ isLive: true })).toEqual([]);
+    expect(defaultRateRows({ rates: { isLive: true } })).toEqual([]);
+    expect(defaultRateRows({ rates: true })).toEqual([]);
+    expect(() => defaultRateRows({ rates: { isLive: true } }).slice(0, 10)).not.toThrow();
+    const rows = defaultRateRows({
+      isLive: true,
+      rates: [
+        { isLive: true },
+        { category: 'C&I Charge-Off', value: 1.2 },
+      ],
+    });
+    expect(rows.map((r) => r.category)).toEqual([undefined, 'C&I Charge-Off']);
+    expect(() => rows.slice(0, 10).map((d) => d.value)).not.toThrow();
   });
 });
 

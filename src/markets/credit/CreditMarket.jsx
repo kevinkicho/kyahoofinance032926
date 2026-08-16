@@ -1,6 +1,7 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import CreditDashboard from './components/CreditDashboard';
+import { defaultRateRows } from './components/CreditLiveChips.js';
 import CreditKpiStrip from './components/CreditKpiStrip';
 import { useCurrency } from '../../hub/CurrencyContext';
 import './CreditMarket.css';
@@ -52,7 +53,7 @@ function CreditMarket({ centralData } = {}) {
 
     // Default Rate KPI: "HY Default Rate (TTM)" is proprietary/null. Fall back
     // through real FRED charge-off / distress rows so Key Metrics isn't empty.
-    const rateRows = Array.isArray(props.defaultData?.rates) ? props.defaultData.rates : [];
+    const rateRows = defaultRateRows(props.defaultData);
     const pickRate = (...patterns) => {
       for (const re of patterns) {
         const hit = rateRows.find(r => re.test(r?.category) && typeof r?.value === 'number');

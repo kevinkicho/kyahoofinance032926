@@ -10,7 +10,7 @@ export function hasCreditKpiMetrics({ spreadData, emBondData, defaultData, comme
   if (isFiniteNumber(cur?.igSpread) || isFiniteNumber(cur?.hySpread) || isFiniteNumber(cur?.emSpread)) return true;
   const countries = Array.isArray(emBondData?.countries) ? emBondData.countries : [];
   if (countries.some((c) => isFiniteNumber(c?.spread))) return true;
-  const rates = Array.isArray(defaultData?.rates) ? defaultData.rates : [];
+  const rates = defaultRateRows(defaultData);
   if (rates.some((r) => isFiniteNumber(r?.value))) return true;
   if (isFiniteNumber(defaultData?.defaultRate)) return true;
   if (isFiniteNumber(commercialPaper?.rate) || isFiniteNumber(commercialPaper?.financial3m) || isFiniteNumber(commercialPaper?.nonfinancial3m)) return true;
@@ -21,7 +21,7 @@ export function hasCreditKpiMetrics({ spreadData, emBondData, defaultData, comme
 export function hasKeyMetricsContent({ spreadData, defaultData, delinquencyRates, commercialPaper } = {}) {
   const cur = spreadData?.current;
   if (isFiniteNumber(cur?.igSpread) || isFiniteNumber(cur?.hySpread) || isFiniteNumber(cur?.emSpread)) return true;
-  if (Array.isArray(defaultData?.rates) && defaultData.rates.length > 0) return true;
+  if (defaultRateRows(defaultData).length > 0) return true;
   if (isFiniteNumber(defaultData?.defaultRate)) return true;
   if (isFiniteNumber(delinquencyRates?.[0]?.rate)) return true;
   if (isFiniteNumber(commercialPaper?.rate)) return true;
@@ -63,8 +63,13 @@ export function hasCloTranches(loanData) {
   return false;
 }
 
+/** Default-rate rows the tile can slice. Leftover isLive / rates bag remount-crash .slice. */
+export function defaultRateRows(defaultData) {
+  return Array.isArray(defaultData?.rates) ? defaultData.rates : [];
+}
+
 export function hasDefaultRateRows(defaultData) {
-  return Array.isArray(defaultData?.rates) && defaultData.rates.length > 0;
+  return defaultRateRows(defaultData).length > 0;
 }
 
 export function hasDelinquencyRows(delinquencyRates) {
