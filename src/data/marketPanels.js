@@ -262,6 +262,7 @@ export const MARKET_PANELS = {
     { id: 'kpi', title: 'Watchlist Summary' },
     { id: 'my-tickers', title: 'My Tickers' },
     { id: 'my-metrics', title: 'My Metrics' },
+    { id: 'cross-alerts', title: 'Cross-Market Alert Board' },
   ],
   analytics: [
     { id: 'kpi', title: 'Analytics Key Metrics' },

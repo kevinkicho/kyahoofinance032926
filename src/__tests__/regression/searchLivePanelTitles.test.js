@@ -55,6 +55,12 @@ describe('global search live panel titles', () => {
     expect((MARKET_PANELS.commodities || []).some((p) => p.id === 'us-trade')).toBe(true);
   });
 
+  it('finds Cross-Market Alert Board on watchlist and jumps to cross-alerts', () => {
+    expect(idsFor('cross-market alert board')).toContain('watchlist');
+    expect(firstPanel('cross-market alert board', 'watchlist')).toBe('cross-alerts');
+    expect((MARKET_PANELS.watchlist || []).some((p) => p.id === 'cross-alerts')).toBe(true);
+  });
+
   it('still matches ticker keywords and equities view-mode tabs', () => {
     expect(idsFor('AAPL')).toContain('equities');
     const race = searchHub('bar race').find((r) => r.marketId === 'equities');

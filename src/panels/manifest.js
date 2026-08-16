@@ -1953,6 +1953,15 @@ export const PANEL_MANIFEST = [
     placeholders: "watchlist:my-metrics",
   },
   {
+    key: "watchlist:cross-alerts",
+    marketId: "watchlist",
+    panelId: "cross-alerts",
+    title: "Cross-Market Alert Board",
+    dashboard: "src/markets/watchlist/WatchlistMarket.jsx",
+    module: "src/panels/watchlist/cross-alerts.jsx",
+    placeholders: "watchlist:cross-alerts",
+  },
+  {
     key: "analytics:kpi",
     marketId: "analytics",
     panelId: "kpi",

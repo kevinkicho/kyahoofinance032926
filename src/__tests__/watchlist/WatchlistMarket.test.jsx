@@ -61,6 +61,12 @@ describe('WatchlistMarket', () => {
     expect(screen.getByText(/No tickers added yet/i)).toBeInTheDocument();
   });
 
+  it('mounts Cross-Market Alert Board as a catalog panel, not a grid extra', () => {
+    render(<WatchlistMarket />);
+    expect(screen.getByText('Cross-Market Alert Board')).toBeInTheDocument();
+    expect(document.querySelector('[data-panel-key="cross-alerts"]')).toBeTruthy();
+  });
+
   it('adds ticker when form is submitted', async () => {
     const user = userEvent.setup();
 

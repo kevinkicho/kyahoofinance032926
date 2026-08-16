@@ -632,6 +632,14 @@ export const PANEL_PLACEHOLDERS = {
   'watchlist:kpi': [p('quotes', 'quotes')],
   'watchlist:my-tickers': [p('quotes', 'quotes')],
   'watchlist:my-metrics': [p('quotes', 'quotes')],
+  'watchlist:cross-alerts': [
+    any('vix', ['vixTermStructure', 'vix'], { crossMarket: 'derivatives' }),
+    any('dxy', ['dxyHistory.values', 'dxyHistory', 'fredFxRates.dollarIndex.values'], { crossMarket: 'fx' }),
+    any('hy', ['spreadData.current.hySpread', 'spreadData.current', 'spreadData'], { crossMarket: 'credit' }),
+    any('fg', ['fearGreedData.score', 'fearGreedData'], { crossMarket: 'sentiment' }),
+    any('btc', ['coinMarketData.coins', 'coinMarketData'], { crossMarket: 'crypto' }),
+    any('gold', ['goldFuturesCurve.spotPrice', 'priceDashboardData'], { crossMarket: 'commodities' }),
+  ],
 
   // /api/analytics shape: apiUsage, endpoints, dataFreshness, cacheFiles, memCache, errorLog, environment
   'analytics:kpi': [any('a', ['apiUsage', 'dataFreshness', 'endpoints'])],

@@ -1,6 +1,5 @@
 // src/markets/watchlist/WatchlistMarket.jsx
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import BentoCard from '../../components/BentoCard/BentoCard';
 import { useMarketData } from '../../hub/DataContext';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../panels/MarketPanelGrid';
@@ -28,8 +27,7 @@ const SUB_TABS = [
 ];
 
 // KPI strip is a real bento child at row 0 (h:2). Layout keys match
-// MARKET_PANELS.watchlist (my-tickers / my-metrics). cross-alerts is
-// legacy extra (not in MARKET_PANELS). Storage key bumped for key rename.
+// MARKET_PANELS.watchlist (my-tickers / my-metrics / cross-alerts).
 const LAYOUTS = {
   tickers: {
     lg: [
@@ -449,53 +447,7 @@ function WatchlistMarket({ onNavigate }) {
     </>
   );
 
-  const panelOnly = activeTab === 'tickers' ? ['kpi', 'my-tickers'] : ['kpi', 'my-metrics'];
-
-  const panelCtx = useMemo(() => {
-    const bodies = {
-      kpi: <MarketKpiStrip kpis={kpis} bare />,
-      'my-tickers': tickersBody,
-      'my-metrics': metricsBody,
-    };
-    return {
-      __render: (panelId) => bodies[panelId] ?? null,
-      __live: {
-        kpi: effectiveIsLive,
-        'my-tickers': effectiveIsLive,
-        'my-metrics': !!watchlistData?.isLive,
-      },
-      __subtitle: {
-        'my-tickers': `${tickers.length}/${MAX_TICKERS}`,
-        'my-metrics': 'Quick shortcuts',
-      },
-      __source: {
-        kpi: effectiveSource,
-        'my-tickers': tickersSource,
-        'my-metrics': 'Internal / FRED',
-      },
-    };
-  }, [
-    kpis, tickersBody, metricsBody, effectiveIsLive, effectiveSource, tickersSource,
-    tickers.length, watchlistData?.isLive,
-  ]);
-
-  const crossAlertsExtra = (
-    <BentoCard
-      key="cross-alerts"
-      panelKey="cross-alerts"
-      title="Cross-Market Alert Board"
-      subtitle={`${crossMarketAlerts.filter(row => row.severity !== 'low' && row.severity !== 'muted').length} active watch signals`}
-      accent="watchlist"
-      className="watch-bento-card"
-      contentClassName="watch-panel-scroll"
-      source="Internal cross-market snapshots"
-      timestamp={watchlistData?.lastUpdated}
-      isLive={effectiveIsLive}
-      isCurrent={watchlistData?.isCurrent}
-      fetchedOn={watchlistData?.fetchedOn}
-      fetchLog={watchlistData?.fetchLog || []}
-      error={watchlistData?.error}
-    >
+  const crossAlertsBody = (
       <table className="watch-ticker-table">
         <thead>
           <tr>
@@ -529,8 +481,41 @@ function WatchlistMarket({ onNavigate }) {
           ))}
         </tbody>
       </table>
-    </BentoCard>
   );
+
+  const panelOnly = activeTab === 'tickers' ? ['kpi', 'my-tickers', 'cross-alerts'] : ['kpi', 'my-metrics', 'cross-alerts'];
+
+  const panelCtx = useMemo(() => {
+    const bodies = {
+      kpi: <MarketKpiStrip kpis={kpis} bare />,
+      'my-tickers': tickersBody,
+      'my-metrics': metricsBody,
+      'cross-alerts': crossAlertsBody,
+    };
+    return {
+      __render: (panelId) => bodies[panelId] ?? null,
+      __live: {
+        kpi: effectiveIsLive,
+        'my-tickers': effectiveIsLive,
+        'my-metrics': !!watchlistData?.isLive,
+        'cross-alerts': effectiveIsLive,
+      },
+      __subtitle: {
+        'my-tickers': `${tickers.length}/${MAX_TICKERS}`,
+        'my-metrics': 'Quick shortcuts',
+        'cross-alerts': `${crossMarketAlerts.filter(row => row.severity !== 'low' && row.severity !== 'muted').length} active watch signals`,
+      },
+      __source: {
+        kpi: effectiveSource,
+        'my-tickers': tickersSource,
+        'my-metrics': 'Internal / FRED',
+        'cross-alerts': 'Internal cross-market snapshots',
+      },
+    };
+  }, [
+    kpis, tickersBody, metricsBody, effectiveIsLive, effectiveSource, tickersSource,
+    tickers.length, watchlistData?.isLive, crossAlertsBody, crossMarketAlerts,
+  ]);
 
   return (
     <div className="watch-market">
@@ -564,7 +549,6 @@ function WatchlistMarket({ onNavigate }) {
             error: watchlistData?.error,
             isLoading,
           }}
-          extra={crossAlertsExtra}
         />
       </div>
     </div>

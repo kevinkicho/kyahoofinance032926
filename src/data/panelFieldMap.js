@@ -432,6 +432,14 @@ export const PANEL_FIELD_MAP = {
   'watchlist:kpi': { field: 'quotes', fieldPath: 'quotes' },
   'watchlist:my-tickers': { field: 'quotes', fieldPath: 'quotes' },
   'watchlist:my-metrics': { field: 'quotes', fieldPath: 'quotes' },
+  'watchlist:cross-alerts': { anyOf: [
+    { field: 'vixTermStructure', fieldPath: 'vixTermStructure', crossMarket: 'derivatives' },
+    { field: 'dxyHistory', fieldPath: 'dxyHistory', crossMarket: 'fx' },
+    { field: 'spreadData', fieldPath: 'spreadData.current.hySpread', crossMarket: 'credit' },
+    { field: 'fearGreedData', fieldPath: 'fearGreedData.score', crossMarket: 'sentiment' },
+    { field: 'coinMarketData', fieldPath: 'coinMarketData.coins', crossMarket: 'crypto' },
+    { field: 'goldFuturesCurve', fieldPath: 'goldFuturesCurve.spotPrice', crossMarket: 'commodities' },
+  ] },
 
   'analytics:kpi': { field: 'date', fieldPath: 'date' },
   'analytics:provenance': { field: 'sources', fieldPath: 'sources' },
