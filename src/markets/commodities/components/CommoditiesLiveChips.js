@@ -509,3 +509,43 @@ export function priceDashboardGroups(priceDashboardData) {
 export function hasPriceDashboardRows(priceDashboardData) {
   return priceDashboardGroups(priceDashboardData).length > 0;
 }
+
+
+/** DBC quote the sidebar paints. Leftover isLive / bag-only stays a dash. */
+export function hasDbcEtfQuote(dbcEtf) {
+  if (!dbcEtf || typeof dbcEtf !== 'object' || Array.isArray(dbcEtf)) return false;
+  return isFiniteNumber(dbcEtf.price);
+}
+
+/** Sidebar COT rows. Leftover isLive / non-array commodities remount-crash .slice. */
+export function sidebarCotRows(cotData) {
+  const list = Array.isArray(cotData)
+    ? cotData.flatMap((sector) => (Array.isArray(sector && sector.commodities) ? sector.commodities : []))
+    : (Array.isArray(cotData && cotData.commodities) ? cotData.commodities : []);
+  const rows = [];
+  for (const c of list) {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) continue;
+    const name = typeof c.name === 'string' && c.name ? c.name : '';
+    if (!name) continue;
+    const netPct = isFiniteNumber(c.netPct) ? c.netPct : null;
+    const netPosition = isFiniteNumber(c.netPosition) ? c.netPosition : null;
+    const noncommNet = cotLatestNumber(c.latest, 'noncommNet');
+    if (netPct == null && netPosition == null && noncommNet == null) continue;
+    rows.push({
+      name,
+      ticker: typeof c.ticker === 'string' ? c.ticker : '',
+      code: typeof c.code === 'string' ? c.code : '',
+      netPct,
+      netPosition: netPosition == null ? noncommNet : netPosition,
+    });
+  }
+  return rows;
+}
+
+/** Sidebar live chip: leftover cot / DBC bags stay false unless a row paints. */
+export function hasCommoditiesSidebarContent(input) {
+  const bag = input && typeof input === 'object' ? input : {};
+  if (sidebarCotRows(bag.cotData).length > 0) return true;
+  if (hasPriceDashboardRows(bag.priceDashboardData)) return true;
+  return hasDbcEtfQuote(bag.dbcEtf);
+}

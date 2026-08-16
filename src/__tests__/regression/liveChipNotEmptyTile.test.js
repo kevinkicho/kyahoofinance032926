@@ -197,6 +197,9 @@ import {
   hasPriceDashboardRows,
   priceDashboardGroups,
   priceDashboardCommodities,
+  hasDbcEtfQuote,
+  sidebarCotRows,
+  hasCommoditiesSidebarContent,
 } from '../../markets/commodities/components/CommoditiesLiveChips.js';
 import {
   hasDerivativesKpiMetrics,
@@ -3914,5 +3917,87 @@ describe('commodities leftover empty-capable tiles (prices)', () => {
       { name: 'WTI Crude', price: 82.14, change1d: true, sparkline: { isLive: true } },
     ]).map((c) => c.name)).toEqual(['WTI Crude']);
     expect(() => priceDashboardGroups([{ sector: 'Energy', commodities: [{ name: 'Gold', price: 10, sparkline: { isLive: true } }] }]).flatMap((g) => g.commodities).map((c) => (c.sparkline || []).map((v) => v.toFixed(2)))).not.toThrow();
+  });
+});
+
+describe('commodities leftover empty-capable tiles (sidebar)', () => {
+  it('dashboard does not hardcode leftover bag existence on sidebar', () => {
+    const dash = src('markets/commodities/components/CommoditiesDashboard.jsx');
+    expect(dash).not.toMatch(/sidebar:\s*!!\(cotData \|\| allCommodities\.length \|\| dbcEtf\)/);
+    expect(dash).toMatch(/sidebar:\s*hasCommoditiesSidebarContent\(\{ cotData, priceDashboardData, dbcEtf \}\)/);
+    expect(dash).toMatch(/sidebarCotRows\(cotData\)/);
+    expect(dash).not.toMatch(/cotData\.flatMap\(s => s\.commodities \|\| \[\]\)/);
+    const market = src('markets/commodities/CommoditiesMarket.jsx');
+    expect(market).not.toMatch(/dbcEtf:\s*d\.dbcEtf \|\| mapped\.dbcEtf/);
+    expect(market).toMatch(/hasDbcEtfQuote\(d\.dbcEtf\)/);
+    expect(market).toMatch(/hasCotPositioning\(cotFromSentiment\)/);
+  });
+
+  it('hasCommoditiesSidebarContent is false for empty / leftover isLive bags', () => {
+    expect(hasCommoditiesSidebarContent()).toBe(false);
+    expect(hasCommoditiesSidebarContent(null)).toBe(false);
+    expect(hasCommoditiesSidebarContent({})).toBe(false);
+    expect(hasCommoditiesSidebarContent({ cotData: { isLive: true } })).toBe(false);
+    expect(hasCommoditiesSidebarContent({ dbcEtf: { isLive: true } })).toBe(false);
+    expect(hasCommoditiesSidebarContent({ dbcEtf: {} })).toBe(false);
+    expect(hasCommoditiesSidebarContent({ dbcEtf: { price: true } })).toBe(false);
+    expect(hasCommoditiesSidebarContent({ dbcEtf: { price: '22.14' } })).toBe(false);
+    expect(hasCommoditiesSidebarContent({ cotData: { commodities: { isLive: true } } })).toBe(false);
+    expect(hasCommoditiesSidebarContent({ cotData: { commodities: [{ isLive: true }] } })).toBe(false);
+    expect(hasCommoditiesSidebarContent({
+      cotData: { isLive: true, commodities: [{ name: 'Gold', latest: { isLive: true } }] },
+      dbcEtf: { isLive: true, lastUpdated: '2024-01' },
+      priceDashboardData: [{ isLive: true }],
+    })).toBe(false);
+    expect(hasCommoditiesSidebarContent({
+      priceDashboardData: [{ sector: 'Energy', commodities: [{ name: 'Gold', price: true }] }],
+    })).toBe(false);
+  });
+
+  it('hasCommoditiesSidebarContent is true when a painted sidebar metric exists', () => {
+    expect(hasCommoditiesSidebarContent({ dbcEtf: { price: 22.14 } })).toBe(true);
+    expect(hasCommoditiesSidebarContent({
+      cotData: { commodities: [{ name: 'Gold', netPct: 12.4 }] },
+    })).toBe(true);
+    expect(hasCommoditiesSidebarContent({
+      priceDashboardData: [{ sector: 'Energy', commodities: [{ name: 'WTI Crude', price: 82.14 }] }],
+    })).toBe(true);
+    expect(hasCommoditiesSidebarContent({
+      isLive: true,
+      cotData: { isLive: true },
+      dbcEtf: { isLive: true, price: 22.14 },
+    })).toBe(true);
+  });
+
+  it('sidebarCotRows skips leftover siblings so remount does not crash', () => {
+    expect(() => sidebarCotRows({ isLive: true })).not.toThrow();
+    expect(() => sidebarCotRows({ commodities: { isLive: true } })).not.toThrow();
+    expect(() => sidebarCotRows({ commodities: true })).not.toThrow();
+    expect(() => sidebarCotRows([null, { isLive: true }, { commodities: { isLive: true } }])).not.toThrow();
+    expect(sidebarCotRows({ commodities: { isLive: true } })).toEqual([]);
+    expect(sidebarCotRows({
+      commodities: [
+        { isLive: true },
+        { name: 'Gold', latest: { isLive: true }, netPct: true },
+        { name: 'WTI Crude Oil', netPct: 12.4, latest: { noncommNet: 185000 } },
+      ],
+    }).map((r) => r.name)).toEqual(['WTI Crude Oil']);
+    const rows = sidebarCotRows({
+      isLive: true,
+      commodities: [
+        { isLive: true },
+        { name: 'Gold', netPct: 8.2, latest: { noncommNet: 120000 } },
+        { name: 'Silver', netPosition: -45000 },
+        { name: 'Copper', latest: { noncommNet: '12' } },
+      ],
+    });
+    expect(rows.map((r) => r.name)).toEqual(['Gold', 'Silver']);
+    expect(rows[0].netPct).toBe(8.2);
+    expect(rows[1].netPosition).toBe(-45000);
+    expect(() => rows.map((r) => r.name.slice(0, 3))).not.toThrow();
+    expect(() => rows.map((r) => (r.netPct != null ? r.netPct.toFixed(1) : r.netPosition.toLocaleString()))).not.toThrow();
+    expect(rows[0].netPct.toFixed(1)).toBe('8.2');
+    expect(hasDbcEtfQuote({ isLive: true })).toBe(false);
+    expect(hasDbcEtfQuote({ price: 22.14 })).toBe(true);
   });
 });

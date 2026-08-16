@@ -11,7 +11,7 @@ import CotPositioning from './CotPositioning';
 import SectorHeatmap from './SectorHeatmap';
 import { MATERIAL_CATEGORIES, MATERIAL_SECTOR_COLUMNS, MATERIAL_SECTOR_EXPOSURE, STRATEGIC_MATERIALS } from '../../../data/strategicMaterials';
 import PriceCharts from './PriceCharts';
-import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints, hasCommodityFxRates, commodityFxRows, hasSectorHeatmapRows, hasPriceDashboardRows, priceDashboardGroups } from './CommoditiesLiveChips.js';
+import { hasFaoPriceSeries, faoPricePoints, hasEiaPetrolSeries, eiaPetrolSeriesPoints, eiaPetrolLatest, eiaPetrolSubtitle, hasUsdaAgSeries, usdaAgSummaryRows, hasUsdaFredSeries, usdaFredHistoryPoints, usdaAgSubtitle, hasUsTradeSeries, usTradeBlocs, usTradeSubtitle, physicalPressureRows as buildPhysicalPressureRows, hasPhysicalPressureRows, hasCotPositioning, hasWtiBrentSeries, wtiBrentHistoryPoints, hasCommodityFxRates, commodityFxRows, hasSectorHeatmapRows, hasPriceDashboardRows, priceDashboardGroups, sidebarCotRows, hasCommoditiesSidebarContent } from './CommoditiesLiveChips.js';
 import './CommoditiesDashboard.css';
 
 const STORAGE_KEY = 'commodities-view';
@@ -684,10 +684,7 @@ function CommoditiesDashboard({
               <div className="com-sidebar-list">
                 {/* Cross-market enrichment: { commodities: [...] } or legacy sector tree */}
                 {(() => {
-                  const rows = (Array.isArray(cotData)
-                    ? cotData.flatMap(s => s.commodities || [])
-                    : (cotData?.commodities || [])
-                  ).slice(0, 5);
+                  const rows = sidebarCotRows(cotData).slice(0, 5);
                   if (!rows.length) {
                     return <div className="com-sidebar-empty">Load Sentiment for COT</div>;
                   }
@@ -1199,7 +1196,7 @@ function CommoditiesDashboard({
   const panelCtx = {
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
-      sidebar: !!(cotData || allCommodities.length || dbcEtf),
+      sidebar: hasCommoditiesSidebarContent({ cotData, priceDashboardData, dbcEtf }),
       prices: hasPriceDashboardRows(priceDashboardData),
       futures: !!futuresCurveData,
       sector: hasSectorHeatmapRows(sectorHeatmapData),
@@ -1261,6 +1258,7 @@ function CommoditiesDashboard({
       cot: !hasCotPositioning(cotData),
       comfx: !hasCommodityFxRates(commodityCurrencies),
       sector: !hasSectorHeatmapRows(sectorHeatmapData),
+      sidebar: !hasCommoditiesSidebarContent({ cotData, priceDashboardData, dbcEtf }),
       prices: !hasPriceDashboardRows(priceDashboardData),
       'fao-prices': !(faoCtx?.data?.series?.length > 0),
     },

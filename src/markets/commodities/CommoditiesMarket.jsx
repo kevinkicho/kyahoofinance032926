@@ -1,6 +1,6 @@
 import React from 'react';
 import MarketSkeleton from '../../hub/MarketSkeleton';
-import { hasCotPositioning, hasCommodityFxRates, hasPriceDashboardRows } from './components/CommoditiesLiveChips.js';
+import { hasCotPositioning, hasCommodityFxRates, hasPriceDashboardRows, hasDbcEtfQuote } from './components/CommoditiesLiveChips.js';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
 import CommoditiesDashboard from './components/CommoditiesDashboard';
@@ -531,13 +531,13 @@ function getCommoditiesProps(centralData) {
     cotData: d.cotData || mapped.cotData,
     fredCommodities,
     goldFuturesCurve: mapped.goldFuturesCurve || enrichFuturesCurve(d.goldFuturesCurve, d.yahoo?.futures?.['GC=F']?.price),
-    dbcEtf: d.dbcEtf || mapped.dbcEtf || (d.yahoo?.dbc ? {
+    dbcEtf: hasDbcEtfQuote(d.dbcEtf) ? d.dbcEtf : (mapped.dbcEtf || (d.yahoo?.dbc ? {
       price: d.yahoo.dbc.price,
       changePct: d.yahoo.dbc.change,
       ytd: d.yahoo.dbc.ytd ?? null,
       _source: d.yahoo.dbc._source,
       _lastUpdated: d.yahoo.dbc._lastUpdated,
-    } : null),
+    } : null)),
     goldOilRatio: d.goldOilRatio || mapped.goldOilRatio || normalized.values.goldOilRatio,
     contangoIndicator: mapped.contangoIndicator || d.contangoIndicator,
     commodityCurrencies: d.commodityCurrencies || mapped.commodityCurrencies,
@@ -636,7 +636,7 @@ function CommoditiesMarket({ centralData } = {}) {
     return Object.keys(out).length > 0 ? out : null;
   })();
 
-  const cotData = hasCotPositioning(props.cotData) ? props.cotData : cotFromSentiment;
+  const cotData = hasCotPositioning(props.cotData) ? props.cotData : (hasCotPositioning(cotFromSentiment) ? cotFromSentiment : null);
   const commodityCurrencies = hasCommodityFxRates(props.commodityCurrencies) ? props.commodityCurrencies : ccyFromFx;
 
   return (
