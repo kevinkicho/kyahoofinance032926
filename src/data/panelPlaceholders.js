@@ -537,10 +537,12 @@ export const PANEL_PLACEHOLDERS = {
   'sentiment:cftc': [p('cftcData', 'cftcData')],
   'sentiment:cross-asset': [p('returnsData', 'returnsData')],
   'sentiment:risk-dashboard': [p('riskData', 'riskData')],
+  // Leverage Metrics paints FINRA margin debt + consumer credit.
+  // mutualFundFlows was a leftover required sibling (false-red at 2/3 < 85%;
+  // field-map anyOf could also false-green from the unused bag).
   'sentiment:leverage': [
     any('margin', ['marginDebt.values', 'marginDebt']),
     any('consumer', ['consumerCredit.values', 'consumerCredit']),
-    any('flows', ['mutualFundFlows.values', 'mutualFundFlows']),
   ],
   'sentiment:news-sentiment': [p('news', 'series', { crossMarket: 'fedNewsSentiment' })],
   'sentiment:fed-risk-mood': [p('news', 'series', { crossMarket: 'fedNewsSentiment' })],

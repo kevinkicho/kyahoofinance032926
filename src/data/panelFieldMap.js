@@ -361,10 +361,11 @@ export const PANEL_FIELD_MAP = {
   'sentiment:cftc': { field: 'cftcData', fieldPath: 'cftcData' },
   'sentiment:cross-asset': { field: 'returnsData', fieldPath: 'returnsData' },
   'sentiment:risk-dashboard': { field: 'riskData', fieldPath: 'riskData' },
+  // Leverage Metrics paints marginDebt + consumerCredit.
+  // mutualFundFlows is a leftover sibling (never mounted on the tile).
   'sentiment:leverage': { anyOf: [
     { field: 'marginDebt', fieldPath: 'marginDebt' },
     { field: 'consumerCredit', fieldPath: 'consumerCredit' },
-    { field: 'mutualFundFlows', fieldPath: 'mutualFundFlows' },
   ] },
   'sentiment:news-sentiment': { field: 'series', fieldPath: 'series', crossMarket: 'fedNewsSentiment' },
   'sentiment:fed-risk-mood': { field: 'series', fieldPath: 'series', crossMarket: 'fedNewsSentiment' },
