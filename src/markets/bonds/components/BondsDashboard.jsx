@@ -15,7 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
-import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent } from './BondsLiveChips.js';
+import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent, auctionRows } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -204,7 +204,7 @@ function BondsDashboard({
   }, [nyfedCtx, colors]);
 
   const auctionTrendOption = useMemo(() => {
-    const rows = (auctionCtx?.data?.auctions || []).slice(0, 20).reverse();
+    const rows = auctionRows(auctionCtx?.data).slice(0, 20).reverse();
     if (!rows.length) return null;
     const dates = rows.map(r => `${r.auctionDate}\n${r.securityTerm}`);
     const btc   = rows.map(r => r.bidToCover);
@@ -233,7 +233,7 @@ function BondsDashboard({
   }, [auctionCtx, colors]);
 
   const auctionDemandSummary = useMemo(() => {
-    const rows = auctionCtx?.data?.auctions || [];
+    const rows = auctionRows(auctionCtx?.data);
     if (!rows.length) return null;
     const recent = rows.slice(0, 10);
     const summary = auctionCtx?.data?.summary || {};
@@ -546,7 +546,7 @@ function BondsDashboard({
               </div>
               <div className="auc-table-card">
                 <div className="auc-section-title">
-                  Recent results · {(auctionCtx?.data?.auctions || []).length} auctions
+                  Recent results · {auctionRows(auctionCtx?.data).length} auctions
                 </div>
                 <div className="auc-table" role="table">
                   <div className="auc-table-head" role="row">
@@ -557,7 +557,7 @@ function BondsDashboard({
                     <span role="columnheader">Yield</span>
                   </div>
                   <div className="auc-table-body">
-                    {(auctionCtx?.data?.auctions || []).slice(0, 30).map((r, i) => {
+                    {auctionRows(auctionCtx?.data).slice(0, 30).map((r, i) => {
                       const btc = r.bidToCover;
                       const btcColor =
                         btc == null ? undefined

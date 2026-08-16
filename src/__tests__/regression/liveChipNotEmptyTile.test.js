@@ -117,6 +117,7 @@ import {
   hasForeignHoldersContent,
   hasMoneyMarketContent,
   hasAuctionContent,
+  auctionRows,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -1605,6 +1606,33 @@ describe('bonds leftover empty-capable tiles (foreign-holders / money-market / a
     expect(hasAuctionContent({ auctions: [{ auctionDate: '2024-01-02', stopYieldPct: 4.21 }] })).toBe(true);
     expect(hasAuctionContent({ summary: { avgBidToCover: 2.48 } })).toBe(true);
     expect(hasAuctionContent({ summary: { avgIndirectPct: 61 } })).toBe(true);
+  });
+});
+
+describe('bonds leftover empty-capable tiles (auctions remount)', () => {
+  it('dashboard does not slice leftover isLive auction bags', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/auctionCtx\?\.data\?\.auctions \|\| \[\]/);
+    expect(dash).toMatch(/auctionRows\(auctionCtx\?\.data\)/);
+  });
+
+  it('auctionRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => auctionRows({ isLive: true })).not.toThrow();
+    expect(() => auctionRows({ auctions: { isLive: true } })).not.toThrow();
+    expect(() => auctionRows({ auctions: true })).not.toThrow();
+    expect(auctionRows({ isLive: true })).toEqual([]);
+    expect(auctionRows({ auctions: { isLive: true } })).toEqual([]);
+    expect(auctionRows({ auctions: true })).toEqual([]);
+    expect(() => auctionRows({ auctions: { isLive: true } }).slice(0, 20).reverse()).not.toThrow();
+    const rows = auctionRows({
+      isLive: true,
+      auctions: [
+        { isLive: true },
+        { auctionDate: '2024-01-02', bidToCover: 2.54 },
+      ],
+    });
+    expect(rows.map((r) => r.auctionDate)).toEqual([undefined, '2024-01-02']);
+    expect(() => rows.slice(0, 30).map((r) => r.bidToCover)).not.toThrow();
   });
 });
 

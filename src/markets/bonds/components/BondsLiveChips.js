@@ -260,10 +260,15 @@ export function hasMoneyMarketContent(nyfedData) {
   return false;
 }
 
+/** Auction rows the tile can slice. Leftover isLive / auctions bag remount-crash .slice. */
+export function auctionRows(auctionData) {
+  return Array.isArray(auctionData?.auctions) ? auctionData.auctions : [];
+}
+
 /** Auctions tile is empty when auction rows exist but no BTC / allotment / yield paints. */
 export function hasAuctionContent(auctionData) {
-  const rows = auctionData?.auctions;
-  if (Array.isArray(rows) && rows.some((r) => (
+  const rows = auctionRows(auctionData);
+  if (rows.some((r) => (
     isFiniteNumeric(r?.bidToCover) || isFiniteNumeric(r?.indirectPct) || isFiniteNumeric(r?.stopYieldPct)
   ))) return true;
   const summary = auctionData?.summary;
