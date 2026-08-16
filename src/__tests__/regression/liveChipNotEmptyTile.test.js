@@ -123,6 +123,7 @@ import {
 import {
   hasCryptoSidebarContent,
   hasTopCryptos,
+  hasOnChainMetrics,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
 import { hasDerivativesKpiMetrics } from '../../markets/derivatives/components/DerivativesLiveChips.js';
 import {
@@ -1494,6 +1495,34 @@ describe('crypto empty-capable tiles (sidebar / top-cryptos)', () => {
   it('hasTopCryptos is true when a coin row exists', () => {
     expect(hasTopCryptos([{ symbol: 'SOL', price: 140 }])).toBe(true);
     expect(hasTopCryptos({ coins: [{ id: 'bitcoin', symbol: 'btc' }] })).toBe(true);
+  });
+});
+
+describe('crypto leftover empty-capable tiles (onchain / btc-onchain)', () => {
+  it('dashboard does not hardcode leftover isLive or bag existence on on-chain tiles', () => {
+    const dash = src('markets/crypto/components/CryptoDashboard.jsx');
+    expect(dash).not.toMatch(/onchain:\s*!!\(isLive && onChainData\)/);
+    expect(dash).not.toMatch(/'btc-onchain':\s*!!onChainData/);
+    expect(dash).toMatch(/onchain:\s*hasOnChainMetrics\(onChainData\)/);
+    expect(dash).toMatch(/'btc-onchain':\s*hasOnChainMetrics\(onChainData\)/);
+  });
+
+  it('hasOnChainMetrics is false for empty / sibling isLive-only payloads', () => {
+    expect(hasOnChainMetrics()).toBe(false);
+    expect(hasOnChainMetrics(null)).toBe(false);
+    expect(hasOnChainMetrics({})).toBe(false);
+    expect(hasOnChainMetrics({ isLive: true })).toBe(false);
+    expect(hasOnChainMetrics({ hashrate: {}, difficulty: {}, mempool: {}, fees: {} })).toBe(false);
+    expect(hasOnChainMetrics({ hashrate: { history: [1, 2, 3] } })).toBe(false);
+    expect(hasOnChainMetrics({ difficulty: { remainingBlocks: 120 } })).toBe(false);
+  });
+
+  it('hasOnChainMetrics is true when a painted on-chain metric exists', () => {
+    expect(hasOnChainMetrics({ hashrate: { current: 650 } })).toBe(true);
+    expect(hasOnChainMetrics({ difficulty: { progressPercent: 72.4 } })).toBe(true);
+    expect(hasOnChainMetrics({ difficulty: { difficultyChange: -1.2 } })).toBe(true);
+    expect(hasOnChainMetrics({ mempool: { count: 48000 } })).toBe(true);
+    expect(hasOnChainMetrics({ fees: { fastest: 12 } })).toBe(true);
   });
 });
 

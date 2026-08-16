@@ -11,6 +11,7 @@ import './CryptoDashboard.css';
 import {
   hasCryptoSidebarContent,
   hasTopCryptos,
+  hasOnChainMetrics,
 } from './CryptoLiveChips.js';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
@@ -459,11 +460,11 @@ function CryptoDashboard({
       funding: !!(isLive && fundingRates.length > 0),
       'defi-tvl': !!(isLive && defiChains.length > 0),
       exchanges: !!isLive && hasRealExchVolume,
-      onchain: !!(isLive && onChainData),
+      onchain: hasOnChainMetrics(onChainData),
       'onchain-chart': !!(isLive && onChainData?.hashrate?.history?.length > 0),
       'stablecoin-composition': stablecoinMcap != null,
       'defi-tvl-trend': !!defiData?.chains?.length,
-      'btc-onchain': !!onChainData,
+      'btc-onchain': hasOnChainMetrics(onChainData),
     },
     __subtitle: {
       'fear-greed': fgiValue != null ? `${fgiLabel || '—'} · ${fgiValue}/100` : 'Crypto market sentiment',

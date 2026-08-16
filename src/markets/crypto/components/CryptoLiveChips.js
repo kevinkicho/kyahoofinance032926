@@ -46,3 +46,13 @@ export function hasCryptoSidebarContent({
 export function hasTopCryptos(coinMarketData) {
   return coinList(coinMarketData).length > 0;
 }
+
+/** On-chain / btc-onchain cards paint only when a metric is numeric; leftover isLive bag is empty. */
+export function hasOnChainMetrics(onChainData) {
+  if (!onChainData || typeof onChainData !== 'object' || Array.isArray(onChainData)) return false;
+  if (isFiniteNumber(onChainData.hashrate?.current)) return true;
+  if (isFiniteNumber(onChainData.difficulty?.progressPercent)) return true;
+  if (isFiniteNumber(onChainData.difficulty?.difficultyChange)) return true;
+  if (isFiniteNumber(onChainData.mempool?.count)) return true;
+  return isFiniteNumber(onChainData.fees?.fastest);
+}
