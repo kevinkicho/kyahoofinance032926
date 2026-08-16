@@ -90,6 +90,7 @@ import {
   hasTreasuryCostRates,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
+  hasMacroKpiMetrics,
   hasScorecardRows,
   hasRateBarRows,
   hasDebtBarRows,
@@ -2070,5 +2071,40 @@ describe('sentiment leftover empty-capable tiles (news-sentiment)', () => {
 
   it('hasNewsSentimentSeries is true when SF Fed series rows exist', () => {
     expect(hasNewsSentimentSeries({ series: [{ date: '2024-01-02', sentiment: 0.12 }] })).toBe(true);
+  });
+});
+
+describe('macro leftover empty-capable tiles (kpi)', () => {
+  it('dashboard does not hardcode leftover kpiSidebar existence on kpi', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!kpiSidebar/);
+    expect(dash).toMatch(/kpi:\s*hasMacroKpiMetrics\(/);
+  });
+
+  it('hasMacroKpiMetrics is false for empty / leftover bag-only payloads', () => {
+    expect(hasMacroKpiMetrics()).toBe(false);
+    expect(hasMacroKpiMetrics({})).toBe(false);
+    expect(hasMacroKpiMetrics({ scorecardData: { isLive: true } })).toBe(false);
+    expect(hasMacroKpiMetrics({ scorecardData: [] })).toBe(false);
+    expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'DE' }] })).toBe(false);
+    expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'US' }], centralBankData: { isLive: true } })).toBe(false);
+    expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'JP', gdp: null, cpi: null }] })).toBe(false);
+    expect(hasMacroKpiMetrics({ dxyHistory: { values: [104.2] } })).toBe(false);
+    expect(hasMacroKpiMetrics({ centralBankData: { current: [{ code: 'US', rate: 5.25 }] } })).toBe(false);
+  });
+
+  it('hasMacroKpiMetrics is true when a painted KPI number exists', () => {
+    expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'US', gdp: 2.1 }] })).toBe(true);
+    expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'EA', gdp: 0.8 }] })).toBe(true);
+    expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'CN', gdp: 5.2 }] })).toBe(true);
+    expect(hasMacroKpiMetrics({
+      scorecardData: [{ code: 'DE' }],
+      centralBankData: { current: [{ code: 'US', rate: 5.25 }] },
+    })).toBe(true);
+    expect(hasMacroKpiMetrics({
+      scorecardData: [{ code: 'DE' }],
+      dxyHistory: { values: [104.2] },
+    })).toBe(true);
+    expect(hasMacroKpiMetrics({ scorecardData: [{ code: 'UK', cpi: 3.4 }] })).toBe(true);
   });
 });

@@ -8,6 +8,26 @@ function lastValue(hist) {
   return Array.isArray(hist?.values) ? hist.values[hist.values.length - 1] : null;
 }
 
+/** KPI strip returns null unless a US/EA/CN GDP, Fed, DXY, or CPI number paints. */
+export function hasMacroKpiMetrics({ scorecardData, centralBankData, dxyHistory } = {}) {
+  const list = Array.isArray(scorecardData) ? scorecardData : [];
+  // Strip bails before DXY when the leftover scorecard bag has no rows.
+  if (!list.length) return false;
+
+  const us = list.find((c) => c.code === 'US');
+  const eu = list.find((c) => c.code === 'EA');
+  const cn = list.find((c) => c.code === 'CN');
+  if (isFiniteNumber(us?.gdp) || isFiniteNumber(eu?.gdp) || isFiniteNumber(cn?.gdp)) return true;
+
+  const current = Array.isArray(centralBankData?.current) ? centralBankData.current : [];
+  const fedRate = current.find((c) => c.code === 'US')?.rate;
+  if (isFiniteNumber(fedRate)) return true;
+
+  if (isFiniteNumber(lastValue(dxyHistory))) return true;
+
+  return list.some((c) => isFiniteNumber(c?.cpi));
+}
+
 /** Scorecard / GDP / CPI bars paint from country rows; empty message when none. */
 export function hasScorecardRows(scorecardData) {
   return Array.isArray(scorecardData) && scorecardData.length > 0;

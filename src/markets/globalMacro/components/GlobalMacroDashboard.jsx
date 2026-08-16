@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { useMarketData } from '../../../hub/DataContext';
 import { useCurrency } from '../../../hub/CurrencyContext';
 import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import SafeECharts from '../../../components/SafeECharts';
@@ -13,6 +14,7 @@ import WbTradeOpenness from '../../worldbank/WbTradeOpenness';
 import ClevelandNowcastPanel from './ClevelandNowcastPanel';
 import { GdpBars, CpiBars, RateBars, DebtBars } from './MacroBarCharts';
 import {
+  hasMacroKpiMetrics,
   hasScorecardRows,
   hasRateBarRows,
   hasDebtBarRows,
@@ -92,6 +94,7 @@ function GlobalMacroDashboard({
   const { colors } = useTheme();
   const { convertAndFormat, currentSymbol } = useCurrency();
   const [selectedCountry, setSelectedCountry] = useState(null);
+  const fxCtx = useMarketData('fx');
 
   const sortedByGdp = useMemo(() => {
     if (!Array.isArray(scorecardData)) return [];
@@ -1075,7 +1078,11 @@ function GlobalMacroDashboard({
   const panelCtx = {
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
-      kpi: !!kpiSidebar,
+      kpi: hasMacroKpiMetrics({
+        scorecardData,
+        centralBankData,
+        dxyHistory: fxCtx?.data?.dxyHistory,
+      }),
       sidebar: hasMacroSidebarContent({ scorecardData, centralBankData, debtData }),
       scorecard: hasScorecardRows(scorecard),
       gdp: hasScorecardRows(sortedByGdp),
