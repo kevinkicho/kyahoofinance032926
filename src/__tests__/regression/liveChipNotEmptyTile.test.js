@@ -35,6 +35,12 @@ import {
   hasUsgsEarthquakeRows,
 } from '../../markets/insurance/components/InsuranceDashboard.jsx';
 import {
+  hasInsuranceKpiMetrics,
+  hasCatLossSeries,
+  hasCombinedRatioByLine,
+  hasReinsuranceRateRows,
+} from '../../markets/insurance/components/InsuranceLiveChips.js';
+import {
   hasCreditKpiMetrics,
   hasKeyMetricsContent,
   hasSpreadHistory,
@@ -482,6 +488,95 @@ describe('insurance empty-capable tiles (hyoas / crhist / penetration / fema / u
   });
 });
 
+
+describe('insurance empty-capable tiles (kpi / catloss / crline / reinsrates)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/insurance/components/InsuranceDashboard.jsx');
+    expect(dash).not.toMatch(/kpi:\s*!!isLive/);
+    expect(dash).not.toMatch(/catloss:\s*!!isLive/);
+    expect(dash).not.toMatch(/crline:\s*!!isLive/);
+    expect(dash).not.toMatch(/reinsrates:\s*!!isLive/);
+    expect(dash).toMatch(/kpi:\s*hasInsuranceKpiMetrics/);
+    expect(dash).toMatch(/catloss:\s*hasCatLossSeries/);
+    expect(dash).toMatch(/crline:\s*hasCombinedRatioByLine/);
+    expect(dash).toMatch(/reinsrates:\s*hasReinsuranceRateRows/);
+  });
+
+  it('hasInsuranceKpiMetrics is false for empty / sibling-only payloads', () => {
+    expect(hasInsuranceKpiMetrics()).toBe(false);
+    expect(hasInsuranceKpiMetrics({})).toBe(false);
+    expect(hasInsuranceKpiMetrics({ isLive: true })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ industryAvgCombinedRatio: '92.1' })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ reinsurers: { isLive: true } })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ reinsurers: [] })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ reinsurers: [{ ticker: 'RNR' }] })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ fredHyOasHistory: { isLive: true } })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ fredHyOasHistory: { dates: ['2024-01'] } })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ fredHyOasHistory: { values: [null] } })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ sectorETF: { isLive: true } })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ sectorETF: { symbol: 'SP500' } })).toBe(false);
+    expect(hasInsuranceKpiMetrics({ sectorETF: [{ symbol: 'SP500' }] })).toBe(false);
+  });
+
+  it('hasInsuranceKpiMetrics is true when a painted KPI pill exists', () => {
+    expect(hasInsuranceKpiMetrics({ industryAvgCombinedRatio: 92.1 })).toBe(true);
+    expect(hasInsuranceKpiMetrics({ reinsurers: [{ ticker: 'RNR', price: 210 }] })).toBe(true);
+    expect(hasInsuranceKpiMetrics({ fredHyOasHistory: { values: [2.83] } })).toBe(true);
+    expect(hasInsuranceKpiMetrics({ sectorETF: { symbol: 'SP500', price: 5200 } })).toBe(true);
+    expect(hasInsuranceKpiMetrics({ sectorETF: [{ symbol: 'SP500', price: 5200 }] })).toBe(true);
+  });
+
+  it('hasCatLossSeries is false for empty / sibling-only payloads', () => {
+    expect(hasCatLossSeries(null)).toBe(false);
+    expect(hasCatLossSeries({})).toBe(false);
+    expect(hasCatLossSeries({ isLive: true })).toBe(false);
+    expect(hasCatLossSeries({ dates: ['2024'] })).toBe(false);
+    expect(hasCatLossSeries({ values: [] })).toBe(false);
+    expect(hasCatLossSeries(null, { isLive: true })).toBe(false);
+    expect(hasCatLossSeries(null, { byType: [] })).toBe(false);
+    expect(hasCatLossSeries(null, { declarations: [] })).toBe(false);
+    expect(hasCatLossSeries(null, { declarations: [{ type: 'Fire' }] })).toBe(false);
+  });
+
+  it('hasCatLossSeries is true when FRED values or FEMA proxy series exist', () => {
+    expect(hasCatLossSeries({ values: [12.4] })).toBe(true);
+    expect(hasCatLossSeries({ values: [10.1, 14.2] })).toBe(true);
+    expect(hasCatLossSeries(null, { byType: [{ type: 'Fire', count: 8 }] })).toBe(true);
+    expect(hasCatLossSeries(null, { declarations: [{ declarationDate: '2024-01-01' }] })).toBe(true);
+  });
+
+  it('hasCombinedRatioByLine is false for empty / sibling-only payloads', () => {
+    expect(hasCombinedRatioByLine(null)).toBe(false);
+    expect(hasCombinedRatioByLine({})).toBe(false);
+    expect(hasCombinedRatioByLine({ isLive: true })).toBe(false);
+    expect(hasCombinedRatioByLine({ byLine: [] })).toBe(false);
+    expect(hasCombinedRatioByLine({ byLine: [{ line: 'Auto' }] })).toBe(false);
+    expect(hasCombinedRatioByLine({ lines: { Auto: [null, null] } })).toBe(false);
+    expect(hasCombinedRatioByLine({ lines: { Auto: '92.1' } })).toBe(false);
+  });
+
+  it('hasCombinedRatioByLine is true when a line ratio exists', () => {
+    expect(hasCombinedRatioByLine({ byLine: [{ line: 'Auto', ratio: 92.1 }] })).toBe(true);
+    expect(hasCombinedRatioByLine({ lines: { Auto: [null, 94.2] } })).toBe(true);
+  });
+
+  it('hasReinsuranceRateRows is false for empty / sibling-only payloads', () => {
+    expect(hasReinsuranceRateRows(null)).toBe(false);
+    expect(hasReinsuranceRateRows({})).toBe(false);
+    expect(hasReinsuranceRateRows({ isLive: true })).toBe(false);
+    expect(hasReinsuranceRateRows([])).toBe(false);
+    expect(hasReinsuranceRateRows({ byCategory: [] })).toBe(false);
+    expect(hasReinsuranceRateRows(null, { isLive: true })).toBe(false);
+    expect(hasReinsuranceRateRows(null, [])).toBe(false);
+    expect(hasReinsuranceRateRows(null, [{ ticker: 'RNR' }])).toBe(false);
+  });
+
+  it('hasReinsuranceRateRows is true when a proxy row or priced reinsurer exists', () => {
+    expect(hasReinsuranceRateRows({ byCategory: [{ ticker: 'RNR' }] })).toBe(true);
+    expect(hasReinsuranceRateRows([{ ticker: 'ACGL', price: 96.2 }])).toBe(true);
+    expect(hasReinsuranceRateRows(null, [{ ticker: 'RNR', price: 210 }])).toBe(true);
+  });
+});
 
 describe('credit empty-capable tiles (kpi / spreads / EM / CP / CLO / defaults / TED / muni)', () => {
   it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {

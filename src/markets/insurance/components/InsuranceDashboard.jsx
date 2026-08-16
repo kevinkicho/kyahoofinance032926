@@ -6,6 +6,15 @@ import MarketPanelGrid from '../../../panels/MarketPanelGrid';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import './InsuranceDashboard.css';
+import {
+  hasInsuranceKpiMetrics,
+  resolveCatLosses,
+  hasCatLossSeries,
+  combinedRatioByLineRows,
+  hasCombinedRatioByLine,
+  reinsuranceRateRows,
+  hasReinsuranceRateRows,
+} from './InsuranceLiveChips.js';
 
 /** HY OAS tile charts fredHyOasHistory dates. */
 export function hasHyOasSeries(history) {
@@ -170,44 +179,10 @@ function InsuranceDashboard({
     };
   }, [hyOAS, igOAS, treasury10y, fredHyOasHistory]);
 
-  // Prefer server catLosses when it is a real multi-point history; otherwise
-  // build a richer FEMA proxy series so the panel is not stuck on a single bar.
-  const catLossesResolved = useMemo(() => {
-    if (catLosses?.values?.length >= 2) return catLosses;
-    const byType = femaCtx?.data?.byType;
-    if (Array.isArray(byType) && byType.length) {
-      const rows = byType.filter((r) => r?.type && Number(r.count) != null);
-      if (rows.length) {
-        return {
-          dates: rows.map((r) => r.type),
-          values: rows.map((r) => Number(r.count) || 0),
-          seriesId: 'FEMA_BY_TYPE',
-          unit: 'declarations',
-          _note: 'Proxy: FEMA declaration counts by disaster type (not $ losses)',
-        };
-      }
-    }
-    if (catLosses?.values?.length) return catLosses;
-    const decls = femaCtx?.data?.declarations;
-    if (Array.isArray(decls) && decls.length) {
-      const byYear = {};
-      for (const d of decls) {
-        const y = String(d.declarationDate || d.firstDeclared || d.incidentBegin || d.date || '').slice(0, 4);
-        if (/^\d{4}$/.test(y)) byYear[y] = (byYear[y] || 0) + 1;
-      }
-      const years = Object.keys(byYear).sort();
-      if (years.length) {
-        return {
-          dates: years,
-          values: years.map((y) => byYear[y]),
-          seriesId: 'FEMA_DECL_COUNT',
-          unit: 'declarations',
-          _note: 'Proxy: FEMA declaration counts by year',
-        };
-      }
-    }
-    return null;
-  }, [catLosses, femaCtx?.data]);
+  const catLossesResolved = useMemo(
+    () => resolveCatLosses(catLosses, femaCtx?.data),
+    [catLosses, femaCtx?.data],
+  );
 
   const catLossesOption = useMemo(() => {
     if (!catLossesResolved?.values?.length) return null;
@@ -238,40 +213,16 @@ function InsuranceDashboard({
   }, [catLossesResolved, colors]);
 
   // combinedRatioData.lines is { Progressive: [89,88,…], … } — not byLine[]
-  const crLineRows = useMemo(() => {
-    if (Array.isArray(combinedRatioData?.byLine) && combinedRatioData.byLine.length) {
-      return combinedRatioData.byLine.filter((r) => r?.ratio != null);
-    }
-    const lines = combinedRatioData?.lines;
-    if (!lines || typeof lines !== 'object') return [];
-    const rows = [];
-    for (const [line, arr] of Object.entries(lines)) {
-      if (!Array.isArray(arr)) continue;
-      let ratio = null;
-      for (let i = arr.length - 1; i >= 0; i--) {
-        if (arr[i] != null && Number.isFinite(Number(arr[i]))) {
-          ratio = Number(arr[i]);
-          break;
-        }
-      }
-      if (ratio != null) rows.push({ line, ratio });
-    }
-    return rows.sort((a, b) => b.ratio - a.ratio);
-  }, [combinedRatioData]);
+  const crLineRows = useMemo(
+    () => combinedRatioByLineRows(combinedRatioData),
+    [combinedRatioData],
+  );
 
   // reinsurancePricing is an array of equity proxies; legacy shape used byCategory
-  const reinsRateRows = useMemo(() => {
-    if (Array.isArray(reinsurancePricing?.byCategory) && reinsurancePricing.byCategory.length) {
-      return reinsurancePricing.byCategory;
-    }
-    if (Array.isArray(reinsurancePricing) && reinsurancePricing.length) {
-      return reinsurancePricing;
-    }
-    if (Array.isArray(reinsurers) && reinsurers.length) {
-      return reinsurers.filter((r) => r?.price != null);
-    }
-    return [];
-  }, [reinsurancePricing, reinsurers]);
+  const reinsRateRows = useMemo(
+    () => reinsuranceRateRows(reinsurancePricing, reinsurers),
+    [reinsurancePricing, reinsurers],
+  );
 
   const combinedRatioOption = useMemo(() => {
     // Yahoo Finance's quoteSummary often returns empty quarterly statements
@@ -1414,12 +1365,12 @@ function InsuranceDashboard({
   const panelCtx = {
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
-      kpi: !!isLive,
+      kpi: hasInsuranceKpiMetrics({ industryAvgCombinedRatio, reinsurers, fredHyOasHistory, sectorETF }),
       hyoas: hasHyOasSeries(fredHyOasHistory),
-      catloss: !!isLive,
+      catloss: hasCatLossSeries(catLosses, femaCtx?.data),
       crhist: hasCombinedRatioHistory(combinedRatioHistory),
-      crline: !!isLive,
-      reinsrates: !!isLive,
+      crline: hasCombinedRatioByLine(combinedRatioData),
+      reinsrates: hasReinsuranceRateRows(reinsurancePricing, reinsurers),
       reserves: !!(isLive && hasReserves),
       catbonds: !!(isLive && catBondSpreads?.length),
       etfs: !!(isLive && hasSectorETF),
