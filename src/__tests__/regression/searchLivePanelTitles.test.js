@@ -192,4 +192,79 @@ describe('panelRegistry market ids', () => {
     expect(getRegistryEntry('sentiment', 'eurostat-confidence')).toBeNull();
     expect(getRegistryEntry('sentiment', 'oecd-leading')).toBeNull();
   });
+
+  it('Real-estate registry ids match live tiles, not price-index / reit / affordability', () => {
+    const live = new Set((MARKET_PANELS.realEstate || []).map((p) => p.id));
+    const stale = ['price-index', 'reit', 'affordability', 'cap-rate'];
+    const ids = (PANEL_REGISTRY.realEstate || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['shiller', 'reitperf', 'afford-stack', 'caprate', 'fhfa-hpi', 'bis-property-prices', 'metro-case-shiller', 'hud-affordability-by-metro']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('realEstate', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('realEstate', 'price-index')).toBeNull();
+    expect(getRegistryEntry('realEstate', 'reit')).toBeNull();
+    expect(getRegistryEntry('realEstate', 'affordability')).toBeNull();
+    expect(getRegistryEntry('realEstate', 'cap-rate')).toBeNull();
+  });
+
+  it('Insurance registry ids match live tiles, not cat-bonds / reinsurance / reserve', () => {
+    const live = new Set((MARKET_PANELS.insurance || []).map((p) => p.id));
+    const stale = ['cat-bonds', 'reinsurance', 'reserve'];
+    const ids = (PANEL_REGISTRY.insurance || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['catbonds', 'reinsrates', 'reserves', 'combined-ratios', 'fema-disasters', 'usgs-earthquakes']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('insurance', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('insurance', 'cat-bonds')).toBeNull();
+    expect(getRegistryEntry('insurance', 'reinsurance')).toBeNull();
+    expect(getRegistryEntry('insurance', 'reserve')).toBeNull();
+  });
+
+  it('FX registry ids match live tiles, not rate-matrix / top-movers / correlation', () => {
+    const live = new Set((MARKET_PANELS.fx || []).map((p) => p.id));
+    const stale = ['rate-matrix', 'top-movers', 'correlation'];
+    const ids = (PANEL_REGISTRY.fx || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['sidebar', 'movers', 'corr', 'dxy', 'carry', 'reer', 'imf-cofer', 'treasury-tic']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('fx', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('fx', 'rate-matrix')).toBeNull();
+    expect(getRegistryEntry('fx', 'top-movers')).toBeNull();
+    expect(getRegistryEntry('fx', 'correlation')).toBeNull();
+  });
+
+  it('Derivatives registry ids match live tiles, not vix-term / vol-surface / options-flow', () => {
+    const live = new Set((MARKET_PANELS.derivatives || []).map((p) => p.id));
+    const stale = ['vix-term', 'vol-surface', 'options-flow'];
+    const ids = (PANEL_REGISTRY.derivatives || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['vixterm', 'volsurf', 'flow', 'vix1y', 'skew', 'gamma', 'cftc-tff']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('derivatives', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('derivatives', 'vix-term')).toBeNull();
+    expect(getRegistryEntry('derivatives', 'vol-surface')).toBeNull();
+    expect(getRegistryEntry('derivatives', 'options-flow')).toBeNull();
+  });
+
+  it('Crypto registry ids match live tiles, not coin-overview / defi', () => {
+    const live = new Set((MARKET_PANELS.crypto || []).map((p) => p.id));
+    const stale = ['coin-overview', 'defi'];
+    const ids = (PANEL_REGISTRY.crypto || []).map((p) => p.id);
+    expect(ids.some((id) => stale.includes(id))).toBe(false);
+    for (const id of ['top-cryptos', 'defi-tvl', 'funding', 'fear-greed', 'onchain', 'stablecoin-composition']) {
+      expect(ids).toContain(id);
+      expect(live.has(id)).toBe(true);
+      expect(getRegistryEntry('crypto', id)).toBeTruthy();
+    }
+    expect(getRegistryEntry('crypto', 'coin-overview')).toBeNull();
+    expect(getRegistryEntry('crypto', 'defi')).toBeNull();
+  });
 });
