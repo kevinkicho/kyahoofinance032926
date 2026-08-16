@@ -151,7 +151,7 @@ export const PANEL_FIELD_MAP = {
     { field: 'declarations', fieldPath: 'declarations', crossMarket: 'fema' },
     { field: 'events', fieldPath: 'events', crossMarket: 'usgs' },
   ] },
-  'insurance:usgs-minerals': { field: 'events', fieldPath: 'events', crossMarket: 'usgs' },
+  'insurance:usgs-minerals': { field: 'minerals', fieldPath: 'minerals', crossMarket: 'usgs' },
   'insurance:ecb-supervisory': { field: 'policyRates', fieldPath: 'policyRates', crossMarket: 'ecb' },
   'insurance:fema-disasters': { field: 'declarations', fieldPath: 'declarations', crossMarket: 'fema' },
   'insurance:usgs-earthquakes': { field: 'events', fieldPath: 'events', crossMarket: 'usgs' },

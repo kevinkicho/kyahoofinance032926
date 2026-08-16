@@ -352,7 +352,7 @@ export const PANEL_PLACEHOLDERS = {
   'insurance:ins-penetration': [p('wb', 'countries', { crossMarket: 'worldbank' })],
   'insurance:combined-ratios': [p('edgar', 'issuers', { crossMarket: 'edgarInsurerRatios' })],
   'insurance:cat-exposure': [any('cat', ['catLosses.values', 'catLosses', 'fema.declarations', 'fema.summary', 'usgs.events'])],
-  'insurance:usgs-minerals': [p('usgs', 'events', { crossMarket: 'usgs' })],
+  'insurance:usgs-minerals': [p('usgs', 'minerals', { crossMarket: 'usgs' })],
   'insurance:ecb-supervisory': [p('ecb', 'policyRates', { crossMarket: 'ecb' })],
   'insurance:fema-disasters': [p('fema', 'declarations', { crossMarket: 'fema' })],
   'insurance:usgs-earthquakes': [p('usgs', 'events', { crossMarket: 'usgs' })],

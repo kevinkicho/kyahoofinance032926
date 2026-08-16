@@ -282,7 +282,7 @@ export const PANEL_REGISTRY = {
 
   insurance: [
     { id: 'cat-bonds', title: 'Cat Bond Spreads', field: 'catBondSpreads', fieldPath: 'catBondSpreads', source: 'insurance.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'catBondSpreads && catBondSpreads.length > 0' },
-    { id: 'combined-ratio', title: 'Combined Ratio', field: 'combinedRatioData', fieldPath: 'combinedRatioData', source: 'insurance.js', external: [{ name: 'FRED / SEC EDGAR', seriesIds: [] }], renderCheck: 'combinedRatioData && Object.keys(combinedRatioData).length > 0' },
+    { id: 'combined-ratios', title: 'Insurer Combined Ratios (EDGAR)', field: 'issuers', fieldPath: 'issuers', crossMarket: 'edgarInsurerRatios', source: 'edgar.js (insurer-ratios)', external: [{ name: 'SEC EDGAR XBRL', seriesIds: [] }], renderCheck: 'issuers && Object.keys(issuers).length > 0' },
     { id: 'reinsurance', title: 'Reinsurance Pricing', field: 'reinsurancePricing', fieldPath: 'reinsurancePricing', source: 'insurance.js', external: [{ name: 'Computed', seriesIds: [] }], renderCheck: 'reinsurancePricing && reinsurancePricing.length > 0' },
     { id: 'reserve', title: 'Reserve Adequacy', field: 'reserveAdequacyData', fieldPath: 'reserveAdequacyData', source: 'insurance.js', external: [{ name: 'FRED / SEC EDGAR', seriesIds: [] }], renderCheck: 'reserveAdequacyData && Object.keys(reserveAdequacyData).length > 0' },
     { id: 'fema-disasters', title: 'FEMA Disaster Declarations', field: '(cross-market: fema)', fieldPath: 'femaCtx.data.declarations', source: 'fema.js', external: [{ name: 'FEMA', seriesIds: [] }], renderCheck: 'femaCtx?.data?.declarations?.length > 0', renderType: 'FemaDisasterPanel' },
