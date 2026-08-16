@@ -22,6 +22,7 @@ import BeaCorporateProfitsPanel, { hasBeaCorporateProfitsRows } from './componen
 import WorldBankMarketCapPanel, { hasWbMarketCapRows } from './components/WorldBankMarketCapPanel';
 import SecMegaCapFundamentalsPanel from './components/SecMegaCapFundamentalsPanel';
 import SecFilingActivityPanel from './components/SecFilingActivityPanel';
+import { hasSecFundamentalsRows, hasSecFilingActivity } from './components/EquitiesLiveChips.js';
 
 import {
   INDEX_TICKERS, INDEX_LABELS,
@@ -832,7 +833,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       return ((curr - prev) / Math.abs(prev)) * 100;
     };
 
-    return Object.entries(edgarCtx?.data?.tickers || {}).map(([ticker, row]) => {
+    return Object.entries(edgarCtx?.data?.tickers || {}).filter(([, row]) => row && typeof row === 'object').map(([ticker, row]) => {
       const revLatest = latest(row.revenues);
       const revPrev = prev(row.revenues);
       const niLatest = latest(row.netIncome);
@@ -1122,11 +1123,11 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
   const earningsFilings = filingActivityCtx?.data?.earnings || [];
   const activistFilings = filingActivityCtx?.data?.activist || [];
 
-  const secFundamentalsBody = edgarRows.length > 0 ? (
+  const secFundamentalsBody = hasSecFundamentalsRows(edgarCtx?.data) ? (
     <SecMegaCapFundamentalsPanel rows={edgarRows} summary={edgarSummary} />
   ) : null;
 
-  const secFilingsBody = (filingActivityTotal > 0 || Object.keys(filingActivityCtx?.data?.byTicker || {}).length > 0) ? (
+  const secFilingsBody = hasSecFilingActivity(filingActivityCtx?.data) ? (
     <SecFilingActivityPanel
       byTicker={filingActivityCtx?.data?.byTicker || {}}
       byType={filingActivityCtx?.data?.byType || {}}
@@ -1258,8 +1259,8 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
       heatmap: !snapshotDate,
       sidebar: !snapshotDate,
       portfolio: true,
-      'sec-fundamentals': !!edgarCtx?.data?.isLive,
-      'sec-filings': !!filingActivityCtx?.data?.isLive,
+      'sec-fundamentals': hasSecFundamentalsRows(edgarCtx?.data),
+      'sec-filings': hasSecFilingActivity(filingActivityCtx?.data),
       'universe-updates': !!universeCtx?.data?._sources?.universeUpdates,
       'bea-corporate-profits': hasBeaProfits,
       'wb-market-cap': hasWbMcap,
@@ -1272,7 +1273,7 @@ export default function EquitiesMarket({ currency, setCurrency, centralData }) {
         ? (selectedTicker.isLoading ? 'Loading live quote…' : (selectedTicker.isLive ? 'Live Yahoo quote' : 'Static fundamentals'))
         : `FX ${ratesLive ? 'live' : 'fallback'}`,
       portfolio: 'Add holdings · live Yahoo quotes · allocation',
-      'sec-fundamentals': edgarRows.length > 0
+      'sec-fundamentals': hasSecFundamentalsRows(edgarCtx?.data)
         ? `${edgarSummary.count} cos · ${edgarSummary.profitable}/${edgarSummary.count} profitable · ${edgarSummary.gradeA || 0} grade A`
         : undefined,
       'sec-filings': `${filingActivityTotal} filings · ${filingActivityTickers} tickers`,

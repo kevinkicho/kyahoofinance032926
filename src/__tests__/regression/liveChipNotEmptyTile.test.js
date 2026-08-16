@@ -14,6 +14,8 @@ import { hasHudAffordabilityRows } from '../../markets/realEstate/components/Hud
 import { hasTreasuryTicRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
 import { hasBeaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
 import { hasWbMarketCapRows } from '../../markets/equities/components/WorldBankMarketCapPanel.jsx';
+import { hasSecFundamentalsRows, hasSecFilingActivity } from '../../markets/equities/components/EquitiesLiveChips.js';
+
 import {
   hasShillerSeries,
   hasReitPerfRows,
@@ -2736,5 +2738,62 @@ describe('derivatives leftover empty-capable tiles (volsurf)', () => {
     });
     expect(painted.cells).toEqual([[0, 0, 20], [1, 0, 18]]);
     expect(() => painted.cells.map((c) => c[2].toFixed(1))).not.toThrow();
+  });
+});
+
+describe('equities leftover empty-capable tiles (sec-fundamentals / sec-filings)', () => {
+  it('market does not hardcode leftover sibling isLive on SEC tiles', () => {
+    const dash = src('markets/equities/EquitiesMarket.jsx');
+    expect(dash).not.toMatch(/'sec-fundamentals':\s*!!edgarCtx\?\.data\?\.isLive/);
+    expect(dash).not.toMatch(/'sec-filings':\s*!!filingActivityCtx\?\.data\?\.isLive/);
+    expect(dash).toMatch(/'sec-fundamentals':\s*hasSecFundamentalsRows\(/);
+    expect(dash).toMatch(/'sec-filings':\s*hasSecFilingActivity\(/);
+  });
+
+  it('hasSecFundamentalsRows is false for empty / sibling-isLive leftover bags', () => {
+    expect(hasSecFundamentalsRows()).toBe(false);
+    expect(hasSecFundamentalsRows(null)).toBe(false);
+    expect(hasSecFundamentalsRows({})).toBe(false);
+    expect(hasSecFundamentalsRows({ isLive: true })).toBe(false);
+    expect(hasSecFundamentalsRows({ isLive: true, tickers: {} })).toBe(false);
+    expect(hasSecFundamentalsRows({ isLive: true, tickers: { AAPL: null } })).toBe(false);
+    expect(hasSecFundamentalsRows({ tickers: { AAPL: { cik: '0000320193' } } })).toBe(false);
+    expect(hasSecFundamentalsRows({ tickers: { AAPL: { revenues: [], netIncome: [] } } })).toBe(false);
+    expect(hasSecFundamentalsRows({ tickers: { AAPL: { revenues: [{ fy: 2024 }] } } })).toBe(false);
+    expect(hasSecFundamentalsRows({ tickers: { AAPL: { revenues: [{ fy: 2024, value: null }] } } })).toBe(false);
+    expect(hasSecFundamentalsRows({ AAPL: { revenues: [{ value: 394328000000 }] } })).toBe(false);
+  });
+
+  it('hasSecFundamentalsRows is true when a ticker has a numeric XBRL observation', () => {
+    expect(hasSecFundamentalsRows({ tickers: { AAPL: { revenues: [{ fy: 2024, value: 394328000000 }] } } })).toBe(true);
+    expect(hasSecFundamentalsRows({ tickers: { MSFT: { netIncome: [{ value: '88136000000' }] } } })).toBe(true);
+    expect(hasSecFundamentalsRows({
+      isLive: true,
+      tickers: { AAPL: null, MSFT: { assets: [{ value: 512000000000 }] } },
+    })).toBe(true);
+  });
+
+  it('hasSecFilingActivity is false for empty / sibling-isLive leftover bags', () => {
+    expect(hasSecFilingActivity()).toBe(false);
+    expect(hasSecFilingActivity(null)).toBe(false);
+    expect(hasSecFilingActivity({})).toBe(false);
+    expect(hasSecFilingActivity({ isLive: true })).toBe(false);
+    expect(hasSecFilingActivity({ isLive: true, total: 12, tickerCount: 4 })).toBe(false);
+    expect(hasSecFilingActivity({ isLive: true, byTicker: {} })).toBe(false);
+    expect(hasSecFilingActivity({ byTicker: { AAPL: [] } })).toBe(false);
+    expect(hasSecFilingActivity({ byTicker: { AAPL: [{}] } })).toBe(false);
+    expect(hasSecFilingActivity({ byType: { '8-K': 3 }, total: 3 })).toBe(false);
+    expect(hasSecFilingActivity({ material: [], insider: [], earnings: [], activist: [] })).toBe(false);
+  });
+
+  it('hasSecFilingActivity is true when a filing list paints', () => {
+    expect(hasSecFilingActivity({ byTicker: { AAPL: [{ form: '8-K', date: '2026-08-01' }] } })).toBe(true);
+    expect(hasSecFilingActivity({ material: [{ form: '8-K', accession: '0001' }] })).toBe(true);
+    expect(hasSecFilingActivity({ insider: [{ form: '4', date: '2026-07-22' }] })).toBe(true);
+    expect(hasSecFilingActivity({
+      isLive: true,
+      total: 0,
+      byTicker: { AAPL: [], MSFT: [{ form: '10-Q' }] },
+    })).toBe(true);
   });
 });
