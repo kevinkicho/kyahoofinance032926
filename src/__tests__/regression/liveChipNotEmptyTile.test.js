@@ -65,6 +65,16 @@ import {
   hasRiskDashboardContent,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
 import { hasBondsKpiMetrics } from '../../markets/bonds/components/BondsLiveChips.js';
+import {
+  hasScorecardRows,
+  hasRateBarRows,
+  hasDebtBarRows,
+  hasMacroSidebarContent,
+  hasActivityContent,
+  hasCliRows,
+  hasWbTradeRows,
+  hasWbDevRows,
+} from '../../markets/globalMacro/components/MacroLiveChips.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -813,6 +823,138 @@ describe('bonds empty-capable tiles (kpi)', () => {
     expect(hasBondsKpiMetrics({ breakevensData: { current: { be5y: 2.31 } } })).toBe(true);
     expect(hasBondsKpiMetrics({
       treasuryRates: { US10Y: 4.25, US2Y: 4.10 },
+    })).toBe(true);
+  });
+});
+
+describe('macro empty-capable tiles (sidebar / scorecard / gdp / cpi / rates / debt / activity / cli / wb)', () => {
+  it('dashboard does not hardcode !!isLive on empty-capable tiles', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/sidebar:\s*!!isLive/);
+    expect(dash).not.toMatch(/scorecard:\s*!!isLive/);
+    expect(dash).not.toMatch(/gdp:\s*!!isLive/);
+    expect(dash).not.toMatch(/cpi:\s*!!isLive/);
+    expect(dash).not.toMatch(/rates:\s*!!isLive/);
+    expect(dash).not.toMatch(/debt:\s*!!isLive/);
+    expect(dash).not.toMatch(/activity:\s*!!isLive/);
+    expect(dash).not.toMatch(/cli:\s*!!isLive/);
+    expect(dash).not.toMatch(/'wb-trade':\s*!!isLive/);
+    expect(dash).not.toMatch(/'wb-dev':\s*!!isLive/);
+    expect(dash).toMatch(/sidebar:\s*hasMacroSidebarContent/);
+    expect(dash).toMatch(/scorecard:\s*hasScorecardRows/);
+    expect(dash).toMatch(/gdp:\s*hasScorecardRows/);
+    expect(dash).toMatch(/cpi:\s*hasScorecardRows/);
+    expect(dash).toMatch(/rates:\s*hasRateBarRows/);
+    expect(dash).toMatch(/debt:\s*hasDebtBarRows/);
+    expect(dash).toMatch(/activity:\s*hasActivityContent/);
+    expect(dash).toMatch(/cli:\s*hasCliRows/);
+    expect(dash).toMatch(/'wb-trade':\s*hasWbTradeRows/);
+    expect(dash).toMatch(/'wb-dev':\s*hasWbDevRows/);
+  });
+
+  it('hasScorecardRows is false for empty / sibling-only payloads', () => {
+    expect(hasScorecardRows()).toBe(false);
+    expect(hasScorecardRows(null)).toBe(false);
+    expect(hasScorecardRows({})).toBe(false);
+    expect(hasScorecardRows({ isLive: true })).toBe(false);
+    expect(hasScorecardRows([])).toBe(false);
+  });
+
+  it('hasScorecardRows is true when country rows exist', () => {
+    expect(hasScorecardRows([{ code: 'US', gdp: 2.1 }])).toBe(true);
+    expect(hasScorecardRows([{ code: 'DE' }])).toBe(true);
+  });
+
+  it('hasRateBarRows is false for empty / sibling-only payloads', () => {
+    expect(hasRateBarRows()).toBe(false);
+    expect(hasRateBarRows({})).toBe(false);
+    expect(hasRateBarRows({ isLive: true })).toBe(false);
+    expect(hasRateBarRows({ current: [] })).toBe(false);
+    expect(hasRateBarRows({ history: [{ rate: 5.25 }] })).toBe(false);
+  });
+
+  it('hasRateBarRows is true when current rate rows exist', () => {
+    expect(hasRateBarRows({ current: [{ code: 'US', rate: 5.25 }] })).toBe(true);
+  });
+
+  it('hasDebtBarRows is false for empty / sibling-only payloads', () => {
+    expect(hasDebtBarRows()).toBe(false);
+    expect(hasDebtBarRows({})).toBe(false);
+    expect(hasDebtBarRows({ isLive: true })).toBe(false);
+    expect(hasDebtBarRows({ countries: [] })).toBe(false);
+    expect(hasDebtBarRows({ history: [{ debt: 120 }] })).toBe(false);
+  });
+
+  it('hasDebtBarRows is true when country debt rows exist', () => {
+    expect(hasDebtBarRows({ countries: [{ code: 'JP', debt: 250 }] })).toBe(true);
+  });
+
+  it('hasMacroSidebarContent is false unless a bar section has rows', () => {
+    expect(hasMacroSidebarContent()).toBe(false);
+    expect(hasMacroSidebarContent({ scorecardData: { isLive: true } })).toBe(false);
+    expect(hasMacroSidebarContent({ centralBankData: { isLive: true } })).toBe(false);
+    expect(hasMacroSidebarContent({ debtData: { isLive: true } })).toBe(false);
+  });
+
+  it('hasMacroSidebarContent is true when any bar section has rows', () => {
+    expect(hasMacroSidebarContent({ scorecardData: [{ code: 'US', gdp: 2.1 }] })).toBe(true);
+    expect(hasMacroSidebarContent({ centralBankData: { current: [{ code: 'US', rate: 5.25 }] } })).toBe(true);
+    expect(hasMacroSidebarContent({ debtData: { countries: [{ code: 'JP', debt: 250 }] } })).toBe(true);
+  });
+
+  it('hasActivityContent is false for empty / sibling-only payloads', () => {
+    expect(hasActivityContent()).toBe(false);
+    expect(hasActivityContent({ isLive: true })).toBe(false);
+    expect(hasActivityContent({ values: [] }, { isLive: true })).toBe(false);
+    expect(hasActivityContent({ dates: ['2024-01'] }, { values: [] })).toBe(false);
+  });
+
+  it('hasActivityContent is true when CFNAI or the 10Y-2Y spread paints', () => {
+    expect(hasActivityContent({ latest: 0.12 })).toBe(true);
+    expect(hasActivityContent({ values: [-0.2] })).toBe(true);
+    expect(hasActivityContent({ dates: ['2024-01'], values: [0.05] })).toBe(true);
+    expect(hasActivityContent(null, { values: [-0.15] })).toBe(true);
+  });
+
+  it('hasCliRows is false for empty / sibling-only payloads', () => {
+    expect(hasCliRows()).toBe(false);
+    expect(hasCliRows({ isLive: true }, { isLive: true })).toBe(false);
+    expect(hasCliRows({ countries: [] }, {})).toBe(false);
+    expect(hasCliRows(null, { isLive: true })).toBe(false);
+  });
+
+  it('hasCliRows is true when CLI country cards exist', () => {
+    expect(hasCliRows({ countries: [{ code: 'US', value: 99.8 }] })).toBe(true);
+    expect(hasCliRows(null, { US: { value: 100.2 } })).toBe(true);
+    expect(hasCliRows(null, { DE: { cli: 99.1 } })).toBe(true);
+  });
+
+  it('hasWbTradeRows is false for empty / sibling-only / no-tradeGdp payloads', () => {
+    expect(hasWbTradeRows()).toBe(false);
+    expect(hasWbTradeRows({})).toBe(false);
+    expect(hasWbTradeRows({ isLive: true })).toBe(false);
+    expect(hasWbTradeRows({ countries: [] })).toBe(false);
+    expect(hasWbTradeRows({ countries: [{ code: 'US', gdpGrowth: 2.1 }] })).toBe(false);
+  });
+
+  it('hasWbTradeRows is true when a country has tradeGdp', () => {
+    expect(hasWbTradeRows({ countries: [{ code: 'US', tradeGdp: 27 }] })).toBe(true);
+  });
+
+  it('hasWbDevRows is false for empty / sibling-only / single-point payloads', () => {
+    expect(hasWbDevRows()).toBe(false);
+    expect(hasWbDevRows({})).toBe(false);
+    expect(hasWbDevRows({ isLive: true })).toBe(false);
+    expect(hasWbDevRows({ countries: [{ code: 'US', gdpPerCap: 76000, gdpGrowth: 2.1 }] })).toBe(false);
+    expect(hasWbDevRows({ countries: [{ code: 'US', tradeGdp: 27 }, { code: 'DE', tradeGdp: 80 }] })).toBe(false);
+  });
+
+  it('hasWbDevRows is true when two countries have gdpPerCap and gdpGrowth', () => {
+    expect(hasWbDevRows({
+      countries: [
+        { code: 'US', gdpPerCap: 76000, gdpGrowth: 2.1 },
+        { code: 'DE', gdpPerCap: 51000, gdpGrowth: 0.4 },
+      ],
     })).toBe(true);
   });
 });

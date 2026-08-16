@@ -12,6 +12,16 @@ import WbDevScatter from '../../worldbank/WbDevScatter';
 import WbTradeOpenness from '../../worldbank/WbTradeOpenness';
 import ClevelandNowcastPanel from './ClevelandNowcastPanel';
 import { GdpBars, CpiBars, RateBars, DebtBars } from './MacroBarCharts';
+import {
+  hasScorecardRows,
+  hasRateBarRows,
+  hasDebtBarRows,
+  hasMacroSidebarContent,
+  hasActivityContent,
+  hasCliRows,
+  hasWbTradeRows,
+  hasWbDevRows,
+} from './MacroLiveChips.js';
 import './GlobalMacroDashboard.css';
 
 
@@ -1057,18 +1067,18 @@ function GlobalMacroDashboard({
     __render: (panelId) => panelBodies[panelId] ?? null,
     __live: {
       kpi: !!kpiSidebar,
-      sidebar: !!isLive,
-      scorecard: !!isLive,
-      gdp: !!isLive,
-      cpi: !!isLive,
-      rates: !!isLive,
-      debt: !!isLive,
-      activity: !!isLive,
-      cli: !!isLive,
+      sidebar: hasMacroSidebarContent({ scorecardData, centralBankData, debtData }),
+      scorecard: hasScorecardRows(scorecard),
+      gdp: hasScorecardRows(sortedByGdp),
+      cpi: hasScorecardRows(sortedByCpi),
+      rates: hasRateBarRows(centralBankData),
+      debt: hasDebtBarRows(debtData),
+      activity: hasActivityContent(cfnai, yieldSpread),
+      cli: hasCliRows(oecdCliDetail, oecdCli),
       'imf-reserves': hasReserveRows(imfData?.countries, imfData?.ifsReserves),
       'imf-cofer': !!(imfData?.cofer && Object.keys(imfData.cofer).length > 0),
-      'wb-trade': !!isLive,
-      'wb-dev': !!isLive,
+      'wb-trade': hasWbTradeRows(wbData),
+      'wb-dev': hasWbDevRows(wbData),
       'ecb-eur': !!ecbData?.isLive,
       'tga-balance': !!dtsData?.isLive,
       gdpnow: !!gdpNowData?.isLive,
