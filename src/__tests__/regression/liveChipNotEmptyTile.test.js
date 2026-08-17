@@ -102,6 +102,7 @@ import {
   hasNewsSentimentSeries,
   hasFedRiskMoodContent,
   signalList,
+  fearGreedHistorySeries,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
 import {
   hasBondsKpiMetrics,
@@ -5308,5 +5309,44 @@ describe('macro leftover empty-capable tiles (kpi remount)', () => {
     expect(rows.map((c) => c.code)).toEqual([undefined, 'US']);
     expect(() => rows.find((c) => c.code === 'US')?.rate).not.toThrow();
     expect(rows.find((c) => c.code === 'US')?.rate).toBe(5.25);
+  });
+});
+
+describe('sentiment leftover empty-capable tiles (fear-greed remount)', () => {
+  it('dashboard does not map leftover isLive fear-greed history values bags', () => {
+    const dash = src('markets/sentiment/components/SentimentDashboard.jsx');
+    expect(dash).not.toMatch(/history\.values \|\| \[\]\)\.map/);
+    expect(dash).toMatch(/fearGreedHistorySeries\(/);
+  });
+
+  it('fearGreedHistorySeries skips leftover isLive bags so remount does not crash', () => {
+    expect(() => fearGreedHistorySeries({ isLive: true })).not.toThrow();
+    expect(() => fearGreedHistorySeries({ history: { isLive: true } })).not.toThrow();
+    expect(() => fearGreedHistorySeries({ history: { dates: ['2024-01-01'], values: { isLive: true } } })).not.toThrow();
+    expect(() => fearGreedHistorySeries(true)).not.toThrow();
+    expect(fearGreedHistorySeries({ isLive: true })).toEqual({ dates: [], values: [] });
+    expect(fearGreedHistorySeries({ history: { isLive: true } })).toEqual({ dates: [], values: [] });
+    expect(fearGreedHistorySeries({ history: { dates: ['2024-01-01'], values: { isLive: true } } })).toEqual({ dates: ['2024-01-01'], values: [] });
+    expect(fearGreedHistorySeries(true)).toEqual({ dates: [], values: [] });
+    const leftoverValuesRealSibling = {
+      isLive: true,
+      value: 50,
+      label: 'Neutral',
+      history: { dates: ['2024-01-01', '2024-01-02'], values: { isLive: true } },
+    };
+    expect(() => fearGreedHistorySeries(leftoverValuesRealSibling).values.map(Number)).not.toThrow();
+    expect(fearGreedHistorySeries(leftoverValuesRealSibling).values).toEqual([]);
+    const leftoverOnly = { history: { values: { isLive: true } } };
+    expect(fearGreedHistorySeries(leftoverOnly)).toEqual({ dates: [], values: [] });
+    const series = fearGreedHistorySeries({
+      isLive: true,
+      value: 62,
+      history: {
+        dates: ['2024-01-01', '2024-01-02'],
+        values: [48, 62],
+      },
+    });
+    expect(series.dates).toEqual(['2024-01-01', '2024-01-02']);
+    expect(series.values).toEqual([48, 62]);
   });
 });

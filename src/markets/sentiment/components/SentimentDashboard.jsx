@@ -17,6 +17,7 @@ import {
   hasNewsSentimentSeries,
   hasFedRiskMoodContent,
   signalList,
+  fearGreedHistorySeries,
 } from './SentimentLiveChips.js';
 import './SentimentDashboard.css';
 
@@ -228,31 +229,7 @@ function SentimentDashboard({
     return rows;
   }, [riskData, vvixHistory, fsiHistory]);
 
-  const fgiSeries = useMemo(() => {
-    const history = fearGreedData?.history;
-    if (!history) return { dates: [], values: [] };
-    // Support: [{date,value}], {dates,values}, [number,...]
-    if (Array.isArray(history)) {
-      if (!history.length) return { dates: [], values: [] };
-      if (typeof history[0] === 'number') {
-        return {
-          dates: history.map((_, i) => `${i + 1}`),
-          values: history.map(Number).filter((v) => Number.isFinite(v)),
-        };
-      }
-      return {
-        dates: history.map((h) => (typeof h === 'object' ? (h.date || h.t || '') : '')).filter(Boolean),
-        values: history.map((h) => (typeof h === 'object' ? Number(h.value ?? h.v) : Number(h))).filter((v) => Number.isFinite(v)),
-      };
-    }
-    if (history.dates && history.values) {
-      return {
-        dates: history.dates,
-        values: (history.values || []).map(Number).filter((v) => Number.isFinite(v)),
-      };
-    }
-    return { dates: [], values: [] };
-  }, [fearGreedData]);
+  const fgiSeries = useMemo(() => fearGreedHistorySeries(fearGreedData), [fearGreedData]);
 
   const fgiOption = useMemo(() => {
     const { dates, values } = fgiSeries;

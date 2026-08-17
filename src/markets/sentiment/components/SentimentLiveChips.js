@@ -20,6 +20,32 @@ function hasSeriesValues(hist) {
   return Array.isArray(hist?.values) && hist.values.length > 0;
 }
 
+/** Fear-greed history series. Leftover isLive / values bags stay empty so remount does not .map-crash. */
+export function fearGreedHistorySeries(fearGreedData) {
+  if (Array.isArray(fearGreedData)) {
+    if (!fearGreedData.length) return { dates: [], values: [] };
+    if (typeof fearGreedData[0] === 'number') {
+      return {
+        dates: fearGreedData.map((_, i) => `${i + 1}`),
+        values: fearGreedData.map(Number).filter((v) => Number.isFinite(v)),
+      };
+    }
+    return {
+      dates: fearGreedData.map((h) => (typeof h === 'object' && h ? (h.date || h.t || '') : '')).filter(Boolean),
+      values: fearGreedData.map((h) => (typeof h === 'object' && h ? Number(h.value ?? h.v) : Number(h))).filter((v) => Number.isFinite(v)),
+    };
+  }
+  const history = fearGreedData?.history !== undefined ? fearGreedData.history : fearGreedData;
+  if (!history || typeof history !== 'object') return { dates: [], values: [] };
+  if (Array.isArray(history)) return fearGreedHistorySeries(history);
+  const dates = Array.isArray(history.dates) ? history.dates : [];
+  const rawValues = Array.isArray(history.values) ? history.values : [];
+  return {
+    dates,
+    values: rawValues.map(Number).filter((v) => Number.isFinite(v)),
+  };
+}
+
 export function signalList(riskData) {
   if (Array.isArray(riskData)) return riskData;
   return Array.isArray(riskData?.signals) ? riskData.signals : [];
