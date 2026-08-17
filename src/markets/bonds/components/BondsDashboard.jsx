@@ -15,7 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
-import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent, auctionRows, sofrSeriesRows, rrpRows, ticHistoryCountryRows } from './BondsLiveChips.js';
+import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, treasuryCostRateRows, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent, auctionRows, sofrSeriesRows, rrpRows, ticHistoryCountryRows } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -597,19 +597,21 @@ function BondsDashboard({
           <div className="bonds-empty">No auction data available</div>
         );
 
-      case 'treasury-cost':
-        return treasuryCostCtx?.data?.latest ? (
+      case 'treasury-cost': {
+        const rows = treasuryCostRateRows(treasuryCostCtx?.data?.latest);
+        return rows.length ? (
           <div className="bonds-metrics-grid">
-            {Object.entries(treasuryCostCtx.data.latest).map(([type, val]) => (
+            {rows.map(({ type, rate }) => (
               <div key={type} className="bonds-metric-row">
                 <span className="bonds-metric-name">{type}</span>
-                <span className="bonds-metric-num">{val?.rate != null ? `${val.rate.toFixed(2)}%` : '—'}</span>
+                <span className="bonds-metric-num">{`${rate.toFixed(2)}%`}</span>
               </div>
             ))}
           </div>
         ) : (
           <div className="bonds-empty">Treasury cost data unavailable</div>
         );
+      }
 
       default:
         return null;

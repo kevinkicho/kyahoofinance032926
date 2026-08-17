@@ -98,10 +98,21 @@ export function hasCreditRatingsRows(creditRatingsData) {
   return Array.isArray(creditRatingsData) && creditRatingsData.length > 0;
 }
 
+/** Treasury-cost rows the tile can map. Leftover isLive latest / rate bags remount-crash .toFixed. */
+export function treasuryCostRateRows(latest) {
+  if (!latest || typeof latest !== 'object' || Array.isArray(latest)) return [];
+  const rows = [];
+  for (const [type, val] of Object.entries(latest)) {
+    if (!val || typeof val !== 'object' || Array.isArray(val)) continue;
+    if (!isFiniteNumeric(val.rate)) continue;
+    rows.push({ type, rate: Number(val.rate) });
+  }
+  return rows;
+}
+
 /** Treasury-cost tile paints rate numbers; latest bag is leftover. */
 export function hasTreasuryCostRates(latest) {
-  if (!latest || typeof latest !== 'object' || Array.isArray(latest)) return false;
-  return Object.values(latest).some((val) => isFiniteNumeric(val?.rate));
+  return treasuryCostRateRows(latest).length > 0;
 }
 
 function hasPaintedSeries(arr) {

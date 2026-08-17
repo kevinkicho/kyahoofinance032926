@@ -109,6 +109,7 @@ import {
   yieldCurveCountries,
   hasCreditRatingsRows,
   hasTreasuryCostRates,
+  treasuryCostRateRows,
   hasCurveSpreadSeries,
   hasFedBalanceSeries,
   hasM2Series,
@@ -5036,5 +5037,41 @@ describe('macro leftover empty-capable tiles (cleveland leftover latest remount)
     const leftoverOnly = { latest: { isLive: true } };
     expect(hasClevelandNowcast(leftoverOnly)).toBe(false);
     expect(clevelandHeadline(leftoverOnly.latest)).toBe(null);
+  });
+});
+
+describe('bonds leftover empty-capable tiles (treasury-cost remount)', () => {
+  it('dashboard does not map leftover isLive latest bags', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/treasuryCostCtx\?\.data\?\.latest \?/);
+    expect(dash).not.toMatch(/Object\.entries\(treasuryCostCtx\.data\.latest\)/);
+    expect(dash).toMatch(/treasuryCostRateRows\(treasuryCostCtx\?\.data\?\.latest\)/);
+  });
+
+  it('treasuryCostRateRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => treasuryCostRateRows({ isLive: true })).not.toThrow();
+    expect(() => treasuryCostRateRows(true)).not.toThrow();
+    expect(treasuryCostRateRows({ isLive: true })).toEqual([]);
+    expect(treasuryCostRateRows(true)).toEqual([]);
+    expect(treasuryCostRateRows({ Bills: { rate: { isLive: true } } })).toEqual([]);
+    expect(treasuryCostRateRows({ Bills: { rate: 4.52 } })).toEqual([{ type: 'Bills', rate: 4.52 }]);
+    expect(treasuryCostRateRows({ Notes: { rate: '3.80' } })).toEqual([{ type: 'Notes', rate: 3.8 }]);
+    expect(() => {
+      return treasuryCostRateRows({ isLive: true }).map(({ rate }) => rate.toFixed(2));
+    }).not.toThrow();
+    const leftoverRateRealSibling = {
+      Bills: { rate: 4.52 },
+      Notes: { rate: { isLive: true } },
+    };
+    expect(hasTreasuryCostRates(leftoverRateRealSibling)).toBe(true);
+    expect(() => treasuryCostRateRows(leftoverRateRealSibling).map(({ rate }) => rate.toFixed(2))).not.toThrow();
+    expect(treasuryCostRateRows(leftoverRateRealSibling)).toEqual([{ type: 'Bills', rate: 4.52 }]);
+    const leftoverOnly = { latest: { isLive: true } };
+    expect(hasTreasuryCostRates(leftoverOnly.latest)).toBe(false);
+    expect(treasuryCostRateRows(leftoverOnly.latest)).toEqual([]);
+    expect(() => {
+      const latest = leftoverOnly.latest;
+      return treasuryCostRateRows(latest).map(({ type, rate }) => `${type} ${rate.toFixed(2)}%`);
+    }).not.toThrow();
   });
 });
