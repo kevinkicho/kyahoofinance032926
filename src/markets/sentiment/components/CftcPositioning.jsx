@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import { cftcPositionRows } from './SentimentLiveChips.js';
 import './SentimentComponents.css';
 
 function buildBarOption(items, colors) {
@@ -59,7 +60,11 @@ function Section({ title, items, height = 180, colors }) {
 export default function CftcPositioning({ cftcData, bare = false }) {
   // Hooks must run on empty splash / refresh before data arrives.
   const { colors } = useTheme();
-  const { currencies = [], equities = [], rates = [], commodities = [], asOf } = cftcData || {};
+  const currencies = cftcPositionRows(cftcData, 'currencies');
+  const equities = cftcPositionRows(cftcData, 'equities');
+  const rates = cftcPositionRows(cftcData, 'rates');
+  const commodities = cftcPositionRows(cftcData, 'commodities');
+  const asOf = cftcData?.asOf;
 
   const kpi = useMemo(() => {
     const allItems = [...currencies, ...equities, ...rates, ...commodities];

@@ -97,6 +97,7 @@ import {
   hasSentimentKeyMetrics,
   hasFsiHistory,
   hasCftcCurrencies,
+  cftcPositionRows,
   hasCrossAssetReturns,
   hasRiskDashboardContent,
   hasNewsSentimentSeries,
@@ -5504,3 +5505,49 @@ describe('equity+ leftover empty-capable tiles (beatRates remount)', () => {
   });
 });
 
+
+describe('sentiment leftover empty-capable tiles (cftc remount)', () => {
+  it('CFTC tile does not spread leftover isLive bucket bags', () => {
+    const tile = src('markets/sentiment/components/CftcPositioning.jsx');
+    expect(tile).not.toMatch(/const \{ currencies = \[\], equities = \[\], rates = \[\], commodities = \[\], asOf \} = cftcData/);
+    expect(tile).toMatch(/cftcPositionRows\(cftcData, 'currencies'\)/);
+    expect(tile).toMatch(/cftcPositionRows\(cftcData, 'equities'\)/);
+    expect(tile).toMatch(/cftcPositionRows\(cftcData, 'rates'\)/);
+    expect(tile).toMatch(/cftcPositionRows\(cftcData, 'commodities'\)/);
+  });
+
+  it('cftcPositionRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => cftcPositionRows({ isLive: true }, 'equities')).not.toThrow();
+    expect(() => cftcPositionRows({ equities: { isLive: true } }, 'equities')).not.toThrow();
+    expect(() => cftcPositionRows({ equities: true }, 'equities')).not.toThrow();
+    expect(() => cftcPositionRows(true, 'equities')).not.toThrow();
+    expect(cftcPositionRows({ isLive: true }, 'equities')).toEqual([]);
+    expect(cftcPositionRows({ equities: { isLive: true } }, 'equities')).toEqual([]);
+    expect(cftcPositionRows({ equities: true }, 'equities')).toEqual([]);
+    expect(cftcPositionRows(true, 'equities')).toEqual([]);
+    expect(() => [...cftcPositionRows({ equities: { isLive: true } }, 'equities')]).not.toThrow();
+    const leftoverEquitiesRealSibling = {
+      isLive: true,
+      asOf: '2026-08-12',
+      currencies: [{ code: 'JPY', name: 'Yen', netPct: 12.4, longK: 80, shortK: 40, oiK: 200 }],
+      equities: { isLive: true },
+      rates: { isLive: true },
+      commodities: { isLive: true },
+    };
+    expect(() => [...cftcPositionRows(leftoverEquitiesRealSibling, 'currencies'), ...cftcPositionRows(leftoverEquitiesRealSibling, 'equities'), ...cftcPositionRows(leftoverEquitiesRealSibling, 'rates'), ...cftcPositionRows(leftoverEquitiesRealSibling, 'commodities')]).not.toThrow();
+    expect(cftcPositionRows(leftoverEquitiesRealSibling, 'equities')).toEqual([]);
+    expect(cftcPositionRows(leftoverEquitiesRealSibling, 'currencies')[0].code).toBe('JPY');
+    expect(hasCftcCurrencies(leftoverEquitiesRealSibling)).toBe(true);
+    expect(hasCftcCurrencies({
+      currencies: { isLive: true },
+      equities: { isLive: true },
+    })).toBe(false);
+    const leftoverOnly = { equities: { isLive: true } };
+    expect(cftcPositionRows(leftoverOnly, 'equities')).toEqual([]);
+    const rows = cftcPositionRows({
+      isLive: true,
+      equities: [{ code: 'ES', name: 'S&P 500', netPct: 8.2 }],
+    }, 'equities');
+    expect(rows).toEqual([{ code: 'ES', name: 'S&P 500', netPct: 8.2 }]);
+  });
+});

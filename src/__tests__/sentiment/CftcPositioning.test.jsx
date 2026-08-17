@@ -38,4 +38,17 @@ describe('CftcPositioning', () => {
     expect(() => rerender(<CftcPositioning cftcData={mockCftc} />)).not.toThrow();
     expect(screen.getByText('Most Long')).toBeInTheDocument();
   });
+
+  it('does not remount-crash when leftover CFTC bucket bags are isLive-only', () => {
+    const leftover = {
+      ...mockCftc,
+      isLive: true,
+      equities: { isLive: true },
+      rates: { isLive: true },
+      commodities: { isLive: true },
+    };
+    expect(() => render(<CftcPositioning cftcData={leftover} />)).not.toThrow();
+    expect(screen.getByText('Most Long')).toBeInTheDocument();
+    expect(screen.getByText('JPY +12.4%')).toBeInTheDocument();
+  });
 });

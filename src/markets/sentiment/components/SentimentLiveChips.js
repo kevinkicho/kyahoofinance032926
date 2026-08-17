@@ -118,9 +118,14 @@ export function hasFsiHistory(fsiHistory) {
   return Array.isArray(fsiHistory?.dates) && fsiHistory.dates.length > 0;
 }
 
+/** CFTC bucket rows the tile can spread. Leftover isLive / equities bag remount-crash [...equities]. */
+export function cftcPositionRows(cftcData, key) {
+  return Array.isArray(cftcData?.[key]) ? cftcData[key] : [];
+}
+
 /** CFTC tile is EmptyPanelBody unless currency rows exist. */
 export function hasCftcCurrencies(cftcData) {
-  return Array.isArray(cftcData?.currencies) && cftcData.currencies.length > 0;
+  return cftcPositionRows(cftcData, 'currencies').length > 0;
 }
 
 /** Cross-asset tile is EmptyPanelBody unless return rows exist. */
