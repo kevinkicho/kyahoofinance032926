@@ -5118,3 +5118,40 @@ describe('alerts leftover empty-capable tiles (correlation remount)', () => {
     expect(rows.find((a) => a.ticker === 'SPY')?.dailyReturns).toEqual([0.1, -0.2]);
   });
 });
+
+describe('watchlist leftover empty-capable tiles (btc remount)', () => {
+  it('market does not find leftover isLive coin bags', () => {
+    const market = src('markets/watchlist/WatchlistMarket.jsx');
+    expect(market).not.toMatch(/coinMarketData\?\.coins\?\.find/);
+    expect(market).toMatch(/coinRows\(/);
+  });
+
+  it('coinRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => coinRows({ isLive: true })).not.toThrow();
+    expect(() => coinRows({ coins: { isLive: true } })).not.toThrow();
+    expect(() => coinRows(true)).not.toThrow();
+    expect(coinRows({ isLive: true })).toEqual([]);
+    expect(coinRows({ coins: { isLive: true } })).toEqual([]);
+    expect(coinRows(true)).toEqual([]);
+    expect(() => coinRows({ coins: { isLive: true } }).find((c) => c.symbol === 'BTC')).not.toThrow();
+    const leftoverCoinsRealSibling = {
+      isLive: true,
+      fearGreedData: { value: 42 },
+      coins: { isLive: true },
+    };
+    expect(() => coinRows(leftoverCoinsRealSibling).find((c) => c.symbol === 'BTC')).not.toThrow();
+    expect(coinRows(leftoverCoinsRealSibling)).toEqual([]);
+    const leftoverOnly = { coins: { isLive: true } };
+    expect(coinRows(leftoverOnly)).toEqual([]);
+    const rows = coinRows({
+      isLive: true,
+      coins: [
+        { isLive: true },
+        { symbol: 'BTC', price: 64000 },
+      ],
+    });
+    expect(rows.map((c) => c.symbol)).toEqual([undefined, 'BTC']);
+    expect(() => rows.find((c) => c.symbol === 'BTC')?.price).not.toThrow();
+    expect(rows.find((c) => c.symbol === 'BTC')?.price).toBe(64000);
+  });
+});

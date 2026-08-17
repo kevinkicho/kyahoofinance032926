@@ -1,6 +1,7 @@
 // src/markets/watchlist/WatchlistMarket.jsx
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMarketData } from '../../hub/DataContext';
+import { coinRows } from '../crypto/components/CryptoLiveChips.js';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import MetricValue from '../../components/MetricValue/MetricValue';
@@ -196,8 +197,7 @@ function WatchlistMarket({ onNavigate }) {
         return null;
       }
       case 'btc': {
-        const coins = cryptoData?.data?.coinMarketData?.coins;
-        const btcObj = coins?.find(c => c.symbol === 'BTC');
+        const btcObj = coinRows(cryptoData?.data?.coinMarketData).find(c => c.symbol === 'BTC');
         if (btcObj?.price != null) return `$${Number(btcObj.price).toLocaleString()}`;
         return null;
       }
@@ -276,7 +276,7 @@ function WatchlistMarket({ onNavigate }) {
       severity: fg == null ? 'muted' : fg >= 75 || fg <= 25 ? 'medium' : 'low',
       target: METRIC_SHORTCUTS.find(m => m.id === 'feargreed'),
     });
-    const btc = cryptoData?.data?.coinMarketData?.coins?.find(c => c.symbol === 'BTC');
+    const btc = coinRows(cryptoData?.data?.coinMarketData).find(c => c.symbol === 'BTC');
     const btcChange = toNum(btc?.change24h ?? btc?.percentChange24h ?? btc?.changePct24h);
     push({
       signal: 'Bitcoin',
