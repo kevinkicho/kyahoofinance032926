@@ -3,6 +3,7 @@ import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
+import { ecbM3GrowthRows, ecbHicpDetailRows } from './DerivativesLiveChips.js';
 import './EcbDerivativesPanel.css';
 
 function fmtPct(v, digits = 2) {
@@ -31,8 +32,8 @@ export default function EcbDerivativesPanel() {
   const data = ecbCtx?.data || {};
   const pr = data.policyRates;
   const mm = data.moneyMarket;
-  const m3 = data.m3Growth || [];
-  const hicp = data.hicpDetail || [];
+  const m3 = ecbM3GrowthRows(data);
+  const hicp = ecbHicpDetailRows(data);
 
   const corridor = useMemo(() => {
     if (!pr) return [];

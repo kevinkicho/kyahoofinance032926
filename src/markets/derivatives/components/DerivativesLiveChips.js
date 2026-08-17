@@ -69,6 +69,16 @@ function lastFiniteValue(rows) {
   return last?.value != null && Number.isFinite(Number(last.value));
 }
 
+/** ECB M3 rows the ecb-derivatives chart can map. Leftover isLive / m3Growth bag remount-crash .map. */
+export function ecbM3GrowthRows(ecbData) {
+  return Array.isArray(ecbData?.m3Growth) ? ecbData.m3Growth : [];
+}
+
+/** ECB HICP rows the ecb-derivatives chart can map. Leftover isLive / hicpDetail bag remount-crash .map. */
+export function ecbHicpDetailRows(ecbData) {
+  return Array.isArray(ecbData?.hicpDetail) ? ecbData.hicpDetail : [];
+}
+
 /** ECB derivatives tile paints policy / MM / M3 / HICP values; bag existence is leftover. */
 export function hasEcbDerivativesContent(ecbData) {
   const pr = ecbData?.policyRates;

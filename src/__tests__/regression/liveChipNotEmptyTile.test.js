@@ -221,6 +221,8 @@ import {
   hasVolPremium,
   hasCftcTffRows,
   hasEcbDerivativesContent,
+  ecbM3GrowthRows as derivEcbM3GrowthRows,
+  ecbHicpDetailRows as derivEcbHicpDetailRows,
   hasVixTermSeries,
   hasFredVixSeries,
   hasSkewContent,
@@ -4467,5 +4469,51 @@ describe('credit leftover empty-capable tiles (wb-debt remount)', () => {
     });
     expect(rows.map((c) => c.code)).toEqual([undefined, 'JP']);
     expect(() => rows.slice(0, 10).map((c) => c.gdpGrowth)).not.toThrow();
+  });
+});
+
+describe('derivatives leftover empty-capable tiles (ecb-derivatives remount)', () => {
+  it('panel does not map leftover isLive m3Growth bags', () => {
+    const panel = src('markets/derivatives/components/EcbDerivativesPanel.jsx');
+    expect(panel).not.toMatch(/data\.m3Growth \|\| \[\]/);
+    expect(panel).not.toMatch(/data\.hicpDetail \|\| \[\]/);
+    expect(panel).toMatch(/ecbM3GrowthRows\(data\)/);
+    expect(panel).toMatch(/ecbHicpDetailRows\(data\)/);
+  });
+
+  it('ecbM3GrowthRows / ecbHicpDetailRows skip leftover isLive bags so remount does not crash', () => {
+    expect(() => derivEcbM3GrowthRows({ isLive: true })).not.toThrow();
+    expect(() => derivEcbM3GrowthRows({ m3Growth: { isLive: true } })).not.toThrow();
+    expect(() => derivEcbM3GrowthRows({ m3Growth: true })).not.toThrow();
+    expect(derivEcbM3GrowthRows({ isLive: true })).toEqual([]);
+    expect(derivEcbM3GrowthRows({ m3Growth: { isLive: true } })).toEqual([]);
+    expect(derivEcbM3GrowthRows({ m3Growth: true })).toEqual([]);
+    expect(() => derivEcbM3GrowthRows({ m3Growth: { isLive: true } }).map((o) => o.period)).not.toThrow();
+    const m3 = derivEcbM3GrowthRows({
+      isLive: true,
+      m3Growth: [
+        { isLive: true },
+        { period: '2024-01', value: 3.1 },
+      ],
+    });
+    expect(m3.map((p) => p.period)).toEqual([undefined, '2024-01']);
+    expect(() => m3.map((o) => o.period)).not.toThrow();
+
+    expect(() => derivEcbHicpDetailRows({ isLive: true })).not.toThrow();
+    expect(() => derivEcbHicpDetailRows({ hicpDetail: { isLive: true } })).not.toThrow();
+    expect(() => derivEcbHicpDetailRows({ hicpDetail: true })).not.toThrow();
+    expect(derivEcbHicpDetailRows({ isLive: true })).toEqual([]);
+    expect(derivEcbHicpDetailRows({ hicpDetail: { isLive: true } })).toEqual([]);
+    expect(derivEcbHicpDetailRows({ hicpDetail: true })).toEqual([]);
+    expect(() => derivEcbHicpDetailRows({ hicpDetail: { isLive: true } }).map((o) => o.period)).not.toThrow();
+    const hicp = derivEcbHicpDetailRows({
+      isLive: true,
+      hicpDetail: [
+        { isLive: true },
+        { period: '2024-01', value: 2.4 },
+      ],
+    });
+    expect(hicp.map((p) => p.period)).toEqual([undefined, '2024-01']);
+    expect(() => [...m3.map((o) => o.period), ...hicp.map((o) => o.period)]).not.toThrow();
   });
 });
