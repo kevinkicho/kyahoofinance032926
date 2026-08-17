@@ -36,6 +36,8 @@ import {
   hasGlobalLiquidityContent,
   ecbM3GrowthRows,
   dtsSeriesRows,
+  gdpNowEvolutionRows,
+  gdpNowPriorQuarterRows,
 } from './MacroLiveChips.js';
 import './GlobalMacroDashboard.css';
 
@@ -199,8 +201,8 @@ function GlobalMacroDashboard({
   // Bar chart of: BEA actual prior quarters + each in-quarter release with
   // its post-release nowcast. New-data shocks read directly off the chart.
   const gdpNowOption = useMemo(() => {
-    const prior = gdpNowData?.priorQuarters || [];
-    const evo = gdpNowData?.evolution || [];
+    const prior = gdpNowPriorQuarterRows(gdpNowData);
+    const evo = gdpNowEvolutionRows(gdpNowData);
     if (!prior.length && !evo.length) return null;
     // Concatenate prior actuals + current-quarter nowcast evolution. Use the
     // event label as the x-axis category. Color the prior actuals neutral

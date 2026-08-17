@@ -108,9 +108,19 @@ export function hasTgaSeries(dtsData) {
   return dtsSeriesRows(dtsData).length > 0;
 }
 
+/** GDPNow evolution the gdpnow tile can map. Leftover isLive bag remount-crash .map. */
+export function gdpNowEvolutionRows(gdpNowData) {
+  return Array.isArray(gdpNowData?.evolution) ? gdpNowData.evolution : [];
+}
+
+/** GDPNow prior-quarter rows the gdpnow tile can map. Leftover isLive bag remount-crash .map. */
+export function gdpNowPriorQuarterRows(gdpNowData) {
+  return Array.isArray(gdpNowData?.priorQuarters) ? gdpNowData.priorQuarters : [];
+}
+
 /** GDPNow chart paints evolution[]; currentQuarter-only is the sibling field-map leftover. */
 export function hasGdpNowEvolution(gdpNowData) {
-  return Array.isArray(gdpNowData?.evolution) && gdpNowData.evolution.length > 0;
+  return gdpNowEvolutionRows(gdpNowData).length > 0;
 }
 
 /** FOMC SEP table paints projections[]; summary-only stays on the loading body. */
@@ -184,7 +194,7 @@ export function hasGlobalLiquidityContent({ dtsData, ecbData, beaData, gdpNowDat
   if (m3.some((p) => isPaintedNumber(p?.value))) return true;
   const saving = Array.isArray(beaData?.savingRate) ? beaData.savingRate : [];
   if (saving.some((r) => String(r?.desc || '').toLowerCase().includes('personal saving as a percentage') && isPaintedNumber(r?.value))) return true;
-  const evo = Array.isArray(gdpNowData?.evolution) ? gdpNowData.evolution : [];
+  const evo = gdpNowEvolutionRows(gdpNowData);
   const gdpNow = gdpNowData?.latest?.gdp ?? evo[evo.length - 1]?.gdp;
   if (isPaintedNumber(gdpNow)) return true;
   return false;

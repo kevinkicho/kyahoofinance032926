@@ -150,6 +150,8 @@ import {
   hasGlobalLiquidityContent,
   ecbM3GrowthRows,
   dtsSeriesRows,
+  gdpNowEvolutionRows,
+  gdpNowPriorQuarterRows,
 } from '../../markets/globalMacro/components/MacroLiveChips.js';
 import {
   hasEqdKpiMetrics,
@@ -3110,6 +3112,51 @@ describe('macro leftover empty-capable tiles (m3Growth remount)', () => {
     });
     expect(series.map((p) => p.date)).toEqual([undefined, '2024-01-02']);
     expect(() => series.slice(-60).map((p) => p.closeB)).not.toThrow();
+  });
+});
+
+describe('macro leftover empty-capable tiles (gdpnow remount)', () => {
+  it('dashboard does not map leftover isLive GDPNow bags', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/gdpNowData\?\.priorQuarters \|\| \[\]/);
+    expect(dash).not.toMatch(/gdpNowData\?\.evolution \|\| \[\]/);
+    expect(dash).toMatch(/gdpNowPriorQuarterRows\(gdpNowData\)/);
+    expect(dash).toMatch(/gdpNowEvolutionRows\(gdpNowData\)/);
+  });
+
+  it('gdpNowEvolutionRows / gdpNowPriorQuarterRows skip leftover isLive bags so remount does not crash', () => {
+    expect(() => gdpNowEvolutionRows({ isLive: true })).not.toThrow();
+    expect(() => gdpNowEvolutionRows({ evolution: { isLive: true } })).not.toThrow();
+    expect(() => gdpNowEvolutionRows({ evolution: true })).not.toThrow();
+    expect(gdpNowEvolutionRows({ isLive: true })).toEqual([]);
+    expect(gdpNowEvolutionRows({ evolution: { isLive: true } })).toEqual([]);
+    expect(gdpNowEvolutionRows({ evolution: true })).toEqual([]);
+    expect(() => gdpNowEvolutionRows({ evolution: { isLive: true } }).map((r) => r.event)).not.toThrow();
+    expect(() => gdpNowPriorQuarterRows({ isLive: true })).not.toThrow();
+    expect(() => gdpNowPriorQuarterRows({ priorQuarters: { isLive: true } })).not.toThrow();
+    expect(() => gdpNowPriorQuarterRows({ priorQuarters: true })).not.toThrow();
+    expect(gdpNowPriorQuarterRows({ priorQuarters: { isLive: true } })).toEqual([]);
+    expect(() => gdpNowPriorQuarterRows({ priorQuarters: { isLive: true } }).map((r) => r.event)).not.toThrow();
+    const leftoverPriorRealEvo = {
+      isLive: true,
+      priorQuarters: { isLive: true },
+      evolution: [{ event: 'Initial GDPNow 26:Q3', gdp: 2.1 }],
+    };
+    expect(() => gdpNowPriorQuarterRows(leftoverPriorRealEvo).map((r) => r.event)).not.toThrow();
+    expect(() => gdpNowEvolutionRows(leftoverPriorRealEvo).map((r) => r.gdp)).not.toThrow();
+    const leftoverEvoRealPrior = {
+      isLive: true,
+      priorQuarters: [{ event: 'Latest BEA estimate 26:Q1', gdp: 2.4 }],
+      evolution: { isLive: true },
+    };
+    expect(() => gdpNowPriorQuarterRows(leftoverEvoRealPrior).map((r) => r.gdp)).not.toThrow();
+    expect(() => gdpNowEvolutionRows(leftoverEvoRealPrior).map((r) => r.event)).not.toThrow();
+    const rows = gdpNowEvolutionRows({
+      isLive: true,
+      evolution: [{ isLive: true }, { event: 'Initial GDPNow 26:Q3', gdp: 2.1 }],
+    });
+    expect(rows.map((r) => r.event)).toEqual([undefined, 'Initial GDPNow 26:Q3']);
+    expect(() => [...gdpNowPriorQuarterRows(leftoverPriorRealEvo).map((r) => r.event), ...rows.map((r) => r.event)]).not.toThrow();
   });
 });
 
