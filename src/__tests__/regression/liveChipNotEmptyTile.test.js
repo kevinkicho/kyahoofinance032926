@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { hasWbDebtRows } from '../../markets/credit/components/WorldBankDebtPanel.jsx';
+import { hasWbDebtRows, wbDebtCountryRows } from '../../markets/credit/components/WorldBankDebtPanel.jsx';
 import { hasTreasuryCreditHoldings, ticLatestRows as creditTicLatestRows } from '../../markets/credit/components/TreasuryCreditHoldingsPanel.jsx';
 import { hasBisPropertyRows } from '../../markets/realEstate/components/BisPropertyPricePanel.jsx';
 import { hasMetroCaseShillerRows } from '../../markets/realEstate/components/MetroCaseShillerPanel.jsx';
@@ -50,6 +50,7 @@ import {
   hasEcbSupervisoryContent,
   femaDeclarationRows,
   usgsMagBucketRows,
+  wbCountryRows,
 } from '../../markets/insurance/components/InsuranceLiveChips.js';
 import {
   hasCreditKpiMetrics,
@@ -4412,5 +4413,59 @@ describe('credit leftover empty-capable tiles (treasury-credit-holdings remount)
     });
     expect(rows.map((r) => r.country)).toEqual([undefined, 'Japan']);
     expect(() => rows.slice(0, 10).map((r) => r.holdingsB)).not.toThrow();
+  });
+});
+
+describe('insurance leftover empty-capable tiles (ins-penetration remount)', () => {
+  it('dashboard does not filter leftover isLive countries bags', () => {
+    const dash = src('markets/insurance/components/InsuranceDashboard.jsx');
+    expect(dash).not.toMatch(/wbCtx\?\.data\?\.countries \|\| \[\]/);
+    expect(dash).toMatch(/wbCountryRows\(wbCtx\?\.data\)/);
+  });
+
+  it('wbCountryRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => wbCountryRows({ isLive: true })).not.toThrow();
+    expect(() => wbCountryRows({ countries: { isLive: true } })).not.toThrow();
+    expect(() => wbCountryRows({ countries: true })).not.toThrow();
+    expect(wbCountryRows({ isLive: true })).toEqual([]);
+    expect(wbCountryRows({ countries: { isLive: true } })).toEqual([]);
+    expect(wbCountryRows({ countries: true })).toEqual([]);
+    expect(() => wbCountryRows({ countries: { isLive: true } }).filter((c) => c.lifeInsPctGdp != null)).not.toThrow();
+    const rows = wbCountryRows({
+      isLive: true,
+      countries: [
+        { isLive: true },
+        { code: 'US', lifeInsPctGdp: 1.2 },
+      ],
+    });
+    expect(rows.map((c) => c.code)).toEqual([undefined, 'US']);
+    expect(() => rows.filter((c) => c.lifeInsPctGdp != null || c.nonLifeInsPctGdp != null)).not.toThrow();
+  });
+});
+
+describe('credit leftover empty-capable tiles (wb-debt remount)', () => {
+  it('panel does not spread leftover isLive countries bags', () => {
+    const panel = src('markets/credit/components/WorldBankDebtPanel.jsx');
+    expect(panel).not.toMatch(/data\.countries \|\| \[\]/);
+    expect(panel).toMatch(/wbDebtCountryRows\(data\)/);
+  });
+
+  it('wbDebtCountryRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => wbDebtCountryRows({ isLive: true })).not.toThrow();
+    expect(() => wbDebtCountryRows({ countries: { isLive: true } })).not.toThrow();
+    expect(() => wbDebtCountryRows({ countries: true })).not.toThrow();
+    expect(wbDebtCountryRows({ isLive: true })).toEqual([]);
+    expect(wbDebtCountryRows({ countries: { isLive: true } })).toEqual([]);
+    expect(wbDebtCountryRows({ countries: true })).toEqual([]);
+    expect(() => [...wbDebtCountryRows({ countries: { isLive: true } })].sort((a, b) => (b.gdpGrowth || 0) - (a.gdpGrowth || 0))).not.toThrow();
+    const rows = wbDebtCountryRows({
+      isLive: true,
+      countries: [
+        { isLive: true },
+        { code: 'JP', gdpGrowth: 1.1 },
+      ],
+    });
+    expect(rows.map((c) => c.code)).toEqual([undefined, 'JP']);
+    expect(() => rows.slice(0, 10).map((c) => c.gdpGrowth)).not.toThrow();
   });
 });

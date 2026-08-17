@@ -129,6 +129,11 @@ export function usgsMagBucketRows(usgsData) {
   return Array.isArray(usgsData?.magBuckets) ? usgsData.magBuckets : [];
 }
 
+/** World Bank country rows the ins-penetration chart can filter. Leftover isLive / countries bag remount-crash .filter. */
+export function wbCountryRows(wbData) {
+  return Array.isArray(wbData?.countries) ? wbData.countries : [];
+}
+
 /** Catastrophes tile paints FEMA decls / by-type and USGS events; sibling isLive is leftover. */
 export function hasCatastropheRows(femaData, usgsData) {
   if (femaDeclarationRows(femaData).length > 0) return true;

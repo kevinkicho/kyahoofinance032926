@@ -2,6 +2,11 @@ import React, { useMemo } from 'react';
 import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 
+/** World Bank country rows the wb-debt table can spread. Leftover isLive / countries bag remount-crash [...countries]. */
+export function wbDebtCountryRows(wbData) {
+  return Array.isArray(wbData?.countries) ? wbData.countries : [];
+}
+
 export function hasWbDebtRows(countries) {
   return Array.isArray(countries) && countries.length > 0;
 }
@@ -9,7 +14,7 @@ export function hasWbDebtRows(countries) {
 export default function WorldBankDebtPanel() {
   const wbCtx = useMarketData('worldbank');
   const data = wbCtx?.data || {};
-  const countries = data.countries || [];
+  const countries = wbDebtCountryRows(data);
 
   const sorted = useMemo(() => {
     return [...countries].sort((a, b) => (b.gdpGrowth || 0) - (a.gdpGrowth || 0));

@@ -19,6 +19,7 @@ import {
   hasEcbSupervisoryContent,
   femaDeclarationRows,
   usgsMagBucketRows,
+  wbCountryRows,
 } from './InsuranceLiveChips.js';
 
 /** HY OAS tile charts fredHyOasHistory dates. */
@@ -34,8 +35,7 @@ export function hasCombinedRatioHistory(history) {
 
 /** Penetration chart only paints countries with GFDD premium/GDP fields. */
 export function hasInsurancePenetrationRows(wbData) {
-  const countries = Array.isArray(wbData?.countries) ? wbData.countries : [];
-  return countries.some((c) => c?.lifeInsPctGdp != null || c?.nonLifeInsPctGdp != null);
+  return wbCountryRows(wbData).some((c) => c?.lifeInsPctGdp != null || c?.nonLifeInsPctGdp != null);
 }
 
 /** EDGAR combined-ratio bars need issuers with a latest observation. */
@@ -389,7 +389,7 @@ function InsuranceDashboard({
 
   // ── World Bank insurance penetration — life vs non-life by country ────
   const wbInsuranceOption = useMemo(() => {
-    const countries = (wbCtx?.data?.countries || []).filter(c => c.lifeInsPctGdp != null || c.nonLifeInsPctGdp != null);
+    const countries = wbCountryRows(wbCtx?.data).filter(c => c.lifeInsPctGdp != null || c.nonLifeInsPctGdp != null);
     if (!countries.length) return null;
     const sorted = [...countries].sort((a, b) =>
       ((b.lifeInsPctGdp || 0) + (b.nonLifeInsPctGdp || 0)) -
