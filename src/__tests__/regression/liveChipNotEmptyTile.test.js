@@ -257,6 +257,8 @@ import {
   hasBlsDurationItems,
 } from '../../markets/bls/components/BlsLiveChips.js';
 
+import { returnsDataAssets } from '../../markets/alerts/components/AlertsLiveChips.js';
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 function src(rel) {
@@ -5073,5 +5075,46 @@ describe('bonds leftover empty-capable tiles (treasury-cost remount)', () => {
       const latest = leftoverOnly.latest;
       return treasuryCostRateRows(latest).map(({ type, rate }) => `${type} ${rate.toFixed(2)}%`);
     }).not.toThrow();
+  });
+});
+
+describe('alerts leftover empty-capable tiles (correlation remount)', () => {
+  it('market does not find leftover isLive returnsData.assets bags', () => {
+    const market = src('markets/alerts/AlertsMarket.jsx');
+    expect(market).not.toMatch(/returnsData\?\.assets \|\| \[\]/);
+    expect(market).toMatch(/returnsDataAssets\(/);
+  });
+
+  it('returnsDataAssets skips leftover isLive bags so remount does not crash', () => {
+    expect(() => returnsDataAssets({ isLive: true })).not.toThrow();
+    expect(() => returnsDataAssets({ assets: { isLive: true } })).not.toThrow();
+    expect(() => returnsDataAssets(true)).not.toThrow();
+    expect(returnsDataAssets({ isLive: true })).toEqual([]);
+    expect(returnsDataAssets({ assets: { isLive: true } })).toEqual([]);
+    expect(returnsDataAssets(true)).toEqual([]);
+    expect(() => returnsDataAssets({ assets: { isLive: true } }).find((a) => a.ticker === 'SPY')).not.toThrow();
+    const leftoverAssetsRealSibling = {
+      isLive: true,
+      asOf: '2024-01-02',
+      assets: { isLive: true },
+    };
+    expect(() => (returnsDataAssets(leftoverAssetsRealSibling).find((a) => a.ticker === 'SPY')?.dailyReturns || [])).not.toThrow();
+    expect(returnsDataAssets(leftoverAssetsRealSibling)).toEqual([]);
+    const leftoverOnly = { assets: { isLive: true } };
+    expect(returnsDataAssets(leftoverOnly)).toEqual([]);
+    const leftoverNestedDaily = {
+      assets: [{ ticker: 'SPY', dailyReturns: { isLive: true } }],
+    };
+    expect(() => (returnsDataAssets(leftoverNestedDaily).find((a) => a.ticker === 'SPY')?.dailyReturns || [])).not.toThrow();
+    const rows = returnsDataAssets({
+      isLive: true,
+      assets: [
+        { isLive: true },
+        { ticker: 'SPY', dailyReturns: [0.1, -0.2] },
+      ],
+    });
+    expect(rows.map((a) => a.ticker)).toEqual([undefined, 'SPY']);
+    expect(() => rows.find((a) => a.ticker === 'SPY')?.dailyReturns).not.toThrow();
+    expect(rows.find((a) => a.ticker === 'SPY')?.dailyReturns).toEqual([0.1, -0.2]);
   });
 });

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import AlertsDashboard from './components/AlertsDashboard';
+import { returnsDataAssets } from './components/AlertsLiveChips.js';
 import MarketSkeleton from '../../hub/MarketSkeleton';
 import { useCurrency } from '../../hub/CurrencyContext';
 import { useMarketData } from '../../hub/DataContext';
@@ -56,7 +57,7 @@ function AlertsMarket({ centralData } = {}) {
   const bondsCtx = useMarketData('bonds');
   const derivCtx = useMarketData('derivatives');
   const correlationData = useMemo(() => {
-    const assets = sentimentCtx?.data?.returnsData?.assets || [];
+    const assets = returnsDataAssets(sentimentCtx?.data?.returnsData);
     const findReturns = t => assets.find(a => a.ticker === t)?.dailyReturns || [];
     const dgs10 = bondsCtx?.data?.yieldHistory?.dgs10 || [];
     const dxyHist = fxCtx?.data?.dxyHistory?.values || [];
