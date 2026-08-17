@@ -1,20 +1,21 @@
 import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import { hasCpiComponentsSeries } from './BondsLiveChips';
+import { hasCpiComponentsSeries, cpiComponentSeries } from './BondsLiveChips';
 
 const CpiComponents = ({ cpiComponents, lastUpdated }) => {
   const { colors } = useTheme();
 
   const option = useMemo(() => {
     if (!hasCpiComponentsSeries(cpiComponents)) return null;
-    
+
     // Filter for last 60 months if data is longer
-    const dataLength = cpiComponents.dates.length;
+    const datesAll = cpiComponentSeries(cpiComponents, 'dates');
+    const dataLength = datesAll.length;
     const sliceStart = Math.max(0, dataLength - 60);
-    const dates = cpiComponents.dates.slice(sliceStart);
-    
-    const slice = (arr) => arr ? arr.slice(sliceStart) : [];
+    const dates = datesAll.slice(sliceStart);
+
+    const slice = (key) => cpiComponentSeries(cpiComponents, key).slice(sliceStart);
 
     return {
       animation: false,
@@ -54,10 +55,10 @@ const CpiComponents = ({ cpiComponents, lastUpdated }) => {
         splitLine: { lineStyle: { color: colors.cardBg } } 
       },
       series: [
-        { name: 'All', type: 'line', data: slice(cpiComponents.all), symbol: 'none', smooth: true, lineStyle: { color: '#60a5fa', width: 1.5 } },
-        { name: 'Core', type: 'line', data: slice(cpiComponents.core), symbol: 'none', smooth: true, lineStyle: { color: '#a78bfa', width: 1.5 } },
-        { name: 'Food', type: 'line', data: slice(cpiComponents.food), symbol: 'none', smooth: true, lineStyle: { color: '#22c55e', width: 1.5 } },
-        { name: 'Energy', type: 'line', data: slice(cpiComponents.energy), symbol: 'none', smooth: true, lineStyle: { color: '#f59e0b', width: 1.5 } },
+        { name: 'All', type: 'line', data: slice('all'), symbol: 'none', smooth: true, lineStyle: { color: '#60a5fa', width: 1.5 } },
+        { name: 'Core', type: 'line', data: slice('core'), symbol: 'none', smooth: true, lineStyle: { color: '#a78bfa', width: 1.5 } },
+        { name: 'Food', type: 'line', data: slice('food'), symbol: 'none', smooth: true, lineStyle: { color: '#22c55e', width: 1.5 } },
+        { name: 'Energy', type: 'line', data: slice('energy'), symbol: 'none', smooth: true, lineStyle: { color: '#f59e0b', width: 1.5 } },
       ],
     };
   }, [cpiComponents, colors]);

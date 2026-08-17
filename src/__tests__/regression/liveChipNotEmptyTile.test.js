@@ -119,6 +119,7 @@ import {
   hasM2Series,
   hasDebtGdpSeries,
   hasCpiComponentsSeries,
+  cpiComponentSeries,
   hasRealYieldSeries,
   hasCreditSpreadContent,
   hasDurationLadderContent,
@@ -1474,6 +1475,55 @@ describe('bonds leftover empty-capable tiles (cpi / realYield)', () => {
     expect(hasCpiComponentsSeries({ dates: ['2024-01'], food: [2.4] })).toBe(true);
     expect(hasCpiComponentsSeries({ dates: ['2024-01'], energy: [-1.2] })).toBe(true);
     expect(hasCpiComponentsSeries({ dates: ['2024-01', '2024-02'], all: [null, 3.2] })).toBe(true);
+  });
+
+  it('CPI tile does not slice leftover isLive series bags', () => {
+    const tile = src('markets/bonds/components/CpiComponents.jsx');
+    expect(tile).not.toMatch(/const slice = \(arr\) => arr \? arr\.slice/);
+    expect(tile).toMatch(/cpiComponentSeries\(cpiComponents, 'dates'\)/);
+    expect(tile).toMatch(/cpiComponentSeries\(cpiComponents, key\)/);
+  });
+
+  it('cpiComponentSeries skips leftover isLive bags so remount does not crash', () => {
+    expect(() => cpiComponentSeries({ isLive: true }, 'all')).not.toThrow();
+    expect(() => cpiComponentSeries({ all: { isLive: true } }, 'all')).not.toThrow();
+    expect(() => cpiComponentSeries({ all: true }, 'all')).not.toThrow();
+    expect(() => cpiComponentSeries(true, 'all')).not.toThrow();
+    expect(cpiComponentSeries({ isLive: true }, 'all')).toEqual([]);
+    expect(cpiComponentSeries({ all: { isLive: true } }, 'all')).toEqual([]);
+    expect(cpiComponentSeries({ all: true }, 'all')).toEqual([]);
+    expect(cpiComponentSeries(true, 'all')).toEqual([]);
+    expect(() => cpiComponentSeries({ all: { isLive: true } }, 'all').slice(0, 60)).not.toThrow();
+    const leftoverAllRealSibling = {
+      isLive: true,
+      dates: ['2024-01', '2024-02'],
+      all: { isLive: true },
+      core: [3.1, 3.0],
+      food: { isLive: true },
+      energy: { isLive: true },
+    };
+    expect(() => {
+      cpiComponentSeries(leftoverAllRealSibling, 'dates').slice(0, 60);
+      cpiComponentSeries(leftoverAllRealSibling, 'all').slice(0, 60);
+      cpiComponentSeries(leftoverAllRealSibling, 'core').slice(0, 60);
+      cpiComponentSeries(leftoverAllRealSibling, 'food').slice(0, 60);
+      cpiComponentSeries(leftoverAllRealSibling, 'energy').slice(0, 60);
+    }).not.toThrow();
+    expect(cpiComponentSeries(leftoverAllRealSibling, 'all')).toEqual([]);
+    expect(cpiComponentSeries(leftoverAllRealSibling, 'core')).toEqual([3.1, 3.0]);
+    expect(hasCpiComponentsSeries(leftoverAllRealSibling)).toBe(true);
+    expect(hasCpiComponentsSeries({
+      dates: { isLive: true },
+      all: { isLive: true },
+      core: { isLive: true },
+    })).toBe(false);
+    const leftoverOnly = { all: { isLive: true } };
+    expect(cpiComponentSeries(leftoverOnly, 'all')).toEqual([]);
+    const rows = cpiComponentSeries({
+      isLive: true,
+      all: [3.2, 3.1],
+    }, 'all');
+    expect(rows).toEqual([3.2, 3.1]);
   });
 
   it('hasRealYieldSeries is false for empty / dates-only leftover bags', () => {

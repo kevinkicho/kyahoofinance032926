@@ -143,10 +143,15 @@ export function hasDebtGdpSeries(debtToGdpHistory) {
   return hasDatedValuesSeries(debtToGdpHistory);
 }
 
+/** CPI component series the tile can slice. Leftover isLive / all bag remount-crash .slice. */
+export function cpiComponentSeries(cpiComponents, key) {
+  return Array.isArray(cpiComponents?.[key]) ? cpiComponents[key] : [];
+}
+
 /** CPI chart is empty when dates exist but no All/Core/Food/Energy series paint. */
 export function hasCpiComponentsSeries(cpiComponents) {
-  if (!Array.isArray(cpiComponents?.dates) || !cpiComponents.dates.length) return false;
-  return ['all', 'core', 'food', 'energy'].some((k) => hasPaintedSeries(cpiComponents?.[k]));
+  if (!cpiComponentSeries(cpiComponents, 'dates').length) return false;
+  return ['all', 'core', 'food', 'energy'].some((k) => hasPaintedSeries(cpiComponentSeries(cpiComponents, k)));
 }
 
 /** TIPS real-yield chart is empty when dates exist but no 5Y/10Y series paint. */
