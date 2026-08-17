@@ -97,6 +97,11 @@ function buildLineOption({ periods, values, colors, name, color, yFormat, valueF
   };
 }
 
+/** BEA corporate-profits rows the tile can map. Leftover isLive bag remount-crash .map on the always-mounted heatmap tile. */
+export function beaCorporateProfitsRows(data) {
+  return Array.isArray(data?.corporateProfits) ? data.corporateProfits : [];
+}
+
 export function hasBeaCorporateProfitsRows(data) {
   if (!data || typeof data !== 'object') return false;
   return !!(
@@ -112,7 +117,7 @@ export default function BeaCorporateProfitsPanel() {
   const data = beaCtx?.data || {};
   const gdpComponents = data.gdpComponents || [];
   const savingRate = data.savingRate || [];
-  const corporateProfits = data.corporateProfits || [];
+  const corporateProfits = beaCorporateProfitsRows(data);
 
   const gdpSeries = useMemo(() => seriesFromRows(
     gdpComponents,

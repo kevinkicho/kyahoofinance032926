@@ -12,7 +12,7 @@ import { hasBisPropertyRows } from '../../markets/realEstate/components/BisPrope
 import { hasMetroCaseShillerRows } from '../../markets/realEstate/components/MetroCaseShillerPanel.jsx';
 import { hasHudAffordabilityRows } from '../../markets/realEstate/components/HudAffordabilityPanel.jsx';
 import { hasTreasuryTicRows, ticLatestRows as fxTicLatestRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
-import { hasBeaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
+import { hasBeaCorporateProfitsRows, beaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
 import { hasWbMarketCapRows } from '../../markets/equities/components/WorldBankMarketCapPanel.jsx';
 import { hasSecFundamentalsRows, hasSecFilingActivity, universeUpdateRows, hasUniverseUpdates } from '../../markets/equities/components/EquitiesLiveChips.js';
 
@@ -4768,5 +4768,43 @@ describe('bonds leftover empty-capable tiles (money-market remount)', () => {
     });
     expect(rows.map((r) => r.date)).toEqual([undefined, '2024-01-02']);
     expect(() => [...rows].reverse().slice(-30).map((r) => r.rate)).not.toThrow();
+  });
+});
+
+describe('equities leftover empty-capable tiles (bea-corporate-profits remount)', () => {
+  it('panel does not map leftover isLive corporateProfits bags', () => {
+    const panelSrc = src('markets/equities/components/BeaCorporateProfitsPanel.jsx');
+    expect(panelSrc).not.toMatch(/data\.corporateProfits \|\| \[\]/);
+    expect(panelSrc).toMatch(/beaCorporateProfitsRows\(data\)/);
+  });
+
+  it('beaCorporateProfitsRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => beaCorporateProfitsRows({ isLive: true })).not.toThrow();
+    expect(() => beaCorporateProfitsRows({ corporateProfits: { isLive: true } })).not.toThrow();
+    expect(() => beaCorporateProfitsRows({ corporateProfits: true })).not.toThrow();
+    expect(beaCorporateProfitsRows({ isLive: true })).toEqual([]);
+    expect(beaCorporateProfitsRows({ corporateProfits: { isLive: true } })).toEqual([]);
+    expect(beaCorporateProfitsRows({ corporateProfits: true })).toEqual([]);
+    expect(() => beaCorporateProfitsRows({ corporateProfits: { isLive: true } }).map((r) => r.valueBn)).not.toThrow();
+    const leftoverProfitsRealGdp = {
+      isLive: true,
+      corporateProfits: { isLive: true },
+      gdpComponents: [{ period: '2024Q4', value: 2.4 }],
+    };
+    expect(() => beaCorporateProfitsRows(leftoverProfitsRealGdp).map((r) => r.valueBn)).not.toThrow();
+    expect(beaCorporateProfitsRows(leftoverProfitsRealGdp)).toEqual([]);
+    const leftoverGdpRealProfits = {
+      isLive: true,
+      corporateProfits: [{ period: '2024Q4', valueBn: 3100 }],
+      gdpComponents: { isLive: true },
+    };
+    expect(() => beaCorporateProfitsRows(leftoverGdpRealProfits).map((r) => r.valueBn)).not.toThrow();
+    expect(beaCorporateProfitsRows(leftoverGdpRealProfits).map((r) => r.valueBn)).toEqual([3100]);
+    const rows = beaCorporateProfitsRows({
+      isLive: true,
+      corporateProfits: [{ isLive: true }, { period: '2024Q4', valueBn: 3100 }],
+    });
+    expect(rows.map((r) => r.valueBn)).toEqual([undefined, 3100]);
+    expect(() => rows.map((r) => r.period)).not.toThrow();
   });
 });
