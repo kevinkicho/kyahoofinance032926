@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import MarketKpiStrip from '../../../components/MarketKpiStrip';
 import { useMarketData } from '../../../hub/DataContext';
+import { centralBankCurrentRows } from './MacroLiveChips.js';
 
 export default function GlobalMacroKpiStrip({ scorecardData, centralBankData, lastUpdated, isLive, fetchLog, error, fetchedOn, isCurrent }) {
   const fxData = useMarketData('fx');
@@ -41,7 +42,7 @@ export default function GlobalMacroKpiStrip({ scorecardData, centralBankData, la
       });
     }
 
-    const fedRate = centralBankData?.current?.find(c => c.code === 'US')?.rate;
+    const fedRate = centralBankCurrentRows(centralBankData).find(c => c.code === 'US')?.rate;
     if (fedRate != null) {
       items.push({
         label: 'Fed Rate',

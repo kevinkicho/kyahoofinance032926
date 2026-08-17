@@ -1,6 +1,7 @@
 // src/markets/globalMacro/components/CountryDetailPanel.jsx
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
+import { centralBankCurrentRows } from './MacroLiveChips.js';
 
 
 /**
@@ -17,8 +18,7 @@ export default function CountryDetailPanel({ country, onClose, centralBankData, 
 
   // Find matching data from other sources
   const rateInfo = useMemo(() => {
-    if (!Array.isArray(centralBankData?.current)) return null;
-    return centralBankData.current.find(c => c.code === country?.code) || null;
+    return centralBankCurrentRows(centralBankData).find(c => c.code === country?.code) || null;
   }, [centralBankData, country]);
 
   const rateHistory = useMemo(() => {

@@ -132,6 +132,7 @@ import {
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
+  centralBankCurrentRows,
   hasScorecardRows,
   hasRateBarRows,
   hasDebtBarRows,
@@ -5270,5 +5271,42 @@ describe('sentiment leftover empty-capable tiles (signals remount)', () => {
     expect(rows.map((s) => s.name)).toEqual([undefined, 'VIX']);
     expect(() => rows.find((s) => s.name === 'VIX')?.value).not.toThrow();
     expect(rows.find((s) => s.name === 'VIX')?.value).toBe(18.2);
+  });
+});
+
+describe('macro leftover empty-capable tiles (kpi remount)', () => {
+  it('kpi strip does not find leftover isLive centralBankData.current bags', () => {
+    const strip = src('markets/globalMacro/components/GlobalMacroKpiStrip.jsx');
+    expect(strip).not.toMatch(/centralBankData\?\.current\?\.find/);
+    expect(strip).toMatch(/centralBankCurrentRows\(/);
+  });
+
+  it('centralBankCurrentRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => centralBankCurrentRows({ isLive: true })).not.toThrow();
+    expect(() => centralBankCurrentRows({ current: { isLive: true } })).not.toThrow();
+    expect(() => centralBankCurrentRows(true)).not.toThrow();
+    expect(centralBankCurrentRows({ isLive: true })).toEqual([]);
+    expect(centralBankCurrentRows({ current: { isLive: true } })).toEqual([]);
+    expect(centralBankCurrentRows(true)).toEqual([]);
+    expect(() => centralBankCurrentRows({ current: { isLive: true } }).find((c) => c.code === 'US')).not.toThrow();
+    const leftoverCurrentRealSibling = {
+      isLive: true,
+      scorecardData: [{ code: 'US', gdp: 2.1, cpi: 3.2 }],
+      centralBankData: { current: { isLive: true } },
+    };
+    expect(() => centralBankCurrentRows(leftoverCurrentRealSibling.centralBankData).find((c) => c.code === 'US')).not.toThrow();
+    expect(centralBankCurrentRows(leftoverCurrentRealSibling.centralBankData)).toEqual([]);
+    const leftoverOnly = { current: { isLive: true } };
+    expect(centralBankCurrentRows(leftoverOnly)).toEqual([]);
+    const rows = centralBankCurrentRows({
+      isLive: true,
+      current: [
+        { isLive: true },
+        { code: 'US', rate: 5.25 },
+      ],
+    });
+    expect(rows.map((c) => c.code)).toEqual([undefined, 'US']);
+    expect(() => rows.find((c) => c.code === 'US')?.rate).not.toThrow();
+    expect(rows.find((c) => c.code === 'US')?.rate).toBe(5.25);
   });
 });

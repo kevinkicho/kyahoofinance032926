@@ -13,6 +13,12 @@ function lastValue(hist) {
   return Array.isArray(hist?.values) ? hist.values[hist.values.length - 1] : null;
 }
 
+/** Current CB rows the KPI strip / country panel can find. Leftover isLive bag remount-crash .find. */
+export function centralBankCurrentRows(centralBankData) {
+  if (Array.isArray(centralBankData)) return centralBankData;
+  return Array.isArray(centralBankData?.current) ? centralBankData.current : [];
+}
+
 /** KPI strip returns null unless a US/EA/CN GDP, Fed, DXY, or CPI number paints. */
 export function hasMacroKpiMetrics({ scorecardData, centralBankData, dxyHistory } = {}) {
   const list = Array.isArray(scorecardData) ? scorecardData : [];
@@ -24,7 +30,7 @@ export function hasMacroKpiMetrics({ scorecardData, centralBankData, dxyHistory 
   const cn = list.find((c) => c.code === 'CN');
   if (isFiniteNumber(us?.gdp) || isFiniteNumber(eu?.gdp) || isFiniteNumber(cn?.gdp)) return true;
 
-  const current = Array.isArray(centralBankData?.current) ? centralBankData.current : [];
+  const current = centralBankCurrentRows(centralBankData);
   const fedRate = current.find((c) => c.code === 'US')?.rate;
   if (isFiniteNumber(fedRate)) return true;
 
@@ -40,7 +46,7 @@ export function hasScorecardRows(scorecardData) {
 
 /** Rate bars return null unless current[] has rows. */
 export function hasRateBarRows(centralBankData) {
-  return Array.isArray(centralBankData?.current) && centralBankData.current.length > 0;
+  return centralBankCurrentRows(centralBankData).length > 0;
 }
 
 /** Debt bars return null unless countries[] has rows. */

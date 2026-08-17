@@ -116,4 +116,20 @@ describe('GlobalMacroMarket', () => {
     expect(screen.getAllByText('Investment').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Personal Income').length).toBeGreaterThan(0);
   });
+
+  it('does not remount-crash when leftover centralBankData.current bag is isLive-only', () => {
+    const centralData = {
+      ...mockCentralData,
+      isLive: true,
+      isCurrent: true,
+      lastUpdated: '2026-08-16',
+      fetchedOn: '2026-08-16',
+      data: {
+        ...mockCentralData.data,
+        centralBankData: { current: { isLive: true } },
+      },
+    };
+    expect(() => render(<GlobalMacroMarket centralData={centralData} />)).not.toThrow();
+    expect(screen.getByText(/US GDP/)).toBeInTheDocument();
+  });
 });
