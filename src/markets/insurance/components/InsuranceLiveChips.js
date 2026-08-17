@@ -119,12 +119,22 @@ function lastFiniteValue(rows) {
   return last?.value != null && Number.isFinite(Number(last.value));
 }
 
+/** FEMA declaration rows the catastrophes tile can slice. Leftover isLive / declarations bag remount-crash .slice. */
+export function femaDeclarationRows(femaData) {
+  return Array.isArray(femaData?.declarations) ? femaData.declarations : [];
+}
+
+/** USGS mag-bucket rows the catastrophes tile can map. Leftover isLive / magBuckets bag remount-crash .map. */
+export function usgsMagBucketRows(usgsData) {
+  return Array.isArray(usgsData?.magBuckets) ? usgsData.magBuckets : [];
+}
+
 /** Catastrophes tile paints FEMA decls / by-type and USGS events; sibling isLive is leftover. */
 export function hasCatastropheRows(femaData, usgsData) {
-  if (Array.isArray(femaData?.declarations) && femaData.declarations.length > 0) return true;
+  if (femaDeclarationRows(femaData).length > 0) return true;
   if (Array.isArray(femaData?.byType) && femaData.byType.length > 0) return true;
   if (Array.isArray(usgsData?.events) && usgsData.events.length > 0) return true;
-  if (Array.isArray(usgsData?.magBuckets) && usgsData.magBuckets.length > 0) return true;
+  if (usgsMagBucketRows(usgsData).length > 0) return true;
   if (usgsData?.biggest?.mag != null && Number.isFinite(Number(usgsData.biggest.mag))) return true;
   return false;
 }

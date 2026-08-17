@@ -17,6 +17,8 @@ import {
   hasCatastropheRows,
   hasCatExposureContent,
   hasEcbSupervisoryContent,
+  femaDeclarationRows,
+  usgsMagBucketRows,
 } from './InsuranceLiveChips.js';
 
 /** HY OAS tile charts fredHyOasHistory dates. */
@@ -44,13 +46,12 @@ export function hasInsurerRatioRows(insRatiosData) {
 }
 
 export function hasFemaDeclarationRows(femaData) {
-  return Array.isArray(femaData?.declarations) && femaData.declarations.length > 0;
+  return femaDeclarationRows(femaData).length > 0;
 }
 
 export function hasUsgsEarthquakeRows(usgsData) {
   if (Array.isArray(usgsData?.events) && usgsData.events.length > 0) return true;
-  if (Array.isArray(usgsData?.magBuckets) && usgsData.magBuckets.length > 0) return true;
-  return false;
+  return usgsMagBucketRows(usgsData).length > 0;
 }
 
 function InsuranceDashboard({
@@ -876,11 +877,11 @@ function InsuranceDashboard({
                     </tr>
                   </thead>
                   <tbody>
-                    {(femaCtx?.data?.declarations || []).slice(0, 10).map((d, i) => (
+                    {femaDeclarationRows(femaCtx?.data).slice(0, 10).map((d, i) => (
                       <tr key={i} style={{ borderBottom: `1px solid ${colors.cardBg}` }}>
                         <td style={{ padding: '3px 6px', color: colors.textSecondary, fontVariantNumeric: 'tabular-nums' }}>{d.firstDeclared?.slice(0, 10)}</td>
                         <td style={{ padding: '3px 6px', color: colors.textPrimary || colors.textSecondary }}>
-                          {d.stateCount > 3 ? `${d.states.slice(0, 2).join(',')} +${d.stateCount - 2}` : d.states.join(',')}
+                          {d.stateCount > 3 ? `${(Array.isArray(d.states) ? d.states : []).slice(0, 2).join(',')} +${d.stateCount - 2}` : (Array.isArray(d.states) ? d.states : []).join(',')}
                         </td>
                         <td style={{ padding: '3px 6px', color: '#f87171' }}>{d.type}</td>
                       </tr>
@@ -896,7 +897,7 @@ function InsuranceDashboard({
               </div>
               <div style={{ overflow: 'auto', minHeight: 0 }}>
                 <div className="ins-panel-title" style={{ marginBottom: 4, fontSize: 11, color: colors.textMuted }}>USGS M4.5+ Quakes (30d)</div>
-                {usgsCtx?.data?.biggest && (
+                {typeof usgsCtx?.data?.biggest?.mag === 'number' && Number.isFinite(usgsCtx.data.biggest.mag) && (
                   <div style={{ marginBottom: 6, padding: 6, background: colors.cardBg, borderRadius: 4, fontSize: 10 }}>
                     <div style={{ color: colors.textMuted }}>Largest:</div>
                     <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>M{usgsCtx.data.biggest.mag.toFixed(1)}</div>
@@ -905,10 +906,10 @@ function InsuranceDashboard({
                 )}
                 <table style={{ width: '100%', fontSize: 10, borderCollapse: 'collapse' }}>
                   <tbody>
-                    {(usgsCtx?.data?.magBuckets || []).map((b, i) => (
+                    {usgsMagBucketRows(usgsCtx?.data).map((b, i) => (
                       <tr key={i}>
                         <td style={{ padding: '3px 6px', color: colors.textSecondary }}>{b.range}</td>
-                        <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: b.range.startsWith('7') ? '#ef4444' : b.range.startsWith('6') ? '#f59e0b' : colors.textPrimary }}>{b.count}</td>
+                        <td style={{ padding: '3px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: String(b.range || '').startsWith('7') ? '#ef4444' : String(b.range || '').startsWith('6') ? '#f59e0b' : colors.textPrimary }}>{b.count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -947,7 +948,7 @@ function InsuranceDashboard({
         'usgs-earthquakes': (
           (usgsCtx?.data?.events?.length > 0 || usgsCtx?.data?.magBuckets?.length > 0) ? (
             <div className="ins-mini-table" style={{ paddingTop: 0 }}>
-              {(usgsCtx?.data?.magBuckets || []).map((b, i) => (
+              {usgsMagBucketRows(usgsCtx?.data).map((b, i) => (
                 <div key={i} className="ins-mini-row">
                   <span className="ins-mini-name">{b.range}</span>
                   <span className="ins-mini-value">{b.count}</span>

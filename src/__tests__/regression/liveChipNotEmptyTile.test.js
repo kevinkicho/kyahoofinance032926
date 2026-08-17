@@ -48,6 +48,8 @@ import {
   hasCatastropheRows,
   hasCatExposureContent,
   hasEcbSupervisoryContent,
+  femaDeclarationRows,
+  usgsMagBucketRows,
 } from '../../markets/insurance/components/InsuranceLiveChips.js';
 import {
   hasCreditKpiMetrics,
@@ -2774,6 +2776,49 @@ describe('insurance leftover empty-capable tiles (catastrophes / cat-exposure / 
     expect(hasEcbSupervisoryContent({ moneyMarket: { estr: { value: 3.9 } } })).toBe(true);
     expect(hasEcbSupervisoryContent({ m3Growth: [{ value: 3.1 }] })).toBe(true);
     expect(hasEcbSupervisoryContent({ hicpDetail: [{ value: 2.4 }] })).toBe(true);
+  });
+});
+
+describe('insurance leftover empty-capable tiles (catastrophes remount)', () => {
+  it('dashboard does not slice leftover isLive declaration or mag-bucket bags', () => {
+    const dash = src('markets/insurance/components/InsuranceDashboard.jsx');
+    expect(dash).not.toMatch(/femaCtx\?\.data\?\.declarations \|\| \[\]/);
+    expect(dash).not.toMatch(/usgsCtx\?\.data\?\.magBuckets \|\| \[\]/);
+    expect(dash).toMatch(/femaDeclarationRows\(femaCtx\?\.data\)/);
+    expect(dash).toMatch(/usgsMagBucketRows\(usgsCtx\?\.data\)/);
+  });
+
+  it('femaDeclarationRows / usgsMagBucketRows skip leftover isLive bags so remount does not crash', () => {
+    expect(() => femaDeclarationRows({ isLive: true })).not.toThrow();
+    expect(() => femaDeclarationRows({ declarations: { isLive: true } })).not.toThrow();
+    expect(() => femaDeclarationRows({ declarations: true })).not.toThrow();
+    expect(femaDeclarationRows({ isLive: true })).toEqual([]);
+    expect(femaDeclarationRows({ declarations: { isLive: true } })).toEqual([]);
+    expect(femaDeclarationRows({ declarations: true })).toEqual([]);
+    expect(() => femaDeclarationRows({ declarations: { isLive: true } }).slice(0, 10)).not.toThrow();
+    const decls = femaDeclarationRows({
+      isLive: true,
+      declarations: [
+        { isLive: true },
+        { type: 'Fire', firstDeclared: '2024-01-01', states: ['CA', 'OR'] },
+      ],
+    });
+    expect(decls.map((d) => d.type)).toEqual([undefined, 'Fire']);
+    expect(() => decls.slice(0, 10).map((d) => (Array.isArray(d.states) ? d.states : []).join(','))).not.toThrow();
+
+    expect(() => usgsMagBucketRows({ isLive: true })).not.toThrow();
+    expect(() => usgsMagBucketRows({ magBuckets: { isLive: true } })).not.toThrow();
+    expect(usgsMagBucketRows({ magBuckets: { isLive: true } })).toEqual([]);
+    expect(() => usgsMagBucketRows({ magBuckets: { isLive: true } }).map((b) => b.range)).not.toThrow();
+    const buckets = usgsMagBucketRows({
+      isLive: true,
+      magBuckets: [
+        { isLive: true },
+        { range: '5-6', count: 3 },
+      ],
+    });
+    expect(buckets.map((b) => b.range)).toEqual([undefined, '5-6']);
+    expect(() => buckets.map((b) => String(b.range || '').startsWith('7'))).not.toThrow();
   });
 });
 
