@@ -179,6 +179,8 @@ import {
   hasOnChainChart,
   hashrateHistoryPoints,
   coinRows,
+  hasStablecoinComposition,
+  stablecoinMcapValue,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
 import {
   hasFaoPriceSeries,
@@ -4515,5 +4517,44 @@ describe('derivatives leftover empty-capable tiles (ecb-derivatives remount)', (
     });
     expect(hicp.map((p) => p.period)).toEqual([undefined, '2024-01']);
     expect(() => [...m3.map((o) => o.period), ...hicp.map((o) => o.period)]).not.toThrow();
+  });
+});
+
+describe('crypto leftover empty-capable tiles (stablecoin-composition)', () => {
+  it('dashboard does not hardcode leftover bag existence on stablecoin-composition', () => {
+    const dash = src('markets/crypto/components/CryptoDashboard.jsx');
+    expect(dash).not.toMatch(/'stablecoin-composition':\s*stablecoinMcap != null/);
+    expect(dash).toMatch(/'stablecoin-composition':\s*hasStablecoinComposition\(stablecoinMcap\)/);
+    const panel = src('markets/crypto/components/StablecoinCompositionPanel.jsx');
+    expect(panel).toMatch(/stablecoinMcapValue\(data\.stablecoinMcap\)/);
+  });
+
+  it('hasStablecoinComposition is false for empty / leftover isLive bags', () => {
+    expect(hasStablecoinComposition()).toBe(false);
+    expect(hasStablecoinComposition(null)).toBe(false);
+    expect(hasStablecoinComposition({ isLive: true })).toBe(false);
+    expect(hasStablecoinComposition(NaN)).toBe(false);
+    expect(hasStablecoinComposition('1.6e11')).toBe(false);
+    expect(hasStablecoinComposition({ isLive: true }, { isLive: true })).toBe(false);
+    expect(hasStablecoinComposition({ isLive: true }, [{ isLive: true }])).toBe(false);
+  });
+
+  it('hasStablecoinComposition is true when a painted mcap or composition row exists', () => {
+    expect(hasStablecoinComposition(1.6e11)).toBe(true);
+    expect(hasStablecoinComposition(0)).toBe(true);
+    expect(hasStablecoinComposition(null, [{ symbol: 'USDT', pct: 50 }])).toBe(true);
+    expect(hasStablecoinComposition({ isLive: true }, [{ name: 'USDC', mcapB: 40 }])).toBe(true);
+  });
+
+  it('stablecoinMcapValue skips leftover isLive bags so remount does not paint NaN', () => {
+    expect(stablecoinMcapValue({ isLive: true })).toBe(null);
+    expect(stablecoinMcapValue(true)).toBe(null);
+    expect(stablecoinMcapValue(NaN)).toBe(null);
+    expect(stablecoinMcapValue('1.6e11')).toBe(null);
+    expect(stablecoinMcapValue(1.6e11)).toBe(1.6e11);
+    const leftover = { isLive: true };
+    const v = stablecoinMcapValue(leftover);
+    expect(() => (v != null ? (v / 1e9).toFixed(1) : '—')).not.toThrow();
+    expect(v != null ? `$${(v / 1e9).toFixed(1)}B` : '—').toBe('—');
   });
 });

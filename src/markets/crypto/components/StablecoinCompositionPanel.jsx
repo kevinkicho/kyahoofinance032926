@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
+import { stablecoinMcapValue } from './CryptoLiveChips.js';
 
 const FALLBACK_SHARE = [
   { name: 'USDT', pct: 50 },
@@ -13,7 +14,7 @@ const FALLBACK_SHARE = [
 export default function StablecoinCompositionPanel() {
   const cryptoCtx = useMarketData('crypto');
   const data = cryptoCtx?.data || {};
-  const stablecoinMcap = data.stablecoinMcap;
+  const stablecoinMcap = stablecoinMcapValue(data.stablecoinMcap);
   const composition = Array.isArray(data.stablecoinComposition) ? data.stablecoinComposition : null;
 
   const rows = useMemo(() => {

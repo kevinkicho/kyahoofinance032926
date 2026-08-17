@@ -15,6 +15,7 @@ import {
   hasOnChainChart,
   hashrateHistoryPoints,
   coinRows,
+  hasStablecoinComposition,
 } from './CryptoLiveChips.js';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
@@ -463,7 +464,7 @@ function CryptoDashboard({
       exchanges: !!isLive && hasRealExchVolume,
       onchain: hasOnChainMetrics(onChainData),
       'onchain-chart': hasOnChainChart(onChainData),
-      'stablecoin-composition': stablecoinMcap != null,
+      'stablecoin-composition': hasStablecoinComposition(stablecoinMcap),
       'defi-tvl-trend': !!defiData?.chains?.length,
       'btc-onchain': hasOnChainMetrics(onChainData),
     },

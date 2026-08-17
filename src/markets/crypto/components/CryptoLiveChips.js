@@ -78,3 +78,15 @@ export function hashrateHistoryPoints(onChainData) {
 export function hasOnChainChart(onChainData) {
   return hashrateHistoryPoints(onChainData).length >= 2;
 }
+
+/** Finite stablecoin mcap the composition tile can paint. Leftover isLive bag is empty / NaN. */
+export function stablecoinMcapValue(v) {
+  return isFiniteNumber(v) ? v : null;
+}
+
+/** Composition tile is empty unless mcap is finite or composition rows paint. */
+export function hasStablecoinComposition(stablecoinMcap, composition) {
+  if (stablecoinMcapValue(stablecoinMcap) != null) return true;
+  if (!Array.isArray(composition) || !composition.length) return false;
+  return composition.some((c) => c && (isFiniteNumber(c.pct) || isFiniteNumber(c.mcapB)));
+}
