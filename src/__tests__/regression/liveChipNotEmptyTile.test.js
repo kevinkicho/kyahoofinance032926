@@ -131,6 +131,7 @@ import {
   sofrSeriesRows,
   rrpRows,
   ticHistoryCountryRows,
+  creditSpreadSeriesRows,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -5380,5 +5381,50 @@ describe('sentiment leftover empty-capable tiles (risk-dashboard remount)', () =
     expect(hasRiskDashboardContent({
       vvixHistory: { dates: ['2024-01-01'], values: { isLive: true } },
     })).toBe(false);
+  });
+});
+
+
+describe('bonds leftover empty-capable tiles (credit remount)', () => {
+  it('spread monitor does not .some leftover isLive credit-spread series bags', () => {
+    const monitor = src('markets/bonds/components/SpreadMonitor.jsx');
+    expect(monitor).not.toMatch(/\(spreadData\[key\] \|\| \[\]\)\.some/);
+    expect(monitor).toMatch(/creditSpreadSeriesRows\(spreadData, key\)/);
+  });
+
+  it('creditSpreadSeriesRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => creditSpreadSeriesRows({ isLive: true }, 'IG')).not.toThrow();
+    expect(() => creditSpreadSeriesRows({ IG: { isLive: true } }, 'IG')).not.toThrow();
+    expect(() => creditSpreadSeriesRows({ dates: ['2024-01'], IG: { isLive: true } }, 'IG')).not.toThrow();
+    expect(() => creditSpreadSeriesRows(true, 'IG')).not.toThrow();
+    expect(creditSpreadSeriesRows({ isLive: true }, 'IG')).toEqual([]);
+    expect(creditSpreadSeriesRows({ IG: { isLive: true } }, 'IG')).toEqual([]);
+    expect(creditSpreadSeriesRows({ dates: ['2024-01'], IG: { isLive: true } }, 'IG')).toEqual([]);
+    expect(creditSpreadSeriesRows(true, 'IG')).toEqual([]);
+    expect(() => creditSpreadSeriesRows({ IG: { isLive: true } }, 'IG').some((v) => v != null)).not.toThrow();
+    const leftoverIgRealSibling = {
+      isLive: true,
+      dates: ['2024-01', '2024-02'],
+      current: { hySpread: 412 },
+      IG: { isLive: true },
+      HY: [398, 412],
+    };
+    expect(() => creditSpreadSeriesRows(leftoverIgRealSibling, 'IG').some((v) => v != null)).not.toThrow();
+    expect(creditSpreadSeriesRows(leftoverIgRealSibling, 'IG')).toEqual([]);
+    expect(creditSpreadSeriesRows(leftoverIgRealSibling, 'HY')).toEqual([398, 412]);
+    expect(hasCreditSpreadContent(leftoverIgRealSibling)).toBe(true);
+    expect(hasCreditSpreadContent({
+      dates: ['2024-01'],
+      IG: { isLive: true },
+      HY: { isLive: true },
+      EM: { isLive: true },
+      BBB: { isLive: true },
+    })).toBe(false);
+    const rows = creditSpreadSeriesRows({
+      isLive: true,
+      dates: ['2024-01', '2024-02'],
+      IG: [98, 104],
+    }, 'IG');
+    expect(rows).toEqual([98, 104]);
   });
 });

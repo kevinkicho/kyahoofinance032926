@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import { useTheme } from '../../../hub/ThemeContext';
+import { creditSpreadSeriesRows } from './BondsLiveChips';
 import './BondsDashboard.css';
 
 const SERIES_CONFIG = [
@@ -14,8 +15,8 @@ const SERIES_CONFIG = [
 export default function SpreadMonitor({ spreadData, mortgageSpread, lastUpdated }) {
   const { colors } = useTheme();
 
-  const hasSeries = !!(spreadData?.dates?.length
-    && SERIES_CONFIG.some(({ key }) => (spreadData[key] || []).some((v) => v != null)));
+  const hasSeries = !!(Array.isArray(spreadData?.dates) && spreadData.dates.length
+    && SERIES_CONFIG.some(({ key }) => creditSpreadSeriesRows(spreadData, key).some((v) => v != null)));
 
   const option = useMemo(() => {
     if (!hasSeries) return null;
@@ -51,7 +52,7 @@ export default function SpreadMonitor({ spreadData, mortgageSpread, lastUpdated 
         name: label,
         type: 'line',
         smooth: false,
-        data: spreadData[key],
+        data: creditSpreadSeriesRows(spreadData, key),
         connectNulls: true,
         itemStyle: { color },
         lineStyle: { width: 2 },

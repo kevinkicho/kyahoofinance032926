@@ -109,4 +109,24 @@ describe('BondsMarket', () => {
     });
     expect(screen.queryByText(/ON RRP \$\d+B/i)).not.toBeInTheDocument();
   });
+
+  it('does not remount-crash when leftover credit-spread series bags are isLive-only', () => {
+    const leftover = {
+      ...mockCentralData,
+      isLive: true,
+      data: {
+        ...mockCentralData.data,
+        spreadData: {
+          dates: ['2024-01', '2024-02'],
+          current: { hySpread: 412 },
+          IG: { isLive: true },
+          HY: { isLive: true },
+          EM: { isLive: true },
+          BBB: { isLive: true },
+        },
+      },
+    };
+    expect(() => renderWithContext(<BondsMarket centralData={leftover} />)).not.toThrow();
+    expect(screen.getAllByText(/412/).length).toBeGreaterThan(0);
+  });
 });

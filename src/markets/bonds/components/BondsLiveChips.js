@@ -193,6 +193,11 @@ export function hasCreditSpreadContent(spreadData) {
   return CREDIT_SPREAD_KEYS.some((k) => lastFiniteInSeries(spreadData[k]));
 }
 
+/** Credit-spread series the tile can .some. Leftover isLive bag remount-crash .some. */
+export function creditSpreadSeriesRows(spreadData, key) {
+  return Array.isArray(spreadData?.[key]) ? spreadData[key] : [];
+}
+
 /** Duration ladder is empty when meta/asOf leftover or FFF keys exist but no bucket/FFF values paint. */
 export function hasDurationLadderContent(durationLadderData, fedFundsFutures, treasuryRates) {
   if (Array.isArray(durationLadderData)) {

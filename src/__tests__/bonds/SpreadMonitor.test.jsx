@@ -35,4 +35,17 @@ describe('SpreadMonitor', () => {
     expect(screen.getAllByText(/EM/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/BBB/i).length).toBeGreaterThanOrEqual(1);
   });
+
+  it('does not remount-crash when leftover series bags are isLive-only', () => {
+    const leftover = {
+      dates: ['2024-01', '2024-02'],
+      current: { hySpread: 412 },
+      IG: { isLive: true },
+      HY: { isLive: true },
+      EM: { isLive: true },
+      BBB: { isLive: true },
+    };
+    expect(() => render(<SpreadMonitor spreadData={leftover} />)).not.toThrow();
+    expect(screen.getAllByText(/412/).length).toBeGreaterThan(0);
+  });
 });
