@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { hasWbDebtRows, wbDebtCountryRows } from '../../markets/credit/components/WorldBankDebtPanel.jsx';
 import { hasTreasuryCreditHoldings, ticLatestRows as creditTicLatestRows } from '../../markets/credit/components/TreasuryCreditHoldingsPanel.jsx';
 import { hasBisPropertyRows } from '../../markets/realEstate/components/BisPropertyPricePanel.jsx';
-import { hasMetroCaseShillerRows } from '../../markets/realEstate/components/MetroCaseShillerPanel.jsx';
+import { hasMetroCaseShillerRows, metroCaseShillerRows } from '../../markets/realEstate/components/MetroCaseShillerPanel.jsx';
 import { hasHudAffordabilityRows } from '../../markets/realEstate/components/HudAffordabilityPanel.jsx';
 import { hasTreasuryTicRows, ticLatestRows as fxTicLatestRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
 import { hasBeaCorporateProfitsRows, beaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
@@ -307,14 +307,20 @@ describe('realEstate hardcoded-live tiles', () => {
     expect(hasBisPropertyRows({ US: { values: [300, 310] } })).toBe(true);
   });
 
-  it('hasMetroCaseShillerRows is false for national-only / empty', () => {
+  it('hasMetroCaseShillerRows is false for national-only / empty / leftover isLive bags', () => {
     expect(hasMetroCaseShillerRows(null)).toBe(false);
     expect(hasMetroCaseShillerRows({ national: { values: [300] } })).toBe(false);
     expect(hasMetroCaseShillerRows({ metros: {} })).toBe(false);
+    expect(hasMetroCaseShillerRows({ isLive: true })).toBe(false);
+    expect(hasMetroCaseShillerRows({ metros: { isLive: true } })).toBe(false);
+    expect(hasMetroCaseShillerRows({ metros: { 'San Francisco': { isLive: true } } })).toBe(false);
+    expect(hasMetroCaseShillerRows({ metros: { 'San Francisco': { latest: { isLive: true }, yoy: { isLive: true } } } })).toBe(false);
   });
 
-  it('hasMetroCaseShillerRows is true when metro objects exist', () => {
+  it('hasMetroCaseShillerRows is true when a painted metro index exists', () => {
     expect(hasMetroCaseShillerRows({ metros: { 'San Francisco': { latest: 350, yoy: 2.1 } } })).toBe(true);
+    expect(hasMetroCaseShillerRows({ metros: { 'San Francisco': { latest: 350 } } })).toBe(true);
+    expect(hasMetroCaseShillerRows({ metros: { 'San Francisco': { yoy: 2.1 } } })).toBe(true);
   });
 
   it('hasHudAffordabilityRows is false for empty / sibling-only payloads', () => {
@@ -4806,5 +4812,42 @@ describe('equities leftover empty-capable tiles (bea-corporate-profits remount)'
     });
     expect(rows.map((r) => r.valueBn)).toEqual([undefined, 3100]);
     expect(() => rows.map((r) => r.period)).not.toThrow();
+  });
+});
+
+describe('realEstate leftover empty-capable tiles (metro-case-shiller remount)', () => {
+  it('panel does not toFixed leftover isLive latest/yoy bags', () => {
+    const panel = src('markets/realEstate/components/MetroCaseShillerPanel.jsx');
+    expect(panel).toMatch(/metroCaseShillerRows\(caseShillerData\)/);
+    expect(panel).not.toMatch(/info\.latest \?\? null/);
+  });
+
+  it('metroCaseShillerRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => metroCaseShillerRows({ isLive: true })).not.toThrow();
+    expect(() => metroCaseShillerRows({ metros: { isLive: true } })).not.toThrow();
+    expect(() => metroCaseShillerRows({ metros: true })).not.toThrow();
+    expect(metroCaseShillerRows({ isLive: true })).toEqual([]);
+    expect(metroCaseShillerRows({ metros: { isLive: true } })).toEqual([]);
+    expect(metroCaseShillerRows({ metros: true })).toEqual([]);
+    expect(metroCaseShillerRows({ metros: { 'San Francisco': { isLive: true } } })).toEqual([]);
+    const leftoverLatest = {
+      isLive: true,
+      metros: {
+        'San Francisco': { latest: { isLive: true }, yoy: { isLive: true } },
+        'New York': { latest: 350, yoy: 2.1 },
+      },
+    };
+    expect(() => metroCaseShillerRows(leftoverLatest)).not.toThrow();
+    const rows = metroCaseShillerRows(leftoverLatest);
+    expect(rows.map((r) => r.name)).toEqual(['New York']);
+    expect(() => rows.map((r) => r.latest.toFixed(1))).not.toThrow();
+    expect(() => rows.map((r) => r.yoy.toFixed(1))).not.toThrow();
+    expect(rows[0].latest.toFixed(1)).toBe('350.0');
+    expect(rows[0].yoy.toFixed(1)).toBe('2.1');
+    const leftoverOnly = {
+      metros: { 'San Francisco': { latest: { isLive: true }, yoy: true } },
+    };
+    expect(metroCaseShillerRows(leftoverOnly)).toEqual([]);
+    expect(() => metroCaseShillerRows(leftoverOnly).map((r) => r.yoy.toFixed(1))).not.toThrow();
   });
 });
