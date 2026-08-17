@@ -3,7 +3,7 @@ import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
-import { ecbM3GrowthRows, ecbHicpDetailRows } from './DerivativesLiveChips.js';
+import { ecbM3GrowthRows, ecbHicpDetailRows, ecbHistorySeriesRows } from './DerivativesLiveChips.js';
 import './EcbDerivativesPanel.css';
 
 function fmtPct(v, digits = 2) {
@@ -90,11 +90,11 @@ export default function EcbDerivativesPanel() {
   }, [pr, mm, m3, hicp]);
 
   const chartOption = useMemo(() => {
-    const mrr = pr?.history?.mrr || [];
-    const dfr = pr?.history?.dfr || [];
-    const mlfr = pr?.history?.mlfr || [];
-    const euri3 = mm?.history?.euribor3m || [];
-    const estrM = mm?.history?.estrMonthly || [];
+    const mrr = ecbHistorySeriesRows(pr, 'mrr');
+    const dfr = ecbHistorySeriesRows(pr, 'dfr');
+    const mlfr = ecbHistorySeriesRows(pr, 'mlfr');
+    const euri3 = ecbHistorySeriesRows(mm, 'euribor3m');
+    const estrM = ecbHistorySeriesRows(mm, 'estrMonthly');
 
     // Align policy change dates (irregular) as category from MRR history
     const dates = mrr.map((o) => o.period);
@@ -247,8 +247,8 @@ export default function EcbDerivativesPanel() {
 
   /** Long history table: merge recent periods across series */
   const historyRows = useMemo(() => {
-    const euri3 = mm?.history?.euribor3m || [];
-    const estrM = mm?.history?.estrMonthly || [];
+    const euri3 = ecbHistorySeriesRows(mm, 'euribor3m');
+    const estrM = ecbHistorySeriesRows(mm, 'estrMonthly');
     // Use monthly anchors from the densest monthly series
     const periods = [...new Set([
       ...euri3.map((o) => o.period),
@@ -259,9 +259,9 @@ export default function EcbDerivativesPanel() {
 
     const idx = (arr) => new Map((arr || []).map((o) => [o.period, o.value]));
     const e3 = idx(euri3);
-    const e1 = idx(mm?.history?.euribor1m);
-    const e6 = idx(mm?.history?.euribor6m);
-    const eY = idx(mm?.history?.euribor1y);
+    const e1 = idx(ecbHistorySeriesRows(mm, 'euribor1m'));
+    const e6 = idx(ecbHistorySeriesRows(mm, 'euribor6m'));
+    const eY = idx(ecbHistorySeriesRows(mm, 'euribor1y'));
     const es = idx(estrM);
     const m3m = idx(m3);
     const hi = idx(hicp);
@@ -284,8 +284,8 @@ export default function EcbDerivativesPanel() {
 
     return periods.map((period) => ({
       period,
-      mrr: policyAt(pr?.history?.mrr, period),
-      dfr: policyAt(pr?.history?.dfr, period),
+      mrr: policyAt(ecbHistorySeriesRows(pr, 'mrr'), period),
+      dfr: policyAt(ecbHistorySeriesRows(pr, 'dfr'), period),
       estr: es.get(period) ?? null,
       euri1m: e1.get(period) ?? null,
       euri3m: e3.get(period) ?? null,

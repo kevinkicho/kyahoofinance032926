@@ -233,6 +233,7 @@ import {
   hasEcbDerivativesContent,
   ecbM3GrowthRows as derivEcbM3GrowthRows,
   ecbHicpDetailRows as derivEcbHicpDetailRows,
+  ecbHistorySeriesRows,
   hasVixTermSeries,
   hasFredVixSeries,
   hasSkewContent,
@@ -4613,6 +4614,56 @@ describe('derivatives leftover empty-capable tiles (ecb-derivatives remount)', (
     });
     expect(hicp.map((p) => p.period)).toEqual([undefined, '2024-01']);
     expect(() => [...m3.map((o) => o.period), ...hicp.map((o) => o.period)]).not.toThrow();
+  });
+
+  it('panel does not map leftover isLive history series bags', () => {
+    const panel = src('markets/derivatives/components/EcbDerivativesPanel.jsx');
+    expect(panel).not.toMatch(/pr\?\.history\?\.mrr \|\| \[\]/);
+    expect(panel).not.toMatch(/pr\?\.history\?\.dfr \|\| \[\]/);
+    expect(panel).not.toMatch(/pr\?\.history\?\.mlfr \|\| \[\]/);
+    expect(panel).not.toMatch(/mm\?\.history\?\.euribor3m \|\| \[\]/);
+    expect(panel).toMatch(/ecbHistorySeriesRows\(pr, 'mrr'\)/);
+    expect(panel).toMatch(/ecbHistorySeriesRows\(mm, 'euribor3m'\)/);
+  });
+
+  it('ecbHistorySeriesRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => ecbHistorySeriesRows({ isLive: true }, 'mrr')).not.toThrow();
+    expect(() => ecbHistorySeriesRows({ history: { isLive: true } }, 'mrr')).not.toThrow();
+    expect(() => ecbHistorySeriesRows({ history: { mrr: { isLive: true } } }, 'mrr')).not.toThrow();
+    expect(() => ecbHistorySeriesRows({ history: { mrr: true } }, 'mrr')).not.toThrow();
+    expect(ecbHistorySeriesRows({ isLive: true }, 'mrr')).toEqual([]);
+    expect(ecbHistorySeriesRows({ history: { isLive: true } }, 'mrr')).toEqual([]);
+    expect(ecbHistorySeriesRows({ history: { mrr: { isLive: true } } }, 'mrr')).toEqual([]);
+    expect(ecbHistorySeriesRows({ history: { mrr: true } }, 'mrr')).toEqual([]);
+    expect(() => ecbHistorySeriesRows({ history: { mrr: { isLive: true } } }, 'mrr').map((o) => o.period)).not.toThrow();
+    expect(() => ecbHistorySeriesRows({ history: { dfr: { isLive: true } } }, 'dfr').map((o) => o.value)).not.toThrow();
+    expect(() => ecbHistorySeriesRows({ history: { mlfr: { isLive: true } } }, 'mlfr').map((o) => o.value)).not.toThrow();
+    expect(() => ecbHistorySeriesRows({ history: { euribor3m: { isLive: true } } }, 'euribor3m').map((o) => o.period)).not.toThrow();
+    const leftoverMrrRealDfr = {
+      isLive: true,
+      history: {
+        mrr: { isLive: true },
+        dfr: [{ period: '2024-01', value: 2.0 }],
+      },
+    };
+    expect(() => ecbHistorySeriesRows(leftoverMrrRealDfr, 'mrr').map((o) => o.period)).not.toThrow();
+    expect(() => ecbHistorySeriesRows(leftoverMrrRealDfr, 'dfr').map((o) => [o.period, o.value])).not.toThrow();
+    expect(ecbHistorySeriesRows(leftoverMrrRealDfr, 'dfr').map((o) => o.value)).toEqual([2.0]);
+    const leftoverEuriRealEstr = {
+      isLive: true,
+      history: {
+        euribor3m: { isLive: true },
+        estrMonthly: [{ period: '2024-01', value: 3.9 }],
+      },
+    };
+    expect(() => ecbHistorySeriesRows(leftoverEuriRealEstr, 'euribor3m').map((o) => o.period)).not.toThrow();
+    expect(() => ecbHistorySeriesRows(leftoverEuriRealEstr, 'estrMonthly').map((o) => o.value)).not.toThrow();
+    const rows = ecbHistorySeriesRows({
+      isLive: true,
+      history: { mrr: [{ isLive: true }, { period: '2024-01', value: 4.5 }] },
+    }, 'mrr');
+    expect(rows.map((o) => o.period)).toEqual([undefined, '2024-01']);
+    expect(() => rows.map((o) => o.value)).not.toThrow();
   });
 });
 

@@ -79,6 +79,11 @@ export function ecbHicpDetailRows(ecbData) {
   return Array.isArray(ecbData?.hicpDetail) ? ecbData.hicpDetail : [];
 }
 
+/** ECB policy/MM history series the ecb-derivatives chart can map. Leftover isLive bag remount-crash .map. */
+export function ecbHistorySeriesRows(bag, key) {
+  return Array.isArray(bag?.history?.[key]) ? bag.history[key] : [];
+}
+
 /** ECB derivatives tile paints policy / MM / M3 / HICP values; bag existence is leftover. */
 export function hasEcbDerivativesContent(ecbData) {
   const pr = ecbData?.policyRates;
