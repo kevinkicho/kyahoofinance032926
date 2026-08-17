@@ -4,7 +4,7 @@ function isFiniteNumber(v) {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
-function sectorList(sectorData) {
+export function sectorList(sectorData) {
   if (Array.isArray(sectorData)) return sectorData;
   return Array.isArray(sectorData?.sectors) ? sectorData.sectors : [];
 }

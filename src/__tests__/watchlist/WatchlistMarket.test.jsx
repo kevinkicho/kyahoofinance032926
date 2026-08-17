@@ -164,4 +164,26 @@ describe('WatchlistMarket', () => {
     const addButton = screen.getByText('Add');
     expect(addButton).toBeDisabled();
   });
+
+  it('does not remount-crash when equity+ leftover sectors bag is isLive-only', () => {
+    const ctxValue = {
+      getMarket: (id) => id === 'equitiesDeepDive'
+        ? {
+            data: {
+              sectorData: { sectors: { isLive: true } },
+              factorData: { stocks: [{ ticker: 'AAPL', composite: 69.25 }], inFavor: { momentum: 3.5 } },
+              equityRiskPremium: 4.2,
+            },
+            isLoading: false,
+            isLive: true,
+            error: null,
+          }
+        : { isLoading: false, isLive: false },
+      refetchSingle: vi.fn(),
+    };
+    expect(() => render(
+      <DataContext.Provider value={ctxValue}><WatchlistMarket /></DataContext.Provider>
+    )).not.toThrow();
+    expect(screen.getByText('Cross-Market Alert Board')).toBeInTheDocument();
+  });
 });

@@ -159,6 +159,7 @@ import {
   sepYearHeaders,
 } from '../../markets/globalMacro/components/MacroLiveChips.js';
 import {
+  sectorList,
   hasEqdKpiMetrics,
   hasEqdSidebarContent,
   hasEqdValuationContent,
@@ -5190,5 +5191,44 @@ describe('watchlist leftover empty-capable tiles (gold remount)', () => {
     expect(() => groups.flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')?.price).not.toThrow();
     expect(groups.flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')?.price).toBe(2345.6);
     expect(groups.flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')?.change1d).toBe(0.34);
+  });
+});
+
+describe('watchlist leftover empty-capable tiles (spx remount)', () => {
+  it('market does not find leftover isLive sectorData.sectors bags', () => {
+    const market = src('markets/watchlist/WatchlistMarket.jsx');
+    expect(market).not.toMatch(/sectorData\?\.sectors\?\.find/);
+    expect(market).not.toMatch(/sectors\?\.find\(s => s\.code === 'SPY'\)/);
+    expect(market).toMatch(/sectorList\(/);
+  });
+
+  it('sectorList skips leftover isLive bags so remount does not crash', () => {
+    expect(() => sectorList({ isLive: true })).not.toThrow();
+    expect(() => sectorList({ sectors: { isLive: true } })).not.toThrow();
+    expect(() => sectorList(true)).not.toThrow();
+    expect(sectorList({ isLive: true })).toEqual([]);
+    expect(sectorList({ sectors: { isLive: true } })).toEqual([]);
+    expect(sectorList(true)).toEqual([]);
+    expect(() => sectorList({ sectors: { isLive: true } }).find((s) => s.code === 'SPY')).not.toThrow();
+    const leftoverSectorsRealSibling = {
+      isLive: true,
+      factorData: { stocks: [{ ticker: 'AAPL', composite: 69.25 }], inFavor: { momentum: 3.5 } },
+      equityRiskPremium: 4.2,
+      sectorData: { sectors: { isLive: true } },
+    };
+    expect(() => sectorList(leftoverSectorsRealSibling.sectorData).find((s) => s.code === 'SPY')).not.toThrow();
+    expect(sectorList(leftoverSectorsRealSibling.sectorData)).toEqual([]);
+    const leftoverOnly = { sectors: { isLive: true } };
+    expect(sectorList(leftoverOnly)).toEqual([]);
+    const rows = sectorList({
+      isLive: true,
+      sectors: [
+        { isLive: true },
+        { code: 'SPY', name: 'S&P 500', price: 5123.45 },
+      ],
+    });
+    expect(rows.map((s) => s.code)).toEqual([undefined, 'SPY']);
+    expect(() => rows.find((s) => s.code === 'SPY')?.price).not.toThrow();
+    expect(rows.find((s) => s.code === 'SPY')?.price).toBe(5123.45);
   });
 });

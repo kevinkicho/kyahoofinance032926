@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useMarketData } from '../../hub/DataContext';
 import { coinRows } from '../crypto/components/CryptoLiveChips.js';
 import { priceDashboardGroups } from '../commodities/components/CommoditiesLiveChips.js';
+import { sectorList } from '../equitiesDeepDive/components/EquitiesDeepDiveLiveChips.js';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import MetricValue from '../../components/MetricValue/MetricValue';
@@ -212,8 +213,7 @@ function WatchlistMarket({ onNavigate }) {
         return null;
       }
       case 'spx': {
-        const sectors = equityEddData?.data?.sectorData?.sectors;
-        const spy = sectors?.find(s => s.code === 'SPY');
+        const spy = sectorList(equityEddData?.data?.sectorData).find(s => s.code === 'SPY');
         if (spy?.price != null) return Number(spy.price).toLocaleString();
         return null;
       }
