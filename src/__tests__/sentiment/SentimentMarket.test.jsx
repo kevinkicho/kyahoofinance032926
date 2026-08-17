@@ -114,4 +114,27 @@ describe('SentimentMarket cross-asset panel', () => {
     expect(screen.getByText('S&P 500')).toBeInTheDocument();
     expect(screen.getAllByText(/Neutral/).length).toBeGreaterThan(0);
   });
+
+  it('does not remount-crash when leftover vvixHistory values bag is isLive-only', () => {
+    const centralData = {
+      isLoading: false,
+      isLive: true,
+      isCurrent: true,
+      lastUpdated: '2026-08-16',
+      fetchedOn: '2026-08-16',
+      error: null,
+      fetchLog: [],
+      refetch: () => {},
+      data: {
+        ...baseData,
+        fearGreedData: { value: 50, label: 'Neutral', history: { dates: [], values: [] } },
+        riskData: { overallScore: 61, overallLabel: 'Risk-On' },
+        vvixHistory: { dates: ['2024-01-01', '2024-01-02'], values: { isLive: true } },
+        returnsData: { assets: [{ ticker: 'SPY', label: 'S&P 500', ret1d: 1.42 }] },
+      },
+    };
+    expect(() => renderWithContext(<SentimentMarket centralData={centralData} />)).not.toThrow();
+    expect(screen.getByText('S&P 500')).toBeInTheDocument();
+    expect(screen.getAllByText(/Risk-On/).length).toBeGreaterThan(0);
+  });
 });

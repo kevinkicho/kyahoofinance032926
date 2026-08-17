@@ -103,6 +103,7 @@ import {
   hasFedRiskMoodContent,
   signalList,
   fearGreedHistorySeries,
+  vvixHistoryLooksReal,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
 import {
   hasBondsKpiMetrics,
@@ -1279,6 +1280,9 @@ describe('sentiment empty-capable tiles (sidebar / key-metrics / FSI / CFTC / cr
     expect(hasRiskDashboardContent({ riskData: { isLive: true } })).toBe(false);
     expect(hasRiskDashboardContent({ fsiHistory: { dates: ['2024-01'] } })).toBe(false);
     expect(hasRiskDashboardContent({ vvixHistory: { dates: ['2024-01'], values: [18.2] } })).toBe(false);
+    expect(hasRiskDashboardContent({ vvixHistory: { isLive: true } })).toBe(false);
+    expect(hasRiskDashboardContent({ vvixHistory: { values: { isLive: true } } })).toBe(false);
+    expect(hasRiskDashboardContent({ vvixHistory: { dates: ['2024-01'], values: { isLive: true } } })).toBe(false);
     expect(hasRiskDashboardContent({ marginDebt: { values: [812000] } })).toBe(false);
   });
 
@@ -5348,5 +5352,33 @@ describe('sentiment leftover empty-capable tiles (fear-greed remount)', () => {
     });
     expect(series.dates).toEqual(['2024-01-01', '2024-01-02']);
     expect(series.values).toEqual([48, 62]);
+  });
+});
+
+describe('sentiment leftover empty-capable tiles (risk-dashboard remount)', () => {
+  it('risk dashboard does not .some leftover isLive vvixHistory values bags', () => {
+    const dash = src('markets/sentiment/components/RiskDashboard.jsx');
+    expect(dash).not.toMatch(/vvixHistory\?\.values\?\.some/);
+    expect(dash).toMatch(/vvixHistoryLooksReal\(vvixHistory\)/);
+  });
+
+  it('vvixHistoryLooksReal skips leftover isLive bags so remount does not crash', () => {
+    expect(() => vvixHistoryLooksReal({ isLive: true })).not.toThrow();
+    expect(() => vvixHistoryLooksReal({ values: { isLive: true } })).not.toThrow();
+    expect(() => vvixHistoryLooksReal({ dates: ['2024-01-01'], values: { isLive: true } })).not.toThrow();
+    expect(() => vvixHistoryLooksReal(true)).not.toThrow();
+    expect(vvixHistoryLooksReal({ isLive: true })).toBe(false);
+    expect(vvixHistoryLooksReal({ values: { isLive: true } })).toBe(false);
+    expect(vvixHistoryLooksReal({ dates: ['2024-01-01'], values: { isLive: true } })).toBe(false);
+    expect(vvixHistoryLooksReal(true)).toBe(false);
+    expect(vvixHistoryLooksReal({ dates: ['2024-01'], values: [18.2] })).toBe(false);
+    expect(vvixHistoryLooksReal({ dates: ['2024-01'], values: [18.2, 92.4] })).toBe(true);
+    expect(hasRiskDashboardContent({
+      riskData: { overallScore: 61 },
+      vvixHistory: { dates: ['2024-01-01'], values: { isLive: true } },
+    })).toBe(true);
+    expect(hasRiskDashboardContent({
+      vvixHistory: { dates: ['2024-01-01'], values: { isLive: true } },
+    })).toBe(false);
   });
 });

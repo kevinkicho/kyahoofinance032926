@@ -129,6 +129,12 @@ export function hasCrossAssetReturns(returnsData) {
   return Array.isArray(assets) && assets.length > 0;
 }
 
+/** VVIX history looks like real VVIX (values > 50). Leftover isLive values bags stay false so remount does not .some-crash. */
+export function vvixHistoryLooksReal(vvixHistory) {
+  return Array.isArray(vvixHistory?.values)
+    && vvixHistory.values.some((v) => typeof v === 'number' && v > 50);
+}
+
 /** Risk dashboard paints dashes / empty when no score, signal, or history series exists. */
 export function hasRiskDashboardContent({
   riskData,
@@ -141,11 +147,7 @@ export function hasRiskDashboardContent({
   if (hasPaintedRiskNumber(riskData, { fsiHistory })) return true;
   if (hasFsiHistory(fsiHistory) && hasSeriesValues(fsiHistory)) return true;
   if (Array.isArray(marginDebt?.dates) && marginDebt.dates.length > 0 && hasSeriesValues(marginDebt)) return true;
-  if (
-    Array.isArray(vvixHistory?.dates) && vvixHistory.dates.length > 0
-    && Array.isArray(vvixHistory?.values)
-    && vvixHistory.values.some((v) => typeof v === 'number' && v > 50)
-  ) return true;
+  if (Array.isArray(vvixHistory?.dates) && vvixHistory.dates.length > 0 && vvixHistoryLooksReal(vvixHistory)) return true;
   return false;
 }
 

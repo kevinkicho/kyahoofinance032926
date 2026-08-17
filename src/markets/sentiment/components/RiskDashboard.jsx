@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
-import { signalList } from './SentimentLiveChips.js';
+import { signalList, vvixHistoryLooksReal } from './SentimentLiveChips.js';
 import './SentimentComponents.css';
 
 function badgeClass(signal) {
@@ -340,7 +340,7 @@ export default function RiskDashboard({
 
   // Prefer real VVIX spot series if history looks like VIX3M (< 50); else use history
   const vvixSpot = n(riskData?.vvix);
-  const vvixHistLooksReal = vvixHistory?.values?.some(v => typeof v === 'number' && v > 50);
+  const vvixHistLooksReal = vvixHistoryLooksReal(vvixHistory);
   const vvixOption = useMemo(() => {
     if (vvixHistLooksReal && vvixHistory?.dates?.length) {
       return buildLineOption({
