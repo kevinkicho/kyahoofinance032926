@@ -38,6 +38,7 @@ import {
   dtsSeriesRows,
   gdpNowEvolutionRows,
   gdpNowPriorQuarterRows,
+  sepYearHeaders,
 } from './MacroLiveChips.js';
 import './GlobalMacroDashboard.css';
 
@@ -826,7 +827,7 @@ function GlobalMacroDashboard({
                 <thead>
                   <tr style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.cardBg}` }}>
                     <th style={{ textAlign: 'left', padding: '6px 8px' }}>Variable</th>
-                    {(sepData.yearHeaders || ['Y1', 'Y2', 'Y3', 'Longer']).map((y, i) => (
+                    {sepYearHeaders(sepData).map((y, i) => (
                       <th key={i} style={{ textAlign: 'right', padding: '6px 8px' }}>{y}</th>
                     ))}
                   </tr>

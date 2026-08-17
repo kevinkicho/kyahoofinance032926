@@ -123,6 +123,13 @@ export function hasGdpNowEvolution(gdpNowData) {
   return gdpNowEvolutionRows(gdpNowData).length > 0;
 }
 
+const SEP_YEAR_FALLBACK = ['Y1', 'Y2', 'Y3', 'Longer'];
+
+/** FOMC SEP year headers the fomc-sep tile can map. Leftover isLive bag remount-crash .map while projections is real. */
+export function sepYearHeaders(sepData) {
+  return Array.isArray(sepData?.yearHeaders) ? sepData.yearHeaders : SEP_YEAR_FALLBACK;
+}
+
 /** FOMC SEP table paints projections[]; summary-only stays on the loading body. */
 export function hasFomcSepProjections(sepData) {
   return Array.isArray(sepData?.projections) && sepData.projections.length > 0;

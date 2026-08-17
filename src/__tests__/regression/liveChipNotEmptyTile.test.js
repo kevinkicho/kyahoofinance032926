@@ -152,6 +152,7 @@ import {
   dtsSeriesRows,
   gdpNowEvolutionRows,
   gdpNowPriorQuarterRows,
+  sepYearHeaders,
 } from '../../markets/globalMacro/components/MacroLiveChips.js';
 import {
   hasEqdKpiMetrics,
@@ -3157,6 +3158,43 @@ describe('macro leftover empty-capable tiles (gdpnow remount)', () => {
     });
     expect(rows.map((r) => r.event)).toEqual([undefined, 'Initial GDPNow 26:Q3']);
     expect(() => [...gdpNowPriorQuarterRows(leftoverPriorRealEvo).map((r) => r.event), ...rows.map((r) => r.event)]).not.toThrow();
+  });
+});
+
+describe('macro leftover empty-capable tiles (fomc-sep remount)', () => {
+  it('dashboard does not map leftover isLive SEP yearHeaders bags', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/sepData\.yearHeaders \|\| \['Y1'/);
+    expect(dash).toMatch(/sepYearHeaders\(sepData\)/);
+  });
+
+  it('sepYearHeaders skips leftover isLive bags so remount does not crash', () => {
+    expect(() => sepYearHeaders({ isLive: true })).not.toThrow();
+    expect(() => sepYearHeaders({ yearHeaders: { isLive: true } })).not.toThrow();
+    expect(() => sepYearHeaders({ yearHeaders: true })).not.toThrow();
+    expect(sepYearHeaders({ isLive: true })).toEqual(['Y1', 'Y2', 'Y3', 'Longer']);
+    expect(sepYearHeaders({ yearHeaders: { isLive: true } })).toEqual(['Y1', 'Y2', 'Y3', 'Longer']);
+    expect(sepYearHeaders({ yearHeaders: true })).toEqual(['Y1', 'Y2', 'Y3', 'Longer']);
+    expect(() => sepYearHeaders({ yearHeaders: { isLive: true } }).map((y) => y)).not.toThrow();
+    const leftoverHeadersRealProj = {
+      isLive: true,
+      yearHeaders: { isLive: true },
+      projections: [{ variable: 'PCE inflation', median: { current: 2.6, next: 2.4, twoOut: 2.2, longerRun: 2.0 } }],
+    };
+    expect(() => sepYearHeaders(leftoverHeadersRealProj).map((y) => y)).not.toThrow();
+    expect(sepYearHeaders(leftoverHeadersRealProj)).toEqual(['Y1', 'Y2', 'Y3', 'Longer']);
+    const leftoverProjRealHeaders = {
+      isLive: true,
+      yearHeaders: ['2025', '2026', '2027', 'Longer run'],
+      projections: { isLive: true },
+    };
+    expect(() => sepYearHeaders(leftoverProjRealHeaders).map((y) => y)).not.toThrow();
+    expect(sepYearHeaders(leftoverProjRealHeaders)).toEqual(['2025', '2026', '2027', 'Longer run']);
+    const rows = sepYearHeaders({
+      isLive: true,
+      yearHeaders: [{ isLive: true }, '2026'],
+    });
+    expect(rows.map((y) => y)).toEqual([{ isLive: true }, '2026']);
   });
 });
 
