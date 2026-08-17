@@ -86,4 +86,17 @@ describe('EquitiesDeepDiveMarket', () => {
     expect(() => render(<EquitiesDeepDiveMarket centralData={mockCentralData} institutionalData={{ ...mockInstitutionalData, data: { institutions: [{ isLive: true }] } }} />)).not.toThrow();
   });
 
+  it('does not remount-crash when leftover earnings beatRates bags are isLive-only', () => {
+    const leftover = {
+      ...mockCentralData,
+      isLive: true,
+      data: {
+        ...mockCentralData.data,
+        earningsData: { beatRates: { isLive: true } },
+      },
+    };
+    expect(() => render(<EquitiesDeepDiveMarket centralData={leftover} institutionalData={mockInstitutionalData} />)).not.toThrow();
+    expect(screen.getAllByText('Sector Performance').length).toBeGreaterThan(0);
+  });
+
 });

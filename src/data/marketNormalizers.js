@@ -330,7 +330,8 @@ export function normalizeGlobalMacroData(data = {}) {
 }
 
 function averageByKey(rows, key) {
-  const nums = (rows || []).map(row => row?.[key]).filter(isNum);
+  const list = Array.isArray(rows) ? rows : [];
+  const nums = list.map(row => row?.[key]).filter(isNum);
   if (!nums.length) return null;
   return nums.reduce((sum, value) => sum + value, 0) / nums.length;
 }

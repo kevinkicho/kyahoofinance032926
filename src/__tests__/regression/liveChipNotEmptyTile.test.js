@@ -264,7 +264,7 @@ import {
 } from '../../markets/bls/components/BlsLiveChips.js';
 
 import { returnsDataAssets } from '../../markets/alerts/components/AlertsLiveChips.js';
-import { normalizeCommoditiesData } from '../../data/marketNormalizers.js';
+import { normalizeCommoditiesData, normalizeEquityDeepDiveData } from '../../data/marketNormalizers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -5469,3 +5469,38 @@ describe('commodities leftover empty-capable tiles (eia history remount)', () =>
     expect(rows.values.supplyDemandData.crudeStocks.latest).toBe(450);
   });
 });
+describe('equity+ leftover empty-capable tiles (beatRates remount)', () => {
+  it('normalizer does not .map leftover isLive earnings beatRates bags', () => {
+    const normalizer = src('data/marketNormalizers.js');
+    expect(normalizer).not.toMatch(/\(rows \|\| \[\]\)\.map/);
+    expect(normalizer).toMatch(/Array\.isArray\(rows\) \? rows : \[\]/);
+  });
+
+  it('normalizeEquityDeepDiveData skips leftover isLive beatRates bags so remount does not crash', () => {
+    expect(() => normalizeEquityDeepDiveData({ isLive: true })).not.toThrow();
+    expect(() => normalizeEquityDeepDiveData({ earningsData: { isLive: true } })).not.toThrow();
+    expect(() => normalizeEquityDeepDiveData({ earningsData: { beatRates: { isLive: true } } })).not.toThrow();
+    expect(() => normalizeEquityDeepDiveData({ earningsData: { beatRates: { isLive: true }, avgSurprise: null } })).not.toThrow();
+    expect(() => normalizeEquityDeepDiveData(true)).not.toThrow();
+    expect(normalizeEquityDeepDiveData({ earningsData: { beatRates: { isLive: true } } }).values.earningsData.avgSurprise).toBeNull();
+    expect(normalizeEquityDeepDiveData({ earningsData: { isLive: true } }).values.earningsData.avgSurprise).toBeNull();
+    const leftoverBeatRatesRealSibling = {
+      isLive: true,
+      sectorData: { sectors: [{ code: 'XLK', name: 'Technology', perf1m: 5.2 }] },
+      factorData: { inFavor: { momentum: 3.5 }, stocks: [{ ticker: 'AAPL', composite: 85 }] },
+      earningsData: { beatRates: { isLive: true } },
+    };
+    expect(() => normalizeEquityDeepDiveData(leftoverBeatRatesRealSibling)).not.toThrow();
+    const n = normalizeEquityDeepDiveData(leftoverBeatRatesRealSibling);
+    expect(n.values.earningsData.avgSurprise).toBeNull();
+    expect(n.values.sectorData.sectors[0].code).toBe('XLK');
+    const leftoverOnly = { earningsData: { beatRates: { isLive: true } } };
+    expect(normalizeEquityDeepDiveData(leftoverOnly).values.earningsData.avgSurprise).toBeNull();
+    const rows = normalizeEquityDeepDiveData({
+      isLive: true,
+      earningsData: { beatRates: [{ sector: 'Tech', beatRate: 74 }, { sector: 'Energy', beatRate: 62 }] },
+    });
+    expect(rows.values.earningsData.avgSurprise).toBe(68);
+  });
+});
+
