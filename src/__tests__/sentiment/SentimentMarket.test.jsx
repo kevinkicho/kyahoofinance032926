@@ -67,4 +67,26 @@ describe('SentimentMarket cross-asset panel', () => {
     renderWithContext(<SentimentMarket centralData={centralData} />);
     expect(screen.getByText(/No cross-asset returns/i)).toBeInTheDocument();
   });
+
+  it('does not remount-crash when leftover riskData.signals bag is isLive-only', () => {
+    const centralData = {
+      isLoading: false,
+      isLive: true,
+      isCurrent: true,
+      lastUpdated: '2026-08-16',
+      fetchedOn: '2026-08-16',
+      error: null,
+      fetchLog: [],
+      refetch: () => {},
+      data: {
+        ...baseData,
+        fearGreedData: { value: 50, label: 'Neutral', history: { dates: [], values: [] } },
+        riskData: { signals: { isLive: true } },
+        returnsData: { assets: [{ ticker: 'SPY', label: 'S&P 500', ret1d: 1.42 }] },
+        cftcData: { currencies: [] },
+      },
+    };
+    expect(() => renderWithContext(<SentimentMarket centralData={centralData} />)).not.toThrow();
+    expect(screen.getByText('S&P 500')).toBeInTheDocument();
+  });
 });

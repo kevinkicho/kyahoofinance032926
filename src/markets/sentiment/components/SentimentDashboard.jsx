@@ -16,6 +16,7 @@ import {
   hasRiskDashboardContent,
   hasNewsSentimentSeries,
   hasFedRiskMoodContent,
+  signalList,
 } from './SentimentLiveChips.js';
 import './SentimentDashboard.css';
 
@@ -75,7 +76,7 @@ function SentimentDashboard({
       }
       return null;
     };
-    const sig = (name) => riskData?.signals?.find(s => s?.name === name);
+    const sig = (name) => signalList(riskData).find(s => s?.name === name);
     const ensure = (row) => {
       if (row.value == null) return;
       const existing = byName.get(row.name);
@@ -136,7 +137,7 @@ function SentimentDashboard({
   // Volatility strip for Key Metrics — prefer flat riskData fields (server
   // enrichment), then signals[], then history series fallbacks.
   const volMetrics = useMemo(() => {
-    const sig = (name) => riskData?.signals?.find(s => s?.name === name)?.value;
+    const sig = (name) => signalList(riskData).find(s => s?.name === name)?.value;
     const n = (...vals) => {
       for (const v of vals) {
         if (typeof v === 'number' && Number.isFinite(v)) return v;
@@ -382,7 +383,7 @@ function SentimentDashboard({
     const fsiFromHist = asNum(fsiHistory?.values?.at?.(-1));
     const fsiFromRisk = asNum(riskData?.fsi);
     const fsiFromSig = asNum(
-      riskData?.signals?.find(s => /financial stress|stlfsi|fsi/i.test(s?.name || ''))?.value,
+      signalList(riskData).find(s => /financial stress|stlfsi|fsi/i.test(s?.name || ''))?.value,
     );
     const fsiLatest = fsiFromHist ?? fsiFromRisk ?? fsiFromSig;
 

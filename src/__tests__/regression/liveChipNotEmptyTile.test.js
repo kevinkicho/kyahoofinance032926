@@ -101,6 +101,7 @@ import {
   hasRiskDashboardContent,
   hasNewsSentimentSeries,
   hasFedRiskMoodContent,
+  signalList,
 } from '../../markets/sentiment/components/SentimentLiveChips.js';
 import {
   hasBondsKpiMetrics,
@@ -5230,5 +5231,44 @@ describe('watchlist leftover empty-capable tiles (spx remount)', () => {
     expect(rows.map((s) => s.code)).toEqual([undefined, 'SPY']);
     expect(() => rows.find((s) => s.code === 'SPY')?.price).not.toThrow();
     expect(rows.find((s) => s.code === 'SPY')?.price).toBe(5123.45);
+  });
+});
+
+describe('sentiment leftover empty-capable tiles (signals remount)', () => {
+  it('dashboard does not find leftover isLive riskData.signals bags', () => {
+    const dash = src('markets/sentiment/components/SentimentDashboard.jsx');
+    expect(dash).not.toMatch(/riskData\?\.signals\?\.find/);
+    expect(dash).toMatch(/signalList\(/);
+  });
+
+  it('signalList skips leftover isLive bags so remount does not crash', () => {
+    expect(() => signalList({ isLive: true })).not.toThrow();
+    expect(() => signalList({ signals: { isLive: true } })).not.toThrow();
+    expect(() => signalList(true)).not.toThrow();
+    expect(signalList({ isLive: true })).toEqual([]);
+    expect(signalList({ signals: { isLive: true } })).toEqual([]);
+    expect(signalList(true)).toEqual([]);
+    expect(() => signalList({ signals: { isLive: true } }).find((s) => s.name === 'VIX')).not.toThrow();
+    const leftoverSignalsRealSibling = {
+      isLive: true,
+      fearGreedData: { value: 50, label: 'Neutral' },
+      returnsData: { assets: [{ ticker: 'SPY', label: 'S&P 500', ret1d: 1.42 }] },
+      cftcData: { currencies: [] },
+      riskData: { signals: { isLive: true } },
+    };
+    expect(() => signalList(leftoverSignalsRealSibling.riskData).find((s) => s.name === 'VIX')).not.toThrow();
+    expect(signalList(leftoverSignalsRealSibling.riskData)).toEqual([]);
+    const leftoverOnly = { signals: { isLive: true } };
+    expect(signalList(leftoverOnly)).toEqual([]);
+    const rows = signalList({
+      isLive: true,
+      signals: [
+        { isLive: true },
+        { name: 'VIX', value: 18.2 },
+      ],
+    });
+    expect(rows.map((s) => s.name)).toEqual([undefined, 'VIX']);
+    expect(() => rows.find((s) => s.name === 'VIX')?.value).not.toThrow();
+    expect(rows.find((s) => s.name === 'VIX')?.value).toBe(18.2);
   });
 });

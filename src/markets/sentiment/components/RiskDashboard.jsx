@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import { signalList } from './SentimentLiveChips.js';
 import './SentimentComponents.css';
 
 function badgeClass(signal) {
@@ -119,7 +120,7 @@ function buildLineOption({ dates, values, color, colors, areaColor, yFmt }) {
  * fields so the dashboard never depends on a single sparse shape.
  */
 function buildDisplaySignals(riskData, fsiHistory) {
-  const signals = riskData?.signals || [];
+  const signals = signalList(riskData);
   const rows = [];
   const push = (row) => {
     if (row.value == null || !Number.isFinite(Number(row.value))) return;

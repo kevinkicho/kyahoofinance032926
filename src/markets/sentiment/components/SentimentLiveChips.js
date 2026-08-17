@@ -20,6 +20,11 @@ function hasSeriesValues(hist) {
   return Array.isArray(hist?.values) && hist.values.length > 0;
 }
 
+export function signalList(riskData) {
+  if (Array.isArray(riskData)) return riskData;
+  return Array.isArray(riskData?.signals) ? riskData.signals : [];
+}
+
 function signalValue(riskData, ...names) {
   const signals = riskData?.signals;
   if (!Array.isArray(signals)) return null;
