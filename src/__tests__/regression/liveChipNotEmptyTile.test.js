@@ -5155,3 +5155,40 @@ describe('watchlist leftover empty-capable tiles (btc remount)', () => {
     expect(rows.find((c) => c.symbol === 'BTC')?.price).toBe(64000);
   });
 });
+
+describe('watchlist leftover empty-capable tiles (gold remount)', () => {
+  it('market does not flatMap leftover isLive priceDashboardData bags', () => {
+    const market = src('markets/watchlist/WatchlistMarket.jsx');
+    expect(market).not.toMatch(/priceDashboardData\?\.flatMap/);
+    expect(market).not.toMatch(/priceDashboardData\s*\n\s*\?\.flatMap/);
+    expect(market).toMatch(/priceDashboardGroups\(/);
+  });
+
+  it('priceDashboardGroups skips leftover isLive bags so remount does not crash', () => {
+    expect(() => priceDashboardGroups({ isLive: true })).not.toThrow();
+    expect(() => priceDashboardGroups(true)).not.toThrow();
+    expect(priceDashboardGroups({ isLive: true })).toEqual([]);
+    expect(priceDashboardGroups(true)).toEqual([]);
+    expect(() => priceDashboardGroups({ isLive: true }).flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')).not.toThrow();
+    const leftoverDashRealSibling = {
+      isLive: true,
+      yahoo: { futures: { 'CL=F': { price: 82 } } },
+      priceDashboardData: { isLive: true },
+    };
+    expect(() => priceDashboardGroups(leftoverDashRealSibling.priceDashboardData).flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')).not.toThrow();
+    expect(priceDashboardGroups(leftoverDashRealSibling.priceDashboardData)).toEqual([]);
+    const leftoverOnly = { isLive: true };
+    expect(priceDashboardGroups(leftoverOnly)).toEqual([]);
+    const groups = priceDashboardGroups([
+      { isLive: true },
+      { sector: 'Metals', commodities: [
+        { isLive: true },
+        { name: 'Gold', ticker: 'GC=F', price: 2345.6, change1d: 0.34 },
+      ] },
+    ]);
+    expect(groups.flatMap((s) => s.commodities).map((c) => c.ticker)).toEqual(['GC=F']);
+    expect(() => groups.flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')?.price).not.toThrow();
+    expect(groups.flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')?.price).toBe(2345.6);
+    expect(groups.flatMap((s) => s.commodities).find((c) => c.ticker === 'GC=F')?.change1d).toBe(0.34);
+  });
+});

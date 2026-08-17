@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMarketData } from '../../hub/DataContext';
 import { coinRows } from '../crypto/components/CryptoLiveChips.js';
+import { priceDashboardGroups } from '../commodities/components/CommoditiesLiveChips.js';
 import MarketKpiStrip from '../../components/MarketKpiStrip';
 import MarketPanelGrid from '../../panels/MarketPanelGrid';
 import MetricValue from '../../components/MetricValue/MetricValue';
@@ -204,9 +205,9 @@ function WatchlistMarket({ onNavigate }) {
       case 'gold': {
         const spot = commData?.data?.goldFuturesCurve?.spotPrice;
         if (spot != null) return `$${Number(spot).toLocaleString()}`;
-        const sectorGold = commData?.data?.priceDashboardData
-          ?.flatMap(s => s.commodities || [])
-          ?.find(c => c.ticker === 'GC=F');
+        const sectorGold = priceDashboardGroups(commData?.data?.priceDashboardData)
+          .flatMap(s => s.commodities)
+          .find(c => c.ticker === 'GC=F');
         if (sectorGold?.price != null) return `$${Number(sectorGold.price).toLocaleString()}`;
         return null;
       }
@@ -285,7 +286,9 @@ function WatchlistMarket({ onNavigate }) {
       severity: btcChange == null ? 'muted' : Math.abs(btcChange) >= 5 ? 'medium' : 'low',
       target: METRIC_SHORTCUTS.find(m => m.id === 'btc'),
     });
-    const gold = commData?.data?.priceDashboardData?.flatMap(s => s.commodities || [])?.find(c => c.ticker === 'GC=F');
+    const gold = priceDashboardGroups(commData?.data?.priceDashboardData)
+      .flatMap(s => s.commodities)
+      .find(c => c.ticker === 'GC=F');
     push({
       signal: 'Gold',
       value: gold?.price != null ? `$${Number(gold.price).toLocaleString()}` : getLiveValue({ id: 'gold' }) ?? '—',
