@@ -247,6 +247,11 @@ export function hasForeignHoldersContent(ticData) {
   return false;
 }
 
+/** TIC per-country history the foreign-holders chart can map. Leftover isLive bag remount-crash .map. */
+export function ticHistoryCountryRows(history, country) {
+  return Array.isArray(history?.[country]) ? history[country] : [];
+}
+
 /** SOFR series the money-market tile can reverse/slice. Leftover isLive bag remount-crash spread. */
 export function sofrSeriesRows(nyfedData) {
   return Array.isArray(nyfedData?.sofr?.series) ? nyfedData.sofr.series : [];

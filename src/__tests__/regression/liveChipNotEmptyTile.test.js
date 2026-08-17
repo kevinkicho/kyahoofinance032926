@@ -126,6 +126,7 @@ import {
   auctionRows,
   sofrSeriesRows,
   rrpRows,
+  ticHistoryCountryRows,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -4953,5 +4954,45 @@ describe('realEstate leftover empty-capable tiles (metro-case-shiller remount)',
     };
     expect(metroCaseShillerRows(leftoverOnly)).toEqual([]);
     expect(() => metroCaseShillerRows(leftoverOnly).map((r) => r.yoy.toFixed(1))).not.toThrow();
+  });
+});
+
+describe('bonds leftover empty-capable tiles (foreign-holders remount)', () => {
+  it('dashboard does not map leftover isLive TIC country history bags', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/history\[c\] \|\| \[\]/);
+    expect(dash).not.toMatch(/history\[countries\[0\]\] \|\| \[\]/);
+    expect(dash).toMatch(/ticHistoryCountryRows\(history, c\)/);
+    expect(dash).toMatch(/ticHistoryCountryRows\(history, countries\[0\]\)/);
+  });
+
+  it('ticHistoryCountryRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => ticHistoryCountryRows({ isLive: true }, 'Japan')).not.toThrow();
+    expect(() => ticHistoryCountryRows({ Japan: { isLive: true } }, 'Japan')).not.toThrow();
+    expect(() => ticHistoryCountryRows({ Japan: true }, 'Japan')).not.toThrow();
+    expect(ticHistoryCountryRows({ isLive: true }, 'Japan')).toEqual([]);
+    expect(ticHistoryCountryRows({ Japan: { isLive: true } }, 'Japan')).toEqual([]);
+    expect(ticHistoryCountryRows({ Japan: true }, 'Japan')).toEqual([]);
+    expect(() => ticHistoryCountryRows({ Japan: { isLive: true } }, 'Japan').map((p) => p.period)).not.toThrow();
+    const leftoverJapanRealChina = {
+      Japan: { isLive: true },
+      'China, Mainland': [{ period: '2024-01', holdingsB: 780 }],
+    };
+    expect(() => ticHistoryCountryRows(leftoverJapanRealChina, 'Japan').map((p) => p.period)).not.toThrow();
+    expect(ticHistoryCountryRows(leftoverJapanRealChina, 'Japan')).toEqual([]);
+    expect(() => ticHistoryCountryRows(leftoverJapanRealChina, 'China, Mainland').map((p) => [p.period, p.holdingsB])).not.toThrow();
+    expect(ticHistoryCountryRows(leftoverJapanRealChina, 'China, Mainland').map((p) => p.holdingsB)).toEqual([780]);
+    const leftoverAllOtherRealJapan = {
+      Japan: [{ period: '2024-01', holdingsB: 1120 }],
+      'All Other': { isLive: true },
+    };
+    expect(() => ticHistoryCountryRows(leftoverAllOtherRealJapan, 'All Other').map((p) => p.period)).not.toThrow();
+    expect(ticHistoryCountryRows(leftoverAllOtherRealJapan, 'All Other')).toEqual([]);
+    expect(ticHistoryCountryRows(leftoverAllOtherRealJapan, 'Japan').map((p) => p.holdingsB)).toEqual([1120]);
+    const rows = ticHistoryCountryRows({
+      Japan: [{ isLive: true }, { period: '2024-01', holdingsB: 1120 }],
+    }, 'Japan');
+    expect(rows.map((p) => p.period)).toEqual([undefined, '2024-01']);
+    expect(() => rows.map((p) => p.holdingsB)).not.toThrow();
   });
 });

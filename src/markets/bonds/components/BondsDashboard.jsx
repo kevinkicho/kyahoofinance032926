@@ -15,7 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
-import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent, auctionRows, sofrSeriesRows, rrpRows } from './BondsLiveChips.js';
+import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent, auctionRows, sofrSeriesRows, rrpRows, ticHistoryCountryRows } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -142,14 +142,14 @@ function BondsDashboard({
     const latest = ticCtx?.data?.latest || [];
     if (!history || !latest.length) return null;
     const ranked = latest.filter(r => r.country !== 'All Other').slice(0, 5).map(r => r.country);
-    const countries = [...ranked];
-    if (history['All Other']) countries.push('All Other');
-    const sample = history[countries[0]] || [];
+    const countries = ranked.filter((c) => ticHistoryCountryRows(history, c).length);
+    if (ticHistoryCountryRows(history, 'All Other').length) countries.push('All Other');
+    const sample = ticHistoryCountryRows(history, countries[0]);
     const periods = sample.map(p => p.period);
     if (!periods.length) return null;
     const palette = ['#10b981', '#3b82f6', '#f59e0b', '#a78bfa', '#ec4899', '#94a3b8'];
     const seriesByCountry = countries.map((c, i) => {
-      const periodMap = Object.fromEntries((history[c] || []).map(p => [p.period, p.holdingsB]));
+      const periodMap = Object.fromEntries(ticHistoryCountryRows(history, c).map(p => [p.period, p.holdingsB]));
       const values = periods.map(p => periodMap[p] ?? null);
       const last = values[values.length - 1];
       return {
