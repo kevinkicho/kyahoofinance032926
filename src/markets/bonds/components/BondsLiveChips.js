@@ -247,12 +247,22 @@ export function hasForeignHoldersContent(ticData) {
   return false;
 }
 
+/** SOFR series the money-market tile can reverse/slice. Leftover isLive bag remount-crash spread. */
+export function sofrSeriesRows(nyfedData) {
+  return Array.isArray(nyfedData?.sofr?.series) ? nyfedData.sofr.series : [];
+}
+
+/** RRP rows the money-market tile can map. Leftover isLive bag remount-crash .map. */
+export function rrpRows(nyfedData) {
+  return Array.isArray(nyfedData?.rrp) ? nyfedData.rrp : [];
+}
+
 /** Money-market tile is empty when SOFR/RRP bags exist but no rate or volume paints. */
 export function hasMoneyMarketContent(nyfedData) {
-  const sofrSeries = nyfedData?.sofr?.series;
-  if (Array.isArray(sofrSeries) && sofrSeries.some((r) => isFiniteNumeric(r?.rate))) return true;
-  const rrp = nyfedData?.rrp;
-  if (Array.isArray(rrp) && rrp.some((r) => isFiniteNumeric(r?.acceptedB))) return true;
+  const sofrSeries = sofrSeriesRows(nyfedData);
+  if (sofrSeries.some((r) => isFiniteNumeric(r?.rate))) return true;
+  const rrp = rrpRows(nyfedData);
+  if (rrp.some((r) => isFiniteNumeric(r?.acceptedB))) return true;
   const latest = nyfedData?.sofr?.latest;
   if (isFiniteNumeric(latest?.rate) || isFiniteNumeric(latest)) return true;
   const effr = nyfedData?.effr;

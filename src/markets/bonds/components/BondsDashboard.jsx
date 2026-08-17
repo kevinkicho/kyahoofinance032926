@@ -15,7 +15,7 @@ import {
   buildDebtToGdpOption,
   seriesLevelMeta,
 } from './bondsChartOptions';
-import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent, auctionRows } from './BondsLiveChips.js';
+import { hasBondsKpiMetrics, hasBondsMetricsContent, hasCreditRatingsRows, hasTreasuryCostRates, hasCurveSpreadSeries, hasFedBalanceSeries, hasM2Series, hasDebtGdpSeries, hasForeignHoldersContent, hasMoneyMarketContent, hasAuctionContent, auctionRows, sofrSeriesRows, rrpRows } from './BondsLiveChips.js';
 import './BondsDashboard.css';
 
 // KPI panel is a real bento child at row 0 (h:2 = 240px). All other
@@ -176,8 +176,8 @@ function BondsDashboard({
   }, [ticCtx, colors]);
 
   const moneyMarketOption = useMemo(() => {
-    const sofrSeries = nyfedCtx?.data?.sofr?.series || [];
-    const rrpSeries = nyfedCtx?.data?.rrp || [];
+    const sofrSeries = sofrSeriesRows(nyfedCtx?.data);
+    const rrpSeries = rrpRows(nyfedCtx?.data);
     if (!sofrSeries.length && !rrpSeries.length) return null;
     const sofrAsc = [...sofrSeries].reverse();
     const last30  = sofrAsc.slice(-30);

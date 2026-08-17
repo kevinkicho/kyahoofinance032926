@@ -124,6 +124,8 @@ import {
   hasMoneyMarketContent,
   hasAuctionContent,
   auctionRows,
+  sofrSeriesRows,
+  rrpRows,
 } from '../../markets/bonds/components/BondsLiveChips.js';
 import {
   hasMacroKpiMetrics,
@@ -4635,5 +4637,51 @@ describe('credit leftover empty-capable tiles (bank-sector remount)', () => {
     });
     expect(agg.map((y) => y.year)).toEqual([undefined, 2024]);
     expect(() => agg.slice(0, 4).map((y) => y.depositsB)).not.toThrow();
+  });
+});
+
+describe('bonds leftover empty-capable tiles (money-market remount)', () => {
+  it('dashboard does not spread leftover isLive NY Fed bags', () => {
+    const dash = src('markets/bonds/components/BondsDashboard.jsx');
+    expect(dash).not.toMatch(/nyfedCtx\?\.data\?\.sofr\?\.series \|\| \[\]/);
+    expect(dash).not.toMatch(/nyfedCtx\?\.data\?\.rrp \|\| \[\]/);
+    expect(dash).toMatch(/sofrSeriesRows\(nyfedCtx\?\.data\)/);
+    expect(dash).toMatch(/rrpRows\(nyfedCtx\?\.data\)/);
+  });
+
+  it('sofrSeriesRows / rrpRows skip leftover isLive bags so remount does not crash', () => {
+    expect(() => sofrSeriesRows({ isLive: true })).not.toThrow();
+    expect(() => sofrSeriesRows({ sofr: { isLive: true } })).not.toThrow();
+    expect(() => sofrSeriesRows({ sofr: { series: { isLive: true } } })).not.toThrow();
+    expect(() => sofrSeriesRows({ sofr: { series: true } })).not.toThrow();
+    expect(sofrSeriesRows({ isLive: true })).toEqual([]);
+    expect(sofrSeriesRows({ sofr: { series: { isLive: true } } })).toEqual([]);
+    expect(sofrSeriesRows({ sofr: { series: true } })).toEqual([]);
+    expect(() => [...sofrSeriesRows({ sofr: { series: { isLive: true } } })].reverse()).not.toThrow();
+    expect(() => rrpRows({ isLive: true })).not.toThrow();
+    expect(() => rrpRows({ rrp: { isLive: true } })).not.toThrow();
+    expect(() => rrpRows({ rrp: true })).not.toThrow();
+    expect(rrpRows({ rrp: { isLive: true } })).toEqual([]);
+    expect(() => rrpRows({ rrp: { isLive: true } }).map((r) => r.acceptedB)).not.toThrow();
+    const leftoverSofrRealRrp = {
+      isLive: true,
+      sofr: { series: { isLive: true } },
+      rrp: [{ date: '2024-01-02', acceptedB: 2100 }],
+    };
+    expect(() => [...sofrSeriesRows(leftoverSofrRealRrp)].reverse()).not.toThrow();
+    expect(() => rrpRows(leftoverSofrRealRrp).map((r) => [r.date, r.acceptedB])).not.toThrow();
+    const leftoverRrpRealSofr = {
+      isLive: true,
+      sofr: { series: [{ date: '2024-01-02', rate: 5.32 }] },
+      rrp: { isLive: true },
+    };
+    expect(() => [...sofrSeriesRows(leftoverRrpRealSofr)].reverse().slice(-30)).not.toThrow();
+    expect(() => rrpRows(leftoverRrpRealSofr).map((r) => r.acceptedB)).not.toThrow();
+    const rows = sofrSeriesRows({
+      isLive: true,
+      sofr: { series: [{ isLive: true }, { date: '2024-01-02', rate: 5.32 }] },
+    });
+    expect(rows.map((r) => r.date)).toEqual([undefined, '2024-01-02']);
+    expect(() => [...rows].reverse().slice(-30).map((r) => r.rate)).not.toThrow();
   });
 });
