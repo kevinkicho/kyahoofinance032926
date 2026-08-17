@@ -152,11 +152,19 @@ export function hasFomcSepProjections(sepData) {
   return Array.isArray(sepData?.projections) && sepData.projections.length > 0;
 }
 
-/** Cleveland nowcast is empty unless tables or a YoY/latest headline exist. */
+const CLEVE_HEADLINE_KEYS = ['cpi', 'coreCpi', 'pce', 'corePce'];
+
+/** Cleveland headline the nowcast tile can paint. Leftover isLive latest bag stays empty. */
+export function clevelandHeadline(row) {
+  if (!row || typeof row !== 'object' || Array.isArray(row)) return null;
+  return CLEVE_HEADLINE_KEYS.some((k) => isPaintedNumber(row[k])) ? row : null;
+}
+
+/** Cleveland nowcast paints tables or a YoY/latest headline number. Leftover isLive latest bag stays empty. */
 export function hasClevelandNowcast(cleveData) {
   const tables = Array.isArray(cleveData?.tables) ? cleveData.tables : [];
   if (tables.length > 0) return true;
-  return !!(cleveData?.byKind?.yoy || cleveData?.latest);
+  return !!(clevelandHeadline(cleveData?.byKind?.yoy) || clevelandHeadline(cleveData?.latest));
 }
 
 /** BEA accounts cards gate on gdpComponents / savingRate; corporateProfits is a sibling. */

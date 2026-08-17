@@ -144,6 +144,7 @@ import {
   hasGdpNowEvolution,
   hasFomcSepProjections,
   hasClevelandNowcast,
+  clevelandHeadline,
   hasBeaAccountsRows,
   hasEurostatRows,
   hasOecdDirectRows,
@@ -2728,6 +2729,8 @@ describe('macro leftover empty-capable tiles (ecb / tga / gdpnow / sep / clevela
     expect(hasClevelandNowcast({})).toBe(false);
     expect(hasClevelandNowcast({ isLive: true })).toBe(false);
     expect(hasClevelandNowcast({ tables: [], byKind: { mom: { cpi: 0.2 } } })).toBe(false);
+    expect(hasClevelandNowcast({ latest: { isLive: true } })).toBe(false);
+    expect(hasClevelandNowcast({ byKind: { yoy: { isLive: true } } })).toBe(false);
   });
 
   it('hasClevelandNowcast is true when tables or a YoY/latest headline exist', () => {
@@ -4994,5 +4997,44 @@ describe('bonds leftover empty-capable tiles (foreign-holders remount)', () => {
     }, 'Japan');
     expect(rows.map((p) => p.period)).toEqual([undefined, '2024-01']);
     expect(() => rows.map((p) => p.holdingsB)).not.toThrow();
+  });
+});
+
+describe('macro leftover empty-capable tiles (cleveland leftover latest remount)', () => {
+  it('panel does not treat leftover isLive latest as a headline', () => {
+    const panel = src('markets/globalMacro/components/ClevelandNowcastPanel.jsx');
+    expect(panel).not.toMatch(/data\?\.latest \|\| null/);
+    expect(panel).toMatch(/clevelandHeadline\(data\?\.latest\)/);
+  });
+
+  it('clevelandHeadline skips leftover isLive bags so remount does not crash', () => {
+    expect(() => clevelandHeadline({ isLive: true })).not.toThrow();
+    expect(() => clevelandHeadline(true)).not.toThrow();
+    expect(clevelandHeadline({ isLive: true })).toBe(null);
+    expect(clevelandHeadline(true)).toBe(null);
+    expect(clevelandHeadline({ cpi: { isLive: true } })).toBe(null);
+    expect(clevelandHeadline({ cpi: 2.4 })).toEqual({ cpi: 2.4 });
+    expect(() => {
+      const yoy = clevelandHeadline({ isLive: true });
+      return yoy && yoy.cpi != null ? Number(yoy.cpi).toFixed(2) : '\u2014';
+    }).not.toThrow();
+    const leftoverLatestRealTables = {
+      isLive: true,
+      latest: { isLive: true },
+      tables: [{ kind: 'yoy', rows: [{ cpi: 2.4 }] }],
+    };
+    expect(hasClevelandNowcast(leftoverLatestRealTables)).toBe(true);
+    expect(clevelandHeadline(leftoverLatestRealTables.latest)).toBe(null);
+    const leftoverLatestRealYoy = {
+      isLive: true,
+      latest: { isLive: true },
+      byKind: { yoy: { cpi: 2.4 } },
+    };
+    expect(hasClevelandNowcast(leftoverLatestRealYoy)).toBe(true);
+    expect(clevelandHeadline(leftoverLatestRealYoy.latest)).toBe(null);
+    expect(clevelandHeadline(leftoverLatestRealYoy.byKind.yoy)).toEqual({ cpi: 2.4 });
+    const leftoverOnly = { latest: { isLive: true } };
+    expect(hasClevelandNowcast(leftoverOnly)).toBe(false);
+    expect(clevelandHeadline(leftoverOnly.latest)).toBe(null);
   });
 });

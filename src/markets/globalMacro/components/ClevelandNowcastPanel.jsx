@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '../../../hub/ThemeContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
+import { clevelandHeadline } from './MacroLiveChips';
 
 const KIND_META = {
   mom: { title: 'Month-over-Month', short: 'MoM', periodLabel: 'Month', unit: 'm/m %' },
@@ -76,8 +77,8 @@ export default function ClevelandNowcastPanel({ data, lastUpdated }) {
   // Prefer true MoM; if only YoY-scale values landed in latest, still surface them.
   const momLatest = latestRow(mom) || data?.byKind?.mom || null;
   const qtrLatest = latestRow(qtr) || data?.byKind?.quarterly || null;
-  // Headline KPIs: YoY first, then byKind/latest from API
-  const headline = yoyLatest || data?.byKind?.yoy || data?.latest || null;
+  // Headline KPIs: YoY first, then byKind/latest from API. Leftover isLive latest bag stays empty.
+  const headline = clevelandHeadline(yoyLatest) || clevelandHeadline(data?.byKind?.yoy) || clevelandHeadline(data?.latest);
   const updated = headline?.updated || momLatest?.updated || qtrLatest?.updated || null;
   const period = headline?.period || momLatest?.period || qtrLatest?.period || null;
 
