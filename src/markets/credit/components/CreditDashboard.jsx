@@ -25,6 +25,8 @@ import {
   muniPrimaryRows,
   hasBankStressContent,
   hasCreditQualitySeries,
+  fdicAggregateRows,
+  fdicFailureRows,
 } from './CreditLiveChips.js';
 import './CreditDashboard.css';
 
@@ -145,13 +147,13 @@ function CreditDashboard({
   }, [spreadData]);
 
   const bankStress = useMemo(() => {
-    const aggregate = fdicCtx?.data?.aggregate || [];
+    const aggregate = fdicAggregateRows(fdicCtx?.data);
     const latest = aggregate[0] || null;
     const prior = aggregate[1] || null;
     const depositChange = latest?.depositsB != null && prior?.depositsB
       ? ((latest.depositsB - prior.depositsB) / Math.abs(prior.depositsB)) * 100
       : null;
-    const failures = fdicCtx?.data?.failures || [];
+    const failures = fdicFailureRows(fdicCtx?.data);
     const currentYear = new Date().getFullYear();
     const failuresYtd = failures.filter(f => String(f.date || '').includes(String(currentYear))).length;
     const hy = Number(hySpread);
@@ -568,12 +570,14 @@ function CreditDashboard({
             ))
           : <EmptyPanelBody message="No delinquency data" />;
 
-      case 'bank-sector':
+      case 'bank-sector': {
+        const aggregate = fdicAggregateRows(fdicCtx?.data);
+        const failures = fdicFailureRows(fdicCtx?.data);
         return (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
               <div className="credit-sidebar-title">Aggregate ($B, thousands of banks)</div>
-              {(fdicCtx?.data?.aggregate || []).slice(0, 4).map(y => (
+              {aggregate.slice(0, 4).map(y => (
                 <div key={y.year} className="credit-mini-row" style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', gap: 6 }}>
                   <span className="credit-mini-name" style={{ color: colors.textSecondary, fontWeight: 600 }}>{y.year}</span>
                   <span className="credit-mini-value" title="Total assets" style={{ color: '#22d3ee' }}>
@@ -591,7 +595,7 @@ function CreditDashboard({
             </div>
             <div>
               <div className="credit-sidebar-title">Recent Failures</div>
-              {(fdicCtx?.data?.failures || []).slice(0, 6).map((f, i) => (
+              {failures.slice(0, 6).map((f, i) => (
                 <div key={`${f.name}-${i}`} className="credit-mini-row" style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px', gap: 6 }}>
                   <span className="credit-mini-name" title={f.city} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
                   <span className="credit-mini-value" style={{ color: colors.textMuted, fontSize: 10 }}>{f.date}</span>
@@ -600,10 +604,11 @@ function CreditDashboard({
                   </span>
                 </div>
               ))}
-              {(!fdicCtx?.data?.failures?.length) && <div style={{ color: colors.textMuted, fontSize: 11 }}>No recent failures</div>}
+              {(!failures.length) && <div style={{ color: colors.textMuted, fontSize: 11 }}>No recent failures</div>}
             </div>
           </div>
         );
+      }
 
       case 'credit-quality':
         return creditQualityOption
@@ -727,7 +732,7 @@ function CreditDashboard({
       'clo-tranches': hasCloTranches(loanData),
       'default-rates': hasDefaultRateRows(defaultData),
       delinquency: hasDelinquencyRows(delinquencyRates),
-      'bank-sector': !!(fdicCtx?.data?.aggregate?.length || fdicCtx?.data?.failures?.length),
+      'bank-sector': !!(fdicAggregateRows(fdicCtx?.data).length || fdicFailureRows(fdicCtx?.data).length),
       'credit-quality': hasCreditQualitySeries(creditQuality),
       'muni-market': hasMuniMarketSummary(msrbCtx?.data),
       'bank-stress': hasBankStressContent({ spreadData, defaultData, commercialPaper, fdicData: fdicCtx?.data }),

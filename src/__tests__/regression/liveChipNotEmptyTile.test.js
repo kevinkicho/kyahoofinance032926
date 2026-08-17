@@ -69,6 +69,8 @@ import {
   muniPrimaryRows,
   hasBankStressContent,
   hasCreditQualitySeries,
+  fdicAggregateRows,
+  fdicFailureRows,
 } from '../../markets/credit/components/CreditLiveChips.js';
 import {
   hasElectricityPrices,
@@ -4590,5 +4592,48 @@ describe('crypto leftover empty-capable tiles (exchanges remount)', () => {
     expect(exchangeRows({ isLive: true }).some((e) => Number(e.volume24h) > 0)).toBe(false);
     expect(exchangeRows([{ name: 'Binance', volume24h: null }]).some((e) => Number(e.volume24h) > 0)).toBe(false);
     expect(exchangeRows([{ name: 'Binance', volume24h: 1234 }]).some((e) => Number(e.volume24h) > 0)).toBe(true);
+  });
+});
+
+describe('credit leftover empty-capable tiles (bank-sector remount)', () => {
+  it('dashboard does not slice leftover isLive FDIC bags', () => {
+    const dash = src('markets/credit/components/CreditDashboard.jsx');
+    expect(dash).not.toMatch(/fdicCtx\?\.data\?\.failures \|\| \[\]/);
+    expect(dash).not.toMatch(/fdicCtx\?\.data\?\.aggregate \|\| \[\]/);
+    expect(dash).toMatch(/fdicFailureRows\(fdicCtx\?\.data\)/);
+    expect(dash).toMatch(/fdicAggregateRows\(fdicCtx\?\.data\)/);
+  });
+
+  it('fdicFailureRows / fdicAggregateRows skip leftover isLive bags so remount does not crash', () => {
+    expect(() => fdicFailureRows({ isLive: true })).not.toThrow();
+    expect(() => fdicFailureRows({ failures: { isLive: true } })).not.toThrow();
+    expect(() => fdicFailureRows({ failures: true })).not.toThrow();
+    expect(fdicFailureRows({ isLive: true })).toEqual([]);
+    expect(fdicFailureRows({ failures: { isLive: true } })).toEqual([]);
+    expect(fdicFailureRows({ failures: true })).toEqual([]);
+    expect(() => fdicFailureRows({ failures: { isLive: true } }).slice(0, 6)).not.toThrow();
+    expect(() => fdicFailureRows({ failures: { isLive: true } }).filter((f) => String(f.date || '').includes('2026'))).not.toThrow();
+    expect(() => fdicAggregateRows({ isLive: true })).not.toThrow();
+    expect(() => fdicAggregateRows({ aggregate: { isLive: true } })).not.toThrow();
+    expect(fdicAggregateRows({ aggregate: { isLive: true } })).toEqual([]);
+    expect(() => fdicAggregateRows({ aggregate: { isLive: true } }).slice(0, 4)).not.toThrow();
+    const rows = fdicFailureRows({
+      isLive: true,
+      failures: [
+        { isLive: true },
+        { name: 'Example Bank', date: '2024-03-01', assets: 2000 },
+      ],
+    });
+    expect(rows.map((f) => f.name)).toEqual([undefined, 'Example Bank']);
+    expect(() => rows.slice(0, 6).map((f) => f.assets)).not.toThrow();
+    const agg = fdicAggregateRows({
+      isLive: true,
+      aggregate: [
+        { isLive: true },
+        { year: 2024, depositsB: 19000 },
+      ],
+    });
+    expect(agg.map((y) => y.year)).toEqual([undefined, 2024]);
+    expect(() => agg.slice(0, 4).map((y) => y.depositsB)).not.toThrow();
   });
 });

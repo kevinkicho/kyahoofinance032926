@@ -106,6 +106,16 @@ export function hasMuniMarketSummary(msrbData) {
   return muniTradeRows(msrbData).length > 0 || muniPrimaryRows(msrbData).length > 0;
 }
 
+/** FDIC aggregate rows the bank-sector tile can slice. Leftover isLive bag remount-crash .slice. */
+export function fdicAggregateRows(fdicData) {
+  return Array.isArray(fdicData?.aggregate) ? fdicData.aggregate : [];
+}
+
+/** FDIC failure rows the bank-sector tile can slice. Leftover isLive bag remount-crash .slice/.filter. */
+export function fdicFailureRows(fdicData) {
+  return Array.isArray(fdicData?.failures) ? fdicData.failures : [];
+}
+
 /** Bank-stress paints 6 cards; leftover spread / FDIC bags still dash out. */
 export function hasBankStressContent({
   spreadData,
@@ -122,7 +132,7 @@ export function hasBankStressContent({
 
   if (typeof commercialPaper?.rate === 'number' && Number.isFinite(commercialPaper.rate)) return true;
 
-  const aggregate = Array.isArray(fdicData?.aggregate) ? fdicData.aggregate : [];
+  const aggregate = fdicAggregateRows(fdicData);
   const latest = aggregate[0];
   const prior = aggregate[1];
   if (
@@ -134,7 +144,7 @@ export function hasBankStressContent({
     return true;
   }
 
-  return Array.isArray(fdicData?.failures) && fdicData.failures.length > 0;
+  return fdicFailureRows(fdicData).length > 0;
 }
 
 /** Credit-quality chart is empty when dates exist but no Aaa/Baa/spread series paint. */
