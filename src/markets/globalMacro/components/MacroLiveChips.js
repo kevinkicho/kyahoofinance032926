@@ -93,9 +93,19 @@ export function hasEcbEurContent(ecbData) {
   return !!(mm && (mm.estr || mm.euribor1m || mm.euribor3m || mm.euribor6m || mm.euribor1y));
 }
 
+/** DTS series the tga-balance / global-liquidity charts can slice. Leftover isLive / series bag remount-crash .slice. */
+export function dtsSeriesRows(dtsData) {
+  return Array.isArray(dtsData?.series) ? dtsData.series : [];
+}
+
+/** ECB M3 rows the ecb-eur / global-liquidity charts can slice. Leftover isLive / m3Growth bag remount-crash .slice. */
+export function ecbM3GrowthRows(ecbData) {
+  return Array.isArray(ecbData?.m3Growth) ? ecbData.m3Growth : [];
+}
+
 /** TGA chart paints dts.series; isLive can be true with an empty series. */
 export function hasTgaSeries(dtsData) {
-  return Array.isArray(dtsData?.series) && dtsData.series.length > 0;
+  return dtsSeriesRows(dtsData).length > 0;
 }
 
 /** GDPNow chart paints evolution[]; currentQuarter-only is the sibling field-map leftover. */
@@ -166,11 +176,11 @@ export function hasImfCoferShares(cofer) {
 
 /** Liquidity cards/charts paint TGA close, M3, saving rate, or GDPNow; leftover series length is empty. */
 export function hasGlobalLiquidityContent({ dtsData, ecbData, beaData, gdpNowData } = {}) {
-  const tgaLatest = dtsData?.latest || (Array.isArray(dtsData?.series) ? dtsData.series[dtsData.series.length - 1] : null);
+  const tgaSeries = dtsSeriesRows(dtsData);
+  const tgaLatest = dtsData?.latest || tgaSeries[tgaSeries.length - 1];
   if (isPaintedNumber(tgaLatest?.closeB)) return true;
-  const tgaSeries = Array.isArray(dtsData?.series) ? dtsData.series : [];
   if (tgaSeries.some((p) => isPaintedNumber(p?.closeB))) return true;
-  const m3 = Array.isArray(ecbData?.m3Growth) ? ecbData.m3Growth : [];
+  const m3 = ecbM3GrowthRows(ecbData);
   if (m3.some((p) => isPaintedNumber(p?.value))) return true;
   const saving = Array.isArray(beaData?.savingRate) ? beaData.savingRate : [];
   if (saving.some((r) => String(r?.desc || '').toLowerCase().includes('personal saving as a percentage') && isPaintedNumber(r?.value))) return true;

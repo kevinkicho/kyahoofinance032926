@@ -34,6 +34,8 @@ import {
   hasBeaIncomeContent,
   hasImfCoferShares,
   hasGlobalLiquidityContent,
+  ecbM3GrowthRows,
+  dtsSeriesRows,
 } from './MacroLiveChips.js';
 import './GlobalMacroDashboard.css';
 
@@ -141,7 +143,7 @@ function GlobalMacroDashboard({
 
   // ECB M3 — last 12 monthly observations as bars (annual rate of change).
   const m3Option = useMemo(() => {
-    const series = (ecbData?.m3Growth || []).slice(-12);
+    const series = ecbM3GrowthRows(ecbData).slice(-12);
     if (!series.length) return null;
     return {
       animation: false,
@@ -163,7 +165,7 @@ function GlobalMacroDashboard({
   // (right axis). When TGA rises faster than the Treasury issues, it
   // drains private-sector liquidity; falling TGA does the opposite.
   const tgaOption = useMemo(() => {
-    const series = (dtsData?.series || []).slice(-90); // ~4 trading months
+    const series = dtsSeriesRows(dtsData).slice(-90); // ~4 trading months
     if (!series.length) return null;
     const dates = series.map(p => p.date);
     const closeVals = series.map(p => p.closeB);
@@ -351,7 +353,7 @@ function GlobalMacroDashboard({
 
   // Compact chart options for Global Liquidity (reuse series, denser grids).
   const liqTgaOption = useMemo(() => {
-    const series = (dtsData?.series || []).slice(-60);
+    const series = dtsSeriesRows(dtsData).slice(-60);
     if (!series.length) return null;
     const dates = series.map(p => p.date);
     return {
@@ -392,7 +394,7 @@ function GlobalMacroDashboard({
   }, [dtsData, colors]);
 
   const liqM3Option = useMemo(() => {
-    const series = (ecbData?.m3Growth || []).slice(-24);
+    const series = ecbM3GrowthRows(ecbData).slice(-24);
     if (!series.length) return null;
     return {
       animation: false,

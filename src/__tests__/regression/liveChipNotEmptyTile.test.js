@@ -143,6 +143,8 @@ import {
   hasBeaIncomeContent,
   hasImfCoferShares,
   hasGlobalLiquidityContent,
+  ecbM3GrowthRows,
+  dtsSeriesRows,
 } from '../../markets/globalMacro/components/MacroLiveChips.js';
 import {
   hasEqdKpiMetrics,
@@ -3054,6 +3056,50 @@ describe('macro leftover empty-capable tiles (imf-cofer / global-liquidity)', ()
     })).toBe(true);
     expect(hasGlobalLiquidityContent({ gdpNowData: { latest: { gdp: 2.4 } } })).toBe(true);
     expect(hasGlobalLiquidityContent({ gdpNowData: { evolution: [{ gdp: 1.8 }] } })).toBe(true);
+  });
+});
+
+describe('macro leftover empty-capable tiles (m3Growth remount)', () => {
+  it('dashboard does not slice leftover isLive m3Growth or DTS series bags', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/ecbData\?\.m3Growth \|\| \[\]/);
+    expect(dash).not.toMatch(/dtsData\?\.series \|\| \[\]/);
+    expect(dash).toMatch(/ecbM3GrowthRows\(ecbData\)/);
+    expect(dash).toMatch(/dtsSeriesRows\(dtsData\)/);
+  });
+
+  it('ecbM3GrowthRows / dtsSeriesRows skip leftover isLive bags so remount does not crash', () => {
+    expect(() => ecbM3GrowthRows({ isLive: true })).not.toThrow();
+    expect(() => ecbM3GrowthRows({ m3Growth: { isLive: true } })).not.toThrow();
+    expect(() => ecbM3GrowthRows({ m3Growth: true })).not.toThrow();
+    expect(ecbM3GrowthRows({ isLive: true })).toEqual([]);
+    expect(ecbM3GrowthRows({ m3Growth: { isLive: true } })).toEqual([]);
+    expect(ecbM3GrowthRows({ m3Growth: true })).toEqual([]);
+    expect(() => ecbM3GrowthRows({ m3Growth: { isLive: true } }).slice(-12)).not.toThrow();
+    expect(() => ecbM3GrowthRows({ m3Growth: { isLive: true } }).slice(-24)).not.toThrow();
+    const m3 = ecbM3GrowthRows({
+      isLive: true,
+      m3Growth: [
+        { isLive: true },
+        { period: '2024-01', value: 3.1 },
+      ],
+    });
+    expect(m3.map((p) => p.period)).toEqual([undefined, '2024-01']);
+    expect(() => m3.slice(-12).map((p) => p.period)).not.toThrow();
+
+    expect(() => dtsSeriesRows({ isLive: true })).not.toThrow();
+    expect(() => dtsSeriesRows({ series: { isLive: true } })).not.toThrow();
+    expect(dtsSeriesRows({ series: { isLive: true } })).toEqual([]);
+    expect(() => dtsSeriesRows({ series: { isLive: true } }).slice(-90)).not.toThrow();
+    const series = dtsSeriesRows({
+      isLive: true,
+      series: [
+        { isLive: true },
+        { date: '2024-01-02', closeB: 712 },
+      ],
+    });
+    expect(series.map((p) => p.date)).toEqual([undefined, '2024-01-02']);
+    expect(() => series.slice(-60).map((p) => p.closeB)).not.toThrow();
   });
 });
 
