@@ -90,3 +90,8 @@ export function hasStablecoinComposition(stablecoinMcap, composition) {
   if (!Array.isArray(composition) || !composition.length) return false;
   return composition.some((c) => c && (isFiniteNumber(c.pct) || isFiniteNumber(c.mcapB)));
 }
+
+/** Exchange rows the tile can slice. Leftover isLive bag remount-crash .some/.reduce/.slice. */
+export function exchangeRows(topExchanges) {
+  return Array.isArray(topExchanges) ? topExchanges : [];
+}

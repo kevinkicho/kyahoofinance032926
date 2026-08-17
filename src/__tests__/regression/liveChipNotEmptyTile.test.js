@@ -181,6 +181,7 @@ import {
   coinRows,
   hasStablecoinComposition,
   stablecoinMcapValue,
+  exchangeRows,
 } from '../../markets/crypto/components/CryptoLiveChips.js';
 import {
   hasFaoPriceSeries,
@@ -4556,5 +4557,38 @@ describe('crypto leftover empty-capable tiles (stablecoin-composition)', () => {
     const v = stablecoinMcapValue(leftover);
     expect(() => (v != null ? (v / 1e9).toFixed(1) : '—')).not.toThrow();
     expect(v != null ? `$${(v / 1e9).toFixed(1)}B` : '—').toBe('—');
+  });
+});
+
+describe('crypto leftover empty-capable tiles (exchanges remount)', () => {
+  it('dashboard does not some leftover isLive exchange bags', () => {
+    const dash = src('markets/crypto/components/CryptoDashboard.jsx');
+    expect(dash).not.toMatch(/\(topExchanges \|\| \[\]\)\.some/);
+    expect(dash).not.toMatch(/\(topExchanges \|\| \[\]\)\.reduce/);
+    expect(dash).not.toMatch(/\(topExchanges \|\| \[\]\)\.length/);
+    expect(dash).toMatch(/exchangeRows\(topExchanges\)/);
+    const market = src('markets/crypto/CryptoMarket.jsx');
+    expect(market).not.toMatch(/d\.topExchanges \|\| \[\]/);
+    expect(market).toMatch(/exchangeRows\(d\.topExchanges\)/);
+  });
+
+  it('exchangeRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => exchangeRows({ isLive: true })).not.toThrow();
+    expect(() => exchangeRows(true)).not.toThrow();
+    expect(exchangeRows({ isLive: true })).toEqual([]);
+    expect(exchangeRows(true)).toEqual([]);
+    expect(exchangeRows(null)).toEqual([]);
+    expect(() => exchangeRows({ isLive: true }).some((e) => Number(e.volume24h) > 0)).not.toThrow();
+    expect(() => exchangeRows({ isLive: true }).reduce((s, e) => s + (Number(e.volume24h) || 0), 0)).not.toThrow();
+    expect(() => exchangeRows({ isLive: true }).slice(0, 10)).not.toThrow();
+    const rows = exchangeRows([
+      { isLive: true },
+      { name: 'Binance', volume24h: 1234 },
+    ]);
+    expect(rows.map((e) => e.name)).toEqual([undefined, 'Binance']);
+    expect(() => rows.slice(0, 10).map((e) => e.volume24h)).not.toThrow();
+    expect(exchangeRows({ isLive: true }).some((e) => Number(e.volume24h) > 0)).toBe(false);
+    expect(exchangeRows([{ name: 'Binance', volume24h: null }]).some((e) => Number(e.volume24h) > 0)).toBe(false);
+    expect(exchangeRows([{ name: 'Binance', volume24h: 1234 }]).some((e) => Number(e.volume24h) > 0)).toBe(true);
   });
 });

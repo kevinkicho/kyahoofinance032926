@@ -3,6 +3,7 @@ import MarketSkeleton from '../../hub/MarketSkeleton';
 import CryptoDashboard from './components/CryptoDashboard';
 import CryptoSidebar from './components/CryptoSidebar';
 import { useCurrency } from '../../hub/CurrencyContext';
+import { exchangeRows } from './components/CryptoLiveChips.js';
 import './CryptoMarket.css';
 
 function getCryptoProps(centralData) {
@@ -15,7 +16,7 @@ function getCryptoProps(centralData) {
     onChainData: d.onChainData,
     stablecoinMcap: d.stablecoinMcap,
     btcDominance: d.btcDominance,
-    topExchanges: d.topExchanges || [],
+    topExchanges: exchangeRows(d.topExchanges),
     ethGas: d.ethGas,
     isLive: centralData.isLive,
     lastUpdated: centralData.lastUpdated,

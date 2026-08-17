@@ -16,6 +16,7 @@ import {
   hashrateHistoryPoints,
   coinRows,
   hasStablecoinComposition,
+  exchangeRows,
 } from './CryptoLiveChips.js';
 
 // Crypto sidebar is now a regular bento panel (`sidebar`).
@@ -59,7 +60,8 @@ function CryptoDashboard({
 }) {
   const { colors } = useTheme();
 
-  const hasRealExchVolume = (topExchanges || []).some((e) => Number(e.volume24h) > 0);
+  const exchanges = exchangeRows(topExchanges);
+  const hasRealExchVolume = exchanges.some((e) => Number(e.volume24h) > 0);
 
   const fundingRates = useMemo(() => {
     if (Array.isArray(fundingData)) return fundingData;
@@ -345,14 +347,14 @@ function CryptoDashboard({
         );
 
       case 'exchanges': {
-        const totalVol = (topExchanges || []).reduce((s, e) => s + (Number(e.volume24h) || 0), 0);
-        return topExchanges?.length > 0 && hasRealExchVolume ? (
+        const totalVol = exchanges.reduce((s, e) => s + (Number(e.volume24h) || 0), 0);
+        return exchanges.length > 0 && hasRealExchVolume ? (
           <div className="crypto-mini-table">
             <div className="crypto-mini-row" style={{ fontSize: 9, opacity: 0.65 }}>
               <span className="crypto-mini-name">Exchange</span>
               <span className="crypto-mini-value">BTC vol 24h · share</span>
             </div>
-            {topExchanges.slice(0, 10).map((e) => {
+            {exchanges.slice(0, 10).map((e) => {
               const vol = Number(e.volume24h);
               const share = totalVol > 0 && Number.isFinite(vol) ? (vol / totalVol) * 100 : null;
               return (
@@ -447,7 +449,7 @@ function CryptoDashboard({
   }, [
     coinMarketData, fearGreedData, stablecoinMcap, btcDominance, ethGas,
     isLive, lastUpdated, fetchLog, error, fetchedOn, isCurrent, coins,
-    fgiValue, fgiLabel, fgiOption, fundingRates, defiChains, topExchanges,
+    fgiValue, fgiLabel, fgiOption, fundingRates, defiChains, exchanges,
     onChainData, onchainChartOption,
   ]);
 
@@ -479,7 +481,7 @@ function CryptoDashboard({
       'defi-tvl': defiChains.length === 0,
       onchain: !onChainData,
       'onchain-chart': !onchainChartOption,
-      exchanges: (topExchanges || []).length === 0 || !hasRealExchVolume,
+      exchanges: exchanges.length === 0 || !hasRealExchVolume,
     },
     __noFooter: {
       sidebar: true,
