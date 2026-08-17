@@ -2,14 +2,18 @@ import React, { useMemo } from 'react';
 import { useMarketData } from '../../../hub/DataContext';
 import MetricValue from '../../../components/MetricValue/MetricValue';
 
+/** TIC latest rows the treasury-credit-holdings tile can slice. Leftover isLive / latest bag remount-crash .slice. */
+export function ticLatestRows(ticData) {
+  return Array.isArray(ticData?.latest) ? ticData.latest : [];
+}
+
 export function hasTreasuryCreditHoldings(latest) {
   return Array.isArray(latest) && latest.length > 0;
 }
 
 export default function TreasuryCreditHoldingsPanel() {
   const ticCtx = useMarketData('treasuryTIC');
-  const data = ticCtx?.data || {};
-  const latest = data.latest || [];
+  const latest = ticLatestRows(ticCtx?.data);
 
   const topHolders = useMemo(() => {
     return latest.slice(0, 10);

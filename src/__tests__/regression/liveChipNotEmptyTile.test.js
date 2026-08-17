@@ -7,11 +7,11 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { hasWbDebtRows } from '../../markets/credit/components/WorldBankDebtPanel.jsx';
-import { hasTreasuryCreditHoldings } from '../../markets/credit/components/TreasuryCreditHoldingsPanel.jsx';
+import { hasTreasuryCreditHoldings, ticLatestRows as creditTicLatestRows } from '../../markets/credit/components/TreasuryCreditHoldingsPanel.jsx';
 import { hasBisPropertyRows } from '../../markets/realEstate/components/BisPropertyPricePanel.jsx';
 import { hasMetroCaseShillerRows } from '../../markets/realEstate/components/MetroCaseShillerPanel.jsx';
 import { hasHudAffordabilityRows } from '../../markets/realEstate/components/HudAffordabilityPanel.jsx';
-import { hasTreasuryTicRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
+import { hasTreasuryTicRows, ticLatestRows as fxTicLatestRows } from '../../markets/fx/components/TreasuryTicPanel.jsx';
 import { hasBeaCorporateProfitsRows } from '../../markets/equities/components/BeaCorporateProfitsPanel.jsx';
 import { hasWbMarketCapRows } from '../../markets/equities/components/WorldBankMarketCapPanel.jsx';
 import { hasSecFundamentalsRows, hasSecFilingActivity, universeUpdateRows, hasUniverseUpdates } from '../../markets/equities/components/EquitiesLiveChips.js';
@@ -4357,5 +4357,60 @@ describe('commodities leftover empty-capable tiles (sidebar)', () => {
     expect(rows[0].netPct.toFixed(1)).toBe('8.2');
     expect(hasDbcEtfQuote({ isLive: true })).toBe(false);
     expect(hasDbcEtfQuote({ price: 22.14 })).toBe(true);
+  });
+});
+
+describe('fx leftover empty-capable tiles (treasury-tic remount)', () => {
+  it('panel does not slice leftover isLive latest bags', () => {
+    const panel = src('markets/fx/components/TreasuryTicPanel.jsx');
+    expect(panel).not.toMatch(/data\.latest \|\| \[\]/);
+    expect(panel).toMatch(/ticLatestRows\(ticCtx\?\.data\)/);
+  });
+
+  it('ticLatestRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => fxTicLatestRows({ isLive: true })).not.toThrow();
+    expect(() => fxTicLatestRows({ latest: { isLive: true } })).not.toThrow();
+    expect(() => fxTicLatestRows({ latest: true })).not.toThrow();
+    expect(fxTicLatestRows({ isLive: true })).toEqual([]);
+    expect(fxTicLatestRows({ latest: { isLive: true } })).toEqual([]);
+    expect(fxTicLatestRows({ latest: true })).toEqual([]);
+    expect(() => fxTicLatestRows({ latest: { isLive: true } }).slice(0, 12)).not.toThrow();
+    expect(() => fxTicLatestRows({ latest: { isLive: true } }).reduce((s, r) => s + (r.holdingsB || 0), 0)).not.toThrow();
+    const rows = fxTicLatestRows({
+      isLive: true,
+      latest: [
+        { isLive: true },
+        { country: 'Japan', holdingsB: 1100 },
+      ],
+    });
+    expect(rows.map((r) => r.country)).toEqual([undefined, 'Japan']);
+    expect(() => rows.slice(0, 12).map((r) => r.holdingsB)).not.toThrow();
+  });
+});
+
+describe('credit leftover empty-capable tiles (treasury-credit-holdings remount)', () => {
+  it('panel does not slice leftover isLive latest bags', () => {
+    const panel = src('markets/credit/components/TreasuryCreditHoldingsPanel.jsx');
+    expect(panel).not.toMatch(/data\.latest \|\| \[\]/);
+    expect(panel).toMatch(/ticLatestRows\(ticCtx\?\.data\)/);
+  });
+
+  it('ticLatestRows skips leftover isLive bags so remount does not crash', () => {
+    expect(() => creditTicLatestRows({ isLive: true })).not.toThrow();
+    expect(() => creditTicLatestRows({ latest: { isLive: true } })).not.toThrow();
+    expect(() => creditTicLatestRows({ latest: true })).not.toThrow();
+    expect(creditTicLatestRows({ isLive: true })).toEqual([]);
+    expect(creditTicLatestRows({ latest: { isLive: true } })).toEqual([]);
+    expect(creditTicLatestRows({ latest: true })).toEqual([]);
+    expect(() => creditTicLatestRows({ latest: { isLive: true } }).slice(0, 10)).not.toThrow();
+    const rows = creditTicLatestRows({
+      isLive: true,
+      latest: [
+        { isLive: true },
+        { country: 'Japan', holdingsB: 1100 },
+      ],
+    });
+    expect(rows.map((r) => r.country)).toEqual([undefined, 'Japan']);
+    expect(() => rows.slice(0, 10).map((r) => r.holdingsB)).not.toThrow();
   });
 });

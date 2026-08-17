@@ -5,6 +5,11 @@ import SafeECharts from '../../../components/SafeECharts';
 import { useTheme } from '../../../hub/ThemeContext';
 import './TreasuryTicPanel.css';
 
+/** TIC latest rows the treasury-tic tile can slice. Leftover isLive / latest bag remount-crash .slice. */
+export function ticLatestRows(ticData) {
+  return Array.isArray(ticData?.latest) ? ticData.latest : [];
+}
+
 export function hasTreasuryTicRows(latest) {
   return Array.isArray(latest) && latest.length > 0;
 }
@@ -39,8 +44,7 @@ function shortName(country) {
 export default function TreasuryTicPanel() {
   const { colors } = useTheme();
   const ticCtx = useMarketData('treasuryTIC');
-  const data = ticCtx?.data || {};
-  const latest = data.latest || [];
+  const latest = ticLatestRows(ticCtx?.data);
 
   const topHolders = useMemo(() => latest.slice(0, 12), [latest]);
 
