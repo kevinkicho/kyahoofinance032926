@@ -24,6 +24,7 @@ import {
   hasWbTradeRows,
   hasWbDevRows,
   hasEcbEurContent,
+  ecbEurRateValue,
   hasTgaSeries,
   hasGdpNowEvolution,
   hasFomcSepProjections,
@@ -740,7 +741,7 @@ function GlobalMacroDashboard({
         ),
 
         'ecb-eur': (
-          ecbData?.policyRates ? (
+          hasEcbEurContent(ecbData) ? (
               <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 1fr', gap: 14, height: '100%' }}>
                 <div style={{ overflowY: 'auto', minHeight: 0 }}>
                   <div className="mac-sidebar-title">Policy Rates</div>
@@ -749,8 +750,9 @@ function GlobalMacroDashboard({
                     { key: 'mainRefinancing', label: 'Main Refinancing (MRR)', color: '#14b8a6' },
                     { key: 'marginalLending',  label: 'Marginal Lending (MLFR)', color: '#f59e0b' },
                   ].map(row => {
-                    const obs = ecbData.policyRates[row.key];
-                    if (!obs) return null;
+                    const obs = ecbData.policyRates?.[row.key];
+                    const rate = ecbEurRateValue(obs);
+                    if (rate == null) return null;
                     return (
                       <div key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: `1px solid ${colors.cardBg}` }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -758,7 +760,7 @@ function GlobalMacroDashboard({
                           <span style={{ color: colors.textMuted, fontSize: 9 }}>since {obs.period}</span>
                         </div>
                         <span style={{ color: row.color, fontSize: 18, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                          <MetricValue value={obs.value} seriesKey={`ecb-${row.key}`} timestamp={obs.period} format={v => v != null ? `${v.toFixed(2)}%` : '—'} />
+                          <MetricValue value={rate} seriesKey={`ecb-${row.key}`} timestamp={obs.period} format={v => v != null ? `${Number(v).toFixed(2)}%` : '—'} />
                         </span>
                       </div>
                     );
@@ -1147,7 +1149,7 @@ function GlobalMacroDashboard({
       'imf-reserves': !hasReserveRows(imfData?.countries, imfData?.ifsReserves),
       'wb-trade': !(wbData?.countries?.length > 0),
       'wb-dev': !(wbData?.countries?.length > 0),
-      'ecb-eur': !ecbData?.policyRates,
+      'ecb-eur': !hasEcbEurContent(ecbData),
       'tga-balance': !(dtsData?.series?.length > 0),
       gdpnow: !(gdpNowData?.evolution?.length > 0),
       'fomc-sep': !(sepData?.projections?.length > 0),

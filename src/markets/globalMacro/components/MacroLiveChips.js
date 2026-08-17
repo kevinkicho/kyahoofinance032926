@@ -84,13 +84,30 @@ export function hasWbDevRows(wbData) {
   return countries.filter((c) => c?.gdpPerCap != null && c?.gdpGrowth != null).length >= 2;
 }
 
-/** ECB EUR tile paints only when policyRates exists; M3/HICP siblings can set isLive. */
+function hasNumericField(obj) {
+  const v = obj?.value;
+  if (typeof v === 'number') return Number.isFinite(v);
+  if (typeof v === 'string' && v.trim() !== '') return Number.isFinite(Number(v));
+  return false;
+}
+
+/** ECB EUR rate the tile can toFixed. Leftover isLive bag remount-crash .toFixed. */
+export function ecbEurRateValue(obs) {
+  return hasNumericField(obs) ? Number(obs.value) : null;
+}
+
+/** ECB EUR tile paints policy / MM values; leftover isLive bags stay empty. */
 export function hasEcbEurContent(ecbData) {
   const pr = ecbData?.policyRates;
   if (!pr || typeof pr !== 'object') return false;
-  if (pr.depositFacility || pr.mainRefinancing || pr.marginalLending) return true;
+  if (hasNumericField(pr.depositFacility) || hasNumericField(pr.mainRefinancing) || hasNumericField(pr.marginalLending)) return true;
+  if (hasNumericField(pr.corridorWidth) || hasNumericField(pr.standingFacilitySpread)) return true;
   const mm = ecbData?.moneyMarket;
-  return !!(mm && (mm.estr || mm.euribor1m || mm.euribor3m || mm.euribor6m || mm.euribor1y));
+  if (mm && typeof mm === 'object') {
+    const keys = ['estr', 'estrP25', 'estrP75', 'estrMonthlyAvg', 'euribor1m', 'euribor3m', 'euribor6m', 'euribor1y'];
+    if (keys.some((k) => hasNumericField(mm[k]))) return true;
+  }
+  return false;
 }
 
 /** DTS series the tga-balance / global-liquidity charts can slice. Leftover isLive / series bag remount-crash .slice. */

@@ -138,6 +138,7 @@ import {
   hasWbTradeRows,
   hasWbDevRows,
   hasEcbEurContent,
+  ecbEurRateValue,
   hasTgaSeries,
   hasGdpNowEvolution,
   hasFomcSepProjections,
@@ -2634,6 +2635,58 @@ describe('macro leftover empty-capable tiles (ecb / tga / gdpnow / sep / clevela
       policyRates: { corridorWidth: { value: 0.75 } },
       moneyMarket: { estr: { value: 3.9 } },
     })).toBe(true);
+  });
+
+  it('dashboard does not remount leftover isLive policy-rate bags', () => {
+    const dash = src('markets/globalMacro/components/GlobalMacroDashboard.jsx');
+    expect(dash).not.toMatch(/ecbData\?\.policyRates \?/);
+    expect(dash).toMatch(/hasEcbEurContent\(ecbData\)/);
+    expect(dash).toMatch(/ecbEurRateValue\(obs\)/);
+  });
+
+  it('ecbEurRateValue skips leftover isLive bags so remount does not crash', () => {
+    expect(() => ecbEurRateValue({ isLive: true })).not.toThrow();
+    expect(() => ecbEurRateValue({ value: { isLive: true } })).not.toThrow();
+    expect(() => ecbEurRateValue({ value: true })).not.toThrow();
+    expect(ecbEurRateValue({ isLive: true })).toBe(null);
+    expect(ecbEurRateValue({ value: { isLive: true } })).toBe(null);
+    expect(ecbEurRateValue({ value: true })).toBe(null);
+    expect(() => {
+      const v = ecbEurRateValue({ isLive: true });
+      return v != null ? v.toFixed(2) : '—';
+    }).not.toThrow();
+    expect((() => {
+      const v = ecbEurRateValue({ value: { isLive: true } });
+      return v != null ? v.toFixed(2) : '—';
+    })()).toBe('—');
+    const leftoverDfrRealMrr = {
+      isLive: true,
+      policyRates: {
+        depositFacility: { isLive: true },
+        mainRefinancing: { value: 4.15, period: '2024-06' },
+      },
+    };
+    expect(hasEcbEurContent(leftoverDfrRealMrr)).toBe(true);
+    expect(ecbEurRateValue(leftoverDfrRealMrr.policyRates.depositFacility)).toBe(null);
+    expect(() => {
+      const v = ecbEurRateValue(leftoverDfrRealMrr.policyRates.depositFacility);
+      return v != null ? v.toFixed(2) : '—';
+    }).not.toThrow();
+    expect(ecbEurRateValue(leftoverDfrRealMrr.policyRates.mainRefinancing)).toBe(4.15);
+    expect(ecbEurRateValue({ value: 4.15 }).toFixed(2)).toBe('4.15');
+  });
+
+  it('hasEcbEurContent is false for leftover isLive policy-rate bags', () => {
+    expect(hasEcbEurContent({ policyRates: { isLive: true } })).toBe(false);
+    expect(hasEcbEurContent({ policyRates: { depositFacility: { isLive: true } } })).toBe(false);
+    expect(hasEcbEurContent({ policyRates: { depositFacility: true } })).toBe(false);
+    expect(hasEcbEurContent({
+      policyRates: { depositFacility: { isLive: true } },
+      moneyMarket: { estr: { isLive: true } },
+    })).toBe(false);
+    expect(hasEcbEurContent({
+      policyRates: { depositFacility: { value: { isLive: true } } },
+    })).toBe(false);
   });
 
   it('hasTgaSeries is false for empty / isLive-only payloads', () => {
