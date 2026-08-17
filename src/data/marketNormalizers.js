@@ -130,9 +130,10 @@ export function normalizeCommoditiesData(data = {}) {
   };
   const fromEia = (entry) => {
     if (!entry) return undefined;
-    const values = (entry.history || []).map((row) => row.value);
+    const history = Array.isArray(entry.history) ? entry.history : [];
+    const values = history.map((row) => row.value);
     return {
-      periods: (entry.history || []).map((row) => row.date),
+      periods: history.map((row) => row.date),
       values,
       avg5yr: entry.avg ?? entry._avg5yr ?? meanVals(values),
       latest: entry.value ?? (values.length ? values[values.length - 1] : null),

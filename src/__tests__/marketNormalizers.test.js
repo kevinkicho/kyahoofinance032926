@@ -37,6 +37,35 @@ describe('market normalizers', () => {
     expect(n.values.goldOilRatio.ratio).toBeCloseTo(49.3, 1);
   });
 
+  it('does not remount-crash when leftover EIA history bags are isLive-only', () => {
+    const leftover = {
+      isLive: true,
+      yahoo: { futures: { 'CL=F': { price: 84.65 }, 'GC=F': { price: 4172.9 } } },
+      eia: {
+        wti_price: { value: 84.65 },
+        crude_stocks: { history: { isLive: true } },
+        natgas_storage: { history: { isLive: true } },
+        crude_production: { isLive: true },
+        gasoline_stocks: { history: { isLive: true }, value: 230 },
+      },
+    };
+    expect(() => normalizeCommoditiesData(leftover)).not.toThrow();
+    const n = normalizeCommoditiesData(leftover);
+    expect(n.values.supplyDemandData.crudeStocks.values).toEqual([]);
+    expect(n.values.supplyDemandData.natGasStorage.values).toEqual([]);
+    expect(n.values.supplyDemandData.gasolineStocks.latest).toBe(230);
+    expect(n.values.wtiLatest).toBe(84.65);
+    const realSibling = normalizeCommoditiesData({
+      isLive: true,
+      eia: {
+        crude_stocks: { value: 450, history: [{ date: '2026-01-01', value: 440 }] },
+        natgas_storage: { history: { isLive: true } },
+      },
+    });
+    expect(realSibling.values.supplyDemandData.crudeStocks.values).toEqual([440]);
+    expect(realSibling.values.supplyDemandData.natGasStorage.values).toEqual([]);
+  });
+
   it('converts real-estate cap-rate basis points to percent display values', () => {
     const n = normalizeRealEstateData(
       { capRateData: [{ sector: 'Gaming', impliedYield: 685 }] },

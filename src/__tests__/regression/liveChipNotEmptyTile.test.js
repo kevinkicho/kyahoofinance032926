@@ -264,6 +264,7 @@ import {
 } from '../../markets/bls/components/BlsLiveChips.js';
 
 import { returnsDataAssets } from '../../markets/alerts/components/AlertsLiveChips.js';
+import { normalizeCommoditiesData } from '../../data/marketNormalizers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -5426,5 +5427,45 @@ describe('bonds leftover empty-capable tiles (credit remount)', () => {
       IG: [98, 104],
     }, 'IG');
     expect(rows).toEqual([98, 104]);
+  });
+});
+
+describe('commodities leftover empty-capable tiles (eia history remount)', () => {
+  it('normalizer does not .map leftover isLive EIA history bags', () => {
+    const normalizer = src('data/marketNormalizers.js');
+    expect(normalizer).not.toMatch(/\(entry\.history \|\| \[\]\)\.map/);
+    expect(normalizer).toMatch(/Array\.isArray\(entry\.history\) \? entry\.history : \[\]/);
+  });
+
+  it('normalizeCommoditiesData skips leftover isLive history bags so remount does not crash', () => {
+    expect(() => normalizeCommoditiesData({ isLive: true })).not.toThrow();
+    expect(() => normalizeCommoditiesData({ eia: { crude_stocks: { isLive: true } } })).not.toThrow();
+    expect(() => normalizeCommoditiesData({ eia: { crude_stocks: { history: { isLive: true } } } })).not.toThrow();
+    expect(() => normalizeCommoditiesData({ eia: { crude_stocks: { history: { isLive: true }, value: 450 } } })).not.toThrow();
+    expect(() => normalizeCommoditiesData(true)).not.toThrow();
+    expect(normalizeCommoditiesData({ eia: { crude_stocks: { history: { isLive: true } } } }).values.supplyDemandData.crudeStocks.values).toEqual([]);
+    expect(normalizeCommoditiesData({ eia: { crude_stocks: { isLive: true } } }).values.supplyDemandData.crudeStocks.values).toEqual([]);
+    const leftoverHistoryRealSibling = {
+      isLive: true,
+      yahoo: { futures: { 'CL=F': { price: 78.5 } } },
+      eia: {
+        wti_price: { value: 78.5 },
+        crude_stocks: { history: { isLive: true } },
+        natgas_storage: { value: 2600, history: [{ date: '2026-01-01', value: 2500 }] },
+      },
+    };
+    expect(() => normalizeCommoditiesData(leftoverHistoryRealSibling)).not.toThrow();
+    const n = normalizeCommoditiesData(leftoverHistoryRealSibling);
+    expect(n.values.supplyDemandData.crudeStocks.values).toEqual([]);
+    expect(n.values.supplyDemandData.natGasStorage.values).toEqual([2500]);
+    expect(n.values.wtiLatest).toBe(78.5);
+    const rows = normalizeCommoditiesData({
+      isLive: true,
+      eia: {
+        crude_stocks: { value: 450, history: [{ date: '2026-01-01', value: 440 }, { date: '2026-01-08', value: 450 }] },
+      },
+    });
+    expect(rows.values.supplyDemandData.crudeStocks.values).toEqual([440, 450]);
+    expect(rows.values.supplyDemandData.crudeStocks.latest).toBe(450);
   });
 });

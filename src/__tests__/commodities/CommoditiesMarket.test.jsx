@@ -119,4 +119,22 @@ describe('CommoditiesMarket', () => {
     expect(screen.getAllByText('— wk').length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText('+0K wk')).not.toBeInTheDocument();
   });
+
+  it('does not remount-crash when leftover EIA history bags are isLive-only', () => {
+    const leftover = {
+      ...mockCentralData,
+      isLive: true,
+      data: {
+        ...mockCentralData.data,
+        eia: {
+          wti_price: { value: 78.5 },
+          crude_stocks: { history: { isLive: true } },
+          natgas_storage: { history: { isLive: true } },
+          crude_production: { isLive: true },
+        },
+      },
+    };
+    expect(() => renderWithContext(<CommoditiesMarket centralData={leftover} />)).not.toThrow();
+    expect(screen.getAllByText(/WTI Crude/).length).toBeGreaterThan(0);
+  });
 });
